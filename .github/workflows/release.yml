@@ -9,7 +9,7 @@ on:
 
 jobs:
   check-version:
-    if: "!contains(github.ref, 'refs/tags')"
+    if: contains(github.ref, 'refs/tags') == false
     runs-on: ubuntu-latest
     outputs:
       version_changed: ${{ steps.check_version.outputs.version_changed }}
