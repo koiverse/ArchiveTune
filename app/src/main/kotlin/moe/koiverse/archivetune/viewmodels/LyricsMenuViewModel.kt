@@ -1,0 +1,91 @@
+package moe.koiverse.archivetune.viewmodels
+
+import android.content.Context
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import moe.koiverse.archivetune.db.MusicDatabase
+import moe.koiverse.archivetune.db.entities.LyricsEntity
+import moe.koiverse.archivetune.lyrics.LyricsHelper
+import moe.koiverse.archivetune.lyrics.LyricsResult
+import moe.koiverse.archivetune.models.MediaMetadata
+import moe.koiverse.archivetune.utils.NetworkConnectivityObserver
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import javax.inject.Inject
+
+@HiltViewModel
+class LyricsMenuViewModel
+@Inject
+constructor(
+    private val lyricsHelper: LyricsHelper,
+    val database: MusicDatabase,
+    private val networkConnectivity: NetworkConnectivityObserver,
+) : ViewModel() {
+    private var job: Job? = null
+    val results = MutableStateFlow(emptyList<LyricsResult>())
+    val isLoading = MutableStateFlow(false)
+
+    private val _isNetworkAvailable = MutableStateFlow(false)
+    val isNetworkAvailable: StateFlow<Boolean> = _isNetworkAvailable.asStateFlow()
+
+    init {
+        viewModelScope.launch {
+            networkConnectivity.networkStatus.collect { isConnected ->
+                _isNetworkAvailable.value = isConnected
+            }
+        }
+        
+        // Set initial state using synchronous check
+        _isNetworkAvailable.value = try {
+            networkConnectivity.isCurrentlyConnected()
+        } catch (e: Exception) {
+            true // Assume connected as fallback
+        }
+    }
+
+    fun search(
+        mediaId: String,
+        title: String,
+        artist: String,
+        duration: Int,
+    ) {
+        isLoading.value = true
+        results.value = emptyList()
+        job?.cancel()
+        job =
+            viewModelScope.launch(Dispatchers.IO) {
+                lyricsHelper.getAllLyrics(mediaId, title, artist, duration) { result ->
+                    results.update {
+                        it + result
+                    }
+                }
+                isLoading.value = false
+            }
+    }
+
+    fun cancelSearch() {
+        job?.cancel()
+        job = null
+    }
+
+    fun refetchLyrics(
+        mediaMetadata: MediaMetadata,
+        lyricsEntity: LyricsEntity?,
+    ) {
+        database.query {
+            lyricsEntity?.let(::delete)
+            val lyrics =
+                runBlocking {
+                    lyricsHelper.getLyrics(mediaMetadata)
+                }
+            upsert(LyricsEntity(mediaMetadata.id, lyrics))
+        }
+    }
+}

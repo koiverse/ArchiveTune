@@ -1,0 +1,625 @@
+package moe.koiverse.archivetune.ui.screens.settings
+
+import android.content.Intent
+import android.net.Uri
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarScrollBehavior
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.media3.common.Player.STATE_READY
+import androidx.navigation.NavController
+import coil3.compose.AsyncImage
+import moe.koiverse.archivetune.LocalPlayerAwareWindowInsets
+import moe.koiverse.archivetune.LocalPlayerConnection
+import moe.koiverse.archivetune.R
+import moe.koiverse.archivetune.constants.DiscordInfoDismissedKey
+import moe.koiverse.archivetune.constants.DiscordNameKey
+import moe.koiverse.archivetune.constants.DiscordTokenKey
+import moe.koiverse.archivetune.constants.DiscordUsernameKey
+import moe.koiverse.archivetune.constants.EnableDiscordRPCKey
+import moe.koiverse.archivetune.db.entities.Song
+import moe.koiverse.archivetune.ui.component.IconButton
+import moe.koiverse.archivetune.ui.component.PreferenceEntry
+import moe.koiverse.archivetune.ui.component.PreferenceGroupTitle
+import moe.koiverse.archivetune.ui.component.SwitchPreference
+import moe.koiverse.archivetune.ui.utils.backToMain
+import moe.koiverse.archivetune.utils.makeTimeString
+import moe.koiverse.archivetune.utils.rememberPreference
+import moe.koiverse.archivetune.constants.DiscordActivityNameKey
+import moe.koiverse.archivetune.constants.DiscordActivityDetailsKey
+import moe.koiverse.archivetune.constants.DiscordActivityStateKey
+import moe.koiverse.archivetune.constants.DiscordActivityButtonUrlKey
+import moe.koiverse.archivetune.utils.rememberEnumPreference
+import moe.koiverse.archivetune.constants.DiscordActivityButton1LabelKey
+import moe.koiverse.archivetune.constants.DiscordActivityButton1UrlKey
+import moe.koiverse.archivetune.constants.DiscordActivityButton2LabelKey
+import moe.koiverse.archivetune.constants.DiscordActivityButton2UrlKey
+import com.my.kizzy.rpc.KizzyRPC
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
+
+// Sources for Discord activity fields
+enum class ActivitySource {
+    ARTIST,
+    ALBUM,
+    SONG,
+    APP,
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun DiscordSettings(
+    navController: NavController,
+    scrollBehavior: TopAppBarScrollBehavior,
+) {
+    val playerConnection = LocalPlayerConnection.current ?: return
+    val song by playerConnection.currentSong.collectAsState(null)
+
+    val playbackState by playerConnection.playbackState.collectAsState()
+    var position by rememberSaveable(playbackState) {
+        mutableLongStateOf(playerConnection.player.currentPosition)
+    }
+
+    val coroutineScope = rememberCoroutineScope()
+
+    var discordToken by rememberPreference(DiscordTokenKey, "")
+    var discordUsername by rememberPreference(DiscordUsernameKey, "")
+    var discordName by rememberPreference(DiscordNameKey, "")
+    var infoDismissed by rememberPreference(DiscordInfoDismissedKey, false)
+
+    LaunchedEffect(discordToken) {
+        val token = discordToken
+        if (token.isEmpty()) {
+            return@LaunchedEffect
+        }
+        coroutineScope.launch(Dispatchers.IO) {
+            KizzyRPC.getUserInfo(token).onSuccess {
+                discordUsername = it.username
+                discordName = it.name
+            }
+        }
+    }
+
+    LaunchedEffect(playbackState) {
+        if (playbackState == STATE_READY) {
+            while (isActive) {
+                delay(100)
+                position = playerConnection.player.currentPosition
+            }
+        }
+    }
+
+    val (discordRPC, onDiscordRPCChange) = rememberPreference(
+        key = EnableDiscordRPCKey,
+        defaultValue = true
+    )
+
+    val isLoggedIn =
+        remember(discordToken) {
+            discordToken != ""
+        }
+
+    Column(
+        Modifier
+            .windowInsetsPadding(LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom))
+            .verticalScroll(rememberScrollState())
+    ) {
+        Spacer(
+            Modifier.windowInsetsPadding(
+                LocalPlayerAwareWindowInsets.current.only(
+                    WindowInsetsSides.Top
+                )
+            )
+        )
+
+        AnimatedVisibility(
+            visible = !infoDismissed,
+        ) {
+            Card(
+                colors =
+                CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                ),
+                modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.info),
+                    contentDescription = null,
+                    modifier = Modifier.padding(16.dp),
+                )
+
+                Text(
+                    text = stringResource(R.string.discord_information),
+                    textAlign = TextAlign.Start,
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                )
+
+                TextButton(
+                    onClick = {
+                        infoDismissed = true
+                    },
+                    modifier =
+                    Modifier
+                        .align(Alignment.End)
+                        .padding(16.dp),
+                ) {
+                    Text(stringResource(R.string.dismiss))
+                }
+            }
+        }
+
+        PreferenceGroupTitle(
+            title = stringResource(R.string.account),
+        )
+
+        PreferenceEntry(
+            title = {
+                Text(
+                    text = if (isLoggedIn) discordName else stringResource(R.string.not_logged_in),
+                    modifier = Modifier.alpha(if (isLoggedIn) 1f else 0.5f),
+                )
+            },
+            description =
+            if (discordUsername.isNotEmpty()) {
+                "@$discordUsername"
+            } else {
+                null
+            },
+            icon = { Icon(painterResource(R.drawable.discord), null) },
+            trailingContent = {
+                if (isLoggedIn) {
+                    OutlinedButton(onClick = {
+                        discordName = ""
+                        discordToken = ""
+                        discordUsername = ""
+                    }) {
+                        Text(stringResource(R.string.action_logout))
+                    }
+                } else {
+                    OutlinedButton(onClick = {
+                        navController.navigate("settings/discord/login")
+                    }) {
+                        Text(stringResource(R.string.action_login))
+                    }
+                }
+            },
+        )
+
+        PreferenceGroupTitle(
+            title = stringResource(R.string.options),
+        )
+
+        SwitchPreference(
+            title = { Text(stringResource(R.string.enable_discord_rpc)) },
+            checked = discordRPC,
+            onCheckedChange = onDiscordRPCChange,
+            isEnabled = isLoggedIn,
+        )
+
+        PreferenceGroupTitle(
+            title = stringResource(R.string.preview),
+        )
+
+            // Dropdowns to customize what is shown in the Discord activity fields.
+            enum class ActivitySource {
+                ARTIST,
+                ALBUM,
+                SONG,
+                APP,
+            }
+
+            val (nameSource, onNameSourceChange) = rememberEnumPreference(
+                key = DiscordActivityNameKey,
+                defaultValue = ActivitySource.APP
+            )
+
+            val (detailsSource, onDetailsSourceChange) = rememberEnumPreference(
+                key = DiscordActivityDetailsKey,
+                defaultValue = ActivitySource.SONG
+            )
+
+            val (stateSource, onStateSourceChange) = rememberEnumPreference(
+                key = DiscordActivityStateKey,
+                defaultValue = ActivitySource.ARTIST
+            )
+
+            val (buttonUrlSource, onButtonUrlSourceChange) = rememberEnumPreference(
+                key = DiscordActivityButtonUrlKey,
+                defaultValue = ActivitySource.SONG
+            )
+
+            PreferenceEntry(
+                title = { Text(stringResource(R.string.discord_activity_name)) },
+                description = { Text(nameSource.name) },
+                icon = { Icon(painterResource(R.drawable.discord), null) },
+                trailingContent = {
+                    TextButton(onClick = {
+                        // cycle selection as a simple control
+                        val next = ActivitySource.values()[(nameSource.ordinal + 1) % ActivitySource.values().size]
+                        onNameSourceChange(next)
+                    }) { Text(nameSource.name) }
+                }
+            )
+
+            PreferenceEntry(
+                title = { Text(stringResource(R.string.discord_activity_details)) },
+                description = { Text(detailsSource.name) },
+                icon = { Icon(painterResource(R.drawable.info), null) },
+                trailingContent = {
+                    TextButton(onClick = {
+                        val next = ActivitySource.values()[(detailsSource.ordinal + 1) % ActivitySource.values().size]
+                        onDetailsSourceChange(next)
+                    }) { Text(detailsSource.name) }
+                }
+            )
+
+            PreferenceEntry(
+                title = { Text(stringResource(R.string.discord_activity_state)) },
+                description = { Text(stateSource.name) },
+                icon = { Icon(painterResource(R.drawable.info), null) },
+                trailingContent = {
+                    TextButton(onClick = {
+                        val next = ActivitySource.values()[(stateSource.ordinal + 1) % ActivitySource.values().size]
+                        onStateSourceChange(next)
+                    }) { Text(stateSource.name) }
+                }
+            )
+
+            PreferenceEntry(
+                title = { Text(stringResource(R.string.discord_activity_button_url)) },
+                description = { Text(buttonUrlSource.name) },
+                icon = { Icon(painterResource(R.drawable.link), null) },
+                trailingContent = {
+                    TextButton(onClick = {
+                        val next = ActivitySource.values()[(buttonUrlSource.ordinal + 1) % ActivitySource.values().size]
+                        onButtonUrlSourceChange(next)
+                    }) { Text(buttonUrlSource.name) }
+                }
+            )
+
+            // Customizable button labels and URLs (optional)
+            val (button1Label, onButton1LabelChange) = rememberPreference(
+                key = DiscordActivityButton1LabelKey,
+                defaultValue = "Listen on YouTube Music"
+            )
+
+            val (button1Url, onButton1UrlChange) = rememberPreference(
+                key = DiscordActivityButton1UrlKey,
+                defaultValue = ""
+            )
+
+            val (button2Label, onButton2LabelChange) = rememberPreference(
+                key = DiscordActivityButton2LabelKey,
+                defaultValue = "View Album"
+            )
+
+            val (button2Url, onButton2UrlChange) = rememberPreference(
+                key = DiscordActivityButton2UrlKey,
+                defaultValue = ""
+            )
+
+            PreferenceEntry(
+                title = { Text(stringResource(R.string.discord_activity_button1_label)) },
+                description = { Text(button1Label) },
+                icon = { Icon(painterResource(R.drawable.play), null) },
+                trailingContent = {
+                    TextButton(onClick = {
+                        // open a dialog to edit in full app; cycle as quick inline edit not provided here
+                        onButton1LabelChange(if (button1Label.isEmpty()) "Listen on YouTube Music" else "")
+                    }) { Text("Edit") }
+                }
+            )
+
+            PreferenceEntry(
+                title = { Text(stringResource(R.string.discord_activity_button1_url)) },
+                description = { Text(if (button1Url.isEmpty()) stringResource(R.string.default_) else button1Url) },
+                icon = { Icon(painterResource(R.drawable.link), null) },
+                trailingContent = {
+                    TextButton(onClick = {
+                        onButton1UrlChange(if (button1Url.isEmpty()) "" else "")
+                    }) { Text("Edit") }
+                }
+            )
+
+            PreferenceEntry(
+                title = { Text(stringResource(R.string.discord_activity_button2_label)) },
+                description = { Text(button2Label) },
+                icon = { Icon(painterResource(R.drawable.info), null) },
+                trailingContent = {
+                    TextButton(onClick = {
+                        onButton2LabelChange(if (button2Label.isEmpty()) "View Album" else "")
+                    }) { Text("Edit") }
+                }
+            )
+
+            PreferenceEntry(
+                title = { Text(stringResource(R.string.discord_activity_button2_url)) },
+                description = { Text(if (button2Url.isEmpty()) stringResource(R.string.default_) else button2Url) },
+                icon = { Icon(painterResource(R.drawable.link), null) },
+                trailingContent = {
+                    TextButton(onClick = {
+                        onButton2UrlChange(if (button2Url.isEmpty()) "" else "")
+                    }) { Text("Edit") }
+                }
+            )
+
+            RichPresence(song, position, nameSource, detailsSource, stateSource, buttonUrlSource)
+    }
+
+    TopAppBar(
+        title = { Text(stringResource(R.string.discord_integration)) },
+        navigationIcon = {
+            IconButton(
+                onClick = navController::navigateUp,
+                onLongClick = navController::backToMain,
+            ) {
+                Icon(
+                    painterResource(R.drawable.arrow_back),
+                    contentDescription = null,
+                )
+            }
+        }
+    )
+}
+
+@Composable
+fun RichPresence(
+    song: Song?,
+    currentPlaybackTimeMillis: Long = 0L,
+    nameSource: ActivitySource = ActivitySource.APP,
+    detailsSource: ActivitySource = ActivitySource.SONG,
+    stateSource: ActivitySource = ActivitySource.ARTIST,
+    buttonUrlSource: ActivitySource = ActivitySource.SONG,
+) {
+    val context = LocalContext.current
+
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        shape = MaterialTheme.shapes.medium,
+        shadowElevation = 6.dp,
+        modifier =
+        Modifier
+            .padding(16.dp)
+            .fillMaxWidth(),
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Text(
+                text = when (nameSource) {
+                    ActivitySource.ARTIST -> song?.artists?.firstOrNull()?.name ?: "ArchiveTune"
+                    ActivitySource.ALBUM -> song?.album?.title ?: "ArchiveTune"
+                    ActivitySource.SONG -> song?.song?.title ?: "ArchiveTune"
+                    ActivitySource.APP -> "ArchiveTune"
+                },
+                style = MaterialTheme.typography.labelLarge,
+                textAlign = TextAlign.Start,
+                fontWeight = FontWeight.ExtraBold,
+                modifier = Modifier.fillMaxWidth(),
+            )
+
+            Spacer(Modifier.height(16.dp))
+
+            Row(
+                verticalAlignment = Alignment.Top,
+            ) {
+                Box(
+                    Modifier.size(108.dp),
+                ) {
+                    AsyncImage(
+                        model = song?.song?.thumbnailUrl,
+                        contentDescription = null,
+                        modifier =
+                        Modifier
+                            .size(96.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .align(Alignment.TopStart)
+                            .run {
+                                if (song == null) {
+                                    border(
+                                        2.dp,
+                                        MaterialTheme.colorScheme.onSurface,
+                                        RoundedCornerShape(12.dp)
+                                    )
+                                } else {
+                                    this
+                                }
+                            },
+                    )
+
+                    song?.artists?.firstOrNull()?.thumbnailUrl?.let {
+                        Box(
+                            modifier =
+                            Modifier
+                                .border(
+                                    2.dp,
+                                    MaterialTheme.colorScheme.surfaceContainer,
+                                    CircleShape
+                                )
+                                .padding(2.dp)
+                                .align(Alignment.BottomEnd),
+                        ) {
+                            AsyncImage(
+                                model = it,
+                                contentDescription = null,
+                                modifier =
+                                Modifier
+                                    .size(32.dp)
+                                    .clip(CircleShape),
+                            )
+                        }
+                    }
+                }
+
+                Column(
+                    modifier =
+                    Modifier
+                        .weight(1f)
+                        .padding(horizontal = 6.dp),
+                ) {
+                    Text(
+                        text = song?.song?.title ?: "Song Title",
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+
+                    Text(
+                        text = song?.artists?.joinToString { it.name } ?: "Artist",
+                        color = MaterialTheme.colorScheme.secondary,
+                        fontSize = 16.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+
+                    song?.album?.title?.let {
+                        Text(
+                            text = it,
+                            color = MaterialTheme.colorScheme.secondary,
+                            fontSize = 16.sp,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+
+                    if (song != null) {
+                        SongProgressBar(
+                            currentTimeMillis = currentPlaybackTimeMillis,
+                            durationMillis = song.song.duration.times(1000L),
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            OutlinedButton(
+                enabled = song != null,
+                onClick = {
+                    val intent = Intent(
+                        Intent.ACTION_VIEW,
+                        Uri.parse("https://music.youtube.com/watch?v=${song?.id}")
+                    )
+                    context.startActivity(intent)
+                },
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text("Listen on YouTube Music")
+            }
+
+            OutlinedButton(
+                onClick = {
+                    val albumUrl = when (buttonUrlSource) {
+                        ActivitySource.ALBUM -> song?.album?.playlistId?.let { pid ->
+                            "https://music.youtube.com/playlist?list=$pid"
+                        }
+                        ActivitySource.ARTIST -> song?.artists?.firstOrNull()?.let {
+                            // no artist url available; fallback to song url
+                            "https://music.youtube.com/watch?v=${song?.id}"
+                        }
+                        ActivitySource.SONG -> "https://music.youtube.com/watch?v=${song?.id}"
+                        ActivitySource.APP -> "https://music.youtube.com/watch?v=${song?.id}"
+                    } ?: "https://music.youtube.com/watch?v=${song?.id}"
+
+                    val intent = Intent(
+                        Intent.ACTION_VIEW,
+                        Uri.parse(albumUrl)
+                    )
+                    context.startActivity(intent)
+                },
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text("View Album")
+            }
+        }
+    }
+}
+
+@Composable
+fun SongProgressBar(currentTimeMillis: Long, durationMillis: Long) {
+    val progress = if (durationMillis > 0) currentTimeMillis.toFloat() / durationMillis else 0f
+
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Spacer(modifier = Modifier.height(16.dp))
+
+        LinearProgressIndicator(
+            progress = { progress },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(6.dp)
+                .clip(RoundedCornerShape(3.dp))
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = makeTimeString(currentTimeMillis),
+                modifier = Modifier.weight(1f),
+                textAlign = TextAlign.Start,
+                fontSize = 12.sp
+            )
+            Text(
+                text = makeTimeString(durationMillis),
+                modifier = Modifier.weight(1f),
+                textAlign = TextAlign.End,
+                fontSize = 12.sp
+            )
+        }
+
+    }
+}
