@@ -11,4 +11,7 @@
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
     </style>
+    
+    <!-- Backwards-compatible alias for older manifest references -->
+    <style name="Theme.ArchiveTune" parent="Theme.Metrolist" />
 </resources>
