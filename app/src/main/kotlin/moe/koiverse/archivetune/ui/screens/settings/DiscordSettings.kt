@@ -7,6 +7,8 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -341,6 +343,7 @@ fun DiscordSettings(
         if (button1Enabled) {
             EditablePreference(
                 title = stringResource(R.string.discord_activity_button1_url),
+                description = stringResource(R.string.button1_url_description),
                 iconRes = R.drawable.link,
                 value = button1Url,
                 defaultValue = "",
@@ -365,6 +368,7 @@ fun DiscordSettings(
         if (button2Enabled) {
             EditablePreference(
                 title = stringResource(R.string.discord_activity_button2_url),
+                description = stringResource(R.string.button2_url_description),
                 iconRes = R.drawable.link,
                 value = button2Url,
                 defaultValue = "",
@@ -384,7 +388,7 @@ fun DiscordSettings(
                 modifier = Modifier
                     .fillMaxWidth()
                     .menuAnchor()
-                    .clickable { activityExpanded = true }
+                    .pointerInput(Unit) { detectTapGestures { activityExpanded = true } }
                     .padding(horizontal = 13.dp, vertical = 16.dp),
                 leadingIcon = { Icon(painterResource(R.drawable.discord), null) }
             )
@@ -437,7 +441,7 @@ fun DiscordSettings(
                 modifier = Modifier
                     .fillMaxWidth()
                     .menuAnchor()
-                    .clickable { largeImageExpanded = true }
+                    .pointerInput(Unit) { detectTapGestures { largeImageExpanded = true } }
                     .padding(horizontal = 13.dp, vertical = 16.dp),
                 leadingIcon = { Icon(painterResource(R.drawable.info), null) }
             )
@@ -475,7 +479,7 @@ fun DiscordSettings(
                 modifier = Modifier
                     .fillMaxWidth()
                     .menuAnchor()
-                    .clickable { smallImageExpanded = true }
+                    .pointerInput(Unit) { detectTapGestures { smallImageExpanded = true } }
                     .padding(horizontal = 10.dp, vertical = 10.dp),
                 leadingIcon = { Icon(painterResource(R.drawable.info), null) }
             )
@@ -513,7 +517,9 @@ fun DiscordSettings(
             largeImageType,
             largeImageCustomUrl,
             smallImageType,
-            smallImageCustomUrl
+            smallImageCustomUrl,
+            button1Enabled,
+            button2Enabled
         )
     }
 
@@ -582,12 +588,13 @@ fun EditablePreference(
     iconRes: Int,
     value: String,
     defaultValue: String,
-    onValueChange: (String) -> Unit
+    onValueChange: (String) -> Unit,
+    description: String? = null,
 ) {
     var showDialog by remember { mutableStateOf(false) }
     PreferenceEntry(
         title = { Text(title) },
-        description = if (value.isEmpty()) defaultValue else value,
+        description = description ?: if (value.isEmpty()) defaultValue else value,
         icon = { Icon(painterResource(iconRes), null) },
         trailingContent = {
             TextButton(onClick = { showDialog = true }) { Text("Edit") }
@@ -633,6 +640,8 @@ fun RichPresence(
     largeImageCustomUrl: String = "",
     smallImageType: String = "artist",
     smallImageCustomUrl: String = "",
+    button1Enabled: Boolean = true,
+    button2Enabled: Boolean = true,
 ) {
     val context = LocalContext.current
 
@@ -785,7 +794,7 @@ fun RichPresence(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    if (resolvedButton1Url != null) {
+                    if (button1Enabled && resolvedButton1Url != null) {
                         OutlinedButton(
                             enabled = song != null,
                             onClick = {
@@ -797,7 +806,7 @@ fun RichPresence(
                         }
                     }
 
-                    if (resolvedButton2Url != null) {
+                    if (button2Enabled && resolvedButton2Url != null) {
                         OutlinedButton(
                             enabled = song != null,
                             onClick = {
