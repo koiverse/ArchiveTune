@@ -200,6 +200,7 @@ fun DiscordSettings(
             title = { Text(stringResource(R.string.refresh)) },
             description = stringResource(R.string.description_refresh),
             icon = { Icon(painterResource(R.drawable.update), null) },
+            isEnabled = isLoggedIn,
             trailingContent = {
                 IconButton(onClick = {
                     // trigger update in background
@@ -243,25 +244,29 @@ fun DiscordSettings(
             title = stringResource(R.string.discord_activity_name),
             iconRes = R.drawable.discord,
             selected = nameSource,
-            onChange = onNameSourceChange
+            onChange = onNameSourceChange,
+            isEnabled = isLoggedIn
         )
         ActivitySourceDropdown(
             title = stringResource(R.string.discord_activity_details),
             iconRes = R.drawable.info,
             selected = detailsSource,
-            onChange = onDetailsSourceChange
+            onChange = onDetailsSourceChange,
+            isEnabled = isLoggedIn
         )
         ActivitySourceDropdown(
             title = stringResource(R.string.discord_activity_state),
             iconRes = R.drawable.info,
             selected = stateSource,
-            onChange = onStateSourceChange
+            onChange = onStateSourceChange,
+            isEnabled = isLoggedIn
         )
         ActivitySourceDropdown(
             title = stringResource(R.string.discord_activity_button_url),
             iconRes = R.drawable.link,
             selected = buttonUrlSource,
-            onChange = onButtonUrlSourceChange
+            onChange = onButtonUrlSourceChange,
+            isEnabled = isLoggedIn
         )
 
         val (button1Label, onButton1LabelChange) = rememberPreference(
@@ -303,12 +308,14 @@ fun DiscordSettings(
             iconRes = R.drawable.play,
             value = button1Label,
             defaultValue = "Listen on YouTube Music",
-            onValueChange = onButton1LabelChange
+            onValueChange = onButton1LabelChange,
+            isEnabled = isLoggedIn,
         )
         PreferenceEntry(
             title = { Text(stringResource(R.string.show_button)) },
             description = stringResource(R.string.show_button1_description),
             icon = { Icon(painterResource(R.drawable.play), null) },
+            isEnabled = isLoggedIn,
             trailingContent = {
                 Switch(checked = button1Enabled, onCheckedChange = onButton1EnabledChange)
             }
@@ -318,6 +325,7 @@ fun DiscordSettings(
                 title = stringResource(R.string.discord_activity_button1_url),
                 iconRes = R.drawable.link,
                 value = button1Url,
+                isEnabled = isLoggedIn,
                 defaultValue = "",
                 onValueChange = onButton1UrlChange
             )
@@ -327,12 +335,14 @@ fun DiscordSettings(
             iconRes = R.drawable.info,
             value = button2Label,
             defaultValue = "View Album",
-            onValueChange = onButton2LabelChange
+            onValueChange = onButton2LabelChange,
+            isEnabled = isLoggedIn
         )
         PreferenceEntry(
             title = { Text(stringResource(R.string.show_button)) },
             description = stringResource(R.string.show_button2_description),
             icon = { Icon(painterResource(R.drawable.info), null) },
+            isEnabled = isLoggedIn,
             trailingContent = {
                 Switch(checked = button2Enabled, onCheckedChange = onButton2EnabledChange)
             }
@@ -342,6 +352,7 @@ fun DiscordSettings(
                 title = stringResource(R.string.discord_activity_button2_url),
                 iconRes = R.drawable.link,
                 value = button2Url,
+                isEnabled = isLoggedIn,
                 defaultValue = "",
                 onValueChange = onButton2UrlChange
             )
@@ -360,7 +371,7 @@ fun DiscordSettings(
                     .fillMaxWidth()
                     .menuAnchor()
                     .clickable { activityExpanded = true }
-                    .padding(horizontal = 16.dp),
+                    .padding(horizontal = 10.dp, vertical = 10.dp),
                 leadingIcon = { Icon(painterResource(R.drawable.discord), null) }
             )
             ExposedDropdownMenu(expanded = activityExpanded, onDismissRequest = { activityExpanded = false }) {
@@ -407,7 +418,7 @@ fun DiscordSettings(
                     .fillMaxWidth()
                     .menuAnchor()
                     .clickable { largeImageExpanded = true }
-                    .padding(horizontal = 16.dp),
+                    .padding(horizontal = 10.dp, vertical = 10.dp),
                 leadingIcon = { Icon(painterResource(R.drawable.info), null) }
             )
             ExposedDropdownMenu(expanded = largeImageExpanded, onDismissRequest = { largeImageExpanded = false }) {
@@ -429,7 +440,8 @@ fun DiscordSettings(
                 iconRes = R.drawable.link,
                 value = largeImageCustomUrl,
                 defaultValue = "",
-                onValueChange = onLargeImageCustomUrlChange
+                onValueChange = onLargeImageCustomUrlChange,
+                isEnabled = isLoggedIn
             )
         }
 
@@ -445,7 +457,7 @@ fun DiscordSettings(
                     .fillMaxWidth()
                     .menuAnchor()
                     .clickable { smallImageExpanded = true }
-                    .padding(horizontal = 16.dp),
+                    .padding(horizontal = 10.dp, vertical = 10.dp),
                 leadingIcon = { Icon(painterResource(R.drawable.info), null) }
             )
             ExposedDropdownMenu(expanded = smallImageExpanded, onDismissRequest = { smallImageExpanded = false }) {
@@ -467,7 +479,8 @@ fun DiscordSettings(
                 iconRes = R.drawable.link,
                 value = smallImageCustomUrl,
                 defaultValue = "",
-                onValueChange = onSmallImageCustomUrlChange
+                onValueChange = onSmallImageCustomUrlChange,
+                isEnabled = isLoggedIn
             )
         }
 
