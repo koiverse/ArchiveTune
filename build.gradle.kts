@@ -19,6 +19,10 @@ tasks.register<Delete>("clean") {
     delete(rootProject.layout.buildDirectory)
 }
 
+kotlinOptions {
+    freeCompilerArgs += "-opt-in=androidx.compose.material3.ExperimentalMaterial3Api"
+}
+
 subprojects {
     tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
         compilerOptions {
