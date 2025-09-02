@@ -98,7 +98,7 @@ jobs:
         run: |
           mkdir -p app/build/outputs/apk/${{ matrix.abi }}/release/out
           if [ "${{ matrix.abi }}" = "universal" ]; then
-            find app/build/outputs/apk/${{ matrix.abi }}/release/ -name "*-signed.apk" -o -name "*-unsigned-signed.apk" | xargs -I{} mv {} app/build/outputs/apk/${{ matrix.abi }}/release/out/Metrolist.apk
+            find app/build/outputs/apk/${{ matrix.abi }}/release/ -name "*-signed.apk" -o -name "*-unsigned-signed.apk" | xargs -I{} mv {} app/build/outputs/apk/${{ matrix.abi }}/release/out/ArchiveTune.apk
           else
             find app/build/outputs/apk/${{ matrix.abi }}/release/ -name "*-signed.apk" -o -name "*-unsigned-signed.apk" | xargs -I{} mv {} app/build/outputs/apk/${{ matrix.abi }}/release/out/app-${{ matrix.abi }}-release.apk
           fi
@@ -106,8 +106,8 @@ jobs:
       - name: Upload Signed APKs
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.abi == 'universal' && 'Metrolist' || format('app-{0}-release', matrix.abi) }}
-          path: app/build/outputs/apk/${{ matrix.abi }}/release/out/${{ matrix.abi == 'universal' && 'Metrolist.apk' || format('app-{0}-release.apk', matrix.abi) }}
+          name: ${{ matrix.abi == 'universal' && 'ArchiveTune' || format('app-{0}-release', matrix.abi) }}
+          path: app/build/outputs/apk/${{ matrix.abi }}/release/out/${{ matrix.abi == 'universal' && 'ArchiveTune.apk' || format('app-{0}-release.apk', matrix.abi) }}
 
   create-release:
     needs: [check-version, build]
@@ -125,7 +125,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
         run: |
-          UNIVERSAL_APK=$(find downloaded_artifacts/Metrolist -name "*.apk")
+          UNIVERSAL_APK=$(find downloaded_artifacts/ArchiveTune -name "*.apk")
           ABI_APKS=$(find downloaded_artifacts -path "*/app-*-release/*.apk")
           
           gh release create "v${{ needs.check-version.outputs.new_version }}" \

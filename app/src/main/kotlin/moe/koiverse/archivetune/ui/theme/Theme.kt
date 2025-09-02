@@ -26,7 +26,7 @@ val DefaultThemeColor = Color(0xFFED5564)
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-fun MetrolistTheme(
+fun ArchiveTuneTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     pureBlack: Boolean = false,
     themeColor: Color = DefaultThemeColor,

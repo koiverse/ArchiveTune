@@ -3,7 +3,7 @@
 <!-- Upstream InnerTune strings -->
 <!-- Do not add new features here -->
 <!-- Try to re-use strings here, but be careful on its usage e.g. verb vs noun -->
-<!-- "InnerTune" is replaced with "Metrolist" -->
+<!-- "InnerTune" is replaced with "ArchiveTune" -->
 <!-- Translators: Do not modify this file for translations, use InnerTune's Weblate instead. -->
 
 <resources>
@@ -328,7 +328,7 @@
     <string name="restore_failed">Failed to restore backup</string>
 
     <string name="discord_integration">Discord Integration</string>
-    <string name="discord_information">Metrolist uses the KizzyRPC library to set your Discord account\'s status. This involves using the Discord Gateway connection, which may be considered a violation of Discord\'s TOS. However, there are no known cases of user accounts being suspended for this reason. Use at your own risk.\n\Metrolist will only extract your token, and everything else is stored locally.</string>
+    <string name="discord_information">ArchiveTune uses the KizzyRPC library to set your Discord account\'s status. This involves using the Discord Gateway connection, which may be considered a violation of Discord\'s TOS. However, there are no known cases of user accounts being suspended for this reason. Use at your own risk.\n\ArchiveTune will only extract your token, and everything else is stored locally.</string>
     <string name="dismiss">Dismiss</string>
     <string name="options">Options</string>
     <string name="preview">Preview</string>

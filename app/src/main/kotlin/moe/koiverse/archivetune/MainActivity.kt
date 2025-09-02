@@ -165,7 +165,7 @@ import moe.koiverse.archivetune.ui.screens.settings.DarkMode
 import moe.koiverse.archivetune.ui.screens.settings.NavigationTab
 import moe.koiverse.archivetune.ui.theme.ColorSaver
 import moe.koiverse.archivetune.ui.theme.DefaultThemeColor
-import moe.koiverse.archivetune.ui.theme.MetrolistTheme
+import moe.koiverse.archivetune.ui.theme.ArchiveTuneTheme
 import moe.koiverse.archivetune.ui.theme.extractThemeColor
 import moe.koiverse.archivetune.ui.utils.appBarScrollBehavior
 import moe.koiverse.archivetune.ui.utils.backToMain
@@ -351,7 +351,7 @@ class MainActivity : ComponentActivity() {
                 }
             }
 
-            MetrolistTheme(
+            ArchiveTuneTheme(
                 darkTheme = useDarkTheme,
                 pureBlack = pureBlack,
                 themeColor = themeColor,
