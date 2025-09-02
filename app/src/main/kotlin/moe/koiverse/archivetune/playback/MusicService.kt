@@ -760,30 +760,35 @@ class MusicService :
 
     fun startRadioSeamlessly() {
         val currentMediaMetadata = player.currentMetadata ?: return
-        
-        // Save current song
-        val currentSong = player.currentMediaItem
-        
-        // Remove other songs from queue
-        if (player.currentMediaItemIndex > 0) {
-            player.removeMediaItems(0, player.currentMediaItemIndex)
-        }
-        if (player.currentMediaItemIndex < player.mediaItemCount - 1) {
-            player.removeMediaItems(player.currentMediaItemIndex + 1, player.mediaItemCount)
-        }
-        
+
+        // Capture current player state so we can restore position/play state
+        val currentSong = player.currentMediaItem ?: return
+        val currentPosition = player.currentPosition
+        val wasPlayWhenReady = player.playWhenReady
+
         scope.launch(SilentHandler) {
             val radioQueue = YouTubeQueue(
                 endpoint = WatchEndpoint(videoId = currentMediaMetadata.id)
             )
             val initialStatus = radioQueue.getInitialStatus()
-            
+
             if (initialStatus.title != null) {
                 queueTitle = initialStatus.title
             }
-            
-            // Add radio songs after current song
-            player.addMediaItems(initialStatus.items.drop(1))
+
+            // Build a new media list: keep current song as first item, then append radio items
+            val radioItems = initialStatus.items.drop(1)
+            val newItems = mutableListOf<MediaItem>()
+            newItems.add(currentSong)
+            newItems.addAll(radioItems)
+
+            if (newItems.isNotEmpty()) {
+                // Replace player's playlist with current + radio items and restore position
+                player.setMediaItems(newItems, 0, currentPosition)
+                player.prepare()
+                player.playWhenReady = wasPlayWhenReady
+            }
+
             currentQueue = radioQueue
         }
     }
@@ -999,7 +1004,9 @@ class MusicService :
             // Also update when the media item changes, even if isPlaying doesn't change
             if (player.isPlaying) {
                 currentSong.value?.let { song ->
-                    discordRpc?.updateSong(song, player.currentPosition)
+                    scope.launch {
+                        discordRpc?.updateSong(song, player.currentPosition)
+                    }
                 }
             }
         }
