@@ -582,7 +582,7 @@ fun ArtistScreen(
                                     onClick = section.moreEndpoint?.let {
                                         {
                                             navController.navigate(
-                                                "artist/${viewModel.artistId}/items?browseId=${it.browseId}?params=${it.params}",
+                                                "artist/${viewModel.artistId}/items?browseId=${it.browseId}&params=${it.params}",
                                             )
                                         }
                                     },
