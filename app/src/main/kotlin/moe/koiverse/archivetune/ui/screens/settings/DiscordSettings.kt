@@ -341,7 +341,6 @@ fun DiscordSettings(
         if (button1Enabled) {
             EditablePreference(
                 title = stringResource(R.string.discord_activity_button1_url),
-                description = stringResource(R.string.button1_url_description),
                 iconRes = R.drawable.link,
                 value = button1Url,
                 defaultValue = "",
@@ -366,7 +365,6 @@ fun DiscordSettings(
         if (button2Enabled) {
             EditablePreference(
                 title = stringResource(R.string.discord_activity_button2_url),
-                description = stringResource(R.string.button2_url_description),
                 iconRes = R.drawable.link,
                 value = button2Url,
                 defaultValue = "",
@@ -545,7 +543,7 @@ fun ActivitySourceDropdown(
         onExpandedChange = { expanded = it },
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp) // 👈 add vertical spacing between fields
+            .padding(vertical = 13.dp) // 👈 add vertical spacing between fields
     ) {
         TextField(
             value = selected.name,
