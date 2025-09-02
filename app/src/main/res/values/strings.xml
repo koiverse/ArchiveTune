@@ -345,10 +345,8 @@
     <string name="discord_activity_button_url">Button URL source</string>
     <string name="discord_activity_button1_label">Button 1 label</string>
     <string name="discord_activity_button1_url">Button 1 URL</string>
-    <string name="button1_url_description">The URL that Button 1 (Leave Blank for Default)</string>
     <string name="discord_activity_button2_label">Button 2 label</string>
     <string name="discord_activity_button2_url">Button 2 URL</string>
-    <string name="button2_url_description">The URL that Button 2 (Leave Blank for Default)</string>
 
     <!-- Discord settings additions -->
     <string name="discord_button_options">Button Options</string>
