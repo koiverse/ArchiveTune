@@ -995,6 +995,13 @@ class MusicService :
                     discordRpc?.stopActivity()
                 }
             }
+        } else if (events.contains(Player.EVENT_MEDIA_ITEM_TRANSITION)) {
+            // Also update when the media item changes, even if isPlaying doesn't change
+            if (player.isPlaying) {
+                currentSong.value?.let { song ->
+                    discordRpc?.updateSong(song, player.currentPosition)
+                }
+            }
         }
     }
 
