@@ -199,28 +199,27 @@ fun DiscordSettings(
         PreferenceEntry(
             title = { Text(stringResource(R.string.refresh)) },
             description = stringResource(R.string.description_refresh),
-            icon = { Icon(painterResource(R.drawable.update), null) },
             isEnabled = isLoggedIn,
             trailingContent = {
-                IconButton(onClick = {
-                    // trigger update in background
-                    coroutineScope.launch(Dispatchers.IO) {
-                        val token = discordToken
-                        if (token.isNotBlank()) {
-                            try {
-                                val rpc = DiscordRPC(context, token)
-                                song?.let { rpc.updateSong(it, position) }
-                                coroutineScope.launch(Dispatchers.Main) {
-                                    android.widget.Toast.makeText(context, "Discord RPC refreshed!", android.widget.Toast.LENGTH_SHORT).show()
-                                }
-                            } catch (_: Exception) {
-                                // ignore
-                            }
-                        }
+            OutlinedButton(onClick = {
+                // trigger update in background
+                coroutineScope.launch(Dispatchers.IO) {
+                val token = discordToken
+                if (token.isNotBlank()) {
+                    try {
+                    val rpc = DiscordRPC(context, token)
+                    song?.let { rpc.updateSong(it, position) }
+                    coroutineScope.launch(Dispatchers.Main) {
+                        android.widget.Toast.makeText(context, "Discord RPC refreshed!", android.widget.Toast.LENGTH_SHORT).show()
                     }
-                }) {
-                    Icon(painterResource(R.drawable.update), contentDescription = null)
+                    } catch (_: Exception) {
+                    // ignore
+                    }
                 }
+                }
+            }) {
+                Icon(painterResource(R.drawable.update), contentDescription = null)
+            }
             }
         )
 
@@ -244,29 +243,25 @@ fun DiscordSettings(
             title = stringResource(R.string.discord_activity_name),
             iconRes = R.drawable.discord,
             selected = nameSource,
-            onChange = onNameSourceChange,
-            isEnabled = isLoggedIn
+            onChange = onNameSourceChange
         )
         ActivitySourceDropdown(
             title = stringResource(R.string.discord_activity_details),
             iconRes = R.drawable.info,
             selected = detailsSource,
-            onChange = onDetailsSourceChange,
-            isEnabled = isLoggedIn
+            onChange = onDetailsSourceChange
         )
         ActivitySourceDropdown(
             title = stringResource(R.string.discord_activity_state),
             iconRes = R.drawable.info,
             selected = stateSource,
-            onChange = onStateSourceChange,
-            isEnabled = isLoggedIn
+            onChange = onStateSourceChange
         )
         ActivitySourceDropdown(
             title = stringResource(R.string.discord_activity_button_url),
             iconRes = R.drawable.link,
             selected = buttonUrlSource,
-            onChange = onButtonUrlSourceChange,
-            isEnabled = isLoggedIn
+            onChange = onButtonUrlSourceChange
         )
 
         val (button1Label, onButton1LabelChange) = rememberPreference(
@@ -308,14 +303,12 @@ fun DiscordSettings(
             iconRes = R.drawable.play,
             value = button1Label,
             defaultValue = "Listen on YouTube Music",
-            onValueChange = onButton1LabelChange,
-            isEnabled = isLoggedIn,
+            onValueChange = onButton1LabelChange
         )
         PreferenceEntry(
             title = { Text(stringResource(R.string.show_button)) },
             description = stringResource(R.string.show_button1_description),
             icon = { Icon(painterResource(R.drawable.play), null) },
-            isEnabled = isLoggedIn,
             trailingContent = {
                 Switch(checked = button1Enabled, onCheckedChange = onButton1EnabledChange)
             }
@@ -325,7 +318,6 @@ fun DiscordSettings(
                 title = stringResource(R.string.discord_activity_button1_url),
                 iconRes = R.drawable.link,
                 value = button1Url,
-                isEnabled = isLoggedIn,
                 defaultValue = "",
                 onValueChange = onButton1UrlChange
             )
@@ -335,14 +327,12 @@ fun DiscordSettings(
             iconRes = R.drawable.info,
             value = button2Label,
             defaultValue = "View Album",
-            onValueChange = onButton2LabelChange,
-            isEnabled = isLoggedIn
+            onValueChange = onButton2LabelChange
         )
         PreferenceEntry(
             title = { Text(stringResource(R.string.show_button)) },
             description = stringResource(R.string.show_button2_description),
             icon = { Icon(painterResource(R.drawable.info), null) },
-            isEnabled = isLoggedIn,
             trailingContent = {
                 Switch(checked = button2Enabled, onCheckedChange = onButton2EnabledChange)
             }
@@ -352,7 +342,6 @@ fun DiscordSettings(
                 title = stringResource(R.string.discord_activity_button2_url),
                 iconRes = R.drawable.link,
                 value = button2Url,
-                isEnabled = isLoggedIn,
                 defaultValue = "",
                 onValueChange = onButton2UrlChange
             )
@@ -441,7 +430,6 @@ fun DiscordSettings(
                 value = largeImageCustomUrl,
                 defaultValue = "",
                 onValueChange = onLargeImageCustomUrlChange,
-                isEnabled = isLoggedIn
             )
         }
 
@@ -480,7 +468,6 @@ fun DiscordSettings(
                 value = smallImageCustomUrl,
                 defaultValue = "",
                 onValueChange = onSmallImageCustomUrlChange,
-                isEnabled = isLoggedIn
             )
         }
 
