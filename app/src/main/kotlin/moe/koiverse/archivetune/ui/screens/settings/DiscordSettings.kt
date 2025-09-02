@@ -390,7 +390,7 @@ fun DiscordSettings(
                     .menuAnchor()
                     .pointerInput(Unit) { detectTapGestures { activityExpanded = true } }
                     .padding(horizontal = 13.dp, vertical = 16.dp),
-                leadingIcon = { Icon(painterResource(R.drawable.discord), null) }
+                    .leadingIcon = { Icon(painterResource(R.drawable.discord), null) }
             )
             ExposedDropdownMenu(expanded = activityExpanded, onDismissRequest = { activityExpanded = false }) {
                 activityOptions.forEach { opt ->
@@ -429,6 +429,10 @@ fun DiscordSettings(
             key = DiscordSmallImageCustomUrlKey,
             defaultValue = ""
         )
+        val (smallImageEnabled, onSmallImageEnabledChange) = rememberPreference(
+            key = DiscordSmallImageEnabledKey,
+            defaultValue = true
+        )
 
         var largeImageExpanded by remember { mutableStateOf(false) }
         ExposedDropdownMenuBox(expanded = largeImageExpanded, onExpandedChange = { largeImageExpanded = it }) {
@@ -443,7 +447,7 @@ fun DiscordSettings(
                     .menuAnchor()
                     .pointerInput(Unit) { detectTapGestures { largeImageExpanded = true } }
                     .padding(horizontal = 13.dp, vertical = 16.dp),
-                leadingIcon = { Icon(painterResource(R.drawable.info), null) }
+                    .leadingIcon = { Icon(painterResource(R.drawable.info), null) }
             )
             ExposedDropdownMenu(expanded = largeImageExpanded, onDismissRequest = { largeImageExpanded = false }) {
                 imageOptions.forEach { opt ->
@@ -481,7 +485,7 @@ fun DiscordSettings(
                     .menuAnchor()
                     .pointerInput(Unit) { detectTapGestures { smallImageExpanded = true } }
                     .padding(horizontal = 10.dp, vertical = 10.dp),
-                leadingIcon = { Icon(painterResource(R.drawable.info), null) }
+                    .leadingIcon = { Icon(painterResource(R.drawable.info), null) }
             )
             ExposedDropdownMenu(expanded = smallImageExpanded, onDismissRequest = { smallImageExpanded = false }) {
                 imageOptions.forEach { opt ->
@@ -497,14 +501,25 @@ fun DiscordSettings(
             }
         }
         if (smallImageType == "custom") {
-            EditablePreference(
-                title = "Small image custom URL",
-                iconRes = R.drawable.link,
-                value = smallImageCustomUrl,
-                defaultValue = "",
-                onValueChange = onSmallImageCustomUrlChange,
-            )
+            if (smallImageEnabled) {
+                EditablePreference(
+                    title = "Small image custom URL",
+                    iconRes = R.drawable.link,
+                    value = smallImageCustomUrl,
+                    defaultValue = "",
+                    onValueChange = onSmallImageCustomUrlChange,
+                )
+            }
         }
+
+        PreferenceEntry(
+            title = { Text(stringResource(R.string.show_small_image)) },
+            description = stringResource(R.string.description_show_small_image),
+            icon = { Icon(painterResource(R.drawable.info), null) },
+            trailingContent = {
+                Switch(checked = smallImageEnabled, onCheckedChange = onSmallImageEnabledChange)
+            }
+        )
 
         RichPresence(
             song,
@@ -561,6 +576,7 @@ fun ActivitySourceDropdown(
             modifier = Modifier
                 .menuAnchor()
                 .fillMaxWidth()
+                .pointerInput(Unit) { detectTapGestures { expanded = true } }
                 .padding(horizontal = 16.dp)
         )
 
@@ -794,7 +810,7 @@ fun RichPresence(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    if (button1Enabled && resolvedButton1Url != null) {
+                    if (button1Enabled && !resolvedButton1Url.isNullOrBlank() && button1Label.isNotBlank()) {
                         OutlinedButton(
                             enabled = song != null,
                             onClick = {
@@ -806,7 +822,7 @@ fun RichPresence(
                         }
                     }
 
-                    if (button2Enabled && resolvedButton2Url != null) {
+                    if (button2Enabled && !resolvedButton2Url.isNullOrBlank() && button2Label.isNotBlank()) {
                         OutlinedButton(
                             enabled = song != null,
                             onClick = {

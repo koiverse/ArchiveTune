@@ -91,6 +91,10 @@ val DiscordLargeImageTypeKey = stringPreferencesKey("discordLargeImageType")
 val DiscordLargeImageCustomUrlKey = stringPreferencesKey("discordLargeImageCustomUrl")
 val DiscordSmallImageTypeKey = stringPreferencesKey("discordSmallImageType")
 val DiscordSmallImageCustomUrlKey = stringPreferencesKey("discordSmallImageCustomUrl")
+// Whether to show the small image in preview / RPC
+val DiscordSmallImageEnabledKey = booleanPreferencesKey("discordSmallImageEnabled")
+// Whether to show small image in preview and expose small image custom URL
+val DiscordSmallImageEnabledKey = booleanPreferencesKey("discordSmallImageEnabled")
 
 val ChipSortTypeKey = stringPreferencesKey("chipSortType")
 val SongSortTypeKey = stringPreferencesKey("songSortType")
