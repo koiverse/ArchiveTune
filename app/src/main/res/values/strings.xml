@@ -352,6 +352,7 @@
     <string name="discord_button_options">Button Options</string>
     <string name="discord_image_options">Image Options</string>
     <string name="refresh">Refresh</string>
+    <string name="description_refresh">Manually refresh Discord Rich Presence</string>
     <string name="description_refresh">Refresh the Discord Gateway</string>
 
     <string name="about">About</string>
