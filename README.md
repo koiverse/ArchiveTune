@@ -1,5 +1,5 @@
 <div align="center">
-<img src="https://github.com/mostafaalagamy/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/icon.png" width="160" height="160" style="display: block; margin: 0 auto"/>
+<img src="https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/icon.png" width="160" height="160" style="display: block; margin: 0 auto"/>
 <h1>ArchiveTune</h1>
 <p>YouTube Music client for Android</p>
 
@@ -10,21 +10,21 @@
 
 <h1>Screenshots</h1>
 
-  <img src="https://github.com/mostafaalagamy/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/screenshots/screenshot_1.png" width="30%" />
-  <img src="https://github.com/mostafaalagamy/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/screenshots/screenshot_2.png" width="30%" />
-  <img src="https://github.com/mostafaalagamy/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/screenshots/screenshot_3.png" width="30%" />
+  <img src="https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/screenshots/screenshot_1.png" width="30%" />
+  <img src="https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/screenshots/screenshot_2.png" width="30%" />
+  <img src="https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/screenshots/screenshot_3.png" width="30%" />
 
-  <img src="https://github.com/mostafaalagamy/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/screenshots/screenshot_4.png" width="30%" />
-  <img src="https://github.com/mostafaalagamy/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/screenshots/screenshot_5.png" width="30%" />
-  <img src="https://github.com/mostafaalagamy/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/screenshots/screenshot_6.png" width="30%" />
+  <img src="https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/screenshots/screenshot_4.png" width="30%" />
+  <img src="https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/screenshots/screenshot_5.png" width="30%" />
+  <img src="https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/screenshots/screenshot_6.png" width="30%" />
 </p>
 
 <img
-src="https://github.com/mostafaalagamy/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/featureGraphic.png" width="91%" />
+src="https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/featureGraphic.png" width="91%" />
 
-[![Latest release](https://img.shields.io/github/v/release/mostafaalagamy/ArchiveTune?style=for-the-badge)](https://github.com/mostafaalagamy/ArchiveTune/releases)
-[![GitHub license](https://img.shields.io/github/license/mostafaalagamy/ArchiveTune?style=for-the-badge)](https://github.com/mostafaalagamy/ArchiveTune/blob/main/LICENSE)
-[![Downloads](https://img.shields.io/github/downloads/mostafaalagamy/ArchiveTune/total?style=for-the-badge)](https://github.com/mostafaalagamy/ArchiveTune/releases)
+[![Latest release](https://img.shields.io/github/v/release/koiverse/ArchiveTune?style=for-the-badge)](https://github.com/koiverse/ArchiveTune/releases)
+[![GitHub license](https://img.shields.io/github/license/koiverse/ArchiveTune?style=for-the-badge)](https://github.com/koiverse/ArchiveTune/blob/main/LICENSE)
+[![Downloads](https://img.shields.io/github/downloads/koiverse/ArchiveTune/total?style=for-the-badge)](https://github.com/koiverse/ArchiveTune/releases)
 </div>
 
 <div align="center">
@@ -55,43 +55,8 @@ src="https://github.com/mostafaalagamy/ArchiveTune/blob/main/fastlane/metadata/a
 <h1>Download Now</h1>
 
 [<img src="https://github.com/machiav3lli/oandbackupx/blob/034b226cea5c1b30eb4f6a6f313e4dadcbb0ece4/badge_github.png" alt="Get it on GitHub" height="82"
-align="center">](https://github.com/mostafaalagamy/ArchiveTune/releases/latest/download/ArchiveTune.apk)
+align="center">](https://github.com/koiverse/ArchiveTune/releases/latest/download/ArchiveTune.apk)
 
-[<img src="https://gitlab.com/IzzyOnDroid/repo/-/raw/master/assets/IzzyOnDroid.png" alt="Get it on IzzyOnDroid" height="80"
-align="center">](https://apt.izzysoft.de/fdroid/index/apk/moe.koiverse.archivetune)
-
-[<img src="https://fdroid.gitlab.io/artwork/badge/get-it-on.png" alt="Get it on F-Droid" height="80"
-align="center">](https://f-droid.org/packages/moe.koiverse.archivetune)
-
-[<img src="https://www.openapk.net/images/openapk-badge.png" alt="Get it on OpenAPK" height="80"
-align="center">](https://www.openapk.net/ArchiveTune/moe.koiverse.archivetune/)
-
-[<img src="https://github.com/ImranR98/Obtainium/blob/main/assets/graphics/badge_obtainium.png"
-alt="Get it on Obtainium"
-height="55"
-align="center">](https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/mostafaalagamy/ArchiveTune/)
-
-[<img src="https://github.com/mostafaalagamy/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/belberi_github.png" alt="Get it on Belberi" height="82"
-align="center">](https://belberi.com/ArchiveTune/?fbclid=PAY2xjawJP5dlleHRuA2FlbQIxMAABpjSk1oBp4e8aSV4nfX2dfunQObTlMWIkN-aVA9CSq36pnmkHsvfoYTjhHg_aem_9o9OGbQuZ2PjJTArq21UDA)
-
-</div>
-
-<div align="center">
-<h1>Translations</h1>
-
-[![Translation status](https://img.shields.io/weblate/progress/ArchiveTune?style=for-the-badge)](https://hosted.weblate.org/engage/ArchiveTune/)
-
-We use Weblate to translate ArchiveTune. For more details or to get started, visit our [Weblate page](https://hosted.weblate.org/projects/ArchiveTune/).
-
-<a href="https://hosted.weblate.org/projects/ArchiveTune/">
-<img src="https://hosted.weblate.org/widget/ArchiveTune/multi-auto.svg" alt="Translation status" />
-</a>
-
-Thank you very much for helping to make ArchiveTune accessible to many people worldwide.
-</div>
-
-<div align="center">
-<h1>FAQ</h1>
 </div>
 
 <h3> Q: Why ArchiveTune isn't showing in Android Auto? </h3>
@@ -104,30 +69,6 @@ Thank you very much for helping to make ArchiveTune accessible to many people wo
 <h3> Q: How to scrobble music to LastFM, LibreFM, ListenBrainz or GNU FM? </h3>
 
 Use other music scrobbler apps, I recommend [Pano Scrobbler](https://play.google.com/store/apps/details?id=com.arn.scrobble).
-
-<div align="center">
-<h1>Support Me</h1>
-
-If you'd like to support my work, send a Monero (XMR) donation to this address:
-
-44XjSELSWcgJTZiCKzjpCQWyXhokrH9RqH3rpp35FkSKi57T25hniHWHQNhLeXyFn3DDYqufmfRB1iEtENerZpJc7xJCcqt
-
-Or scan this QR code:
-
-<img src="https://github.com/mostafaalagamy/ArchiveTune/blob/main/assets/XMR.png" alt="QR Code" width="200" height="200" />
-<br />
-
-Or other
-
-<a href="https://www.buymeacoffee.com/mostafaalagamy">
-  <img src="https://github.com/mostafaalagamy/ArchiveTune/blob/main/assets/buymeacoffee.png?raw=true" alt="Buy Me a Coffee" width="150" height="150" />
-</a>
-
-<br />
-
-<a href="https://liberapay.com/mostafaalagamy/donate">
-  <img src="https://liberapay.com/assets/widgets/donate.svg" alt="Donate" width="100" height="100" />
-</a>
 
 
 <div align="center">
