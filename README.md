@@ -19,9 +19,6 @@
   <img src="https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/screenshots/screenshot_6.png" width="30%" />
 </p>
 
-<img
-src="https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/featureGraphic.png" width="91%" />
-
 [![Latest release](https://img.shields.io/github/v/release/koiverse/ArchiveTune?style=for-the-badge)](https://github.com/koiverse/ArchiveTune/releases)
 [![GitHub license](https://img.shields.io/github/license/koiverse/ArchiveTune?style=for-the-badge)](https://github.com/koiverse/ArchiveTune/blob/main/LICENSE)
 [![Downloads](https://img.shields.io/github/downloads/koiverse/ArchiveTune/total?style=for-the-badge)](https://github.com/koiverse/ArchiveTune/releases)
