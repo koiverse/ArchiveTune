@@ -216,6 +216,10 @@ fun DiscordSettings(
             key = DiscordActivityButton1UrlKey,
             defaultValue = ""
         )
+        val (button1Enabled, onButton1EnabledChange) = rememberPreference(
+            key = DiscordActivityButton1EnabledKey,
+            defaultValue = true
+        )
         val (button2Label, onButton2LabelChange) = rememberPreference(
             key = DiscordActivityButton2LabelKey,
             defaultValue = "View Album"
@@ -224,6 +228,14 @@ fun DiscordSettings(
             key = DiscordActivityButton2UrlKey,
             defaultValue = ""
         )
+        val (button2Enabled, onButton2EnabledChange) = rememberPreference(
+            key = DiscordActivityButton2EnabledKey,
+            defaultValue = true
+        )
+
+        // Activity type selection
+        var activityType by remember { mutableStateOf(context.dataStore[DiscordActivityTypeKey] ?: "LISTENING") }
+        val activityOptions = listOf("PLAYING", "STREAMING", "LISTENING", "WATCHING", "COMPETING")
 
         EditablePreference(
             title = stringResource(R.string.discord_activity_button1_label),
@@ -231,6 +243,14 @@ fun DiscordSettings(
             value = button1Label,
             defaultValue = "Listen on YouTube Music",
             onValueChange = onButton1LabelChange
+        )
+        PreferenceEntry(
+            title = { Text(stringResource(R.string.show_button)) },
+            description = { Text(stringResource(R.string.show_button1_description)) },
+            icon = { Icon(painterResource(R.drawable.play), null) },
+            trailingContent = {
+                Switch(checked = button1Enabled, onCheckedChange = onButton1EnabledChange)
+            }
         )
         EditablePreference(
             title = stringResource(R.string.discord_activity_button1_url),
@@ -246,6 +266,14 @@ fun DiscordSettings(
             defaultValue = "View Album",
             onValueChange = onButton2LabelChange
         )
+        PreferenceEntry(
+            title = { Text(stringResource(R.string.show_button)) },
+            description = { Text(stringResource(R.string.show_button2_description)) },
+            icon = { Icon(painterResource(R.drawable.info), null) },
+            trailingContent = {
+                Switch(checked = button2Enabled, onCheckedChange = onButton2EnabledChange)
+            }
+        )
         EditablePreference(
             title = stringResource(R.string.discord_activity_button2_url),
             iconRes = R.drawable.link,
@@ -254,7 +282,110 @@ fun DiscordSettings(
             onValueChange = onButton2UrlChange
         )
 
-        RichPresence(song, position, nameSource, detailsSource, stateSource, buttonUrlSource)
+        // Activity type selector
+        PreferenceEntry(
+            title = { Text(stringResource(R.string.discord_activity_type)) },
+            description = activityType,
+            icon = { Icon(painterResource(R.drawable.discord), null) },
+            trailingContent = {
+                ExposedDropdownMenuBox(expanded = false, onExpandedChange = {}) {
+                    TextButton(onClick = {
+                        // cycle through options for simplicity
+                        val idx = activityOptions.indexOf(activityType)
+                        val next = activityOptions[(idx + 1) % activityOptions.size]
+                        activityType = next
+                        onDiscordRPCChange // noop to avoid unused
+                        // save to datastore
+                        coroutineScope.launch(Dispatchers.IO) {
+                            context.dataStore.edit { prefs ->
+                                prefs[DiscordActivityTypeKey] = next
+                            }
+                        }
+                    }) { Text(activityType) }
+                }
+            }
+        )
+
+        // Discord presence image selection
+        val imageOptions = listOf("thumbnail", "artist", "appicon", "custom")
+        val (largeImageType, onLargeImageTypeChange) = rememberPreference(
+            key = DiscordLargeImageTypeKey,
+            defaultValue = "thumbnail"
+        )
+        val (largeImageCustomUrl, onLargeImageCustomUrlChange) = rememberPreference(
+            key = DiscordLargeImageCustomUrlKey,
+            defaultValue = ""
+        )
+        val (smallImageType, onSmallImageTypeChange) = rememberPreference(
+            key = DiscordSmallImageTypeKey,
+            defaultValue = "artist"
+        )
+        val (smallImageCustomUrl, onSmallImageCustomUrlChange) = rememberPreference(
+            key = DiscordSmallImageCustomUrlKey,
+            defaultValue = ""
+        )
+
+        PreferenceEntry(
+            title = { Text(stringResource(R.string.discord_large_image)) },
+            description = largeImageType,
+            icon = { Icon(painterResource(R.drawable.image), null) },
+            trailingContent = {
+                ExposedDropdownMenuBox(expanded = false, onExpandedChange = {}) {
+                    TextButton(onClick = {
+                        val idx = imageOptions.indexOf(largeImageType)
+                        val next = imageOptions[(idx + 1) % imageOptions.size]
+                        onLargeImageTypeChange(next)
+                    }) { Text(largeImageType) }
+                }
+            }
+        )
+        if (largeImageType == "custom") {
+            EditablePreference(
+                title = stringResource(R.string.discord_large_image_custom_url),
+                iconRes = R.drawable.link,
+                value = largeImageCustomUrl,
+                defaultValue = "",
+                onValueChange = onLargeImageCustomUrlChange
+            )
+        }
+
+        PreferenceEntry(
+            title = { Text(stringResource(R.string.discord_small_image)) },
+            description = smallImageType,
+            icon = { Icon(painterResource(R.drawable.image), null) },
+            trailingContent = {
+                ExposedDropdownMenuBox(expanded = false, onExpandedChange = {}) {
+                    TextButton(onClick = {
+                        val idx = imageOptions.indexOf(smallImageType)
+                        val next = imageOptions[(idx + 1) % imageOptions.size]
+                        onSmallImageTypeChange(next)
+                    }) { Text(smallImageType) }
+                }
+            }
+        )
+        if (smallImageType == "custom") {
+            EditablePreference(
+                title = stringResource(R.string.discord_small_image_custom_url),
+                iconRes = R.drawable.link,
+                value = smallImageCustomUrl,
+                defaultValue = "",
+                onValueChange = onSmallImageCustomUrlChange
+            )
+        }
+
+        RichPresence(
+            song,
+            position,
+            nameSource,
+            detailsSource,
+            stateSource,
+            buttonUrlSource,
+            activityType,
+            largeImageType,
+            largeImageCustomUrl,
+            smallImageType,
+            smallImageCustomUrl
+        )
     }
 
     TopAppBar(
@@ -352,6 +483,13 @@ fun RichPresence(
     stateSource: ActivitySource = ActivitySource.ARTIST,
     buttonUrlSource: ActivitySource = ActivitySource.SONG,
 ) {
+    activityType: String = "LISTENING",
+    largeImageType: String = "thumbnail",
+    largeImageCustomUrl: String = "",
+    smallImageType: String = "artist",
+    smallImageCustomUrl: String = "",
+)
+) {
     val context = LocalContext.current
 
     val (button1Label) = rememberPreference(
@@ -381,127 +519,147 @@ fun RichPresence(
     }
     val resolvedButton2Url = if (button2Url.isNotEmpty()) button2Url else defaultButton2Url
 
-    Surface(
-        color = MaterialTheme.colorScheme.surfaceContainer,
-        shape = MaterialTheme.shapes.medium,
-        shadowElevation = 6.dp,
-        modifier = Modifier.padding(16.dp).fillMaxWidth(),
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Text(
-                text = when (nameSource) {
-                    ActivitySource.ARTIST -> song?.artists?.firstOrNull()?.name ?: "ArchiveTune"
-                    ActivitySource.ALBUM -> song?.album?.title ?: "ArchiveTune"
-                    ActivitySource.SONG -> song?.song?.title ?: "ArchiveTune"
-                    ActivitySource.APP -> "ArchiveTune"
-                },
-                style = MaterialTheme.typography.labelLarge,
-                textAlign = TextAlign.Start,
-                fontWeight = FontWeight.ExtraBold,
+    PreferenceEntry(
+        title = {
+            Text(text = stringResource(R.string.preview), style = MaterialTheme.typography.titleMedium)
+        },
+        content = {
+            Surface(
+                color = MaterialTheme.colorScheme.surfaceContainer,
+                shape = MaterialTheme.shapes.medium,
+                shadowElevation = 6.dp,
                 modifier = Modifier.fillMaxWidth(),
-            )
-
-            Spacer(Modifier.height(16.dp))
-
-            Row(verticalAlignment = Alignment.Top) {
-                Box(Modifier.size(108.dp)) {
-                    AsyncImage(
-                        model = song?.song?.thumbnailUrl,
-                        contentDescription = null,
-                        modifier = Modifier
-                            .size(96.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                            .align(Alignment.TopStart)
-                            .run {
-                                if (song == null) border(
-                                    2.dp,
-                                    MaterialTheme.colorScheme.onSurface,
-                                    RoundedCornerShape(12.dp)
-                                ) else this
-                            },
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    Text(
+                        text = when (nameSource) {
+                            ActivitySource.ARTIST -> song?.artists?.firstOrNull()?.name ?: "ArchiveTune"
+                            ActivitySource.ALBUM -> song?.album?.title ?: "ArchiveTune"
+                            ActivitySource.SONG -> song?.song?.title ?: "ArchiveTune"
+                            ActivitySource.APP -> "Listening to ArchiveTune"
+                        },
+                        style = MaterialTheme.typography.labelLarge,
+                        textAlign = TextAlign.Start,
+                        fontWeight = FontWeight.ExtraBold,
+                        modifier = Modifier.fillMaxWidth(),
                     )
-                    song?.artists?.firstOrNull()?.thumbnailUrl?.let {
-                        Box(
-                            modifier = Modifier
-                                .border(2.dp, MaterialTheme.colorScheme.surfaceContainer, CircleShape)
-                                .padding(2.dp)
-                                .align(Alignment.BottomEnd),
-                        ) {
+
+                    Spacer(Modifier.height(16.dp))
+
+                    Row(verticalAlignment = Alignment.Top) {
+                        Box(Modifier.size(108.dp)) {
                             AsyncImage(
-                                model = it,
+                                model = when (largeImageType) {
+                                    "thumbnail" -> song?.song?.thumbnailUrl
+                                    "artist" -> song?.artists?.firstOrNull()?.thumbnailUrl
+                                    "appicon" -> null
+                                    "custom" -> largeImageCustomUrl.ifBlank { song?.song?.thumbnailUrl }
+                                    else -> song?.song?.thumbnailUrl
+                                },
                                 contentDescription = null,
-                                modifier = Modifier.size(32.dp).clip(CircleShape),
+                                modifier = Modifier
+                                    .size(96.dp)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .align(Alignment.TopStart)
+                                    .run {
+                                        if (song == null) border(
+                                            2.dp,
+                                            MaterialTheme.colorScheme.onSurface,
+                                            RoundedCornerShape(12.dp)
+                                        ) else this
+                                    },
                             )
+                            val smallModel = when (smallImageType) {
+                                "thumbnail" -> song?.song?.thumbnailUrl
+                                "artist" -> song?.artists?.firstOrNull()?.thumbnailUrl
+                                "appicon" -> null
+                                "custom" -> smallImageCustomUrl.ifBlank { song?.artists?.firstOrNull()?.thumbnailUrl }
+                                else -> song?.artists?.firstOrNull()?.thumbnailUrl
+                            }
+                            smallModel?.let {
+                                Box(
+                                    modifier = Modifier
+                                        .border(2.dp, MaterialTheme.colorScheme.surfaceContainer, CircleShape)
+                                        .padding(2.dp)
+                                        .align(Alignment.BottomEnd),
+                                ) {
+                                    AsyncImage(
+                                        model = it,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(32.dp).clip(CircleShape),
+                                    )
+                                }
+                            }
+                        }
+
+                        Column(
+                            modifier = Modifier.weight(1f).padding(horizontal = 6.dp),
+                        ) {
+                            Text(
+                                text = song?.song?.title ?: "Song Title",
+                                color = MaterialTheme.colorScheme.onSurface,
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                            Text(
+                                text = song?.artists?.joinToString { it.name } ?: "Artist",
+                                color = MaterialTheme.colorScheme.secondary,
+                                fontSize = 16.sp,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                            song?.album?.title?.let {
+                                Text(
+                                    text = it,
+                                    color = MaterialTheme.colorScheme.secondary,
+                                    fontSize = 16.sp,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            }
+                            if (song != null) {
+                                SongProgressBar(
+                                    currentTimeMillis = currentPlaybackTimeMillis,
+                                    durationMillis = song.song.duration * 1000L,
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    if (resolvedButton1Url != null) {
+                        OutlinedButton(
+                            enabled = song != null,
+                            onClick = {
+                                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(resolvedButton1Url)))
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Text(button1Label.ifBlank { "Listen on YouTube Music" })
+                        }
+                    }
+
+                    if (resolvedButton2Url != null) {
+                        OutlinedButton(
+                            enabled = song != null,
+                            onClick = {
+                                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(resolvedButton2Url)))
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Text(button2Label.ifBlank { "View Album" })
                         }
                     }
                 }
-
-                Column(
-                    modifier = Modifier.weight(1f).padding(horizontal = 6.dp),
-                ) {
-                    Text(
-                        text = song?.song?.title ?: "Song Title",
-                        color = MaterialTheme.colorScheme.onSurface,
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    Text(
-                        text = song?.artists?.joinToString { it.name } ?: "Artist",
-                        color = MaterialTheme.colorScheme.secondary,
-                        fontSize = 16.sp,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    song?.album?.title?.let {
-                        Text(
-                            text = it,
-                            color = MaterialTheme.colorScheme.secondary,
-                            fontSize = 16.sp,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
-                    if (song != null) {
-                        SongProgressBar(
-                            currentTimeMillis = currentPlaybackTimeMillis,
-                            durationMillis = song.song.duration * 1000L,
-                        )
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            if (resolvedButton1Url != null) {
-                OutlinedButton(
-                    enabled = song != null,
-                    onClick = {
-                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(resolvedButton1Url)))
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text(button1Label.ifBlank { "Listen on YouTube Music" })
-                }
-            }
-
-            if (resolvedButton2Url != null) {
-                OutlinedButton(
-                    enabled = song != null,
-                    onClick = {
-                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(resolvedButton2Url)))
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text(button2Label.ifBlank { "View Album" })
-                }
             }
         }
-    }
+    )
 }
 
 @Composable

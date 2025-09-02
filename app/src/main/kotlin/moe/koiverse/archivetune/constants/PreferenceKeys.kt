@@ -79,6 +79,18 @@ val DiscordActivityButton1LabelKey = stringPreferencesKey("discordActivityButton
 val DiscordActivityButton1UrlKey = stringPreferencesKey("discordActivityButton1Url")
 val DiscordActivityButton2LabelKey = stringPreferencesKey("discordActivityButton2Label")
 val DiscordActivityButton2UrlKey = stringPreferencesKey("discordActivityButton2Url")
+// Whether to show the custom buttons in Discord Rich Presence
+val DiscordActivityButton1EnabledKey = booleanPreferencesKey("discordActivityButton1Enabled")
+val DiscordActivityButton2EnabledKey = booleanPreferencesKey("discordActivityButton2Enabled")
+// Activity type for Discord presence (PLAYING, STREAMING, LISTENING, WATCHING, COMPETING)
+val DiscordActivityTypeKey = stringPreferencesKey("discordActivityType")
+
+// Discord image selection keys
+// Values for type keys: "thumbnail", "artist", "appicon", "custom"
+val DiscordLargeImageTypeKey = stringPreferencesKey("discordLargeImageType")
+val DiscordLargeImageCustomUrlKey = stringPreferencesKey("discordLargeImageCustomUrl")
+val DiscordSmallImageTypeKey = stringPreferencesKey("discordSmallImageType")
+val DiscordSmallImageCustomUrlKey = stringPreferencesKey("discordSmallImageCustomUrl")
 
 val ChipSortTypeKey = stringPreferencesKey("chipSortType")
 val SongSortTypeKey = stringPreferencesKey("songSortType")

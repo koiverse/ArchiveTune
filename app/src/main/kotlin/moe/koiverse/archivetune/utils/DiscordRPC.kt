@@ -47,33 +47,64 @@ class DiscordRPC(
         val defaultButton2Label = "View Album"
         val defaultButton2Url = song.album?.playlistId?.let { "https://music.youtube.com/playlist?list=$it" } ?: baseSongUrl
 
-        val button1Label = context.dataStore[DiscordActivityButton1LabelKey] ?: defaultButton1Label
-        val button1UrlPref = context.dataStore[DiscordActivityButton1UrlKey] ?: ""
+    val button1Label = context.dataStore[DiscordActivityButton1LabelKey] ?: defaultButton1Label
+    val button1UrlPref = context.dataStore[DiscordActivityButton1UrlKey] ?: ""
+    val button1Enabled = context.dataStore[DiscordActivityButton1EnabledKey] ?: true
         val resolvedButton1Url = if (button1UrlPref.isNotEmpty()) button1UrlPref else defaultButton1Url
 
         val button2Label = context.dataStore[DiscordActivityButton2LabelKey] ?: defaultButton2Label
         val button2UrlPref = context.dataStore[DiscordActivityButton2UrlKey] ?: ""
+        val button2Enabled = context.dataStore[DiscordActivityButton2EnabledKey] ?: true
+
+        val activityTypePref = context.dataStore[DiscordActivityTypeKey] ?: "LISTENING"
+        val resolvedType = when (activityTypePref.uppercase()) {
+            "PLAYING" -> Type.PLAYING
+            "STREAMING" -> Type.STREAMING
+            "LISTENING" -> Type.LISTENING
+            "WATCHING" -> Type.WATCHING
+            "COMPETING" -> Type.COMPETING
+            else -> Type.LISTENING
+        }
         val resolvedButton2Url = if (button2UrlPref.isNotEmpty()) button2UrlPref else defaultButton2Url
 
         val buttons = mutableListOf<Pair<String, String>>()
-        if (button1Label.isNotBlank() && !resolvedButton1Url.isNullOrBlank()) {
+        if (button1Enabled && button1Label.isNotBlank() && !resolvedButton1Url.isNullOrBlank()) {
             buttons.add(button1Label to resolvedButton1Url)
         }
-        if (button2Label.isNotBlank() && !resolvedButton2Url.isNullOrBlank()) {
+        if (button2Enabled && button2Label.isNotBlank() && !resolvedButton2Url.isNullOrBlank()) {
             buttons.add(button2Label to resolvedButton2Url)
         }
+
+        // image prefs
+        val largeImageTypePref = context.dataStore[DiscordLargeImageTypeKey] ?: "thumbnail"
+        val largeImageCustomPref = context.dataStore[DiscordLargeImageCustomUrlKey] ?: ""
+        val smallImageTypePref = context.dataStore[DiscordSmallImageTypeKey] ?: "artist"
+        val smallImageCustomPref = context.dataStore[DiscordSmallImageCustomUrlKey] ?: ""
+
+        fun pickImage(type: String, custom: String?, song: Song?, preferArtist: Boolean = false): RpcImage? {
+            return when (type) {
+                "thumbnail" -> song?.song?.thumbnailUrl?.let { RpcImage.ExternalImage(it) }
+                "artist" -> song?.artists?.firstOrNull()?.thumbnailUrl?.let { RpcImage.ExternalImage(it) }
+                "appicon" -> null // local app icon not supported by ExternalImage; leave null or implement DiscordImage if available
+                "custom" -> (custom?.takeIf { it.isNotBlank() } ?: song?.song?.thumbnailUrl)?.let { RpcImage.ExternalImage(it) }
+                else -> if (preferArtist) song?.artists?.firstOrNull()?.thumbnailUrl?.let { RpcImage.ExternalImage(it) } else song?.song?.thumbnailUrl?.let { RpcImage.ExternalImage(it) }
+            }
+        }
+
+        val largeImageRpc = pickImage(largeImageTypePref, largeImageCustomPref, song, preferArtist = false)
+        val smallImageRpc = pickImage(smallImageTypePref, smallImageCustomPref, song, preferArtist = true)
 
         setActivity(
             name = activityName.removeSuffix(" Debug"),
             details = activityDetails,
             state = activityState,
             detailsUrl = baseSongUrl,
-            largeImage = song.song.thumbnailUrl?.let { RpcImage.ExternalImage(it) },
-            smallImage = song.artists.firstOrNull()?.thumbnailUrl?.let { RpcImage.ExternalImage(it) },
+            largeImage = largeImageRpc,
+            smallImage = smallImageRpc,
             largeText = song.album?.title,
             smallText = song.artists.firstOrNull()?.name,
             buttons = buttons,
-            type = Type.LISTENING,
+            type = resolvedType,
             statusDisplayType = StatusDisplayType.STATE,
             since = currentTime,
             startTime = calculatedStartTime,
