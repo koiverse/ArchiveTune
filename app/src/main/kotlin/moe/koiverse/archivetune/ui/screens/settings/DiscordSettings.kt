@@ -42,6 +42,7 @@ import moe.koiverse.archivetune.utils.makeTimeString
 import moe.koiverse.archivetune.utils.rememberEnumPreference
 import moe.koiverse.archivetune.utils.rememberPreference
 import com.my.kizzy.rpc.KizzyRPC
+import moe.koiverse.archivetune.utils.DiscordRPC
 import kotlinx.coroutines.*
 
 enum class ActivitySource { ARTIST, ALBUM, SONG, APP }
@@ -198,7 +199,7 @@ fun DiscordSettings(
         PreferenceEntry(
             title = { Text(stringResource(R.string.refresh)) },
             description = stringResource(R.string.description_refresh),
-            icon = { Icon(painterResource(R.drawable.refresh), null) },
+            icon = { Icon(painterResource(R.drawable.update), null) },
             trailingContent = {
                 IconButton(onClick = {
                     // trigger update in background
@@ -208,8 +209,7 @@ fun DiscordSettings(
                             try {
                                 val rpc = DiscordRPC(context, token)
                                 song?.let { rpc.updateSong(it, position) }
-                                withContext(Dispatchers.Main) {
-                                    // Show a toast message on the main thread
+                                coroutineScope.launch(Dispatchers.Main) {
                                     android.widget.Toast.makeText(context, "Discord RPC refreshed!", android.widget.Toast.LENGTH_SHORT).show()
                                 }
                             } catch (_: Exception) {
