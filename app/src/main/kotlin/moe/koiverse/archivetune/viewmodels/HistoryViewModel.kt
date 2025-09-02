@@ -1,4 +1,4 @@
-package moe.koiverse.archivetune.music.viewmodels
+package moe.koiverse.archivetune.viewmodels
 
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel

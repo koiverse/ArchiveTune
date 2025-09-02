@@ -1,6 +1,6 @@
 @file:OptIn(ExperimentalCoroutinesApi::class)
 
-package moe.koiverse.archivetune.music.viewmodels
+package moe.koiverse.archivetune.viewmodels
 
 import android.content.Context
 import androidx.compose.runtime.MutableState

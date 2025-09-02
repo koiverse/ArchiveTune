@@ -1,4 +1,4 @@
-package moe.koiverse.archivetune.music.utils
+package moe.koiverse.archivetune.utils
 
 import android.net.ConnectivityManager
 import androidx.media3.common.PlaybackException
