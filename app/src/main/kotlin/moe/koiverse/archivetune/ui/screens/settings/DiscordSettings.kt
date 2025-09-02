@@ -58,6 +58,7 @@ fun DiscordSettings(
         mutableLongStateOf(playerConnection.player.currentPosition)
     }
     val coroutineScope = rememberCoroutineScope()
+    val context = LocalContext.current
 
     var discordToken by rememberPreference(DiscordTokenKey, "")
     var discordUsername by rememberPreference(DiscordUsernameKey, "")
@@ -234,7 +235,10 @@ fun DiscordSettings(
         )
 
         // Activity type selection
-        var activityType by remember { mutableStateOf(context.dataStore[DiscordActivityTypeKey] ?: "LISTENING") }
+        val (activityType, onActivityTypeChange) = rememberPreference(
+            key = DiscordActivityTypeKey,
+            defaultValue = "LISTENING"
+        )
         val activityOptions = listOf("PLAYING", "STREAMING", "LISTENING", "WATCHING", "COMPETING")
 
         EditablePreference(
@@ -293,14 +297,7 @@ fun DiscordSettings(
                         // cycle through options for simplicity
                         val idx = activityOptions.indexOf(activityType)
                         val next = activityOptions[(idx + 1) % activityOptions.size]
-                        activityType = next
-                        onDiscordRPCChange // noop to avoid unused
-                        // save to datastore
-                        coroutineScope.launch(Dispatchers.IO) {
-                            context.dataStore.edit { prefs ->
-                                prefs[DiscordActivityTypeKey] = next
-                            }
-                        }
+                        onActivityTypeChange(next)
                     }) { Text(activityType) }
                 }
             }
@@ -326,9 +323,9 @@ fun DiscordSettings(
         )
 
         PreferenceEntry(
-            title = { Text(stringResource(R.string.discord_large_image)) },
+            title = { Text("Large image") },
             description = largeImageType,
-            icon = { Icon(painterResource(R.drawable.image), null) },
+            icon = { Icon(painterResource(R.drawable.info), null) },
             trailingContent = {
                 ExposedDropdownMenuBox(expanded = false, onExpandedChange = {}) {
                     TextButton(onClick = {
@@ -341,7 +338,7 @@ fun DiscordSettings(
         )
         if (largeImageType == "custom") {
             EditablePreference(
-                title = stringResource(R.string.discord_large_image_custom_url),
+                title = "Large image custom URL",
                 iconRes = R.drawable.link,
                 value = largeImageCustomUrl,
                 defaultValue = "",
@@ -350,9 +347,9 @@ fun DiscordSettings(
         }
 
         PreferenceEntry(
-            title = { Text(stringResource(R.string.discord_small_image)) },
+            title = { Text("Small image") },
             description = smallImageType,
-            icon = { Icon(painterResource(R.drawable.image), null) },
+            icon = { Icon(painterResource(R.drawable.info), null) },
             trailingContent = {
                 ExposedDropdownMenuBox(expanded = false, onExpandedChange = {}) {
                     TextButton(onClick = {
@@ -365,7 +362,7 @@ fun DiscordSettings(
         )
         if (smallImageType == "custom") {
             EditablePreference(
-                title = stringResource(R.string.discord_small_image_custom_url),
+                title = "Small image custom URL",
                 iconRes = R.drawable.link,
                 value = smallImageCustomUrl,
                 defaultValue = "",
@@ -482,13 +479,11 @@ fun RichPresence(
     detailsSource: ActivitySource = ActivitySource.SONG,
     stateSource: ActivitySource = ActivitySource.ARTIST,
     buttonUrlSource: ActivitySource = ActivitySource.SONG,
-) {
     activityType: String = "LISTENING",
     largeImageType: String = "thumbnail",
     largeImageCustomUrl: String = "",
     smallImageType: String = "artist",
     smallImageCustomUrl: String = "",
-)
 ) {
     val context = LocalContext.current
 
