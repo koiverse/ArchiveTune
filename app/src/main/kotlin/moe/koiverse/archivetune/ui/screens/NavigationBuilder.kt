@@ -192,7 +192,7 @@ fun NavGraphBuilder.navigationBuilder(
         ArtistAlbumsScreen(navController, scrollBehavior)
     }
     composable(
-        route = "artist/{artistId}/items?browseId={browseId}?params={params}",
+        route = "artist/{artistId}/items?browseId={browseId}&params={params}",
         arguments =
         listOf(
             navArgument("artistId") {
