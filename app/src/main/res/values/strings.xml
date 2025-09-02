@@ -238,6 +238,10 @@
     <string name="dark_theme">Dark theme</string>
     <string name="dark_theme_on">On</string>
     <string name="dark_theme_off">Off</string>
+    <string name="show_button">Show button</string>
+    <string name="show_button1_description">Toggle visibility of button 1 in Discord Rich Presence</string>
+    <string name="show_button2_description">Toggle visibility of button 2 in Discord Rich Presence</string>
+    <string name="discord_activity_type">Activity type</string>
     <string name="dark_theme_follow_system">Follow system</string>
     <string name="pure_black">Pure black</string>
     <string name="customize_navigation_tabs">Customize navigation tabs</string>
