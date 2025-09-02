@@ -136,7 +136,13 @@ fun DiscordSettings(
             }
         }
 
-        PreferenceGroupTitle(title = stringResource(R.string.account))
+        Text(
+            text = stringResource(R.string.account),
+            style = MaterialTheme.typography.headlineMedium,
+            modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+        )
 
         PreferenceEntry(
             title = {
@@ -162,7 +168,13 @@ fun DiscordSettings(
             },
         )
 
-        PreferenceGroupTitle(title = stringResource(R.string.options))
+        Text(
+            text = stringResource(R.string.options),
+            style = MaterialTheme.typography.headlineMedium,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp)
+        )
 
         SwitchPreference(
             title = { Text(stringResource(R.string.enable_discord_rpc)) },
@@ -199,32 +211,39 @@ fun DiscordSettings(
         PreferenceEntry(
             title = { Text(stringResource(R.string.refresh)) },
             description = stringResource(R.string.description_refresh),
+            icon = { Icon(painterResource(R.drawable.update), null) },
             isEnabled = isLoggedIn,
             trailingContent = {
             OutlinedButton(onClick = {
-                // trigger update in background
-                coroutineScope.launch(Dispatchers.IO) {
-                val token = discordToken
-                if (token.isNotBlank()) {
-                    try {
-                    val rpc = DiscordRPC(context, token)
-                    song?.let { rpc.updateSong(it, position) }
-                    coroutineScope.launch(Dispatchers.Main) {
-                        android.widget.Toast.makeText(context, "Discord RPC refreshed!", android.widget.Toast.LENGTH_SHORT).show()
-                    }
-                    } catch (_: Exception) {
-                    // ignore
-                    }
+            // trigger update in background
+            coroutineScope.launch(Dispatchers.IO) {
+            val token = discordToken
+            if (token.isNotBlank()) {
+                try {
+                val rpc = DiscordRPC(context, token)
+                song?.let { rpc.updateSong(it, position) }
+                coroutineScope.launch(Dispatchers.Main) {
+                android.widget.Toast.makeText(context, "Discord RPC refreshed!", android.widget.Toast.LENGTH_SHORT).show()
                 }
+                } catch (_: Exception) {
+                // ignore
                 }
+            }
+            }
             }) {
-                Icon(painterResource(R.drawable.update), contentDescription = null)
+            Text(stringResource(R.string.refresh))
             }
             }
         )
 
 
-        PreferenceGroupTitle(title = stringResource(R.string.preview))
+        Text(
+            text = stringResource(R.string.preview),
+            style = MaterialTheme.typography.headlineMedium,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp)
+        )
 
         val (nameSource, onNameSourceChange) = rememberEnumPreference(
             key = DiscordActivityNameKey, defaultValue = ActivitySource.APP
@@ -296,7 +315,13 @@ fun DiscordSettings(
         )
         val activityOptions = listOf("PLAYING", "STREAMING", "LISTENING", "WATCHING", "COMPETING")
 
-        PreferenceGroupTitle(title = stringResource(R.string.discord_button_options))
+        Text(
+            text = stringResource(R.string.discord_button_options),
+            style = MaterialTheme.typography.headlineMedium,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp)
+        )
 
         EditablePreference(
             title = stringResource(R.string.discord_activity_button1_label),
@@ -316,6 +341,7 @@ fun DiscordSettings(
         if (button1Enabled) {
             EditablePreference(
                 title = stringResource(R.string.discord_activity_button1_url),
+                description = stringResource(R.string.button1_url_description),
                 iconRes = R.drawable.link,
                 value = button1Url,
                 defaultValue = "",
@@ -340,6 +366,7 @@ fun DiscordSettings(
         if (button2Enabled) {
             EditablePreference(
                 title = stringResource(R.string.discord_activity_button2_url),
+                description = stringResource(R.string.button2_url_description),
                 iconRes = R.drawable.link,
                 value = button2Url,
                 defaultValue = "",
@@ -360,7 +387,7 @@ fun DiscordSettings(
                     .fillMaxWidth()
                     .menuAnchor()
                     .clickable { activityExpanded = true }
-                    .padding(horizontal = 10.dp, vertical = 10.dp),
+                    .padding(horizontal = 13.dp, vertical = 16.dp),
                 leadingIcon = { Icon(painterResource(R.drawable.discord), null) }
             )
             ExposedDropdownMenu(expanded = activityExpanded, onDismissRequest = { activityExpanded = false }) {
@@ -374,7 +401,13 @@ fun DiscordSettings(
         }
 
     // Group button related preferences
-    PreferenceGroupTitle(title = stringResource(R.string.discord_image_options))
+    Text(
+        text = stringResource(R.string.discord_image_options),
+        style = MaterialTheme.typography.headlineMedium,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+    )
 
     // Discord presence image selection
         val imageOptions = listOf("thumbnail", "artist", "appicon", "custom")
@@ -407,7 +440,7 @@ fun DiscordSettings(
                     .fillMaxWidth()
                     .menuAnchor()
                     .clickable { largeImageExpanded = true }
-                    .padding(horizontal = 10.dp, vertical = 10.dp),
+                    .padding(horizontal = 13.dp, vertical = 16.dp),
                 leadingIcon = { Icon(painterResource(R.drawable.info), null) }
             )
             ExposedDropdownMenu(expanded = largeImageExpanded, onDismissRequest = { largeImageExpanded = false }) {
@@ -634,7 +667,11 @@ fun RichPresence(
 
     PreferenceEntry(
         title = {
-            Text(text = stringResource(R.string.preview), style = MaterialTheme.typography.titleMedium)
+            Text(
+            text = stringResource(R.string.preview),
+            style = MaterialTheme.typography.headlineMedium,
+            modifier = Modifier.padding(bottom = 16.dp)
+            )
         },
         content = {
             Surface(
