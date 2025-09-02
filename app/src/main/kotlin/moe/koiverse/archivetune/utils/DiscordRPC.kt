@@ -3,14 +3,7 @@ package moe.koiverse.archivetune.utils
 import android.content.Context
 import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.db.entities.Song
-import moe.koiverse.archivetune.constants.DiscordActivityNameKey
-import moe.koiverse.archivetune.constants.DiscordActivityDetailsKey
-import moe.koiverse.archivetune.constants.DiscordActivityStateKey
-import moe.koiverse.archivetune.constants.DiscordActivityButtonUrlKey
-import moe.koiverse.archivetune.constants.DiscordActivityButton1LabelKey
-import moe.koiverse.archivetune.constants.DiscordActivityButton1UrlKey
-import moe.koiverse.archivetune.constants.DiscordActivityButton2LabelKey
-import moe.koiverse.archivetune.constants.DiscordActivityButton2UrlKey
+import moe.koiverse.archivetune.constants.*
 import moe.koiverse.archivetune.utils.dataStore
 import com.my.kizzy.rpc.KizzyRPC
 import com.my.kizzy.rpc.RpcImage
@@ -22,7 +15,7 @@ class DiscordRPC(
     suspend fun updateSong(song: Song, currentPlaybackTimeMillis: Long) = runCatching {
         val currentTime = System.currentTimeMillis()
         val calculatedStartTime = currentTime - currentPlaybackTimeMillis
-        // Read user preferences (stored as strings matching enum names)
+
         val namePref = context.dataStore[DiscordActivityNameKey] ?: "APP"
         val detailsPref = context.dataStore[DiscordActivityDetailsKey] ?: "SONG"
         val statePref = context.dataStore[DiscordActivityStateKey] ?: "ARTIST"
@@ -42,41 +35,44 @@ class DiscordRPC(
         val activityDetails = pickSourceValue(detailsPref, song, song.song.title)
         val activityState = pickSourceValue(statePref, song, song.artists.joinToString { it.name })
 
+        val baseSongUrl = "https://music.youtube.com/watch?v=${song.song.id}"
         val buttonUrl = when (buttonUrlPref) {
-            "ALBUM" -> song.album?.playlistId?.let { pid -> "https://music.youtube.com/playlist?list=$pid" }
-            "SONG" -> "https://music.youtube.com/watch?v=${song.song.id}"
-            "ARTIST" -> "https://music.youtube.com/watch?v=${song.song.id}"
-            "APP" -> "https://music.youtube.com/watch?v=${song.song.id}"
-            else -> "https://music.youtube.com/watch?v=${song.song.id}"
-        } ?: "https://music.youtube.com/watch?v=${song.song.id}"
+            "ALBUM" -> song.album?.playlistId?.let { "https://music.youtube.com/playlist?list=$it" }
+            "SONG", "APP", "ARTIST" -> baseSongUrl
+            else -> baseSongUrl
+        } ?: baseSongUrl
 
-        // custom button labels / urls (optional)
         val defaultButton1Label = "Listen on YouTube Music"
-        val defaultButton1Url = "https://music.youtube.com/watch?v=${song.song.id}"
+        val defaultButton1Url = baseSongUrl
         val defaultButton2Label = "View Album"
-        val defaultButton2Url = song.album?.playlistId?.let { pid -> "https://music.youtube.com/playlist?list=$pid" } ?: defaultButton1Url
+        val defaultButton2Url = song.album?.playlistId?.let { "https://music.youtube.com/playlist?list=$it" } ?: baseSongUrl
 
         val button1Label = context.dataStore[DiscordActivityButton1LabelKey] ?: defaultButton1Label
         val button1UrlPref = context.dataStore[DiscordActivityButton1UrlKey] ?: ""
-        val button1Url = if (button1UrlPref.isNotEmpty()) button1UrlPref else defaultButton1Url
+        val resolvedButton1Url = if (button1UrlPref.isNotEmpty()) button1UrlPref else defaultButton1Url
 
         val button2Label = context.dataStore[DiscordActivityButton2LabelKey] ?: defaultButton2Label
         val button2UrlPref = context.dataStore[DiscordActivityButton2UrlKey] ?: ""
-        val button2Url = if (button2UrlPref.isNotEmpty()) button2UrlPref else defaultButton2Url
+        val resolvedButton2Url = if (button2UrlPref.isNotEmpty()) button2UrlPref else defaultButton2Url
+
+        val buttons = mutableListOf<Pair<String, String>>()
+        if (button1Label.isNotBlank() && !resolvedButton1Url.isNullOrBlank()) {
+            buttons.add(button1Label to resolvedButton1Url)
+        }
+        if (button2Label.isNotBlank() && !resolvedButton2Url.isNullOrBlank()) {
+            buttons.add(button2Label to resolvedButton2Url)
+        }
 
         setActivity(
             name = activityName.removeSuffix(" Debug"),
             details = activityDetails,
             state = activityState,
-            detailsUrl = "https://music.youtube.com/watch?v=${song.song.id}",
+            detailsUrl = baseSongUrl,
             largeImage = song.song.thumbnailUrl?.let { RpcImage.ExternalImage(it) },
             smallImage = song.artists.firstOrNull()?.thumbnailUrl?.let { RpcImage.ExternalImage(it) },
             largeText = song.album?.title,
             smallText = song.artists.firstOrNull()?.name,
-            buttons = listOf(
-                button1Label to button1Url,
-                button2Label to button2Url
-            ),
+            buttons = buttons,
             type = Type.LISTENING,
             statusDisplayType = StatusDisplayType.STATE,
             since = currentTime,
