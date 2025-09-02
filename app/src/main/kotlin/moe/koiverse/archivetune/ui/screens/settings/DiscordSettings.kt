@@ -350,13 +350,17 @@ fun DiscordSettings(
         // Activity type selector - OutlinedTextField anchored dropdown
         var activityExpanded by remember { mutableStateOf(false) }
         ExposedDropdownMenuBox(expanded = activityExpanded, onExpandedChange = { activityExpanded = it }) {
-            OutlinedTextField(
+            TextField(
                 value = activityType,
                 onValueChange = {},
                 readOnly = true,
                 label = { Text(stringResource(R.string.discord_activity_type)) },
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = activityExpanded) },
-                modifier = Modifier.fillMaxWidth().clickable { activityExpanded = true },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .menuAnchor()
+                    .clickable { activityExpanded = true }
+                    .padding(horizontal = 16.dp),
                 leadingIcon = { Icon(painterResource(R.drawable.discord), null) }
             )
             ExposedDropdownMenu(expanded = activityExpanded, onDismissRequest = { activityExpanded = false }) {
@@ -393,18 +397,26 @@ fun DiscordSettings(
 
         var largeImageExpanded by remember { mutableStateOf(false) }
         ExposedDropdownMenuBox(expanded = largeImageExpanded, onExpandedChange = { largeImageExpanded = it }) {
-            OutlinedTextField(
+            TextField(
                 value = largeImageType,
                 onValueChange = {},
                 readOnly = true,
                 label = { Text("Large image") },
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = largeImageExpanded) },
-                modifier = Modifier.fillMaxWidth().clickable { largeImageExpanded = true },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .menuAnchor()
+                    .clickable { largeImageExpanded = true }
+                    .padding(horizontal = 16.dp),
                 leadingIcon = { Icon(painterResource(R.drawable.info), null) }
             )
             ExposedDropdownMenu(expanded = largeImageExpanded, onDismissRequest = { largeImageExpanded = false }) {
                 imageOptions.forEach { opt ->
-                    DropdownMenuItem(text = { Text(opt) }, onClick = {
+                    val display = when (opt) {
+                        "appicon" -> "App Icon"
+                        else -> opt.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
+                    }
+                    DropdownMenuItem(text = { Text(display) }, onClick = {
                         onLargeImageTypeChange(opt)
                         largeImageExpanded = false
                     })
@@ -423,18 +435,26 @@ fun DiscordSettings(
 
         var smallImageExpanded by remember { mutableStateOf(false) }
         ExposedDropdownMenuBox(expanded = smallImageExpanded, onExpandedChange = { smallImageExpanded = it }) {
-            OutlinedTextField(
+            TextField(
                 value = smallImageType,
                 onValueChange = {},
                 readOnly = true,
                 label = { Text("Small image") },
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = smallImageExpanded) },
-                modifier = Modifier.fillMaxWidth().clickable { smallImageExpanded = true },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .menuAnchor()
+                    .clickable { smallImageExpanded = true }
+                    .padding(horizontal = 16.dp),
                 leadingIcon = { Icon(painterResource(R.drawable.info), null) }
             )
             ExposedDropdownMenu(expanded = smallImageExpanded, onDismissRequest = { smallImageExpanded = false }) {
                 imageOptions.forEach { opt ->
-                    DropdownMenuItem(text = { Text(opt) }, onClick = {
+                    val display = when (opt) {
+                        "appicon" -> "App Icon"
+                        else -> opt.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
+                    }
+                    DropdownMenuItem(text = { Text(display) }, onClick = {
                         onSmallImageTypeChange(opt)
                         smallImageExpanded = false
                     })
@@ -494,7 +514,7 @@ fun ActivitySourceDropdown(
             .fillMaxWidth()
             .padding(vertical = 4.dp) // 👈 add vertical spacing between fields
     ) {
-        OutlinedTextField(
+        TextField(
             value = selected.name,
             onValueChange = {},
             readOnly = true,
@@ -502,8 +522,9 @@ fun ActivitySourceDropdown(
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
             leadingIcon = { Icon(painterResource(iconRes), null) },
             modifier = Modifier
-                .menuAnchor() // 👈 correct anchor for dropdown
+                .menuAnchor()
                 .fillMaxWidth()
+                .padding(horizontal = 16.dp)
         )
 
         ExposedDropdownMenu(
@@ -560,7 +581,8 @@ fun EditablePreference(
                     value = text,
                     onValueChange = { text = it },
                     placeholder = { Text(defaultValue) },
-                    singleLine = true
+                    singleLine = true,
+                    modifier = Modifier.padding(horizontal = 16.dp)
                 )
             }
         )
