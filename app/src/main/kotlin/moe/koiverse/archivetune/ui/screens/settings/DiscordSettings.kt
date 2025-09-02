@@ -486,19 +486,30 @@ fun ActivitySourceDropdown(
     onChange: (ActivitySource) -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
-    val options = ActivitySource.values().map { it.name }
-    ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
+
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = it },
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp) // 👈 add vertical spacing between fields
+    ) {
         OutlinedTextField(
             value = selected.name,
             onValueChange = {},
             readOnly = true,
             label = { Text(title) },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-            modifier = Modifier.fillMaxWidth().clickable { expanded = true },
-            leadingIcon = { Icon(painterResource(iconRes), null) }
+            leadingIcon = { Icon(painterResource(iconRes), null) },
+            modifier = Modifier
+                .menuAnchor() // 👈 correct anchor for dropdown
+                .fillMaxWidth()
         )
 
-        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
             ActivitySource.values().forEach { source ->
                 DropdownMenuItem(
                     text = { Text(source.name) },
@@ -511,6 +522,7 @@ fun ActivitySourceDropdown(
         }
     }
 }
+
 
 @Composable
 fun EditablePreference(
