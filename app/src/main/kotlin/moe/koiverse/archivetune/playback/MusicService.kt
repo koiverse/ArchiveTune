@@ -1001,12 +1001,20 @@ class MusicService :
                 }
             }
         } else if (events.contains(Player.EVENT_MEDIA_ITEM_TRANSITION)) {
-            // Also update when the media item changes, even if isPlaying doesn't change
-            if (player.isPlaying) {
+            // Also update when the media item changes, even if isPlaying doesn't change.
+            // Radio sources sometimes change the media item without toggling isPlaying,
+            // so also treat playWhenReady + STATE_READY as "playing" for RPC updates.
+            val shouldUpdateOnTransition = player.isPlaying || (player.playWhenReady && player.playbackState == Player.STATE_READY)
+            if (shouldUpdateOnTransition) {
                 currentSong.value?.let { song ->
                     scope.launch {
                         discordRpc?.updateSong(song, player.currentPosition)
                     }
+                }
+            } else {
+                // If not playing after transition, stop activity so Discord doesn't show stale info
+                scope.launch {
+                    discordRpc?.stopActivity()
                 }
             }
         }
