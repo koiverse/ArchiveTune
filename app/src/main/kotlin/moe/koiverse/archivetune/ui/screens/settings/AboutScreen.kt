@@ -68,7 +68,7 @@ fun AboutScreen(
         Spacer(Modifier.height(4.dp))
 
         Image(
-            painter = painterResource(R.drawable.about_splash_bitmap),
+            painter = painterResource(R.drawable.about_splash),
             contentDescription = null,
             modifier = Modifier
                 .clip(CircleShape)
