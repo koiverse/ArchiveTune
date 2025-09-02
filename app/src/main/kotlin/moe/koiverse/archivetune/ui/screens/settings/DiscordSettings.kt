@@ -250,7 +250,7 @@ fun DiscordSettings(
         )
         PreferenceEntry(
             title = { Text(stringResource(R.string.show_button)) },
-            description = { Text(stringResource(R.string.show_button1_description)) },
+            description = stringResource(R.string.show_button1_description),
             icon = { Icon(painterResource(R.drawable.play), null) },
             trailingContent = {
                 Switch(checked = button1Enabled, onCheckedChange = onButton1EnabledChange)
@@ -272,7 +272,7 @@ fun DiscordSettings(
         )
         PreferenceEntry(
             title = { Text(stringResource(R.string.show_button)) },
-            description = { Text(stringResource(R.string.show_button2_description)) },
+            description = stringResource(R.string.show_button2_description),
             icon = { Icon(painterResource(R.drawable.info), null) },
             trailingContent = {
                 Switch(checked = button2Enabled, onCheckedChange = onButton2EnabledChange)
