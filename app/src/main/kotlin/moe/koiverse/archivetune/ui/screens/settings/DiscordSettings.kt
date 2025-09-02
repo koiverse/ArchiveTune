@@ -268,6 +268,7 @@ fun DiscordSettings(
     )
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ActivitySourceDropdown(
     title: String,
