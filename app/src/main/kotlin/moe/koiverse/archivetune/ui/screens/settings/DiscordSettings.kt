@@ -252,12 +252,6 @@ fun DiscordSettings(
         )
 
             // Dropdowns to customize what is shown in the Discord activity fields.
-            enum class ActivitySource {
-                ARTIST,
-                ALBUM,
-                SONG,
-                APP,
-            }
 
             val (nameSource, onNameSourceChange) = rememberEnumPreference(
                 key = DiscordActivityNameKey,
@@ -281,7 +275,7 @@ fun DiscordSettings(
 
             PreferenceEntry(
                 title = { Text(stringResource(R.string.discord_activity_name)) },
-                description = { Text(nameSource.name) },
+                description = nameSource.name,
                 icon = { Icon(painterResource(R.drawable.discord), null) },
                 trailingContent = {
                     TextButton(onClick = {
@@ -294,7 +288,7 @@ fun DiscordSettings(
 
             PreferenceEntry(
                 title = { Text(stringResource(R.string.discord_activity_details)) },
-                description = { Text(detailsSource.name) },
+                description = detailsSource.name,
                 icon = { Icon(painterResource(R.drawable.info), null) },
                 trailingContent = {
                     TextButton(onClick = {
@@ -306,7 +300,7 @@ fun DiscordSettings(
 
             PreferenceEntry(
                 title = { Text(stringResource(R.string.discord_activity_state)) },
-                description = { Text(stateSource.name) },
+                description = stateSource.name,
                 icon = { Icon(painterResource(R.drawable.info), null) },
                 trailingContent = {
                     TextButton(onClick = {
@@ -318,7 +312,7 @@ fun DiscordSettings(
 
             PreferenceEntry(
                 title = { Text(stringResource(R.string.discord_activity_button_url)) },
-                description = { Text(buttonUrlSource.name) },
+                description = buttonUrlSource.name,
                 icon = { Icon(painterResource(R.drawable.link), null) },
                 trailingContent = {
                     TextButton(onClick = {
@@ -351,7 +345,7 @@ fun DiscordSettings(
 
             PreferenceEntry(
                 title = { Text(stringResource(R.string.discord_activity_button1_label)) },
-                description = { Text(button1Label) },
+                description = button1Label,
                 icon = { Icon(painterResource(R.drawable.play), null) },
                 trailingContent = {
                     TextButton(onClick = {
@@ -363,7 +357,7 @@ fun DiscordSettings(
 
             PreferenceEntry(
                 title = { Text(stringResource(R.string.discord_activity_button1_url)) },
-                description = { Text(if (button1Url.isEmpty()) stringResource(R.string.default_) else button1Url) },
+                description = if (button1Url.isEmpty()) stringResource(R.string.default_) else button1Url,
                 icon = { Icon(painterResource(R.drawable.link), null) },
                 trailingContent = {
                     TextButton(onClick = {
@@ -374,7 +368,7 @@ fun DiscordSettings(
 
             PreferenceEntry(
                 title = { Text(stringResource(R.string.discord_activity_button2_label)) },
-                description = { Text(button2Label) },
+                description = button2Label,
                 icon = { Icon(painterResource(R.drawable.info), null) },
                 trailingContent = {
                     TextButton(onClick = {
@@ -385,7 +379,7 @@ fun DiscordSettings(
 
             PreferenceEntry(
                 title = { Text(stringResource(R.string.discord_activity_button2_url)) },
-                description = { Text(if (button2Url.isEmpty()) stringResource(R.string.default_) else button2Url) },
+                description = if (button2Url.isEmpty()) stringResource(R.string.default_) else button2Url,
                 icon = { Icon(painterResource(R.drawable.link), null) },
                 trailingContent = {
                     TextButton(onClick = {
