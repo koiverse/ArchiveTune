@@ -140,7 +140,7 @@ fun DiscordSettings(
 
         Text(
             text = stringResource(R.string.account),
-            style = MaterialTheme.typography.headlineMedium,
+            style = MaterialTheme.typography.headlineSmall,
             modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp)
@@ -172,7 +172,7 @@ fun DiscordSettings(
 
         Text(
             text = stringResource(R.string.options),
-            style = MaterialTheme.typography.headlineMedium,
+            style = MaterialTheme.typography.headlineSmall,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp, vertical = 8.dp)
@@ -241,7 +241,7 @@ fun DiscordSettings(
 
         Text(
             text = stringResource(R.string.preview),
-            style = MaterialTheme.typography.headlineMedium,
+            style = MaterialTheme.typography.headlineSmall,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp, vertical = 8.dp)
@@ -319,7 +319,7 @@ fun DiscordSettings(
 
         Text(
             text = stringResource(R.string.discord_button_options),
-            style = MaterialTheme.typography.headlineMedium,
+            style = MaterialTheme.typography.headlineSmall,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp, vertical = 8.dp)
@@ -405,7 +405,7 @@ fun DiscordSettings(
     // Group button related preferences
     Text(
         text = stringResource(R.string.discord_image_options),
-        style = MaterialTheme.typography.headlineMedium,
+        style = MaterialTheme.typography.headlineSmall,
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp)
@@ -692,7 +692,7 @@ fun RichPresence(
         title = {
             Text(
             text = stringResource(R.string.preview),
-            style = MaterialTheme.typography.headlineMedium,
+            style = MaterialTheme.typography.headlineSmall,
             modifier = Modifier.padding(bottom = 16.dp)
             )
         },
