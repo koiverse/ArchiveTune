@@ -6,6 +6,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -169,6 +170,60 @@ fun DiscordSettings(
             isEnabled = isLoggedIn,
         )
 
+        // Add a refresh action to manually re-update Discord RPC
+        // PreferenceEntry(
+        //     title = { Text(stringResource(R.string.refresh)) },
+        //     description = stringResource(R.string.description_refresh),
+        //     icon = { Icon(painterResource(R.drawable.refresh), null) },
+        //     trailingContent = {
+        //         IconButton(onClick = {
+        //             // trigger update in background
+        //             coroutineScope.launch(Dispatchers.IO) {
+        //                 val token = discordToken
+        //                 if (token.isNotBlank()) {
+        //                     try {
+        //                         val rpc = DiscordRPC(context, token)
+        //                         song?.let { rpc.updateSong(it, position) }
+        //                     } catch (_: Exception) {
+        //                         // ignore
+        //                     }
+        //                 }
+        //             }
+        //         }) {
+        //             Icon(painterResource(R.drawable.update), contentDescription = null)
+        //         }
+        //     }
+        // )
+        
+        PreferenceEntry(
+            title = { Text(stringResource(R.string.refresh)) },
+            description = stringResource(R.string.description_refresh),
+            icon = { Icon(painterResource(R.drawable.refresh), null) },
+            trailingContent = {
+                IconButton(onClick = {
+                    // trigger update in background
+                    coroutineScope.launch(Dispatchers.IO) {
+                        val token = discordToken
+                        if (token.isNotBlank()) {
+                            try {
+                                val rpc = DiscordRPC(context, token)
+                                song?.let { rpc.updateSong(it, position) }
+                                withContext(Dispatchers.Main) {
+                                    // Show a toast message on the main thread
+                                    android.widget.Toast.makeText(context, "Discord RPC refreshed!", android.widget.Toast.LENGTH_SHORT).show()
+                                }
+                            } catch (_: Exception) {
+                                // ignore
+                            }
+                        }
+                    }
+                }) {
+                    Icon(painterResource(R.drawable.update), contentDescription = null)
+                }
+            }
+        )
+
+
         PreferenceGroupTitle(title = stringResource(R.string.preview))
 
         val (nameSource, onNameSourceChange) = rememberEnumPreference(
@@ -234,12 +289,14 @@ fun DiscordSettings(
             defaultValue = true
         )
 
-        // Activity type selection
+    // Activity type selection
         val (activityType, onActivityTypeChange) = rememberPreference(
             key = DiscordActivityTypeKey,
             defaultValue = "LISTENING"
         )
         val activityOptions = listOf("PLAYING", "STREAMING", "LISTENING", "WATCHING", "COMPETING")
+
+        PreferenceGroupTitle(title = stringResource(R.string.discord_button_options))
 
         EditablePreference(
             title = stringResource(R.string.discord_activity_button1_label),
@@ -312,7 +369,10 @@ fun DiscordSettings(
             }
         }
 
-        // Discord presence image selection
+    // Group button related preferences
+    PreferenceGroupTitle(title = stringResource(R.string.discord_image_options))
+
+    // Discord presence image selection
         val imageOptions = listOf("thumbnail", "artist", "appicon", "custom")
         val (largeImageType, onLargeImageTypeChange) = rememberPreference(
             key = DiscordLargeImageTypeKey,
@@ -337,7 +397,7 @@ fun DiscordSettings(
                 value = largeImageType,
                 onValueChange = {},
                 readOnly = true,
-                label = { Text(stringResource(R.string.discord_large_image)) },
+                label = { Text("Large image") },
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = largeImageExpanded) },
                 modifier = Modifier.fillMaxWidth().clickable { largeImageExpanded = true },
                 leadingIcon = { Icon(painterResource(R.drawable.info), null) }
@@ -367,7 +427,7 @@ fun DiscordSettings(
                 value = smallImageType,
                 onValueChange = {},
                 readOnly = true,
-                label = { Text(stringResource(R.string.discord_small_image)) },
+                label = { Text("Small image") },
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = smallImageExpanded) },
                 modifier = Modifier.fillMaxWidth().clickable { smallImageExpanded = true },
                 leadingIcon = { Icon(painterResource(R.drawable.info), null) }

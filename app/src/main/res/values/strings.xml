@@ -348,6 +348,12 @@
     <string name="discord_activity_button2_label">Button 2 label</string>
     <string name="discord_activity_button2_url">Button 2 URL</string>
 
+    <!-- Discord settings additions -->
+    <string name="discord_button_options">Button Options</string>
+    <string name="discord_image_options">Image Options</string>
+    <string name="refresh">Refresh</string>
+    <string name="description_refresh">Refresh the Discord Gateway</string>
+
     <string name="about">About</string>
     <string name="app_version">App version</string>
 
