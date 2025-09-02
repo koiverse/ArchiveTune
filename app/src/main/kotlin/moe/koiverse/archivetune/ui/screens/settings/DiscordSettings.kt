@@ -256,13 +256,15 @@ fun DiscordSettings(
                 Switch(checked = button1Enabled, onCheckedChange = onButton1EnabledChange)
             }
         )
-        EditablePreference(
-            title = stringResource(R.string.discord_activity_button1_url),
-            iconRes = R.drawable.link,
-            value = button1Url,
-            defaultValue = "",
-            onValueChange = onButton1UrlChange
-        )
+        if (button1Enabled) {
+            EditablePreference(
+                title = stringResource(R.string.discord_activity_button1_url),
+                iconRes = R.drawable.link,
+                value = button1Url,
+                defaultValue = "",
+                onValueChange = onButton1UrlChange
+            )
+        }
         EditablePreference(
             title = stringResource(R.string.discord_activity_button2_label),
             iconRes = R.drawable.info,
@@ -278,30 +280,37 @@ fun DiscordSettings(
                 Switch(checked = button2Enabled, onCheckedChange = onButton2EnabledChange)
             }
         )
-        EditablePreference(
-            title = stringResource(R.string.discord_activity_button2_url),
-            iconRes = R.drawable.link,
-            value = button2Url,
-            defaultValue = "",
-            onValueChange = onButton2UrlChange
-        )
+        if (button2Enabled) {
+            EditablePreference(
+                title = stringResource(R.string.discord_activity_button2_url),
+                iconRes = R.drawable.link,
+                value = button2Url,
+                defaultValue = "",
+                onValueChange = onButton2UrlChange
+            )
+        }
 
-        // Activity type selector
-        PreferenceEntry(
-            title = { Text(stringResource(R.string.discord_activity_type)) },
-            description = activityType,
-            icon = { Icon(painterResource(R.drawable.discord), null) },
-            trailingContent = {
-                ExposedDropdownMenuBox(expanded = false, onExpandedChange = {}) {
-                    TextButton(onClick = {
-                        // cycle through options for simplicity
-                        val idx = activityOptions.indexOf(activityType)
-                        val next = activityOptions[(idx + 1) % activityOptions.size]
-                        onActivityTypeChange(next)
-                    }) { Text(activityType) }
+        // Activity type selector - OutlinedTextField anchored dropdown
+        var activityExpanded by remember { mutableStateOf(false) }
+        ExposedDropdownMenuBox(expanded = activityExpanded, onExpandedChange = { activityExpanded = it }) {
+            OutlinedTextField(
+                value = activityType,
+                onValueChange = {},
+                readOnly = true,
+                label = { Text(stringResource(R.string.discord_activity_type)) },
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = activityExpanded) },
+                modifier = Modifier.fillMaxWidth().clickable { activityExpanded = true },
+                leadingIcon = { Icon(painterResource(R.drawable.discord), null) }
+            )
+            ExposedDropdownMenu(expanded = activityExpanded, onDismissRequest = { activityExpanded = false }) {
+                activityOptions.forEach { opt ->
+                    DropdownMenuItem(text = { Text(opt) }, onClick = {
+                        onActivityTypeChange(opt)
+                        activityExpanded = false
+                    })
                 }
             }
-        )
+        }
 
         // Discord presence image selection
         val imageOptions = listOf("thumbnail", "artist", "appicon", "custom")
@@ -322,20 +331,26 @@ fun DiscordSettings(
             defaultValue = ""
         )
 
-        PreferenceEntry(
-            title = { Text("Large image") },
-            description = largeImageType,
-            icon = { Icon(painterResource(R.drawable.info), null) },
-            trailingContent = {
-                ExposedDropdownMenuBox(expanded = false, onExpandedChange = {}) {
-                    TextButton(onClick = {
-                        val idx = imageOptions.indexOf(largeImageType)
-                        val next = imageOptions[(idx + 1) % imageOptions.size]
-                        onLargeImageTypeChange(next)
-                    }) { Text(largeImageType) }
+        var largeImageExpanded by remember { mutableStateOf(false) }
+        ExposedDropdownMenuBox(expanded = largeImageExpanded, onExpandedChange = { largeImageExpanded = it }) {
+            OutlinedTextField(
+                value = largeImageType,
+                onValueChange = {},
+                readOnly = true,
+                label = { Text(stringResource(R.string.discord_large_image)) },
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = largeImageExpanded) },
+                modifier = Modifier.fillMaxWidth().clickable { largeImageExpanded = true },
+                leadingIcon = { Icon(painterResource(R.drawable.info), null) }
+            )
+            ExposedDropdownMenu(expanded = largeImageExpanded, onDismissRequest = { largeImageExpanded = false }) {
+                imageOptions.forEach { opt ->
+                    DropdownMenuItem(text = { Text(opt) }, onClick = {
+                        onLargeImageTypeChange(opt)
+                        largeImageExpanded = false
+                    })
                 }
             }
-        )
+        }
         if (largeImageType == "custom") {
             EditablePreference(
                 title = "Large image custom URL",
@@ -346,20 +361,26 @@ fun DiscordSettings(
             )
         }
 
-        PreferenceEntry(
-            title = { Text("Small image") },
-            description = smallImageType,
-            icon = { Icon(painterResource(R.drawable.info), null) },
-            trailingContent = {
-                ExposedDropdownMenuBox(expanded = false, onExpandedChange = {}) {
-                    TextButton(onClick = {
-                        val idx = imageOptions.indexOf(smallImageType)
-                        val next = imageOptions[(idx + 1) % imageOptions.size]
-                        onSmallImageTypeChange(next)
-                    }) { Text(smallImageType) }
+        var smallImageExpanded by remember { mutableStateOf(false) }
+        ExposedDropdownMenuBox(expanded = smallImageExpanded, onExpandedChange = { smallImageExpanded = it }) {
+            OutlinedTextField(
+                value = smallImageType,
+                onValueChange = {},
+                readOnly = true,
+                label = { Text(stringResource(R.string.discord_small_image)) },
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = smallImageExpanded) },
+                modifier = Modifier.fillMaxWidth().clickable { smallImageExpanded = true },
+                leadingIcon = { Icon(painterResource(R.drawable.info), null) }
+            )
+            ExposedDropdownMenu(expanded = smallImageExpanded, onDismissRequest = { smallImageExpanded = false }) {
+                imageOptions.forEach { opt ->
+                    DropdownMenuItem(text = { Text(opt) }, onClick = {
+                        onSmallImageTypeChange(opt)
+                        smallImageExpanded = false
+                    })
                 }
             }
-        )
+        }
         if (smallImageType == "custom") {
             EditablePreference(
                 title = "Small image custom URL",
@@ -405,15 +426,18 @@ fun ActivitySourceDropdown(
     onChange: (ActivitySource) -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
+    val options = ActivitySource.values().map { it.name }
     ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
-        PreferenceEntry(
-            title = { Text(title) },
-            description = selected.name,
-            icon = { Icon(painterResource(iconRes), null) },
-            trailingContent = {
-                TextButton(onClick = { expanded = true }) { Text(selected.name) }
-            }
+        OutlinedTextField(
+            value = selected.name,
+            onValueChange = {},
+            readOnly = true,
+            label = { Text(title) },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            modifier = Modifier.fillMaxWidth().clickable { expanded = true },
+            leadingIcon = { Icon(painterResource(iconRes), null) }
         )
+
         ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             ActivitySource.values().forEach { source ->
                 DropdownMenuItem(
@@ -534,7 +558,11 @@ fun RichPresence(
                             ActivitySource.ARTIST -> song?.artists?.firstOrNull()?.name ?: "ArchiveTune"
                             ActivitySource.ALBUM -> song?.album?.title ?: "ArchiveTune"
                             ActivitySource.SONG -> song?.song?.title ?: "ArchiveTune"
-                            ActivitySource.APP -> "Listening to ArchiveTune"
+                            ActivitySource.APP -> when (activityType.uppercase()) {
+                                "PLAYING" -> "Playing on ArchiveTune"
+                                "LISTENING" -> "Listening to ArchiveTune"
+                                else -> activityType.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() } + " on ArchiveTune"
+                            }
                         },
                         style = MaterialTheme.typography.labelLarge,
                         textAlign = TextAlign.Start,
