@@ -390,7 +390,7 @@ fun DiscordSettings(
                     .menuAnchor()
                     .pointerInput(Unit) { detectTapGestures { activityExpanded = true } }
                     .padding(horizontal = 13.dp, vertical = 16.dp),
-                    .leadingIcon = { Icon(painterResource(R.drawable.discord), null) }
+                leadingIcon = { Icon(painterResource(R.drawable.discord), null) }
             )
             ExposedDropdownMenu(expanded = activityExpanded, onDismissRequest = { activityExpanded = false }) {
                 activityOptions.forEach { opt ->
@@ -447,7 +447,7 @@ fun DiscordSettings(
                     .menuAnchor()
                     .pointerInput(Unit) { detectTapGestures { largeImageExpanded = true } }
                     .padding(horizontal = 13.dp, vertical = 16.dp),
-                    .leadingIcon = { Icon(painterResource(R.drawable.info), null) }
+                leadingIcon = { Icon(painterResource(R.drawable.info), null) }
             )
             ExposedDropdownMenu(expanded = largeImageExpanded, onDismissRequest = { largeImageExpanded = false }) {
                 imageOptions.forEach { opt ->
@@ -485,7 +485,7 @@ fun DiscordSettings(
                     .menuAnchor()
                     .pointerInput(Unit) { detectTapGestures { smallImageExpanded = true } }
                     .padding(horizontal = 10.dp, vertical = 10.dp),
-                    .leadingIcon = { Icon(painterResource(R.drawable.info), null) }
+                leadingIcon = { Icon(painterResource(R.drawable.info), null) }
             )
             ExposedDropdownMenu(expanded = smallImageExpanded, onDismissRequest = { smallImageExpanded = false }) {
                 imageOptions.forEach { opt ->
