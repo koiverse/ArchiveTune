@@ -156,19 +156,35 @@ fun DiscordSettings(
             description = if (discordUsername.isNotEmpty()) "@$discordUsername" else null,
             icon = { Icon(painterResource(R.drawable.discord), null) },
             trailingContent = {
+                var showLogoutConfirm by remember { mutableStateOf(false) }
                 if (isLoggedIn) {
-                    OutlinedButton(onClick = {
-                        discordName = ""
-                        discordToken = ""
-                        discordUsername = ""
-                    }) { Text(stringResource(R.string.action_logout)) }
-                } else {
+                        OutlinedButton(onClick = { showLogoutConfirm = true }) { Text(stringResource(R.string.action_logout)) }
+                    } else {
                     OutlinedButton(onClick = {
                         navController.navigate("settings/discord/login")
                     }) { Text(stringResource(R.string.action_login)) }
                 }
             },
         )
+
+            if (showLogoutConfirm) {
+                AlertDialog(
+                    onDismissRequest = { showLogoutConfirm = false },
+                    title = { Text(stringResource(R.string.logout_confirm_title)) },
+                    text = { Text(stringResource(R.string.logout_confirm_message)) },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            discordName = ""
+                            discordToken = ""
+                            discordUsername = ""
+                            showLogoutConfirm = false
+                        }) { Text(stringResource(R.string.logout_confirm_yes)) }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { showLogoutConfirm = false }) { Text(stringResource(R.string.logout_confirm_no)) }
+                    }
+                )
+            }
 
         Text(
             text = stringResource(R.string.options),
@@ -564,7 +580,7 @@ fun ActivitySourceDropdown(
         onExpandedChange = { expanded = it },
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 13.dp) // 👈 add vertical spacing between fields
+            .padding(vertical = 13.dp)
     ) {
         TextField(
             value = selected.name,
@@ -576,7 +592,6 @@ fun ActivitySourceDropdown(
             modifier = Modifier
                 .menuAnchor()
                 .fillMaxWidth()
-                .pointerInput(Unit) { detectTapGestures { expanded = true } }
                 .padding(horizontal = 16.dp)
         )
 
@@ -679,14 +694,15 @@ fun RichPresence(
     )
 
     val defaultButton1Url = song?.id?.let { "https://music.youtube.com/watch?v=$it" }
-    val resolvedButton1Url = if (button1Url.isNotEmpty()) button1Url else defaultButton1Url
+    val resolvedButton1Url = if (button1Url.isNotEmpty()) button1Url else defaultButton1Url ?: ""
 
     val defaultButton2Url = when (buttonUrlSource) {
-        ActivitySource.ALBUM -> song?.album?.playlistId?.let { "https://music.youtube.com/playlist?list=$it" }
-        ActivitySource.ARTIST -> song?.id?.let { "https://music.youtube.com/watch?v=$it" }
-        ActivitySource.SONG, ActivitySource.APP -> song?.id?.let { "https://music.youtube.com/watch?v=$it" }
+    ActivitySource.ALBUM -> song?.album?.playlistId?.let { "https://music.youtube.com/playlist?list=$it" }
+    ActivitySource.ARTIST -> song?.id?.let { "https://music.youtube.com/watch?v=$it" }
+    ActivitySource.SONG, ActivitySource.APP -> song?.id?.let { "https://music.youtube.com/watch?v=$it" }
     }
-    val resolvedButton2Url = if (button2Url.isNotEmpty()) button2Url else defaultButton2Url
+    val resolvedButton2Url = if (button2Url.isNotEmpty()) button2Url else defaultButton2Url ?: ""
+
 
     PreferenceEntry(
         title = {
@@ -810,29 +826,44 @@ fun RichPresence(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    if (button1Enabled && !resolvedButton1Url.isNullOrBlank() && button1Label.isNotBlank()) {
+                    AnimatedVisibility(
+                        visible = button1Enabled && button1Label.isNotBlank()
+                    ) {
                         OutlinedButton(
-                            enabled = song != null,
+                            enabled = resolvedButton1Url.isNotBlank(),
                             onClick = {
-                                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(resolvedButton1Url)))
+                                context.startActivity(
+                                    Intent(
+                                        Intent.ACTION_VIEW,
+                                        Uri.parse(resolvedButton1Url)
+                                    )
+                                )
                             },
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier.fillMaxWidth()
                         ) {
                             Text(button1Label.ifBlank { "Listen on YouTube Music" })
                         }
                     }
 
-                    if (button2Enabled && !resolvedButton2Url.isNullOrBlank() && button2Label.isNotBlank()) {
+                    AnimatedVisibility(
+                        visible = button2Enabled && button2Label.isNotBlank()
+                    ) {
                         OutlinedButton(
-                            enabled = song != null,
+                            enabled = resolvedButton2Url.isNotBlank(),
                             onClick = {
-                                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(resolvedButton2Url)))
+                                context.startActivity(
+                                    Intent(
+                                        Intent.ACTION_VIEW,
+                                        Uri.parse(resolvedButton2Url)
+                                    )
+                                )
                             },
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier.fillMaxWidth()
                         ) {
                             Text(button2Label.ifBlank { "View Album" })
                         }
                     }
+
                 }
             }
         }
