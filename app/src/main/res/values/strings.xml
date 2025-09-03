@@ -357,6 +357,10 @@
     <string name="description_refresh">Manually refresh Discord Rich Presence</string>
     <string name="show_small_image">Show small image</string>
     <string name="description_show_small_image">When enabled, a small circular image is shown in the Rich Presence preview and sent to Discord if available</string>
+    <string name="logout_confirm_title">Confirm logout</string>
+    <string name="logout_confirm_message">Are you sure you want to log out of Discord?.</string>
+    <string name="logout_confirm_yes">Log out</string>
+    <string name="logout_confirm_no">Cancel</string>
 
     <string name="about">About</string>
     <string name="app_version">App version</string>
