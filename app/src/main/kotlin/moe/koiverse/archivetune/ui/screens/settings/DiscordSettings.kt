@@ -146,7 +146,9 @@ fun DiscordSettings(
             .padding(horizontal = 16.dp, vertical = 8.dp)
         )
 
-        PreferenceEntry(
+    var showLogoutConfirm by remember { mutableStateOf(false) }
+
+    PreferenceEntry(
             title = {
                 Text(
                     text = if (isLoggedIn) discordName else stringResource(R.string.not_logged_in),
@@ -156,7 +158,6 @@ fun DiscordSettings(
             description = if (discordUsername.isNotEmpty()) "@$discordUsername" else null,
             icon = { Icon(painterResource(R.drawable.discord), null) },
             trailingContent = {
-                var showLogoutConfirm by remember { mutableStateOf(false) }
                 if (isLoggedIn) {
                         OutlinedButton(onClick = { showLogoutConfirm = true }) { Text(stringResource(R.string.action_logout)) }
                     } else {
