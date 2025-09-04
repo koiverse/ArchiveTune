@@ -88,6 +88,7 @@ val DiscordActivityTypeKey = stringPreferencesKey("discordActivityType")
 // Discord image selection keys
 // Values for type keys: "thumbnail", "artist", "appicon", "custom"
 val DiscordLargeImageTypeKey = stringPreferencesKey("discordLargeImageType")
+val DiscordShowWhenPausedKey = booleanPreferencesKey("discord_show_when_paused")
 val DiscordLargeImageCustomUrlKey = stringPreferencesKey("discordLargeImageCustomUrl")
 val DiscordSmallImageTypeKey = stringPreferencesKey("discordSmallImageType")
 val DiscordSmallImageCustomUrlKey = stringPreferencesKey("discordSmallImageCustomUrl")
