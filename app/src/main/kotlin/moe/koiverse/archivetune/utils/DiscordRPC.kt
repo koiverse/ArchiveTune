@@ -40,14 +40,14 @@ class DiscordRPC(
         }
 
         val activityName = pickSourceValue(namePref, song, context.getString(R.string.app_name))
-        val activityDetails = pickSourceValue(detailsPref, song, song.song.title)
-        val activityState = pickSourceValue(statePref, song, song.artists.joinToString { it.name })
+        val activityDetails = pickSourceValue(detailsPref, song, song?.song?.title ?: "Unknown")
+        val activityState = pickSourceValue(statePref, song, song?.artists?.joinToString { it.name } ?: "Unknown")
 
-        val baseSongUrl = "https://music.youtube.com/watch?v=${song.song.id}"
+        val baseSongUrl = "https://music.youtube.com/watch?v=${song?.song?.id}"
         val defaultButton1Label = "Listen on YouTube Music"
         val defaultButton1Url = baseSongUrl
         val defaultButton2Label = "View Album"
-        val defaultButton2Url = song.album?.playlistId?.let { "https://music.youtube.com/playlist?list=$it" } ?: baseSongUrl
+        val defaultButton2Url = song?.album?.playlistId?.let { "https://music.youtube.com/playlist?list=$it" } ?: baseSongUrl
 
         val button1Label = context.dataStore[DiscordActivityButton1LabelKey] ?: defaultButton1Label
         val button1UrlPref = context.dataStore[DiscordActivityButton1UrlKey] ?: ""
