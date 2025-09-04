@@ -727,7 +727,7 @@ fun RichPresence(
                     Text(
                         text = when (nameSource) {
                             ActivitySource.ARTIST -> song?.artists?.firstOrNull()?.name ?: "ArchiveTune"
-                            ActivitySource.ALBUM -> song?.album?.title ?: "ArchiveTune"
+                            ActivitySource.ALBUM -> song?.album?.title ?: song?.song?.albumName ?: "ArchiveTune"
                             ActivitySource.SONG -> song?.song?.title ?: "ArchiveTune"
                             ActivitySource.APP -> when (activityType.uppercase()) {
                                 "PLAYING" -> "Playing on ArchiveTune"
@@ -800,14 +800,25 @@ fun RichPresence(
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                             )
+
+                            // Compute a preview for the "state" line according to the selected stateSource
+                            val previewState = when (stateSource) {
+                                ActivitySource.ARTIST -> song?.artists?.joinToString { it.name } ?: "Artist"
+                                ActivitySource.ALBUM -> song?.song?.albumName ?: song?.album?.title ?: "Album"
+                                ActivitySource.SONG -> song?.song?.title ?: "Song"
+                                ActivitySource.APP -> stringResource(R.string.app_name)
+                            }
+
                             Text(
-                                text = song?.artists?.joinToString { it.name } ?: "Artist",
+                                text = previewState,
                                 color = MaterialTheme.colorScheme.secondary,
                                 fontSize = 16.sp,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                             )
-                            song?.album?.title?.let {
+
+                            // Keep showing album below if present (secondary info)
+                            (song?.album?.title ?: song?.song?.albumName)?.let {
                                 Text(
                                     text = it,
                                     color = MaterialTheme.colorScheme.secondary,
