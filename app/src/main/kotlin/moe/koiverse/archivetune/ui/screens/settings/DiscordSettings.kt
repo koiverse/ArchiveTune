@@ -392,14 +392,13 @@ fun DiscordSettings(
                 onValueChange = onButton2UrlChange
             )
         }
-        PreferenceSwitch(
-            title = stringResource(R.string.discord_show_when_paused),
+        SwitchPreference(
+            title = { Text(stringResource(R.string.discord_show_when_paused)) },
             description = stringResource(R.string.discord_show_when_paused_desc),
-            icon = { Icon(painterResource(R.drawable.ic_pause_white), null) }
+            icon = { Icon(painterResource(R.drawable.ic_pause_white), null) },
             key = DiscordShowWhenPausedKey,
             defaultValue = true
         )
-
 
         // Activity type selector - OutlinedTextField anchored dropdown
         var activityExpanded by remember { mutableStateOf(false) }
