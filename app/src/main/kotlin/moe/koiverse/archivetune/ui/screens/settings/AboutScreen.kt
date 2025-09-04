@@ -164,6 +164,17 @@ fun AboutScreen(
                     contentDescription = null
                 )
             }
+
+            Spacer(Modifier.width(8.dp))
+
+            IconButton(
+                onClick = { uriHandler.openUri("https://prplmoe.me") },
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.website),
+                    contentDescription = null
+                )
+            }
         }
     }
 
