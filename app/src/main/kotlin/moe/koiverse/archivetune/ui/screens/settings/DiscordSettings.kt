@@ -58,6 +58,7 @@ fun DiscordSettings(
     val playerConnection = LocalPlayerConnection.current ?: return
     val song by playerConnection.currentSong.collectAsState(null)
     val playbackState by playerConnection.playbackState.collectAsState()
+    var showWhenPaused by remember { mutableStateOf(false) }
     var position by rememberSaveable(playbackState) {
         mutableLongStateOf(playerConnection.player.currentPosition)
     }
@@ -396,7 +397,8 @@ fun DiscordSettings(
             title = { Text(stringResource(R.string.discord_show_when_paused)) },
             description = stringResource(R.string.discord_show_when_paused_desc),
             icon = { Icon(painterResource(R.drawable.ic_pause_white), null) },
-            defaultValue = true
+            checked = showWhenPaused,
+            onCheckedChange = { showWhenPaused = it }
         )
 
         // Activity type selector - OutlinedTextField anchored dropdown
