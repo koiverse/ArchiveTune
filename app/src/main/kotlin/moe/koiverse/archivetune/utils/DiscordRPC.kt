@@ -24,7 +24,8 @@ class DiscordRPC(
         fun pickSourceValue(pref: String, song: Song?, default: String): String {
             return when (pref) {
                 "ARTIST" -> song?.artists?.firstOrNull()?.name ?: default
-                "ALBUM" -> song?.album?.title ?: default
+                // Prefer the loaded Album relation, fall back to the SongEntity.albumName if relation is not loaded
+                "ALBUM" -> song?.song?.albumName ?: song?.album?.title ?: default
                 "SONG" -> song?.song?.title ?: default
                 "APP" -> default
                 else -> default
@@ -102,7 +103,8 @@ class DiscordRPC(
             detailsUrl = baseSongUrl,
             largeImage = largeImageRpc,
             smallImage = smallImageRpc,
-            largeText = song.album?.title,
+            // largeText should prefer the loaded Album title but fall back to the stored albumName on the SongEntity
+            largeText = song.song.albumName ?: song.album?.title
             smallText = song.artists.firstOrNull()?.name,
             buttons = buttons,
             type = resolvedType,
