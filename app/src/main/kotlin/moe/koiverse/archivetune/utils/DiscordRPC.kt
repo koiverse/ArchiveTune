@@ -7,8 +7,6 @@ import moe.koiverse.archivetune.constants.*
 import moe.koiverse.archivetune.utils.dataStore
 import com.my.kizzy.rpc.KizzyRPC
 import com.my.kizzy.rpc.RpcImage
-import com.my.kizzy.rpc.Type
-import com.my.kizzy.rpc.StatusDisplayType
 
 class DiscordRPC(
     val context: Context,
