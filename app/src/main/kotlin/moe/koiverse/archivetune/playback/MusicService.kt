@@ -924,55 +924,62 @@ class MusicService :
     }
 
     override fun onMediaItemTransition(
-        mediaItem: MediaItem?,
-        reason: Int,
+    mediaItem: MediaItem?,
+    reason: Int,
+) {
+    super.onMediaItemTransition(mediaItem, reason)
+
+    // Auto load more songs
+    if (dataStore.get(AutoLoadMoreKey, true) &&
+        reason != Player.MEDIA_ITEM_TRANSITION_REASON_REPEAT &&
+        player.mediaItemCount - player.currentMediaItemIndex <= 5 &&
+        currentQueue.hasNextPage() &&
+        !(dataStore.get(DisableLoadMoreWhenRepeatAllKey, false) && player.repeatMode == REPEAT_MODE_ALL)
     ) {
-        // Auto load more songs
-        if (dataStore.get(AutoLoadMoreKey, true) &&
-            reason != Player.MEDIA_ITEM_TRANSITION_REASON_REPEAT &&
-            player.mediaItemCount - player.currentMediaItemIndex <= 5 &&
-            currentQueue.hasNextPage() &&
-            !(dataStore.get(DisableLoadMoreWhenRepeatAllKey, false) && player.repeatMode == REPEAT_MODE_ALL)
-        ) {
-            scope.launch(SilentHandler) {
-                val mediaItems =
-                    currentQueue.nextPage().filterExplicit(dataStore.get(HideExplicitKey, false))
-                if (player.playbackState != STATE_IDLE) {
-                    player.addMediaItems(mediaItems.drop(1))
-                }
+        scope.launch(SilentHandler) {
+            val mediaItems =
+                currentQueue.nextPage().filterExplicit(dataStore.get(HideExplicitKey, false))
+            if (player.playbackState != STATE_IDLE) {
+                player.addMediaItems(mediaItems.drop(1))
             }
-        }
-        
-        // Save state when media item changes
-        if (dataStore.get(PersistentQueueKey, true)) {
-            saveQueueToDisk()
         }
     }
 
-    override fun onPlaybackStateChanged(
-        @Player.State playbackState: Int,
-    ) {
-        if (playbackState == Player.STATE_READY) {
+    // Save state when media item changes
+    if (dataStore.get(PersistentQueueKey, true)) {
+        saveQueueToDisk()
+    }
+
+    // Force immediate Discord RPC update
     currentSong.value?.let { song ->
         scope.launch {
-            if (!player.playWhenReady) {
-                val showWhenPaused = dataStore.get(DiscordShowWhenPausedKey, true)
-                if (showWhenPaused) {
-                    discordRpc?.updateSong(song, player.currentPosition)
-                } else {
-                    discordRpc?.stopActivity()
-                }
+            if (player.playbackState == Player.STATE_READY) {
+                discordRpc?.updateSong(song, player.currentPosition, isPaused = !player.playWhenReady)
             } else {
-                discordRpc?.updateSong(song, player.currentPosition)
+                discordRpc?.stopActivity()
             }
         }
     }
 }
-        // Save state when playback state changes
-        if (dataStore.get(PersistentQueueKey, true)) {
-            saveQueueToDisk()
+
+    override fun onPlaybackStateChanged(@Player.State playbackState: Int) {
+    super.onPlaybackStateChanged(playbackState)
+
+    if (dataStore.get(PersistentQueueKey, true)) {
+        saveQueueToDisk()
+    }
+
+    currentSong.value?.let { song ->
+        scope.launch {
+            if (playbackState == Player.STATE_READY) {
+                discordRpc?.updateSong(song, player.currentPosition, isPaused = !player.playWhenReady)
+            } else {
+                discordRpc?.stopActivity()
+            }
         }
     }
+}
+
 
     override fun onEvents(
         player: Player,

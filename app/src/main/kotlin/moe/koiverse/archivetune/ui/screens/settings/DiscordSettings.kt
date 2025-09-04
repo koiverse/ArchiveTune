@@ -396,7 +396,6 @@ fun DiscordSettings(
             title = { Text(stringResource(R.string.discord_show_when_paused)) },
             description = stringResource(R.string.discord_show_when_paused_desc),
             icon = { Icon(painterResource(R.drawable.ic_pause_white), null) },
-            key = DiscordShowWhenPausedKey,
             defaultValue = true
         )
 
