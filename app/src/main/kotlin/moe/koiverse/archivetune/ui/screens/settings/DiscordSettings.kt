@@ -280,19 +280,19 @@ fun DiscordSettings(
 
         ActivitySourceDropdown(
             title = stringResource(R.string.discord_activity_name),
-            iconRes = R.drawable.discord,
+            iconRes = R.drawable.text_fields,
             selected = nameSource,
             onChange = onNameSourceChange
         )
         ActivitySourceDropdown(
             title = stringResource(R.string.discord_activity_details),
-            iconRes = R.drawable.info,
+            iconRes = R.drawable.text_fields,
             selected = detailsSource,
             onChange = onDetailsSourceChange
         )
         ActivitySourceDropdown(
             title = stringResource(R.string.discord_activity_state),
-            iconRes = R.drawable.info,
+            iconRes = R.drawable.text_fields,
             selected = stateSource,
             onChange = onStateSourceChange
         )
@@ -345,7 +345,7 @@ fun DiscordSettings(
 
         EditablePreference(
             title = stringResource(R.string.discord_activity_button1_label),
-            iconRes = R.drawable.play,
+            iconRes = R.drawable.buttons,
             value = button1Label,
             defaultValue = "Listen on YouTube Music",
             onValueChange = onButton1LabelChange
@@ -353,7 +353,7 @@ fun DiscordSettings(
         PreferenceEntry(
             title = { Text(stringResource(R.string.show_button)) },
             description = stringResource(R.string.show_button1_description),
-            icon = { Icon(painterResource(R.drawable.play), null) },
+            icon = { Icon(painterResource(R.drawable.buttons), null) },
             trailingContent = {
                 Switch(checked = button1Enabled, onCheckedChange = onButton1EnabledChange)
             }
@@ -370,7 +370,7 @@ fun DiscordSettings(
         }
         EditablePreference(
             title = stringResource(R.string.discord_activity_button2_label),
-            iconRes = R.drawable.info,
+            iconRes = R.drawable.buttons,
             value = button2Label,
             defaultValue = "View Album",
             onValueChange = onButton2LabelChange
@@ -378,7 +378,7 @@ fun DiscordSettings(
         PreferenceEntry(
             title = { Text(stringResource(R.string.show_button)) },
             description = stringResource(R.string.show_button2_description),
-            icon = { Icon(painterResource(R.drawable.info), null) },
+            icon = { Icon(painterResource(R.drawable.buttons), null) },
             trailingContent = {
                 Switch(checked = button2Enabled, onCheckedChange = onButton2EnabledChange)
             }
@@ -471,7 +471,7 @@ ExposedDropdownMenuBox(expanded = largeImageExpanded, onExpandedChange = { large
             .menuAnchor()
             .pointerInput(Unit) { detectTapGestures { largeImageExpanded = true } }
             .padding(horizontal = 13.dp, vertical = 16.dp),
-        leadingIcon = { Icon(painterResource(R.drawable.info), null) }
+        leadingIcon = { Icon(painterResource(R.drawable.image), null) }
     )
     ExposedDropdownMenu(expanded = largeImageExpanded, onDismissRequest = { largeImageExpanded = false }) {
         imageOptions.forEach { opt ->
@@ -509,7 +509,7 @@ ExposedDropdownMenuBox(expanded = smallImageExpanded, onExpandedChange = { small
             .menuAnchor()
             .pointerInput(Unit) { detectTapGestures { smallImageExpanded = true } }
             .padding(horizontal = 10.dp, vertical = 10.dp),
-        leadingIcon = { Icon(painterResource(R.drawable.info), null) }
+        leadingIcon = { Icon(painterResource(R.drawable.image), null) }
     )
     ExposedDropdownMenu(expanded = smallImageExpanded, onDismissRequest = { smallImageExpanded = false }) {
         smallImageOptions.forEach { opt ->
@@ -534,15 +534,6 @@ if (smallImageType == "custom") {
         onValueChange = onSmallImageCustomUrlChange,
     )
 }
-
-        PreferenceEntry(
-            title = { Text(stringResource(R.string.show_small_image)) },
-            description = stringResource(R.string.description_show_small_image),
-            icon = { Icon(painterResource(R.drawable.info), null) },
-            trailingContent = {
-                Switch(checked = smallImageEnabled, onCheckedChange = onSmallImageEnabledChange)
-            }
-        )
 
         RichPresence(
             song,
@@ -755,7 +746,7 @@ fun RichPresence(
                                 model = when (largeImageType) {
                                     "thumbnail" -> song?.song?.thumbnailUrl
                                     "artist" -> song?.artists?.firstOrNull()?.thumbnailUrl
-                                    "appicon" -> null
+                                    "appicon" -> "https://raw.githubusercontent.com/koiverse/ArchiveTune/main/fastlane/metadata/android/en-US/images/icon.png"
                                     "custom" -> largeImageCustomUrl.ifBlank { song?.song?.thumbnailUrl }
                                     else -> song?.song?.thumbnailUrl
                                 },
@@ -775,8 +766,9 @@ fun RichPresence(
                             val smallModel = when (smallImageType) {
                                 "thumbnail" -> song?.song?.thumbnailUrl
                                 "artist" -> song?.artists?.firstOrNull()?.thumbnailUrl
-                                "appicon" -> null
+                                "appicon" -> "https://raw.githubusercontent.com/koiverse/ArchiveTune/main/fastlane/metadata/android/en-US/images/icon.png"
                                 "custom" -> smallImageCustomUrl.ifBlank { song?.artists?.firstOrNull()?.thumbnailUrl }
+                                "dontshow" -> null
                                 else -> song?.artists?.firstOrNull()?.thumbnailUrl
                             }
                             smallModel?.let {
