@@ -923,10 +923,7 @@ class MusicService :
         )
     }
 
-    override fun onMediaItemTransition(
-    mediaItem: MediaItem?,
-    reason: Int,
-) {
+    override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
     super.onMediaItemTransition(mediaItem, reason)
 
     // Auto load more songs
@@ -945,20 +942,21 @@ class MusicService :
         }
     }
 
-    // Save state when media item changes
     if (dataStore.get(PersistentQueueKey, true)) {
         saveQueueToDisk()
     }
 
-    // Force immediate Discord RPC update
-    currentSong.value?.let { song ->
+    if (mediaItem != null) {
         scope.launch {
-            if (player.playbackState == Player.STATE_READY) {
+            val song = database.song(mediaItem.mediaId).first()
+            if (song != null && player.playbackState == Player.STATE_READY) {
                 discordRpc?.updateSong(song, player.currentPosition, isPaused = !player.playWhenReady)
             } else {
                 discordRpc?.stopActivity()
             }
         }
+    } else {
+        scope.launch { discordRpc?.stopActivity() }
     }
 }
 
@@ -982,65 +980,62 @@ class MusicService :
 
 
     override fun onEvents(
-        player: Player,
-        events: Player.Events,
+    player: Player,
+    events: Player.Events,
+) {
+    if (events.containsAny(
+            Player.EVENT_PLAYBACK_STATE_CHANGED,
+            Player.EVENT_PLAY_WHEN_READY_CHANGED
+        )
     ) {
-        if (events.containsAny(
-                Player.EVENT_PLAYBACK_STATE_CHANGED,
-                Player.EVENT_PLAY_WHEN_READY_CHANGED
-            )
-        ) {
-            val isBufferingOrReady =
-                player.playbackState == Player.STATE_BUFFERING || player.playbackState == Player.STATE_READY
-            if (isBufferingOrReady && player.playWhenReady) {
-                val focusGranted = requestAudioFocus()
-                if (focusGranted) {
-                    openAudioEffectSession()
-                }
-            } else {
-                closeAudioEffectSession()
+        val isBufferingOrReady =
+            player.playbackState == Player.STATE_BUFFERING || player.playbackState == Player.STATE_READY
+        if (isBufferingOrReady && player.playWhenReady) {
+            val focusGranted = requestAudioFocus()
+            if (focusGranted) {
+                openAudioEffectSession()
             }
+        } else {
+            closeAudioEffectSession()
         }
-        if (events.containsAny(EVENT_TIMELINE_CHANGED, EVENT_POSITION_DISCONTINUITY)) {
-            currentMediaMetadata.value = player.currentMetadata
-        }
+    }
+    if (events.containsAny(EVENT_TIMELINE_CHANGED, EVENT_POSITION_DISCONTINUITY)) {
+        currentMediaMetadata.value = player.currentMetadata
+    }
 
-        // Discord RPC updates
-
-        // Update the Discord RPC activity if the player is playing
-        if (events.containsAny(Player.EVENT_IS_PLAYING_CHANGED)) {
-            if (player.isPlaying) {
-                currentSong.value?.let { song ->
-                    scope.launch {
+    if (events.containsAny(Player.EVENT_IS_PLAYING_CHANGED)) {
+        if (player.isPlaying) {
+            player.currentMediaItem?.let { mediaItem ->
+                scope.launch {
+                    val song = database.song(mediaItem.mediaId).first()
+                    if (song != null) {
                         discordRpc?.updateSong(song, player.currentPosition)
                     }
                 }
             }
-            // Send empty activity to the Discord RPC if the player is not playing
-            else if (!events.containsAny(Player.EVENT_POSITION_DISCONTINUITY, Player.EVENT_MEDIA_ITEM_TRANSITION)){
-                scope.launch {
-                    discordRpc?.stopActivity()
-                }
+        } else if (!events.containsAny(Player.EVENT_POSITION_DISCONTINUITY, Player.EVENT_MEDIA_ITEM_TRANSITION)) {
+            scope.launch {
+                discordRpc?.stopActivity()
             }
-        } else if (events.contains(Player.EVENT_MEDIA_ITEM_TRANSITION)) {
-            // Also update when the media item changes, even if isPlaying doesn't change.
-            // Radio sources sometimes change the media item without toggling isPlaying,
-            // so also treat playWhenReady + STATE_READY as "playing" for RPC updates.
-            val shouldUpdateOnTransition = player.isPlaying || (player.playWhenReady && player.playbackState == Player.STATE_READY)
-            if (shouldUpdateOnTransition) {
-                currentSong.value?.let { song ->
-                    scope.launch {
+        }
+    } else if (events.contains(Player.EVENT_MEDIA_ITEM_TRANSITION)) {
+        val shouldUpdateOnTransition = player.isPlaying || (player.playWhenReady && player.playbackState == Player.STATE_READY)
+        if (shouldUpdateOnTransition) {
+            player.currentMediaItem?.let { mediaItem ->
+                scope.launch {
+                    val song = database.song(mediaItem.mediaId).first()
+                    if (song != null) {
                         discordRpc?.updateSong(song, player.currentPosition)
                     }
                 }
-            } else {
-                // If not playing after transition, stop activity so Discord doesn't show stale info
-                scope.launch {
-                    discordRpc?.stopActivity()
-                }
+            }
+        } else {
+            scope.launch {
+                discordRpc?.stopActivity()
             }
         }
     }
+}
 
     override fun onShuffleModeEnabledChanged(shuffleModeEnabled: Boolean) {
         updateNotification()
