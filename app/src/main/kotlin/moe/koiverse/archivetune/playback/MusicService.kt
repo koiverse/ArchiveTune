@@ -946,16 +946,15 @@ class MusicService :
         saveQueueToDisk()
     }
 
-    if (mediaItem != null) {
+    currentSong.value?.let { song ->
         scope.launch {
-            val song = database.song(mediaItem.mediaId).first()
-            if (song != null && player.playbackState == Player.STATE_READY) {
+            if (player.playbackState == Player.STATE_READY) {
                 discordRpc?.updateSong(song, player.currentPosition, isPaused = !player.playWhenReady)
             } else {
                 discordRpc?.stopActivity()
             }
         }
-    } else {
+    } ?: run {
         scope.launch { discordRpc?.stopActivity() }
     }
 }
@@ -975,14 +974,13 @@ class MusicService :
                 discordRpc?.stopActivity()
             }
         }
+    } ?: run {
+        scope.launch { discordRpc?.stopActivity() }
     }
 }
 
 
-    override fun onEvents(
-    player: Player,
-    events: Player.Events,
-) {
+    override fun onEvents(player: Player, events: Player.Events) {
     if (events.containsAny(
             Player.EVENT_PLAYBACK_STATE_CHANGED,
             Player.EVENT_PLAY_WHEN_READY_CHANGED
@@ -992,50 +990,41 @@ class MusicService :
             player.playbackState == Player.STATE_BUFFERING || player.playbackState == Player.STATE_READY
         if (isBufferingOrReady && player.playWhenReady) {
             val focusGranted = requestAudioFocus()
-            if (focusGranted) {
-                openAudioEffectSession()
-            }
+            if (focusGranted) openAudioEffectSession()
         } else {
             closeAudioEffectSession()
         }
     }
+
     if (events.containsAny(EVENT_TIMELINE_CHANGED, EVENT_POSITION_DISCONTINUITY)) {
         currentMediaMetadata.value = player.currentMetadata
     }
 
     if (events.containsAny(Player.EVENT_IS_PLAYING_CHANGED)) {
         if (player.isPlaying) {
-            player.currentMediaItem?.let { mediaItem ->
+            currentSong.value?.let { song ->
                 scope.launch {
-                    val song = database.song(mediaItem.mediaId).first()
-                    if (song != null) {
-                        discordRpc?.updateSong(song, player.currentPosition)
-                    }
+                    discordRpc?.updateSong(song, player.currentPosition)
                 }
             }
         } else if (!events.containsAny(Player.EVENT_POSITION_DISCONTINUITY, Player.EVENT_MEDIA_ITEM_TRANSITION)) {
-            scope.launch {
-                discordRpc?.stopActivity()
-            }
+            scope.launch { discordRpc?.stopActivity() }
         }
     } else if (events.contains(Player.EVENT_MEDIA_ITEM_TRANSITION)) {
-        val shouldUpdateOnTransition = player.isPlaying || (player.playWhenReady && player.playbackState == Player.STATE_READY)
+        val shouldUpdateOnTransition =
+            player.isPlaying || (player.playWhenReady && player.playbackState == Player.STATE_READY)
         if (shouldUpdateOnTransition) {
-            player.currentMediaItem?.let { mediaItem ->
+            currentSong.value?.let { song ->
                 scope.launch {
-                    val song = database.song(mediaItem.mediaId).first()
-                    if (song != null) {
-                        discordRpc?.updateSong(song, player.currentPosition)
-                    }
+                    discordRpc?.updateSong(song, player.currentPosition)
                 }
             }
         } else {
-            scope.launch {
-                discordRpc?.stopActivity()
-            }
+            scope.launch { discordRpc?.stopActivity() }
         }
     }
 }
+
 
     override fun onShuffleModeEnabledChanged(shuffleModeEnabled: Boolean) {
         updateNotification()
