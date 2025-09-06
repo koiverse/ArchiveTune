@@ -79,7 +79,9 @@ class DiscordRPC(
         return when (type) {
             "thumbnail" -> song?.song?.thumbnailUrl?.let { RpcImage.ExternalImage(it) }
             "artist" -> song?.artists?.firstOrNull()?.thumbnailUrl?.let { RpcImage.ExternalImage(it) }
-            "appicon" -> null
+            "appicon" -> RpcImage.ExternalImage(
+            "https://raw.githubusercontent.com/koiverse/ArchiveTune/main/fastlane/metadata/android/en-US/images/icon.png"
+        )
             "custom" -> (custom?.takeIf { it.isNotBlank() } ?: song?.song?.thumbnailUrl)?.let { RpcImage.ExternalImage(it) }
             else -> if (preferArtist) {
                 song?.artists?.firstOrNull()?.thumbnailUrl?.let { RpcImage.ExternalImage(it) }
