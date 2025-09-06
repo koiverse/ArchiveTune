@@ -437,105 +437,103 @@ fun DiscordSettings(
     )
 
     // Discord presence image selection
-        val imageOptions = listOf("thumbnail", "artist", "appicon", "custom")
-        val (largeImageType, onLargeImageTypeChange) = rememberPreference(
-            key = DiscordLargeImageTypeKey,
-            defaultValue = "thumbnail"
-        )
-        val (largeImageCustomUrl, onLargeImageCustomUrlChange) = rememberPreference(
-            key = DiscordLargeImageCustomUrlKey,
-            defaultValue = ""
-        )
-        val (smallImageType, onSmallImageTypeChange) = rememberPreference(
-            key = DiscordSmallImageTypeKey,
-            defaultValue = "artist"
-        )
-        val (smallImageCustomUrl, onSmallImageCustomUrlChange) = rememberPreference(
-            key = DiscordSmallImageCustomUrlKey,
-            defaultValue = ""
-        )
-        val (smallImageEnabled, onSmallImageEnabledChange) = rememberPreference(
-            key = DiscordSmallImageEnabledKey,
-            defaultValue = true
-        )
+        // Discord presence image selection
+    val imageOptions = listOf("thumbnail", "artist", "appicon", "custom")
+    val smallImageOptions = listOf("thumbnail", "artist", "appicon", "custom", "dontshow")
 
-        var largeImageExpanded by remember { mutableStateOf(false) }
-        ExposedDropdownMenuBox(expanded = largeImageExpanded, onExpandedChange = { largeImageExpanded = it }) {
-            TextField(
-                value = largeImageType,
-                onValueChange = {},
-                readOnly = true,
-                label = { Text("Large image") },
-                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = largeImageExpanded) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .menuAnchor()
-                    .pointerInput(Unit) { detectTapGestures { largeImageExpanded = true } }
-                    .padding(horizontal = 13.dp, vertical = 16.dp),
-                leadingIcon = { Icon(painterResource(R.drawable.info), null) }
-            )
-            ExposedDropdownMenu(expanded = largeImageExpanded, onDismissRequest = { largeImageExpanded = false }) {
-                imageOptions.forEach { opt ->
-                    val display = when (opt) {
-                        "appicon" -> "App Icon"
-                        else -> opt.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
-                    }
-                    DropdownMenuItem(text = { Text(display) }, onClick = {
-                        onLargeImageTypeChange(opt)
-                        largeImageExpanded = false
-                    })
-                }
-            }
-        }
-        if (largeImageType == "custom") {
-            EditablePreference(
-                title = "Large image custom URL",
-                iconRes = R.drawable.link,
-                value = largeImageCustomUrl,
-                defaultValue = "",
-                onValueChange = onLargeImageCustomUrlChange,
-            )
-        }
+    val (largeImageType, onLargeImageTypeChange) = rememberPreference(
+      key = DiscordLargeImageTypeKey,
+      defaultValue = "thumbnail"
+   )
+    val (largeImageCustomUrl, onLargeImageCustomUrlChange) = rememberPreference(
+      key = DiscordLargeImageCustomUrlKey,
+      defaultValue = ""
+   )
+    val (smallImageType, onSmallImageTypeChange) = rememberPreference(
+      key = DiscordSmallImageTypeKey,
+      defaultValue = "artist"
+   )
+    val (smallImageCustomUrl, onSmallImageCustomUrlChange) = rememberPreference(
+      key = DiscordSmallImageCustomUrlKey,
+      defaultValue = ""
+   )
 
-        var smallImageExpanded by remember { mutableStateOf(false) }
-        ExposedDropdownMenuBox(expanded = smallImageExpanded, onExpandedChange = { smallImageExpanded = it }) {
-            TextField(
-                value = smallImageType,
-                onValueChange = {},
-                readOnly = true,
-                label = { Text("Small image") },
-                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = smallImageExpanded) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .menuAnchor()
-                    .pointerInput(Unit) { detectTapGestures { smallImageExpanded = true } }
-                    .padding(horizontal = 10.dp, vertical = 10.dp),
-                leadingIcon = { Icon(painterResource(R.drawable.info), null) }
-            )
-            ExposedDropdownMenu(expanded = smallImageExpanded, onDismissRequest = { smallImageExpanded = false }) {
-                imageOptions.forEach { opt ->
-                    val display = when (opt) {
-                        "appicon" -> "App Icon"
-                        else -> opt.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
-                    }
-                    DropdownMenuItem(text = { Text(display) }, onClick = {
-                        onSmallImageTypeChange(opt)
-                        smallImageExpanded = false
-                    })
-                }
+var largeImageExpanded by remember { mutableStateOf(false) }
+ExposedDropdownMenuBox(expanded = largeImageExpanded, onExpandedChange = { largeImageExpanded = it }) {
+    TextField(
+        value = largeImageType,
+        onValueChange = {},
+        readOnly = true,
+        label = { Text("Large image") },
+        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = largeImageExpanded) },
+        modifier = Modifier
+            .fillMaxWidth()
+            .menuAnchor()
+            .pointerInput(Unit) { detectTapGestures { largeImageExpanded = true } }
+            .padding(horizontal = 13.dp, vertical = 16.dp),
+        leadingIcon = { Icon(painterResource(R.drawable.info), null) }
+    )
+    ExposedDropdownMenu(expanded = largeImageExpanded, onDismissRequest = { largeImageExpanded = false }) {
+        imageOptions.forEach { opt ->
+            val display = when (opt) {
+                "appicon" -> "App Icon"
+                else -> opt.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
             }
+            DropdownMenuItem(text = { Text(display) }, onClick = {
+                onLargeImageTypeChange(opt)
+                largeImageExpanded = false
+            })
         }
-        if (smallImageType == "custom") {
-            if (smallImageEnabled) {
-                EditablePreference(
-                    title = "Small image custom URL",
-                    iconRes = R.drawable.link,
-                    value = smallImageCustomUrl,
-                    defaultValue = "",
-                    onValueChange = onSmallImageCustomUrlChange,
-                )
+    }
+}
+if (largeImageType == "custom") {
+    EditablePreference(
+        title = "Large image custom URL",
+        iconRes = R.drawable.link,
+        value = largeImageCustomUrl,
+        defaultValue = "",
+        onValueChange = onLargeImageCustomUrlChange,
+    )
+}
+
+var smallImageExpanded by remember { mutableStateOf(false) }
+ExposedDropdownMenuBox(expanded = smallImageExpanded, onExpandedChange = { smallImageExpanded = it }) {
+    TextField(
+        value = smallImageType,
+        onValueChange = {},
+        readOnly = true,
+        label = { Text("Small image") },
+        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = smallImageExpanded) },
+        modifier = Modifier
+            .fillMaxWidth()
+            .menuAnchor()
+            .pointerInput(Unit) { detectTapGestures { smallImageExpanded = true } }
+            .padding(horizontal = 10.dp, vertical = 10.dp),
+        leadingIcon = { Icon(painterResource(R.drawable.info), null) }
+    )
+    ExposedDropdownMenu(expanded = smallImageExpanded, onDismissRequest = { smallImageExpanded = false }) {
+        smallImageOptions.forEach { opt ->
+            val display = when (opt) {
+                "appicon" -> "App Icon"
+                "dontshow" -> "Don't show"
+                else -> opt.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
             }
+            DropdownMenuItem(text = { Text(display) }, onClick = {
+                onSmallImageTypeChange(opt)
+                smallImageExpanded = false
+            })
         }
+    }
+}
+if (smallImageType == "custom") {
+    EditablePreference(
+        title = "Small image custom URL",
+        iconRes = R.drawable.link,
+        value = smallImageCustomUrl,
+        defaultValue = "",
+        onValueChange = onSmallImageCustomUrlChange,
+    )
+}
 
         PreferenceEntry(
             title = { Text(stringResource(R.string.show_small_image)) },

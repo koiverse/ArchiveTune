@@ -74,7 +74,6 @@ class DiscordRPC(
     val largeImageCustomPref = context.dataStore[DiscordLargeImageCustomUrlKey] ?: ""
     val smallImageTypePref = context.dataStore[DiscordSmallImageTypeKey] ?: "artist"
     val smallImageCustomPref = context.dataStore[DiscordSmallImageCustomUrlKey] ?: ""
-    val smallImageEnabled = context.dataStore[DiscordSmallImageEnabledKey] ?: true
 
     fun pickImage(type: String, custom: String?, song: Song?, preferArtist: Boolean = false): RpcImage? {
         return when (type) {
@@ -91,7 +90,10 @@ class DiscordRPC(
     }
 
     val largeImageRpc = pickImage(largeImageTypePref, largeImageCustomPref, song, false)
-    val smallImageRpc = if (smallImageEnabled) pickImage(smallImageTypePref, smallImageCustomPref, song, true) else null
+    val smallImageRpc = when (smallImageTypePref.lowercase()) {
+    "none", "dontshow" -> null
+    else -> pickImage(smallImageTypePref, smallImageCustomPref, song, true)
+    }
 
     setActivity(
         name = activityName.removeSuffix(" Debug"),
