@@ -441,7 +441,6 @@ fun DiscordSettings(
     val imageOptions = listOf("thumbnail", "artist", "appicon", "custom")
     val smallImageOptions = listOf("thumbnail", "artist", "appicon", "custom", "dontshow")
     val largeTextOptions = listOf("song", "artist", "album", "app", "custom", "dontshow")
-    val largeTextOptions = listOf("song", "artist", "album", "app", "custom", "dontshow")
 
     val (largeTextSource, onLargeTextSourceChange) = rememberPreference(
       key = DiscordLargeTextSourceKey,
@@ -777,12 +776,29 @@ fun RichPresence(
     ActivitySource.SONG, ActivitySource.APP -> song?.id?.let { "https://music.youtube.com/watch?v=$it" }
     }
     val resolvedButton2Url = if (button2Url.isNotEmpty()) button2Url else defaultButton2Url ?: ""
+    val activityVerb = when (activityType.uppercase()) {
+    "PLAYING" -> "Playing"
+    "LISTENING" -> "Listening to"
+    "WATCHING" -> "Watching"
+    "STREAMING" -> "Streaming"
+    "COMPETING" -> "Competing in"
+    else -> activityType.replaceFirstChar { 
+        if (it.isLowerCase()) it.titlecase() else it.toString() 
+       }
+    }
+
+    val previewTitle = when (nameSource) {
+    ActivitySource.ARTIST -> "$activityVerb ${song?.artists?.firstOrNull()?.name ?: "Artist"}"
+    ActivitySource.ALBUM -> "$activityVerb ${song?.album?.title ?: song?.song?.albumName ?: "Album"}"
+    ActivitySource.SONG -> "$activityVerb ${song?.song?.title ?: "Song"}"
+    ActivitySource.APP -> "$activityVerb ArchiveTune"
+   }
 
 
     PreferenceEntry(
         title = {
             Text(
-            text = stringResource(R.string.preview),
+            text = previewTitle,
             style = MaterialTheme.typography.headlineSmall,
             modifier = Modifier.padding(bottom = 16.dp)
             )
