@@ -117,6 +117,7 @@ import moe.koiverse.archivetune.utils.dataStore
 import moe.koiverse.archivetune.utils.enumPreference
 import moe.koiverse.archivetune.utils.get
 import moe.koiverse.archivetune.utils.isInternetAvailable
+import moe.koiverse.archivetune.utils.getPresenceIntervalMillis
 import moe.koiverse.archivetune.utils.reportException
 import moe.koiverse.archivetune.utils.NetworkConnectivityObserver
 import dagger.hilt.android.AndroidEntryPoint
@@ -224,6 +225,7 @@ class MusicService :
     private var isAudioEffectSessionOpened = false
 
     private var discordRpc: DiscordRPC? = null
+    private var lastDiscordUpdateTime = 0L
 
     val automixItems = MutableStateFlow<List<MediaItem>>(emptyList())
 
@@ -949,7 +951,13 @@ class MusicService :
     currentSong.value?.let { song ->
         scope.launch {
             if (player.playbackState == Player.STATE_READY) {
-                discordRpc?.updateSong(song, player.currentPosition, isPaused = !player.playWhenReady)
+                val now = System.currentTimeMillis()
+                val intervalMillis = getPresenceIntervalMillis(context)
+
+                if (now - lastDiscordUpdateTime >= intervalMillis) {
+                    discordRpc?.updateSong(song, player.currentPosition, isPaused = !player.playWhenReady)
+                    lastDiscordUpdateTime = now
+                }
             } else {
                 discordRpc?.stopActivity()
             }
@@ -969,7 +977,13 @@ class MusicService :
     currentSong.value?.let { song ->
         scope.launch {
             if (playbackState == Player.STATE_READY) {
-                discordRpc?.updateSong(song, player.currentPosition, isPaused = !player.playWhenReady)
+                val now = System.currentTimeMillis()
+                val intervalMillis = getPresenceIntervalMillis(context)
+
+                if (now - lastDiscordUpdateTime >= intervalMillis) {
+                    discordRpc?.updateSong(song, player.currentPosition, isPaused = !player.playWhenReady)
+                    lastDiscordUpdateTime = now
+                }
             } else {
                 discordRpc?.stopActivity()
             }

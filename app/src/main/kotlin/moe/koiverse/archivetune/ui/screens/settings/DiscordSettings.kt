@@ -45,6 +45,7 @@ import moe.koiverse.archivetune.utils.rememberEnumPreference
 import moe.koiverse.archivetune.utils.rememberPreference
 import com.my.kizzy.rpc.KizzyRPC
 import moe.koiverse.archivetune.utils.DiscordRPC
+import moe.koiverse.archivetune.utils.getPresenceIntervalMillis
 import kotlinx.coroutines.*
 
 enum class ActivitySource { ARTIST, ALBUM, SONG, APP }
@@ -83,13 +84,26 @@ fun DiscordSettings(
     }
 
     LaunchedEffect(playbackState) {
-        if (playbackState == STATE_READY) {
-            while (isActive) {
-                delay(100)
-                position = playerConnection.player.currentPosition
+    if (playbackState == STATE_READY) {
+        while (isActive) {
+            val intervalMillis = getPresenceIntervalMillis(context)
+            delay(intervalMillis)
+            position = playerConnection.player.currentPosition
+
+            // Optional: trigger presence refresh automatically
+            val token = discordToken
+            if (token.isNotBlank()) {
+                try {
+                    val rpc = DiscordRPC(context, token)
+                    song?.let { rpc.updateSong(it, position) }
+                } catch (_: Exception) {
+                    // ignore
+                }
             }
         }
     }
+}
+
 
     val (discordRPC, onDiscordRPCChange) = rememberPreference(
         key = EnableDiscordRPCKey,
@@ -255,6 +269,105 @@ fun DiscordSettings(
             }
             }
         )
+
+        // Interval selection
+       val intervalOptions = listOf("20s", "50s", "1m", "5m", "Custom")
+       val (intervalSelection, onIntervalSelectionChange) = rememberPreference(
+           key = stringPreferencesKey("discordPresenceIntervalPreset"),
+           defaultValue = "20s"
+        )
+
+        var intervalExpanded by remember { mutableStateOf(false) }
+
+ExposedDropdownMenuBox(expanded = intervalExpanded, onExpandedChange = { intervalExpanded = it }) {
+    TextField(
+        value = intervalSelection,
+        onValueChange = {},
+        readOnly = true,
+        label = { Text("Presence Update Interval") },
+        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = intervalExpanded) },
+        modifier = Modifier
+            .fillMaxWidth()
+            .menuAnchor()
+            .padding(horizontal = 13.dp, vertical = 16.dp)
+            .pointerInput(Unit) { detectTapGestures { intervalExpanded = true } },
+        leadingIcon = { Icon(painterResource(R.drawable.timer), null) }
+    )
+    ExposedDropdownMenu(expanded = intervalExpanded, onDismissRequest = { intervalExpanded = false }) {
+        intervalOptions.forEach { opt ->
+            DropdownMenuItem(text = { Text(opt) }, onClick = {
+                onIntervalSelectionChange(opt)
+                intervalExpanded = false
+            })
+        }
+    }
+}
+
+if (intervalSelection == "Custom") {
+    val (customValue, onCustomValueChange) = rememberPreference(
+        key = DiscordPresenceIntervalValueKey,
+        defaultValue = 30
+    )
+    val (customUnit, onCustomUnitChange) = rememberPreference(
+        key = DiscordPresenceIntervalUnitKey,
+        defaultValue = "S"
+    )
+
+    Row(
+        Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        OutlinedTextField(
+            value = customValue.toString(),
+            onValueChange = { text ->
+                val number = text.toIntOrNull()
+                if (number != null) {
+                    // Validation: if seconds, enforce >= 30
+                    if (customUnit == "S" && number < 30) {
+                        onCustomValueChange(30)
+                    } else {
+                        onCustomValueChange(number)
+                    }
+                }
+            },
+            label = { Text("Value") },
+            modifier = Modifier.weight(1f).padding(end = 8.dp),
+            singleLine = true
+        )
+
+        var unitExpanded by remember { mutableStateOf(false) }
+        ExposedDropdownMenuBox(expanded = unitExpanded, onExpandedChange = { unitExpanded = it }) {
+            TextField(
+                value = when (customUnit) {
+                    "S" -> "Seconds"
+                    "M" -> "Minutes"
+                    "H" -> "Hours"
+                    else -> "Seconds"
+                },
+                onValueChange = {},
+                readOnly = true,
+                label = { Text("Unit") },
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = unitExpanded) },
+                modifier = Modifier
+                    .menuAnchor()
+                    .weight(1f)
+                    .pointerInput(Unit) { detectTapGestures { unitExpanded = true } }
+            )
+            ExposedDropdownMenu(expanded = unitExpanded, onDismissRequest = { unitExpanded = false }) {
+                listOf("S" to "Seconds", "M" to "Minutes", "H" to "Hours").forEach { (code, label) ->
+                    DropdownMenuItem(text = { Text(label) }, onClick = {
+                        // Enforce minimum when switching to seconds
+                        if (code == "S" && customValue < 30) {
+                            onCustomValueChange(30)
+                        }
+                        onCustomUnitChange(code)
+                        unitExpanded = false
+                    })
+                }
+            }
+        }
+    }
+}
 
 
         Text(
