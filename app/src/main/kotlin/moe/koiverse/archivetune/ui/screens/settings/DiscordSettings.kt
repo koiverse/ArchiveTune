@@ -864,7 +864,7 @@ fun RichPresence(
     PreferenceEntry(
         title = {
             Text(
-            text = previewTitle,
+            text = stringResource(R.string.preview),
             style = MaterialTheme.typography.headlineSmall,
             modifier = Modifier.padding(bottom = 16.dp)
             )
@@ -881,16 +881,7 @@ fun RichPresence(
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     Text(
-                        text = when (nameSource) {
-                            ActivitySource.ARTIST -> song?.artists?.firstOrNull()?.name ?: "ArchiveTune"
-                            ActivitySource.ALBUM -> song?.album?.title ?: song?.song?.albumName ?: "ArchiveTune"
-                            ActivitySource.SONG -> song?.song?.title ?: "ArchiveTune"
-                            ActivitySource.APP -> when (activityType.uppercase()) {
-                                "PLAYING" -> "Playing on ArchiveTune"
-                                "LISTENING" -> "Listening to ArchiveTune"
-                                else -> activityType.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() } + " on ArchiveTune"
-                            }
-                        },
+                        text = previewTitle,
                         style = MaterialTheme.typography.labelLarge,
                         textAlign = TextAlign.Start,
                         fontWeight = FontWeight.ExtraBold,
