@@ -667,21 +667,20 @@ if (smallImageType == "custom") {
     )
 }
 
-        RichPresence(
-            song,
-            position,
-            nameSource,
-            detailsSource,
-            stateSource,
-            buttonUrlSource,
-            activityType,
-            largeImageType,
-            largeImageCustomUrl,
-            smallImageType,
-            smallImageCustomUrl,
-            button1Enabled,
-            button2Enabled
-        )
+   RichPresence(
+    song,
+    position,
+    nameSource,
+    detailsSource,
+    stateSource,
+    activityType,
+    largeImageType,
+    largeImageCustomUrl,
+    smallImageType,
+    smallImageCustomUrl,
+    button1Enabled,
+    button2Enabled
+)
     }
 
     TopAppBar(
@@ -795,7 +794,6 @@ fun RichPresence(
     nameSource: ActivitySource = ActivitySource.APP,
     detailsSource: ActivitySource = ActivitySource.SONG,
     stateSource: ActivitySource = ActivitySource.ARTIST,
-    buttonUrlSource: ActivitySource = ActivitySource.SONG,
     activityType: String = "LISTENING",
     largeImageType: String = "thumbnail",
     largeImageCustomUrl: String = "",
