@@ -945,7 +945,7 @@ class MusicService :
     scope.launch {
         if (player.playbackState == Player.STATE_READY) {
             if (shouldUpdate) {
-                discordRpc?.updateSong(song, player.currentPosition, isPaused = !player.playWhenReady)
+                discordRpc?.refreshActivity(song, player.currentPosition, isPaused = !player.playWhenReady)
                 lastDiscordUpdateTime = now
             }
         } else {
