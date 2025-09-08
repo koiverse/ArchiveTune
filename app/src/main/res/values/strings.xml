@@ -261,6 +261,15 @@
     <string name="small">Small</string>
     <string name="big">Big</string>
 
+    <!-- Lyrics animation style -->
+    <string name="lyrics_animation_style">Lyrics animation style</string>
+    <!-- Animation options -->
+    <string name="none">None</string>
+    <string name="fade">Fade</string>
+    <string name="slide">Slide</string>
+    <string name="karaoke">Karaoke</string>
+
+
     <string name="content">Content</string>
     <string name="action_logout">Log out</string>
     <string name="action_login">Log in</string>

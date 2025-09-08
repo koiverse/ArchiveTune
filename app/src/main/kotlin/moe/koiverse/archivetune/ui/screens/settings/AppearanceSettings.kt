@@ -130,6 +130,10 @@ fun AppearanceSettings(
         LyricsTextPositionKey,
         defaultValue = LyricsPosition.CENTER
     )
+    val (lyricsAnimation, onLyricsAnimationChange) = rememberEnumPreference(
+    LyricsAnimationStyleKey,
+    defaultValue = LyricsAnimationStyle.NONE
+    )
     val (lyricsClick, onLyricsClickChange) = rememberPreference(LyricsClickKey, defaultValue = true)
     val (lyricsScroll, onLyricsScrollChange) = rememberPreference(LyricsScrollKey, defaultValue = true)
 
@@ -531,6 +535,21 @@ fun AppearanceSettings(
                     LyricsPosition.RIGHT -> stringResource(R.string.right)
                 }
             },
+        )
+
+        EnumListPreference(
+          title = { Text(stringResource(R.string.lyrics_animation_style)) },
+          icon = { Icon(painterResource(R.drawable.animation), null) },
+          selectedValue = lyricsAnimation,
+          onValueSelected = onLyricsAnimationChange,
+          valueText = {
+              when (it) {
+                  LyricsAnimationStyle.NONE -> stringResource(R.string.none)
+                  LyricsAnimationStyle.FADE -> stringResource(R.string.fade)
+                  LyricsAnimationStyle.SLIDE -> stringResource(R.string.slide)
+                  LyricsAnimationStyle.KARAOKE -> stringResource(R.string.karaoke)
+              }
+          }
         )
 
         SwitchPreference(

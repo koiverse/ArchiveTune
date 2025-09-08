@@ -290,11 +290,19 @@ enum class PlayerBackgroundStyle {
     BLUR,
 }
 
+enum class LyricsAnimationStyle {
+    NONE,
+    FADE,
+    SLIDE,
+    KARAOKE,
+}
+
 val TopSize = stringPreferencesKey("topSize")
 val HistoryDuration = floatPreferencesKey("historyDuration")
 
 val PlayerButtonsStyleKey = stringPreferencesKey("player_buttons_style")
 val PlayerBackgroundStyleKey = stringPreferencesKey("playerBackgroundStyle")
+val LyricsAnimationStyleKey = stringPreferencesKey("lyricsAnimationStyle")
 val ShowLyricsKey = booleanPreferencesKey("showLyrics")
 val LyricsTextPositionKey = stringPreferencesKey("lyricsTextPosition")
 val LyricsClickKey = booleanPreferencesKey("lyricsClick")
