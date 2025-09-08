@@ -952,7 +952,7 @@ class MusicService :
         scope.launch {
             if (player.playbackState == Player.STATE_READY) {
                 val now = System.currentTimeMillis()
-                val intervalMillis = getPresenceIntervalMillis(context)
+                val intervalMillis = getPresenceIntervalMillis(this)
 
                 if (now - lastDiscordUpdateTime >= intervalMillis) {
                     discordRpc?.updateSong(song, player.currentPosition, isPaused = !player.playWhenReady)
@@ -978,7 +978,7 @@ class MusicService :
         scope.launch {
             if (playbackState == Player.STATE_READY) {
                 val now = System.currentTimeMillis()
-                val intervalMillis = getPresenceIntervalMillis(context)
+                val intervalMillis = getPresenceIntervalMillis(this)
 
                 if (now - lastDiscordUpdateTime >= intervalMillis) {
                     discordRpc?.updateSong(song, player.currentPosition, isPaused = !player.playWhenReady)

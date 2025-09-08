@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.media3.common.Player.STATE_READY
 import androidx.navigation.NavController
+import androidx.datastore.preferences.core.stringPreferencesKey
 import coil3.compose.AsyncImage
 import moe.koiverse.archivetune.LocalPlayerAwareWindowInsets
 import moe.koiverse.archivetune.LocalPlayerConnection
