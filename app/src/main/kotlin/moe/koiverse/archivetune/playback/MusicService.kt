@@ -1046,7 +1046,8 @@ class MusicService :
         }
     } else {
         scope.launch { discordRpc?.stopActivity() }
-    }
+     }
+   }
   }
 }
 
