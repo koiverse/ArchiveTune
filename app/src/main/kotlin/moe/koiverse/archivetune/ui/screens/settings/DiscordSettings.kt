@@ -293,20 +293,10 @@ fun DiscordSettings(
             selected = stateSource,
             onChange = onStateSourceChange
         )
-        ActivitySourceDropdown(
-            title = stringResource(R.string.discord_activity_button_url),
-            iconRes = R.drawable.link,
-            selected = buttonUrlSource,
-            onChange = onButtonUrlSourceChange
-        )
 
         val (button1Label, onButton1LabelChange) = rememberPreference(
             key = DiscordActivityButton1LabelKey,
             defaultValue = "Listen on YouTube Music"
-        )
-        val (button1Url, onButton1UrlChange) = rememberPreference(
-            key = DiscordActivityButton1UrlKey,
-            defaultValue = ""
         )
         val (button1Enabled, onButton1EnabledChange) = rememberPreference(
             key = DiscordActivityButton1EnabledKey,
@@ -315,10 +305,6 @@ fun DiscordSettings(
         val (button2Label, onButton2LabelChange) = rememberPreference(
             key = DiscordActivityButton2LabelKey,
             defaultValue = "View Album"
-        )
-        val (button2Url, onButton2UrlChange) = rememberPreference(
-            key = DiscordActivityButton2UrlKey,
-            defaultValue = ""
         )
         val (button2Enabled, onButton2EnabledChange) = rememberPreference(
             key = DiscordActivityButton2EnabledKey,
@@ -820,15 +806,6 @@ fun RichPresence(
 ) {
     val context = LocalContext.current
 
-    val (largeTextSource) = rememberPreference(
-        key = DiscordLargeTextSourceKey,
-        defaultValue = "album"
-    )
-    val (largeTextCustom) = rememberPreference(
-        key = DiscordLargeTextCustomKey,
-        defaultValue = ""
-    )
-
     fun resolveUrl(source: String, song: Song?, custom: String): String? {
     return when (source.lowercase()) {
         "songurl" -> song?.id?.let { "https://music.youtube.com/watch?v=$it" }
@@ -1019,7 +996,7 @@ fun RichPresence(
                     Spacer(modifier = Modifier.height(16.dp))
 
                     AnimatedVisibility(visible = button1Enabled && button1Label.isNotBlank()) {
-                        FilledButton(
+                        Button(
                             enabled = !resolvedButton1Url.isNullOrBlank(),
                             onClick = {
                               resolvedButton1Url?.let {
@@ -1033,7 +1010,7 @@ fun RichPresence(
                     }
 
                     AnimatedVisibility(visible = button2Enabled && button2Label.isNotBlank()) {
-                        FilledButton(
+                        Button(
                             enabled = !resolvedButton2Url.isNullOrBlank(),
                             onClick = {
                               resolvedButton2Url?.let {
