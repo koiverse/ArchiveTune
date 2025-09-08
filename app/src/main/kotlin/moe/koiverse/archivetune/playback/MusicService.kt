@@ -925,6 +925,18 @@ class MusicService :
         )
     }
 
+    val intervalMillis = getPresenceIntervalMillis(this@MusicService)
+    val now = System.currentTimeMillis()
+
+    fun shouldUpdate(force: Boolean = false): Boolean {
+       return when {
+        intervalMillis == 0L -> true // Disabled → always update
+        force -> true // e.g. on song transition
+        now - lastDiscordUpdateTime >= intervalMillis -> true
+        else -> false
+      }
+    }
+
     override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
     super.onMediaItemTransition(mediaItem, reason)
 
@@ -951,13 +963,10 @@ class MusicService :
     currentSong.value?.let { song ->
         scope.launch {
             if (player.playbackState == Player.STATE_READY) {
-                val now = System.currentTimeMillis()
-                val intervalMillis = getPresenceIntervalMillis(this@MusicService) // ✅ correct
-
-                if (now - lastDiscordUpdateTime >= intervalMillis) {
-                    discordRpc?.updateSong(song, player.currentPosition, isPaused = !player.playWhenReady)
-                    lastDiscordUpdateTime = now
-                }
+                if (shouldUpdate(force = true)) { // always force on transition
+                discordRpc?.updateSong(song, player.currentPosition, isPaused = !player.playWhenReady)
+                lastDiscordUpdateTime = now
+               }
             } else {
                 discordRpc?.stopActivity()
             }
@@ -977,13 +986,10 @@ class MusicService :
     currentSong.value?.let { song ->
         scope.launch {
             if (playbackState == Player.STATE_READY) {
-                val now = System.currentTimeMillis()
-                val intervalMillis = getPresenceIntervalMillis(this@MusicService) // ✅ correct
-
-                if (now - lastDiscordUpdateTime >= intervalMillis) {
-                    discordRpc?.updateSong(song, player.currentPosition, isPaused = !player.playWhenReady)
-                    lastDiscordUpdateTime = now
-                }
+                if (shouldUpdate(force = true)) { // always force on transition
+                discordRpc?.updateSong(song, player.currentPosition, isPaused = !player.playWhenReady)
+                lastDiscordUpdateTime = now
+               }
             } else {
                 discordRpc?.stopActivity()
             }
@@ -1018,13 +1024,10 @@ class MusicService :
     if (player.isPlaying) {
         currentSong.value?.let { song ->
             scope.launch {
-                val now = System.currentTimeMillis()
-                val intervalMillis = getPresenceIntervalMillis(this@MusicService)
-
-                if (now - lastDiscordUpdateTime >= intervalMillis) {
-                    discordRpc?.updateSong(song, player.currentPosition)
-                    lastDiscordUpdateTime = now
-                }
+                if (shouldUpdate(force = true)) {
+                discordRpc?.updateSong(song, player.currentPosition, isPaused = !player.playWhenReady)
+                lastDiscordUpdateTime = now
+               }
             }
         }
     } else if (!events.containsAny(Player.EVENT_POSITION_DISCONTINUITY, Player.EVENT_MEDIA_ITEM_TRANSITION)) {
@@ -1035,11 +1038,8 @@ class MusicService :
     if (shouldUpdateOnTransition) {
         currentSong.value?.let { song ->
             scope.launch {
-                val now = System.currentTimeMillis()
-                val intervalMillis = getPresenceIntervalMillis(this@MusicService)
-
-                if (now - lastDiscordUpdateTime >= intervalMillis) {
-                    discordRpc?.updateSong(song, player.currentPosition)
+                if (shouldUpdate(force = true)) { // always force on transition
+                    discordRpc?.updateSong(song, player.currentPosition, isPaused = !player.playWhenReady)
                     lastDiscordUpdateTime = now
                 }
             }

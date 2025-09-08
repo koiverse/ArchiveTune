@@ -272,7 +272,7 @@ fun DiscordSettings(
         )
 
         // Interval selection
-       val intervalOptions = listOf("20s", "50s", "1m", "5m", "Custom")
+       val intervalOptions = listOf("20s", "50s", "1m", "5m", "Custom", "Disabled")
        val (intervalSelection, onIntervalSelectionChange) = rememberPreference(
            key = stringPreferencesKey("discordPresenceIntervalPreset"),
            defaultValue = "20s"

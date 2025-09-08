@@ -12,6 +12,7 @@ fun getPresenceIntervalMillis(context: Context): Long {
     val customUnit = context.dataStore[DiscordPresenceIntervalUnitKey] ?: "S"
 
     return when (intervalPreset) {
+        "Disabled" -> 0L // no throttling
         "20s" -> 20_000L
         "50s" -> 50_000L
         "1m" -> 60_000L
@@ -28,3 +29,4 @@ fun getPresenceIntervalMillis(context: Context): Long {
         else -> 20_000L
     }
 }
+
