@@ -441,10 +441,16 @@ fun DiscordSettings(
     val imageOptions = listOf("thumbnail", "artist", "appicon", "custom")
     val smallImageOptions = listOf("thumbnail", "artist", "appicon", "custom", "dontshow")
     val largeTextOptions = listOf("song", "artist", "album", "app", "custom", "dontshow")
+    val largeTextOptions = listOf("song", "artist", "album", "app", "custom", "dontshow")
+
     val (largeTextSource, onLargeTextSourceChange) = rememberPreference(
       key = DiscordLargeTextSourceKey,
       defaultValue = "album"
-    )
+   )
+    val (largeTextCustom, onLargeTextCustomChange) = rememberPreference(
+      key = DiscordLargeTextCustomKey,
+      defaultValue = ""
+   )
 
     val (largeImageType, onLargeImageTypeChange) = rememberPreference(
       key = DiscordLargeImageTypeKey,
@@ -502,10 +508,7 @@ if (largeImageType == "custom") {
 }
 
 var largeTextExpanded by remember { mutableStateOf(false) }
-ExposedDropdownMenuBox(
-    expanded = largeTextExpanded,
-    onExpandedChange = { largeTextExpanded = it }
-) {
+ExposedDropdownMenuBox(expanded = largeTextExpanded, onExpandedChange = { largeTextExpanded = it }) {
     TextField(
         value = largeTextSource,
         onValueChange = {},
@@ -519,10 +522,7 @@ ExposedDropdownMenuBox(
             .padding(horizontal = 13.dp, vertical = 16.dp),
         leadingIcon = { Icon(painterResource(R.drawable.text_fields), null) }
     )
-    ExposedDropdownMenu(
-        expanded = largeTextExpanded,
-        onDismissRequest = { largeTextExpanded = false }
-    ) {
+    ExposedDropdownMenu(expanded = largeTextExpanded, onDismissRequest = { largeTextExpanded = false }) {
         largeTextOptions.forEach { opt ->
             val display = when (opt) {
                 "song" -> "Song name"
@@ -547,16 +547,10 @@ ExposedDropdownMenuBox(
 if (largeTextSource == "custom") {
     EditablePreference(
         title = "Custom large text",
-        iconRes = R.drawable.link,
-        value = rememberPreference(
-            key = stringPreferencesKey("discordLargeTextCustom"),
-            defaultValue = ""
-        ).first,
+        iconRes = R.drawable.text_fields,
+        value = largeTextCustom,
         defaultValue = "",
-        onValueChange = rememberPreference(
-            key = stringPreferencesKey("discordLargeTextCustom"),
-            defaultValue = ""
-        ).second
+        onValueChange = onLargeTextCustomChange
     )
 }
 
@@ -755,12 +749,21 @@ fun RichPresence(
         defaultValue = ""
     )
 
+    val (largeTextSource) = rememberPreference(
+        key = DiscordLargeTextSourceKey,
+        defaultValue = "album"
+    )
+    val (largeTextCustom) = rememberPreference(
+        key = DiscordLargeTextCustomKey,
+        defaultValue = ""
+    )
+
     val previewLargeText = when (largeTextSource) {
     "song" -> song?.song?.title ?: "Song name"
     "artist" -> song?.artists?.firstOrNull()?.name ?: "Artist"
     "album" -> song?.song?.albumName ?: song?.album?.title ?: "Album"
     "app" -> stringResource(R.string.app_name)
-    "custom" -> "Custom text"
+    "custom" -> largeTextCustom.ifBlank { "Custom text" }
     "dontshow" -> null
     else -> song?.song?.albumName ?: song?.album?.title
     }
@@ -892,10 +895,9 @@ fun RichPresence(
                             Text(
                                 text = it,
                                 color = MaterialTheme.colorScheme.secondary,
-                                fontSize = 14.sp,
+                                fontSize = 16.sp,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.padding(top = 4.dp)
                                 )
                             }
                             if (song != null) {
