@@ -21,6 +21,7 @@ class DiscordRPC(
         val namePref = context.dataStore[DiscordActivityNameKey] ?: "APP"
         val detailsPref = context.dataStore[DiscordActivityDetailsKey] ?: "SONG"
         val statePref = context.dataStore[DiscordActivityStateKey] ?: "ARTIST"
+        val statusPref = context.dataStore[DiscordPresenceStatusKey] ?: "online"
 
         fun pickSourceValue(pref: String, song: Song?, default: String): String {
             return when (pref) {
@@ -144,9 +145,24 @@ class DiscordRPC(
             since = currentTime,
             startTime = calculatedStartTime,
             endTime = currentTime + (song.song.duration * 1000L - currentPlaybackTimeMillis),
-            applicationId = APPLICATION_ID
+            applicationId = APPLICATION_ID,
+            status = statusPref
         )
     }
+
+    suspend fun stopActivitySafe() = runCatching {
+    try {
+        stopActivity()
+    } catch (_: Exception) {
+        // ignore — safe no-op
+    }
+   }
+
+    suspend fun refreshActivity(song: Song, currentPlaybackTimeMillis: Long, isPaused: Boolean = false) = runCatching {
+    stopActivitySafe()
+    updateSong(song, currentPlaybackTimeMillis, isPaused).getOrThrow()
+   }
+
 
     companion object {
         private const val APPLICATION_ID = "1165706613961789445"

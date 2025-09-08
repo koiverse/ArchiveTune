@@ -271,6 +271,51 @@ fun DiscordSettings(
             }
         )
 
+        // Status discord
+        val activityStatus = listOf("online", "dnd", "idle", "streaming")
+        val (activityStatusSelection, onActivityStatusSelectionChange) = rememberPreference(
+            key = DiscordPresenceStatusKey,
+            defaultValue = "online"
+        )
+
+        var activityStatusExpanded by remember { mutableStateOf(false) }
+        ExposedDropdownMenuBox(expanded = activityStatusExpanded, onExpandedChange = { activityStatusExpanded = it }) {
+            TextField(
+                value = when (activityStatusSelection) {
+                    "online" -> "Online"
+                    "dnd" -> "Do Not Disturb"
+                    "idle" -> "Idle"
+                    "streaming" -> "Streaming"
+                    else -> "Online"
+                },
+                onValueChange = {},
+                readOnly = true,
+                label = { Text("Activity Status") },
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = activityStatusExpanded) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .menuAnchor()
+                    .padding(horizontal = 13.dp, vertical = 16.dp)
+                    .pointerInput(Unit) { detectTapGestures { activityStatusExpanded = true } },
+                leadingIcon = { Icon(painterResource(R.drawable.status), null) }
+            )
+            ExposedDropdownMenu(expanded = activityStatusExpanded, onDismissRequest = { activityStatusExpanded = false }) {
+                activityStatus.forEach { opt ->
+                    val display = when (opt) {
+                        "online" -> "Online"
+                        "dnd" -> "Do Not Disturb"
+                        "idle" -> "Idle"
+                        "streaming" -> "Streaming"
+                        else -> opt
+                    }
+                    DropdownMenuItem(text = { Text(display) }, onClick = {
+                        onActivityStatusSelectionChange(opt)
+                        activityStatusExpanded = false
+                    })
+                }
+            }
+        }
+
         // Interval selection
        val intervalOptions = listOf("20s", "50s", "1m", "5m", "Custom", "Disabled")
        val (intervalSelection, onIntervalSelectionChange) = rememberPreference(
