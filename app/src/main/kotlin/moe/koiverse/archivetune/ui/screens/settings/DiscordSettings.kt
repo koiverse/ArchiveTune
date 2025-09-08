@@ -274,9 +274,6 @@ fun DiscordSettings(
         val (stateSource, onStateSourceChange) = rememberEnumPreference(
             key = DiscordActivityStateKey, defaultValue = ActivitySource.ARTIST
         )
-        val (buttonUrlSource, onButtonUrlSourceChange) = rememberEnumPreference(
-            key = DiscordActivityButtonUrlKey, defaultValue = ActivitySource.SONG
-        )
 
         ActivitySourceDropdown(
             title = stringResource(R.string.discord_activity_name),
@@ -328,12 +325,31 @@ fun DiscordSettings(
             defaultValue = true
         )
 
+
     // Activity type selection
         val (activityType, onActivityTypeChange) = rememberPreference(
             key = DiscordActivityTypeKey,
             defaultValue = "LISTENING"
         )
         val activityOptions = listOf("PLAYING", "STREAMING", "LISTENING", "WATCHING", "COMPETING")
+
+        val urlOptions = listOf("songurl", "artisturl", "albumurl", "custom")
+        val (button1UrlSource, onButton1UrlSourceChange) = rememberPreference(
+            key = DiscordActivityButton1UrlSourceKey,
+            defaultValue = "songurl"
+        )
+        val (button1CustomUrl, onButton1CustomUrlChange) = rememberPreference(
+            key = DiscordActivityButton1CustomUrlKey,
+            defaultValue = ""
+        )
+        val (button2UrlSource, onButton2UrlSourceChange) = rememberPreference(
+            key = DiscordActivityButton2UrlSourceKey,
+            defaultValue = "albumurl"
+        )
+        val (button2CustomUrl, onButton2CustomUrlChange) = rememberPreference(
+            key = DiscordActivityButton2CustomUrlKey,
+            defaultValue = ""
+        )
 
         Text(
             text = stringResource(R.string.discord_button_options),
@@ -343,13 +359,6 @@ fun DiscordSettings(
                 .padding(horizontal = 16.dp, vertical = 8.dp)
         )
 
-        EditablePreference(
-            title = stringResource(R.string.discord_activity_button1_label),
-            iconRes = R.drawable.buttons,
-            value = button1Label,
-            defaultValue = "Listen on YouTube Music",
-            onValueChange = onButton1LabelChange
-        )
         PreferenceEntry(
             title = { Text(stringResource(R.string.show_button)) },
             description = stringResource(R.string.show_button1_description),
@@ -358,23 +367,60 @@ fun DiscordSettings(
                 Switch(checked = button1Enabled, onCheckedChange = onButton1EnabledChange)
             }
         )
-        if (button1Enabled) {
-            EditablePreference(
-                title = stringResource(R.string.discord_activity_button1_url),
-                description = stringResource(R.string.button1_url_description),
-                iconRes = R.drawable.link,
-                value = button1Url,
-                defaultValue = "",
-                onValueChange = onButton1UrlChange
-            )
-        }
-        EditablePreference(
-            title = stringResource(R.string.discord_activity_button2_label),
-            iconRes = R.drawable.buttons,
-            value = button2Label,
-            defaultValue = "View Album",
-            onValueChange = onButton2LabelChange
+
+    if (button1Enabled) {
+    var expanded by remember { mutableStateOf(false) }
+    ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
+        TextField(
+            value = button1UrlSource,
+            onValueChange = {},
+            readOnly = true,
+            label = { Text("Button 1 URL Source") },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            modifier = Modifier
+                .fillMaxWidth()
+                .menuAnchor()
+                .pointerInput(Unit) { detectTapGestures { expanded = true } }
+                .padding(horizontal = 13.dp, vertical = 16.dp),
+            leadingIcon = { Icon(painterResource(R.drawable.link), null) }
         )
+        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            urlOptions.forEach { opt ->
+                val display = when (opt) {
+                    "songurl" -> "Song URL"
+                    "artisturl" -> "Artist URL"
+                    "albumurl" -> "Album URL"
+                    "custom" -> "Custom URL"
+                    else -> opt
+                }
+                DropdownMenuItem(
+                    text = { Text(display) },
+                    onClick = {
+                        onButton1UrlSourceChange(opt)
+                        expanded = false
+                    }
+                )
+            }
+        }
+    }
+    EditablePreference(
+            title = stringResource(R.string.discord_activity_button1_label),
+            iconRes = R.drawable.buttons,
+            value = button1Label,
+            defaultValue = "Listen on YouTube Music",
+            onValueChange = onButton1LabelChange
+    )
+    if (button1UrlSource == "custom") {
+        EditablePreference(
+            title = "Button 1 Custom URL",
+            iconRes = R.drawable.link,
+            value = button1CustomUrl,
+            defaultValue = "",
+            onValueChange = onButton1CustomUrlChange
+        )
+    }
+}
+
         PreferenceEntry(
             title = { Text(stringResource(R.string.show_button)) },
             description = stringResource(R.string.show_button2_description),
@@ -383,16 +429,59 @@ fun DiscordSettings(
                 Switch(checked = button2Enabled, onCheckedChange = onButton2EnabledChange)
             }
         )
-        if (button2Enabled) {
-            EditablePreference(
-                title = stringResource(R.string.discord_activity_button2_url),
-                description = stringResource(R.string.button2_url_description),
-                iconRes = R.drawable.link,
-                value = button2Url,
-                defaultValue = "",
-                onValueChange = onButton2UrlChange
-            )
+
+    if (button2Enabled) {
+    var expanded2 by remember { mutableStateOf(false) }
+    ExposedDropdownMenuBox(expanded = expanded2, onExpandedChange = { expanded2 = it }) {
+        TextField(
+            value = button2UrlSource,
+            onValueChange = {},
+            readOnly = true,
+            label = { Text("Button 2 URL Source") },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded2) },
+            modifier = Modifier
+                .fillMaxWidth()
+                .menuAnchor()
+                .pointerInput(Unit) { detectTapGestures { expanded2 = true } }
+                .padding(horizontal = 13.dp, vertical = 16.dp),
+            leadingIcon = { Icon(painterResource(R.drawable.link), null) }
+        )
+        ExposedDropdownMenu(expanded = expanded2, onDismissRequest = { expanded2 = false }) {
+            urlOptions.forEach { opt ->
+                val display = when (opt) {
+                    "songurl" -> "Song URL"
+                    "artisturl" -> "Artist URL"
+                    "albumurl" -> "Album URL"
+                    "custom" -> "Custom URL"
+                    else -> opt
+                }
+                DropdownMenuItem(
+                    text = { Text(display) },
+                    onClick = {
+                        onButton2UrlSourceChange(opt)
+                        expanded2 = false
+                    }
+                )
+            }
         }
+    }
+    EditablePreference(
+            title = stringResource(R.string.discord_activity_button2_label),
+            iconRes = R.drawable.buttons,
+            value = button2Label,
+            defaultValue = "View Album",
+            onValueChange = onButton2LabelChange
+    )
+    if (button2UrlSource == "custom") {
+        EditablePreference(
+            title = "Button 2 Custom URL",
+            iconRes = R.drawable.link,
+            value = button2CustomUrl,
+            defaultValue = "",
+            onValueChange = onButton2CustomUrlChange
+        )
+    }
+}
         SwitchPreference(
             title = { Text(stringResource(R.string.discord_show_when_paused)) },
             description = stringResource(R.string.discord_show_when_paused_desc),
@@ -731,23 +820,6 @@ fun RichPresence(
 ) {
     val context = LocalContext.current
 
-    val (button1Label) = rememberPreference(
-        key = DiscordActivityButton1LabelKey,
-        defaultValue = "Listen on YouTube Music"
-    )
-    val (button1Url) = rememberPreference(
-        key = DiscordActivityButton1UrlKey,
-        defaultValue = ""
-    )
-    val (button2Label) = rememberPreference(
-        key = DiscordActivityButton2LabelKey,
-        defaultValue = "View Album"
-    )
-    val (button2Url) = rememberPreference(
-        key = DiscordActivityButton2UrlKey,
-        defaultValue = ""
-    )
-
     val (largeTextSource) = rememberPreference(
         key = DiscordLargeTextSourceKey,
         defaultValue = "album"
@@ -756,6 +828,33 @@ fun RichPresence(
         key = DiscordLargeTextCustomKey,
         defaultValue = ""
     )
+
+    fun resolveUrl(source: String, song: Song?, custom: String): String? {
+    return when (source.lowercase()) {
+        "songurl" -> song?.id?.let { "https://music.youtube.com/watch?v=$it" }
+        "artisturl" -> song?.artists?.firstOrNull()?.id?.let { "https://music.youtube.com/channel/$it" }
+        "albumurl" -> song?.album?.playlistId?.let { "https://music.youtube.com/playlist?list=$it" }
+        "custom" -> if (custom.isNotBlank()) custom else null
+        else -> null
+    }
+   }
+
+   val (button1Label) = rememberPreference(DiscordActivityButton1LabelKey, "Listen on YouTube Music")
+   val (button1Enabled) = rememberPreference(DiscordActivityButton1EnabledKey, true)
+
+   val (button2Label) = rememberPreference(DiscordActivityButton2LabelKey, "View Album")
+   val (button2Enabled) = rememberPreference(DiscordActivityButton2EnabledKey, true)
+
+// Button URL sources + custom
+   val (button1UrlSource) = rememberPreference(DiscordActivityButton1UrlSourceKey, "songurl")
+   val (button1CustomUrl) = rememberPreference(DiscordActivityButton1CustomUrlKey, "")
+
+   val (button2UrlSource) = rememberPreference(DiscordActivityButton2UrlSourceKey, "albumurl")
+   val (button2CustomUrl) = rememberPreference(DiscordActivityButton2CustomUrlKey, "")
+
+// Large text source + custom
+   val (largeTextSource) = rememberPreference(DiscordLargeTextSourceKey, "album")
+   val (largeTextCustom) = rememberPreference(DiscordLargeTextCustomKey, "")
 
     val previewLargeText = when (largeTextSource) {
     "song" -> song?.song?.title ?: "Song name"
@@ -766,16 +865,8 @@ fun RichPresence(
     "dontshow" -> null
     else -> song?.song?.albumName ?: song?.album?.title
     }
-
-    val defaultButton1Url = song?.id?.let { "https://music.youtube.com/watch?v=$it" }
-    val resolvedButton1Url = if (button1Url.isNotEmpty()) button1Url else defaultButton1Url ?: ""
-
-    val defaultButton2Url = when (buttonUrlSource) {
-    ActivitySource.ALBUM -> song?.album?.playlistId?.let { "https://music.youtube.com/playlist?list=$it" }
-    ActivitySource.ARTIST -> song?.id?.let { "https://music.youtube.com/watch?v=$it" }
-    ActivitySource.SONG, ActivitySource.APP -> song?.id?.let { "https://music.youtube.com/watch?v=$it" }
-    }
-    val resolvedButton2Url = if (button2Url.isNotEmpty()) button2Url else defaultButton2Url ?: ""
+    val resolvedButton1Url = resolveUrl(button1UrlSource, song, button1CustomUrl)
+    val resolvedButton2Url = resolveUrl(button2UrlSource, song, button2CustomUrl)
     val activityVerb = when (activityType.uppercase()) {
     "PLAYING" -> "Playing"
     "LISTENING" -> "Listening to"
@@ -927,44 +1018,33 @@ fun RichPresence(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    AnimatedVisibility(
-                        visible = button1Enabled && button1Label.isNotBlank()
-                    ) {
-                        OutlinedButton(
-                            enabled = resolvedButton1Url.isNotBlank(),
+                    AnimatedVisibility(visible = button1Enabled && button1Label.isNotBlank()) {
+                        FilledButton(
+                            enabled = !resolvedButton1Url.isNullOrBlank(),
                             onClick = {
-                                context.startActivity(
-                                    Intent(
-                                        Intent.ACTION_VIEW,
-                                        Uri.parse(resolvedButton1Url)
-                                    )
-                                )
-                            },
-                            modifier = Modifier.fillMaxWidth()
+                              resolvedButton1Url?.let {
+                              context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(it)))
+                         }
+                     },
+                        modifier = Modifier.fillMaxWidth()
                         ) {
                             Text(button1Label.ifBlank { "Listen on YouTube Music" })
                         }
                     }
 
-                    AnimatedVisibility(
-                        visible = button2Enabled && button2Label.isNotBlank()
-                    ) {
-                        OutlinedButton(
-                            enabled = resolvedButton2Url.isNotBlank(),
+                    AnimatedVisibility(visible = button2Enabled && button2Label.isNotBlank()) {
+                        FilledButton(
+                            enabled = !resolvedButton2Url.isNullOrBlank(),
                             onClick = {
-                                context.startActivity(
-                                    Intent(
-                                        Intent.ACTION_VIEW,
-                                        Uri.parse(resolvedButton2Url)
-                                    )
-                                )
-                            },
-                            modifier = Modifier.fillMaxWidth()
+                              resolvedButton2Url?.let {
+                              context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(it)))
+                        }
+                     },
+                        modifier = Modifier.fillMaxWidth()
                         ) {
                             Text(button2Label.ifBlank { "View Album" })
                         }
                     }
-
                 }
             }
         }
