@@ -61,6 +61,8 @@ import moe.koiverse.archivetune.constants.PlayerBackgroundStyleKey
 import moe.koiverse.archivetune.constants.PureBlackKey
 import moe.koiverse.archivetune.constants.PlayerButtonsStyle
 import moe.koiverse.archivetune.constants.PlayerButtonsStyleKey
+import moe.koiverse.archivetune.constants.LyricsAnimationStyleKey
+import moe.koiverse.archivetune.constants.LyricsAnimationStyle
 import moe.koiverse.archivetune.constants.SliderStyle
 import moe.koiverse.archivetune.constants.SliderStyleKey
 import moe.koiverse.archivetune.constants.SlimNavBarKey
