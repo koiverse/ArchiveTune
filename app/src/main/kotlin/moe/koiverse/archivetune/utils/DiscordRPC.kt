@@ -74,6 +74,18 @@ class DiscordRPC(
     val largeImageCustomPref = context.dataStore[DiscordLargeImageCustomUrlKey] ?: ""
     val smallImageTypePref = context.dataStore[DiscordSmallImageTypeKey] ?: "artist"
     val smallImageCustomPref = context.dataStore[DiscordSmallImageCustomUrlKey] ?: ""
+    val largeTextSourcePref = context.dataStore[DiscordLargeTextSourceKey] ?: "album"
+    val largeTextCustomPref = context.dataStore[stringPreferencesKey("discordLargeTextCustom")] ?: ""
+
+    val resolvedLargeText = when (largeTextSourcePref.lowercase()) {
+    "song" -> song.song.title
+    "artist" -> song.artists.firstOrNull()?.name
+    "album" -> song.song.albumName ?: song.album?.title
+    "app" -> context.getString(R.string.app_name)
+    "custom" -> largeTextCustomPref.ifBlank { null }
+    "dontshow" -> null
+    else -> song.song.albumName ?: song.album?.title
+   }
 
     fun pickImage(type: String, custom: String?, song: Song?, preferArtist: Boolean = false): RpcImage? {
         return when (type) {
@@ -104,7 +116,7 @@ class DiscordRPC(
         detailsUrl = baseSongUrl,
         largeImage = largeImageRpc,
         smallImage = smallImageRpc,
-        largeText = song.song.albumName ?: song.album?.title,
+        largeText = resolvedLargeText,
         smallText = song.artists.firstOrNull()?.name,
         buttons = buttons,
         type = resolvedType,

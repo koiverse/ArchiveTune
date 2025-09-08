@@ -440,6 +440,11 @@ fun DiscordSettings(
         // Discord presence image selection
     val imageOptions = listOf("thumbnail", "artist", "appicon", "custom")
     val smallImageOptions = listOf("thumbnail", "artist", "appicon", "custom", "dontshow")
+    val largeTextOptions = listOf("song", "artist", "album", "app", "custom", "dontshow")
+    val (largeTextSource, onLargeTextSourceChange) = rememberPreference(
+      key = DiscordLargeTextSourceKey,
+      defaultValue = "album"
+    )
 
     val (largeImageType, onLargeImageTypeChange) = rememberPreference(
       key = DiscordLargeImageTypeKey,
@@ -493,6 +498,65 @@ if (largeImageType == "custom") {
         value = largeImageCustomUrl,
         defaultValue = "",
         onValueChange = onLargeImageCustomUrlChange,
+    )
+}
+
+var largeTextExpanded by remember { mutableStateOf(false) }
+ExposedDropdownMenuBox(
+    expanded = largeTextExpanded,
+    onExpandedChange = { largeTextExpanded = it }
+) {
+    TextField(
+        value = largeTextSource,
+        onValueChange = {},
+        readOnly = true,
+        label = { Text("Large text") },
+        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = largeTextExpanded) },
+        modifier = Modifier
+            .fillMaxWidth()
+            .menuAnchor()
+            .pointerInput(Unit) { detectTapGestures { largeTextExpanded = true } }
+            .padding(horizontal = 13.dp, vertical = 16.dp),
+        leadingIcon = { Icon(painterResource(R.drawable.text_fields), null) }
+    )
+    ExposedDropdownMenu(
+        expanded = largeTextExpanded,
+        onDismissRequest = { largeTextExpanded = false }
+    ) {
+        largeTextOptions.forEach { opt ->
+            val display = when (opt) {
+                "song" -> "Song name"
+                "artist" -> "Artist name"
+                "album" -> "Album name"
+                "app" -> "App name"
+                "custom" -> "Custom text"
+                "dontshow" -> "Don't show"
+                else -> opt
+            }
+            DropdownMenuItem(
+                text = { Text(display) },
+                onClick = {
+                    onLargeTextSourceChange(opt)
+                    largeTextExpanded = false
+                }
+            )
+        }
+    }
+}
+
+if (largeTextSource == "custom") {
+    EditablePreference(
+        title = "Custom large text",
+        iconRes = R.drawable.link,
+        value = rememberPreference(
+            key = stringPreferencesKey("discordLargeTextCustom"),
+            defaultValue = ""
+        ).first,
+        defaultValue = "",
+        onValueChange = rememberPreference(
+            key = stringPreferencesKey("discordLargeTextCustom"),
+            defaultValue = ""
+        ).second
     )
 }
 
@@ -691,6 +755,16 @@ fun RichPresence(
         defaultValue = ""
     )
 
+    val previewLargeText = when (largeTextSource) {
+    "song" -> song?.song?.title ?: "Song name"
+    "artist" -> song?.artists?.firstOrNull()?.name ?: "Artist"
+    "album" -> song?.song?.albumName ?: song?.album?.title ?: "Album"
+    "app" -> stringResource(R.string.app_name)
+    "custom" -> "Custom text"
+    "dontshow" -> null
+    else -> song?.song?.albumName ?: song?.album?.title
+    }
+
     val defaultButton1Url = song?.id?.let { "https://music.youtube.com/watch?v=$it" }
     val resolvedButton1Url = if (button1Url.isNotEmpty()) button1Url else defaultButton1Url ?: ""
 
@@ -814,15 +888,14 @@ fun RichPresence(
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                             )
-
-                            // Keep showing album below if present (secondary info)
-                            (song?.album?.title ?: song?.song?.albumName)?.let {
-                                Text(
-                                    text = it,
-                                    color = MaterialTheme.colorScheme.secondary,
-                                    fontSize = 16.sp,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
+                            previewLargeText?.let {
+                            Text(
+                                text = it,
+                                color = MaterialTheme.colorScheme.secondary,
+                                fontSize = 14.sp,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.padding(top = 4.dp)
                                 )
                             }
                             if (song != null) {
