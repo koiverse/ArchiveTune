@@ -952,7 +952,7 @@ class MusicService :
         scope.launch {
             if (player.playbackState == Player.STATE_READY) {
                 val now = System.currentTimeMillis()
-                val intervalMillis = getPresenceIntervalMillis(this)
+                val intervalMillis = getPresenceIntervalMillis(this@MusicService) // ✅ correct
 
                 if (now - lastDiscordUpdateTime >= intervalMillis) {
                     discordRpc?.updateSong(song, player.currentPosition, isPaused = !player.playWhenReady)
@@ -978,7 +978,7 @@ class MusicService :
         scope.launch {
             if (playbackState == Player.STATE_READY) {
                 val now = System.currentTimeMillis()
-                val intervalMillis = getPresenceIntervalMillis(this)
+                val intervalMillis = getPresenceIntervalMillis(this@MusicService) // ✅ correct
 
                 if (now - lastDiscordUpdateTime >= intervalMillis) {
                     discordRpc?.updateSong(song, player.currentPosition, isPaused = !player.playWhenReady)
@@ -1015,28 +1015,39 @@ class MusicService :
     }
 
     if (events.containsAny(Player.EVENT_IS_PLAYING_CHANGED)) {
-        if (player.isPlaying) {
-            currentSong.value?.let { song ->
-                scope.launch {
+    if (player.isPlaying) {
+        currentSong.value?.let { song ->
+            scope.launch {
+                val now = System.currentTimeMillis()
+                val intervalMillis = getPresenceIntervalMillis(this@MusicService)
+
+                if (now - lastDiscordUpdateTime >= intervalMillis) {
                     discordRpc?.updateSong(song, player.currentPosition)
+                    lastDiscordUpdateTime = now
                 }
             }
-        } else if (!events.containsAny(Player.EVENT_POSITION_DISCONTINUITY, Player.EVENT_MEDIA_ITEM_TRANSITION)) {
-            scope.launch { discordRpc?.stopActivity() }
         }
+    } else if (!events.containsAny(Player.EVENT_POSITION_DISCONTINUITY, Player.EVENT_MEDIA_ITEM_TRANSITION)) {
+        scope.launch { discordRpc?.stopActivity() }
     } else if (events.contains(Player.EVENT_MEDIA_ITEM_TRANSITION)) {
-        val shouldUpdateOnTransition =
-            player.isPlaying || (player.playWhenReady && player.playbackState == Player.STATE_READY)
-        if (shouldUpdateOnTransition) {
-            currentSong.value?.let { song ->
-                scope.launch {
+    val shouldUpdateOnTransition =
+        player.isPlaying || (player.playWhenReady && player.playbackState == Player.STATE_READY)
+    if (shouldUpdateOnTransition) {
+        currentSong.value?.let { song ->
+            scope.launch {
+                val now = System.currentTimeMillis()
+                val intervalMillis = getPresenceIntervalMillis(this@MusicService)
+
+                if (now - lastDiscordUpdateTime >= intervalMillis) {
                     discordRpc?.updateSong(song, player.currentPosition)
+                    lastDiscordUpdateTime = now
                 }
             }
-        } else {
-            scope.launch { discordRpc?.stopActivity() }
         }
+    } else {
+        scope.launch { discordRpc?.stopActivity() }
     }
+  }
 }
 
 
