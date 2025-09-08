@@ -130,8 +130,8 @@ fun AppearanceSettings(
         LyricsTextPositionKey,
         defaultValue = LyricsPosition.CENTER
     )
-    val (lyricsAnimation, onLyricsAnimationChange) = rememberEnumPreference(
-    LyricsAnimationStyleKey,
+    val (lyricsAnimation, onLyricsAnimationChange) = rememberEnumPreference<LyricsAnimationStyle>(
+    key = LyricsAnimationStyleKey,
     defaultValue = LyricsAnimationStyle.NONE
     )
     val (lyricsClick, onLyricsClickChange) = rememberPreference(LyricsClickKey, defaultValue = true)
