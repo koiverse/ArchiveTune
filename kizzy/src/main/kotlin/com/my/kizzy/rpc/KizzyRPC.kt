@@ -1,15 +1,3 @@
-/*
- *
- *  ******************************************************************
- *  *  * Copyright (C) 2022
- *  *  * KizzyRPC.kt is part of Kizzy
- *  *  *  and can not be copied and/or distributed without the express
- *  *  * permission of yzziK(Vaibhav)
- *  *  *****************************************************************
- *
- *
- */
-
 package com.my.kizzy.rpc
 
 import com.my.kizzy.gateway.DiscordWebSocket
@@ -26,31 +14,78 @@ import io.ktor.client.statement.bodyAsText
 import org.json.JSONObject
 
 /**
- * Modified by Zion Huang
+ * Modified by Koiverse
  */
 open class KizzyRPC(token: String) {
     private val kizzyRepository = KizzyRepository()
     private val discordWebSocket = DiscordWebSocket(token)
+    private var platform: String? = null
 
-    fun closeRPC() {
-        discordWebSocket.close()
-    }
+    fun closeRPC() = discordWebSocket.close()
 
-    fun isRpcRunning(): Boolean {
-        return discordWebSocket.isWebSocketConnected()
-    }
+    fun isRpcRunning(): Boolean = discordWebSocket.isWebSocketConnected()
 
     suspend fun stopActivity() {
-        if (!isRpcRunning()) {
-            discordWebSocket.connect()
-        }
-        val presence = Presence(
-            activities = emptyList()
-        )
-        discordWebSocket.sendActivity(presence)
+        if (!isRpcRunning()) discordWebSocket.connect()
+        discordWebSocket.sendActivity(Presence(activities = emptyList()))
     }
 
-    suspend fun setActivity(
+    fun setPlatform(platform: String? = null) = apply { this.platform = platform }
+
+    private fun String.sanitize(): String =
+        if (length > 128) substring(0, 128) else this
+
+    private fun makePresence(
+        name: String,
+        state: String?,
+        stateUrl: String? = null,
+        details: String?,
+        detailsUrl: String? = null,
+        largeImage: RpcImage?,
+        smallImage: RpcImage?,
+        largeText: String? = null,
+        smallText: String? = null,
+        buttons: List<Pair<String, String>>? = null,
+        startTime: Long? = null,
+        endTime: Long? = null,
+        type: Type = Type.LISTENING,
+        statusDisplayType: StatusDisplayType = StatusDisplayType.NAME,
+        streamUrl: String? = null,
+        applicationId: String? = null,
+        status: String? = "online",
+        since: Long? = null,
+    ): Presence {
+        return Presence(
+            activities = listOf(
+                Activity(
+                    name = name,
+                    state = state,
+                    stateUrl = stateUrl,
+                    details = details,
+                    detailsUrl = detailsUrl,
+                    type = type.value,
+                    platform = platform?.sanitize(),
+                    statusDisplayType = statusDisplayType.value,
+                    timestamps = Timestamps(startTime, endTime),
+                    assets = Assets(
+                        largeImage = largeImage?.resolveImage(kizzyRepository),
+                        smallImage = smallImage?.resolveImage(kizzyRepository),
+                        largeText = largeText,
+                        smallText = smallText
+                    ),
+                    buttons = buttons?.map { it.first },
+                    metadata = Metadata(buttonUrls = buttons?.map { it.second }),
+                    applicationId = applicationId.takeIf { !buttons.isNullOrEmpty() },
+                    url = streamUrl
+                )
+            ),
+            afk = true,
+            since = since,
+            status = status ?: "online"
+        )
+    }
+
+    suspend fun buildActivity(
         name: String,
         state: String?,
         stateUrl: String? = null,
@@ -70,38 +105,87 @@ open class KizzyRPC(token: String) {
         status: String? = "online",
         since: Long? = null,
     ) {
-        if (!isRpcRunning()) {
-            discordWebSocket.connect()
-        }
-        val presence = Presence(
-            activities = listOf(
-                Activity(
-                    name = name,
-                    state = state,
-                    stateUrl = stateUrl,
-                    details = details,
-                    detailsUrl = detailsUrl,
-                    type = type.value,
-                    statusDisplayType = statusDisplayType.value,
-                    timestamps = Timestamps(startTime, endTime),
-                    assets = Assets(
-                        largeImage = largeImage?.resolveImage(kizzyRepository),
-                        smallImage = smallImage?.resolveImage(kizzyRepository),
-                        largeText = largeText,
-                        smallText = smallText
-                    ),
-                    buttons = buttons?.map { it.first },
-                    metadata = Metadata(buttonUrls = buttons?.map { it.second }),
-                    applicationId = applicationId.takeIf { !buttons.isNullOrEmpty() },
-                    url = streamUrl
-                )
-            ),
-            afk = true,
-            since = since,
-            status = status ?: "online"
+        if (!isRpcRunning()) discordWebSocket.connect()
+        discordWebSocket.sendActivity(
+            makePresence(
+                name, state, stateUrl, details, detailsUrl,
+                largeImage, smallImage, largeText, smallText,
+                buttons, startTime, endTime, type, statusDisplayType,
+                streamUrl, applicationId, status, since
+            )
         )
-        discordWebSocket.sendActivity(presence)
     }
+
+    suspend fun updateActivity(
+        name: String,
+        state: String?,
+        stateUrl: String? = null,
+        details: String?,
+        detailsUrl: String? = null,
+        largeImage: RpcImage?,
+        smallImage: RpcImage?,
+        largeText: String? = null,
+        smallText: String? = null,
+        buttons: List<Pair<String, String>>? = null,
+        startTime: Long? = null,
+        endTime: Long? = null,
+        type: Type = Type.LISTENING,
+        statusDisplayType: StatusDisplayType = StatusDisplayType.NAME,
+        streamUrl: String? = null,
+        applicationId: String? = null,
+        status: String? = "online",
+        since: Long? = null,
+    ) {
+        if (!discordWebSocket.isActive) return
+        discordWebSocket.sendActivity(
+            makePresence(
+                name, state, stateUrl, details, detailsUrl,
+                largeImage, smallImage, largeText, smallText,
+                buttons, startTime, endTime, type, statusDisplayType,
+                streamUrl, applicationId, status, since
+            )
+        )
+    }
+
+    suspend fun refreshRPC(
+    name: String,
+    state: String?,
+    stateUrl: String? = null,
+    details: String?,
+    detailsUrl: String? = null,
+    largeImage: RpcImage?,
+    smallImage: RpcImage?,
+    largeText: String? = null,
+    smallText: String? = null,
+    buttons: List<Pair<String, String>>? = null,
+    startTime: Long? = null,
+    endTime: Long? = null,
+    type: Type = Type.LISTENING,
+    statusDisplayType: StatusDisplayType = StatusDisplayType.NAME,
+    streamUrl: String? = null,
+    applicationId: String? = null,
+    status: String? = "online",
+    since: Long? = null,
+) {
+    if (isRpcRunning()) {
+        // already connected, just update
+        updateActivity(
+            name, state, stateUrl, details, detailsUrl,
+            largeImage, smallImage, largeText, smallText,
+            buttons, startTime, endTime, type, statusDisplayType,
+            streamUrl, applicationId, status, since
+        )
+    } else {
+        // not connected yet, build first
+        buildActivity(
+            name, state, stateUrl, details, detailsUrl,
+            largeImage, smallImage, largeText, smallText,
+            buttons, startTime, endTime, type, statusDisplayType,
+            streamUrl, applicationId, status, since
+        )
+    }
+}
+
 
     enum class Type(val value: Int) {
         PLAYING(0),
@@ -125,9 +209,8 @@ open class KizzyRPC(token: String) {
             }.bodyAsText()
             val json = JSONObject(response)
             val username = json.getString("username")
-            val name = json.getString("global_name")
+            val name = json.optString("global_name", username)
             client.close()
-
             UserInfo(username, name)
         }
     }

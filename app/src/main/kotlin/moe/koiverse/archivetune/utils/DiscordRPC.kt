@@ -130,7 +130,7 @@ class DiscordRPC(
             else -> song.song.albumName ?: song.album?.title
         }
 
-        setActivity(
+        refreshRPC(
             name = activityName.removeSuffix(" Debug"),
             details = activityDetails,
             state = activityState,
@@ -150,18 +150,9 @@ class DiscordRPC(
         )
     }
 
-    suspend fun stopActivitySafe() = runCatching {
-    try {
-        stopActivity()
-    } catch (_: Exception) {
-        // ignore — safe no-op
-    }
-   }
-
     suspend fun refreshActivity(song: Song, currentPlaybackTimeMillis: Long, isPaused: Boolean = false) = runCatching {
-    stopActivitySafe()
-    updateSong(song, currentPlaybackTimeMillis, isPaused).getOrThrow()
-   }
+        updateSong(song, currentPlaybackTimeMillis, isPaused).getOrThrow()
+    }
 
 
     companion object {
