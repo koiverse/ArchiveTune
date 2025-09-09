@@ -16,7 +16,7 @@ import com.my.kizzy.remote.ApiService
 import com.my.kizzy.utils.toImageAsset
 
 /**
- * Modified by Zion Huang
+ * Modified by Koiverse
  */
 class KizzyRepository {
     private val api = ApiService()

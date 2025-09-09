@@ -45,7 +45,7 @@ import kotlin.coroutines.CoroutineContext
 import kotlin.time.Duration.Companion.milliseconds
 
 /**
- * Modified by Zion Huang
+ * Modified by Koiverse
  */
 open class DiscordWebSocket(
     private val token: String,
