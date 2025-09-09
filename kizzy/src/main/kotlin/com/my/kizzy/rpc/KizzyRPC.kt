@@ -55,6 +55,8 @@ open class KizzyRPC(token: String) {
         status: String? = "online",
         since: Long? = null,
     ): Presence {
+        val large = largeImage?.resolveImage(kizzyRepository)
+        val small = smallImage?.resolveImage(kizzyRepository)
         return Presence(
             activities = listOf(
                 Activity(
@@ -68,8 +70,8 @@ open class KizzyRPC(token: String) {
                     statusDisplayType = statusDisplayType.value,
                     timestamps = Timestamps(startTime, endTime),
                     assets = Assets(
-                        largeImage = largeImage?.resolveImage(kizzyRepository),
-                        smallImage = smallImage?.resolveImage(kizzyRepository),
+                        largeImage = large,
+                        smallImage = small,
                         largeText = largeText,
                         smallText = smallText
                     ),
@@ -136,7 +138,7 @@ open class KizzyRPC(token: String) {
         status: String? = "online",
         since: Long? = null,
     ) {
-        if (!discordWebSocket.isActive) return
+        if (!discordWebSocket.isWebSocketConnected()) return
         discordWebSocket.sendActivity(
             makePresence(
                 name, state, stateUrl, details, detailsUrl,
