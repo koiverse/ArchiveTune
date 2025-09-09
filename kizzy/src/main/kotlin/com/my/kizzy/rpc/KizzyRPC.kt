@@ -55,8 +55,16 @@ open class KizzyRPC(token: String) {
         status: String? = "online",
         since: Long? = null,
     ): Presence {
-        val large = largeImage?.resolveImage(kizzyRepository)
-        val small = smallImage?.resolveImage(kizzyRepository)
+        val resolvedLargeImage = largeImage?.resolveImage(kizzyRepository)
+        val resolvedSmallImage = smallImage?.resolveImage(kizzyRepository)
+        val assets = if (resolvedLargeImage != null || resolvedSmallImage != null) {
+            Assets(
+                largeImage = resolvedLargeImage,
+                smallImage = resolvedSmallImage,
+                largeText = largeText,
+                smallText = smallText
+            )
+    } else null
         return Presence(
             activities = listOf(
                 Activity(
@@ -69,12 +77,6 @@ open class KizzyRPC(token: String) {
                     platform = platform?.sanitize(),
                     statusDisplayType = statusDisplayType.value,
                     timestamps = Timestamps(startTime, endTime),
-                    assets = Assets(
-                        largeImage = large,
-                        smallImage = small,
-                        largeText = largeText,
-                        smallText = smallText
-                    ),
                     buttons = buttons?.map { it.first },
                     metadata = Metadata(buttonUrls = buttons?.map { it.second }),
                     applicationId = applicationId.takeIf { !buttons.isNullOrEmpty() },
