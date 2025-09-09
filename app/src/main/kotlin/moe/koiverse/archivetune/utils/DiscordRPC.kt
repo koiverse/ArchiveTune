@@ -130,6 +130,17 @@ class DiscordRPC(
             else -> song.song.albumName ?: song.album?.title
         }
 
+        // Only send applicationId when we're using Discord-hosted asset keys for images
+        // This prevents Discord from falling back to the application's icon when using
+        // externally uploaded images (attachments). If buttons are present and the
+        // provided images are Discord asset keys, include the application id so buttons
+        // continue to work as expected.
+        val applicationIdToSend = if (buttons.isNotEmpty() &&
+            (largeImageRpc is RpcImage.DiscordImage || smallImageRpc is RpcImage.DiscordImage)
+        ) APPLICATION_ID else null
+        val platformPref = context.dataStore[DiscordActivityPlatformKey] ?: "desktop"
+        this.setPlatform(platformPref)
+
         refreshRPC(
             name = activityName.removeSuffix(" Debug"),
             details = activityDetails,
@@ -145,7 +156,7 @@ class DiscordRPC(
             since = currentTime,
             startTime = calculatedStartTime,
             endTime = currentTime + (song.song.duration * 1000L - currentPlaybackTimeMillis),
-            applicationId = APPLICATION_ID,
+            applicationId = applicationIdToSend,
             status = statusPref
         )
     }

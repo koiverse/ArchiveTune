@@ -96,6 +96,8 @@ val DiscordLargeTextCustomKey = stringPreferencesKey("discordLargeTextCustom")
 val DiscordLargeImageCustomUrlKey = stringPreferencesKey("discordLargeImageCustomUrl")
 val DiscordSmallImageTypeKey = stringPreferencesKey("discordSmallImageType")
 val DiscordSmallImageCustomUrlKey = stringPreferencesKey("discordSmallImageCustomUrl")
+// Activity platform (discord client platform) selection
+val DiscordActivityPlatformKey = stringPreferencesKey("discordActivityPlatform")
 
 val ChipSortTypeKey = stringPreferencesKey("chipSortType")
 val SongSortTypeKey = stringPreferencesKey("songSortType")

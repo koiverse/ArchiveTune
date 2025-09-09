@@ -316,6 +316,38 @@ fun DiscordSettings(
             }
         }
 
+        // Platform selector (client platform displayed on Discord)
+        val platformOptions = listOf("android", "desktop", "embedded", "ios", "ps4", "ps5", "samsung", "xbox")
+        val (platformSelection, onPlatformSelectionChange) = rememberPreference(
+            key = DiscordActivityPlatformKey,
+            defaultValue = "desktop"
+        )
+
+        var platformExpanded by remember { mutableStateOf(false) }
+        ExposedDropdownMenuBox(expanded = platformExpanded, onExpandedChange = { platformExpanded = it }) {
+            TextField(
+                value = platformSelection.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() },
+                onValueChange = {},
+                readOnly = true,
+                label = { Text("Platform") },
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = platformExpanded) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .menuAnchor()
+                    .padding(horizontal = 13.dp, vertical = 16.dp)
+                    .pointerInput(Unit) { detectTapGestures { platformExpanded = true } },
+                leadingIcon = { Icon(painterResource(R.drawable.desktop_windows), null) }
+            )
+            ExposedDropdownMenu(expanded = platformExpanded, onDismissRequest = { platformExpanded = false }) {
+                platformOptions.forEach { opt ->
+                    DropdownMenuItem(text = { Text(opt.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }) }, onClick = {
+                        onPlatformSelectionChange(opt)
+                        platformExpanded = false
+                    })
+                }
+            }
+        }
+
         // Interval selection
        val intervalOptions = listOf("20s", "50s", "1m", "5m", "Custom", "Disabled")
        val (intervalSelection, onIntervalSelectionChange) = rememberPreference(
