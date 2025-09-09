@@ -35,7 +35,7 @@ open class KizzyRPC(token: String) {
     private fun String.sanitize(): String =
         if (length > 128) substring(0, 128) else this
 
-    private fun makePresence(
+    private suspend fun makePresence(
         name: String,
         state: String?,
         stateUrl: String? = null,
