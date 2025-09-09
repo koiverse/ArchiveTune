@@ -1311,19 +1311,18 @@ class MusicService :
         if (dataStore.get(PersistentQueueKey, true)) {
             saveQueueToDisk()
         }
-        if (discordRpc?.isRpcRunning() == true) {
-            discordRpc?.closeRPC()
-        }
         connectivityObserver.unregister()
         abandonAudioFocus()
         mediaSession.release()
         player.removeListener(this)
         player.removeListener(sleepTimer)
         player.release()
+        scope.launch { discordRpc?.stopActivity() }
+        if (discordRpc?.isRpcRunning() == true) {
+            discordRpc?.closeRPC()
+        }
+        discordRpc = null
         super.onDestroy()
-        scope.launch {
-        discordRpc?.stopActivity()
-      }
     }
 
     override fun onBind(intent: Intent?) = super.onBind(intent) ?: binder
