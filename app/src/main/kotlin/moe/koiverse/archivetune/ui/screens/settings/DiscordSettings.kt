@@ -118,9 +118,6 @@ fun DiscordSettings(
                             rpc.closeRPC()
                         } catch (_: Exception) {
                         }
-                        try {
-                            rpc.shutdown()
-                        } catch (_: Exception) {}
                     } else if (currentSong != null) {
                         // Compute start/end times that will be sent to Discord so we can keep track locally
                         val calculatedStartTime = now - position
@@ -131,24 +128,21 @@ fun DiscordSettings(
                         lastRpcEndTime = calculatedEndTime
 
                         try {
-                                if (playerIsPaused) {
-                                    if (showWhenPaused) {
-                                        // send a paused presence (no timestamps, pause icon)
-                                        rpc.enqueueUpdate(currentSong, position, isPaused = true)
-                                    } else {
-                                        // user chose to hide RPC when paused
-                                        try {
-                                            rpc.stopActivity()
-                                        } catch (_: Exception) {}
-                                        try {
-                                            rpc.closeRPC()
-                                        } catch (_: Exception) {}
-                                    }
+                            if (playerIsPaused) {
+                                if (showWhenPaused) {
+                                    // send a paused presence (no timestamps, pause icon)
+                                    rpc.updateSong(currentSong, position, isPaused = true)
                                 } else {
-                                    rpc.enqueueUpdate(currentSong, position, isPaused = false)
+                                    // user chose to hide RPC when paused
+                                    try {
+                                        rpc.stopActivity()
+                                    } catch (_: Exception) {}
+                                    try {
+                                        rpc.closeRPC()
+                                    } catch (_: Exception) {}
                                 }
                             } else {
-                                rpc.enqueueUpdate(currentSong, position, isPaused = false)
+                                rpc.updateSong(currentSong, position)
                             }
                         } catch (_: Exception) {
                             // ignore
@@ -288,7 +282,7 @@ fun DiscordSettings(
         //                 if (token.isNotBlank()) {
         //                     try {
         //                         val rpc = DiscordRPC(context, token)
-    //                         song?.let { rpc.enqueueUpdate(it, position) }
+        //                         song?.let { rpc.updateSong(it, position) }
         //                     } catch (_: Exception) {
         //                         // ignore
         //                     }
@@ -313,7 +307,7 @@ fun DiscordSettings(
             if (token.isNotBlank()) {
                 try {
                 val rpc = DiscordRPC(context, token)
-                song?.let { rpc.enqueueUpdate(it, position) }
+                song?.let { rpc.updateSong(it, position) }
                 coroutineScope.launch(Dispatchers.Main) {
                 android.widget.Toast.makeText(context, "Discord RPC refreshed!", android.widget.Toast.LENGTH_SHORT).show()
                 }

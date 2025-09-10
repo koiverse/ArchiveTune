@@ -245,7 +245,7 @@ class MusicService :
                 .apply {
                     setSmallIcon(R.drawable.small_icon)
                 },
-                        discordRpc?.enqueueUpdate(song, player.currentPosition, isPaused = false)
+        )
         player =
             ExoPlayer
                 .Builder(this)
@@ -329,10 +329,9 @@ class MusicService :
         currentSong.debounce(1000).collect(scope) { song ->
             updateNotification()
             if (song != null && player.playWhenReady && player.playbackState == Player.STATE_READY) {
-                discordRpc?.enqueueUpdate(song, player.currentPosition, isPaused = false)
+                discordRpc?.updateSong(song, player.currentPosition)
             } else {
                 discordRpc?.closeRPC()
-                discordRpc?.shutdown()
             }
         }
 
@@ -391,14 +390,13 @@ class MusicService :
             .collect(scope) { (key, enabled) ->
                 if (discordRpc?.isRpcRunning() == true) {
                     discordRpc?.closeRPC()
-                    discordRpc?.shutdown()
                 }
                 discordRpc = null
                 if (key != null && enabled) {
                     discordRpc = DiscordRPC(this, key)
                     if (player.playbackState == Player.STATE_READY && player.playWhenReady) {
                         currentSong.value?.let {
-                            discordRpc?.enqueueUpdate(it, player.currentPosition, isPaused = false)
+                            discordRpc?.updateSong(it, player.currentPosition)
                         }
                     }
                 }
@@ -1073,7 +1071,7 @@ class MusicService :
     }
 
     private fun createCacheDataSource(): CacheDataSource.Factory =
-                            player.addMediaItems(mediaItems.drop(1))
+        CacheDataSource
             .Factory()
             .setCache(downloadCache)
             .setUpstreamDataSourceFactory(
