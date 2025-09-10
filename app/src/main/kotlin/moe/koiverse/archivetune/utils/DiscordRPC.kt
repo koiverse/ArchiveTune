@@ -7,11 +7,18 @@ import moe.koiverse.archivetune.constants.*
 import moe.koiverse.archivetune.utils.dataStore
 import com.my.kizzy.rpc.KizzyRPC
 import com.my.kizzy.rpc.RpcImage
+import kotlinx.coroutines.withTimeoutOrNull
 
 class DiscordRPC(
     val context: Context,
     token: String,
 ) : KizzyRPC(token) {
+
+    companion object {
+        private const val APPLICATION_ID = "1165706613961789445"
+        // Pause image URL (external). Replace with Discord asset key if available.
+        private const val PAUSE_IMAGE_URL = "https://raw.githubusercontent.com/koiverse/ArchiveTune/main/fastlane/metadata/android/en-US/images/RPC/pause_icon.png"
+    }
 
     suspend fun updateSong(song: Song, currentPlaybackTimeMillis: Long, isPaused: Boolean = false) = runCatching {
         val currentTime = System.currentTimeMillis()
@@ -109,44 +116,29 @@ class DiscordRPC(
                 }
             }
         }
-        // Preload/resolve images before sending presence to avoid showing broken images.
-        // Attempt resolution with a short timeout to keep UI responsive.
-        val resolvedLargeImage = if (largeImageRpc != null) {
-            kotlinx.coroutines.withTimeoutOrNull(2000L) {
-                this@DiscordRPC.preloadImage(largeImageRpc)
-            }
-        } else null
-        val smallImageRpc = if (isPaused) {
-            // external hosted pause icon (neutral licensed emoji asset)
-            RpcImage.ExternalImage("https://raw.githubusercontent.com/koiverse/ArchiveTune/refs/heads/main/fastlane/metadata/android/en-US/images/RPC/pause_icon.png")
 
         val largeImageRpc = pickImage(largeImageTypePref, largeImageCustomPref, song, false)
-        // If paused we prefer to show a pause small image and avoid timestamps (no progress bar)
-        val smallImageRpc = if (isPaused) {
-            // external hosted pause icon (neutral licensed emoji asset)
-            RpcImage.ExternalImage("https://raw.githubusercontent.com/koiverse/ArchiveTune/refs/heads/main/fastlane/metadata/android/en-US/images/RPC/pause_icon.png")
-        val resolvedSmallImage = if (smallImageRpc != null) {
-            kotlinx.coroutines.withTimeoutOrNull(2000L) {
-                this@DiscordRPC.preloadImage(smallImageRpc)
-            }
-        } else null
-        } else {
+        val smallImageRpc = if (isPaused) RpcImage.ExternalImage(PAUSE_IMAGE_URL)
+        else when (smallImageTypePref.lowercase()) {
+            "none", "dontshow" -> null
+            else -> pickImage(smallImageTypePref, smallImageCustomPref, song, true)
+        }
+
+        // Preload/resolve images before sending presence to avoid showing broken images.
+        // Attempt resolution with a short timeout to keep UI responsive.
+        val resolvedLargeImage = if (largeImageRpc != null) withTimeoutOrNull(2000L) { preloadImage(largeImageRpc) } else null
+        val resolvedSmallImage = if (smallImageRpc != null) withTimeoutOrNull(2000L) { preloadImage(smallImageRpc) } else null
+
         // If either image was requested but couldn't be resolved within timeout, skip sending RPC
         if ((largeImageRpc != null && resolvedLargeImage == null) || (smallImageRpc != null && resolvedSmallImage == null)) {
-            // abort presence update to avoid showing broken images
             return@runCatching
-        }
-            when (smallImageTypePref.lowercase()) {
-                "none", "dontshow" -> null
-                else -> pickImage(smallImageTypePref, smallImageCustomPref, song, true)
-            }
         }
 
         // Large text customization
         val largeTextSourcePref = context.dataStore[DiscordLargeTextSourceKey] ?: "album"
         val largeTextCustomPref = context.dataStore[DiscordLargeTextCustomKey] ?: ""
 
-    val resolvedLargeText = when (largeTextSourcePref.lowercase()) {
+        val resolvedLargeText = when (largeTextSourcePref.lowercase()) {
             "song" -> song.song.title
             "artist" -> song.artists.firstOrNull()?.name
             "album" -> song.song.albumName ?: song.album?.title
@@ -157,10 +149,6 @@ class DiscordRPC(
         }
 
         // Only send applicationId when we're using Discord-hosted asset keys for images
-        // This prevents Discord from falling back to the application's icon when using
-        // externally uploaded images (attachments). If buttons are present and the
-        // provided images are Discord asset keys, include the application id so buttons
-        // continue to work as expected.
         val applicationIdToSend = if (buttons.isNotEmpty() &&
             (largeImageRpc is RpcImage.DiscordImage || smallImageRpc is RpcImage.DiscordImage)
         ) APPLICATION_ID else null
@@ -195,10 +183,5 @@ class DiscordRPC(
 
     suspend fun refreshActivity(song: Song, currentPlaybackTimeMillis: Long, isPaused: Boolean = false) = runCatching {
         updateSong(song, currentPlaybackTimeMillis, isPaused).getOrThrow()
-    }
-
-
-    companion object {
-        private const val APPLICATION_ID = "1165706613961789445"
     }
 }
