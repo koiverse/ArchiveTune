@@ -109,13 +109,33 @@ class DiscordRPC(
                 }
             }
         }
+        // Preload/resolve images before sending presence to avoid showing broken images.
+        // Attempt resolution with a short timeout to keep UI responsive.
+        val resolvedLargeImage = if (largeImageRpc != null) {
+            kotlinx.coroutines.withTimeoutOrNull(2000L) {
+                this@DiscordRPC.preloadImage(largeImageRpc)
+            }
+        } else null
+        val smallImageRpc = if (isPaused) {
+            // external hosted pause icon (neutral licensed emoji asset)
+            RpcImage.ExternalImage("https://raw.githubusercontent.com/koiverse/ArchiveTune/refs/heads/main/fastlane/metadata/android/en-US/images/RPC/pause_icon.png")
 
         val largeImageRpc = pickImage(largeImageTypePref, largeImageCustomPref, song, false)
         // If paused we prefer to show a pause small image and avoid timestamps (no progress bar)
         val smallImageRpc = if (isPaused) {
             // external hosted pause icon (neutral licensed emoji asset)
             RpcImage.ExternalImage("https://raw.githubusercontent.com/koiverse/ArchiveTune/refs/heads/main/fastlane/metadata/android/en-US/images/RPC/pause_icon.png")
+        val resolvedSmallImage = if (smallImageRpc != null) {
+            kotlinx.coroutines.withTimeoutOrNull(2000L) {
+                this@DiscordRPC.preloadImage(smallImageRpc)
+            }
+        } else null
         } else {
+        // If either image was requested but couldn't be resolved within timeout, skip sending RPC
+        if ((largeImageRpc != null && resolvedLargeImage == null) || (smallImageRpc != null && resolvedSmallImage == null)) {
+            // abort presence update to avoid showing broken images
+            return@runCatching
+        }
             when (smallImageTypePref.lowercase()) {
                 "none", "dontshow" -> null
                 else -> pickImage(smallImageTypePref, smallImageCustomPref, song, true)

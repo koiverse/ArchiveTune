@@ -32,6 +32,18 @@ open class KizzyRPC(token: String) {
 
     fun setPlatform(platform: String? = null) = apply { this.platform = platform }
 
+    /**
+     * Pre-resolve an RpcImage using the internal repository. Returns the resolved image id or null on failure.
+     * This allows callers to ensure images are uploaded/resolved before sending presence.
+     */
+    suspend fun preloadImage(image: com.my.kizzy.rpc.RpcImage?): String? {
+        return try {
+            image?.resolveImage(kizzyRepository)
+        } catch (e: Exception) {
+            null
+        }
+    }
+
     private fun String.sanitize(): String =
         if (length > 128) substring(0, 128) else this
 
