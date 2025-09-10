@@ -30,6 +30,13 @@ open class KizzyRPC(token: String) {
         discordWebSocket.sendActivity(Presence(activities = emptyList()))
     }
 
+    private suspend fun flushPreviousPresence() {
+        if (!isRpcRunning()) return
+        // Send an empty activities list to clear the current activity, wait briefly to allow Discord to process
+        discordWebSocket.sendActivity(Presence(activities = emptyList()))
+        // small delay is optional; avoid long sleeps here to keep responsiveness
+    }
+
     fun setPlatform(platform: String? = null) = apply { this.platform = platform }
 
     /**
@@ -118,6 +125,11 @@ open class KizzyRPC(token: String) {
         since: Long? = null,
     ) {
         if (!isRpcRunning()) discordWebSocket.connect()
+        // Clear any previous presence briefly to avoid Discord reverting to an older presence
+        try {
+            flushPreviousPresence()
+        } catch (_: Exception) {}
+
         discordWebSocket.sendActivity(
             makePresence(
                 name, state, stateUrl, details, detailsUrl,

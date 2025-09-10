@@ -8,6 +8,14 @@ import moe.koiverse.archivetune.utils.dataStore
 import com.my.kizzy.rpc.KizzyRPC
 import com.my.kizzy.rpc.RpcImage
 import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class DiscordRPC(
     val context: Context,
@@ -99,23 +107,23 @@ class DiscordRPC(
         val smallImageTypePref = context.dataStore[DiscordSmallImageTypeKey] ?: "artist"
         val smallImageCustomPref = context.dataStore[DiscordSmallImageCustomUrlKey] ?: ""
 
-        fun pickImage(type: String, custom: String?, song: Song?, preferArtist: Boolean = false): RpcImage? {
-            return when (type) {
-                "thumbnail" -> song?.song?.thumbnailUrl?.let { RpcImage.ExternalImage(it) }
-                "artist" -> song?.artists?.firstOrNull()?.thumbnailUrl?.let { RpcImage.ExternalImage(it) }
-                "appicon" -> RpcImage.ExternalImage(
-                    "https://raw.githubusercontent.com/koiverse/ArchiveTune/main/fastlane/metadata/android/en-US/images/icon.png"
-                )
-                "custom" -> (custom?.takeIf { it.isNotBlank() } ?: song?.song?.thumbnailUrl)?.let {
-                    RpcImage.ExternalImage(it)
-                }
-                else -> if (preferArtist) {
-                    song?.artists?.firstOrNull()?.thumbnailUrl?.let { RpcImage.ExternalImage(it) }
-                } else {
-                    song?.song?.thumbnailUrl?.let { RpcImage.ExternalImage(it) }
-                }
+    private fun pickImage(type: String, custom: String?, song: Song?, preferArtist: Boolean = false): RpcImage? {
+        return when (type) {
+            "thumbnail" -> song?.song?.thumbnailUrl?.let { RpcImage.ExternalImage(it) }
+            "artist" -> song?.artists?.firstOrNull()?.thumbnailUrl?.let { RpcImage.ExternalImage(it) }
+            "appicon" -> RpcImage.ExternalImage(
+                "https://raw.githubusercontent.com/koiverse/ArchiveTune/main/fastlane/metadata/android/en-US/images/icon.png"
+            )
+            "custom" -> (custom?.takeIf { it.isNotBlank() } ?: song?.song?.thumbnailUrl)?.let {
+                RpcImage.ExternalImage(it)
+            }
+            else -> if (preferArtist) {
+                song?.artists?.firstOrNull()?.thumbnailUrl?.let { RpcImage.ExternalImage(it) }
+            } else {
+                song?.song?.thumbnailUrl?.let { RpcImage.ExternalImage(it) }
             }
         }
+    }
 
         val largeImageRpc = pickImage(largeImageTypePref, largeImageCustomPref, song, false)
         val smallImageRpc = if (isPaused) RpcImage.ExternalImage(PAUSE_IMAGE_URL)
@@ -179,6 +187,74 @@ class DiscordRPC(
             applicationId = applicationIdToSend,
             status = statusPref
         )
+    }
+
+    // --- Debounced / fast-update helpers ---
+    private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+    @Volatile
+    private var scheduledJob: Job? = null
+
+    /**
+     * Enqueue an update with a short debounce. Sends a minimal presence quickly, then upgrades to full presence when images are ready.
+     */
+    fun enqueueUpdate(song: Song, currentPlaybackTimeMillis: Long, isPaused: Boolean = false, debounceMs: Long = 500L) {
+        // cancel existing job and start a new one
+        scheduledJob?.cancel()
+        // start prefetch immediately in background to speed up image resolution
+        val largeImageTypePref = context.dataStore[DiscordLargeImageTypeKey] ?: "thumbnail"
+        val largeImageCustomPref = context.dataStore[DiscordLargeImageCustomUrlKey] ?: ""
+        val smallImageTypePref = context.dataStore[DiscordSmallImageTypeKey] ?: "artist"
+        val smallImageCustomPref = context.dataStore[DiscordSmallImageCustomUrlKey] ?: ""
+
+        val largeImageRpc = pickImage(largeImageTypePref, largeImageCustomPref, song, false)
+        val smallImageRpcPre = if (isPaused) RpcImage.ExternalImage(PAUSE_IMAGE_URL)
+        else when (smallImageTypePref.lowercase()) {
+            "none", "dontshow" -> null
+            else -> pickImage(smallImageTypePref, smallImageCustomPref, song, true)
+        }
+
+        val prefetchJob = scope.launch {
+            try {
+                if (largeImageRpc != null) preloadImage(largeImageRpc)
+            } catch (_: Exception) {}
+            try {
+                if (smallImageRpcPre != null) preloadImage(smallImageRpcPre)
+            } catch (_: Exception) {}
+        }
+
+        scheduledJob = scope.launch {
+            // Debounce to avoid showing RPC for very short fast skips
+            delay(debounceMs)
+
+            if (isPaused) {
+                // Wait for prefetch pause image (small) if any
+                try { prefetchJob.join() } catch (_: Exception) {}
+                try { updateSong(song, currentPlaybackTimeMillis, isPaused = true) } catch (_: Exception) {}
+                return@launch
+            }
+
+            // Wait for prefetch to complete but with a short ceiling to avoid hanging (1.5s)
+            try {
+                withContext(Dispatchers.IO) {
+                    val waitMs = 1500L
+                    val start = System.currentTimeMillis()
+                    while (prefetchJob.isActive && System.currentTimeMillis() - start < waitMs) {
+                        delay(50)
+                    }
+                }
+            } catch (_: Exception) {}
+
+            // Now send the full presence (will internally try preloaded images)
+            try {
+                updateSong(song, currentPlaybackTimeMillis, isPaused = false)
+            } catch (_: Exception) {}
+        }
+    }
+
+    // minimal presence removed: we will only send full presence after prefetch completes (or times out)
+
+    fun shutdown() {
+        scope.cancel()
     }
 
     suspend fun refreshActivity(song: Song, currentPlaybackTimeMillis: Long, isPaused: Boolean = false) = runCatching {
