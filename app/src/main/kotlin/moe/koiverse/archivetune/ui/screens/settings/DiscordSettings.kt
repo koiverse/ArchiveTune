@@ -64,6 +64,9 @@ fun DiscordSettings(
     var position by rememberSaveable(playbackState) {
         mutableLongStateOf(playerConnection.player.currentPosition)
     }
+    // Track last RPC timestamps to detect when RPC progress bar reaches the end
+    var lastRpcStartTime by remember { mutableStateOf<Long?>(null) }
+    var lastRpcEndTime by remember { mutableStateOf<Long?>(null) }
     val coroutineScope = rememberCoroutineScope()
     val context = LocalContext.current
 
@@ -96,7 +99,55 @@ fun DiscordSettings(
             if (token.isNotBlank()) {
                 try {
                     val rpc = DiscordRPC(context, token)
-                    song?.let { rpc.updateSong(it, position) }
+                    val currentSong = song
+                    val now = System.currentTimeMillis()
+
+                    // If we have previously sent an RPC presence with an endTime and that endTime has passed,
+                    // the RPC progress bar would be at max. If nothing is playing now, stop & close the RPC to
+                    // prevent it getting stuck at the previous song.
+                    val rpcEndReached = lastRpcEndTime?.let { now >= it - 250 } ?: false
+                    val playerIsPlaying = playerConnection.player.playWhenReady && playerConnection.player.playbackState == STATE_READY
+                    val playerIsPaused = !playerIsPlaying
+
+                    if (rpcEndReached && !playerIsPlaying) {
+                        try {
+                            rpc.stopActivity()
+                        } catch (_: Exception) {
+                        }
+                        try {
+                            rpc.closeRPC()
+                        } catch (_: Exception) {
+                        }
+                    } else if (currentSong != null) {
+                        // Compute start/end times that will be sent to Discord so we can keep track locally
+                        val calculatedStartTime = now - position
+                        val calculatedEndTime = calculatedStartTime + currentSong.song.duration * 1000L
+
+                        // Update our local tracking before attempting update to avoid race conditions
+                        lastRpcStartTime = calculatedStartTime
+                        lastRpcEndTime = calculatedEndTime
+
+                        try {
+                            if (playerIsPaused) {
+                                if (showWhenPaused) {
+                                    // send a paused presence (no timestamps, pause icon)
+                                    rpc.updateSong(currentSong, position, isPaused = true)
+                                } else {
+                                    // user chose to hide RPC when paused
+                                    try {
+                                        rpc.stopActivity()
+                                    } catch (_: Exception) {}
+                                    try {
+                                        rpc.closeRPC()
+                                    } catch (_: Exception) {}
+                                }
+                            } else {
+                                rpc.updateSong(currentSong, position)
+                            }
+                        } catch (_: Exception) {
+                            // ignore
+                        }
+                    }
                 } catch (_: Exception) {
                     // ignore
                 }

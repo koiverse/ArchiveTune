@@ -111,16 +111,22 @@ class DiscordRPC(
         }
 
         val largeImageRpc = pickImage(largeImageTypePref, largeImageCustomPref, song, false)
-        val smallImageRpc = when (smallImageTypePref.lowercase()) {
-            "none", "dontshow" -> null
-            else -> pickImage(smallImageTypePref, smallImageCustomPref, song, true)
+        // If paused we prefer to show a pause small image and avoid timestamps (no progress bar)
+        val smallImageRpc = if (isPaused) {
+            // external hosted pause icon (neutral licensed emoji asset)
+            RpcImage.ExternalImage("https://raw.githubusercontent.com/koiverse/ArchiveTune/refs/heads/main/fastlane/metadata/android/en-US/images/RPC/pause_icon.png")
+        } else {
+            when (smallImageTypePref.lowercase()) {
+                "none", "dontshow" -> null
+                else -> pickImage(smallImageTypePref, smallImageCustomPref, song, true)
+            }
         }
 
         // Large text customization
         val largeTextSourcePref = context.dataStore[DiscordLargeTextSourceKey] ?: "album"
         val largeTextCustomPref = context.dataStore[DiscordLargeTextCustomKey] ?: ""
 
-        val resolvedLargeText = when (largeTextSourcePref.lowercase()) {
+    val resolvedLargeText = when (largeTextSourcePref.lowercase()) {
             "song" -> song.song.title
             "artist" -> song.artists.firstOrNull()?.name
             "album" -> song.song.albumName ?: song.album?.title
@@ -141,6 +147,12 @@ class DiscordRPC(
         val platformPref = context.dataStore[DiscordActivityPlatformKey] ?: "desktop"
         this.setPlatform(platformPref)
 
+        // When paused we don't send start/end timestamps to avoid the progress bar; instead show a pause small image
+        val sendStartTime: Long? = if (isPaused) null else calculatedStartTime
+        val sendEndTime: Long? = if (isPaused) null else currentTime + (song.song.duration * 1000L - currentPlaybackTimeMillis)
+        val sendSince: Long? = if (isPaused) null else currentTime
+        val sendSmallText: String? = if (isPaused) context.getString(R.string.discord_paused) else song.artists.firstOrNull()?.name
+
         refreshRPC(
             name = activityName.removeSuffix(" Debug"),
             details = activityDetails,
@@ -149,13 +161,13 @@ class DiscordRPC(
             largeImage = largeImageRpc,
             smallImage = smallImageRpc,
             largeText = resolvedLargeText,
-            smallText = song.artists.firstOrNull()?.name,
+            smallText = sendSmallText,
             buttons = buttons,
             type = resolvedType,
             statusDisplayType = StatusDisplayType.STATE,
-            since = currentTime,
-            startTime = calculatedStartTime,
-            endTime = currentTime + (song.song.duration * 1000L - currentPlaybackTimeMillis),
+            since = sendSince,
+            startTime = sendStartTime,
+            endTime = sendEndTime,
             applicationId = applicationIdToSend,
             status = statusPref
         )
