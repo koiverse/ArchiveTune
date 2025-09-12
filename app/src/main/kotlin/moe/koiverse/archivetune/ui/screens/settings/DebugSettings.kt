@@ -30,25 +30,38 @@ fun DebugSettings(
         defaultValue = false
     )
 
-    Column(Modifier.padding(16.dp)) {
-        PreferenceEntry(
-            title = { Text("Show Discord debug UI") },
-            description = "Enable debug lines in Discord settings",
-            icon = { Icon(painterResource(R.drawable.info), null) },
-            trailingContent = {
-                Switch(checked = showDevDebug, onCheckedChange = onShowDevDebugChange)
-            }
-        )
-
-        if (showDevDebug) {
-            // Show manager status lines
-            val lastStart = DiscordPresenceManager.lastRpcStartTime ?: "-"
-            val lastEnd = DiscordPresenceManager.lastRpcEndTime ?: "-"
-            PreferenceEntry(
-                title = { Text(if (DiscordPresenceManager.isRunning()) "Presence manager: running" else "Presence manager: stopped") },
-                description = "Last RPC start: $lastStart  end: $lastEnd",
-                icon = { Icon(painterResource(R.drawable.info), null) }
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Debug Settings") },
+                navigationIcon = {
+                    IconButton(onClick = navController::navigateUp, onLongClick = navController::backToMain) {
+                        Icon(painterResource(R.drawable.arrow_back), contentDescription = null)
+                    }
+                }
             )
+        }
+    ) { innerPadding ->
+        Column(Modifier.padding(innerPadding).padding(16.dp)) {
+            PreferenceEntry(
+                title = { Text("Show Discord debug UI") },
+                description = "Enable debug lines in Discord settings",
+                icon = { Icon(painterResource(R.drawable.info), null) },
+                trailingContent = {
+                    Switch(checked = showDevDebug, onCheckedChange = onShowDevDebugChange)
+                }
+            )
+
+            if (showDevDebug) {
+                // Show manager status lines
+                val lastStart = DiscordPresenceManager.lastRpcStartTime ?: "-"
+                val lastEnd = DiscordPresenceManager.lastRpcEndTime ?: "-"
+                PreferenceEntry(
+                    title = { Text(if (DiscordPresenceManager.isRunning()) "Presence manager: running" else "Presence manager: stopped") },
+                    description = "Last RPC start: $lastStart  end: $lastEnd",
+                    icon = { Icon(painterResource(R.drawable.info), null) }
+                )
+            }
         }
     }
 }
