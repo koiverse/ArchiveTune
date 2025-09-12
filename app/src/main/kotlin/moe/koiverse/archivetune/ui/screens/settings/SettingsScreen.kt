@@ -173,6 +173,14 @@ fun SettingsScreen(
                         )
                     )
                 }
+                // Misc / Developer options
+                add(
+                    Material3SettingsItem(
+                        icon = painterResource(R.drawable.tools),
+                        title = { Text("Misc") },
+                        onClick = { navController.navigate("settings/misc") }
+                    )
+                )
                 add(
                     Material3SettingsItem(
                         icon = painterResource(R.drawable.info),
@@ -201,14 +209,6 @@ fun SettingsScreen(
                         )
                     )
                 }
-                // Misc / Developer options
-                add(
-                    Material3SettingsItem(
-                        icon = painterResource(R.drawable.tools),
-                        title = { Text("Misc") },
-                        onClick = { navController.navigate("settings/misc") }
-                    )
-                )
             }
         )
         

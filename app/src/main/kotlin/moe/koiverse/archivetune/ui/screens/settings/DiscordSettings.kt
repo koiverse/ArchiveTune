@@ -932,20 +932,24 @@ if (smallImageType == "custom") {
     )
 }
 
-   RichPresence(
-    song,
-    position,
-    nameSource,
-    detailsSource,
-    stateSource,
-    activityType,
-    largeImageType,
-    largeImageCustomUrl,
-    smallImageType,
-    smallImageCustomUrl,
-    button1Enabled,
-    button2Enabled
-)
+    // Compute whether the player is currently playing so the preview progress can run.
+    val playerIsPlayingForPreview = playerConnection.player.playWhenReady && playbackState == STATE_READY
+
+    RichPresence(
+        song,
+        currentPlaybackTimeMillis = position,
+        nameSource = nameSource,
+        detailsSource = detailsSource,
+        stateSource = stateSource,
+        activityType = activityType,
+        largeImageType = largeImageType,
+        largeImageCustomUrl = largeImageCustomUrl,
+        smallImageType = smallImageType,
+        smallImageCustomUrl = smallImageCustomUrl,
+        button1Enabled = button1Enabled,
+        button2Enabled = button2Enabled,
+        isPlaying = playerIsPlayingForPreview
+    )
     }
 
      TopAppBar(
@@ -1067,6 +1071,7 @@ fun RichPresence(
     smallImageCustomUrl: String = "",
     button1Enabled: Boolean = true,
     button2Enabled: Boolean = true,
+    isPlaying: Boolean = false,
 ) {
     val context = LocalContext.current
 
@@ -1243,6 +1248,7 @@ fun RichPresence(
                                 SongProgressBar(
                                     currentTimeMillis = currentPlaybackTimeMillis,
                                     durationMillis = song.song.duration * 1000L,
+                                    isPlaying = isPlaying,
                                 )
                             }
                         }
@@ -1284,12 +1290,30 @@ fun RichPresence(
 }
 
 @Composable
-fun SongProgressBar(currentTimeMillis: Long, durationMillis: Long) {
-    val progress = if (durationMillis > 0) currentTimeMillis.toFloat() / durationMillis else 0f
+fun SongProgressBar(currentTimeMillis: Long, durationMillis: Long, isPlaying: Boolean = false) {
+    // Keep an internal displayedTime that advances while playing so the preview progress animates.
+    var displayedTime by remember { mutableStateOf(currentTimeMillis) }
+
+    // If playback is running, advance displayedTime with a simple ticker.
+    LaunchedEffect(isPlaying, currentTimeMillis) {
+        displayedTime = currentTimeMillis
+        if (isPlaying) {
+            while (isActive) {
+                delay(250)
+                displayedTime += 250
+                if (displayedTime >= durationMillis) {
+                    displayedTime = durationMillis
+                    break
+                }
+            }
+        }
+    }
+
+    val progress = if (durationMillis > 0) displayedTime.toFloat() / durationMillis else 0f
     Column(modifier = Modifier.fillMaxWidth()) {
         Spacer(modifier = Modifier.height(16.dp))
         LinearProgressIndicator(
-            progress = { progress },
+            progress = progress,
             modifier = Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp))
         )
         Row(
