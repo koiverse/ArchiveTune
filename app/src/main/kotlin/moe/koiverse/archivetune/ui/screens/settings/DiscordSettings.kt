@@ -120,27 +120,10 @@ fun DiscordSettings(
                             val result = rpc.refreshActivity(currentSong, playbackPos, isPaused = playerIsPaused).isSuccess
                             if (result) {
                                 // Update manager-owned timestamps so the debug UI can read them from the manager
-                                try { DiscordPresenceManager::class.java.getDeclaredField("lastRpcStartTime") } catch (_: Exception) {}
-                                DiscordPresenceManager.apply {
-                                    try {
-                                        val f1 = this::class.java.getDeclaredField("lastRpcStartTime")
-                                    } catch (_: Exception) {}
-                                }
-                                // set via reflection-free direct access (properties are internal to manager)
                                 try {
-                                    val setStart = DiscordPresenceManager::class.java.getDeclaredField("lastRpcStartTime")
-                                } catch (_: Exception) {}
-                                // Use the manager's public API by setting fields directly (they are var with private set)
-                                try {
-                                    val cls = DiscordPresenceManager::class.java
-                                    val sField = cls.getDeclaredField("lastRpcStartTime")
-                                    sField.isAccessible = true
-                                    sField.setLong(DiscordPresenceManager, calculatedStartTime)
-                                    val eField = cls.getDeclaredField("lastRpcEndTime")
-                                    eField.isAccessible = true
-                                    eField.setLong(DiscordPresenceManager, calculatedEndTime)
+                                    DiscordPresenceManager.setLastRpcTimestamps(calculatedStartTime, calculatedEndTime)
                                 } catch (_: Exception) {
-                                    // Fallback: ignore if reflection fails
+                                    // ignore
                                 }
                             }
                         }
@@ -334,8 +317,7 @@ fun DiscordSettings(
                                             // attempt refresh via helper
                                             val refreshed = rpc.refreshActivity(currentSong, playerConnection.player.currentPosition, isPaused = playerIsPaused).isSuccess
                                             if (refreshed) {
-                                                lastRpcStartTime = calculatedStartTime
-                                                lastRpcEndTime = calculatedEndTime
+                                                DiscordPresenceManager.setLastRpcTimestamps(calculatedStartTime, calculatedEndTime)
                                             }
                                             refreshed
                                         } else {

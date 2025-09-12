@@ -33,7 +33,7 @@ fun DebugSettings(
     Column(Modifier.padding(16.dp)) {
         PreferenceEntry(
             title = { Text("Show Discord debug UI") },
-            description = { Text("Enable debug lines in Discord settings") },
+            description = "Enable debug lines in Discord settings",
             icon = { Icon(painterResource(R.drawable.info), null) },
             trailingContent = {
                 Switch(checked = showDevDebug, onCheckedChange = onShowDevDebugChange)
@@ -42,9 +42,11 @@ fun DebugSettings(
 
         if (showDevDebug) {
             // Show manager status lines
+            val lastStart = DiscordPresenceManager.lastRpcStartTime ?: "-"
+            val lastEnd = DiscordPresenceManager.lastRpcEndTime ?: "-"
             PreferenceEntry(
                 title = { Text(if (DiscordPresenceManager.isRunning()) "Presence manager: running" else "Presence manager: stopped") },
-                description = { Text("Last RPC start: ${DiscordPresenceManager.lastRpcStartTime ?: "-"}  end: ${DiscordPresenceManager.lastRpcEndTime ?: "-"}") },
+                description = "Last RPC start: $lastStart  end: $lastEnd",
                 icon = { Icon(painterResource(R.drawable.info), null) }
             )
         }
