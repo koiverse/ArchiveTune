@@ -91,14 +91,10 @@ fun DiscordSettings(
     // Compose can control starting and stopping the global manager. The manager runs the same
     // update logic in the background even when this screen is not visible.
 
-    // Helper that performs the actual update logic (reused by the manager)
-    val presenceUpdater: suspend () -> Unit = {
-        // update position snapshot first
-        position = playerConnection.player.currentPosition
-
-        val token = discordToken
-        if (token.isBlank()) return@let
-    }
+    val (discordRPC, onDiscordRPCChange) = rememberPreference(
+        key = EnableDiscordRPCKey,
+        defaultValue = true
+    )
 
     // Start/stop the global manager when token or enabled preference changes
     DisposableEffect(discordToken, discordRPC) {
@@ -151,11 +147,6 @@ fun DiscordSettings(
         }
     }
 
-
-    val (discordRPC, onDiscordRPCChange) = rememberPreference(
-        key = EnableDiscordRPCKey,
-        defaultValue = true
-    )
 
     val isLoggedIn = remember(discordToken) { discordToken.isNotEmpty() }
 

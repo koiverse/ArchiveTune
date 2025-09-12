@@ -2,7 +2,6 @@ package moe.koiverse.archivetune.ui.screens.settings
 
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
 import kotlinx.coroutines.*
 import java.util.concurrent.atomic.AtomicBoolean
@@ -17,7 +16,6 @@ object DiscordPresenceManager {
     private var scope: CoroutineScope? = null
     private var job: Job? = null
 
-    private var lifecycleObserver: LifecycleEventObserver? = null
 
     /**
      * Start the manager if not already started. The update callback is invoked on Dispatchers.IO.
@@ -63,7 +61,7 @@ object DiscordPresenceManager {
         job = null
         scope?.cancel()
         scope = null
-        lifecycleObserver?.let { ProcessLifecycleOwner.get().lifecycle.removeObserver(it) }
+    lifecycleObserver?.let { ProcessLifecycleOwner.get().lifecycle.removeObserver(it) }
         lifecycleObserver = null
     }
 
