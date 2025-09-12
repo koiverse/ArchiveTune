@@ -4,6 +4,8 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.ProcessLifecycleOwner
 import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import java.util.concurrent.atomic.AtomicBoolean
 import timber.log.Timber
 
@@ -17,19 +19,20 @@ object DiscordPresenceManager {
     private var scope: CoroutineScope? = null
     private var job: Job? = null
     private var lifecycleObserver: LifecycleEventObserver? = null
-    // Last successful RPC timestamps (nullable). Updated by manager and manual refresh flows.
-    @Volatile
-    var lastRpcStartTime: Long? = null
-        private set
+    // Last successful RPC timestamps (nullable). Exposed as StateFlow so Compose can observe changes.
+    private val _lastRpcStartTime = MutableStateFlow<Long?>(null)
+    val lastRpcStartTimeFlow = _lastRpcStartTime.asStateFlow()
+    val lastRpcStartTime: Long? get() = _lastRpcStartTime.value
 
-    @Volatile
-    var lastRpcEndTime: Long? = null
-        private set
+    private val _lastRpcEndTime = MutableStateFlow<Long?>(null)
+    val lastRpcEndTimeFlow = _lastRpcEndTime.asStateFlow()
+    val lastRpcEndTime: Long? get() = _lastRpcEndTime.value
 
     /** Public helper to update the last RPC timestamps from callers. */
     fun setLastRpcTimestamps(start: Long?, end: Long?) {
-        lastRpcStartTime = start
-        lastRpcEndTime = end
+        // emit into flows (thread-safe)
+        _lastRpcStartTime.value = start
+        _lastRpcEndTime.value = end
     }
 
 

@@ -19,6 +19,8 @@ import moe.koiverse.archivetune.ui.component.PreferenceEntry
 import moe.koiverse.archivetune.utils.rememberPreference
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import moe.koiverse.archivetune.ui.screens.settings.DiscordPresenceManager
+import androidx.compose.runtime.collectAsState
+import moe.koiverse.archivetune.utils.makeTimeString
 
 @Composable
 fun DebugSettings(
@@ -53,9 +55,12 @@ fun DebugSettings(
             )
 
             if (showDevDebug) {
-                // Show manager status lines
-                val lastStart = DiscordPresenceManager.lastRpcStartTime ?: "-"
-                val lastEnd = DiscordPresenceManager.lastRpcEndTime ?: "-"
+                // Show manager status lines (observe flows so UI updates)
+                val lastStartTs by DiscordPresenceManager.lastRpcStartTimeFlow.collectAsState(initial = null)
+                val lastEndTs by DiscordPresenceManager.lastRpcEndTimeFlow.collectAsState(initial = null)
+                val lastStart = lastStartTs?.let { makeTimeString(it) } ?: "-"
+                val lastEnd = lastEndTs?.let { makeTimeString(it) } ?: "-"
+
                 PreferenceEntry(
                     title = { Text(if (DiscordPresenceManager.isRunning()) "Presence manager: running" else "Presence manager: stopped") },
                     description = "Last RPC start: $lastStart  end: $lastEnd",
