@@ -15,6 +15,7 @@ object DiscordPresenceManager {
     private val started = AtomicBoolean(false)
     private var scope: CoroutineScope? = null
     private var job: Job? = null
+    private var lifecycleObserver: LifecycleEventObserver? = null
 
 
     /**
