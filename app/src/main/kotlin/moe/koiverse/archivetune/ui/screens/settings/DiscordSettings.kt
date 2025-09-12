@@ -69,6 +69,7 @@ fun DiscordSettings(
     var lastRpcEndTime by remember { mutableStateOf<Long?>(null) }
     val coroutineScope = rememberCoroutineScope()
     val context = LocalContext.current
+    val snackbarHostState = remember { SnackbarHostState() }
 
     var discordToken by rememberPreference(DiscordTokenKey, "")
     var discordUsername by rememberPreference(DiscordUsernameKey, "")
@@ -87,74 +88,68 @@ fun DiscordSettings(
         }
     }
 
-    LaunchedEffect(playbackState) {
-    if (playbackState == STATE_READY) {
-        while (isActive) {
-            val intervalMillis = getPresenceIntervalMillis(context)
-            delay(intervalMillis)
-            position = playerConnection.player.currentPosition
+    // Compose can control starting and stopping the global manager. The manager runs the same
+    // update logic in the background even when this screen is not visible.
 
-            // Optional: trigger presence refresh automatically
-            val token = discordToken
-            if (token.isNotBlank()) {
-                try {
-                    val rpc = DiscordRPC(context, token)
-                    val currentSong = song
-                    val now = System.currentTimeMillis()
+    // Helper that performs the actual update logic (reused by the manager)
+    val presenceUpdater: suspend () -> Unit = {
+        // update position snapshot first
+        position = playerConnection.player.currentPosition
 
-                    // If we have previously sent an RPC presence with an endTime and that endTime has passed,
-                    // the RPC progress bar would be at max. If nothing is playing now, stop & close the RPC to
-                    // prevent it getting stuck at the previous song.
-                    val rpcEndReached = lastRpcEndTime?.let { now >= it - 250 } ?: false
-                    val playerIsPlaying = playerConnection.player.playWhenReady && playerConnection.player.playbackState == STATE_READY
-                    val playerIsPaused = !playerIsPlaying
+        val token = discordToken
+        if (token.isBlank()) return@let
+    }
 
-                    if (rpcEndReached && !playerIsPlaying) {
-                        try {
-                            rpc.stopActivity()
-                        } catch (_: Exception) {
-                        }
-                        try {
-                            rpc.closeRPC()
-                        } catch (_: Exception) {
-                        }
-                    } else if (currentSong != null) {
-                        // Compute start/end times that will be sent to Discord so we can keep track locally
-                        val calculatedStartTime = now - position
-                        val calculatedEndTime = calculatedStartTime + currentSong.song.duration * 1000L
+    // Start/stop the global manager when token or enabled preference changes
+    DisposableEffect(discordToken, discordRPC) {
+        if (discordRPC && discordToken.isNotBlank()) {
+            // start manager with update callback and interval provider
+            DiscordPresenceManager.start(
+                update = {
+                    // Inline update body to reuse local state variables
+                    try {
+                        val rpc = DiscordRPC(context, discordToken)
+                        val currentSong = song
+                        val now = System.currentTimeMillis()
 
-                        // Update our local tracking before attempting update to avoid race conditions
-                        lastRpcStartTime = calculatedStartTime
-                        lastRpcEndTime = calculatedEndTime
+                        val rpcEndReached = lastRpcEndTime?.let { now >= it - 250 } ?: false
+                        val playerIsPlaying = playerConnection.player.playWhenReady && playerConnection.player.playbackState == STATE_READY
+                        val playerIsPaused = !playerIsPlaying
 
-                        try {
-                            if (playerIsPaused) {
-                                if (showWhenPaused) {
-                                    // send a paused presence (no timestamps, pause icon)
-                                    rpc.updateSong(currentSong, position, isPaused = true)
+                        if (rpcEndReached && !playerIsPlaying) {
+                            try { rpc.stopActivity() } catch (_: Exception) {}
+                            try { rpc.closeRPC() } catch (_: Exception) {}
+                        } else if (currentSong != null) {
+                            val calculatedStartTime = now - playerConnection.player.currentPosition
+                            val calculatedEndTime = calculatedStartTime + currentSong.song.duration * 1000L
+
+                            lastRpcStartTime = calculatedStartTime
+                            lastRpcEndTime = calculatedEndTime
+
+                            try {
+                                if (playerIsPaused) {
+                                    if (showWhenPaused) {
+                                        rpc.updateSong(currentSong, playerConnection.player.currentPosition, isPaused = true)
+                                    } else {
+                                        try { rpc.stopActivity() } catch (_: Exception) {}
+                                        try { rpc.closeRPC() } catch (_: Exception) {}
+                                    }
                                 } else {
-                                    // user chose to hide RPC when paused
-                                    try {
-                                        rpc.stopActivity()
-                                    } catch (_: Exception) {}
-                                    try {
-                                        rpc.closeRPC()
-                                    } catch (_: Exception) {}
+                                    rpc.updateSong(currentSong, playerConnection.player.currentPosition)
                                 }
-                            } else {
-                                rpc.updateSong(currentSong, position)
-                            }
-                        } catch (_: Exception) {
-                            // ignore
+                            } catch (_: Exception) {}
                         }
-                    }
-                } catch (_: Exception) {
-                    // ignore
+                    } catch (_: Exception) {}
+                },
+                intervalProvider = {
+                    getPresenceIntervalMillis(context)
                 }
-            }
+            )
+        }
+        onDispose {
+            DiscordPresenceManager.stop()
         }
     }
-}
 
 
     val (discordRPC, onDiscordRPCChange) = rememberPreference(
@@ -164,13 +159,28 @@ fun DiscordSettings(
 
     val isLoggedIn = remember(discordToken) { discordToken.isNotEmpty() }
 
-    Column(
-        Modifier
-            .windowInsetsPadding(
-                LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom)
+    Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        topBar = {
+            TopAppBar(
+                title = { Text(stringResource(R.string.discord_integration)) },
+                navigationIcon = {
+                    IconButton(
+                        onClick = navController::navigateUp,
+                        onLongClick = navController::backToMain,
+                    ) { Icon(painterResource(R.drawable.arrow_back), contentDescription = null) }
+                }
             )
-            .verticalScroll(rememberScrollState())
-    ) {
+        }
+    ) { innerPadding ->
+        Column(
+            Modifier
+                .padding(innerPadding)
+                .windowInsetsPadding(
+                    LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom)
+                )
+                .verticalScroll(rememberScrollState())
+        ) {
         Spacer(
             Modifier.windowInsetsPadding(
                 LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Top)
@@ -294,31 +304,63 @@ fun DiscordSettings(
         //     }
         // )
         
+        var isRefreshing by remember { mutableStateOf(false) }
         PreferenceEntry(
             title = { Text(stringResource(R.string.refresh)) },
             description = stringResource(R.string.description_refresh),
             icon = { Icon(painterResource(R.drawable.update), null) },
             isEnabled = isLoggedIn,
             trailingContent = {
-            OutlinedButton(onClick = {
-            // trigger update in background
-            coroutineScope.launch(Dispatchers.IO) {
-            val token = discordToken
-            if (token.isNotBlank()) {
-                try {
-                val rpc = DiscordRPC(context, token)
-                song?.let { rpc.updateSong(it, position) }
-                coroutineScope.launch(Dispatchers.Main) {
-                android.widget.Toast.makeText(context, "Discord RPC refreshed!", android.widget.Toast.LENGTH_SHORT).show()
+                if (isRefreshing) {
+                    // small indeterminate indicator while refreshing
+                    CircularProgressIndicator(modifier = Modifier.size(28.dp), strokeWidth = 2.dp)
+                } else {
+                    OutlinedButton(onClick = {
+                        coroutineScope.launch {
+                            // set local UI state
+                            isRefreshing = true
+                            // run manager updateNow which calls the same update logic
+                            DiscordPresenceManager.updateNow {
+                                try {
+                                    val rpc = DiscordRPC(context, discordToken)
+                                    val currentSong = song
+                                    val now = System.currentTimeMillis()
+
+                                    val rpcEndReached = lastRpcEndTime?.let { now >= it - 250 } ?: false
+                                    val playerIsPlaying = playerConnection.player.playWhenReady && playerConnection.player.playbackState == STATE_READY
+                                    val playerIsPaused = !playerIsPlaying
+
+                                    if (rpcEndReached && !playerIsPlaying) {
+                                        try { rpc.stopActivity() } catch (_: Exception) {}
+                                        try { rpc.closeRPC() } catch (_: Exception) {}
+                                    } else if (currentSong != null) {
+                                        val calculatedStartTime = now - playerConnection.player.currentPosition
+                                        val calculatedEndTime = calculatedStartTime + currentSong.song.duration * 1000L
+
+                                        lastRpcStartTime = calculatedStartTime
+                                        lastRpcEndTime = calculatedEndTime
+
+                                        try {
+                                            if (playerIsPaused) {
+                                                if (showWhenPaused) {
+                                                    rpc.updateSong(currentSong, playerConnection.player.currentPosition, isPaused = true)
+                                                } else {
+                                                    try { rpc.stopActivity() } catch (_: Exception) {}
+                                                    try { rpc.closeRPC() } catch (_: Exception) {}
+                                                }
+                                            } else {
+                                                rpc.updateSong(currentSong, playerConnection.player.currentPosition)
+                                            }
+                                        } catch (_: Exception) {}
+                                    }
+                                } catch (_: Exception) {}
+                            }
+                            isRefreshing = false
+                        }
+                    }) {
+                        Text(stringResource(R.string.refresh))
+                    }
                 }
-                } catch (_: Exception) {
-                // ignore
-                }
-            }
-            }
-            }) {
-            Text(stringResource(R.string.refresh))
-            }
             }
         )
 
@@ -925,15 +967,7 @@ if (smallImageType == "custom") {
 )
     }
 
-    TopAppBar(
-        title = { Text(stringResource(R.string.discord_integration)) },
-        navigationIcon = {
-            IconButton(
-                onClick = navController::navigateUp,
-                onLongClick = navController::backToMain,
-            ) { Icon(painterResource(R.drawable.arrow_back), contentDescription = null) }
-        }
-    )
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
