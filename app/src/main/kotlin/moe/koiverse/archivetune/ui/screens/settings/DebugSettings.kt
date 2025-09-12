@@ -17,7 +17,7 @@ import androidx.navigation.NavController
 import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.ui.component.PreferenceEntry
 import moe.koiverse.archivetune.utils.rememberPreference
-import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import moe.koiverse.archivetune.ui.screens.settings.DiscordPresenceManager
 
 @Composable
@@ -26,7 +26,7 @@ fun DebugSettings(
 ) {
     // Developer preferences
     val (showDevDebug, onShowDevDebugChange) = rememberPreference(
-        key = stringPreferencesKey("dev_show_discord_debug"),
+        key = booleanPreferencesKey("dev_show_discord_debug"),
         defaultValue = false
     )
 

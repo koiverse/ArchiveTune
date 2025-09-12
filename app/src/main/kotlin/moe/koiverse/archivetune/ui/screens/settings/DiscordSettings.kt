@@ -65,10 +65,10 @@ fun DiscordSettings(
     var position by rememberSaveable(playbackState) {
         mutableLongStateOf(playerConnection.player.currentPosition)
     }
-    // Track last RPC timestamps to detect when RPC progress bar reaches the end
-    // These are now owned by DiscordPresenceManager; read through its fields.
-    val lastRpcStartTime: Long? get() = DiscordPresenceManager.lastRpcStartTime
-    val lastRpcEndTime: Long? get() = DiscordPresenceManager.lastRpcEndTime
+    // Track last RPC timestamps to detect when RPC progress bar reaches the end.
+    // These are now owned by DiscordPresenceManager; read their current values here.
+    val lastRpcStartTime = DiscordPresenceManager.lastRpcStartTime
+    val lastRpcEndTime = DiscordPresenceManager.lastRpcEndTime
     val coroutineScope = rememberCoroutineScope()
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
