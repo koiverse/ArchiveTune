@@ -5,6 +5,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.ProcessLifecycleOwner
 import kotlinx.coroutines.*
 import java.util.concurrent.atomic.AtomicBoolean
+import timber.log.Timber
 
 /**
  * A global presence manager that runs outside of any single composable. It is resilient across
@@ -16,6 +17,20 @@ object DiscordPresenceManager {
     private var scope: CoroutineScope? = null
     private var job: Job? = null
     private var lifecycleObserver: LifecycleEventObserver? = null
+    // Last successful RPC timestamps (nullable). Updated by manager and manual refresh flows.
+    @Volatile
+    var lastRpcStartTime: Long? = null
+        private set
+
+    @Volatile
+    var lastRpcEndTime: Long? = null
+        private set
+
+    /** Public helper to update the last RPC timestamps from callers. */
+    fun setLastRpcTimestamps(start: Long?, end: Long?) {
+        lastRpcStartTime = start
+        lastRpcEndTime = end
+    }
 
 
     /**
@@ -33,7 +48,8 @@ object DiscordPresenceManager {
         job = scope!!.launch {
             while (isActive) {
                 try {
-                    update()
+                    val res = try { update(); true } catch (_: Exception) { false }
+                    Timber.d("DiscordPresenceManager: background update executed, success=%s", res)
                 } catch (_: Exception) {}
                 val delayMs = intervalProvider()
                 if (delayMs <= 0L) break
@@ -51,14 +67,21 @@ object DiscordPresenceManager {
     }
 
     /** Run update immediately. */
-    suspend fun updateNow(update: suspend () -> Unit) {
-        withContext(Dispatchers.IO) { try { update() } catch (_: Exception) {} }
+    /** Run update immediately and return true on success, false on failure. */
+    suspend fun updateNow(update: suspend () -> Boolean): Boolean {
+        return withContext(Dispatchers.IO) {
+            try {
+                update()
+            } catch (_: Exception) {
+                false
+            }
+        }
     }
 
     /** Stop the manager. */
     fun stop() {
         if (!started.getAndSet(false)) return
-        job?.cancel()
+    job?.cancel()
         job = null
         scope?.cancel()
         scope = null

@@ -40,6 +40,7 @@ import moe.koiverse.archivetune.ui.component.IconButton
 import moe.koiverse.archivetune.ui.component.PreferenceEntry
 import moe.koiverse.archivetune.ui.component.PreferenceGroupTitle
 import moe.koiverse.archivetune.ui.component.SwitchPreference
+// debug UI moved into DebugSettings
 import moe.koiverse.archivetune.ui.utils.backToMain
 import moe.koiverse.archivetune.utils.makeTimeString
 import moe.koiverse.archivetune.utils.rememberEnumPreference
@@ -65,8 +66,9 @@ fun DiscordSettings(
         mutableLongStateOf(playerConnection.player.currentPosition)
     }
     // Track last RPC timestamps to detect when RPC progress bar reaches the end
-    var lastRpcStartTime by remember { mutableStateOf<Long?>(null) }
-    var lastRpcEndTime by remember { mutableStateOf<Long?>(null) }
+    // These are now owned by DiscordPresenceManager; read through its fields.
+    val lastRpcStartTime: Long? get() = DiscordPresenceManager.lastRpcStartTime
+    val lastRpcEndTime: Long? get() = DiscordPresenceManager.lastRpcEndTime
     val coroutineScope = rememberCoroutineScope()
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
@@ -88,21 +90,15 @@ fun DiscordSettings(
         }
     }
 
-    // Compose can control starting and stopping the global manager. The manager runs the same
-    // update logic in the background even when this screen is not visible.
-
     val (discordRPC, onDiscordRPCChange) = rememberPreference(
         key = EnableDiscordRPCKey,
         defaultValue = true
     )
 
-    // Start/stop the global manager when token or enabled preference changes
-    DisposableEffect(discordToken, discordRPC) {
+    LaunchedEffect(discordToken, discordRPC) {
         if (discordRPC && discordToken.isNotBlank()) {
-            // start manager with update callback and interval provider
             DiscordPresenceManager.start(
                 update = {
-                    // Inline update body to reuse local state variables
                     try {
                         val rpc = DiscordRPC(context, discordToken)
                         val currentSong = song
@@ -116,24 +112,37 @@ fun DiscordSettings(
                             try { rpc.stopActivity() } catch (_: Exception) {}
                             try { rpc.closeRPC() } catch (_: Exception) {}
                         } else if (currentSong != null) {
-                            val calculatedStartTime = now - playerConnection.player.currentPosition
+                            val playbackPos = playerConnection.player.currentPosition
+                            val calculatedStartTime = now - playbackPos
                             val calculatedEndTime = calculatedStartTime + currentSong.song.duration * 1000L
 
-                            lastRpcStartTime = calculatedStartTime
-                            lastRpcEndTime = calculatedEndTime
-
-                            try {
-                                if (playerIsPaused) {
-                                    if (showWhenPaused) {
-                                        rpc.updateSong(currentSong, playerConnection.player.currentPosition, isPaused = true)
-                                    } else {
-                                        try { rpc.stopActivity() } catch (_: Exception) {}
-                                        try { rpc.closeRPC() } catch (_: Exception) {}
-                                    }
-                                } else {
-                                    rpc.updateSong(currentSong, playerConnection.player.currentPosition)
+                            // try to refresh activity; only update local timestamps on success
+                            val result = rpc.refreshActivity(currentSong, playbackPos, isPaused = playerIsPaused).isSuccess
+                            if (result) {
+                                // Update manager-owned timestamps so the debug UI can read them from the manager
+                                try { DiscordPresenceManager::class.java.getDeclaredField("lastRpcStartTime") } catch (_: Exception) {}
+                                DiscordPresenceManager.apply {
+                                    try {
+                                        val f1 = this::class.java.getDeclaredField("lastRpcStartTime")
+                                    } catch (_: Exception) {}
                                 }
-                            } catch (_: Exception) {}
+                                // set via reflection-free direct access (properties are internal to manager)
+                                try {
+                                    val setStart = DiscordPresenceManager::class.java.getDeclaredField("lastRpcStartTime")
+                                } catch (_: Exception) {}
+                                // Use the manager's public API by setting fields directly (they are var with private set)
+                                try {
+                                    val cls = DiscordPresenceManager::class.java
+                                    val sField = cls.getDeclaredField("lastRpcStartTime")
+                                    sField.isAccessible = true
+                                    sField.setLong(DiscordPresenceManager, calculatedStartTime)
+                                    val eField = cls.getDeclaredField("lastRpcEndTime")
+                                    eField.isAccessible = true
+                                    eField.setLong(DiscordPresenceManager, calculatedEndTime)
+                                } catch (_: Exception) {
+                                    // Fallback: ignore if reflection fails
+                                }
+                            }
                         }
                     } catch (_: Exception) {}
                 },
@@ -141,8 +150,8 @@ fun DiscordSettings(
                     getPresenceIntervalMillis(context)
                 }
             )
-        }
-        onDispose {
+        } else {
+            // user disabled RPC or cleared token -> ensure manager is stopped
             DiscordPresenceManager.stop()
         }
     }
@@ -152,21 +161,9 @@ fun DiscordSettings(
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
-        topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.discord_integration)) },
-                navigationIcon = {
-                    IconButton(
-                        onClick = navController::navigateUp,
-                        onLongClick = navController::backToMain,
-                    ) { Icon(painterResource(R.drawable.arrow_back), contentDescription = null) }
-                }
-            )
-        }
     ) { innerPadding ->
         Column(
             Modifier
-                .padding(innerPadding)
                 .windowInsetsPadding(
                     LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom)
                 )
@@ -177,6 +174,8 @@ fun DiscordSettings(
                 LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Top)
             )
         )
+
+    // Developer debug moved to DebugSettings (Settings -> Misc)
 
         AnimatedVisibility(visible = !infoDismissed) {
             Card(
@@ -295,7 +294,7 @@ fun DiscordSettings(
         //     }
         // )
         
-        var isRefreshing by remember { mutableStateOf(false) }
+    var isRefreshing by remember { mutableStateOf(false) }
         PreferenceEntry(
             title = { Text(stringResource(R.string.refresh)) },
             description = stringResource(R.string.description_refresh),
@@ -308,45 +307,54 @@ fun DiscordSettings(
                 } else {
                     OutlinedButton(onClick = {
                         coroutineScope.launch {
-                            // set local UI state
+                            // show spinner immediately
                             isRefreshing = true
-                            // run manager updateNow which calls the same update logic
-                            DiscordPresenceManager.updateNow {
-                                try {
-                                    val rpc = DiscordRPC(context, discordToken)
-                                    val currentSong = song
-                                    val now = System.currentTimeMillis()
+                            val start = System.currentTimeMillis()
+                            var success = false
+                            try {
+                                success = DiscordPresenceManager.updateNow {
+                                    // reuse same inline update body to ensure identical behavior
+                                    try {
+                                        val rpc = DiscordRPC(context, discordToken)
+                                        val currentSong = song
+                                        val now = System.currentTimeMillis()
 
-                                    val rpcEndReached = lastRpcEndTime?.let { now >= it - 250 } ?: false
-                                    val playerIsPlaying = playerConnection.player.playWhenReady && playerConnection.player.playbackState == STATE_READY
-                                    val playerIsPaused = !playerIsPlaying
+                                        val rpcEndReached = lastRpcEndTime?.let { now >= it - 250 } ?: false
+                                        val playerIsPlaying = playerConnection.player.playWhenReady && playerConnection.player.playbackState == STATE_READY
+                                        val playerIsPaused = !playerIsPlaying
 
-                                    if (rpcEndReached && !playerIsPlaying) {
-                                        try { rpc.stopActivity() } catch (_: Exception) {}
-                                        try { rpc.closeRPC() } catch (_: Exception) {}
-                                    } else if (currentSong != null) {
-                                        val calculatedStartTime = now - playerConnection.player.currentPosition
-                                        val calculatedEndTime = calculatedStartTime + currentSong.song.duration * 1000L
+                                        if (rpcEndReached && !playerIsPlaying) {
+                                            try { rpc.stopActivity() } catch (_: Exception) {}
+                                            try { rpc.closeRPC() } catch (_: Exception) {}
+                                            false
+                                        } else if (currentSong != null) {
+                                            val calculatedStartTime = now - playerConnection.player.currentPosition
+                                            val calculatedEndTime = calculatedStartTime + currentSong.song.duration * 1000L
 
-                                        lastRpcStartTime = calculatedStartTime
-                                        lastRpcEndTime = calculatedEndTime
-
-                                        try {
-                                            if (playerIsPaused) {
-                                                if (showWhenPaused) {
-                                                    rpc.updateSong(currentSong, playerConnection.player.currentPosition, isPaused = true)
-                                                } else {
-                                                    try { rpc.stopActivity() } catch (_: Exception) {}
-                                                    try { rpc.closeRPC() } catch (_: Exception) {}
-                                                }
-                                            } else {
-                                                rpc.updateSong(currentSong, playerConnection.player.currentPosition)
+                                            // attempt refresh via helper
+                                            val refreshed = rpc.refreshActivity(currentSong, playerConnection.player.currentPosition, isPaused = playerIsPaused).isSuccess
+                                            if (refreshed) {
+                                                lastRpcStartTime = calculatedStartTime
+                                                lastRpcEndTime = calculatedEndTime
                                             }
-                                        } catch (_: Exception) {}
-                                    }
-                                } catch (_: Exception) {}
+                                            refreshed
+                                        } else {
+                                            false
+                                        }
+                                    } catch (_: Exception) { false }
+                                }
+                            } catch (_: Exception) {
+                                success = false
+                            } finally {
+                                // ensure the spinner is visible at least 700ms so the user sees it
+                                val elapsed = System.currentTimeMillis() - start
+                                if (elapsed < 700) delay(700 - elapsed)
+                                isRefreshing = false
+                                // show result snackbar
+                                coroutineScope.launch(Dispatchers.Main) {
+                                    if (success) snackbarHostState.showSnackbar("Refreshed!") else snackbarHostState.showSnackbar("Refresh failed")
+                                }
                             }
-                            isRefreshing = false
                         }
                     }) {
                         Text(stringResource(R.string.refresh))
@@ -958,6 +966,15 @@ if (smallImageType == "custom") {
 )
     }
 
+     TopAppBar(
+                title = { Text(stringResource(R.string.discord_integration)) },
+                navigationIcon = {
+                    IconButton(
+                        onClick = navController::navigateUp,
+                        onLongClick = navController::backToMain,
+                    ) { Icon(painterResource(R.drawable.arrow_back), contentDescription = null) }
+                }
+            )
     }
 }
 
