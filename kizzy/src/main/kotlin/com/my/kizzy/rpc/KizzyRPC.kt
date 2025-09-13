@@ -12,7 +12,7 @@ import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.statement.bodyAsText
 import org.json.JSONObject
-import timber.log.Timber
+import moe.koiverse.archivetune.utils.GlobalLog
 
 /**
  * Modified by Koiverse
@@ -124,11 +124,13 @@ open class KizzyRPC(private val token: String) {
         since: Long? = null,
     ) {
         if (!isRpcRunning()) {
-            Timber.tag(logTag).d("DiscordRPC: trying to connect WebSocket with token=%s", token.take(8) + "…")
+            val shortToken = try { token.take(8) + "…" } catch (_: Exception) { "(token)" }
+            GlobalLog.append(android.util.Log.DEBUG, logTag, "trying to connect WebSocket with token=$shortToken")
             try {
                 discordWebSocket.connect()
             } catch (ex: Exception) {
-                Timber.tag(logTag).e(ex, "DiscordRPC: failed to connect WebSocket: %s", ex.message)
+                val msg = ex.message ?: ex.toString()
+                GlobalLog.append(android.util.Log.ERROR, logTag, "failed to connect WebSocket: $msg\n${ex.stackTraceToString()}")
                 throw ex
             }
         }
