@@ -118,21 +118,19 @@ class DiscordRPC(
         }
 
         val largeImageRpc = pickImage(largeImageTypePref, largeImageCustomPref, song, false)
-        val smallImageRpc = if (isPaused) RpcImage.ExternalImage("https://raw.githubusercontent.com/koiverse/ArchiveTune/refs/heads/main/fastlane/metadata/android/en-US/images/RPC/pause_icon.png")
+        val smallImageRpc = if (isPaused) RpcImage.ExternalImage(PAUSE_IMAGE_URL)
         else when (smallImageTypePref.lowercase()) {
             "none", "dontshow" -> null
             else -> pickImage(smallImageTypePref, smallImageCustomPref, song, true)
         }
 
-        // Preload/resolve images before sending presence to avoid showing broken images.
-        // Attempt resolution with a short timeout to keep UI responsive.
-        // Try to preload images but capture failure reasons so we can surface them in logs.
-        var resolvedLargeImage: String? = null
-        var resolvedSmallImage: String? = null
-
+        // Preload images to log resolution problems, but do NOT abort or drop images if preload fails.
+        // Some RPC backends accept external image URLs directly; failing to preload should not prevent
+        // us from sending the presence. We'll attempt to preload with a short timeout to surface
+        // any obvious issues, but always proceed to send the RPC using the chosen RpcImage values.
         if (largeImageRpc != null) {
             try {
-                resolvedLargeImage = withTimeoutOrNull(3000L) { preloadImage(largeImageRpc) }
+                withTimeoutOrNull(2000L) { preloadImage(largeImageRpc) }
             } catch (ex: Exception) {
                 val msg = ex.message ?: ex.toString()
                 try { timber.log.Timber.w(ex, "Failed to preload large image: %s", msg) } catch (_: Exception) {}
@@ -142,7 +140,7 @@ class DiscordRPC(
 
         if (smallImageRpc != null) {
             try {
-                resolvedSmallImage = withTimeoutOrNull(3000L) { preloadImage(smallImageRpc) }
+                withTimeoutOrNull(2000L) { preloadImage(smallImageRpc) }
             } catch (ex: Exception) {
                 val msg = ex.message ?: ex.toString()
                 try { timber.log.Timber.w(ex, "Failed to preload small image: %s", msg) } catch (_: Exception) {}
@@ -150,16 +148,10 @@ class DiscordRPC(
             }
         }
 
-        // If preload failed for an external image, fall back to sending RPC without that image.
-        val finalLargeImageRpc = if (largeImageRpc != null && resolvedLargeImage == null) {
-            try { timber.log.Timber.w("Failed to preload large image; continuing without it") } catch (_: Exception) {}
-            null
-        } else largeImageRpc
-
-        val finalSmallImageRpc = if (smallImageRpc != null && resolvedSmallImage == null) {
-            try { timber.log.Timber.w("Failed to preload small image; continuing without it") } catch (_: Exception) {}
-            null
-        } else smallImageRpc
+        // Do not null-out images on preload failure; send them as-is and let the RPC backend handle
+        // image loading. We still avoid sending applicationId unless using Discord-hosted asset keys.
+        val finalLargeImageRpc = largeImageRpc
+        val finalSmallImageRpc = smallImageRpc
 
         // Large text customization
         val largeTextSourcePref = context.dataStore[DiscordLargeTextSourceKey] ?: "album"
@@ -188,24 +180,32 @@ class DiscordRPC(
         val sendSince: Long? = if (isPaused) null else currentTime
         val sendSmallText: String? = if (isPaused) context.getString(R.string.discord_paused) else song.artists.firstOrNull()?.name
 
-        refreshRPC(
-            name = activityName.removeSuffix(" Debug"),
-            details = activityDetails,
-            state = activityState,
-            detailsUrl = baseSongUrl,
-            largeImage = finalLargeImageRpc,
-            smallImage = finalSmallImageRpc,
-            largeText = resolvedLargeText,
-            smallText = sendSmallText,
-            buttons = buttons,
-            type = resolvedType,
-            statusDisplayType = StatusDisplayType.STATE,
-            since = sendSince,
-            startTime = sendStartTime,
-            endTime = sendEndTime,
-            applicationId = applicationIdToSend,
-            status = statusPref
-        )
+        try {
+            refreshRPC(
+                name = activityName.removeSuffix(" Debug"),
+                details = activityDetails,
+                state = activityState,
+                detailsUrl = baseSongUrl,
+                largeImage = finalLargeImageRpc,
+                smallImage = finalSmallImageRpc,
+                largeText = resolvedLargeText,
+                smallText = sendSmallText,
+                buttons = buttons,
+                type = resolvedType,
+                statusDisplayType = StatusDisplayType.STATE,
+                since = sendSince,
+                startTime = sendStartTime,
+                endTime = sendEndTime,
+                applicationId = applicationIdToSend,
+                status = statusPref
+            )
+        } catch (ex: Exception) {
+            try {
+                val msg = ex.message ?: ex.toString()
+                timber.log.Timber.e(ex, "refreshRPC failed: %s", msg)
+                moe.koiverse.archivetune.utils.GlobalLog.append(android.util.Log.ERROR, "DiscordRPC", "refreshRPC failed: $msg\n${ex.stackTraceToString()}")
+            } catch (_: Exception) {}
+        }
     }
 
     suspend fun refreshActivity(song: Song, currentPlaybackTimeMillis: Long, isPaused: Boolean = false) = runCatching {
