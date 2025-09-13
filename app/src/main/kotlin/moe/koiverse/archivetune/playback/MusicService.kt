@@ -424,7 +424,7 @@ class MusicService :
                                         val calculatedStartTime = now - playbackPos
                                         val calculatedEndTime = calculatedStartTime + currentSongLocal.song.duration * 1000L
 
-                                        val refreshed = rpc.refreshActivity(currentSongLocal, playbackPos, isPaused = playerIsPaused).isSuccess
+                                        val refreshed = rpc.refreshActivityWithLogging(currentSongLocal, playbackPos, isPaused = playerIsPaused).isSuccess
                                         if (refreshed) {
                                             DiscordPresenceManager.setLastRpcTimestamps(calculatedStartTime, calculatedEndTime)
                                         }
@@ -987,7 +987,7 @@ class MusicService :
     scope.launch {
         if (player.playbackState == Player.STATE_READY) {
             if (shouldUpdate) {
-                discordRpc?.refreshActivity(song, player.currentPosition, isPaused = !player.playWhenReady)
+                discordRpc?.refreshActivityWithLogging(song, player.currentPosition, isPaused = !player.playWhenReady)
                 lastDiscordUpdateTime = now
             }
         } else {

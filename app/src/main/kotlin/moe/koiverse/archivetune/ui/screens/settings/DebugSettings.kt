@@ -90,11 +90,11 @@ fun DebugSettings(
                     icon = { Icon(painterResource(R.drawable.info), null) }
                 )
 
-                // Log panel with filters, search, and share
+                // Log panel with filters, search, and share — Logra-inspired UI
                 val allLogs by GlobalLog.logs.collectAsState()
-                val scrollState = rememberScrollState()
                 val coroutineScope = rememberCoroutineScope()
                 val context = LocalContext.current
+                val clipboard = androidx.compose.ui.platform.LocalClipboardManager.current
 
                 val filterMode = remember { mutableStateOf("discord-only") } // "all" or "discord-only"
                 val query = remember { mutableStateOf("") }
@@ -112,10 +112,13 @@ fun DebugSettings(
                     }
                 }
 
+                // Lazy list state for auto-scroll
+                val listState = androidx.compose.foundation.lazy.rememberLazyListState()
+
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .heightIn(max = 280.dp)
+                        .heightIn(max = 320.dp)
                         .background(color = MaterialTheme.colorScheme.surfaceVariant)
                 ) {
                     Column(Modifier.padding(8.dp)) {
@@ -146,27 +149,98 @@ fun DebugSettings(
                             modifier = Modifier.fillMaxWidth()
                         )
 
-                        Column(Modifier.verticalScroll(scrollState).padding(top = 8.dp)) {
-                            filtered.forEach { entry ->
-                                val formatted = GlobalLog.format(entry)
+                        // Log list
+                        androidx.compose.foundation.lazy.LazyColumn(
+                            state = listState,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 8.dp)
+                        ) {
+                            itemsIndexed(filtered) { index, entry ->
                                 val color = when (entry.level) {
                                     android.util.Log.ERROR -> MaterialTheme.colorScheme.error
                                     android.util.Log.WARN -> MaterialTheme.colorScheme.tertiary
                                     else -> MaterialTheme.colorScheme.onSurfaceVariant
                                 }
-                                Text(
-                                    text = formatted,
-                                    color = color,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    maxLines = 3,
-                                    overflow = TextOverflow.Ellipsis
-                                )
+
+                                // Single-line header with badge, timestamp and tag
+                                val header = buildString {
+                                    append("[")
+                                    append(android.text.format.DateFormat.format("MM-dd HH:mm:ss", entry.time))
+                                    append("] ")
+                                    if (!entry.tag.isNullOrBlank()) {
+                                        append(entry.tag)
+                                    }
+                                }
+
+                                // Expand state — only one expanded at a time
+                                val (expandedIndex, setExpanded) = remember { androidx.compose.runtime.mutableStateOf<Int?>(null) }
+                                val isExpanded = expandedIndex == index
+
+                                Column(modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 6.dp)
+                                ) {
+                                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                        Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                                            // Level badge
+                                            Box(
+                                                modifier = Modifier
+                                                    .background(color = color, shape = androidx.compose.foundation.shape.RoundedCornerShape(6.dp))
+                                                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                                            ) {
+                                                Text(
+                                                    text = when (entry.level) {
+                                                        android.util.Log.ERROR -> "E"
+                                                        android.util.Log.WARN -> "W"
+                                                        android.util.Log.INFO -> "I"
+                                                        else -> "D"
+                                                    },
+                                                    color = MaterialTheme.colorScheme.onPrimary,
+                                                    style = MaterialTheme.typography.labelSmall
+                                                )
+                                            }
+
+                                            androidx.compose.foundation.layout.Spacer(modifier = Modifier.padding(4.dp))
+
+                                            Text(header, style = MaterialTheme.typography.bodyMedium)
+                                        }
+
+                                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                            TextButton(onClick = {
+                                                // copy entry message to clipboard
+                                                clipboard.setText(androidx.compose.ui.text.AnnotatedString(entry.message))
+                                                coroutineScope.launch {
+                                                    // small toast-style feedback via snackbar is not available here; no-op
+                                                }
+                                            }) { Text("Copy") }
+                                            TextButton(onClick = { setExpanded(if (isExpanded) null else index) }) {
+                                                Text(if (isExpanded) "Collapse" else "Expand")
+                                            }
+                                        }
+                                    }
+
+                                    // Message body (collapsed vs expanded)
+                                    Text(
+                                        text = if (isExpanded) entry.message else entry.message.lines().firstOrNull() ?: "",
+                                        color = color,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        maxLines = if (isExpanded) Int.MAX_VALUE else 2,
+                                        overflow = TextOverflow.Ellipsis,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(start = 8.dp, top = 4.dp)
+                                            .clickable { setExpanded(if (isExpanded) null else index) }
+                                    )
+                                }
                             }
                         }
                     }
                 }
+
+                // Auto-scroll to bottom when new logs are added
                 LaunchedEffect(filtered.size) {
-                    coroutineScope.launch { scrollState.animateScrollTo(scrollState.maxValue) }
+                    if (filtered.isNotEmpty()) listState.animateScrollToItem(filtered.size - 1)
                 }
             }
         }
