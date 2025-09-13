@@ -167,10 +167,11 @@ class DiscordRPC(
             else -> song.song.albumName ?: song.album?.title
         }
 
-        // Only send applicationId when we're using Discord-hosted asset keys for images
-        val applicationIdToSend = if (buttons.isNotEmpty() &&
-            (largeImageRpc is RpcImage.DiscordImage || smallImageRpc is RpcImage.DiscordImage)
-        ) APPLICATION_ID else null
+        val safeStatus = when (statusPref.lowercase()) {
+        "online", "idle", "dnd", "invisible" -> statusPref
+        else -> "online"
+    }
+
         val platformPref = context.dataStore[DiscordActivityPlatformKey] ?: "desktop"
         this.setPlatform(platformPref)
 
@@ -196,8 +197,8 @@ class DiscordRPC(
                 since = sendSince,
                 startTime = sendStartTime,
                 endTime = sendEndTime,
-                applicationId = applicationIdToSend,
-                status = statusPref
+                applicationId = APPLICATION_ID,
+                status = safeStatus
             )
         } catch (ex: Exception) {
             try {
