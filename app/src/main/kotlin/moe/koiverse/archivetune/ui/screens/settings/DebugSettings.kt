@@ -28,7 +28,6 @@ import androidx.compose.runtime.collectAsState
 import moe.koiverse.archivetune.utils.makeTimeString
 import moe.koiverse.archivetune.ui.component.IconButton
 import moe.koiverse.archivetune.ui.utils.backToMain
-import moe.koiverse.archivetune.utils.GlobalLog
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Box
@@ -41,8 +40,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import kotlinx.coroutines.launch
 import androidx.compose.foundation.background
 import androidx.compose.ui.unit.Dp
-
 import moe.koiverse.archivetune.utils.GlobalLog
+
+// single GlobalLog import above
 @OptIn(ExperimentalMaterial3Api::class)
 
 @Composable
@@ -168,3 +168,6 @@ fun DebugSettings(
                 LaunchedEffect(filtered.size) {
                     coroutineScope.launch { scrollState.animateScrollTo(scrollState.maxValue) }
                 }
+            }
+        }
+    }
