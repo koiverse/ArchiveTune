@@ -117,7 +117,7 @@ fun DiscordSettings(
                             val calculatedEndTime = calculatedStartTime + currentSong.song.duration * 1000L
 
                             // try to refresh activity; only update local timestamps on success
-                            val result = rpc.refreshActivityWithLogging(currentSong, playbackPos, isPaused = playerIsPaused).isSuccess
+                            val result = rpc.refreshActivity(currentSong, playbackPos, isPaused = playerIsPaused).isSuccess
                             if (result) {
                                 // Update manager-owned timestamps so the debug UI can read them from the manager
                                 try {
@@ -315,7 +315,7 @@ fun DiscordSettings(
                                             val calculatedEndTime = calculatedStartTime + currentSong.song.duration * 1000L
 
                                             // attempt refresh via helper (with logging on failure)
-                                            val refreshed = rpc.refreshActivityWithLogging(currentSong, playerConnection.player.currentPosition, isPaused = playerIsPaused).isSuccess
+                                            val refreshed = rpc.refreshActivity(currentSong, playerConnection.player.currentPosition, isPaused = playerIsPaused).isSuccess
                                             if (refreshed) {
                                                 DiscordPresenceManager.setLastRpcTimestamps(calculatedStartTime, calculatedEndTime)
                                             }

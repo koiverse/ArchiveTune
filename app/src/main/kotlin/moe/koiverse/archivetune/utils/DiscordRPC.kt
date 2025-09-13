@@ -206,27 +206,22 @@ class DiscordRPC(
         } catch (ex: Exception) {
             try {
                 val msg = ex.message ?: ex.toString()
-                Timber.tag(logTag).e(ex, "refreshRPC failed: %s", msg)
+                Timber.tag(logTag).e("refreshRPC failed: %s", msg)
                 moe.koiverse.archivetune.utils.GlobalLog.append(android.util.Log.ERROR, "DiscordRPC", "refreshRPC failed: $msg\n${ex.stackTraceToString()}")
             } catch (_: Exception) {}
         }
     }
 
     suspend fun refreshActivity(song: Song, currentPlaybackTimeMillis: Long, isPaused: Boolean = false) = runCatching {
-        updateSong(song, currentPlaybackTimeMillis, isPaused).getOrThrow()
-    }
-
-    // helper that logs failures to GlobalLog and Timber for visibility
-    suspend fun refreshActivityWithLogging(song: Song, currentPlaybackTimeMillis: Long, isPaused: Boolean = false): Result<Unit> {
-        val res = refreshActivity(song, currentPlaybackTimeMillis, isPaused)
-        res.onFailure { ex ->
+        try {
+            updateSong(song, currentPlaybackTimeMillis, isPaused).getOrThrow()
+        } catch (ex: Exception) {
             try {
                 val msg = ex.message ?: ex.toString()
-                val body = "refreshActivity failed: $msg\n${ex.stackTraceToString()}"
-                Timber.tag(logTag).e(ex, "DiscordRPC refresh failed: %s", msg)
-                moe.koiverse.archivetune.utils.GlobalLog.append(android.util.Log.ERROR, "DiscordRPC", body)
+                Timber.tag(logTag).e("refreshActivity updateSong failed: %s", msg)
+                moe.koiverse.archivetune.utils.GlobalLog.append(android.util.Log.ERROR, "DiscordRPC", "refreshActivity updateSong failed: $msg\n${ex.stackTraceToString()}")
             } catch (_: Exception) {}
+            throw ex
         }
-        return res
     }
 }

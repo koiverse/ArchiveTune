@@ -130,7 +130,6 @@ fun DebugSettings(
                 ) {
                     Column(Modifier.padding(8.dp)) {
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text("Logs", style = MaterialTheme.typography.titleMedium)
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 TextButton(onClick = { filterMode.value = if (filterMode.value == "all") "discord-only" else "all" }) {
                                     Text(if (filterMode.value == "all") "All logs" else "Discord-only")

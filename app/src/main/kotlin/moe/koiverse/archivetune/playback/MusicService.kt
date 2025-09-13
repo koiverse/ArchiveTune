@@ -330,7 +330,7 @@ class MusicService :
         currentSong.debounce(1000).collect(scope) { song ->
             updateNotification()
             if (song != null && player.playWhenReady && player.playbackState == Player.STATE_READY) {
-                discordRpc?.refreshActivityWithLogging(song, player.currentPosition, isPaused = !player.playWhenReady)
+                discordRpc?.refreshActivity(song, player.currentPosition, isPaused = !player.playWhenReady)
             } else {
                 discordRpc?.closeRPC()
             }
@@ -398,7 +398,7 @@ class MusicService :
                     discordRpc = DiscordRPC(this, key)
                     if (player.playbackState == Player.STATE_READY && player.playWhenReady) {
                         currentSong.value?.let {
-                            try { discordRpc?.refreshActivityWithLogging(it, player.currentPosition, isPaused = !player.playWhenReady) } catch (_: Exception) {}
+                            try { discordRpc?.refreshActivity(it, player.currentPosition, isPaused = !player.playWhenReady) } catch (_: Exception) {}
                         }
                     }
 
@@ -424,7 +424,7 @@ class MusicService :
                                         val calculatedStartTime = now - playbackPos
                                         val calculatedEndTime = calculatedStartTime + currentSongLocal.song.duration * 1000L
 
-                                        val refreshed = rpc.refreshActivityWithLogging(currentSongLocal, playbackPos, isPaused = playerIsPaused).isSuccess
+                                        val refreshed = rpc.refreshActivity(currentSongLocal, playbackPos, isPaused = playerIsPaused).isSuccess
                                         if (refreshed) {
                                             DiscordPresenceManager.setLastRpcTimestamps(calculatedStartTime, calculatedEndTime)
                                         }
@@ -987,7 +987,7 @@ class MusicService :
     scope.launch {
         if (player.playbackState == Player.STATE_READY) {
             if (shouldUpdate) {
-                discordRpc?.refreshActivityWithLogging(song, player.currentPosition, isPaused = !player.playWhenReady)
+                discordRpc?.refreshActivity(song, player.currentPosition, isPaused = !player.playWhenReady)
                 lastDiscordUpdateTime = now
             }
         } else {
