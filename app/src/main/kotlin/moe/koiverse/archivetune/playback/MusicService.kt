@@ -398,7 +398,7 @@ class MusicService :
                     discordRpc = DiscordRPC(this, key)
                     if (player.playbackState == Player.STATE_READY && player.playWhenReady) {
                         currentSong.value?.let {
-                            try { rpc.refreshActivityWithLogging(it, player.currentPosition, isPaused = !player.playWhenReady) } catch (_: Exception) {}
+                            try { discordRpc?.refreshActivityWithLogging(it, player.currentPosition, isPaused = !player.playWhenReady) } catch (_: Exception) {}
                         }
                     }
 

@@ -213,7 +213,7 @@ fun DebugSettings(
                                         }
 
                                         // Clicking the row copies the entry message and toggles expansion (no separate buttons)
-                                        Spacer(modifier = Modifier.width(2.dp))
+                                        Spacer(modifier = Modifier.padding(4.dp))
                                     }
 
                                     // Message body (collapsed vs expanded)
