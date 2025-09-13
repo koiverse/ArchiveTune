@@ -44,11 +44,8 @@ open class KizzyRPC(token: String) {
      * This allows callers to ensure images are uploaded/resolved before sending presence.
      */
     suspend fun preloadImage(image: com.my.kizzy.rpc.RpcImage?): String? {
-        return try {
-            image?.resolveImage(kizzyRepository)
-        } catch (e: Exception) {
-            null
-        }
+        // Do not swallow exceptions here; let callers observe failures so they can log details.
+        return image?.resolveImage(kizzyRepository)
     }
 
     private fun String.sanitize(): String =

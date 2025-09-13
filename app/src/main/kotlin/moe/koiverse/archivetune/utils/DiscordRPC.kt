@@ -118,7 +118,7 @@ class DiscordRPC(
         }
 
         val largeImageRpc = pickImage(largeImageTypePref, largeImageCustomPref, song, false)
-        val smallImageRpc = if (isPaused) RpcImage.ExternalImage(PAUSE_IMAGE_URL)
+        val smallImageRpc = if (isPaused) RpcImage.ExternalImage("https://raw.githubusercontent.com/koiverse/ArchiveTune/refs/heads/main/fastlane/metadata/android/en-US/images/RPC/pause_icon.png")
         else when (smallImageTypePref.lowercase()) {
             "none", "dontshow" -> null
             else -> pickImage(smallImageTypePref, smallImageCustomPref, song, true)
@@ -126,12 +126,31 @@ class DiscordRPC(
 
         // Preload/resolve images before sending presence to avoid showing broken images.
         // Attempt resolution with a short timeout to keep UI responsive.
-        // Try to preload images but don't abort the whole RPC if they fail to resolve.
-        // Some networks may block image fetches; proceed without the image rather than fail.
-        val resolvedLargeImage = if (largeImageRpc != null) withTimeoutOrNull(3000L) { preloadImage(largeImageRpc) } else null
-        val resolvedSmallImage = if (smallImageRpc != null) withTimeoutOrNull(3000L) { preloadImage(smallImageRpc) } else null
+        // Try to preload images but capture failure reasons so we can surface them in logs.
+        var resolvedLargeImage: String? = null
+        var resolvedSmallImage: String? = null
 
-        // If preload failed for an external image, log and fall back to sending RPC without that image.
+        if (largeImageRpc != null) {
+            try {
+                resolvedLargeImage = withTimeoutOrNull(3000L) { preloadImage(largeImageRpc) }
+            } catch (ex: Exception) {
+                val msg = ex.message ?: ex.toString()
+                try { timber.log.Timber.w(ex, "Failed to preload large image: %s", msg) } catch (_: Exception) {}
+                try { moe.koiverse.archivetune.utils.GlobalLog.append(android.util.Log.WARN, "DiscordRPC", "Failed to preload large image: $msg\n${ex.stackTraceToString()}") } catch (_: Exception) {}
+            }
+        }
+
+        if (smallImageRpc != null) {
+            try {
+                resolvedSmallImage = withTimeoutOrNull(3000L) { preloadImage(smallImageRpc) }
+            } catch (ex: Exception) {
+                val msg = ex.message ?: ex.toString()
+                try { timber.log.Timber.w(ex, "Failed to preload small image: %s", msg) } catch (_: Exception) {}
+                try { moe.koiverse.archivetune.utils.GlobalLog.append(android.util.Log.WARN, "DiscordRPC", "Failed to preload small image: $msg\n${ex.stackTraceToString()}") } catch (_: Exception) {}
+            }
+        }
+
+        // If preload failed for an external image, fall back to sending RPC without that image.
         val finalLargeImageRpc = if (largeImageRpc != null && resolvedLargeImage == null) {
             try { timber.log.Timber.w("Failed to preload large image; continuing without it") } catch (_: Exception) {}
             null

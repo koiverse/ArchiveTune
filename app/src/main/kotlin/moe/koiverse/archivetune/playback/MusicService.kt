@@ -330,7 +330,7 @@ class MusicService :
         currentSong.debounce(1000).collect(scope) { song ->
             updateNotification()
             if (song != null && player.playWhenReady && player.playbackState == Player.STATE_READY) {
-                discordRpc?.updateSong(song, player.currentPosition)
+                discordRpc?.refreshActivityWithLogging(song, player.currentPosition, isPaused = !player.playWhenReady)
             } else {
                 discordRpc?.closeRPC()
             }
@@ -398,7 +398,7 @@ class MusicService :
                     discordRpc = DiscordRPC(this, key)
                     if (player.playbackState == Player.STATE_READY && player.playWhenReady) {
                         currentSong.value?.let {
-                            discordRpc?.updateSong(it, player.currentPosition)
+                            try { rpc.refreshActivityWithLogging(it, player.currentPosition, isPaused = !player.playWhenReady) } catch (_: Exception) {}
                         }
                     }
 

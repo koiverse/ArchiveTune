@@ -125,8 +125,8 @@ fun DebugSettings(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .heightIn(max = 320.dp)
-                        .background(color = MaterialTheme.colorScheme.surfaceVariant)
+                        .heightIn(max = 600.dp)
+                        .background(color = MaterialTheme.colorScheme.surfaceVariant, shape = RoundedCornerShape(14.dp))
                 ) {
                     Column(Modifier.padding(8.dp)) {
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -180,9 +180,8 @@ fun DebugSettings(
                                     }
                                 }
 
-                                // Expand state — only one expanded at a time
-                                val (expandedIndex, setExpanded) = remember { androidx.compose.runtime.mutableStateOf<Int?>(null) }
-                                val isExpanded = expandedIndex == index
+                                // Expand state — track this row's expanded state
+                                val (isExpanded, setExpanded) = remember { androidx.compose.runtime.mutableStateOf(false) }
 
                                 Column(modifier = Modifier
                                     .fillMaxWidth()
@@ -213,18 +212,8 @@ fun DebugSettings(
                                             Text(header, style = MaterialTheme.typography.bodyMedium)
                                         }
 
-                                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                            TextButton(onClick = {
-                                                // copy entry message to clipboard
-                                                clipboard.setText(androidx.compose.ui.text.AnnotatedString(entry.message))
-                                                coroutineScope.launch {
-                                                    // small toast-style feedback via snackbar is not available here; no-op
-                                                }
-                                            }) { Text("Copy") }
-                                            TextButton(onClick = { setExpanded(if (isExpanded) null else index) }) {
-                                                Text(if (isExpanded) "Collapse" else "Expand")
-                                            }
-                                        }
+                                        // Clicking the row copies the entry message and toggles expansion (no separate buttons)
+                                        Spacer(modifier = Modifier.width(2.dp))
                                     }
 
                                     // Message body (collapsed vs expanded)
@@ -237,7 +226,14 @@ fun DebugSettings(
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .padding(start = 8.dp, top = 4.dp)
-                                            .clickable { setExpanded(if (isExpanded) null else index) }
+                                            .clickable {
+                                                // copy entry message to clipboard and toggle expansion
+                                                clipboard.setText(androidx.compose.ui.text.AnnotatedString(entry.message))
+                                                coroutineScope.launch {
+                                                    // small toast-style feedback via snackbar is not available here; no-op
+                                                }
+                                                setExpanded(!isExpanded)
+                                            }
                                     )
                                 }
                             }
