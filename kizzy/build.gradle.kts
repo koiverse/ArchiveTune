@@ -14,6 +14,5 @@ dependencies {
     implementation(libs.ktor.serialization.json)
     implementation(libs.ktor.client.encoding)
     implementation(libs.json)
-    implementation(libs.timber)
     testImplementation(libs.junit)
 }
