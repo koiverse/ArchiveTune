@@ -21,6 +21,7 @@ open class KizzyRPC(private val token: String) {
     private val kizzyRepository = KizzyRepository()
     private val discordWebSocket = DiscordWebSocket(token)
     private var platform: String? = null
+    private const val logTag = "RPC"
 
     fun closeRPC() = discordWebSocket.close()
 
@@ -123,11 +124,11 @@ open class KizzyRPC(private val token: String) {
         since: Long? = null,
     ) {
         if (!isRpcRunning()) {
-            Timber.d("DiscordRPC: trying to connect WebSocket with token=%s", token.take(8) + "…")
+            Timber.tag(logTag).d("DiscordRPC: trying to connect WebSocket with token=%s", token.take(8) + "…")
             try {
                 discordWebSocket.connect()
             } catch (ex: Exception) {
-                Timber.e(ex, "DiscordRPC: failed to connect WebSocket: %s", ex.message)
+                Timber.tag(logTag).e(ex, "DiscordRPC: failed to connect WebSocket: %s", ex.message)
                 throw ex
             }
         }

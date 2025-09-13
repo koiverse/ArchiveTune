@@ -19,6 +19,7 @@ class DiscordRPC(
         private const val APPLICATION_ID = "1165706613961789445"
         // Pause image URL (external). Replace with Discord asset key if available.
         private const val PAUSE_IMAGE_URL = "https://raw.githubusercontent.com/koiverse/ArchiveTune/main/fastlane/metadata/android/en-US/images/RPC/pause_icon.png"
+        private const val logTag = "DiscordRPC"
     }
 
     suspend fun updateSong(song: Song, currentPlaybackTimeMillis: Long, isPaused: Boolean = false) = runCatching {
@@ -134,7 +135,7 @@ class DiscordRPC(
                 withTimeoutOrNull(2000L) { preloadImage(largeImageRpc) }
             } catch (ex: Exception) {
                 val msg = ex.message ?: ex.toString()
-                try { Timber.w(ex, "Failed to preload large image: %s", msg) } catch (_: Exception) {}
+                try { Timber.tag(logTag).w(ex, "Failed to preload large image: %s", msg) } catch (_: Exception) {}
                 try { moe.koiverse.archivetune.utils.GlobalLog.append(android.util.Log.WARN, "DiscordRPC", "Failed to preload large image: $msg\n${ex.stackTraceToString()}") } catch (_: Exception) {}
             }
         }
@@ -144,7 +145,7 @@ class DiscordRPC(
                 withTimeoutOrNull(2000L) { preloadImage(smallImageRpc) }
             } catch (ex: Exception) {
                 val msg = ex.message ?: ex.toString()
-                try { Timber.w(ex, "Failed to preload small image: %s", msg) } catch (_: Exception) {}
+                try { Timber.tag(logTag).w(ex, "Failed to preload small image: %s", msg) } catch (_: Exception) {}
                 try { moe.koiverse.archivetune.utils.GlobalLog.append(android.util.Log.WARN, "DiscordRPC", "Failed to preload small image: $msg\n${ex.stackTraceToString()}") } catch (_: Exception) {}
             }
         }
@@ -183,7 +184,7 @@ class DiscordRPC(
         val sendSmallText: String? = if (isPaused) context.getString(R.string.discord_paused) else song.artists.firstOrNull()?.name
 
         try {
-            Timber.d("DiscordRPC: isRpcRunning=%s", isRpcRunning())
+            Timber.tag(logTag).d("DiscordRPC: isRpcRunning=%s", isRpcRunning())
             refreshRPC(
                 name = activityName.removeSuffix(" Debug"),
                 details = activityDetails,
@@ -205,7 +206,7 @@ class DiscordRPC(
         } catch (ex: Exception) {
             try {
                 val msg = ex.message ?: ex.toString()
-                Timber.e(ex, "refreshRPC failed: %s", msg)
+                Timber.tag(logTag).e(ex, "refreshRPC failed: %s", msg)
                 moe.koiverse.archivetune.utils.GlobalLog.append(android.util.Log.ERROR, "DiscordRPC", "refreshRPC failed: $msg\n${ex.stackTraceToString()}")
             } catch (_: Exception) {}
         }
@@ -222,7 +223,7 @@ class DiscordRPC(
             try {
                 val msg = ex.message ?: ex.toString()
                 val body = "refreshActivity failed: $msg\n${ex.stackTraceToString()}"
-                Timber.e(ex, "DiscordRPC refresh failed: %s", msg)
+                Timber.tag(logTag).e(ex, "DiscordRPC refresh failed: %s", msg)
                 moe.koiverse.archivetune.utils.GlobalLog.append(android.util.Log.ERROR, "DiscordRPC", body)
             } catch (_: Exception) {}
         }
