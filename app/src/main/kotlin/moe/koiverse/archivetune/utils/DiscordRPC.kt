@@ -8,6 +8,7 @@ import moe.koiverse.archivetune.utils.dataStore
 import com.my.kizzy.rpc.KizzyRPC
 import com.my.kizzy.rpc.RpcImage
 import kotlinx.coroutines.withTimeoutOrNull
+import timber.log.Timber
 
 class DiscordRPC(
     val context: Context,
@@ -133,7 +134,7 @@ class DiscordRPC(
                 withTimeoutOrNull(2000L) { preloadImage(largeImageRpc) }
             } catch (ex: Exception) {
                 val msg = ex.message ?: ex.toString()
-                try { timber.log.Timber.w(ex, "Failed to preload large image: %s", msg) } catch (_: Exception) {}
+                try { Timber.w(ex, "Failed to preload large image: %s", msg) } catch (_: Exception) {}
                 try { moe.koiverse.archivetune.utils.GlobalLog.append(android.util.Log.WARN, "DiscordRPC", "Failed to preload large image: $msg\n${ex.stackTraceToString()}") } catch (_: Exception) {}
             }
         }
@@ -204,7 +205,7 @@ class DiscordRPC(
         } catch (ex: Exception) {
             try {
                 val msg = ex.message ?: ex.toString()
-                timber.log.Timber.e(ex, "refreshRPC failed: %s", msg)
+                Timber.e(ex, "refreshRPC failed: %s", msg)
                 moe.koiverse.archivetune.utils.GlobalLog.append(android.util.Log.ERROR, "DiscordRPC", "refreshRPC failed: $msg\n${ex.stackTraceToString()}")
             } catch (_: Exception) {}
         }

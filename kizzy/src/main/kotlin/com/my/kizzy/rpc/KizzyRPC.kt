@@ -12,11 +12,12 @@ import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.statement.bodyAsText
 import org.json.JSONObject
+import timber.log.Timber
 
 /**
  * Modified by Koiverse
  */
-open class KizzyRPC(token: String) {
+open class KizzyRPC(private val token: String) {
     private val kizzyRepository = KizzyRepository()
     private val discordWebSocket = DiscordWebSocket(token)
     private var platform: String? = null
