@@ -47,6 +47,10 @@ class App : Application(), SingletonImageLoader.Factory {
         super.onCreate()
         instance = this;
         Timber.plant(Timber.DebugTree())
+        // Also plant the global log tree to capture logs into an in-memory flow for Debug UI
+        try {
+            Timber.plant(moe.koiverse.archivetune.utils.GlobalLogTree())
+        } catch (_: Exception) {}
 
         val locale = Locale.getDefault()
         val languageTag = locale.toLanguageTag().replace("-Hant", "") // replace zh-Hant-* to zh-*

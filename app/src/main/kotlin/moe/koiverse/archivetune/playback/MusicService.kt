@@ -111,6 +111,7 @@ import moe.koiverse.archivetune.playback.queues.YouTubeQueue
 import moe.koiverse.archivetune.playback.queues.filterExplicit
 import moe.koiverse.archivetune.utils.CoilBitmapLoader
 import moe.koiverse.archivetune.utils.DiscordRPC
+import moe.koiverse.archivetune.ui.screens.settings.DiscordPresenceManager
 import moe.koiverse.archivetune.utils.SyncUtils
 import moe.koiverse.archivetune.utils.YTPlayerUtils
 import moe.koiverse.archivetune.utils.dataStore
@@ -393,12 +394,53 @@ class MusicService :
                 }
                 discordRpc = null
                 if (key != null && enabled) {
+                    // Create an in-service DiscordRPC for immediate updates
                     discordRpc = DiscordRPC(this, key)
                     if (player.playbackState == Player.STATE_READY && player.playWhenReady) {
                         currentSong.value?.let {
                             discordRpc?.updateSong(it, player.currentPosition)
                         }
                     }
+
+                    // Ensure the process-wide background manager is running so presence updates
+                    // continue even if the settings UI hasn't been opened.
+                    try {
+                        DiscordPresenceManager.start(
+                            update = {
+                                try {
+                                    val rpc = DiscordRPC(this@MusicService, key)
+                                    val currentSongLocal = currentSong.value
+                                    val now = System.currentTimeMillis()
+
+                                    val rpcEndReached = DiscordPresenceManager.lastRpcEndTime?.let { now >= it - 250 } ?: false
+                                    val playerIsPlaying = player.playWhenReady && player.playbackState == Player.STATE_READY
+                                    val playerIsPaused = !playerIsPlaying
+
+                                    if (rpcEndReached && !playerIsPlaying) {
+                                        try { rpc.stopActivity() } catch (_: Exception) {}
+                                        try { rpc.closeRPC() } catch (_: Exception) {}
+                                    } else if (currentSongLocal != null) {
+                                        val playbackPos = player.currentPosition
+                                        val calculatedStartTime = now - playbackPos
+                                        val calculatedEndTime = calculatedStartTime + currentSongLocal.song.duration * 1000L
+
+                                        val refreshed = rpc.refreshActivity(currentSongLocal, playbackPos, isPaused = playerIsPaused).isSuccess
+                                        if (refreshed) {
+                                            DiscordPresenceManager.setLastRpcTimestamps(calculatedStartTime, calculatedEndTime)
+                                        }
+                                    }
+                                } catch (_: Exception) {
+                                    // ignore errors in background update
+                                }
+                            },
+                            intervalProvider = { getPresenceIntervalMillis(this@MusicService) }
+                        )
+                    } catch (_: Exception) {
+                        // ignore
+                    }
+                } else {
+                    // stop background manager when token removed or RPC disabled
+                    try { DiscordPresenceManager.stop() } catch (_: Exception) {}
                 }
             }
 

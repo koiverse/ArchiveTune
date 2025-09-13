@@ -126,13 +126,21 @@ class DiscordRPC(
 
         // Preload/resolve images before sending presence to avoid showing broken images.
         // Attempt resolution with a short timeout to keep UI responsive.
-        val resolvedLargeImage = if (largeImageRpc != null) withTimeoutOrNull(2000L) { preloadImage(largeImageRpc) } else null
-        val resolvedSmallImage = if (smallImageRpc != null) withTimeoutOrNull(2000L) { preloadImage(smallImageRpc) } else null
+        // Try to preload images but don't abort the whole RPC if they fail to resolve.
+        // Some networks may block image fetches; proceed without the image rather than fail.
+        val resolvedLargeImage = if (largeImageRpc != null) withTimeoutOrNull(3000L) { preloadImage(largeImageRpc) } else null
+        val resolvedSmallImage = if (smallImageRpc != null) withTimeoutOrNull(3000L) { preloadImage(smallImageRpc) } else null
 
-        // If either image was requested but couldn't be resolved within timeout, skip sending RPC
-        if ((largeImageRpc != null && resolvedLargeImage == null) || (smallImageRpc != null && resolvedSmallImage == null)) {
-            return@runCatching
-        }
+        // If preload failed for an external image, log and fall back to sending RPC without that image.
+        val finalLargeImageRpc = if (largeImageRpc != null && resolvedLargeImage == null) {
+            try { timber.log.Timber.w("Failed to preload large image; continuing without it") } catch (_: Exception) {}
+            null
+        } else largeImageRpc
+
+        val finalSmallImageRpc = if (smallImageRpc != null && resolvedSmallImage == null) {
+            try { timber.log.Timber.w("Failed to preload small image; continuing without it") } catch (_: Exception) {}
+            null
+        } else smallImageRpc
 
         // Large text customization
         val largeTextSourcePref = context.dataStore[DiscordLargeTextSourceKey] ?: "album"
@@ -166,8 +174,8 @@ class DiscordRPC(
             details = activityDetails,
             state = activityState,
             detailsUrl = baseSongUrl,
-            largeImage = largeImageRpc,
-            smallImage = smallImageRpc,
+            largeImage = finalLargeImageRpc,
+            smallImage = finalSmallImageRpc,
             largeText = resolvedLargeText,
             smallText = sendSmallText,
             buttons = buttons,
