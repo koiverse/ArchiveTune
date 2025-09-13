@@ -21,7 +21,7 @@ open class KizzyRPC(private val token: String) {
     private val kizzyRepository = KizzyRepository()
     private val discordWebSocket = DiscordWebSocket(token)
     private var platform: String? = null
-    private const val logTag = "RPC"
+    private val logTag = "RPC"
 
     fun closeRPC() = discordWebSocket.close()
 
