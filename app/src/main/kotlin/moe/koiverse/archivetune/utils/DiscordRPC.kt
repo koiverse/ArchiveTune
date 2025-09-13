@@ -143,7 +143,7 @@ class DiscordRPC(
                 withTimeoutOrNull(2000L) { preloadImage(smallImageRpc) }
             } catch (ex: Exception) {
                 val msg = ex.message ?: ex.toString()
-                try { timber.log.Timber.w(ex, "Failed to preload small image: %s", msg) } catch (_: Exception) {}
+                try { Timber.w(ex, "Failed to preload small image: %s", msg) } catch (_: Exception) {}
                 try { moe.koiverse.archivetune.utils.GlobalLog.append(android.util.Log.WARN, "DiscordRPC", "Failed to preload small image: $msg\n${ex.stackTraceToString()}") } catch (_: Exception) {}
             }
         }
@@ -182,6 +182,7 @@ class DiscordRPC(
         val sendSmallText: String? = if (isPaused) context.getString(R.string.discord_paused) else song.artists.firstOrNull()?.name
 
         try {
+            Timber.d("DiscordRPC: isRpcRunning=%s", isRpcRunning())
             refreshRPC(
                 name = activityName.removeSuffix(" Debug"),
                 details = activityDetails,
@@ -220,7 +221,7 @@ class DiscordRPC(
             try {
                 val msg = ex.message ?: ex.toString()
                 val body = "refreshActivity failed: $msg\n${ex.stackTraceToString()}"
-                timber.log.Timber.e(ex, "DiscordRPC refresh failed: %s", msg)
+                Timber.e(ex, "DiscordRPC refresh failed: %s", msg)
                 moe.koiverse.archivetune.utils.GlobalLog.append(android.util.Log.ERROR, "DiscordRPC", body)
             } catch (_: Exception) {}
         }

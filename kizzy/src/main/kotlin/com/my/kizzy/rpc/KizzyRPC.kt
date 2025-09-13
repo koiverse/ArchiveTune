@@ -121,7 +121,15 @@ open class KizzyRPC(token: String) {
         status: String? = "online",
         since: Long? = null,
     ) {
-        if (!isRpcRunning()) discordWebSocket.connect()
+        if (!isRpcRunning()) {
+            Timber.d("DiscordRPC: trying to connect WebSocket with token=%s", token.take(8) + "…")
+            try {
+                discordWebSocket.connect()
+            } catch (ex: Exception) {
+                Timber.e(ex, "DiscordRPC: failed to connect WebSocket: %s", ex.message)
+                throw ex
+            }
+        }
         // Clear any previous presence briefly to avoid Discord reverting to an older presence
         try {
             flushPreviousPresence()

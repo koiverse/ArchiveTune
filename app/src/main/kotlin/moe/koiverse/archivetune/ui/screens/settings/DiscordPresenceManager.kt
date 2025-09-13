@@ -49,16 +49,26 @@ object DiscordPresenceManager {
 
         scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
         job = scope!!.launch {
-            while (isActive) {
-                try {
-                    val res = try { update(); true } catch (_: Exception) { false }
-                    Timber.d("DiscordPresenceManager: background update executed, success=%s", res)
-                } catch (_: Exception) {}
-                val delayMs = intervalProvider()
-                if (delayMs <= 0L) break
-                delay(delayMs)
+        while (isActive) {
+        try {
+            val res = try {
+                update()
+                Timber.d("DiscordPresenceManager: update succeeded")
+                true
+            } catch (ex: Exception) {
+                Timber.e(ex, "DiscordPresenceManager: update failed")
+                false
             }
+            Timber.d("DiscordPresenceManager: background update executed, success=%s", res)
+        } catch (ex: Exception) {
+            Timber.e(ex, "DiscordPresenceManager: loop error %s", ex.message)
         }
+        val delayMs = intervalProvider()
+        if (delayMs <= 0L) break
+        delay(delayMs)
+        }
+    }
+
 
         // Keep it running while the process is alive; observe lifecycle to stop if the process is destroyed
         lifecycleObserver = LifecycleEventObserver { source, event ->
@@ -72,14 +82,18 @@ object DiscordPresenceManager {
     /** Run update immediately. */
     /** Run update immediately and return true on success, false on failure. */
     suspend fun updateNow(update: suspend () -> Boolean): Boolean {
-        return withContext(Dispatchers.IO) {
-            try {
-                update()
-            } catch (_: Exception) {
-                false
-            }
+    return withContext(Dispatchers.IO) {
+        try {
+            val result = update()
+            Timber.d("DiscordPresenceManager: updateNow succeeded=%s", result)
+            result
+        } catch (ex: Exception) {
+            Timber.e(ex, "DiscordPresenceManager: updateNow failed")
+            false
         }
     }
+}
+
 
     /** Stop the manager. */
     fun stop() {
