@@ -12,7 +12,7 @@ import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.statement.bodyAsText
 import org.json.JSONObject
-import moe.koiverse.archivetune.utils.GlobalLog
+import java.util.logging.Logger
 
 /**
  * Modified by Koiverse
@@ -22,6 +22,7 @@ open class KizzyRPC(private val token: String) {
     private val discordWebSocket = DiscordWebSocket(token)
     private var platform: String? = null
     private val logTag = "RPC"
+    private val logger = Logger.getLogger("MainRPC")
 
     fun closeRPC() = discordWebSocket.close()
 
@@ -125,12 +126,12 @@ open class KizzyRPC(private val token: String) {
     ) {
         if (!isRpcRunning()) {
             val shortToken = try { token.take(8) + "…" } catch (_: Exception) { "(token)" }
-            GlobalLog.append(android.util.Log.DEBUG, logTag, "trying to connect WebSocket with token=$shortToken")
+            logger.fine("trying to connect WebSocket with token=$shortToken")
             try {
                 discordWebSocket.connect()
             } catch (ex: Exception) {
                 val msg = ex.message ?: ex.toString()
-                GlobalLog.append(android.util.Log.ERROR, logTag, "failed to connect WebSocket: $msg\n${ex.stackTraceToString()}")
+                logger.severe("failed to connect WebSocket: $msg\n${ex.stackTraceToString()}")
                 throw ex
             }
         }
