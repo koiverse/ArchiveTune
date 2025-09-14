@@ -1,24 +1,28 @@
 package moe.koiverse.archivetune.ui.screens.settings
 
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.ProcessLifecycleOwner
+import android.content.Context
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import java.util.concurrent.atomic.AtomicBoolean
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.ProcessLifecycleOwner
+import moe.koiverse.archivetune.db.entities.Song
+import moe.koiverse.archivetune.utils.DiscordRPC
 import timber.log.Timber
+import java.util.concurrent.atomic.AtomicBoolean
 
 /**
- * A global presence manager that runs outside of any single composable. It is resilient across
- * configuration changes because it is tied to the application process lifecycle and runs on a
- * process-wide CoroutineScope.
+ * A global presence manager that runs outside of any single composable.
+ * It is resilient across configuration changes because it is tied to the
+ * application process lifecycle and runs on a process-wide CoroutineScope.
  */
 object DiscordPresenceManager {
     private val started = AtomicBoolean(false)
     private var scope: CoroutineScope? = null
     private var job: Job? = null
     private var lifecycleObserver: LifecycleEventObserver? = null
+
     // Last successful RPC timestamps (nullable). Exposed as StateFlow so Compose can observe changes.
     private val _lastRpcStartTime = MutableStateFlow<Long?>(null)
     val lastRpcStartTimeFlow = _lastRpcStartTime.asStateFlow()
@@ -30,16 +34,41 @@ object DiscordPresenceManager {
 
     /** Public helper to update the last RPC timestamps from callers. */
     fun setLastRpcTimestamps(start: Long?, end: Long?) {
-        // emit into flows (thread-safe)
         _lastRpcStartTime.value = start
         _lastRpcEndTime.value = end
     }
 
+    /**
+     * Convenience: immediately update Discord presence with a song.
+     */
+    suspend fun updateSongNow(
+        context: Context,
+        token: String,
+        song: Song?,
+        positionMs: Long,
+        isPaused: Boolean
+    ): Boolean {
+        return withContext(Dispatchers.IO) {
+            try {
+                if (token.isNotBlank() && song != null) {
+                    val rpc = DiscordRPC(context, token)
+                    rpc.updateSong(song, positionMs, isPaused).getOrThrow()
+                    Timber.d("DiscordPresenceManager: updateSongNow success (song=%s, paused=%s)", song.song.title, isPaused)
+                    true
+                } else {
+                    Timber.w("DiscordPresenceManager: updateSongNow skipped (token or song missing)")
+                    false
+                }
+            } catch (ex: Exception) {
+                Timber.e(ex, "DiscordPresenceManager: updateSongNow failed")
+                false
+            }
+        }
+    }
 
     /**
-     * Start the manager if not already started. The update callback is invoked on Dispatchers.IO.
-     * intervalProvider returns milliseconds to wait between updates. If it returns <=0, the loop
-     * stops.
+     * Start the manager if not already started.
+     * The update callback is invoked on Dispatchers.IO.
      */
     fun start(
         update: suspend () -> Unit,
@@ -49,60 +78,54 @@ object DiscordPresenceManager {
 
         scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
         job = scope!!.launch {
-        while (isActive) {
-        try {
-            val res = try {
-                update()
-                Timber.d("DiscordPresenceManager: update succeeded")
-                true
-            } catch (ex: Exception) {
-                Timber.e(ex, "DiscordPresenceManager: update failed")
-                false
+            while (isActive) {
+                try {
+                    val res = try {
+                        update()
+                        Timber.d("DiscordPresenceManager: update succeeded")
+                        true
+                    } catch (ex: Exception) {
+                        Timber.e(ex, "DiscordPresenceManager: update failed")
+                        false
+                    }
+                    Timber.d("DiscordPresenceManager: background update executed, success=%s", res)
+                } catch (ex: Exception) {
+                    Timber.e(ex, "DiscordPresenceManager: loop error %s", ex.message)
+                }
+                val delayMs = intervalProvider()
+                if (delayMs <= 0L) break
+                delay(delayMs)
             }
-            Timber.d("DiscordPresenceManager: background update executed, success=%s", res)
-        } catch (ex: Exception) {
-            Timber.e(ex, "DiscordPresenceManager: loop error %s", ex.message)
         }
-        val delayMs = intervalProvider()
-        if (delayMs <= 0L) break
-        delay(delayMs)
-        }
-    }
 
-
-        // Keep it running while the process is alive; observe lifecycle to stop if the process is destroyed
-        lifecycleObserver = LifecycleEventObserver { source, event ->
-            if (event == Lifecycle.Event.ON_DESTROY) {
-                stop()
-            }
+        lifecycleObserver = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_DESTROY) stop()
         }
         ProcessLifecycleOwner.get().lifecycle.addObserver(lifecycleObserver!!)
     }
 
-    /** Run update immediately. */
     /** Run update immediately and return true on success, false on failure. */
     suspend fun updateNow(update: suspend () -> Boolean): Boolean {
-    return withContext(Dispatchers.IO) {
-        try {
-            val result = update()
-            Timber.d("DiscordPresenceManager: updateNow succeeded=%s", result)
-            result
-        } catch (ex: Exception) {
-            Timber.e(ex, "DiscordPresenceManager: updateNow failed")
-            false
+        return withContext(Dispatchers.IO) {
+            try {
+                val result = update()
+                Timber.d("DiscordPresenceManager: updateNow succeeded=%s", result)
+                result
+            } catch (ex: Exception) {
+                Timber.e(ex, "DiscordPresenceManager: updateNow failed")
+                false
+            }
         }
     }
-}
-
 
     /** Stop the manager. */
     fun stop() {
         if (!started.getAndSet(false)) return
-    job?.cancel()
+        job?.cancel()
         job = null
         scope?.cancel()
         scope = null
-    lifecycleObserver?.let { ProcessLifecycleOwner.get().lifecycle.removeObserver(it) }
+        lifecycleObserver?.let { ProcessLifecycleOwner.get().lifecycle.removeObserver(it) }
         lifecycleObserver = null
     }
 

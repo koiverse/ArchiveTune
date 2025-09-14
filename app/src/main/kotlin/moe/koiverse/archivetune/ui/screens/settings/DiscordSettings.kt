@@ -279,71 +279,49 @@ fun DiscordSettings(
         
     var isRefreshing by remember { mutableStateOf(false) }
         PreferenceEntry(
-            title = { Text(stringResource(R.string.refresh)) },
-            description = stringResource(R.string.description_refresh),
-            icon = { Icon(painterResource(R.drawable.update), null) },
-            isEnabled = isLoggedIn,
-            trailingContent = {
-                if (isRefreshing) {
-                    // small indeterminate indicator while refreshing
-                    CircularProgressIndicator(modifier = Modifier.size(28.dp), strokeWidth = 2.dp)
-                } else {
-                    OutlinedButton(onClick = {
-                        coroutineScope.launch {
-                            // show spinner immediately
-                            isRefreshing = true
-                            val start = System.currentTimeMillis()
-                            var success = false
-                            try {
-                                success = DiscordPresenceManager.updateNow {
-                                    // reuse same inline update body to ensure identical behavior
-                                    try {
-                                        val rpc = DiscordRPC(context, discordToken)
-                                        val currentSong = song
-                                        val now = System.currentTimeMillis()
+    title = { Text(stringResource(R.string.refresh)) },
+    description = stringResource(R.string.description_refresh),
+    icon = { Icon(painterResource(R.drawable.update), null) },
+    isEnabled = isLoggedIn,
+    trailingContent = {
+        if (isRefreshing) {
+            // show spinner while refreshing
+            CircularProgressIndicator(
+                modifier = Modifier.size(28.dp),
+                strokeWidth = 2.dp
+            )
+        } else {
+            OutlinedButton(onClick = {
+                coroutineScope.launch {
+                    isRefreshing = true
+                    val start = System.currentTimeMillis()
+                    val success = DiscordPresenceManager.updateSongNow(
+                        context = context,
+                        token = discordToken,
+                        song = song,
+                        positionMs = playerConnection.player.currentPosition,
+                        isPaused = !(playerConnection.player.playWhenReady &&
+                                playerConnection.player.playbackState == STATE_READY)
+                    )
+                    // ensure spinner shows at least 700ms
+                    val elapsed = System.currentTimeMillis() - start
+                    if (elapsed < 700) delay(700 - elapsed)
+                    isRefreshing = false
 
-                                        val rpcEndReached = lastRpcEndTime?.let { now >= it - 250 } ?: false
-                                        val playerIsPlaying = playerConnection.player.playWhenReady && playerConnection.player.playbackState == STATE_READY
-                                        val playerIsPaused = !playerIsPlaying
-
-                                        if (rpcEndReached && !playerIsPlaying) {
-                                            try { rpc.stopActivity() } catch (_: Exception) {}
-                                            try { rpc.closeRPC() } catch (_: Exception) {}
-                                            false
-                                        } else if (currentSong != null) {
-                                            val calculatedStartTime = now - playerConnection.player.currentPosition
-                                            val calculatedEndTime = calculatedStartTime + currentSong.song.duration * 1000L
-
-                                            // attempt refresh via helper (with logging on failure)
-                                            val refreshed = rpc.refreshActivity(currentSong, playerConnection.player.currentPosition, isPaused = playerIsPaused).isSuccess
-                                            if (refreshed) {
-                                                DiscordPresenceManager.setLastRpcTimestamps(calculatedStartTime, calculatedEndTime)
-                                            }
-                                            refreshed
-                                        } else {
-                                            false
-                                        }
-                                    } catch (_: Exception) { false }
-                                }
-                            } catch (_: Exception) {
-                                success = false
-                            } finally {
-                                // ensure the spinner is visible at least 700ms so the user sees it
-                                val elapsed = System.currentTimeMillis() - start
-                                if (elapsed < 700) delay(700 - elapsed)
-                                isRefreshing = false
-                                // show result snackbar
-                                coroutineScope.launch(Dispatchers.Main) {
-                                    if (success) snackbarHostState.showSnackbar("Refreshed!") else snackbarHostState.showSnackbar("Refresh failed")
-                                }
-                            }
+                    coroutineScope.launch(Dispatchers.Main) {
+                        if (success) {
+                            snackbarHostState.showSnackbar("Refreshed!")
+                        } else {
+                            snackbarHostState.showSnackbar("Refresh failed")
                         }
-                    }) {
-                        Text(stringResource(R.string.refresh))
                     }
                 }
+            }) {
+                Text(stringResource(R.string.refresh))
             }
-        )
+        }
+    }
+)
 
         // Status discord
         val activityStatus = listOf("online", "dnd", "idle", "streaming")
