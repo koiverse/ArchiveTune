@@ -96,64 +96,66 @@ object DiscordPresenceManager {
     /**
      * Start background updater.
      */
-fun start(
-    context: Context,
-    token: String,
-    songProvider: () -> Song?,
-    positionProvider: () -> Long,
-    isPausedProvider: () -> Boolean,
-    intervalProvider: () -> Long
-) {
-    if (started.getAndSet(true)) return // <-- ensure only one job runs
-    scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-    job = scope!!.launch {
-        while (isActive) {
-            try {
-                val song = songProvider()
-                val position = positionProvider()
-                val isPaused = isPausedProvider()
+    fun start(
+        context: Context,
+        token: String,
+        songProvider: () -> Song?,
+        positionProvider: () -> Long,
+        isPausedProvider: () -> Boolean,
+        intervalProvider: () -> Long
+    ) {
+        if (started.getAndSet(true)) return // <-- ensure only one job runs
+        scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+        job = scope!!.launch {
+            while (isActive) {
+                try {
+                    val song = songProvider()
+                    val position = positionProvider()
+                    val isPaused = isPausedProvider()
 
-                val success = updatePresence(
-                    context = context,
-                    token = token,
-                    song = song,
-                    positionMs = position,
-                    isPaused = isPaused
-                )
-                Timber.d("DiscordPresenceManager: background update executed, success=$success")
-            } catch (ex: Exception) {
-                Timber.e(ex, "DiscordPresenceManager: loop error")
+                    val success = updatePresence(
+                        context = context,
+                        token = token,
+                        song = song,
+                        positionMs = position,
+                        isPaused = isPaused
+                    )
+                    Timber.d("DiscordPresenceManager: background update executed, success=$success")
+                } catch (e: CancellationException) {
+                    Timber.d("DiscordPresenceManager: updater cancelled")
+                    break
+                } catch (e: Exception) {
+                    // log reason clearly
+                    Timber.e(e, "DiscordPresenceManager: loop error → ${e.message}")
+                }
+
+                val delayMs = intervalProvider()
+                if (delayMs <= 0L) break
+                delay(delayMs)
             }
-
-            val delayMs = intervalProvider()
-            if (delayMs <= 0L) break
-            delay(delayMs)
         }
-    }
-    lifecycleObserver = LifecycleEventObserver { _, event ->
-        if (event == Lifecycle.Event.ON_DESTROY) {
-            stop()
+        lifecycleObserver = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_DESTROY) {
+                stop()
+            }
         }
+        ProcessLifecycleOwner.get().lifecycle.addObserver(lifecycleObserver!!)
     }
-    ProcessLifecycleOwner.get().lifecycle.addObserver(lifecycleObserver!!)
-}
 
-
-
-/** Run update immediately. */
-suspend fun updateNow(
-    context: Context,
-    token: String,
-    song: Song?,
-    positionMs: Long,
-    isPaused: Boolean
-): Boolean = updatePresence(
-    context = context,
-    token = token,
-    song = song,
-    positionMs = positionMs,
-    isPaused = isPaused
-)
+    /** Run update immediately. */
+    suspend fun updateNow(
+        context: Context,
+        token: String,
+        song: Song?,
+        positionMs: Long,
+        isPaused: Boolean
+    ): Boolean = updatePresence(
+        context = context,
+        token = token,
+        song = song,
+        positionMs = positionMs,
+        isPaused = isPaused
+    )
 
     /** Stop the manager. */
     fun stop() {
