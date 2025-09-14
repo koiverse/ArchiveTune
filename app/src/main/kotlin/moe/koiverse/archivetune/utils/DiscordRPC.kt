@@ -76,10 +76,10 @@ class DiscordRPC(
 
     val buttons = mutableListOf<Pair<String, String>>()
     if (button1Enabled && button1Label.isNotBlank() && !resolvedButton1Url.isNullOrBlank()) {
-        buttons.add(button1Label to resolvedButton1Url)
+    buttons.add(button1Label to resolvedButton1Url)
     }
     if (button2Enabled && button2Label.isNotBlank() && !resolvedButton2Url.isNullOrBlank()) {
-        buttons.add(button2Label to resolvedButton2Url)
+    buttons.add(button2Label to resolvedButton2Url)
     }
 
     val activityTypePref = context.dataStore[DiscordActivityTypeKey] ?: "LISTENING"
@@ -138,9 +138,9 @@ class DiscordRPC(
         else -> song.song.albumName ?: song.album?.title
     }
 
-    // ✅ Only send app ID when using DiscordImage + buttons exist
-    val applicationIdToSend = if (buttons.isNotEmpty() &&
-        (largeImageRpc is RpcImage.DiscordImage || smallImageRpc is RpcImage.DiscordImage)
+    // ✅ Only send app ID when using DiscordImage
+    val applicationIdToSend = if (
+    (largeImageRpc is RpcImage.DiscordImage || smallImageRpc is RpcImage.DiscordImage)
     ) APPLICATION_ID else null
 
     val platformPref = context.dataStore[DiscordActivityPlatformKey] ?: "desktop"
@@ -159,7 +159,7 @@ class DiscordRPC(
     Timber.d("DiscordRPC: sending presence name=%s details=%s state=%s appId=%s buttons=%s",
         activityName, activityDetails, activityState, applicationIdToSend, buttons)
 
-    refreshRPC(
+    this.refreshRPC(
         name = activityName.removeSuffix(" Debug"),
         details = activityDetails,
         state = activityState,

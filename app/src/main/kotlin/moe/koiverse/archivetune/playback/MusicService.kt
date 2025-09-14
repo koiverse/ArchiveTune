@@ -406,35 +406,36 @@ class MusicService :
                     // continue even if the settings UI hasn't been opened.
                     try {
                         DiscordPresenceManager.start(
-                            update = {
-                                try {
-                                    val rpc = DiscordRPC(this@MusicService, key)
-                                    val currentSongLocal = currentSong.value
-                                    val now = System.currentTimeMillis()
+    update = {
+        try {
+            val rpc = DiscordPresenceManager.getOrCreateRpc(this@MusicService, key)
+            val currentSongLocal = currentSong.value
+            val now = System.currentTimeMillis()
 
-                                    val rpcEndReached = DiscordPresenceManager.lastRpcEndTime?.let { now >= it - 250 } ?: false
-                                    val playerIsPlaying = player.playWhenReady && player.playbackState == Player.STATE_READY
-                                    val playerIsPaused = !playerIsPlaying
+            val playerIsPlaying = player.playWhenReady && player.playbackState == Player.STATE_READY
+            val playerIsPaused = !playerIsPlaying
 
-                                    if (rpcEndReached && !playerIsPlaying) {
-                                        try { rpc.stopActivity() } catch (_: Exception) {}
-                                        try { rpc.closeRPC() } catch (_: Exception) {}
-                                    } else if (currentSongLocal != null) {
-                                        val playbackPos = player.currentPosition
-                                        val calculatedStartTime = now - playbackPos
-                                        val calculatedEndTime = calculatedStartTime + currentSongLocal.song.duration * 1000L
+            if (currentSongLocal != null) {
+                val refreshed = rpc.updateSong(
+                    song = currentSongLocal,
+                    currentPlaybackTimeMillis = player.currentPosition,
+                    isPaused = playerIsPaused
+                ).isSuccess
 
-                                        val refreshed = rpc.refreshActivity(currentSongLocal, playbackPos, isPaused = playerIsPaused).isSuccess
-                                        if (refreshed) {
-                                            DiscordPresenceManager.setLastRpcTimestamps(calculatedStartTime, calculatedEndTime)
-                                        }
-                                    }
-                                } catch (_: Exception) {
-                                    // ignore errors in background update
-                                }
-                            },
-                            intervalProvider = { getPresenceIntervalMillis(this@MusicService) }
-                        )
+                if (refreshed && playerIsPlaying) {
+                    val calculatedStartTime = now - player.currentPosition
+                    val calculatedEndTime = calculatedStartTime + currentSongLocal.song.duration * 1000L
+                    DiscordPresenceManager.setLastRpcTimestamps(calculatedStartTime, calculatedEndTime)
+                }
+            } else if (!playerIsPlaying) {
+                rpc.stopActivity()
+                rpc.closeRPC()
+            }
+        } catch (_: Exception) { }
+    },
+    intervalProvider = { getPresenceIntervalMillis(this@MusicService) }
+)
+
                     } catch (_: Exception) {
                         // ignore
                     }

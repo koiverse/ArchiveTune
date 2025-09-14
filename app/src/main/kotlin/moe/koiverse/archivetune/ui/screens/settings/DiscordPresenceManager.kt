@@ -22,6 +22,9 @@ object DiscordPresenceManager {
     private var scope: CoroutineScope? = null
     private var job: Job? = null
     private var lifecycleObserver: LifecycleEventObserver? = null
+    private var rpcInstance: DiscordRPC? = null
+    private var rpcToken: String? = null
+
 
     // Last successful RPC timestamps (nullable). Exposed as StateFlow so Compose can observe changes.
     private val _lastRpcStartTime = MutableStateFlow<Long?>(null)
@@ -38,33 +41,49 @@ object DiscordPresenceManager {
         _lastRpcEndTime.value = end
     }
 
+    private fun getOrCreateRpc(context: Context, token: String): DiscordRPC {
+    if (rpcInstance == null || rpcToken != token) {
+        rpcInstance?.closeRPC()
+        rpcInstance = DiscordRPC(context, token)
+        rpcToken = token
+    }
+    return rpcInstance!!
+}
+
+
     /**
      * Convenience: immediately update Discord presence with a song.
      */
-    suspend fun updateSongNow(
-        context: Context,
-        token: String,
-        song: Song?,
-        positionMs: Long,
-        isPaused: Boolean
-    ): Boolean {
-        return withContext(Dispatchers.IO) {
-            try {
-                if (token.isNotBlank() && song != null) {
-                    val rpc = DiscordRPC(context, token)
-                    rpc.updateSong(song, positionMs, isPaused).getOrThrow()
-                    Timber.d("DiscordPresenceManager: updateSongNow success (song=%s, paused=%s)", song.song.title, isPaused)
-                    true
-                } else {
-                    Timber.w("DiscordPresenceManager: updateSongNow skipped (token or song missing)")
-                    false
-                }
-            } catch (ex: Exception) {
-                Timber.e(ex, "DiscordPresenceManager: updateSongNow failed")
+suspend fun updateSongNow(
+    context: Context,
+    token: String,
+    song: Song?,
+    positionMs: Long,
+    isPaused: Boolean
+): Boolean {
+    return withContext(Dispatchers.IO) {
+        if (token.isBlank() || song == null) {
+            Timber.w("DiscordPresenceManager: updateSongNow skipped (token or song missing)")
+            return@withContext false
+        }
+
+        return@withContext try {
+            val rpc = getOrCreateRpc(context, token)
+            val result = rpc.updateSong(song, positionMs, isPaused)
+            if (result.isSuccess) {
+                Timber.d("DiscordPresenceManager: updateSongNow success (song=%s, paused=%s)", song.song.title, isPaused)
+                true
+            } else {
+                Timber.w("DiscordPresenceManager: updateSongNow failed silently")
                 false
             }
+        } catch (ex: Exception) {
+            Timber.e(ex, "DiscordPresenceManager: updateSongNow failed")
+            false
         }
     }
+}
+
 
     /**
      * Start the manager if not already started.
@@ -120,14 +139,20 @@ object DiscordPresenceManager {
 
     /** Stop the manager. */
     fun stop() {
-        if (!started.getAndSet(false)) return
-        job?.cancel()
-        job = null
-        scope?.cancel()
-        scope = null
-        lifecycleObserver?.let { ProcessLifecycleOwner.get().lifecycle.removeObserver(it) }
-        lifecycleObserver = null
-    }
+    if (!started.getAndSet(false)) return
+    job?.cancel()
+    job = null
+    scope?.cancel()
+    scope = null
+    lifecycleObserver?.let { ProcessLifecycleOwner.get().lifecycle.removeObserver(it) }
+    lifecycleObserver = null
+
+    rpcInstance?.closeRPC()
+    rpcInstance = null
+    rpcToken = null
+    Timber.d("DiscordPresenceManager: stopped")
+   }
+
 
     fun isRunning(): Boolean = started.get()
 }
