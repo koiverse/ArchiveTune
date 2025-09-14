@@ -82,6 +82,7 @@ val DiscordActivityButton2UrlSourceKey = stringPreferencesKey("discordActivityBu
 val DiscordActivityButton2CustomUrlKey = stringPreferencesKey("discordActivityButton2CustomUrl")
 val DiscordActivityButton1EnabledKey = booleanPreferencesKey("discordActivityButton1Enabled")
 val DiscordActivityButton2EnabledKey = booleanPreferencesKey("discordActivityButton2Enabled")
+val DiscordShowWhenPausedKey = booleanPreferencesKey("discordShowWhenPaused")
 // Activity type for Discord presence (PLAYING, STREAMING, LISTENING, WATCHING, COMPETING)
 val DiscordActivityTypeKey = stringPreferencesKey("discordActivityType")
 val DiscordPresenceIntervalValueKey = intPreferencesKey("discordPresenceIntervalValue")

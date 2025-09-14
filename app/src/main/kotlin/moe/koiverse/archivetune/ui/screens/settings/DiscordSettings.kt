@@ -61,7 +61,6 @@ fun DiscordSettings(
     val playerConnection = LocalPlayerConnection.current ?: return
     val song by playerConnection.currentSong.collectAsState(null)
     val playbackState by playerConnection.playbackState.collectAsState()
-    var showWhenPaused by remember { mutableStateOf(false) }
     var position by rememberSaveable(playbackState) {
         mutableLongStateOf(playerConnection.player.currentPosition)
     }
@@ -711,6 +710,12 @@ if (intervalSelection == "Custom") {
         )
     }
 }
+
+        var showWhenPaused by rememberPreference(
+        key = DiscordShowWhenPausedKey,
+        defaultValue = false
+        )
+
         SwitchPreference(
             title = { Text(stringResource(R.string.discord_show_when_paused)) },
             description = stringResource(R.string.discord_show_when_paused_desc),
@@ -1268,11 +1273,13 @@ fun RichPresence(
 }
 
 @Composable
-fun SongProgressBar(currentTimeMillis: Long, durationMillis: Long, isPlaying: Boolean = false) {
-    // Keep an internal displayedTime that advances while playing so the preview progress animates.
+fun SongProgressBar(
+    currentTimeMillis: Long,
+    durationMillis: Long,
+    isPlaying: Boolean = false
+) {
     var displayedTime by remember { mutableStateOf(currentTimeMillis) }
 
-    // If playback is running, advance displayedTime with a simple ticker.
     LaunchedEffect(isPlaying, currentTimeMillis) {
         displayedTime = currentTimeMillis
         if (isPlaying) {
@@ -1292,14 +1299,17 @@ fun SongProgressBar(currentTimeMillis: Long, durationMillis: Long, isPlaying: Bo
         Spacer(modifier = Modifier.height(16.dp))
         LinearProgressIndicator(
             progress = progress,
-            modifier = Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp))
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(6.dp)
+                .clip(RoundedCornerShape(3.dp))
         )
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = makeTimeString(currentTimeMillis),
+                text = makeTimeString(displayedTime), // ✅ use displayedTime
                 modifier = Modifier.weight(1f),
                 textAlign = TextAlign.Start,
                 fontSize = 12.sp

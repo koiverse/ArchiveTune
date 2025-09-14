@@ -34,6 +34,13 @@ class DiscordRPC(
     val detailsPref = context.dataStore[DiscordActivityDetailsKey] ?: "SONG"
     val statePref = context.dataStore[DiscordActivityStateKey] ?: "ARTIST"
     val statusPref = context.dataStore[DiscordPresenceStatusKey] ?: "online"
+    val showWhenPaused = context.dataStore[DiscordShowWhenPausedKey] ?: false
+
+    if (isPaused && !showWhenPaused) {
+        Timber.d("DiscordRPC: paused and 'showWhenPaused' disabled → stopping activity")
+        stopActivity()
+        return@runCatching
+    }
 
     fun pickSourceValue(pref: String, song: Song?, default: String): String {
         return when (pref) {
