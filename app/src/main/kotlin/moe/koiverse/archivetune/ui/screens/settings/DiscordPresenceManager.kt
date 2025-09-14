@@ -104,27 +104,40 @@ fun start(
     isPausedProvider: () -> Boolean,
     intervalProvider: () -> Long
 ) {
-    stop() // stop previous job if running
-    scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
-    scope?.launch {
+    if (started.getAndSet(true)) return // <-- ensure only one job runs
+    scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    job = scope!!.launch {
         while (isActive) {
             try {
                 val song = songProvider()
                 val position = positionProvider()
                 val isPaused = isPausedProvider()
 
-                updatePresence(
+                val success = updatePresence(
                     context = context,
                     token = token,
                     song = song,
                     positionMs = position,
                     isPaused = isPaused
                 )
-            } catch (_: Exception) { }
-            delay(intervalProvider())
+                Timber.d("DiscordPresenceManager: background update executed, success=$success")
+            } catch (ex: Exception) {
+                Timber.e(ex, "DiscordPresenceManager: loop error")
+            }
+
+            val delayMs = intervalProvider()
+            if (delayMs <= 0L) break
+            delay(delayMs)
         }
     }
+    lifecycleObserver = LifecycleEventObserver { _, event ->
+        if (event == Lifecycle.Event.ON_DESTROY) {
+            stop()
+        }
+    }
+    ProcessLifecycleOwner.get().lifecycle.addObserver(lifecycleObserver!!)
 }
+
 
 
 /** Run update immediately. */
