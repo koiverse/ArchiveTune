@@ -325,7 +325,7 @@ fun ArtistScreen(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     // Subscribe Button
-                                    OutlinedButton(
+                                    Button(
                                         onClick = {
                                             database.transaction {
                                                 val artist = libraryArtist?.artist
