@@ -281,7 +281,7 @@ fun DiscordSettings(
     title = { Text(stringResource(R.string.refresh)) },
     description = stringResource(R.string.description_refresh),
     icon = { Icon(painterResource(R.drawable.update), null) },
-    isEnabled = isLoggedIn,
+    isEnabled = discordRPC,
     trailingContent = {
         if (isRefreshing) {
             // show spinner while refreshing
