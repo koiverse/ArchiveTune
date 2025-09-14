@@ -64,7 +64,7 @@ fun AboutScreen(
         TeamMember(
             avatarUrl = "https://avatar-api.koiisannn.cloud/discord/avatar/886971572668219392",
             name = "Koiverse",
-            position = "Developer",
+            position = "always on mode UwU",
             profileUrl = "https://github.com/koiverse"
         )
     )

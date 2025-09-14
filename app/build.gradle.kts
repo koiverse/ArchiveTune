@@ -215,7 +215,6 @@ dependencies {
     implementation(libs.timber)
     // Ensure ProcessLifecycleOwner is available for the presence manager and CI unit tests
     implementation("androidx.lifecycle:lifecycle-process:2.6.2")
-    implementation("io.coil-kt.coil3:coil-compose:3.3.0")
 }
 
 kapt {
