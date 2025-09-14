@@ -127,18 +127,20 @@ fun start(
 }
 
 
-    /** Run update immediately. */
-    suspend fun updateNow(
-        context: Context,
-        token: String,
-        state: PlayerState
-    ): Boolean = updatePresence(
-        context = context,
-        token = token,
-        song = state.song,
-        positionMs = state.positionMs,
-        isPaused = state.isPaused
-    )
+/** Run update immediately. */
+suspend fun updateNow(
+    context: Context,
+    token: String,
+    song: Song?,
+    positionMs: Long,
+    isPaused: Boolean
+): Boolean = updatePresence(
+    context = context,
+    token = token,
+    song = song,
+    positionMs = positionMs,
+    isPaused = isPaused
+)
 
     /** Stop the manager. */
     fun stop() {
