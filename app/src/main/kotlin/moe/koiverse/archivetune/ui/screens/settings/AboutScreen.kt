@@ -199,13 +199,6 @@ fun AboutScreen(
 
         Spacer(Modifier.height(8.dp))
 
-        Text(
-            text = "Team",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(bottom = 8.dp)
-        )
-
         Column(
             verticalArrangement = Arrangement.spacedBy(12.dp),
             modifier = Modifier.fillMaxWidth(0.9f)
@@ -224,7 +217,7 @@ fun AboutScreen(
                         model = member.avatarUrl,
                         contentDescription = member.name,
                         modifier = Modifier
-                            .size(48.dp)
+                            .size(55.dp)
                             .clip(CircleShape)
                             .background(MaterialTheme.colorScheme.surfaceVariant)
                     )
