@@ -19,6 +19,7 @@ object DiscordPresenceManager {
     private var lifecycleObserver: LifecycleEventObserver? = null
     private var rpcInstance: DiscordRPC? = null
     private var rpcToken: String? = null
+    private val logTag = "DiscordPresenceManager"
 
     // Last successful RPC timestamps (nullable). Exposed as StateFlow so Compose can observe changes.
     private val _lastRpcStartTime = MutableStateFlow<Long?>(null)
@@ -56,22 +57,22 @@ object DiscordPresenceManager {
     ): Boolean = withContext(Dispatchers.IO) {
         try {
             if (token.isBlank()) {
-                Timber.w("DiscordPresenceManager: updatePresence skipped (token missing)")
+                Timber.tag(logTag).w("updatePresence skipped (token missing)")
                 return@withContext false
             }
 
             if (song == null) {
                 val rpc = getOrCreateRpc(context, token)
                 rpc.stopActivity()
-                Timber.d("DiscordPresenceManager: cleared presence (no song)")
+                Timber.tag(logTag).d("cleared presence (no song)")
                 return@withContext true
             }
 
             val rpc = getOrCreateRpc(context, token)
             val result = rpc.updateSong(song, positionMs, isPaused)
             if (result.isSuccess) {
-                Timber.d(
-                    "DiscordPresenceManager: updatePresence success (song=%s, paused=%s)",
+                Timber.tag(logTag).d(
+                    "updatePresence success (song=%s, paused=%s)",
                     song.song.title,
                     isPaused
                 )
@@ -84,11 +85,11 @@ object DiscordPresenceManager {
                 }
                 true
             } else {
-                Timber.w("DiscordPresenceManager: updatePresence failed silently")
+                Timber.tag(logTag).w("updatePresence failed silently")
                 false
             }
         } catch (ex: Exception) {
-            Timber.e(ex, "DiscordPresenceManager: updatePresence failed")
+            Timber.tag(logTag).e(ex, "updatePresence failed")
             false
         }
     }
@@ -107,33 +108,34 @@ object DiscordPresenceManager {
         if (started.getAndSet(true)) return // <-- ensure only one job runs
         scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
         job = scope!!.launch {
-            while (isActive) {
-                try {
-                    val song = songProvider()
-                    val position = positionProvider()
-                    val isPaused = isPausedProvider()
-
-                    val success = updatePresence(
-                        context = context,
-                        token = token,
-                        song = song,
-                        positionMs = position,
-                        isPaused = isPaused
-                    )
-                    Timber.d("DiscordPresenceManager: background update executed, success=$success")
-                } catch (e: CancellationException) {
-                    Timber.d("DiscordPresenceManager: updater cancelled")
-                    break
-                } catch (e: Exception) {
-                    // log reason clearly
-                    Timber.e(e, "DiscordPresenceManager: loop error → ${e.message}")
-                }
-
-                val delayMs = intervalProvider()
-                if (delayMs <= 0L) break
-                delay(delayMs)
+        while (isActive) {
+        try {
+            // switch to Main for player access
+            val (song, position, isPaused) = withContext(Dispatchers.Main) {
+                Triple(songProvider(), positionProvider(), isPausedProvider())
             }
+
+            val success = updatePresence(
+                context = context,
+                token = token,
+                song = song,
+                positionMs = position,
+                isPaused = isPaused
+            )
+            Timber.tag(logTag).d("background update executed, success=$success")
+        } catch (e: CancellationException) {
+            Timber.tag(logTag).d("updater cancelled")
+            break
+        } catch (e: Exception) {
+            Timber.tag(logTag).e(e, "loop error → ${e.message}")
         }
+
+        val delayMs = intervalProvider()
+        if (delayMs <= 0L) break
+        delay(delayMs)
+    }
+}
+
         lifecycleObserver = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_DESTROY) {
                 stop()
@@ -170,7 +172,7 @@ object DiscordPresenceManager {
         rpcInstance?.closeRPC()
         rpcInstance = null
         rpcToken = null
-        Timber.d("DiscordPresenceManager: stopped")
+        Timber.tag(logTag).d("stopped")
     }
 
     fun isRunning(): Boolean = started.get()
