@@ -41,14 +41,14 @@ object DiscordPresenceManager {
         _lastRpcEndTime.value = end
     }
 
-    private fun getOrCreateRpc(context: Context, token: String): DiscordRPC {
+    fun getOrCreateRpc(context: Context, token: String): DiscordRPC {
     if (rpcInstance == null || rpcToken != token) {
         rpcInstance?.closeRPC()
         rpcInstance = DiscordRPC(context, token)
         rpcToken = token
     }
     return rpcInstance!!
-}
+  }
 
 
     /**
