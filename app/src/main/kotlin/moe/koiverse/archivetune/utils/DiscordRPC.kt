@@ -81,13 +81,29 @@ class DiscordRPC(
     val resolvedButton1Url = resolveUrl(button1UrlSource, song, button1CustomUrl)
     val resolvedButton2Url = resolveUrl(button2UrlSource, song, button2CustomUrl)
 
+
     val buttons = mutableListOf<Pair<String, String>>()
-    if (button1Enabled && button1Label.isNotBlank() && !resolvedButton1Url.isNullOrBlank()) {
-    buttons.add(button1Label to resolvedButton1Url)
-    }
-    if (button2Enabled && button2Label.isNotBlank() && !resolvedButton2Url.isNullOrBlank()) {
-    buttons.add(button2Label to resolvedButton2Url)
-    }
+    if (button1Enabled) {
+    if (button1Label.isNotBlank() && !resolvedButton1Url.isNullOrBlank()) {
+        buttons.add(button1Label to resolvedButton1Url)
+      } else {
+        Timber.d("DiscordRPC: Button 1 skipped (missing label or URL)")
+      }
+   }
+
+    if (button2Enabled) {
+    if (button2Label.isNotBlank() && !resolvedButton2Url.isNullOrBlank()) {
+        buttons.add(button2Label to resolvedButton2Url)
+      } else {
+        Timber.d("DiscordRPC: Button 2 skipped (missing label or URL)")
+      }
+   }
+
+    val finalButtons = when {
+    buttons.isEmpty() -> emptyList()   // no buttons
+    buttons.size == 1 -> listOf(buttons.first()) // one button
+    else -> listOf(buttons[0], buttons[1])       // max two buttons
+   }
 
     val activityTypePref = context.dataStore[DiscordActivityTypeKey] ?: "LISTENING"
     val resolvedType = when (activityTypePref.uppercase()) {
@@ -172,7 +188,7 @@ class DiscordRPC(
         smallImage = smallImageRpc,
         largeText = resolvedLargeText,
         smallText = sendSmallText,
-        buttons = buttons,
+        buttons = finalButtons,
         type = resolvedType,
         statusDisplayType = StatusDisplayType.STATE,
         since = sendSince,
