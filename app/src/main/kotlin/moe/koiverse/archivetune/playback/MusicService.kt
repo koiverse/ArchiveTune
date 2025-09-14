@@ -402,43 +402,22 @@ class MusicService :
                         }
                     }
 
-                    // Ensure the process-wide background manager is running so presence updates
-                    // continue even if the settings UI hasn't been opened.
-                    try {
-                        DiscordPresenceManager.start(
-    update = {
-        try {
-            val rpc = DiscordPresenceManager.getOrCreateRpc(this@MusicService, key)
-            val currentSongLocal = currentSong.value
-            val now = System.currentTimeMillis()
 
-            val playerIsPlaying = player.playWhenReady && player.playbackState == Player.STATE_READY
-            val playerIsPaused = !playerIsPlaying
-
-            if (currentSongLocal != null) {
-                val refreshed = rpc.updateSong(
-                    song = currentSongLocal,
-                    currentPlaybackTimeMillis = player.currentPosition,
-                    isPaused = playerIsPaused
-                ).isSuccess
-
-                if (refreshed && playerIsPlaying) {
-                    val calculatedStartTime = now - player.currentPosition
-                    val calculatedEndTime = calculatedStartTime + currentSongLocal.song.duration * 1000L
-                    DiscordPresenceManager.setLastRpcTimestamps(calculatedStartTime, calculatedEndTime)
-                }
-            } else if (!playerIsPlaying) {
-                rpc.stopActivity()
-                rpc.closeRPC()
-            }
-        } catch (_: Exception) { }
-    },
-    intervalProvider = { getPresenceIntervalMillis(this@MusicService) }
-)
-
-                    } catch (_: Exception) {
-                        // ignore
-                    }
+// Ensure the process-wide background manager is running so presence updates
+// continue even if the settings UI hasn't been opened.
+   try {
+    DiscordPresenceManager.start(
+        context = this@MusicService,
+        token = key,
+        songProvider = { currentSong.value },
+        positionProvider = { player.currentPosition },
+        isPausedProvider = {
+            val isPlaying = player.playWhenReady && player.playbackState == Player.STATE_READY
+            !isPlaying
+               },
+                  intervalProvider = { getPresenceIntervalMillis(this@MusicService) }
+              )
+               } catch (_: Exception) { }
                 } else {
                     // stop background manager when token removed or RPC disabled
                     try { DiscordPresenceManager.stop() } catch (_: Exception) {}
