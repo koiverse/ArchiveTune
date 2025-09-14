@@ -96,40 +96,36 @@ object DiscordPresenceManager {
     /**
      * Start background updater.
      */
-    fun start(
-        context: Context,
-        token: String,
-        songProvider: () -> Song?,
-        positionProvider: () -> Long,
-        isPausedProvider: () -> Boolean,
-        intervalProvider: () -> Long
-    ) {
-        if (started.getAndSet(true)) return
+fun start(
+    context: Context,
+    token: String,
+    songProvider: () -> Song?,
+    positionProvider: () -> Long,
+    isPausedProvider: () -> Boolean,
+    intervalProvider: () -> Long
+) {
+    stop() // stop previous job if running
+    scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+    scope?.launch {
+        while (isActive) {
+            try {
+                val song = songProvider()
+                val position = positionProvider()
+                val isPaused = isPausedProvider()
 
-        scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-        job = scope!!.launch {
-            while (isActive) {
-                try {
-                    val song = songProvider()
-                    val pos = positionProvider()
-                    val paused = isPausedProvider()
-                    val success = updatePresence(context, token, song, pos, paused)
-                    Timber.d("DiscordPresenceManager: background update result=%s", success)
-                } catch (ex: Exception) {
-                    Timber.e(ex, "DiscordPresenceManager: loop error %s", ex.message)
-                }
-
-                val delayMs = intervalProvider()
-                if (delayMs <= 0L) break
-                delay(delayMs)
-            }
+                updatePresence(
+                    context = context,
+                    token = token,
+                    song = song,
+                    positionMs = position,
+                    isPaused = isPaused
+                )
+            } catch (_: Exception) { }
+            delay(intervalProvider())
         }
-
-        lifecycleObserver = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_DESTROY) stop()
-        }
-        ProcessLifecycleOwner.get().lifecycle.addObserver(lifecycleObserver!!)
     }
+}
+
 
     /** Run update immediately. */
     suspend fun updateNow(
