@@ -163,9 +163,6 @@ class DiscordRPC(
         else -> "online"
     }
 
-    Timber.d("DiscordRPC: sending presence name=%s details=%s state=%s appId=%s buttons=%s",
-        activityName, activityDetails, activityState, applicationIdToSend, buttons)
-
     this.refreshRPC(
         name = activityName.removeSuffix(" Debug"),
         details = activityDetails,
@@ -184,6 +181,9 @@ class DiscordRPC(
         applicationId = applicationIdToSend,
         status = safeStatus
     )
+
+    Timber.d("DiscordRPC: sending presence name=%s details=%s state=%s appId=%s buttons=%s",
+        activityName, activityDetails, activityState, applicationIdToSend, buttons)
 }
 
 

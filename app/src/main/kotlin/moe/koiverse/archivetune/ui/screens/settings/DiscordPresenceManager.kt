@@ -89,9 +89,14 @@ suspend fun updateSongNow(
      * Start the manager if not already started.
      * The update callback is invoked on Dispatchers.IO.
      */
-    fun start(
-        update: suspend () -> Unit,
-        intervalProvider: () -> Long
+fun start(
+    context: Context,
+    token: String,
+    songProvider: () -> Song?,     // pass in a lambda to get the current song
+    positionProvider: () -> Long,  // pass in a lambda to get current playback position
+    isPausedProvider: () -> Boolean, // pass in a lambda to know if playback is paused
+    update: suspend () -> Unit,
+    intervalProvider: () -> Long
     ) {
         if (started.getAndSet(true)) return
 
@@ -102,6 +107,17 @@ suspend fun updateSongNow(
                     val res = try {
                         update()
                         Timber.d("DiscordPresenceManager: update succeeded")
+
+                    val song = songProvider()
+                    val pos = positionProvider()
+                    val paused = isPausedProvider()
+
+                    if (song != null && token.isNotBlank()) {
+                        val success = updateSongNow(context, token, song, pos, paused)
+                        Timber.d("DiscordPresenceManager: updateSong result=%s", success)
+                    } else {
+                        Timber.w("DiscordPresenceManager: skipped updateSong (song or token missing)")
+                    }
                         true
                     } catch (ex: Exception) {
                         Timber.e(ex, "DiscordPresenceManager: update failed")
