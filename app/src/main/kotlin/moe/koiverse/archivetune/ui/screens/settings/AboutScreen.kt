@@ -40,7 +40,7 @@ import moe.koiverse.archivetune.BuildConfig
 import moe.koiverse.archivetune.LocalPlayerAwareWindowInsets
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.size
-import coil.compose.AsyncImage
+import coil3.compose.AsyncImage
 import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.ui.component.IconButton
 import moe.koiverse.archivetune.ui.utils.backToMain
