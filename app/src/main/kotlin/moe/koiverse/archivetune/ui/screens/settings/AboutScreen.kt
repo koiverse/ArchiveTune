@@ -38,9 +38,19 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import moe.koiverse.archivetune.BuildConfig
 import moe.koiverse.archivetune.LocalPlayerAwareWindowInsets
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.size
+import coil.compose.AsyncImage
 import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.ui.component.IconButton
 import moe.koiverse.archivetune.ui.utils.backToMain
+
+data class TeamMember(
+    val avatarUrl: String,
+    val name: String,
+    val position: String,
+    val profileUrl: String? = null
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -49,6 +59,16 @@ fun AboutScreen(
     scrollBehavior: TopAppBarScrollBehavior,
 ) {
     val uriHandler = LocalUriHandler.current
+
+    val teamMembers = listOf(
+        TeamMember(
+            avatarUrl = "https://avatar-api.koiisannn.cloud/discord/avatar/886971572668219392",
+            name = "Koiverse",
+            position = "Developer",
+            profileUrl = "https://github.com/koiverse"
+        )
+    )
+
 
     Column(
         modifier = Modifier
@@ -174,6 +194,55 @@ fun AboutScreen(
                     painter = painterResource(R.drawable.website),
                     contentDescription = null
                 )
+            }
+        }
+
+        Spacer(Modifier.height(8.dp))
+
+        Text(
+            text = "Team",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(bottom = 8.dp)
+        )
+
+        Column(
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.fillMaxWidth(0.9f)
+        ) {
+            teamMembers.forEach { member ->
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(enabled = member.profileUrl != null) {
+                            member.profileUrl?.let { uriHandler.openUri(it) }
+                        }
+                        .padding(vertical = 4.dp)
+                ) {
+                    AsyncImage(
+                        model = member.avatarUrl,
+                        contentDescription = member.name,
+                        modifier = Modifier
+                            .size(48.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                    )
+
+                    Spacer(Modifier.width(12.dp))
+
+                    Column {
+                        Text(
+                            text = member.name,
+                            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold)
+                        )
+                        Text(
+                            text = member.position,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.secondary
+                        )
+                    }
+                }
             }
         }
     }
