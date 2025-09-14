@@ -62,7 +62,7 @@ fun AboutScreen(
 
     val teamMembers = listOf(
         TeamMember(
-            avatarUrl = "https://avatar-api.koiisannn.cloud/discord/avatar/886971572668219392",
+            avatarUrl = "https://raw.githubusercontent.com/koiverse/ArchiveTune/refs/heads/main/fastlane/metadata/android/en-US/images/about/IMG_20250914_221508.jpg",
             name = "Koiverse",
             position = "always on mode UwU",
             profileUrl = "https://github.com/koiverse"
