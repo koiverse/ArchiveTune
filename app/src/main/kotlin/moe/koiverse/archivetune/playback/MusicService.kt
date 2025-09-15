@@ -236,6 +236,7 @@ class MusicService :
 
     override fun onCreate() {
         super.onCreate()
+        ensurePresenceManager()
         setMediaNotificationProvider(
             DefaultMediaNotificationProvider(
                 this,
@@ -398,31 +399,39 @@ class MusicService :
                     discordRpc = DiscordRPC(this, key)
                     if (player.playbackState == Player.STATE_READY && player.playWhenReady) {
                         currentSong.value?.let {
-                            try { discordRpc?.refreshActivity(it, player.currentPosition, isPaused = !player.playWhenReady) } catch (_: Exception) {}
+                            ensurePresenceManager()
                         }
                     }
 
 
-// Ensure the process-wide background manager is running so presence updates
-// continue even if the settings UI hasn't been opened.
-   try {
-    DiscordPresenceManager.start(
-        context = this@MusicService,
-        token = key,
-        songProvider = { currentSong.value },
-        positionProvider = { player.currentPosition },
-        isPausedProvider = {
-            val isPlaying = player.playWhenReady && player.playbackState == Player.STATE_READY
-            !isPlaying
-               },
-                  intervalProvider = { getPresenceIntervalMillis(this@MusicService) }
-              )
-               } catch (_: Exception) { }
-                } else {
-                    // stop background manager when token removed or RPC disabled
-                    try { DiscordPresenceManager.stop() } catch (_: Exception) {}
-                }
-            }
+   private fun ensurePresenceManager() {
+    val key = discordToken
+    if (key.isNullOrBlank()) {
+        Timber.tag("MusicService").d("No Discord token → stopping presence manager")
+        DiscordPresenceManager.stop()
+        return
+    }
+
+    try {
+        // Always restart with the latest providers
+        DiscordPresenceManager.stop()
+        DiscordPresenceManager.start(
+            context = this@MusicService,
+            token = key,
+            songProvider = { currentSong.value },
+            positionProvider = { player.currentPosition },
+            isPausedProvider = {
+                val isPlaying = player.playWhenReady && player.playbackState == Player.STATE_READY
+                !isPlaying
+            },
+            intervalProvider = { getPresenceIntervalMillis(this@MusicService) }
+        )
+        Timber.tag("MusicService").d("Presence manager started with token=$key")
+    } catch (ex: Exception) {
+        Timber.tag("MusicService").e(ex, "Failed to start presence manager")
+    }
+}
+    }
 
         if (dataStore.get(PersistentQueueKey, true)) {
             runCatching {
@@ -947,35 +956,6 @@ class MusicService :
         )
     }
 
-    private fun updateDiscordPresence(force: Boolean = false) {
-    val song = currentSong.value
-    if (song == null) {
-        scope.launch { discordRpc?.stopActivity() }
-        return
-    }
-
-    val intervalMillis = getPresenceIntervalMillis(this@MusicService)
-    val now = System.currentTimeMillis()
-
-    val shouldUpdate = when {
-        intervalMillis == 0L -> true // Disabled → always update
-        force -> true // Force update (transition, play/pause, destroy)
-        now - lastDiscordUpdateTime >= intervalMillis -> true
-        else -> false
-    }
-
-    scope.launch {
-        if (player.playbackState == Player.STATE_READY) {
-            if (shouldUpdate) {
-                discordRpc?.refreshActivity(song, player.currentPosition, isPaused = !player.playWhenReady)
-                lastDiscordUpdateTime = now
-            }
-        } else {
-            discordRpc?.stopActivity()
-        }
-    }
-}
-
     override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
     super.onMediaItemTransition(mediaItem, reason)
 
@@ -1000,7 +980,7 @@ class MusicService :
     if (dataStore.get(PersistentQueueKey, true)) {
         saveQueueToDisk()
     }
-    updateDiscordPresence(force = true)
+    ensurePresenceManager()
 }
 
     override fun onPlaybackStateChanged(@Player.State playbackState: Int) {
@@ -1009,7 +989,7 @@ class MusicService :
     if (dataStore.get(PersistentQueueKey, true)) {
         saveQueueToDisk()
     }
-    updateDiscordPresence(force = true)
+    ensurePresenceManager()
 }
 
 
@@ -1034,11 +1014,11 @@ class MusicService :
     }
 
    if (events.containsAny(Player.EVENT_IS_PLAYING_CHANGED)) {
-        updateDiscordPresence(force = true) // play/pause → force update
+        ensurePresenceManager()
     } else if (events.contains(Player.EVENT_MEDIA_ITEM_TRANSITION)) {
-        updateDiscordPresence(force = true) // new song → force update
+        ensurePresenceManager()
     } else {
-        updateDiscordPresence() // fallback heartbeat, respects interval
+        ensurePresenceManager()
     }
   }
 

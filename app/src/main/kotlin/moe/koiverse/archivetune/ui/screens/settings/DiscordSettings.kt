@@ -40,7 +40,6 @@ import moe.koiverse.archivetune.ui.component.IconButton
 import moe.koiverse.archivetune.ui.component.PreferenceEntry
 import moe.koiverse.archivetune.ui.component.PreferenceGroupTitle
 import moe.koiverse.archivetune.ui.component.SwitchPreference
-// debug UI moved into DebugSettings
 import moe.koiverse.archivetune.ui.utils.backToMain
 import moe.koiverse.archivetune.utils.makeTimeString
 import moe.koiverse.archivetune.utils.rememberEnumPreference
@@ -96,20 +95,22 @@ fun DiscordSettings(
 
 LaunchedEffect(discordToken, discordRPC) {
     if (discordRPC && discordToken.isNotBlank()) {
-        DiscordPresenceManager.start(
-            context = context,
-            token = discordToken,
-            songProvider = { song },
-            positionProvider = { playerConnection.player.currentPosition },
-            isPausedProvider = {
-                val isPlaying = playerConnection.player.playWhenReady &&
-                        playerConnection.player.playbackState == STATE_READY
-                !isPlaying
-            },
-            intervalProvider = { getPresenceIntervalMillis(context) }
-        )
+        Timber.tag("DiscordSettings").d("RPC enabled with token, MusicService will handle start")
+        // DiscordPresenceManager.start(
+        //     context = context,
+        //     token = discordToken,
+        //     songProvider = { song },
+        //     positionProvider = { playerConnection.player.currentPosition },
+        //     isPausedProvider = {
+        //         val isPlaying = playerConnection.player.playWhenReady &&
+        //                 playerConnection.player.playbackState == STATE_READY
+        //         !isPlaying
+        //     },
+        //     intervalProvider = { getPresenceIntervalMillis(context) }
+        // )
     } else {
         // user disabled RPC or cleared token -> ensure manager is stopped
+        Timber.tag("DiscordSettings").d("RPC disabled or no token, stopping manager")
         DiscordPresenceManager.stop()
     }
 }
