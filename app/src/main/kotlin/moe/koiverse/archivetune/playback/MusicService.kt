@@ -490,7 +490,6 @@ class MusicService :
 
     // if already running with same token, don't restart
     if (DiscordPresenceManager.isRunning() && lastPresenceToken == key) {
-        DiscordPresenceManager.update()
         return
     }
 
