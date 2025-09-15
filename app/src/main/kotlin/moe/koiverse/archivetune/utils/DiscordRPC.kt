@@ -19,7 +19,6 @@ class DiscordRPC(
         private const val APPLICATION_ID = "1165706613961789445"
         // Pause image URL (external). Replace with Discord asset key if available.
         private const val PAUSE_IMAGE_URL = "https://raw.githubusercontent.com/koiverse/ArchiveTune/main/fastlane/metadata/android/en-US/images/RPC/pause_icon.png"
-        private const val logTag = "DiscordRPC"
     }
 
     suspend fun updateSong(
@@ -38,7 +37,7 @@ class DiscordRPC(
     val showWhenPaused = context.dataStore[DiscordShowWhenPausedKey] ?: false
 
     if (isPaused && !showWhenPaused) {
-        Timber.tag(logtag).d("DiscordRPC: paused and 'showWhenPaused' disabled → stopping activity")
+        Timber.tag(logtag).d("paused and 'showWhenPaused' disabled → stopping activity")
         stopActivity()
         return@runCatching
     }
@@ -88,7 +87,7 @@ class DiscordRPC(
     if (button1Label.isNotBlank() && !resolvedButton1Url.isNullOrBlank()) {
         buttons.add(button1Label to resolvedButton1Url)
       } else {
-        Timber.tag(logtag).d("DiscordRPC: Button 1 skipped (missing label or URL)")
+        Timber.tag(logtag).d("Button 1 skipped (missing label or URL)")
       }
    }
 
@@ -96,7 +95,7 @@ class DiscordRPC(
     if (button2Label.isNotBlank() && !resolvedButton2Url.isNullOrBlank()) {
         buttons.add(button2Label to resolvedButton2Url)
       } else {
-        Timber.tag(logtag).d("DiscordRPC: Button 2 skipped (missing label or URL)")
+        Timber.tag(logtag).d("Button 2 skipped (missing label or URL)")
       }
    }
 
@@ -148,7 +147,7 @@ class DiscordRPC(
     val resolvedLargeImage = if (largeImageRpc != null) withTimeoutOrNull(2000L) { preloadImage(largeImageRpc) } else null
     val resolvedSmallImage = if (smallImageRpc != null) withTimeoutOrNull(2000L) { preloadImage(smallImageRpc) } else null
     if ((largeImageRpc != null && resolvedLargeImage == null) || (smallImageRpc != null && resolvedSmallImage == null)) {
-        Timber.w("DiscordRPC: Skipping presence update because images could not be resolved")
+        Timber.tag(logtag).w("Skipping presence update because images could not be resolved")
         return@runCatching
     }
 
@@ -199,7 +198,7 @@ class DiscordRPC(
         status = safeStatus
     )
 
-    Timber.tag(logtag).d("DiscordRPC: sending presence name=%s details=%s state=%s appId=%s buttons=%s",
+    Timber.tag(logtag).d("sending presence name=%s details=%s state=%s appId=%s buttons=%s",
         activityName, activityDetails, activityState, applicationIdToSend, buttons)
 }
 
