@@ -196,6 +196,7 @@ class MusicService :
 
     private var currentQueue: Queue = EmptyQueue
     var queueTitle: String? = null
+    private var lastPresenceToken: String? = null
 
     val currentMediaMetadata = MutableStateFlow<moe.koiverse.archivetune.models.MediaMetadata?>(null)
     private val currentSong =
@@ -483,6 +484,13 @@ class MusicService :
     if (key.isNullOrBlank()) {
         Timber.tag("MusicService").d("No Discord token → stopping presence manager")
         DiscordPresenceManager.stop()
+        lastPresenceToken = null
+        return
+    }
+
+    // if already running with same token, don't restart
+    if (DiscordPresenceManager.isRunning() && lastPresenceToken == key) {
+        DiscordPresenceManager.update()
         return
     }
 
@@ -500,6 +508,7 @@ class MusicService :
             intervalProvider = { getPresenceIntervalMillis(this@MusicService) }
         )
         Timber.tag("MusicService").d("Presence manager started with token=$key")
+        lastPresenceToken = key
     } catch (ex: Exception) {
         Timber.tag("MusicService").e(ex, "Failed to start presence manager")
     }
