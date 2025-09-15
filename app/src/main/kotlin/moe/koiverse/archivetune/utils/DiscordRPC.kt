@@ -29,6 +29,7 @@ class DiscordRPC(
 ) = runCatching {
     val currentTime = System.currentTimeMillis()
     val calculatedStartTime = currentTime - currentPlaybackTimeMillis
+    val logtag = "DiscordRPC"
 
     val namePref = context.dataStore[DiscordActivityNameKey] ?: "APP"
     val detailsPref = context.dataStore[DiscordActivityDetailsKey] ?: "SONG"
@@ -37,7 +38,7 @@ class DiscordRPC(
     val showWhenPaused = context.dataStore[DiscordShowWhenPausedKey] ?: false
 
     if (isPaused && !showWhenPaused) {
-        Timber.d("DiscordRPC: paused and 'showWhenPaused' disabled → stopping activity")
+        Timber.tag(logtag).d("DiscordRPC: paused and 'showWhenPaused' disabled → stopping activity")
         stopActivity()
         return@runCatching
     }
@@ -87,7 +88,7 @@ class DiscordRPC(
     if (button1Label.isNotBlank() && !resolvedButton1Url.isNullOrBlank()) {
         buttons.add(button1Label to resolvedButton1Url)
       } else {
-        Timber.d("DiscordRPC: Button 1 skipped (missing label or URL)")
+        Timber.tag(logtag).d("DiscordRPC: Button 1 skipped (missing label or URL)")
       }
    }
 
@@ -95,7 +96,7 @@ class DiscordRPC(
     if (button2Label.isNotBlank() && !resolvedButton2Url.isNullOrBlank()) {
         buttons.add(button2Label to resolvedButton2Url)
       } else {
-        Timber.d("DiscordRPC: Button 2 skipped (missing label or URL)")
+        Timber.tag(logtag).d("DiscordRPC: Button 2 skipped (missing label or URL)")
       }
    }
 
@@ -198,7 +199,7 @@ class DiscordRPC(
         status = safeStatus
     )
 
-    Timber.d("DiscordRPC: sending presence name=%s details=%s state=%s appId=%s buttons=%s",
+    Timber.tag(logtag).d("DiscordRPC: sending presence name=%s details=%s state=%s appId=%s buttons=%s",
         activityName, activityDetails, activityState, applicationIdToSend, buttons)
 }
 
