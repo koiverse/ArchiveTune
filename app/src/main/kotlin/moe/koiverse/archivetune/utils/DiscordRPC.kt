@@ -19,6 +19,7 @@ class DiscordRPC(
         private const val APPLICATION_ID = "1165706613961789445"
         // Pause image URL (external). Replace with Discord asset key if available.
         private const val PAUSE_IMAGE_URL = "https://raw.githubusercontent.com/koiverse/ArchiveTune/main/fastlane/metadata/android/en-US/images/RPC/pause_icon.png"
+        private const val logtag = "DiscordRPC"
     }
 
     suspend fun updateSong(
@@ -28,7 +29,6 @@ class DiscordRPC(
 ) = runCatching {
     val currentTime = System.currentTimeMillis()
     val calculatedStartTime = currentTime - currentPlaybackTimeMillis
-    val logtag = "DiscordRPC"
 
     val namePref = context.dataStore[DiscordActivityNameKey] ?: "APP"
     val detailsPref = context.dataStore[DiscordActivityDetailsKey] ?: "SONG"
