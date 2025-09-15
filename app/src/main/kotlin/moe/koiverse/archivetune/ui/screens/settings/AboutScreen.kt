@@ -199,46 +199,48 @@ fun AboutScreen(
 
         Spacer(Modifier.height(8.dp))
 
+       Column(
+       verticalArrangement = Arrangement.spacedBy(16.dp),
+       horizontalAlignment = Alignment.CenterHorizontally,
+       modifier = Modifier.fillMaxWidth()
+    ) {
+    teamMembers.forEach { member ->
         Column(
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-            modifier = Modifier.fillMaxWidth(0.9f)
-        ) {
-            teamMembers.forEach { member ->
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable(enabled = member.profileUrl != null) {
-                            member.profileUrl?.let { uriHandler.openUri(it) }
-                        }
-                        .padding(vertical = 4.dp)
-                ) {
-                    AsyncImage(
-                        model = member.avatarUrl,
-                        contentDescription = member.name,
-                        modifier = Modifier
-                            .size(55.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.surfaceVariant)
-                    )
-
-                    Spacer(Modifier.width(12.dp))
-
-                    Column {
-                        Text(
-                            text = member.name,
-                            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold)
-                        )
-                        Text(
-                            text = member.position,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.secondary
-                        )
-                    }
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(enabled = member.profileUrl != null) {
+                    member.profileUrl?.let { uriHandler.openUri(it) }
                 }
-            }
-        }
+                .padding(vertical = 8.dp)
+        ) {
+            AsyncImage(
+                model = member.avatarUrl,
+                contentDescription = member.name,
+                modifier = Modifier
+                    .size(72.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
+            )
+
+            Spacer(Modifier.height(8.dp))
+
+            Text(
+                text = member.name,
+                style = MaterialTheme.typography.titleMedium.copy(
+                    fontWeight = FontWeight.Bold
+                )
+            )
+
+            Text(
+                text = member.position,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.secondary
+             )
+          }
+       }
     }
+}
 
     TopAppBar(
         title = { Text(stringResource(R.string.about)) },
