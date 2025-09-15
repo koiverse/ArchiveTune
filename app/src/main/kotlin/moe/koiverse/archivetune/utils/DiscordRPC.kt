@@ -35,7 +35,6 @@ class DiscordRPC(
     val statePref = context.dataStore[DiscordActivityStateKey] ?: "ARTIST"
     val statusPref = context.dataStore[DiscordPresenceStatusKey] ?: "online"
     val showWhenPaused = context.dataStore[DiscordShowWhenPausedKey] ?: false
-    val logtag = "DiscordRPC"
 
     if (isPaused && !showWhenPaused) {
         Timber.tag(logtag).d("paused and 'showWhenPaused' disabled → stopping activity")
@@ -210,7 +209,7 @@ class DiscordRPC(
         } catch (ex: Exception) {
             try {
                 val msg = ex.message ?: ex.toString()
-                Timber.tag(logTag).e("refreshActivity updateSong failed: %s", msg)
+                Timber.tag("DiscordRPC").e("refreshActivity updateSong failed: %s", msg)
                 moe.koiverse.archivetune.utils.GlobalLog.append(android.util.Log.ERROR, "DiscordRPC", "refreshActivity updateSong failed: $msg\n${ex.stackTraceToString()}")
             } catch (_: Exception) {}
             throw ex
