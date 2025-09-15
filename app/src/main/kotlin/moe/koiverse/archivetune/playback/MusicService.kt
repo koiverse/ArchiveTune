@@ -228,7 +228,6 @@ class MusicService :
 
     private var discordRpc: DiscordRPC? = null
     private var lastDiscordUpdateTime = 0L
-    private var discordToken by rememberPreference(DiscordTokenKey, "")
 
     val automixItems = MutableStateFlow<List<MediaItem>>(emptyList())
 
