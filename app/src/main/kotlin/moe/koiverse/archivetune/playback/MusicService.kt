@@ -154,6 +154,7 @@ import javax.inject.Inject
 import kotlin.math.min
 import kotlin.math.pow
 import kotlin.time.Duration.Companion.seconds
+import timber.log.Timber
 
 @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
 @AndroidEntryPoint
@@ -402,40 +403,11 @@ class MusicService :
                             ensurePresenceManager()
                         }
                     }
-
-
-   private fun ensurePresenceManager() {
-    val key = discordToken
-    if (key.isNullOrBlank()) {
-        Timber.tag("MusicService").d("No Discord token → stopping presence manager")
-        DiscordPresenceManager.stop()
-        return
-    }
-
-    try {
-        // Always restart with the latest providers
-        DiscordPresenceManager.stop()
-        DiscordPresenceManager.start(
-            context = this@MusicService,
-            token = key,
-            songProvider = { currentSong.value },
-            positionProvider = { player.currentPosition },
-            isPausedProvider = {
-                val isPlaying = player.playWhenReady && player.playbackState == Player.STATE_READY
-                !isPlaying
-            },
-            intervalProvider = { getPresenceIntervalMillis(this@MusicService) }
-        )
-        Timber.tag("MusicService").d("Presence manager started with token=$key")
-    } catch (ex: Exception) {
-        Timber.tag("MusicService").e(ex, "Failed to start presence manager")
-    } 
-   }
-    } else {
-    // stop background manager when token removed or RPC disabled
-    try { DiscordPresenceManager.stop() } catch (_: Exception) {}
-    }
-}
+                      } else {
+                      // stop background manager when token removed or RPC disabled
+                     try { DiscordPresenceManager.stop() } catch (_: Exception) {}
+                      }
+        }
 
         if (dataStore.get(PersistentQueueKey, true)) {
             runCatching {
@@ -505,6 +477,33 @@ class MusicService :
             }
         }
     }
+
+    private fun ensurePresenceManager() {
+    val key: String? = dataStore.get(DiscordTokenKey, null as String?)
+    if (key.isNullOrBlank()) {
+        Timber.tag("MusicService").d("No Discord token → stopping presence manager")
+        DiscordPresenceManager.stop()
+        return
+    }
+
+    try {
+        DiscordPresenceManager.stop()
+        DiscordPresenceManager.start(
+            context = this@MusicService,
+            token = key,
+            songProvider = { currentSong.value },
+            positionProvider = { player.currentPosition },
+            isPausedProvider = {
+                val isPlaying = player.playWhenReady && player.playbackState == Player.STATE_READY
+                !isPlaying
+            },
+            intervalProvider = { getPresenceIntervalMillis(this@MusicService) }
+        )
+        Timber.tag("MusicService").d("Presence manager started with token=$key")
+    } catch (ex: Exception) {
+        Timber.tag("MusicService").e(ex, "Failed to start presence manager")
+    }
+  }
 
     private fun setupAudioFocusRequest() {
         audioFocusRequest = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
