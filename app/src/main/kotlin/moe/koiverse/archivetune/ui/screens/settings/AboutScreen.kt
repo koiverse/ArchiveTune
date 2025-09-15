@@ -218,7 +218,7 @@ fun AboutScreen(
                 model = member.avatarUrl,
                 contentDescription = member.name,
                 modifier = Modifier
-                    .size(72.dp)
+                    .size(80.dp)
                     .clip(CircleShape)
                     .background(MaterialTheme.colorScheme.surfaceVariant)
             )
@@ -227,14 +227,14 @@ fun AboutScreen(
 
             Text(
                 text = member.name,
-                style = MaterialTheme.typography.titleMedium.copy(
+                style = MaterialTheme.typography.titleLarge.copy(
                     fontWeight = FontWeight.Bold
                 )
             )
 
             Text(
                 text = member.position,
-                style = MaterialTheme.typography.bodySmall,
+                style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.secondary
              )
           }
