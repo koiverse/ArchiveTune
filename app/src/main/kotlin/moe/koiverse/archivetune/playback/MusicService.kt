@@ -228,6 +228,7 @@ class MusicService :
 
     private var discordRpc: DiscordRPC? = null
     private var lastDiscordUpdateTime = 0L
+    private var discordToken by rememberPreference(DiscordTokenKey, "")
 
     val automixItems = MutableStateFlow<List<MediaItem>>(emptyList())
 
@@ -479,7 +480,7 @@ class MusicService :
     }
 
     private fun ensurePresenceManager() {
-    val key: String? = dataStore.get(DiscordTokenKey, null as String?)
+    val key: String = dataStore.get(DiscordTokenKey, "")
     if (key.isNullOrBlank()) {
         Timber.tag("MusicService").d("No Discord token → stopping presence manager")
         DiscordPresenceManager.stop()
