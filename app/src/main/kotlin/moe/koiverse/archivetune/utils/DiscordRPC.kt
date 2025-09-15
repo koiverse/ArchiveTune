@@ -35,6 +35,7 @@ class DiscordRPC(
     val statePref = context.dataStore[DiscordActivityStateKey] ?: "ARTIST"
     val statusPref = context.dataStore[DiscordPresenceStatusKey] ?: "online"
     val showWhenPaused = context.dataStore[DiscordShowWhenPausedKey] ?: false
+    val logtag = "DiscordRPC"
 
     if (isPaused && !showWhenPaused) {
         Timber.tag(logtag).d("paused and 'showWhenPaused' disabled → stopping activity")
