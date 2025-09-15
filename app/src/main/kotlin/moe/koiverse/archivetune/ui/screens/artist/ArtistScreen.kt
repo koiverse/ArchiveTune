@@ -345,11 +345,15 @@ fun ArtistScreen(
                                                 }
                                             }
                                         },
-                                        colors = ButtonDefaults.outlinedButtonColors(
+                                        colors = ButtonDefaults.buttonColors(
                                             containerColor = if (libraryArtist?.artist?.bookmarkedAt != null)
-                                                MaterialTheme.colorScheme.surface
+                                                MaterialTheme.colorScheme.onPrimary
                                             else
-                                                Color.Transparent
+                                                MaterialTheme.colorScheme.primary,
+                                                contentColor = if (libraryArtist?.artist?.bookmarkedAt != null)
+                                                MaterialTheme.colorScheme.primary
+                                            else
+                                                MaterialTheme.colorScheme.onPrimary
                                         ),
                                         shape = RoundedCornerShape(50),
                                         modifier = Modifier.height(40.dp)
@@ -357,8 +361,7 @@ fun ArtistScreen(
                                         val isSubscribed = libraryArtist?.artist?.bookmarkedAt != null
                                         Text(
                                             text = stringResource(if (isSubscribed) R.string.subscribed else R.string.subscribe),
-                                            fontSize = 14.sp,
-                                            color = if (!isSubscribed) MaterialTheme.colorScheme.error else LocalContentColor.current
+                                            fontSize = 14.sp
                                         )
                                     }
 
