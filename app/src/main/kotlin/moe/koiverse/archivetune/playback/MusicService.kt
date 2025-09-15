@@ -331,7 +331,7 @@ class MusicService :
         currentSong.debounce(1000).collect(scope) { song ->
             updateNotification()
             if (song != null && player.playWhenReady && player.playbackState == Player.STATE_READY) {
-                discordRpc?.refreshActivity(song, player.currentPosition, isPaused = !player.playWhenReady)
+                ensurePresenceManager()
             } else {
                 discordRpc?.closeRPC()
             }
@@ -429,9 +429,13 @@ class MusicService :
         Timber.tag("MusicService").d("Presence manager started with token=$key")
     } catch (ex: Exception) {
         Timber.tag("MusicService").e(ex, "Failed to start presence manager")
+    } 
+   }
+    } else {
+    // stop background manager when token removed or RPC disabled
+    try { DiscordPresenceManager.stop() } catch (_: Exception) {}
     }
 }
-    }
 
         if (dataStore.get(PersistentQueueKey, true)) {
             runCatching {
