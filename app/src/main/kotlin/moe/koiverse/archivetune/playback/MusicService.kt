@@ -1324,6 +1324,7 @@ class MusicService :
             discordRpc?.closeRPC()
         }
         discordRpc = null
+        DiscordPresenceManager.stop()
         super.onDestroy()
     }
 
