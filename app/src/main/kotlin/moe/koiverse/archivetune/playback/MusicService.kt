@@ -1310,6 +1310,7 @@ class MusicService :
     }
 
     override fun onDestroy() {
+        super.onDestroy()
         if (dataStore.get(PersistentQueueKey, true)) {
             saveQueueToDisk()
         }
@@ -1325,7 +1326,6 @@ class MusicService :
         }
         discordRpc = null
         DiscordPresenceManager.stop()
-        super.onDestroy()
     }
 
     override fun onBind(intent: Intent?) = super.onBind(intent) ?: binder
