@@ -44,7 +44,8 @@ class ArtistViewModel @Inject constructor(
         .map { it[HideExplicitKey] ?: false }
         .distinctUntilChanged()
         .flatMapLatest { hideExplicit ->
-            database.artistSongsPreview(artistId).map { it.filterExplicit(hideExplicit) }
+            database.artistSongsByCreateDateAsc(artistId).map { it.filterExplicit(hideExplicit) } // show all
+            // database.artistSongsPreview(artistId).map { it.filterExplicit(hideExplicit) } // only preview
         }
         .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
     val libraryAlbums = context.dataStore.data
