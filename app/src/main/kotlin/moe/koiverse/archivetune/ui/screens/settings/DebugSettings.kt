@@ -134,8 +134,9 @@ fun DebugSettings(
                                 TextButton(onClick = { filterMode.value = if (filterMode.value == "all") "discord-only" else "all" }) {
                                     Text(if (filterMode.value == "all") "All logs" else "Discord-only")
                                 }
-                                TextButton(onClick = { GlobalLog.clear() }) { Text("Clear") }
+                                TextButton(onClick = { GlobalLog.clear() }, enabled = filtered.isNotEmpty()) { Text("Clear") }
                                 TextButton(onClick = {
+                                    if (filtered.isEmpty()) return@TextButton
                                     // Share filtered logs
                                     val sb = StringBuilder()
                                     filtered.forEach { sb.appendLine(GlobalLog.format(it)) }
@@ -144,18 +145,28 @@ fun DebugSettings(
                                         putExtra(Intent.EXTRA_TEXT, sb.toString())
                                     }
                                     context.startActivity(Intent.createChooser(send, "Share logs"))
-                                }) { Text("Share") }
+                                }, enabled = filtered.isNotEmpty()) { Text("Share") }
                             }
                         }
 
-                        OutlinedTextField(
-                            value = query.value,
-                            onValueChange = { query.value = it },
-                            label = { Text("Search logs") },
-                            modifier = Modifier.fillMaxWidth()
-                        )
-
                         // Log list
+                        // If no logs after filtering, show centered placeholder and disable actions
+                        if (filtered.isEmpty()) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .heightIn(min = 150.dp)
+                                    .padding(top = 16.dp),
+                                contentAlignment = androidx.compose.ui.Alignment.Center
+                            ) {
+                                Text(
+                                    text = "No Logs",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+
                         androidx.compose.foundation.lazy.LazyColumn(
                             state = listState,
                             modifier = Modifier
