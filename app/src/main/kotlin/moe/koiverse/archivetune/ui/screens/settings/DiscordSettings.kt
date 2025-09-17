@@ -269,6 +269,7 @@ LaunchedEffect(discordToken, discordRPC) {
             )
         } else {
             OutlinedButton(
+                enabled = discordRPC,
                 onClick = {
                     coroutineScope.launch {
                        isRefreshing = true
@@ -298,7 +299,6 @@ LaunchedEffect(discordToken, discordRPC) {
         }
     }
 )
-
 
         // Status discord
         val activityStatus = listOf("online", "dnd", "idle", "streaming")
