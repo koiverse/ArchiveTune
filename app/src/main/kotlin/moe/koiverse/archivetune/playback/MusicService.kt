@@ -480,38 +480,46 @@ class MusicService :
     }
 
     private fun ensurePresenceManager() {
-    val key: String = dataStore.get(DiscordTokenKey, "")
-    if (key.isNullOrBlank()) {
-        Timber.tag("MusicService").d("No Discord token → stopping presence manager")
-        DiscordPresenceManager.stop()
-        lastPresenceToken = null
-        return
-    }
+        // Don't start if Discord RPC is disabled in settings
+        if (!dataStore.get(EnableDiscordRPCKey, true)) {
+            Timber.tag("MusicService").d("Discord RPC disabled → stopping presence manager")
+            try { DiscordPresenceManager.stop() } catch (_: Exception) {}
+            lastPresenceToken = null
+            return
+        }
 
-    // if already running with same token, don't restart
-    if (DiscordPresenceManager.isRunning() && lastPresenceToken == key) {
-        return
-    }
+        val key: String = dataStore.get(DiscordTokenKey, "")
+        if (key.isNullOrBlank()) {
+            Timber.tag("MusicService").d("No Discord token → stopping presence manager")
+            try { DiscordPresenceManager.stop() } catch (_: Exception) {}
+            lastPresenceToken = null
+            return
+        }
 
-    try {
-        DiscordPresenceManager.stop()
-        DiscordPresenceManager.start(
-            context = this@MusicService,
-            token = key,
-            songProvider = { currentSong.value },
-            positionProvider = { player.currentPosition },
-            isPausedProvider = {
-                val isPlaying = player.playWhenReady && player.playbackState == Player.STATE_READY
-                !isPlaying
-            },
-            intervalProvider = { getPresenceIntervalMillis(this@MusicService) }
-        )
-        Timber.tag("MusicService").d("Presence manager started with token=$key")
-        lastPresenceToken = key
-    } catch (ex: Exception) {
-        Timber.tag("MusicService").e(ex, "Failed to start presence manager")
+        // if already running with same token, don't restart
+        if (DiscordPresenceManager.isRunning() && lastPresenceToken == key) {
+            return
+        }
+
+        try {
+            DiscordPresenceManager.stop()
+            DiscordPresenceManager.start(
+                context = this@MusicService,
+                token = key,
+                songProvider = { currentSong.value },
+                positionProvider = { player.currentPosition },
+                isPausedProvider = {
+                    val isPlaying = player.playWhenReady && player.playbackState == Player.STATE_READY
+                    !isPlaying
+                },
+                intervalProvider = { getPresenceIntervalMillis(this@MusicService) }
+            )
+            Timber.tag("MusicService").d("Presence manager started with token=$key")
+            lastPresenceToken = key
+        } catch (ex: Exception) {
+            Timber.tag("MusicService").e(ex, "Failed to start presence manager")
+        }
     }
-  }
 
     private fun setupAudioFocusRequest() {
         audioFocusRequest = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
