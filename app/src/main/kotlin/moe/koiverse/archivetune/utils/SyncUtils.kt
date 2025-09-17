@@ -128,17 +128,28 @@ class SyncUtils @Inject constructor(
                     val dbArtist = database.artist(artist.id).firstOrNull()
                     database.transaction {
                         if (dbArtist == null) {
+                            // Insert artist metadata but do not mark as bookmarked
                             insert(
                                 ArtistEntity(
                                     id = artist.id,
                                     name = artist.title,
                                     thumbnailUrl = artist.thumbnail,
                                     channelId = artist.channelId,
-                                    bookmarkedAt = LocalDateTime.now()
                                 )
                             )
-                        } else if (dbArtist.artist.bookmarkedAt == null) {
-                            update(dbArtist.artist.localToggleLike())
+                        } else {
+                            // Update existing artist metadata if changed, but keep bookmarkedAt as-is
+                            val existing = dbArtist.artist
+                            if (existing.name != artist.title || existing.thumbnailUrl != artist.thumbnail || existing.channelId != artist.channelId) {
+                                update(
+                                    existing.copy(
+                                        name = artist.title,
+                                        thumbnailUrl = artist.thumbnail,
+                                        channelId = artist.channelId,
+                                        lastUpdateTime = java.time.LocalDateTime.now()
+                                    )
+                                )
+                            }
                         }
                     }
                 }
