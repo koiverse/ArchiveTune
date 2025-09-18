@@ -74,6 +74,7 @@ import moe.koiverse.archivetune.constants.SwipeThumbnailKey
 import moe.koiverse.archivetune.constants.SwipeSensitivityKey
 import moe.koiverse.archivetune.constants.SwipeToSongKey
 import moe.koiverse.archivetune.constants.HidePlayerThumbnailKey
+import moe.koiverse.archivetune.constants.ThumbnailCornerRadiusKey
 import moe.koiverse.archivetune.ui.component.DefaultDialog
 import moe.koiverse.archivetune.ui.component.EnumListPreference
 import moe.koiverse.archivetune.ui.component.IconButton
@@ -113,6 +114,10 @@ fun AppearanceSettings(
     val (hidePlayerThumbnail, onHidePlayerThumbnailChange) = rememberPreference(
         HidePlayerThumbnailKey,
         defaultValue = false
+    )
+    val (thumbnailCornerRadius, onThumbnailCornerRadiusChange) = rememberPreference(
+        key = ThumbnailCornerRadiusKey,
+        defaultValue = 16f // default dp
     )
     val (playerBackground, onPlayerBackgroundChange) =
         rememberEnumPreference(
@@ -415,6 +420,71 @@ fun AppearanceSettings(
             icon = { Icon(painterResource(R.drawable.hide_image), null) },
             checked = hidePlayerThumbnail,
             onCheckedChange = onHidePlayerThumbnailChange
+        )
+
+        var showCornerRadiusDialog by rememberSaveable { mutableStateOf(false) }
+
+        if (showCornerRadiusDialog) {
+            var tempRadius by remember { mutableFloatStateOf(thumbnailCornerRadius) }
+
+            DefaultDialog(
+                onDismiss = { showCornerRadiusDialog = false },
+                buttons = {
+                    TextButton(onClick = { showCornerRadiusDialog = false }) {
+                        Text(text = stringResource(android.R.string.cancel_button))
+                    }
+                    TextButton(onClick = {
+                        onThumbnailCornerRadiusChange(tempRadius)
+                        showCornerRadiusDialog = false
+                    }) {
+                        Text(text = stringResource(android.R.string.ok_button))
+                    }
+                }
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.padding(16.dp)
+                ) {
+                    // Thumbnail preview
+                    androidx.compose.foundation.Image(
+                        painter = painterResource(R.drawable.ic_music_placeholder), // replace with preview asset
+                        contentDescription = null,
+                        modifier = Modifier
+                            .size(120.dp)
+                            .clip(RoundedCornerShape(tempRadius.dp))
+                    )
+
+                    Spacer(Modifier.padding(8.dp))
+
+                    // Preset buttons
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        listOf(0, 8, 16, 24, 32, 40).forEach { preset ->
+                            TextButton(
+                                onClick = { tempRadius = preset.toFloat() }
+                            ) {
+                                Text("${preset}dp")
+                            }
+                        }
+                    }
+
+                    Spacer(Modifier.padding(8.dp))
+
+                    // Slider
+                    Text(stringResource(R.string.corner_radius, tempRadius.roundToInt()))
+                    Slider(
+                        value = tempRadius,
+                        onValueChange = { tempRadius = it },
+                        valueRange = 0f..45f
+                    )
+                }
+            }
+        }
+
+        PreferenceEntry(
+            title = { Text(stringResource(R.string.custom_radius)) },
+            description = "${thumbnailCornerRadius.roundToInt()} dp",
+            icon = { Icon(painterResource(R.drawable.image), null) },
+            onClick = { showCornerRadiusDialog = true }
         )
 
         EnumListPreference(
