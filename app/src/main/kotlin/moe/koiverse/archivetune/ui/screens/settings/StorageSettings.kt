@@ -27,6 +27,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.layout.Row
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -139,38 +141,28 @@ fun StorageSettings(
     Column(
         Modifier
             .windowInsetsPadding(LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom))
-            .verticalScroll(rememberScrollState()),
+            .verticalScroll(rememberScrollState())
+            .padding(12.dp)
     ) {
         Spacer(
             Modifier.windowInsetsPadding(
-                LocalPlayerAwareWindowInsets.current.only(
-                    WindowInsetsSides.Top
-                )
+                LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Top)
             )
         )
 
-        // Downloaded songs card
-        Card(
-            colors = CardDefaults.cardColors(),
-            modifier = Modifier.padding(12.dp)
-        ) {
-            Column(Modifier.padding(12.dp)) {
-                PreferenceGroupTitle(
-                    title = stringResource(R.string.downloaded_songs),
-                )
-
-                Text(
-                    text = stringResource(R.string.size_used, formatFileSize(downloadCacheSize)),
-                    style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.padding(vertical = 6.dp),
-                )
-
+        // --- Section: Downloads ---
+        CacheCard(
+            icon = R.drawable.ic_download,
+            title = stringResource(R.string.downloaded_songs),
+            description = stringResource(R.string.size_used, formatFileSize(downloadCacheSize)),
+            progress = null,
+            actions = {
                 PreferenceEntry(
                     title = { Text(stringResource(R.string.clear_all_downloads)) },
                     onClick = { clearDownloads = true },
                 )
             }
-        }
+        )
 
         if (clearDownloads) {
             ActionPromptDialog(
@@ -191,43 +183,17 @@ fun StorageSettings(
             )
         }
 
-        // Song cache card
-        Card(colors = CardDefaults.cardColors(), modifier = Modifier.padding(horizontal = 12.dp)) {
-            Column(Modifier.padding(12.dp)) {
-                PreferenceGroupTitle(
-                    title = stringResource(R.string.song_cache),
-                )
-
-                if (maxSongCacheSize != 0) {
-                    if (maxSongCacheSize == -1) {
-                        Text(
-                            text = stringResource(R.string.size_used, formatFileSize(playerCacheSize)),
-                            style = MaterialTheme.typography.bodyMedium,
-                            modifier = Modifier.padding(vertical = 6.dp),
-                        )
-                    } else {
-                        // Use M3 LinearProgressIndicator with theme colors
-                        LinearProgressIndicator(
-                            progress = playerCacheProgress,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 6.dp),
-                            color = MaterialTheme.colorScheme.primary,
-                            trackColor = MaterialTheme.colorScheme.surfaceVariant,
-                            strokeCap = StrokeCap.Round
-                        )
-
-                        Text(
-                            text = stringResource(
-                                R.string.size_used,
-                                "${formatFileSize(playerCacheSize)} / ${formatFileSize(maxSongCacheSize * 1024 * 1024L)}",
-                            ),
-                            style = MaterialTheme.typography.bodyMedium,
-                            modifier = Modifier.padding(vertical = 6.dp),
-                        )
-                    }
-                }
-
+        // --- Section: Song cache ---
+        CacheCard(
+            icon = R.drawable.ic_music,
+            title = stringResource(R.string.song_cache),
+            description = if (maxSongCacheSize == -1) {
+                stringResource(R.string.size_used, formatFileSize(playerCacheSize))
+            } else {
+                "${formatFileSize(playerCacheSize)} / ${formatFileSize(maxSongCacheSize * 1024 * 1024L)}"
+            },
+            progress = if (maxSongCacheSize > 0) playerCacheProgress else null,
+            actions = {
                 ListPreference(
                     title = { Text(stringResource(R.string.max_cache_size)) },
                     selectedValue = maxSongCacheSize,
@@ -241,13 +207,12 @@ fun StorageSettings(
                     },
                     onValueSelected = onMaxSongCacheSizeChange,
                 )
-
                 PreferenceEntry(
                     title = { Text(stringResource(R.string.clear_song_cache)) },
                     onClick = { clearCacheDialog = true },
                 )
             }
-        }
+        )
 
         if (clearCacheDialog) {
             ActionPromptDialog(
@@ -268,34 +233,13 @@ fun StorageSettings(
             )
         }
 
-        // Image cache card
-        Card(colors = CardDefaults.cardColors(), modifier = Modifier.padding(12.dp)) {
-            Column(Modifier.padding(12.dp)) {
-                PreferenceGroupTitle(
-                    title = stringResource(R.string.image_cache),
-                )
-
-                if (maxImageCacheSize > 0) {
-                    LinearProgressIndicator(
-                        progress = imageCacheProgress,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 6.dp),
-                        color = MaterialTheme.colorScheme.primary,
-                        trackColor = MaterialTheme.colorScheme.surfaceVariant,
-                        strokeCap = StrokeCap.Round
-                    )
-
-                    Text(
-                        text = stringResource(
-                            R.string.size_used,
-                            "${formatFileSize(imageCacheSize)} / ${formatFileSize(imageDiskCache.maxSize)}"
-                        ),
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.padding(vertical = 6.dp),
-                    )
-                }
-
+        // --- Section: Image cache ---
+        CacheCard(
+            icon = R.drawable.image,
+            title = stringResource(R.string.image_cache),
+            description = "${formatFileSize(imageCacheSize)} / ${formatFileSize(imageDiskCache.maxSize)}",
+            progress = if (maxImageCacheSize > 0) imageCacheProgress else null,
+            actions = {
                 ListPreference(
                     title = { Text(stringResource(R.string.max_cache_size)) },
                     selectedValue = maxImageCacheSize,
@@ -308,30 +252,12 @@ fun StorageSettings(
                     },
                     onValueSelected = onMaxImageCacheSizeChange,
                 )
-
                 PreferenceEntry(
                     title = { Text(stringResource(R.string.clear_image_cache)) },
                     onClick = { clearImageCacheDialog = true },
                 )
-
-                if (clearImageCacheDialog) {
-                    ActionPromptDialog(
-                        title = stringResource(R.string.clear_image_cache),
-                        onDismiss = { clearImageCacheDialog = false },
-                        onConfirm = {
-                            coroutineScope.launch(Dispatchers.IO) {
-                                imageDiskCache.clear()
-                            }
-                            clearImageCacheDialog = false
-                        },
-                        onCancel = { clearImageCacheDialog = false },
-                        content = {
-                            Text(text = stringResource(R.string.clear_image_cache_dialog))
-                        }
-                    )
-                }
             }
-        }
+        )
     }
 
     TopAppBar(
@@ -348,4 +274,52 @@ fun StorageSettings(
             }
         }
     )
+}
+
+@Composable
+fun CacheCard(
+    icon: Int,
+    title: String,
+    description: String,
+    progress: Float?,
+    actions: @Composable () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface,
+        ),
+        shape = MaterialTheme.shapes.large
+    ) {
+        Column(Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    painter = painterResource(icon),
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(end = 12.dp)
+                )
+                Column {
+                    Text(title, style = MaterialTheme.typography.titleMedium)
+                    Text(description, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+            if (progress != null) {
+                LinearProgressIndicator(
+                    progress = progress,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp),
+                    color = MaterialTheme.colorScheme.primary,
+                    trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                    strokeCap = StrokeCap.Round
+                )
+            }
+            Spacer(Modifier.padding(4.dp))
+            actions()
+        }
+    }
 }
