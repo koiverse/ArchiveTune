@@ -431,13 +431,13 @@ fun AppearanceSettings(
                 onDismiss = { showCornerRadiusDialog = false },
                 buttons = {
                     TextButton(onClick = { showCornerRadiusDialog = false }) {
-                        Text(text = stringResource(android.R.string.cancel_button))
+                        Text(text = stringResource(R.string.cancel_button))
                     }
                     TextButton(onClick = {
                         onThumbnailCornerRadiusChange(tempRadius)
                         showCornerRadiusDialog = false
                     }) {
-                        Text(text = stringResource(android.R.string.ok_button))
+                        Text(text = stringResource(R.string.ok_button))
                     }
                 }
             ) {
