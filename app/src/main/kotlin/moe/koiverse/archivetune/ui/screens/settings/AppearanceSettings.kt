@@ -28,6 +28,10 @@ import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.AssistChip
+import androidx.compose.material3.AssistChipDefaults
+import androidx.compose.material3.SuggestionChip
+import androidx.compose.material3.SuggestionChipDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
@@ -459,25 +463,25 @@ fun AppearanceSettings(
 
             Spacer(Modifier.height(12.dp))
 
-            // Preset buttons
+            // Preset chips
             val presets = listOf(0, 8, 16, 24, 32, 40)
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 presets.forEach { preset ->
-                    TextButton(
+                    val selected = tempRadius.roundToInt() == preset
+                    SuggestionChip(
                         onClick = { tempRadius = preset.toFloat() },
-                        colors = ButtonDefaults.textButtonColors(
-                            containerColor = if (tempRadius.roundToInt() == preset)
-                                MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
-                            else
-                                MaterialTheme.colorScheme.surfaceVariant
-                        ),
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Text("${preset}dp")
-                    }
+                        label = { Text(text = "${preset}") },
+                        enabled = true,
+                        // Use weight so chips share available space similar to previous buttons
+                        modifier = Modifier.weight(1f),
+                        colors = SuggestionChipDefaults.suggestionChipColors(
+                            containerColor = if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surfaceVariant,
+                            labelColor = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    )
                 }
             }
 
