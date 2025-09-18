@@ -422,70 +422,86 @@ fun AppearanceSettings(
             onCheckedChange = onHidePlayerThumbnailChange
         )
 
-        var showCornerRadiusDialog by rememberSaveable { mutableStateOf(false) }
+ var showCornerRadiusDialog by rememberSaveable { mutableStateOf(false) }
 
-        if (showCornerRadiusDialog) {
-            var tempRadius by remember { mutableFloatStateOf(thumbnailCornerRadius) }
+ if (showCornerRadiusDialog) {
+    var tempRadius by remember { mutableFloatStateOf(thumbnailCornerRadius) }
 
-            DefaultDialog(
-                onDismiss = { showCornerRadiusDialog = false },
-                buttons = {
-                    TextButton(onClick = { showCornerRadiusDialog = false }) {
-                        Text(text = stringResource(R.string.cancel_button))
-                    }
-                    TextButton(onClick = {
-                        onThumbnailCornerRadiusChange(tempRadius)
-                        showCornerRadiusDialog = false
-                    }) {
-                        Text(text = stringResource(R.string.ok_button))
-                    }
-                }
-            ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.padding(16.dp)
-                ) {
-                    // Thumbnail preview
-                    androidx.compose.foundation.Image(
-                        painter = painterResource(R.drawable.ic_music_placeholder), // replace with preview asset
-                        contentDescription = null,
-                        modifier = Modifier
-                            .size(120.dp)
-                            .clip(RoundedCornerShape(tempRadius.dp))
-                    )
-
-                    Spacer(Modifier.padding(8.dp))
-
-                    // Preset buttons
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        listOf(0, 8, 16, 24, 32, 40).forEach { preset ->
-                            TextButton(
-                                onClick = { tempRadius = preset.toFloat() }
-                            ) {
-                                Text("${preset}dp")
-                            }
-                        }
-                    }
-
-                    Spacer(Modifier.padding(8.dp))
-
-                    // Slider
-                    Text(stringResource(R.string.corner_radius, tempRadius.roundToInt()))
-                    Slider(
-                        value = tempRadius,
-                        onValueChange = { tempRadius = it },
-                        valueRange = 0f..45f
-                    )
-                }
+    DefaultDialog(
+        onDismiss = { showCornerRadiusDialog = false },
+        buttons = {
+            TextButton(onClick = { showCornerRadiusDialog = false }) {
+                Text(text = stringResource(R.string.cancel_button))
+            }
+            TextButton(onClick = {
+                onThumbnailCornerRadiusChange(tempRadius)
+                showCornerRadiusDialog = false
+            }) {
+                Text(text = stringResource(R.string.ok_button))
             }
         }
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.padding(16.dp)
+        ) {
+            // Thumbnail preview
+            Image(
+                painter = painterResource(R.drawable.ic_music_placeholder), // replace with preview asset or real thumbnail
+                contentDescription = null,
+                modifier = Modifier
+                    .size(120.dp)
+                    .clip(RoundedCornerShape(tempRadius.dp))
+            )
 
-        PreferenceEntry(
-            title = { Text(stringResource(R.string.custom_radius)) },
-            description = "${thumbnailCornerRadius.roundToInt()} dp",
-            icon = { Icon(painterResource(R.drawable.image), null) },
-            onClick = { showCornerRadiusDialog = true }
-        )
+            Spacer(Modifier.height(12.dp))
+
+            // Preset buttons
+            val presets = listOf(0, 8, 16, 24, 32, 40)
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                presets.forEach { preset ->
+                    TextButton(
+                        onClick = { tempRadius = preset.toFloat() },
+                        colors = ButtonDefaults.textButtonColors(
+                            containerColor = if (tempRadius.roundToInt() == preset)
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
+                            else
+                                MaterialTheme.colorScheme.surfaceVariant
+                        ),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("${preset}dp")
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(12.dp))
+
+            // Slider
+            Text(
+                stringResource(R.string.corner_radius, tempRadius.roundToInt()),
+                style = MaterialTheme.typography.bodyLarge
+            )
+            Slider(
+                value = tempRadius,
+                onValueChange = { tempRadius = it },
+                valueRange = 0f..45f,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+    }
+}
+
+       PreferenceEntry(
+         title = { Text(stringResource(R.string.custom_radius)) },
+         description = "${thumbnailCornerRadius.roundToInt()} dp",
+         icon = { Icon(painterResource(R.drawable.image), null) },
+         onClick = { showCornerRadiusDialog = true }
+      )
+
 
         EnumListPreference(
             title = { Text(stringResource(R.string.player_buttons_style)) },
