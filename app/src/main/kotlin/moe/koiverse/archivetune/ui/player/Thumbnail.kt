@@ -72,7 +72,7 @@ import moe.koiverse.archivetune.constants.PlayerBackgroundStyleKey
 import moe.koiverse.archivetune.constants.PlayerHorizontalPadding
 import moe.koiverse.archivetune.constants.SeekExtraSeconds
 import moe.koiverse.archivetune.constants.SwipeThumbnailKey
-import moe.koiverse.archivetune.constants.ThumbnailCornerRadius
+import moe.koiverse.archivetune.constants.ThumbnailCornerRadiusKey
 import moe.koiverse.archivetune.constants.HidePlayerThumbnailKey
 import moe.koiverse.archivetune.utils.rememberEnumPreference
 import moe.koiverse.archivetune.utils.rememberPreference
@@ -99,6 +99,10 @@ fun Thumbnail(
 
     val swipeThumbnail by rememberPreference(SwipeThumbnailKey, true)
     val hidePlayerThumbnail by rememberPreference(HidePlayerThumbnailKey, false)
+    val (thumbnailCornerRadius, _) = rememberPreference(
+        key = ThumbnailCornerRadiusKey,
+        defaultValue = 16f
+    )
     val canSkipPrevious by playerConnection.canSkipPrevious.collectAsState()
     val canSkipNext by playerConnection.canSkipNext.collectAsState()
     
@@ -328,11 +332,11 @@ fun Thumbnail(
                                     },
                                 contentAlignment = Alignment.Center
                             ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(containerMaxWidth - (PlayerHorizontalPadding * 2))
-                                        .clip(RoundedCornerShape(ThumbnailCornerRadius * 2))
-                                ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(containerMaxWidth - (PlayerHorizontalPadding * 2))
+                                                .clip(RoundedCornerShape(thumbnailCornerRadius.dp))
+                                            ) {
                                     if (hidePlayerThumbnail) {
                                         // Show app logo when thumbnail is hidden
                                         Box(
