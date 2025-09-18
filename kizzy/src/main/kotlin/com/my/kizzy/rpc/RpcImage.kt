@@ -29,6 +29,7 @@ sealed class RpcImage {
     class ExternalImage(val image: String) : RpcImage() {
         override suspend fun resolveImage(repository: KizzyRepository): String? {
             return repository.getImage(image)
+            return if (!resolved.isNullOrBlank()) resolved else image
         }
     }
 }
