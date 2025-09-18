@@ -8,12 +8,19 @@ import moe.koiverse.archivetune.utils.dataStore
 import com.my.kizzy.rpc.KizzyRPC
 import com.my.kizzy.rpc.RpcImage
 import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import timber.log.Timber
 
 class DiscordRPC(
     val context: Context,
     token: String,
 ) : KizzyRPC(token) {
+
+    private val activeImageRetries = mutableSetOf<String>()
 
     companion object {
         private const val APPLICATION_ID = "1165706613961789445"
@@ -136,8 +143,8 @@ class DiscordRPC(
         }
     }
 
-    val largeImageRpc = pickImage(largeImageTypePref, largeImageCustomPref, song, false)
-    val smallImageRpc = if (isPaused) RpcImage.ExternalImage(PAUSE_IMAGE_URL)
+    var largeImageRpc = pickImage(largeImageTypePref, largeImageCustomPref, song, false)
+    var smallImageRpc = if (isPaused) RpcImage.ExternalImage(PAUSE_IMAGE_URL)
     else when (smallImageTypePref.lowercase()) {
         "none", "dontshow" -> null
         else -> pickImage(smallImageTypePref, smallImageCustomPref, song, true)
@@ -146,9 +153,28 @@ class DiscordRPC(
     // ✅ Preload images and skip sending if not resolved
     val resolvedLargeImage = if (largeImageRpc != null) withTimeoutOrNull(2000L) { preloadImage(largeImageRpc) } else null
     val resolvedSmallImage = if (smallImageRpc != null) withTimeoutOrNull(2000L) { preloadImage(smallImageRpc) } else null
-    if ((largeImageRpc != null && resolvedLargeImage == null) || (smallImageRpc != null && resolvedSmallImage == null)) {
-        Timber.tag(logtag).w("Skipping presence update because images could not be resolved")
-        return@runCatching
+
+    if (largeImageRpc != null && resolvedLargeImage == null) {
+        Timber.tag(logtag).w("Large image could not be resolved, clearing largeImage for this presence")
+        val failedLargeUrl = when (largeImageRpc) {
+            is RpcImage.ExternalImage -> (largeImageRpc as RpcImage.ExternalImage).image
+            else -> null
+        }
+        largeImageRpc = null
+        if (!failedLargeUrl.isNullOrBlank()) {
+            startRetryForImageUrl(failedLargeUrl, song)
+        }
+    }
+    if (smallImageRpc != null && resolvedSmallImage == null) {
+        Timber.tag(logtag).w("Small image could not be resolved, clearing smallImage for this presence")
+        val failedSmallUrl = when (smallImageRpc) {
+            is RpcImage.ExternalImage -> (smallImageRpc as RpcImage.ExternalImage).image
+            else -> null
+        }
+        smallImageRpc = null
+        if (!failedSmallUrl.isNullOrBlank()) {
+            startRetryForImageUrl(failedSmallUrl, song)
+        }
     }
 
     val resolvedLargeText = when ((context.dataStore[DiscordLargeTextSourceKey] ?: "album").lowercase()) {
@@ -213,6 +239,46 @@ class DiscordRPC(
                 moe.koiverse.archivetune.utils.GlobalLog.append(android.util.Log.ERROR, "DiscordRPC", "refreshActivity updateSong failed: $msg\n${ex.stackTraceToString()}")
             } catch (_: Exception) {}
             throw ex
+        }
+    }
+
+    // Start an infinite background retry loop for a failed external image URL.
+    private fun startRetryForImageUrl(url: String, song: Song) {
+        synchronized(activeImageRetries) {
+            if (activeImageRetries.contains(url)) return
+            activeImageRetries.add(url)
+        }
+
+        GlobalScope.launch(Dispatchers.IO) {
+            try {
+                while (isActive) {
+                    try {
+                        // Try to preload using repository; reuse existing preloadImage method
+                        val resolved = try {
+                            preloadImage(com.my.kizzy.rpc.RpcImage.ExternalImage(url))
+                        } catch (ex: Exception) {
+                            null
+                        }
+
+                        if (!resolved.isNullOrBlank()) {
+                            Timber.tag(logtag).d("Retry succeeded for image url=%s", url)
+                            // Attempt to refresh presence with the song (best-effort)
+                            try {
+                                refreshActivity(song, 0L, isPaused = false).getOrThrow()
+                            } catch (ignored: Exception) {}
+                            break
+                        }
+
+                    } catch (ex: Exception) {
+                        Timber.tag(logtag).w("Retry attempt failed for %s: %s", url, ex.message)
+                    }
+
+                    // Delay between retries to avoid tight loop; 2 seconds is reasonable
+                    delay(2000L)
+                }
+            } finally {
+                synchronized(activeImageRetries) { activeImageRetries.remove(url) }
+            }
         }
     }
 }
