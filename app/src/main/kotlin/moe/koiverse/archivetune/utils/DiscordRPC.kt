@@ -143,12 +143,39 @@ class DiscordRPC(
         else -> pickImage(smallImageTypePref, smallImageCustomPref, song, true)
     }
 
-    // ✅ Preload images and skip sending if not resolved
-    val resolvedLargeImage = if (largeImageRpc != null) withTimeoutOrNull(2000L) { preloadImage(largeImageRpc) } else null
-    val resolvedSmallImage = if (smallImageRpc != null) withTimeoutOrNull(2000L) { preloadImage(smallImageRpc) } else null
-    if ((largeImageRpc != null && resolvedLargeImage == null) || (smallImageRpc != null && resolvedSmallImage == null)) {
-        Timber.tag(logtag).w("Skipping presence update because images could not be resolved")
+    // ✅ Preload images and allow sending when at least one resolves.
+    // Increase timeout slightly to reduce false negatives on slow networks.
+    val preloadTimeoutMs = 3000L
+    val resolvedLargeImage = if (largeImageRpc != null) withTimeoutOrNull(preloadTimeoutMs) { preloadImage(largeImageRpc) } else null
+    val resolvedSmallImage = if (smallImageRpc != null) withTimeoutOrNull(preloadTimeoutMs) { preloadImage(smallImageRpc) } else null
+
+    // Debug logging: what we attempted to preload
+    try {
+        val largeSrc = when (largeImageRpc) {
+            is RpcImage.ExternalImage -> largeImageRpc.image
+            is RpcImage.DiscordImage -> "discord:${(largeImageRpc as RpcImage.DiscordImage).image}"
+            else -> "none"
+        }
+        val smallSrc = when (smallImageRpc) {
+            is RpcImage.ExternalImage -> smallImageRpc.image
+            is RpcImage.DiscordImage -> "discord:${(smallImageRpc as RpcImage.DiscordImage).image}"
+            else -> "none"
+        }
+        Timber.tag(logtag).d("preload results large(src=%s) -> %s small(src=%s) -> %s", largeSrc, resolvedLargeImage, smallSrc, resolvedSmallImage)
+    } catch (_: Exception) {}
+
+    val largeRequested = largeImageRpc != null
+    val smallRequested = smallImageRpc != null
+
+    // Only abort if both were requested and both failed to resolve.
+    if (largeRequested && resolvedLargeImage == null && smallRequested && resolvedSmallImage == null) {
+        Timber.tag(logtag).w("Skipping presence update because both images could not be resolved")
         return@runCatching
+    }
+
+    if ((largeRequested && resolvedLargeImage == null) || (smallRequested && resolvedSmallImage == null)) {
+        Timber.tag(logtag).w("One or more images failed to resolve; continuing with available images (largeResolved=%s smallResolved=%s)",
+            resolvedLargeImage != null, resolvedSmallImage != null)
     }
 
     val resolvedLargeText = when ((context.dataStore[DiscordLargeTextSourceKey] ?: "album").lowercase()) {
