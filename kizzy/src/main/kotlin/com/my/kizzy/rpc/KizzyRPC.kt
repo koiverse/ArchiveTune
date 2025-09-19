@@ -1,5 +1,7 @@
 package com.my.kizzy.rpc
 
+import com.my.kizzy.KizzyLogger
+import com.my.kizzy.DefaultKizzyLogger
 import com.my.kizzy.gateway.DiscordWebSocket
 import com.my.kizzy.gateway.entities.presence.Activity
 import com.my.kizzy.gateway.entities.presence.Assets
@@ -17,12 +19,13 @@ import java.util.logging.Logger
 /**
  * Modified by Koiverse
  */
-open class KizzyRPC(private val token: String) {
+open class KizzyRPC(private val token: String, private val injectedLogger: KizzyLogger? = null) {
     private val kizzyRepository = KizzyRepository()
     private val discordWebSocket = DiscordWebSocket(token)
     private var platform: String? = null
     private val logTag = "RPC"
-    private val logger = Logger.getLogger("MainRPC")
+    // Use injected logger if provided, otherwise fall back to DefaultKizzyLogger which uses java.util.logging
+    private val logger: KizzyLogger = injectedLogger ?: DefaultKizzyLogger("MainRPC")
 
     fun closeRPC() = discordWebSocket.close()
 
@@ -74,6 +77,17 @@ open class KizzyRPC(private val token: String) {
         status: String? = "online",
         since: Long? = null,
     ): Presence {
+        // Resolve image ids once so we have consistent values to log and send.
+        val resolvedLarge = largeImage?.resolveImage(kizzyRepository)
+        val resolvedSmall = smallImage?.resolveImage(kizzyRepository)
+
+        try {
+            logger.info("Resolved assets: large=$resolvedLarge small=$resolvedSmall")
+        } catch (_: Exception) {}
+
+        // If applicationId is provided, only send it when it's meaningful (non-null and buttons exist).
+        val finalApplicationId = applicationId.takeIf { !buttons.isNullOrEmpty() }
+
         return Presence(
             activities = listOf(
                 Activity(
@@ -83,8 +97,8 @@ open class KizzyRPC(private val token: String) {
                     details = details,
                     detailsUrl = detailsUrl,
                     assets = Assets(
-                        largeImage = largeImage?.resolveImage(kizzyRepository),
-                        smallImage = smallImage?.resolveImage(kizzyRepository),
+                        largeImage = resolvedLarge,
+                        smallImage = resolvedSmall,
                         largeText = largeText,
                         smallText = smallText
                     ),
@@ -94,7 +108,7 @@ open class KizzyRPC(private val token: String) {
                     timestamps = Timestamps(startTime, endTime),
                     buttons = buttons?.map { it.first },
                     metadata = Metadata(buttonUrls = buttons?.map { it.second }),
-                    applicationId = applicationId.takeIf { !buttons.isNullOrEmpty() },
+                    applicationId = finalApplicationId,
                     url = streamUrl
                 )
             ),
