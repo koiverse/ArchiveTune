@@ -121,17 +121,28 @@ class DiscordRPC(
     val smallImageCustomPref = context.dataStore[DiscordSmallImageCustomUrlKey] ?: ""
 
     fun pickImage(type: String, custom: String?, song: Song?, preferArtist: Boolean = false): RpcImage? {
-        return when (type) {
-            "thumbnail" -> song?.song?.thumbnailUrl?.let { RpcImage.ExternalImage(it) }
-            "artist" -> song?.artists?.firstOrNull()?.thumbnailUrl?.let { RpcImage.ExternalImage(it) }
-            "appicon" -> RpcImage.DiscordImage("appicon")
-            "custom" -> (custom?.takeIf { it.isNotBlank() } ?: song?.song?.thumbnailUrl)?.let {
-                RpcImage.ExternalImage(it)
+        fun String?.toExternal(): RpcImage? {
+            if (this == null) return null
+            // Only allow http/https remote URLs to be uploaded via the external image path.
+            // Local content/file URIs (content://, file://, contentUri from FileProvider) are not
+            // fetchable by the remote resolver and will cause preload to fail.
+            val s = this
+            return if (s.startsWith("http://") || s.startsWith("https://")) RpcImage.ExternalImage(s)
+            else {
+                Timber.tag(logtag).d("Skipping non-http image for RPC: %s", s)
+                null
             }
+        }
+
+        return when (type) {
+            "thumbnail" -> song?.song?.thumbnailUrl.toExternal()
+            "artist" -> song?.artists?.firstOrNull()?.thumbnailUrl.toExternal()
+            "appicon" -> RpcImage.DiscordImage("appicon")
+            "custom" -> (custom?.takeIf { it.isNotBlank() } ?: song?.song?.thumbnailUrl).toExternal()
             else -> if (preferArtist) {
-                song?.artists?.firstOrNull()?.thumbnailUrl?.let { RpcImage.ExternalImage(it) }
+                song?.artists?.firstOrNull()?.thumbnailUrl.toExternal()
             } else {
-                song?.song?.thumbnailUrl?.let { RpcImage.ExternalImage(it) }
+                song?.song?.thumbnailUrl.toExternal()
             }
         }
     }
@@ -144,6 +155,10 @@ class DiscordRPC(
     }
 
     // ✅ Preload images and skip sending if not resolved
+    // Log what we are about to preload for easier diagnosis
+    if (largeImageRpc != null) Timber.tag(logtag).d("Preloading large image: %s", largeImageRpc)
+    if (smallImageRpc != null) Timber.tag(logtag).d("Preloading small image: %s", smallImageRpc)
+
     val resolvedLargeImage = if (largeImageRpc != null) withTimeoutOrNull(2000L) { preloadImage(largeImageRpc) } else null
     val resolvedSmallImage = if (smallImageRpc != null) withTimeoutOrNull(2000L) { preloadImage(smallImageRpc) } else null
     if ((largeImageRpc != null && resolvedLargeImage == null) || (smallImageRpc != null && resolvedSmallImage == null)) {
