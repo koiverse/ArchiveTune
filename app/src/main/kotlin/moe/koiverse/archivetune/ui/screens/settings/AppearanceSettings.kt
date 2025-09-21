@@ -12,6 +12,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -24,6 +26,9 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -448,55 +453,133 @@ fun AppearanceSettings(
             }
         }
     ) {
+        var customValue by rememberSaveable { mutableStateOf("") }
+        val presets = listOf(0, 8, 16, 24, 32, 40)
+
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.padding(16.dp)
         ) {
-            // Thumbnail preview
-            Image(
-                painter = painterResource(R.drawable.ic_music_placeholder), // replace with preview asset or real thumbnail
-                contentDescription = null,
-                modifier = Modifier
-                    .size(120.dp)
-                    .clip(RoundedCornerShape(tempRadius.dp))
-            )
+            // Preview with dp overlay
+            Box(contentAlignment = Alignment.BottomCenter) {
+                Image(
+                    painter = painterResource(R.drawable.ic_music_placeholder),
+                    contentDescription = null,
+                    modifier = Modifier
+                        .size(140.dp)
+                        .clip(RoundedCornerShape(tempRadius.dp))
+                )
+                Text(
+                    text = "${tempRadius.roundToInt()}dp",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier
+                        .background(
+                            MaterialTheme.colorScheme.surface.copy(alpha = 0.75f),
+                            RoundedCornerShape(6.dp)
+                        )
+                        .padding(horizontal = 8.dp, vertical = 2.dp)
+                )
+            }
 
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(16.dp))
 
             // Preset chips
-            val presets = listOf(0, 8, 16, 24, 32, 40)
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 presets.forEach { preset ->
                     val selected = tempRadius.roundToInt() == preset
-                    SuggestionChip(
-                        onClick = { tempRadius = preset.toFloat() },
-                        label = { Text(text = "${preset}") },
-                        enabled = true,
-                        // Use weight so chips share available space similar to previous buttons
-                        modifier = Modifier.weight(1f),
-                        colors = SuggestionChipDefaults.suggestionChipColors(
-                            containerColor = if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surfaceVariant,
-                            labelColor = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                    FilterChip(
+                        selected = selected,
+                        onClick = {
+                            tempRadius = preset.toFloat()
+                            customValue = "" // reset custom
+                        },
+                        label = { Text("${preset}") },
+                        shape = RoundedCornerShape(8.dp),
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = MaterialTheme.colorScheme.primary,
+                            selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                            labelColor = MaterialTheme.colorScheme.onSurfaceVariant
+                        ),
+                        border = FilterChipDefaults.filterChipBorder(
+                            borderWidth = if (selected) 2.dp else 1.dp,
+                            borderColor = if (selected) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.outlineVariant
+                        ),
+                        modifier = Modifier.weight(1f)
                     )
                 }
             }
 
             Spacer(Modifier.height(12.dp))
 
+            // Custom chip + input
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                val isCustom = customValue.isNotEmpty()
+                FilterChip(
+                    selected = isCustom,
+                    onClick = {
+                        if (!isCustom) customValue = tempRadius.roundToInt().toString()
+                    },
+                    label = { Text("Custom") },
+                    shape = RoundedCornerShape(8.dp),
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = MaterialTheme.colorScheme.primary,
+                        selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                        labelColor = MaterialTheme.colorScheme.onSurfaceVariant
+                    ),
+                    border = FilterChipDefaults.filterChipBorder(
+                        borderWidth = if (isCustom) 2.dp else 1.dp,
+                        borderColor = if (isCustom) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.outlineVariant
+                    )
+                )
+
+                if (isCustom) {
+                    OutlinedTextField(
+                        value = customValue,
+                        onValueChange = {
+                            customValue = it.filter { c -> c.isDigit() }
+                            tempRadius = customValue.toFloatOrNull() ?: tempRadius
+                        },
+                        modifier = Modifier.weight(1f),
+                        singleLine = true,
+                        suffix = { Text("dp") }
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(16.dp))
+
             // Slider
             Text(
-                stringResource(R.string.corner_radius, tempRadius.roundToInt()),
-                style = MaterialTheme.typography.bodyLarge
+                text = stringResource(R.string.adjust_radius),
+                style = MaterialTheme.typography.labelLarge,
+                modifier = Modifier.fillMaxWidth()
             )
             Slider(
                 value = tempRadius,
-                onValueChange = { tempRadius = it },
+                onValueChange = { value ->
+                    tempRadius = value
+                    customValue = "" // reset custom when slider used
+                },
                 valueRange = 0f..45f,
                 modifier = Modifier.fillMaxWidth()
+            )
+
+            Text(
+                stringResource(R.string.corner_radius, tempRadius.roundToInt()),
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(top = 4.dp)
             )
         }
     }
