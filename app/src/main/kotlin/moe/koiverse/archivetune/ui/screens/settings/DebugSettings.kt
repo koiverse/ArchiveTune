@@ -125,7 +125,7 @@ fun DebugSettings(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .heightIn(max = 600.dp)
+                        .heightIn(max = 500.dp)
                         .background(color = MaterialTheme.colorScheme.surfaceVariant, shape = RoundedCornerShape(14.dp))
                 ) {
                     Column(Modifier.padding(8.dp)) {
