@@ -492,12 +492,12 @@ fun AppearanceSettings(
                 presets.forEach { preset ->
                     val selected = tempRadius.roundToInt() == preset
                     FilterChip(
-                    selected = selected,
                     onClick = {
                       tempRadius = preset.toFloat()
                       customValue = "" // reset custom
                     },
                     label = { Text("$preset") },
+                    selected = selected,
                     enabled = true,
                     shape = RoundedCornerShape(8.dp),
                colors = FilterChipDefaults.filterChipColors(
@@ -527,11 +527,11 @@ fun AppearanceSettings(
             ) {
                 val isCustom = customValue.isNotEmpty()
                 FilterChip(
-                selected = isCustom,
                 onClick = {
                    if (!isCustom) customValue = tempRadius.roundToInt().toString()
                   },
                 label = { Text("Custom") },
+                selected = isCustom,
                 enabled = true,
                 shape = RoundedCornerShape(8.dp),
                 colors = FilterChipDefaults.filterChipColors(
