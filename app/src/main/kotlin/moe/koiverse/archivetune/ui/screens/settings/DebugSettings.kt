@@ -12,8 +12,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import android.content.Intent
 import androidx.compose.material3.*
-import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Sort
+import androidx.compose.runtime.setValue
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -170,11 +170,12 @@ fun DebugSettings(
 
                             Column {
                                 androidx.compose.material3.IconButton(onClick = { levelsMenuExpanded.value = true }) {
-                                    Icon(Icons.Filled.Sort, contentDescription = "Filter levels")
+                                    Icon(Sort, contentDescription = "Filter levels")
                                 }
 
                                 DropdownMenu(expanded = levelsMenuExpanded.value, onDismissRequest = { levelsMenuExpanded.value = false }) {
                                     // Helper to create an item for each level
+                                    @Composable
                                     fun levelItem(label: String, level: Int) {
                                         DropdownMenuItem(onClick = {
                                             val current = selLevels.value.toMutableSet()
