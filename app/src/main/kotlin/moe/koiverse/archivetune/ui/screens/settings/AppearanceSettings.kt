@@ -492,26 +492,28 @@ fun AppearanceSettings(
                 presets.forEach { preset ->
                     val selected = tempRadius.roundToInt() == preset
                     FilterChip(
-                        label = { Text("${preset}") },
-                        selected = selected,
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = MaterialTheme.colorScheme.primary,
-                            selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                            labelColor = MaterialTheme.colorScheme.onSurfaceVariant
-                        ),
-                        onClick = {
-                            tempRadius = preset.toFloat()
-                            customValue = "" // reset custom
-                        },
-                        shape = RoundedCornerShape(8.dp),
-                        border = FilterChipDefaults.filterChipBorder(
-                            borderWidth = if (selected) 2.dp else 1.dp,
-                            borderColor = if (selected) MaterialTheme.colorScheme.primary
-                            else MaterialTheme.colorScheme.outlineVariant
-                        ),
-                        modifier = Modifier.weight(1f)
+                    selected = selected,
+                    onClick = {
+                      tempRadius = preset.toFloat()
+                      customValue = "" // reset custom
+                    },
+                    label = { Text("$preset") },
+                    enabled = true,
+                    shape = RoundedCornerShape(8.dp),
+               colors = FilterChipDefaults.filterChipColors(
+                    selectedContainerColor = MaterialTheme.colorScheme.primary,
+                    selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    labelColor = MaterialTheme.colorScheme.onSurfaceVariant
+                ),
+               border = FilterChipDefaults.filterChipBorder(
+                    borderWidth = if (selected) 2.dp else 1.dp,
+                    borderColor = if (selected) MaterialTheme.colorScheme.primary
+                    else MaterialTheme.colorScheme.outlineVariant
+                ),
+                modifier = Modifier.weight(1f)
                     )
+
                 }
             }
 
@@ -525,25 +527,27 @@ fun AppearanceSettings(
             ) {
                 val isCustom = customValue.isNotEmpty()
                 FilterChip(
-                    label = { Text("Custom") },
-                    selected = isCustom,
-                    onClick = {
-                        if (!isCustom) customValue = tempRadius.roundToInt().toString()
-                    },
-                    colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = MaterialTheme.colorScheme.primary,
-                        selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                        labelColor = MaterialTheme.colorScheme.onSurfaceVariant
-                    ),
-                    shape = RoundedCornerShape(8.dp),
-                    border = FilterChipDefaults.filterChipBorder(
-                        borderWidth = if (isCustom) 2.dp else 1.dp,
-                        borderColor = if (isCustom) MaterialTheme.colorScheme.primary
-                        else MaterialTheme.colorScheme.outlineVariant
-                    ),
-                    modifier = Modifier.weight(1f)
-                )
+                selected = isCustom,
+                onClick = {
+                   if (!isCustom) customValue = tempRadius.roundToInt().toString()
+                  },
+                label = { Text("Custom") },
+                enabled = true,
+                shape = RoundedCornerShape(8.dp),
+                colors = FilterChipDefaults.filterChipColors(
+                  selectedContainerColor = MaterialTheme.colorScheme.primary,
+                  selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
+                  containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                  labelColor = MaterialTheme.colorScheme.onSurfaceVariant
+              ),
+                border = FilterChipDefaults.filterChipBorder(
+                  borderWidth = if (isCustom) 2.dp else 1.dp,
+                  borderColor = if (isCustom) MaterialTheme.colorScheme.primary
+                  else MaterialTheme.colorScheme.outlineVariant
+            ),
+                modifier = Modifier.weight(1f)
+              )
+
 
                 if (isCustom) {
                     OutlinedTextField(
