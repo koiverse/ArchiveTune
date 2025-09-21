@@ -26,8 +26,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
@@ -490,31 +488,28 @@ fun AppearanceSettings(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 presets.forEach { preset ->
-                    val selected = tempRadius.roundToInt() == preset
-                    FilterChip(
-                    onClick = {
-                      tempRadius = preset.toFloat()
-                      customValue = "" // reset custom
-                    },
-                    label = { Text("$preset") },
-                    selected = selected,
-                    enabled = true,
-                    shape = RoundedCornerShape(8.dp),
-               colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = MaterialTheme.colorScheme.primary,
-                    selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                    labelColor = MaterialTheme.colorScheme.onSurfaceVariant
-                ),
-               border = FilterChipDefaults.filterChipBorder(
-                    borderWidth = if (selected) 2.dp else 1.dp,
-                    borderColor = if (selected) MaterialTheme.colorScheme.primary
-                    else MaterialTheme.colorScheme.outlineVariant
-                ),
-                modifier = Modifier.weight(1f)
-                    )
-
-                }
+            val selected = tempRadius.roundToInt() == preset
+            SuggestionChip(
+            onClick = {
+            tempRadius = preset.toFloat()
+            customValue = "" // reset custom
+            },
+            label = { Text("$preset") },
+            enabled = true,
+            modifier = Modifier.weight(1f),
+            colors = SuggestionChipDefaults.suggestionChipColors(
+                containerColor = if (selected) MaterialTheme.colorScheme.primary
+                else MaterialTheme.colorScheme.surfaceVariant,
+                labelColor = if (selected) MaterialTheme.colorScheme.onPrimary
+                else MaterialTheme.colorScheme.onSurfaceVariant
+            ),
+            border = SuggestionChipDefaults.suggestionChipBorder(
+            borderWidth = if (selected) 2.dp else 1.dp,
+            borderColor = if (selected) MaterialTheme.colorScheme.primary
+            else MaterialTheme.colorScheme.outlineVariant
+            )
+        )
+    }
             }
 
             Spacer(Modifier.height(12.dp))
@@ -526,27 +521,26 @@ fun AppearanceSettings(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 val isCustom = customValue.isNotEmpty()
-                FilterChip(
+                SuggestionChip(
                 onClick = {
-                   if (!isCustom) customValue = tempRadius.roundToInt().toString()
-                  },
+                if (!isCustom) customValue = tempRadius.roundToInt().toString()
+                },
                 label = { Text("Custom") },
-                selected = isCustom,
                 enabled = true,
-                shape = RoundedCornerShape(8.dp),
-                colors = FilterChipDefaults.filterChipColors(
-                  selectedContainerColor = MaterialTheme.colorScheme.primary,
-                  selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
-                  containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                  labelColor = MaterialTheme.colorScheme.onSurfaceVariant
-              ),
-                border = FilterChipDefaults.filterChipBorder(
-                  borderWidth = if (isCustom) 2.dp else 1.dp,
-                  borderColor = if (isCustom) MaterialTheme.colorScheme.primary
-                  else MaterialTheme.colorScheme.outlineVariant
-            ),
-                modifier = Modifier.weight(1f)
-              )
+                modifier = Modifier.weight(1f),
+                colors = SuggestionChipDefaults.suggestionChipColors(
+                    containerColor = if (isCustom) MaterialTheme.colorScheme.primary
+                    else MaterialTheme.colorScheme.surfaceVariant,
+                    labelColor = if (isCustom) MaterialTheme.colorScheme.onPrimary
+                    else MaterialTheme.colorScheme.onSurfaceVariant
+                ),
+                border = SuggestionChipDefaults.suggestionChipBorder(
+                borderWidth = if (isCustom) 2.dp else 1.dp,
+                borderColor = if (isCustom) MaterialTheme.colorScheme.primary
+                else MaterialTheme.colorScheme.outlineVariant
+            )
+        )
+
 
 
                 if (isCustom) {
