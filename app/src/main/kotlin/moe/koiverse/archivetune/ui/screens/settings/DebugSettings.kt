@@ -266,6 +266,7 @@ fun DebugSettings(
                                             ) {
                                                 Text(
                                                     text = when (entry.level) {
+                                                        android.util.Log.VERBOSE -> "V"
                                                         android.util.Log.ERROR -> "E"
                                                         android.util.Log.WARN -> "W"
                                                         android.util.Log.INFO -> "I"
