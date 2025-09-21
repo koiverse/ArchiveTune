@@ -186,7 +186,12 @@ class DiscordRPC(
     val resolvedLargeImage = resolveOnce(largeImageRpc)
     val resolvedSmallImage = resolveOnce(smallImageRpc)
     if ((largeImageRpc != null && resolvedLargeImage == null) || (smallImageRpc != null && resolvedSmallImage == null)) {
-        Timber.tag(logtag).w("Skipping presence update because images could not be resolved")
+        // Detailed diagnostics: which images failed and what we have in the invocation-local preloadResults
+        val failedKeys = mutableListOf<String>()
+        if (largeImageRpc != null && resolvedLargeImage == null) failedKeys.add(rpcKey(largeImageRpc))
+        if (smallImageRpc != null && resolvedSmallImage == null) failedKeys.add(rpcKey(smallImageRpc))
+        Timber.tag(logtag).w("Skipping presence update because images could not be resolved: failedKeys=%s preloadResults=%s",
+            failedKeys, preloadResults)
         return@runCatching
     }
 
@@ -218,27 +223,39 @@ class DiscordRPC(
         else -> "online"
     }
 
-    this.refreshRPC(
-        name = activityName.removeSuffix(" Debug"),
-        details = activityDetails,
-        state = activityState,
-        detailsUrl = baseSongUrl,
-        largeImage = largeImageRpc,
-        smallImage = smallImageRpc,
-        largeText = resolvedLargeText,
-        smallText = sendSmallText,
-        buttons = finalButtons,
-        type = resolvedType,
-        statusDisplayType = StatusDisplayType.STATE,
-        since = sendSince,
-        startTime = sendStartTime,
-        endTime = sendEndTime,
-        applicationId = applicationIdToSend,
-        status = safeStatus
-    )
+    // Log resolved image ids and RpcImage objects for debugging intermittent failures
+    Timber.tag(logtag).d("Resolved images: largeRpc=%s resolvedLarge=%s smallRpc=%s resolvedSmall=%s",
+        largeImageRpc, resolvedLargeImage, smallImageRpc, resolvedSmallImage)
 
-    Timber.tag(logtag).d("sending presence name=%s details=%s state=%s appId=%s buttons=%s",
-        activityName, activityDetails, activityState, applicationIdToSend, buttons)
+    try {
+        this.refreshRPC(
+            name = activityName.removeSuffix(" Debug"),
+            details = activityDetails,
+            state = activityState,
+            detailsUrl = baseSongUrl,
+            largeImage = largeImageRpc,
+            smallImage = smallImageRpc,
+            largeText = resolvedLargeText,
+            smallText = sendSmallText,
+            buttons = finalButtons,
+            type = resolvedType,
+            statusDisplayType = StatusDisplayType.STATE,
+            since = sendSince,
+            startTime = sendStartTime,
+            endTime = sendEndTime,
+            applicationId = applicationIdToSend,
+            status = safeStatus
+        )
+
+        Timber.tag(logtag).d("sending presence name=%s details=%s state=%s appId=%s buttons=%s",
+            activityName, activityDetails, activityState, applicationIdToSend, buttons)
+    } catch (ex: Exception) {
+        // Log a detailed failure message including the resolved image ids and RpcImage objects
+        Timber.tag(logtag).e(ex, "updatePresence failed: largeRpc=%s resolvedLarge=%s smallRpc=%s resolvedSmall=%s",
+            largeImageRpc, resolvedLargeImage, smallImageRpc, resolvedSmallImage)
+        // Re-throw so outer caller can observe if desired
+        throw ex
+    }
 }
 
 
