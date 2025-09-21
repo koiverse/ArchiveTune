@@ -527,15 +527,15 @@ fun AppearanceSettings(
                 FilterChip(
                     label = { Text("Custom") },
                     selected = isCustom,
+                    onClick = {
+                        if (!isCustom) customValue = tempRadius.roundToInt().toString()
+                    },
                     colors = FilterChipDefaults.filterChipColors(
                         selectedContainerColor = MaterialTheme.colorScheme.primary,
                         selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
                         containerColor = MaterialTheme.colorScheme.surfaceVariant,
                         labelColor = MaterialTheme.colorScheme.onSurfaceVariant
                     ),
-                    onClick = {
-                        if (!isCustom) customValue = tempRadius.roundToInt().toString()
-                    },
                     shape = RoundedCornerShape(8.dp),
                     border = FilterChipDefaults.filterChipBorder(
                         borderWidth = if (isCustom) 2.dp else 1.dp,
