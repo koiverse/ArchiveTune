@@ -37,7 +37,8 @@ class DiscordRPC(
     val showWhenPaused = context.dataStore[DiscordShowWhenPausedKey] ?: false
 
     if (isPaused && !showWhenPaused) {
-        Timber.tag(logtag).d("paused and 'showWhenPaused' disabled → stopping activity")
+        // Keep minimal logging: demote to verbose
+        Timber.tag(logtag).v("paused and 'showWhenPaused' disabled → stopping activity")
         stopActivity()
         return@runCatching
     }
@@ -86,18 +87,20 @@ class DiscordRPC(
     if (button1Enabled) {
     if (button1Label.isNotBlank() && !resolvedButton1Url.isNullOrBlank()) {
         buttons.add(button1Label to resolvedButton1Url)
-      } else {
-        Timber.tag(logtag).d("Button 1 skipped (missing label or URL)")
-      }
+                        } else {
+                // Verbose: not essential
+                Timber.tag(logtag).v("Button 1 skipped (missing label or URL)")
+            }
    }
 
-    if (button2Enabled) {
-    if (button2Label.isNotBlank() && !resolvedButton2Url.isNullOrBlank()) {
-        buttons.add(button2Label to resolvedButton2Url)
-      } else {
-        Timber.tag(logtag).d("Button 2 skipped (missing label or URL)")
-      }
-   }
+        if (button2Enabled) {
+        if (button2Label.isNotBlank() && !resolvedButton2Url.isNullOrBlank()) {
+                buttons.add(button2Label to resolvedButton2Url)
+            } else {
+                // Verbose: not essential
+                Timber.tag(logtag).v("Button 2 skipped (missing label or URL)")
+            }
+     }
 
     val finalButtons = when {
     buttons.isEmpty() -> emptyList()   // no buttons
@@ -129,7 +132,8 @@ class DiscordRPC(
             val s = this
             return if (s.startsWith("http://") || s.startsWith("https://")) RpcImage.ExternalImage(s)
             else {
-                Timber.tag(logtag).d("Skipping non-http image for RPC: %s", s)
+                // Verbose: avoid noisy debug logs
+                Timber.tag(logtag).v("Skipping non-http image for RPC: %s", s)
                 null
             }
         }
@@ -156,8 +160,8 @@ class DiscordRPC(
 
     // Resolve/preload images once per updateSong invocation (no global cache).
     // Log what we are about to preload for easier diagnosis and avoid repeating the same preload within this call.
-    if (largeImageRpc != null) Timber.tag(logtag).d("Preloading large image: %s", largeImageRpc)
-    if (smallImageRpc != null) Timber.tag(logtag).d("Preloading small image: %s", smallImageRpc)
+    if (largeImageRpc != null) Timber.tag(logtag).v("Preloading large image: %s", largeImageRpc)
+    if (smallImageRpc != null) Timber.tag(logtag).v("Preloading small image: %s", smallImageRpc)
 
     fun rpcKey(image: RpcImage): String = when (image) {
         is RpcImage.DiscordImage -> "discord:${image.image}"
@@ -173,13 +177,14 @@ class DiscordRPC(
         val key = rpcKey(image)
         if (preloadResults.containsKey(key)) {
             val v = preloadResults[key]
-            Timber.tag(logtag).d("Using invocation-local preload result for %s -> %s", key, v)
+            // Verbose: reduce log noise
+            Timber.tag(logtag).v("Using invocation-local preload result for %s -> %s", key, v)
             return v
         }
 
         val resolved = withTimeoutOrNull(2000L) { preloadImage(image) }
         preloadResults[key] = resolved
-        Timber.tag(logtag).d("Invocation preload result for %s -> %s", key, resolved)
+        Timber.tag(logtag).v("Invocation preload result for %s -> %s", key, resolved)
         return resolved
     }
 
@@ -194,10 +199,10 @@ class DiscordRPC(
             failedKeys, preloadResults)
         return@runCatching
     }
-    // Log partial failure: one image failed but the other resolved; we'll send presence using the available image.
+    // Keep minimal logging: demote informational message to verbose
     if (largeRequestedButFailed || smallRequestedButFailed) {
         val failed = if (largeRequestedButFailed) rpcKey(largeImageRpc!!) else rpcKey(smallImageRpc!!)
-        Timber.tag(logtag).i("One image failed to resolve but another succeeded; sending presence anyway. failedKey=%s preloadResults=%s",
+        Timber.tag(logtag).v("One image failed to resolve but another succeeded; sending presence anyway. failedKey=%s preloadResults=%s",
             failed, preloadResults)
     }
 
@@ -229,8 +234,8 @@ class DiscordRPC(
         else -> "online"
     }
 
-    // Log resolved image ids and RpcImage objects for debugging intermittent failures
-    Timber.tag(logtag).d("Resolved images: largeRpc=%s resolvedLarge=%s smallRpc=%s resolvedSmall=%s",
+    // Verbose: log resolved image ids for deeper troubleshooting only
+    Timber.tag(logtag).i("Resolved images: largeRpc=%s resolvedLarge=%s smallRpc=%s resolvedSmall=%s",
         largeImageRpc, resolvedLargeImage, smallImageRpc, resolvedSmallImage)
 
     try {
@@ -253,7 +258,8 @@ class DiscordRPC(
             status = safeStatus
         )
 
-        Timber.tag(logtag).d("sending presence name=%s details=%s state=%s appId=%s buttons=%s",
+        // Verbose: reduce noise in normal operation
+        Timber.tag(logtag).i("sending presence name=%s details=%s state=%s appId=%s buttons=%s",
             activityName, activityDetails, activityState, applicationIdToSend, buttons)
     } catch (ex: Exception) {
         // Log a detailed failure message including the resolved image ids and RpcImage objects
