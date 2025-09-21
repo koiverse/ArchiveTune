@@ -482,17 +482,21 @@ class MusicService :
     private fun ensurePresenceManager() {
         // Don't start if Discord RPC is disabled in settings
         if (!dataStore.get(EnableDiscordRPCKey, true)) {
-            Timber.tag("MusicService").d("Discord RPC disabled → stopping presence manager")
-            try { DiscordPresenceManager.stop() } catch (_: Exception) {}
-            lastPresenceToken = null
+            if (DiscordPresenceManager.isRunning()) {
+                Timber.tag("MusicService").d("Discord RPC disabled → stopping presence manager")
+                try { DiscordPresenceManager.stop() } catch (_: Exception) {}
+                lastPresenceToken = null
+            }
             return
         }
 
         val key: String = dataStore.get(DiscordTokenKey, "")
         if (key.isNullOrBlank()) {
-            Timber.tag("MusicService").d("No Discord token → stopping presence manager")
-            try { DiscordPresenceManager.stop() } catch (_: Exception) {}
-            lastPresenceToken = null
+            if (DiscordPresenceManager.isRunning()) {
+                Timber.tag("MusicService").d("No Discord token → stopping presence manager")
+                try { DiscordPresenceManager.stop() } catch (_: Exception) {}
+                lastPresenceToken = null
+            }
             return
         }
 
