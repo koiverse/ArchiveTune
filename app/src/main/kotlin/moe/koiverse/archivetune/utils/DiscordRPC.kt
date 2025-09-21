@@ -185,14 +185,20 @@ class DiscordRPC(
 
     val resolvedLargeImage = resolveOnce(largeImageRpc)
     val resolvedSmallImage = resolveOnce(smallImageRpc)
-    if ((largeImageRpc != null && resolvedLargeImage == null) || (smallImageRpc != null && resolvedSmallImage == null)) {
-        // Detailed diagnostics: which images failed and what we have in the invocation-local preloadResults
-        val failedKeys = mutableListOf<String>()
-        if (largeImageRpc != null && resolvedLargeImage == null) failedKeys.add(rpcKey(largeImageRpc))
-        if (smallImageRpc != null && resolvedSmallImage == null) failedKeys.add(rpcKey(smallImageRpc))
-        Timber.tag(logtag).w("Skipping presence update because images could not be resolved: failedKeys=%s preloadResults=%s",
+    // If both requested images failed to resolve, skip. If at least one resolved, send presence with available image(s).
+    val largeRequestedButFailed = largeImageRpc != null && resolvedLargeImage == null
+    val smallRequestedButFailed = smallImageRpc != null && resolvedSmallImage == null
+    if (largeRequestedButFailed && smallRequestedButFailed) {
+        val failedKeys = listOf(rpcKey(largeImageRpc!!), rpcKey(smallImageRpc!!))
+        Timber.tag(logtag).w("Skipping presence update because both images failed to resolve: failedKeys=%s preloadResults=%s",
             failedKeys, preloadResults)
         return@runCatching
+    }
+    // Log partial failure: one image failed but the other resolved; we'll send presence using the available image.
+    if (largeRequestedButFailed || smallRequestedButFailed) {
+        val failed = if (largeRequestedButFailed) rpcKey(largeImageRpc!!) else rpcKey(smallImageRpc!!)
+        Timber.tag(logtag).i("One image failed to resolve but another succeeded; sending presence anyway. failedKey=%s preloadResults=%s",
+            failed, preloadResults)
     }
 
     val resolvedLargeText = when ((context.dataStore[DiscordLargeTextSourceKey] ?: "album").lowercase()) {
