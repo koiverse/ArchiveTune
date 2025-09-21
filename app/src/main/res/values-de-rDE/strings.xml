@@ -214,6 +214,7 @@
     <string name="dark_theme_off">Off</string>
     <string name="show_button">Show button</string>
     <string name="corner_radius">Corner radius: %1$d</string>
+    <string name="adjust_radius">Adjust corner radius</string>
     <string name="cancel_button">Cancel</string>
     <string name="ok_button">OK</string>
     <string name="custom_radius">Customize thumbnail corner radius</string>
