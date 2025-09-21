@@ -154,13 +154,37 @@ class DiscordRPC(
         else -> pickImage(smallImageTypePref, smallImageCustomPref, song, true)
     }
 
-    // ✅ Preload images and skip sending if not resolved
-    // Log what we are about to preload for easier diagnosis
+    // Resolve/preload images once per updateSong invocation (no global cache).
+    // Log what we are about to preload for easier diagnosis and avoid repeating the same preload within this call.
     if (largeImageRpc != null) Timber.tag(logtag).d("Preloading large image: %s", largeImageRpc)
     if (smallImageRpc != null) Timber.tag(logtag).d("Preloading small image: %s", smallImageRpc)
 
-    val resolvedLargeImage = if (largeImageRpc != null) withTimeoutOrNull(2000L) { preloadImage(largeImageRpc) } else null
-    val resolvedSmallImage = if (smallImageRpc != null) withTimeoutOrNull(2000L) { preloadImage(smallImageRpc) } else null
+    fun rpcKey(image: RpcImage): String = when (image) {
+        is RpcImage.DiscordImage -> "discord:${image.image}"
+        is RpcImage.ExternalImage -> "external:${image.image}"
+        else -> image.toString()
+    }
+
+    // Local per-invocation map: ensure we preload each image at most once during this updateSong call.
+    val preloadResults: MutableMap<String, String?> = mutableMapOf()
+
+    suspend fun resolveOnce(image: RpcImage?): String? {
+        if (image == null) return null
+        val key = rpcKey(image)
+        if (preloadResults.containsKey(key)) {
+            val v = preloadResults[key]
+            Timber.tag(logtag).d("Using invocation-local preload result for %s -> %s", key, v)
+            return v
+        }
+
+        val resolved = withTimeoutOrNull(2000L) { preloadImage(image) }
+        preloadResults[key] = resolved
+        Timber.tag(logtag).d("Invocation preload result for %s -> %s", key, resolved)
+        return resolved
+    }
+
+    val resolvedLargeImage = resolveOnce(largeImageRpc)
+    val resolvedSmallImage = resolveOnce(smallImageRpc)
     if ((largeImageRpc != null && resolvedLargeImage == null) || (smallImageRpc != null && resolvedSmallImage == null)) {
         Timber.tag(logtag).w("Skipping presence update because images could not be resolved")
         return@runCatching
