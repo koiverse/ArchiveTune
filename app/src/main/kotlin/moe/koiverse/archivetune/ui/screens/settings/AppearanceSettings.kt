@@ -48,6 +48,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -503,10 +504,10 @@ fun AppearanceSettings(
                 labelColor = if (selected) MaterialTheme.colorScheme.onPrimary
                 else MaterialTheme.colorScheme.onSurfaceVariant
             ),
-            border = SuggestionChipDefaults.suggestionChipBorder(
-            borderWidth = if (selected) 2.dp else 1.dp,
-            borderColor = if (selected) MaterialTheme.colorScheme.primary
-            else MaterialTheme.colorScheme.outlineVariant
+            border = BorderStroke(
+                width = if (selected) 2.dp else 1.dp,
+                color = if (selected) MaterialTheme.colorScheme.primary
+                else MaterialTheme.colorScheme.outlineVariant
             )
         )
     }
@@ -534,10 +535,10 @@ fun AppearanceSettings(
                     labelColor = if (isCustom) MaterialTheme.colorScheme.onPrimary
                     else MaterialTheme.colorScheme.onSurfaceVariant
                 ),
-                border = SuggestionChipDefaults.suggestionChipBorder(
-                borderWidth = if (isCustom) 2.dp else 1.dp,
-                borderColor = if (isCustom) MaterialTheme.colorScheme.primary
-                else MaterialTheme.colorScheme.outlineVariant
+                border = BorderStroke(
+                    width = if (isCustom) 2.dp else 1.dp,
+                    color = if (isCustom) MaterialTheme.colorScheme.primary
+                    else MaterialTheme.colorScheme.outlineVariant
             )
         )
 
