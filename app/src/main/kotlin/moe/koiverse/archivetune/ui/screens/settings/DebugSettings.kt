@@ -12,6 +12,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import android.content.Intent
 import androidx.compose.material3.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Sort
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -107,7 +112,14 @@ fun DebugSettings(
                 val query = remember { mutableStateOf("") }
 
                 // Filter logs by tag/class or search query
-                val filtered = remember(allLogs, filterMode.value, query.value) {
+                // selectedLevels controls which log levels are visible. Default: Info, Warn, Error
+                val selectedLevels = remember {
+                    androidx.compose.runtime.mutableStateOf(
+                        setOf(android.util.Log.INFO, android.util.Log.WARN, android.util.Log.ERROR)
+                    )
+                }
+
+                val filtered = remember(allLogs, filterMode.value, query.value, selectedLevels.value) {
                     allLogs.filter { entry ->
                         val tagMatch = when (filterMode.value) {
                             "discord-only" -> (entry.tag?.contains("DiscordRPC", true) == true) || (entry.tag?.contains("DiscordPresenceManager", true) == true) || entry.message.contains("DiscordPresenceManager") || entry.message.contains("DiscordRPC")
@@ -115,7 +127,9 @@ fun DebugSettings(
                         }
                         val q = query.value.trim()
                         val textMatch = q.isEmpty() || entry.message.contains(q, ignoreCase = true) || (entry.tag?.contains(q, ignoreCase = true) == true)
-                        tagMatch && textMatch
+                        // Also respect selected levels
+                        val levelMatch = selectedLevels.value.contains(entry.level)
+                        tagMatch && textMatch && levelMatch
                     }
                 }
 
@@ -129,6 +143,7 @@ fun DebugSettings(
                         .background(color = MaterialTheme.colorScheme.surfaceVariant, shape = RoundedCornerShape(14.dp))
                 ) {
                     Column(Modifier.padding(8.dp)) {
+                        // Top action row: left = filters, right = sort dropdown
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 TextButton(onClick = { filterMode.value = if (filterMode.value == "all") "discord-only" else "all" }) {
@@ -146,6 +161,50 @@ fun DebugSettings(
                                     }
                                     context.startActivity(Intent.createChooser(send, "Share logs"))
                                 }, enabled = filtered.isNotEmpty()) { Text("Share") }
+                            }
+
+                            // Sort / level-picker dropdown anchored to an IconButton on the right
+                            val levelsMenuExpanded = remember { mutableStateOf(false) }
+                            // local reference to the mutable set for convenience
+                            val selLevels = selectedLevels
+
+                            Column {
+                                androidx.compose.material3.IconButton(onClick = { levelsMenuExpanded.value = true }) {
+                                    Icon(Icons.Filled.Sort, contentDescription = "Filter levels")
+                                }
+
+                                DropdownMenu(expanded = levelsMenuExpanded.value, onDismissRequest = { levelsMenuExpanded.value = false }) {
+                                    // Helper to create an item for each level
+                                    fun levelItem(label: String, level: Int) {
+                                        DropdownMenuItem(onClick = {
+                                            val current = selLevels.value.toMutableSet()
+                                            if (current.contains(level)) current.remove(level) else current.add(level)
+                                            selLevels.value = current
+                                        }, text = {
+                                            Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                                                Checkbox(checked = selLevels.value.contains(level), onCheckedChange = {
+                                                    val current = selLevels.value.toMutableSet()
+                                                    if (it) current.add(level) else current.remove(level)
+                                                    selLevels.value = current
+                                                })
+                                                Spacer(modifier = Modifier.padding(6.dp))
+                                                Text(label)
+                                            }
+                                        })
+                                    }
+
+                                    levelItem("Verbose", android.util.Log.VERBOSE)
+                                    levelItem("Debug", android.util.Log.DEBUG)
+                                    levelItem("Info", android.util.Log.INFO)
+                                    levelItem("Warn", android.util.Log.WARN)
+                                    levelItem("Error", android.util.Log.ERROR)
+
+                                    // Reset to default
+                                    DropdownMenuItem(onClick = {
+                                        selLevels.value = setOf(android.util.Log.INFO, android.util.Log.WARN, android.util.Log.ERROR)
+                                        levelsMenuExpanded.value = false
+                                    }, text = { Text("Reset to default (Info/Warn/Error)") })
+                                }
                             }
                         }
 
