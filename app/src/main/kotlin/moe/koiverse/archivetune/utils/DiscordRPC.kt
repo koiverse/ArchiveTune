@@ -22,6 +22,8 @@ class DiscordRPC(
         private const val logtag = "DiscordRPC"
     }
 
+    private val repo = com.my.kizzy.repository.KizzyRepository()
+
     suspend fun updateSong(
     song: Song,
     currentPlaybackTimeMillis: Long,
@@ -166,7 +168,6 @@ class DiscordRPC(
     fun rpcKey(image: RpcImage): String = when (image) {
         is RpcImage.DiscordImage -> "discord:${image.image}"
         is RpcImage.ExternalImage -> "external:${image.image}"
-        else -> image.toString()
     }
 
     // Local per-invocation map: ensure we preload each image at most once during this updateSong call.
@@ -177,16 +178,23 @@ class DiscordRPC(
         val key = rpcKey(image)
         if (preloadResults.containsKey(key)) {
             val v = preloadResults[key]
-            // Verbose: reduce log noise
             Timber.tag(logtag).v("Using invocation-local preload result for %s -> %s", key, v)
             return v
         }
 
-        val resolved = withTimeoutOrNull(2000L) { preloadImage(image) }
+        val resolved = withTimeoutOrNull(4000L) {  // ⬅️ bumped timeout from 2000 → 4000
+            when (image) {
+                is RpcImage.ExternalImage -> repo.getImage(image.image)  // 🔹 uses cache
+                is RpcImage.DiscordImage -> image.image // already a key
+                else -> null
+            }
+        }
+
         preloadResults[key] = resolved
         Timber.tag(logtag).v("Invocation preload result for %s -> %s", key, resolved)
         return resolved
     }
+
 
     val resolvedLargeImage = resolveOnce(largeImageRpc)
     val resolvedSmallImage = resolveOnce(smallImageRpc)
@@ -216,6 +224,18 @@ class DiscordRPC(
         else -> song.song.albumName ?: song.album?.title
     }
 
+    fun wrapResolved(resolved: String?, fallback: RpcImage?): RpcImage? {
+        if (resolved.isNullOrBlank()) return fallback
+        return if (resolved.startsWith("http://") || resolved.startsWith("https://")) {
+            RpcImage.ExternalImage(resolved)
+        } else {
+            RpcImage.DiscordImage(resolved)
+        }
+    }
+
+    val finalLargeImage: RpcImage? = wrapResolved(resolvedLargeImage, largeImageRpc)
+    val finalSmallImage: RpcImage? = wrapResolved(resolvedSmallImage, smallImageRpc)
+
     // ✅ Only send app ID when using DiscordImage
     val applicationIdToSend = if (
     (largeImageRpc is RpcImage.DiscordImage || smallImageRpc is RpcImage.DiscordImage)
@@ -244,8 +264,8 @@ class DiscordRPC(
             details = activityDetails,
             state = activityState,
             detailsUrl = baseSongUrl,
-            largeImage = largeImageRpc,
-            smallImage = smallImageRpc,
+            largeImage = finalLargeImage,
+            smallImage = finalSmallImage,
             largeText = resolvedLargeText,
             smallText = sendSmallText,
             buttons = finalButtons,
