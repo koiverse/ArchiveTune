@@ -213,6 +213,7 @@ dependencies {
     implementation(libs.multidex)
 
     implementation(libs.timber)
+    testImplementation(libs.junit)
     // Ensure ProcessLifecycleOwner is available for the presence manager and CI unit tests
     implementation("androidx.lifecycle:lifecycle-process:2.6.2")
 }
