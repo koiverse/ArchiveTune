@@ -170,7 +170,6 @@ class DiscordRPC(
         is RpcImage.ExternalImage -> "external:${image.image}"
     }
 
-    // Local per-invocation map: ensure we preload each image at most once during this updateSong call.
     val preloadResults: MutableMap<String, String?> = mutableMapOf()
 
     suspend fun resolveOnce(image: RpcImage?): String? {
@@ -182,17 +181,19 @@ class DiscordRPC(
             return v
         }
 
-    val resolved = withTimeoutOrNull(4000L) {
-        when (image) {
-            is RpcImage.ExternalImage -> repo.getImage(image.image) ?: image.image // fallback to original URL
-            is RpcImage.DiscordImage -> image.image
+        val resolved = withTimeoutOrNull(4000L) {
+            when (image) {
+                is RpcImage.ExternalImage -> repo.getImage(image.image) // 🔹 target: mp:external
+                    ?: image.image // fallback direct URL if failed
+                is RpcImage.DiscordImage -> image.image
+            }
         }
-    }
 
         preloadResults[key] = resolved
         Timber.tag(logtag).v("Invocation preload result for %s -> %s", key, resolved)
         return resolved
     }
+
 
 
     val resolvedLargeImage = resolveOnce(largeImageRpc)
@@ -238,17 +239,14 @@ class DiscordRPC(
         if (resolved.isNullOrBlank()) return original
 
         return when {
-            // If it's a whitelisted URL → use as external
-            resolved.startsWith("http://") || resolved.startsWith("https://") ->
-                RpcImage.ExternalImage(resolved)
-
-            // If it's a proxy key (mp:external, b7.) → IGNORE, fallback to original
             resolved.startsWith("mp:") || resolved.startsWith("b7.") ->
-                original
-
+                RpcImage.DiscordImage(resolved)  // ✅  show in RPC
+            resolved.startsWith("http") ->
+                RpcImage.ExternalImage(resolved) // fallback (possible blank)
             else -> original
         }
     }
+
 
 
 
@@ -257,9 +255,13 @@ class DiscordRPC(
 
 
     // ✅ Only send app ID when using DiscordImage
+    /*
     val applicationIdToSend = if (
     (largeImageRpc is RpcImage.DiscordImage || smallImageRpc is RpcImage.DiscordImage)
     ) APPLICATION_ID else null
+     */
+    val applicationIdToSend = APPLICATION_ID
+
 
     val platformPref = context.dataStore[DiscordActivityPlatformKey] ?: "desktop"
     this.setPlatform(platformPref)
