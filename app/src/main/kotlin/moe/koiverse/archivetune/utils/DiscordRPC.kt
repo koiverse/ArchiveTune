@@ -223,6 +223,7 @@ class DiscordRPC(
         else -> song.song.albumName ?: song.album?.title
     }
 
+    /*
     fun wrapResolved(original: RpcImage?, resolved: String?): RpcImage? {
         if (resolved.isNullOrBlank()) return original
         return if (resolved.startsWith("http")) {
@@ -231,6 +232,24 @@ class DiscordRPC(
             RpcImage.DiscordImage(resolved)   // proper asset key
         }
     }
+        */
+
+    fun wrapResolved(original: RpcImage?, resolved: String?): RpcImage? {
+        if (resolved.isNullOrBlank()) return original
+
+        return when {
+            // If it's a whitelisted URL → use as external
+            resolved.startsWith("http://") || resolved.startsWith("https://") ->
+                RpcImage.ExternalImage(resolved)
+
+            // If it's a proxy key (mp:external, b7.) → IGNORE, fallback to original
+            resolved.startsWith("mp:") || resolved.startsWith("b7.") ->
+                original
+
+            else -> original
+        }
+    }
+
 
 
     val finalLargeImage: RpcImage? = wrapResolved(largeImageRpc, resolvedLargeImage)
