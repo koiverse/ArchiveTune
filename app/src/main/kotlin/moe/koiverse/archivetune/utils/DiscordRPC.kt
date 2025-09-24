@@ -182,13 +182,12 @@ class DiscordRPC(
             return v
         }
 
-        val resolved = withTimeoutOrNull(4000L) {  // ⬅️ bumped timeout from 2000 → 4000
-            when (image) {
-                is RpcImage.ExternalImage -> repo.getImage(image.image)  // 🔹 uses cache
-                is RpcImage.DiscordImage -> image.image // already a key
-                else -> null
-            }
+    val resolved = withTimeoutOrNull(4000L) {
+        when (image) {
+            is RpcImage.ExternalImage -> repo.getImage(image.image) ?: image.image // fallback to original URL
+            is RpcImage.DiscordImage -> image.image
         }
+    }
 
         preloadResults[key] = resolved
         Timber.tag(logtag).v("Invocation preload result for %s -> %s", key, resolved)
@@ -226,12 +225,13 @@ class DiscordRPC(
 
     fun wrapResolved(original: RpcImage?, resolved: String?): RpcImage? {
         if (resolved.isNullOrBlank()) return original
-        return when (original) {
-            is RpcImage.DiscordImage -> RpcImage.DiscordImage(resolved)
-            is RpcImage.ExternalImage -> RpcImage.ExternalImage(resolved)
-            else -> original
+        return if (resolved.startsWith("http")) {
+            RpcImage.ExternalImage(resolved)  // fallback to URL
+        } else {
+            RpcImage.DiscordImage(resolved)   // proper asset key
         }
     }
+
 
     val finalLargeImage: RpcImage? = wrapResolved(largeImageRpc, resolvedLargeImage)
     val finalSmallImage: RpcImage? = wrapResolved(smallImageRpc, resolvedSmallImage)
