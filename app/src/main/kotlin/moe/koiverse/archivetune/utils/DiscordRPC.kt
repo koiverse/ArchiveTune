@@ -224,17 +224,18 @@ class DiscordRPC(
         else -> song.song.albumName ?: song.album?.title
     }
 
-    fun wrapResolved(resolved: String?, fallback: RpcImage?): RpcImage? {
-        if (resolved.isNullOrBlank()) return fallback
-        return if (resolved.startsWith("http://") || resolved.startsWith("https://")) {
-            RpcImage.ExternalImage(resolved)
-        } else {
-            RpcImage.DiscordImage(resolved)
+    fun wrapResolved(original: RpcImage?, resolved: String?): RpcImage? {
+        if (resolved.isNullOrBlank()) return original
+        return when (original) {
+            is RpcImage.DiscordImage -> RpcImage.DiscordImage(resolved)
+            is RpcImage.ExternalImage -> RpcImage.ExternalImage(resolved)
+            else -> original
         }
     }
 
-    val finalLargeImage: RpcImage? = wrapResolved(resolvedLargeImage, largeImageRpc)
-    val finalSmallImage: RpcImage? = wrapResolved(resolvedSmallImage, smallImageRpc)
+    val finalLargeImage: RpcImage? = wrapResolved(largeImageRpc, resolvedLargeImage)
+    val finalSmallImage: RpcImage? = wrapResolved(smallImageRpc, resolvedSmallImage)
+
 
     // ✅ Only send app ID when using DiscordImage
     val applicationIdToSend = if (
