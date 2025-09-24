@@ -30,11 +30,12 @@ suspend fun HttpResponse.toImageAsset(): String? {
 }
 
 fun String.toRpcImage(): RpcImage? {
-    return if (this.isBlank())
-        null
-    else if (this.startsWith("attachments"))
-        RpcImage.DiscordImage(this)
-    else
-        RpcImage.ExternalImage(this)
+    if (this.isBlank()) return null
+    return when {
+        this.startsWith("attachments") -> RpcImage.DiscordImage(this)
+        this.startsWith("mp:") || this.startsWith("b7.") -> RpcImage.DiscordImage(this)
+        else -> RpcImage.ExternalImage(this)
+    }
 }
+
 
