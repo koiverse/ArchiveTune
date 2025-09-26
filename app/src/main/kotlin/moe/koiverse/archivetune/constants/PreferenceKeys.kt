@@ -101,6 +101,10 @@ val DiscordSmallImageCustomUrlKey = stringPreferencesKey("discordSmallImageCusto
 // Activity platform (discord client platform) selection
 val DiscordActivityPlatformKey = stringPreferencesKey("discordActivityPlatform")
 
+val TranslatorContextsKey = stringPreferencesKey("translatorContexts")
+val TranslatorTargetLangKey = stringPreferencesKey("translatorTargetLang")
+val EnableTranslatorKey = booleanPreferencesKey("enableTranslator")
+
 val ChipSortTypeKey = stringPreferencesKey("chipSortType")
 val SongSortTypeKey = stringPreferencesKey("songSortType")
 val SongSortDescendingKey = booleanPreferencesKey("songSortDescending")
