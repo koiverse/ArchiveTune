@@ -23,7 +23,10 @@ class DiscordRPC(
     }
 
     private val repo = com.my.kizzy.repository.KizzyRepository()
+    private val translator = com.github.therealbush:translator.Translator()
+    private val translationCache: MutableMap<String, String> = mutableMapOf()
     private val preloadResults: MutableMap<String, String?> = mutableMapOf()
+    private var lastSongId: String? = null
 
     private fun pickSourceValue(pref: String, song: Song?, default: String): String = when (pref) {
         "ARTIST" -> song?.artists?.firstOrNull()?.name ?: default
@@ -97,6 +100,12 @@ class DiscordRPC(
         val currentTime = System.currentTimeMillis()
         val calculatedStartTime = currentTime - currentPlaybackTimeMillis
 
+        // Reset cache if song changes
+        if (lastSongId != song.song.id) {
+            translationCache.clear()
+            lastSongId = song.song.id
+        }
+
         val namePref = context.dataStore[DiscordActivityNameKey] ?: "APP"
         val detailsPref = context.dataStore[DiscordActivityDetailsKey] ?: "SONG"
         val statePref = context.dataStore[DiscordActivityStateKey] ?: "ARTIST"
@@ -109,9 +118,55 @@ class DiscordRPC(
             return@runCatching
         }
 
-        val activityName = pickSourceValue(namePref, song, context.getString(R.string.app_name))
-        val activityDetails = pickSourceValue(detailsPref, song, song.song.title)
-        val activityState = pickSourceValue(statePref, song, song.artists.joinToString { it.name })
+
+        // --- Translator Integration with Cache ---
+        val translatorEnabled = context.dataStore[EnableTranslatorKey] ?: false
+        val translatedMap = mutableMapOf<String, String>()
+
+        if (translatorEnabled) {
+            val contextList = (context.dataStore[TranslatorContextsKey] ?: "{song}")
+                .split(",")
+                .map { it.trim() }
+            val targetLang = context.dataStore[TranslatorTargetLangKey] ?: "ENGLISH"
+
+            val rawMap = mapOf(
+                "{song}" to song.song.title,
+                "{artist}" to song.artists.joinToString { it.name },
+                "{album}" to (song.song.albumName ?: song.album?.title ?: "")
+            )
+
+            try {
+                for (ctx in contextList) {
+                    val value = rawMap[ctx]
+                    if (!value.isNullOrBlank()) {
+                        val cacheKey = "${song.song.id}:$ctx:$targetLang"
+                        val translated = translationCache[cacheKey]
+
+                        if (translated != null) {
+                            translatedMap[ctx] = translated
+                        } else {
+                            try {
+                                val result = translator.translateBlocking(value, targetLang)
+                                translatedMap[ctx] = result.translatedText
+                                translationCache[cacheKey] = result.translatedText
+                            } catch (e: Exception) {
+                                Timber.tag(logtag).e(e, "Translation failed for $ctx")
+                                translatedMap[ctx] = value // fallback original
+                                translationCache[cacheKey] = value
+                            }
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                Timber.tag(logtag).e(e, "Translator init failed")
+            }
+        }
+        // --- End Translator ---
+
+
+        val activityName = translatedMap["{song}"] ?: pickSourceValue(namePref, song, context.getString(R.string.app_name))
+        val activityDetails = translatedMap["{artist}"] ?: pickSourceValue(detailsPref, song, song.song.title)
+        val activityState = translatedMap["{album}"] ?: pickSourceValue(statePref, song, song.artists.joinToString { it.name })
 
         val baseSongUrl = "https://music.youtube.com/watch?v=${song.song.id}"
 
