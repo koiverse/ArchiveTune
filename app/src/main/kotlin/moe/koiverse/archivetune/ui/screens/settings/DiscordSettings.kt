@@ -476,7 +476,7 @@ if (intervalSelection == "Custom") {
     }
 }
 
-
+        // PREVIEW HEADING
         Text(
             text = stringResource(R.string.preview),
             style = MaterialTheme.typography.headlineSmall,
@@ -557,6 +557,65 @@ if (intervalSelection == "Custom") {
             defaultValue = ""
         )
 
+        // TRANSLATOR HEADING
+        Text(
+            text = stringResource(R.string.translator_options),
+            style = MaterialTheme.typography.headlineSmall,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp)
+        )
+
+        val (translatorEnabled, onTranslatorEnabledChange) = rememberPreference(
+            key = EnableTranslatorKey,
+            defaultValue = false
+        )
+        val (translatorContexts, onTranslatorContextsChange) = rememberPreference(
+            key = TranslatorContextsKey,
+            defaultValue = "{song},{artist},{album}"
+        )
+        val (translatorTargetLang, onTranslatorTargetLangChange) = rememberPreference(
+            key = TranslatorTargetLangKey,
+            defaultValue = "ENGLISH"
+        )
+
+        SwitchPreference(
+            title = { Text(stringResource(R.string.enable_translator)) },
+            description = stringResource(R.string.enable_translator_desc),
+            icon = { Icon(painterResource(R.drawable.translate), null) },
+            checked = translatorEnabled,
+            onCheckedChange = onTranslatorEnabledChange,
+        )
+
+        AnimatedVisibility(visible = translatorEnabled) {
+            Column {
+                TextField(
+                    value = translatorContexts,
+                    onValueChange = { onTranslatorContextsChange(it) },
+                    label = { Text(stringResource(R.string.context_info)) },
+                    singleLine = true,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    supportingText = {
+                        Text(stringResource(R.string.translator_info_usage))
+                    }
+                )
+
+                TextField(
+                    value = translatorTargetLang,
+                    onValueChange = { if (it.uppercase() == it) onTranslatorTargetLangChange(it) },
+                    label = { Text(stringResource(R.string.target_language)) },
+                    singleLine = true,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                )
+            }
+        }
+
+
+        // BUTTON OPTIONS HEADING
         Text(
             text = stringResource(R.string.discord_button_options),
             style = MaterialTheme.typography.headlineSmall,
