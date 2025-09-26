@@ -212,6 +212,7 @@ dependencies {
 
     implementation(libs.multidex)
 
+    implementation(libs.translator)
     implementation(libs.timber)
     testImplementation(libs.junit)
     // Ensure ProcessLifecycleOwner is available for the presence manager and CI unit tests
