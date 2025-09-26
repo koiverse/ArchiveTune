@@ -9,6 +9,8 @@ import com.my.kizzy.rpc.KizzyRPC
 import com.my.kizzy.rpc.RpcImage
 import kotlinx.coroutines.withTimeoutOrNull
 import timber.log.Timber
+import com.github.therealbush.translator.Translator
+import com.github.therealbush.translator.Language
 
 
 class DiscordRPC(
@@ -147,7 +149,7 @@ class DiscordRPC(
                             translatedMap[ctx] = translated
                         } else {
                             try {
-                                val result = translator.translateBlocking(value, targetLang)
+                                val result = translator.translateBlocking(value, Language.valueOf(targetLang.uppercase()))
                                 translatedMap[ctx] = result.translatedText
                                 translationCache[cacheKey] = result.translatedText
                             } catch (e: Exception) {
