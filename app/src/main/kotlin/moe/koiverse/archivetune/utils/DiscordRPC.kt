@@ -9,8 +9,8 @@ import com.my.kizzy.rpc.KizzyRPC
 import com.my.kizzy.rpc.RpcImage
 import kotlinx.coroutines.withTimeoutOrNull
 import timber.log.Timber
-import com.therealbush.translator.Translator
-import com.therealbush.translator.Language
+import com.github.therealbush.translator.Translator
+import com.github.therealbush.translator.Language
 
 
 class DiscordRPC(
