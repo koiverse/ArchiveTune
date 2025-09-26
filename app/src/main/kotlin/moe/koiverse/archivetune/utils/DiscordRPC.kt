@@ -23,7 +23,7 @@ class DiscordRPC(
     }
 
     private val repo = com.my.kizzy.repository.KizzyRepository()
-    private val translator = com.github.therealbush:translator.Translator()
+    private val translator = translator.Translator()
     private val translationCache: MutableMap<String, String> = mutableMapOf()
     private val preloadResults: MutableMap<String, String?> = mutableMapOf()
     private var lastSongId: String? = null
