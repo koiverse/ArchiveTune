@@ -10,6 +10,7 @@ import com.my.kizzy.rpc.RpcImage
 import kotlinx.coroutines.withTimeoutOrNull
 import timber.log.Timber
 
+
 class DiscordRPC(
     val context: Context,
     token: String,
@@ -23,7 +24,6 @@ class DiscordRPC(
     }
 
     private val repo = com.my.kizzy.repository.KizzyRepository()
-    private val translator = translator.Translator()
     private val translationCache: MutableMap<String, String> = mutableMapOf()
     private val preloadResults: MutableMap<String, String?> = mutableMapOf()
     private var lastSongId: String? = null
@@ -136,6 +136,7 @@ class DiscordRPC(
             )
 
             try {
+                val translator = Translator()
                 for (ctx in contextList) {
                     val value = rawMap[ctx]
                     if (!value.isNullOrBlank()) {
