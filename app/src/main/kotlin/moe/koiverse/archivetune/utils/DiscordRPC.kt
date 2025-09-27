@@ -84,9 +84,16 @@ class DiscordRPC(
             }
         }
 
-        preloadResults[key] = resolved
+        // If resolution failed (null), try to fallback to raw external URL for ExternalImage
+        val finalResolved = when {
+            !resolved.isNullOrBlank() -> resolved
+            image is RpcImage.ExternalImage -> image.image // fallback to original URL
+            else -> null
+        }
+
+        preloadResults[key] = finalResolved
         Timber.tag(logtag).v("Invocation preload result for %s -> %s", key, resolved)
-        return resolved
+        return finalResolved
     }
 
     private fun wrapResolved(original: RpcImage?, resolved: String?): RpcImage? {
@@ -167,9 +174,10 @@ class DiscordRPC(
         // --- End Translator ---
 
 
-        val activityName = translatedMap["{song}"] ?: pickSourceValue(namePref, song, context.getString(R.string.app_name))
-        val activityDetails = translatedMap["{artist}"] ?: pickSourceValue(detailsPref, song, song.song.title)
-        val activityState = translatedMap["{album}"] ?: pickSourceValue(statePref, song, song.artists.joinToString { it.name })
+        // Update translation mapping keys as per corrected context
+        val activityName = translatedMap["{album}"] ?: pickSourceValue(namePref, song, context.getString(R.string.app_name))
+        val activityDetails = translatedMap["{song}"] ?: pickSourceValue(detailsPref, song, song.song.title)
+        val activityState = translatedMap["{artist}"] ?: pickSourceValue(statePref, song, song.artists.joinToString { it.name })
 
         val baseSongUrl = "https://music.youtube.com/watch?v=${song.song.id}"
 
@@ -220,9 +228,8 @@ class DiscordRPC(
 
         val largeRequestedButFailed = largeImageRpc != null && resolvedLargeImage == null
         val smallRequestedButFailed = smallImageRpc != null && resolvedSmallImage == null
-        if (largeRequestedButFailed && smallRequestedButFailed) {
-            Timber.tag(logtag).w("Skipping presence update because both images failed")
-            return@runCatching
+        if (largeRequestedButFailed || smallRequestedButFailed) {
+            Timber.tag(logtag).w("One or more RPC images failed to resolve (large=%s small=%s). Continuing with available/fallback images.", largeRequestedButFailed, smallRequestedButFailed)
         }
 
         val resolvedLargeText = when ((context.dataStore[DiscordLargeTextSourceKey] ?: "album").lowercase()) {
