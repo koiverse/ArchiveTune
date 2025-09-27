@@ -232,14 +232,30 @@ class DiscordRPC(
             Timber.tag(logtag).w("One or more RPC images failed to resolve (large=%s small=%s). Continuing with available/fallback images.", largeRequestedButFailed, smallRequestedButFailed)
         }
 
-        val resolvedLargeText = when ((context.dataStore[DiscordLargeTextSourceKey] ?: "album").lowercase()) {
-            "song" -> song.song.title
-            "artist" -> song.artists.firstOrNull()?.name
-            "album" -> song.song.albumName ?: song.album?.title
+        val largeTextSource = (context.dataStore[DiscordLargeTextSourceKey] ?: "album").lowercase()
+        val resolvedLargeText = when (largeTextSource) {
+            "song" -> translatedMap["{song}"] ?: song.song.title
+            "artist" -> translatedMap["{artist}"] ?: song.artists.firstOrNull()?.name
+            "album" -> translatedMap["{album}"] ?: song.song.albumName ?: song.album?.title
             "app" -> context.getString(R.string.app_name)
             "custom" -> (context.dataStore[DiscordLargeTextCustomKey] ?: "").ifBlank { null }
             "dontshow" -> null
-            else -> song.song.albumName ?: song.album?.title
+            else -> translatedMap["{album}"] ?: song.song.albumName ?: song.album?.title
+        }
+
+        // Derive small text from small image type, prefer translated values when available
+        val sendSmallText = if (isPaused) {
+            context.getString(R.string.discord_paused)
+        } else {
+            when (smallImageTypePref.lowercase()) {
+                "song" -> translatedMap["{song}"] ?: song.song.title
+                "artist" -> translatedMap["{artist}"] ?: song.artists.firstOrNull()?.name
+                // thumbnail is commonly the album cover, so use album text
+                "thumbnail", "album" -> translatedMap["{album}"] ?: song.song.albumName ?: song.album?.title
+                "appicon", "app" -> context.getString(R.string.app_name)
+                "custom" -> song.artists.firstOrNull()?.name
+                else -> translatedMap["{artist}"] ?: song.artists.firstOrNull()?.name
+            }
         }
 
         val finalLargeImage: RpcImage? = wrapResolved(largeImageRpc, resolvedLargeImage)
