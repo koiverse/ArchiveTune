@@ -319,6 +319,8 @@
     <string name="max_song_cache_size">Max song cache size</string>
     <string name="clear_song_cache">Clear song cache</string>
     <string name="size_used">%s used</string>
+    <string name="clear_image_cache">Clear image cache</string>
+    <string name="clear_image_cache_dialog">Are you sure you want to clear the image cache? This will remove downloaded thumbnails and album art.</string>
 
     <string name="privacy">Privacy</string>
     <string name="listen_history">Listen history</string>
