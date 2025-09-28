@@ -369,6 +369,7 @@
     <string name="enable_translator">Enable Translator</string>
     <string name="enable_translator_desc">Translate selected fields before sending to Discord RPC</string>
     <string name="context_info">Contexts (comma-separated)</string>
+    <string name="translator_info_usage">Use Example: {song}, {artist}, {album}</string>
     <string name="target_language">Target Language</string>
     <string name="select_language">Select Language</string>
     <string name="close_dialog">Close</string>

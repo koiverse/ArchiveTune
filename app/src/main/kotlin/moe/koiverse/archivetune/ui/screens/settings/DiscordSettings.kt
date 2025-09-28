@@ -628,13 +628,18 @@ if (intervalSelection == "Custom") {
                         text = {
                             LazyColumn(modifier = Modifier.fillMaxWidth()) {
                                 items(languages) { lang ->
-                                    ListItem(
-                                        headlineText = { Text(lang.name) },
-                                        modifier = Modifier.clickable {
-                                            onTranslatorTargetLangChange(lang.code)
-                                            showLangDialog = false
-                                        }
-                                    )
+                                            Column(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .clickable {
+                                                        onTranslatorTargetLangChange(lang.code)
+                                                        showLangDialog = false
+                                                    }
+                                                    .padding(horizontal = 16.dp, vertical = 12.dp)
+                                            ) {
+                                                Text(text = lang.name)
+                                            }
+                                            Divider()
                                 }
                             }
                         },
