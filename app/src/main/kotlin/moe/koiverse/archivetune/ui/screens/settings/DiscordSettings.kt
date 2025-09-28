@@ -44,6 +44,11 @@ import moe.koiverse.archivetune.ui.utils.backToMain
 import moe.koiverse.archivetune.utils.makeTimeString
 import moe.koiverse.archivetune.utils.rememberEnumPreference
 import moe.koiverse.archivetune.utils.rememberPreference
+import moe.koiverse.archivetune.utils.TranslatorLanguages
+import androidx.compose.material3.AlertDialog
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.TextButton
 import com.my.kizzy.rpc.KizzyRPC
 import timber.log.Timber
 import moe.koiverse.archivetune.utils.DiscordRPC
@@ -602,15 +607,42 @@ if (intervalSelection == "Custom") {
                     }
                 )
 
-                TextField(
-                    value = translatorTargetLang,
-                    onValueChange = { if (it.uppercase() == it) onTranslatorTargetLangChange(it) },
-                    label = { Text(stringResource(R.string.target_language)) },
-                    singleLine = true,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                var showLangDialog by remember { mutableStateOf(false) }
+                val context = LocalContext.current
+                val languages = remember { TranslatorLanguages.load(context) }
+                val currentLangName = languages.find { it.code == translatorTargetLang }?.name ?: translatorTargetLang
+
+                PreferenceEntry(
+                    title = { Text(stringResource(R.string.target_language)) },
+                    description = currentLangName,
+                    icon = { Icon(painterResource(R.drawable.translate), null) },
+                    trailingContent = {
+                        TextButton(onClick = { showLangDialog = true }) { Text(stringResource(R.string.select_dialog)) }
+                    }
                 )
+
+                if (showLangDialog) {
+                    AlertDialog(
+                        onDismissRequest = { showLangDialog = false },
+                        title = { Text(stringResource(R.string.select_language)) },
+                        text = {
+                            LazyColumn(modifier = Modifier.fillMaxWidth()) {
+                                items(languages) { lang ->
+                                    ListItem(
+                                        headlineText = { Text(lang.name) },
+                                        modifier = Modifier.clickable {
+                                            onTranslatorTargetLangChange(lang.code)
+                                            showLangDialog = false
+                                        }
+                                    )
+                                }
+                            }
+                        },
+                        confirmButton = {
+                            TextButton(onClick = { showLangDialog = false }) { Text(stringResource(R.string.close_dialog)) }
+                        }
+                    )
+                }
             }
         }
 
