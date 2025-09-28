@@ -40,6 +40,7 @@ import moe.koiverse.archivetune.ui.component.IconButton
 import moe.koiverse.archivetune.ui.component.PreferenceEntry
 import moe.koiverse.archivetune.ui.component.PreferenceGroupTitle
 import moe.koiverse.archivetune.ui.component.SwitchPreference
+import moe.koiverse.archivetune.ui.component.ListItem
 import moe.koiverse.archivetune.ui.utils.backToMain
 import moe.koiverse.archivetune.utils.makeTimeString
 import moe.koiverse.archivetune.utils.rememberEnumPreference
@@ -627,20 +628,20 @@ if (intervalSelection == "Custom") {
                         title = { Text(stringResource(R.string.select_language)) },
                         text = {
                             LazyColumn(modifier = Modifier.fillMaxWidth()) {
-                                items(languages) { lang ->
-                                            Column(
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .clickable {
-                                                        onTranslatorTargetLangChange(lang.code)
-                                                        showLangDialog = false
-                                                    }
-                                                    .padding(horizontal = 16.dp, vertical = 12.dp)
-                                            ) {
-                                                Text(text = lang.name)
-                                            }
-                                            Divider()
-                                }
+                                    items(languages) { lang ->
+                                        ListItem(
+                                            title = lang.name,
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .clickable {
+                                                    onTranslatorTargetLangChange(lang.code)
+                                                    showLangDialog = false
+                                                },
+                                            thumbnailContent = {},
+                                            isActive = (lang.code == translatorTargetLang)
+                                        )
+                                        Divider()
+                                    }
                             }
                         },
                         confirmButton = {
