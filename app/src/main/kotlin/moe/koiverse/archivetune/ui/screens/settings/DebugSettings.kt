@@ -107,11 +107,9 @@ fun DebugSettings(
                 val context = LocalContext.current
                 val clipboard = androidx.compose.ui.platform.LocalClipboardManager.current
 
-                val filterMode = remember { mutableStateOf("discord-only") } // "all" or "discord-only"
+                val filterMode = remember { mutableStateOf("discord-only") }
                 val query = remember { mutableStateOf("") }
 
-                // Filter logs by tag/class or search query
-                // selectedLevels controls which log levels are visible. Default: Info, Warn, Error
                 val selectedLevels = remember {
                     androidx.compose.runtime.mutableStateOf(
                         setOf(android.util.Log.INFO, android.util.Log.WARN, android.util.Log.ERROR)
@@ -146,20 +144,20 @@ fun DebugSettings(
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 TextButton(onClick = { filterMode.value = if (filterMode.value == "all") "discord-only" else "all" }) {
-                                    Text(if (filterMode.value == "all") "All logs" else "Discord-only")
-                                }
-                                TextButton(onClick = { GlobalLog.clear() }, enabled = filtered.isNotEmpty()) { Text("Clear") }
-                                TextButton(onClick = {
-                                    if (filtered.isEmpty()) return@TextButton
-                                    // Share filtered logs
-                                    val sb = StringBuilder()
-                                    filtered.forEach { sb.appendLine(GlobalLog.format(it)) }
-                                    val send = Intent(Intent.ACTION_SEND).apply {
-                                        type = "text/plain"
-                                        putExtra(Intent.EXTRA_TEXT, sb.toString())
+                                        Text(if (filterMode.value == "all") "All logs" else "Discord-only")
                                     }
-                                    context.startActivity(Intent.createChooser(send, "Share logs"))
-                                }, enabled = filtered.isNotEmpty()) { Text("Share") }
+                                    TextButton(onClick = { GlobalLog.clear() }, enabled = filtered.isNotEmpty()) { Text("Clear") }
+                                    TextButton(onClick = {
+                                        if (filtered.isEmpty()) return@TextButton
+                                        // Share filtered logs
+                                        val sb = StringBuilder()
+                                        filtered.forEach { sb.appendLine(GlobalLog.format(it)) }
+                                        val send = Intent(Intent.ACTION_SEND).apply {
+                                            type = "text/plain"
+                                            putExtra(Intent.EXTRA_TEXT, sb.toString())
+                                        }
+                                        context.startActivity(Intent.createChooser(send, "Share logs"))
+                                    }, enabled = filtered.isNotEmpty()) { Text("Share") }
                             }
 
                             // Sort / level-picker dropdown anchored to an IconButton on the right
@@ -173,25 +171,25 @@ fun DebugSettings(
                                 }
 
                                 DropdownMenu(expanded = levelsMenuExpanded.value, onDismissRequest = { levelsMenuExpanded.value = false }) {
-                                    // Helper to create an item for each level
-                                    @Composable
-                                    fun levelItem(label: String, level: Int) {
-                                        DropdownMenuItem(onClick = {
-                                            val current = selLevels.value.toMutableSet()
-                                            if (current.contains(level)) current.remove(level) else current.add(level)
-                                            selLevels.value = current
-                                        }, text = {
-                                            Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                                                Checkbox(checked = selLevels.value.contains(level), onCheckedChange = {
-                                                    val current = selLevels.value.toMutableSet()
-                                                    if (it) current.add(level) else current.remove(level)
-                                                    selLevels.value = current
-                                                })
-                                                Spacer(modifier = Modifier.padding(6.dp))
-                                                Text(label)
-                                            }
-                                        })
-                                    }
+                                        // Helper to create an item for each level
+                                        @Composable
+                                        fun levelItem(label: String, level: Int) {
+                                            DropdownMenuItem(onClick = {
+                                                val current = selLevels.value.toMutableSet()
+                                                if (current.contains(level)) current.remove(level) else current.add(level)
+                                                selLevels.value = current
+                                            }, text = {
+                                                Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                                                    Checkbox(checked = selLevels.value.contains(level), onCheckedChange = {
+                                                        val current = selLevels.value.toMutableSet()
+                                                        if (it) current.add(level) else current.remove(level)
+                                                        selLevels.value = current
+                                                    })
+                                                    Spacer(modifier = Modifier.padding(6.dp))
+                                                    Text(label)
+                                                }
+                                            })
+                                        }
 
                                     levelItem("Verbose", android.util.Log.VERBOSE)
                                     levelItem("Debug", android.util.Log.DEBUG)
@@ -282,11 +280,11 @@ fun DebugSettings(
                                             Text(header, style = MaterialTheme.typography.bodyMedium)
                                         }
 
-                                        // Clicking the row copies the entry message and toggles expansion (no separate buttons)
+                                        // Clicking the row toggles expansion. Copy on long-press only (hold).
                                         Spacer(modifier = Modifier.padding(4.dp))
                                     }
 
-                                    // Message body (collapsed vs expanded)
+                                    // Message body (collapsed vs expanded). Use combinedClickable to support long-press copy.
                                     Text(
                                         text = if (isExpanded) entry.message else entry.message.lines().firstOrNull() ?: "",
                                         color = color,
@@ -296,14 +294,17 @@ fun DebugSettings(
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .padding(start = 8.dp, top = 4.dp)
-                                            .clickable {
-                                                // copy entry message to clipboard and toggle expansion
-                                                clipboard.setText(androidx.compose.ui.text.AnnotatedString(entry.message))
-                                                coroutineScope.launch {
-                                                    // small toast-style feedback via snackbar is not available here; no-op
+                                            .combinedClickable(
+                                                onClick = { setExpanded(!isExpanded) },
+                                                onLongClick = {
+                                                    // copy entry message to clipboard on long-press
+                                                    clipboard.setText(androidx.compose.ui.text.AnnotatedString(entry.message))
+                                                    coroutineScope.launch {
+                                                        // Optionally provide feedback via logs
+                                                        GlobalLog.i("DebugSettings", "Copied log to clipboard")
+                                                    }
                                                 }
-                                                setExpanded(!isExpanded)
-                                            }
+                                            )
                                     )
                                 }
                             }
