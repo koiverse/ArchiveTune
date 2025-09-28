@@ -277,24 +277,45 @@ class DiscordRPC(
         }
 
         try {
-            this.refreshRPC(
-                name = activityName.removeSuffix(" Debug"),
-                details = activityDetails,
-                state = activityState,
-                detailsUrl = baseSongUrl,
-                largeImage = finalLargeImage,
-                smallImage = finalSmallImage,
-                largeText = resolvedLargeText,
-                smallText = sendSmallText,
-                buttons = finalButtons,
-                type = resolvedType,
-                statusDisplayType = StatusDisplayType.STATE,
-                since = sendSince,
-                startTime = sendStartTime,
-                endTime = sendEndTime,
-                applicationId = applicationIdToSend,
-                status = safeStatus
-            )
+            // Only include the buttons argument when we actually have buttons to send.
+            if (finalButtons.isNotEmpty()) {
+                this.refreshRPC(
+                    name = activityName.removeSuffix(" Debug"),
+                    details = activityDetails,
+                    state = activityState,
+                    detailsUrl = baseSongUrl,
+                    largeImage = finalLargeImage,
+                    smallImage = finalSmallImage,
+                    largeText = resolvedLargeText,
+                    smallText = sendSmallText,
+                    buttons = finalButtons,
+                    type = resolvedType,
+                    statusDisplayType = StatusDisplayType.STATE,
+                    since = sendSince,
+                    startTime = sendStartTime,
+                    endTime = sendEndTime,
+                    applicationId = applicationIdToSend,
+                    status = safeStatus
+                )
+            } else {
+                this.refreshRPC(
+                    name = activityName.removeSuffix(" Debug"),
+                    details = activityDetails,
+                    state = activityState,
+                    detailsUrl = baseSongUrl,
+                    largeImage = finalLargeImage,
+                    smallImage = finalSmallImage,
+                    largeText = resolvedLargeText,
+                    smallText = sendSmallText,
+                    type = resolvedType,
+                    statusDisplayType = StatusDisplayType.STATE,
+                    since = sendSince,
+                    startTime = sendStartTime,
+                    endTime = sendEndTime,
+                    applicationId = applicationIdToSend,
+                    status = safeStatus
+                )
+            }
             Timber.tag(logtag).i("sending presence name=%s details=%s state=%s", activityName, activityDetails, activityState)
         } catch (ex: Exception) {
             Timber.tag(logtag).e(ex, "updatePresence failed")
