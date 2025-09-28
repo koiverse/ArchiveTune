@@ -1,0 +1,201 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="explore">탐색</string>
+
+    <string name="local_history">로컬</string>
+    <string name="remote_history">원격</string>
+
+    <string name="charts">차트</string>
+    <string name="back_button_desc">뒤로</string>
+    <string name="no_title">제목 없음</string>
+    <string name="unknown_artist">알 수 없는 아티스트</string>
+    <string name="unknown_item_type">알 수 없는 항목 유형</string>
+    <string name="loading_charts">차트 불러오는 중...</string>
+    <string name="retry_button">재시도</string>
+    <string name="album_cover_desc">앨범 커버</string>
+    <string name="top_music_videos">상위 뮤직 비디오</string>
+    <string name="trending">인기 급상승</string>
+
+    <string name="weeks">주</string>
+    <string name="months">개월</string>
+    <string name="years">년</string>
+    <string name="continuous">연속</string>
+
+    <string name="liked">좋아요</string>
+    <string name="offline">다운로드됨</string>
+    <string name="my_top">내 상위</string>
+    <string name="cached_playlist">캐시됨</string>
+    <string name="sync_playlist">동기 재생목록</string>
+    <string name="sync_disabled">동기화 비활성화됨</string>
+    <string name="elements_selected">%1$d개 항목 선택됨</string>
+    <string name="allows_for_sync_witch_youtube">참고: 이는 YouTube Music과의 동기화를 허용합니다. 나중에 변경할 수 없습니다.</string>
+    <string name="generating_image">이미지 생성 중</string>
+    <string name="please_wait">잠시 기다려주세요</string>
+    <string name="cancel">취소</string>
+    <string name="share_lyrics">가사 공유</string>
+    <string name="share_as_text">텍스트로 공유</string>
+    <string name="share_as_image">이미지로 공유</string>
+    <string name="max_selection_limit">최대 선택 한도</string>
+    <string name="share_selected">선택 항목 공유</string>
+    <string name="customize_colors">색상 사용자화</string>
+    <string name="more_options">추가 옵션</string>
+    <string name="text_color">텍스트 색상</string>
+    <string name="secondary_text_color">보조 텍스트 색상</string>
+    <string name="background_color">배경 색상</string>
+
+    <string name="added_to_play_next">다음 재생에 추가됨</string>
+    <string name="added_to_queue">대기열에 추가됨</string>
+    <string name="remove_from_cache">캐시에서 제거</string>
+    <string name="copy_link">링크 복사</string>
+    <string name="select">모두 선택</string>
+    <string name="like_all">모두 좋아요</string>
+    <string name="dislike_all">모두 좋아요 취소</string>
+    <string name="sort_by_last_updated">업데이트 날짜</string>
+    <string name="link_copied">링크가 클립보드에 복사되었습니다</string>
+    <string name="starting_radio">라디오 시작 중</string>
+    <string name="now_playing">재생 중</string>
+
+    <string name="lyrics">가사</string>
+    <string name="close">닫기</string>
+    <string name="minimum_volume">최소 볼륨</string>
+    <string name="maximum_volume">최대 볼륨</string>
+    <string name="hide_player_thumbnail">플레이어 썸네일 숨기기</string>
+    <string name="hide_player_thumbnail_desc">플레이어에서 앨범 아트 대신 앱 로고를 표시합니다</string>
+
+    <string name="already_in_playlist">이미 재생목록에 있음:</string>
+
+    <plurals name="n_element">
+        <item quantity="one">%d개 항목</item>
+        <item quantity="other">%d개 항목</item>
+    </plurals>
+    <plurals name="n_time">
+        <item quantity="one">%d회</item>
+        <item quantity="other">%d회</item>
+    </plurals>
+
+    <string name="seek_backward">5초 뒤로</string>
+    <string name="seek_forward">5초 앞으로</string>
+    <string name="seek_forward_dynamic">+%1$d초 앞으로</string>
+    <string name="seek_backward_dynamic">-%1$d초 뒤로</string>
+    <string name="seek_seconds_addup">점진적 탐색</string>
+    <string name="seek_seconds_addup_description">활성화하면, 각 건너뛰기마다 5초가 점점 더 추가됩니다</string>
+
+    <string name="similar_content">유사한 콘텐츠</string>
+
+    <string name="login_settings">로그인 설정</string>
+    <string name="general_settings">일반 설정</string>
+
+    <string name="player_background_style">플레이어 배경 스타일</string>
+    <string name="follow_theme">테마 따르기</string>
+    <string name="gradient">그라디언트</string>
+    <string name="new_player_design">새 플레이어 디자인</string>
+    <string name="new_mini_player_design">새 미니 플레이어 디자인</string>
+    <string name="player_background_blur">블러</string>
+    <string name="player_buttons_style">플레이어 버튼 색상</string>
+    <string name="default_style">기본</string>
+    <string name="secondary_color_style">보조</string>
+    <string name="enable_squiggly_slider">구불구불한 슬라이더 활성화</string>
+    <string name="enable_swipe_thumbnail">노래 변경을 위해 스와이프 사용 활성화</string>
+    <string name="swipe_song_to_add">노래를 왼쪽으로 스와이프하면 대기열에 추가, 오른쪽으로 스와이프하면 다음 재생</string>
+    <string name="lyrics_click_change">가사 클릭으로 변경</string>
+    <string name="lyrics_auto_scroll">가사 자동 스크롤</string>
+    <string name="lyrics_romanize_japanese">일본어 가사 로마자 표기</string>
+    <string name="lyrics_romanize_korean">한국어 가사 로마자 표기</string>
+    <string name="slim">슬림</string>
+    <string name="slim_navbar">슬림 하단 내비게이션 바</string>
+    <string name="auto_playlists">자동 재생목록</string>
+    <string name="show_liked_playlist">"좋아요" 재생목록 표시</string>
+    <string name="show_downloaded_playlist">"다운로드" 재생목록 표시</string>
+    <string name="show_top_playlist">"상위" 재생목록 표시</string>
+    <string name="show_cached_playlist">"캐시" 재생목록 표시</string>
+
+    <string name="google">Google</string>
+    <string name="discord">Discord</string>
+    <string name="advanced_login">토큰으로 로그인</string>
+    <string name="token_hidden">토큰을 탭하여 표시</string>
+    <string name="token_shown">다시 탭하여 복사하거나 편집</string>
+    <string name="token_adv_login_description">이것은 고급 로그인 방법입니다. 웹 포털 대신 여기에서 토큰을 직접 입력하거나 업데이트할 수 있습니다. 예: 여러 기기에서 로그인 속도를 높입니다. 잘못된 형식의 토큰은 수락되지 않습니다</string>
+    <string name="ytm_sync">YouTube Music 계정과 자동 동기화</string>
+    <string name="yt_sync">계정과 자동 동기화</string>
+    <string name="more_content">추가 콘텐츠</string>
+    <string name="general">일반</string>
+    <string name="proxy">프록시</string>
+    <string name="default_lib_chips">기본 라이브러리 칩 변경</string>
+    <string name="set_quick_picks">빠른 선곡 설정</string>
+    <string name="last_song_listened">마지막으로 들은 곡을 기반으로</string>
+    <string name="app_language">앱 언어</string>
+    <string name="configure_app_language">앱 언어 구성</string>
+    <string name="intent_app_language_not_found">앱 언어 설정을 찾을 수 없습니다. 수동으로 구성하세요</string>
+    <string name="open_supported_links">지원되는 링크를 기본으로 열기</string>
+    <string name="configure_supported_links">지원되는 링크 구성</string>
+    <string name="intent_supported_links_not_found">지원되는 링크 설정을 찾을 수 없습니다. 수동으로 구성하세요</string>
+    <string name="set_first_lyrics_provider">기본 가사 제공자 설정</string>
+
+    <string name="audio_quality_max">최대 (베타)</string>
+    <string name="enable_similar_content">유사한 콘텐츠 활성화</string>
+    <string name="similar_content_desc">대기열 끝에 도달하면 자동으로 유사한 곡을 추가합니다</string>
+    <string name="min_playback_duration_title">최소 재생 지속 시간</string>
+    <string name="min_playback_duration_description">노래가 "재생된" 것으로 간주되기 전까지 재생되어야 하는 최소 시간</string>
+    <string name="percentage_format">%d%%</string>
+    <string name="minimum_playback_duration">최소 재생 지속 시간</string>
+
+    <string name="import_online">"m3u" 재생목록 가져오기</string>
+    <string name="import_csv">"csv" 재생목록 가져오기</string>
+    <string name="playlist_add_local_to_synced_note">참고: 로컬 곡을 동기/원격 재생목록에 추가하는 것은 지원되지 않습니다. 다른 조합은 유효합니다</string>
+
+    <string name="auto_download_on_like">좋아요 시 자동 다운로드</string>
+    <string name="auto_download_on_like_desc">좋아요를 누르면 자동으로 노래를 다운로드합니다</string>
+
+    <string name="swipe_sensitivity">미니 플레이어 스와이프 민감도</string>
+    <string name="swipe_sensitivity_desc">노래 변경 스와이프 제스처의 민감도를 조정합니다</string>
+    <string name="sensitivity_percentage">%1$d%%</string>
+
+    <string name="clear_song_cache_dialog">모든 캐시된 노래를 지우시겠습니까?</string>
+    <string name="clear_image_cache_dialog">모든 캐시된 이미지를 지우시겠습니까?</string>
+    <string name="clear_downloads_dialog">모든 다운로드를 지우시겠습니까?</string>
+
+    <string name="disable">비활성화</string>
+
+    <string name="pause_remote_listen_history">YouTube Music과 재생 기록 공유 일시중지</string>
+    <string name="not_logged_in_youtube">YouTube에 로그인되어 있지 않음</string>
+
+    <string name="default_links">지원되는 링크 열기</string>
+    <string name="open_app_settings_error">앱 설정을 열 수 없습니다</string>
+
+    <string name="release_notes">릴리즈 노트</string>
+
+    <string name="all_time">전체 기간</string>
+    <string name="past_24_hours">지난 24시간</string>
+    <string name="past_week">지난 주</string>
+    <string name="past_month">지난 달</string>
+    <string name="past_year">지난 1년</string>
+    <string name="top_length">내 Top 목록 길이</string>
+    <string name="history_duration">기록 기간</string>
+    <string name="information">정보</string>
+    <string name="description">설명</string>
+    <string name="numbers">숫자</string>
+    <string name="subscribers">구독자</string>
+    <string name="views">조회수</string>
+    <string name="likes">좋아요</string>
+    <string name="dislikes">싫어요</string>
+    <string name="subscribe">구독</string>
+    <string name="subscribed">구독됨</string>
+    <string name="playlist_not_found">재생목록을 찾을 수 없음</string>
+    <string name="playlist_not_found_desc">요청한 재생목록을 불러올 수 없습니다</string>
+    <string name="empty_playlist">빈 재생목록</string>
+    <string name="empty_playlist_desc">이 재생목록에는 곡이 포함되어 있지 않습니다</string>
+    <plurals name="seconds">
+        <item quantity="one">1초</item>
+        <item quantity="other">%d초</item>
+    </plurals>
+
+    <string name="disable_load_more_when_repeat_all">전체 반복 시 더 불러오기 비활성화</string>
+    <string name="disable_load_more_when_repeat_all_desc">전체 반복 모드가 활성화되면 자동으로 더 많은 곡과 유사한 콘텐츠를 불러오지 않습니다</string>
+    
+    <string name="settings_section_ui">사용자 인터페이스</string>
+    <string name="settings_section_privacy">개인정보 및 보안</string>
+    <string name="settings_section_player">플레이어 및 미디어</string>
+    <string name="settings_section_player_content">플레이어 및 콘텐츠</string>
+    <string name="settings_section_storage">저장소 및 데이터</string>
+    <string name="settings_section_system">시스템 및 정보</string>
+</resources>
