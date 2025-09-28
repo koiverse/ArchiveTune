@@ -69,7 +69,7 @@ fun DebugSettings(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Debug Settings") },
+                title = { Text(stringResource(R.string.debug_settings)) },
                 navigationIcon = {
                     IconButton(onClick = navController::navigateUp, onLongClick = navController::backToMain) {
                         Icon(painterResource(R.drawable.arrow_back), contentDescription = null)
@@ -80,8 +80,8 @@ fun DebugSettings(
     ) { innerPadding: androidx.compose.foundation.layout.PaddingValues ->
         Column(Modifier.padding(innerPadding).padding(16.dp)) {
             PreferenceEntry(
-                title = { Text("Show Discord debug UI") },
-                description = "Enable debug lines in Discord settings",
+                title = { Text(stringResource(R.string.show_discord_debug_ui)) },
+                description = stringResource(R.string.enable_discord_debug_lines),
                 icon = { Icon(painterResource(R.drawable.info), null) },
                 trailingContent = {
                     Switch(checked = showDevDebug, onCheckedChange = onShowDevDebugChange)
@@ -96,8 +96,8 @@ fun DebugSettings(
                 val lastEnd: String = lastEndTs?.let { makeTimeString(it) } ?: "-"
 
                 PreferenceEntry(
-                    title = { Text(if (DiscordPresenceManager.isRunning()) "Presence manager: running" else "Presence manager: stopped") },
-                    description = "Last RPC start: $lastStart  end: $lastEnd",
+                    title = { Text(if (DiscordPresenceManager.isRunning()) stringResource(R.string.presence_manager_running) else stringResource(R.string.presence_manager_stopped)) },
+                    description = stringResource(id = R.string.debug_last_rpc_times, lastStart, lastEnd),
                     icon = { Icon(painterResource(R.drawable.info), null) }
                 )
 
@@ -167,7 +167,7 @@ fun DebugSettings(
 
                             Column {
                                 androidx.compose.material3.IconButton(onClick = { levelsMenuExpanded.value = true }) {
-                                    Icon(painter = painterResource(R.drawable.filter_alt), contentDescription = "Filter levels")
+                                    Icon(painter = painterResource(R.drawable.filter_alt), contentDescription = stringResource(R.string.filter_levels))
                                 }
 
                                 DropdownMenu(expanded = levelsMenuExpanded.value, onDismissRequest = { levelsMenuExpanded.value = false }) {
@@ -201,7 +201,7 @@ fun DebugSettings(
                                     DropdownMenuItem(onClick = {
                                         selLevels.value = setOf(android.util.Log.INFO, android.util.Log.WARN, android.util.Log.ERROR)
                                         levelsMenuExpanded.value = false
-                                    }, text = { Text("Reset to default (Info/Warn/Error)") })
+                                    }, text = { Text(stringResource(R.string.reset_to_default_levels)) })
                                 }
                             }
                         }

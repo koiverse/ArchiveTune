@@ -391,6 +391,18 @@
     <string name="logout_confirm_yes">Log out</string>
     <string name="logout_confirm_no">Cancel</string>
 
+    <!--Misc settings additions-->
+    <string name="debug_settings">Debug Settings</string>
+    <string name="show_discord_debug_ui">Show Discord debug UI</string>
+    <string name="enable_discord_debug_lines">Enable debug lines in Discord settings</string>
+    <string name="presence_manager_running">Presence manager: running</string>
+    <string name="presence_manager_stopped">Presence manager: stopped</string>
+    <string name="debug_last_rpc_times">Last RPC start: %1$s  end: %2$s</string>
+    <string name="filter_levels">Filter levels</string>
+    <string name="reset_to_default_levels">Reset to default</string>
+
+
+
     <string name="about">About</string>
     <string name="app_version">App version</string>
 
