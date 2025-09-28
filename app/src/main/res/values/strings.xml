@@ -399,6 +399,7 @@
     <string name="debug_last_rpc_times">Last RPC start: %1$s  end: %2$s</string>
     <string name="filter_levels">Filter levels</string>
     <string name="reset_to_default_levels">Reset to default</string>
+    <string name="no_logs">No Logs</string>
 
 
 

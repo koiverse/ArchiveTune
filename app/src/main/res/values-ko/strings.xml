@@ -333,4 +333,5 @@
     <string name="debug_last_rpc_times">마지막 RPC 시작: %1$s  종료: %2$s</string>
     <string name="filter_levels">필터 수준</string>
     <string name="reset_to_default_levels">기본값으로 재설정</string>
+    <string name="no_logs">로그 없음</string>
 </resources>

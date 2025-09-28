@@ -335,4 +335,5 @@
     <string name="debug_last_rpc_times">最後の RPC 開始: %1$s  終了: %2$s</string>
     <string name="filter_levels">フィルタレベル</string>
     <string name="reset_to_default_levels">デフォルトにリセット</string>
+    <string name="no_logs">ログなし</string>
 </resources>

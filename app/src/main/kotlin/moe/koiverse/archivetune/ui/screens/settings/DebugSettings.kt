@@ -35,6 +35,8 @@ import moe.koiverse.archivetune.ui.utils.backToMain
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -216,11 +218,32 @@ fun DebugSettings(
                                     .padding(top = 16.dp),
                                 contentAlignment = androidx.compose.ui.Alignment.Center
                             ) {
-                                Text(
-                                    text = "No Logs",
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
+                                Column(horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally) {
+                                    // Fade-in animation for the image
+                                    val visible = remember { androidx.compose.runtime.mutableStateOf(false) }
+                                    LaunchedEffect(Unit) { visible.value = true }
+
+                                    androidx.compose.animation.AnimatedVisibility(
+                                        visible = visible.value,
+                                        enter = androidx.compose.animation.fadeIn(
+                                            animationSpec = androidx.compose.animation.core.tween(durationMillis = 350)
+                                        )
+                                    ) {
+                                        Image(
+                                            painter = painterResource(R.drawable.anime_blank),
+                                            contentDescription = null,
+                                            modifier = Modifier.size(140.dp)
+                                        )
+                                    }
+
+                                    Spacer(modifier = Modifier.height(12.dp))
+
+                                    Text(
+                                        text = stringResource(R.string.no_logs),
+                                        style = MaterialTheme.typography.headlineSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
                             }
                         }
 
@@ -301,7 +324,7 @@ fun DebugSettings(
                                                     clipboard.setText(androidx.compose.ui.text.AnnotatedString(entry.message))
                                                     coroutineScope.launch {
                                                         // Optionally provide feedback via logs
-                                                        GlobalLog.i("DebugSettings", "Copied log to clipboard")
+                                                        GlobalLog.append(android.util.Log.INFO, "DebugSettings", "Copied log to clipboard")
                                                     }
                                                 }
                                             )
