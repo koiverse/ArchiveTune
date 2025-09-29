@@ -73,7 +73,7 @@ fun DebugSettings(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.debug_settings)) },
+                title = { Text(stringResource(R.string.experiment_settings)) },
                 navigationIcon = {
                     IconButton(onClick = navController::navigateUp, onLongClick = navController::backToMain) {
                         Icon(painterResource(R.drawable.arrow_back), contentDescription = null)
