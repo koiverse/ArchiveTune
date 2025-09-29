@@ -85,7 +85,8 @@ fun DiscordExperimental(
                             )
 
                                     var showLangDialog by remember { mutableStateOf(false) }
-                                    val languages = remember { TranslatorLanguages.load(LocalContext.current) }
+                                    val context = LocalContext.current
+                                    val languages = remember { TranslatorLanguages.load(context) }
                                     val currentLangName = languages.find { it.code == translatorTargetLang }?.name ?: translatorTargetLang
 
                                     PreferenceEntry(
