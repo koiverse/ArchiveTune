@@ -20,7 +20,7 @@
   <img src="https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/screenshots/screenshot_7.jpg" width="30%" />
   <img src="https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/screenshots/screenshot_8.jpg" width="30%" />
   <img src="https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/screenshots/screenshot_9.jpg" width="30%" />
-  <img src="https://github.com/mostafaalagamy/Metrolist/blob/main/fastlane/metadata/android/en-US/images/screenshots/screenshot_features.png" width="91%" />
+  <img src="https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/screenshots/screenshot_features.png" width="91%" />
 </p>
 
 [![Latest release](https://img.shields.io/github/v/release/koiverse/ArchiveTune?style=for-the-badge)](https://github.com/koiverse/ArchiveTune/releases)
@@ -59,7 +59,7 @@
 <h3>Unstable (nightly) builds</h3>
 [<img src="https://github.com/machiav3lli/oandbackupx/blob/034b226cea5c1b30eb4f6a6f313e4dadcbb0ece4/badge_github.png" alt="Get it on GitHub" height="82"
 align="center">](https://nightly.link/koiverse/ArchiveTune/workflows/build/main?preview)
-
+<br>
 <h3>Stable builds</h3>
 [<img src="https://github.com/machiav3lli/oandbackupx/blob/034b226cea5c1b30eb4f6a6f313e4dadcbb0ece4/badge_github.png" alt="Get it on GitHub" height="82"
 align="center">](https://github.com/koiverse/ArchiveTune/releases/latest/download/ArchiveTune.apk)
