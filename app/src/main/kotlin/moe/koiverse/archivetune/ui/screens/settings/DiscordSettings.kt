@@ -563,229 +563,6 @@ if (intervalSelection == "Custom") {
             defaultValue = ""
         )
 
-        // TRANSLATOR HEADING
-        Text(
-            text = stringResource(R.string.translator_options),
-            style = MaterialTheme.typography.headlineSmall,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp)
-        )
-
-        val (translatorEnabled, onTranslatorEnabledChange) = rememberPreference(
-            key = EnableTranslatorKey,
-            defaultValue = false
-        )
-        val (translatorContexts, onTranslatorContextsChange) = rememberPreference(
-            key = TranslatorContextsKey,
-            defaultValue = "{song},{artist},{album}"
-        )
-        val (translatorTargetLang, onTranslatorTargetLangChange) = rememberPreference(
-            key = TranslatorTargetLangKey,
-            defaultValue = "ENGLISH"
-        )
-
-        SwitchPreference(
-            title = { Text(stringResource(R.string.enable_translator)) },
-            description = stringResource(R.string.enable_translator_desc),
-            icon = { Icon(painterResource(R.drawable.translate), null) },
-            checked = translatorEnabled,
-            onCheckedChange = onTranslatorEnabledChange,
-        )
-
-        AnimatedVisibility(visible = translatorEnabled) {
-            Column {
-                TextField(
-                    value = translatorContexts,
-                    onValueChange = { onTranslatorContextsChange(it) },
-                    label = { Text(stringResource(R.string.context_info)) },
-                    singleLine = true,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                    supportingText = {
-                        Text(stringResource(R.string.translator_info_usage))
-                    }
-                )
-
-                var showLangDialog by remember { mutableStateOf(false) }
-                val context = LocalContext.current
-                val languages = remember { TranslatorLanguages.load(context) }
-                val currentLangName = languages.find { it.code == translatorTargetLang }?.name ?: translatorTargetLang
-
-                PreferenceEntry(
-                    title = { Text(stringResource(R.string.target_language)) },
-                    description = currentLangName,
-                    icon = { Icon(painterResource(R.drawable.translate), null) },
-                    trailingContent = {
-                        TextButton(onClick = { showLangDialog = true }) { Text(stringResource(R.string.select_dialog)) }
-                    }
-                )
-
-                if (showLangDialog) {
-                    AlertDialog(
-                        onDismissRequest = { showLangDialog = false },
-                        title = { Text(stringResource(R.string.select_language)) },
-                        text = {
-                            LazyColumn(modifier = Modifier.fillMaxWidth()) {
-                                    items(languages) { lang ->
-                                        ListItem(
-                                            title = lang.name,
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .clickable {
-                                                    onTranslatorTargetLangChange(lang.code)
-                                                    showLangDialog = false
-                                                },
-                                            thumbnailContent = {},
-                                            isActive = (lang.code == translatorTargetLang)
-                                        )
-                                        Divider()
-                                    }
-                            }
-                        },
-                        confirmButton = {
-                            TextButton(onClick = { showLangDialog = false }) { Text(stringResource(R.string.close_dialog)) }
-                        }
-                    )
-                }
-            }
-        }
-
-
-        // BUTTON OPTIONS HEADING
-        Text(
-            text = stringResource(R.string.discord_button_options),
-            style = MaterialTheme.typography.headlineSmall,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp)
-        )
-
-        PreferenceEntry(
-            title = { Text(stringResource(R.string.show_button)) },
-            description = stringResource(R.string.show_button1_description),
-            icon = { Icon(painterResource(R.drawable.buttons), null) },
-            trailingContent = {
-                Switch(checked = button1Enabled, onCheckedChange = onButton1EnabledChange)
-            }
-        )
-
-    if (button1Enabled) {
-    var expanded by remember { mutableStateOf(false) }
-    ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
-        TextField(
-            value = button1UrlSource,
-            onValueChange = {},
-            readOnly = true,
-            label = { Text("Button 1 URL Source") },
-            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-            modifier = Modifier
-                .fillMaxWidth()
-                .menuAnchor()
-                .pointerInput(Unit) { detectTapGestures { expanded = true } }
-                .padding(horizontal = 13.dp, vertical = 16.dp),
-            leadingIcon = { Icon(painterResource(R.drawable.link), null) }
-        )
-        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            urlOptions.forEach { opt ->
-                val display = when (opt) {
-                    "songurl" -> "Song URL"
-                    "artisturl" -> "Artist URL"
-                    "albumurl" -> "Album URL"
-                    "custom" -> "Custom URL"
-                    else -> opt
-                }
-                DropdownMenuItem(
-                    text = { Text(display) },
-                    onClick = {
-                        onButton1UrlSourceChange(opt)
-                        expanded = false
-                    }
-                )
-            }
-        }
-    }
-    EditablePreference(
-            title = stringResource(R.string.discord_activity_button1_label),
-            iconRes = R.drawable.buttons,
-            value = button1Label,
-            defaultValue = "Listen on YouTube Music",
-            onValueChange = onButton1LabelChange
-    )
-    if (button1UrlSource == "custom") {
-        EditablePreference(
-            title = "Button 1 Custom URL",
-            iconRes = R.drawable.link,
-            value = button1CustomUrl,
-            defaultValue = "",
-            onValueChange = onButton1CustomUrlChange
-        )
-    }
-}
-
-        PreferenceEntry(
-            title = { Text(stringResource(R.string.show_button)) },
-            description = stringResource(R.string.show_button2_description),
-            icon = { Icon(painterResource(R.drawable.buttons), null) },
-            trailingContent = {
-                Switch(checked = button2Enabled, onCheckedChange = onButton2EnabledChange)
-            }
-        )
-
-    if (button2Enabled) {
-    var expanded2 by remember { mutableStateOf(false) }
-    ExposedDropdownMenuBox(expanded = expanded2, onExpandedChange = { expanded2 = it }) {
-        TextField(
-            value = button2UrlSource,
-            onValueChange = {},
-            readOnly = true,
-            label = { Text("Button 2 URL Source") },
-            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded2) },
-            modifier = Modifier
-                .fillMaxWidth()
-                .menuAnchor()
-                .pointerInput(Unit) { detectTapGestures { expanded2 = true } }
-                .padding(horizontal = 13.dp, vertical = 16.dp),
-            leadingIcon = { Icon(painterResource(R.drawable.link), null) }
-        )
-        ExposedDropdownMenu(expanded = expanded2, onDismissRequest = { expanded2 = false }) {
-            urlOptions.forEach { opt ->
-                val display = when (opt) {
-                    "songurl" -> "Song URL"
-                    "artisturl" -> "Artist URL"
-                    "albumurl" -> "Album URL"
-                    "custom" -> "Custom URL"
-                    else -> opt
-                }
-                DropdownMenuItem(
-                    text = { Text(display) },
-                    onClick = {
-                        onButton2UrlSourceChange(opt)
-                        expanded2 = false
-                    }
-                )
-            }
-        }
-    }
-    EditablePreference(
-            title = stringResource(R.string.discord_activity_button2_label),
-            iconRes = R.drawable.buttons,
-            value = button2Label,
-            defaultValue = "View Album",
-            onValueChange = onButton2LabelChange
-    )
-    if (button2UrlSource == "custom") {
-        EditablePreference(
-            title = "Button 2 Custom URL",
-            iconRes = R.drawable.link,
-            value = button2CustomUrl,
-            defaultValue = "",
-            onValueChange = onButton2CustomUrlChange
-        )
-    }
-}
-
         var showWhenPaused by rememberPreference(
         key = DiscordShowWhenPausedKey,
         defaultValue = false
@@ -1010,15 +787,32 @@ if (smallImageType == "custom") {
     )
     }
 
-     TopAppBar(
-                title = { Text(stringResource(R.string.discord_integration)) },
-                navigationIcon = {
-                    IconButton(
-                        onClick = navController::navigateUp,
-                        onLongClick = navController::backToMain,
-                    ) { Icon(painterResource(R.drawable.arrow_back), contentDescription = null) }
+    TopAppBar(
+        title = { Text(stringResource(R.string.discord_integration)) },
+        navigationIcon = {
+            Row {
+                IconButton(
+                    onClick = navController::navigateUp,
+                    onLongClick = navController::backToMain,
+                ) { Icon(painterResource(R.drawable.arrow_back), contentDescription = null) }
+
+                var threeDotMenuExpanded by remember { mutableStateOf(false) }
+                IconButton(onClick = { threeDotMenuExpanded = true }) {
+                    Icon(painterResource(R.drawable.more_vert), contentDescription = null)
                 }
-            )
+                DropdownMenu(expanded = threeDotMenuExpanded, onDismissRequest = { threeDotMenuExpanded = false }) {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.experiment_settings)) },
+                        onClick = {
+                            threeDotMenuExpanded = false
+                            navController.navigate("settings/discord/experimental")
+                        },
+                        leadingIcon = { Icon(painterResource(R.drawable.experiment), contentDescription = null) }
+                    )
+                }
+            }
+        }
+    )
     }
 }
 
