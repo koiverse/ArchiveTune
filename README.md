@@ -20,9 +20,10 @@
   <img src="https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/screenshots/screenshot_7.jpg" width="30%" />
   <img src="https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/screenshots/screenshot_8.jpg" width="30%" />
   <img src="https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/screenshots/screenshot_9.jpg" width="30%" />
+  <img src="https://github.com/mostafaalagamy/Metrolist/blob/main/fastlane/metadata/android/en-US/images/screenshots/screenshot_feature.png" width="91%" />
 </p>
 
-[![Latest release](https://img.shields.io/github/v/release/koiverse/ArchiveTune?style=for-the-badge)](https://github.com/koiverse/ArchiveTune/releases)
+[![Latest release](https://img.shields.io/github/v/srelease/koiverse/ArchiveTune?style=for-the-badge)](https://github.com/koiverse/ArchiveTune/releases)
 [![GitHub license](https://img.shields.io/github/license/koiverse/ArchiveTune?style=for-the-badge)](https://github.com/koiverse/ArchiveTune/blob/main/LICENSE)
 [![Downloads](https://img.shields.io/github/downloads/koiverse/ArchiveTune/total?style=for-the-badge)](https://github.com/koiverse/ArchiveTune/releases)
 </div>
@@ -55,6 +56,11 @@
 <div align="center">
 <h1>Download Now</h1>
 
+<h3>Unstable (nightly) builds</h3>
+[<img src="https://github.com/machiav3lli/oandbackupx/blob/034b226cea5c1b30eb4f6a6f313e4dadcbb0ece4/badge_github.png" alt="Get it on GitHub" height="82"
+align="center">](https://nightly.link/koiverse/ArchiveTune/workflows/build/main?preview)
+
+<h3>Stable builds</h3>
 [<img src="https://github.com/machiav3lli/oandbackupx/blob/034b226cea5c1b30eb4f6a6f313e4dadcbb0ece4/badge_github.png" alt="Get it on GitHub" height="82"
 align="center">](https://github.com/koiverse/ArchiveTune/releases/latest/download/ArchiveTune.apk)
 
@@ -70,19 +76,6 @@ align="center">](https://github.com/koiverse/ArchiveTune/releases/latest/downloa
 <h3> Q: How to scrobble music to LastFM, LibreFM, ListenBrainz or GNU FM? </h3>
 
 Use other music scrobbler apps, I recommend [Pano Scrobbler](https://play.google.com/store/apps/details?id=com.arn.scrobble).
-
-
-<div align="center">
-<h1>Special thanks</h1>
-
-InnerTune:
-[Zion Huang](https://github.com/z-huang),
-[Malopieds](https://github.com/Malopieds),
-OuterTune:
-[Davide Garberi](https://github.com/DD3Boh),
-[Michael Zh](https://github.com/mikooomich),
-Muzza:
-[Maloy Android](https://github.com/Maloy-Android)
 
 </div>
 
