@@ -54,15 +54,21 @@
 - etc.
 
 <div align="center">
-<h1>Download Now</h1>
+  <h1>Download Now</h1>
 
-<h3>Unstable (nightly) builds</h3>
-[![](https://github.com/machiav3lli/oandbackupx/blob/034b226cea5c1b30eb4f6a6f313e4dadcbb0ece4/badge_github.png)](https://nightly.link/koiverse/ArchiveTune/workflows/build/main?preview)
-<br>
-<h3>Stable builds</h3>
-[![](https://github.com/machiav3lli/oandbackupx/blob/034b226cea5c1b30eb4f6a6f313e4dadcbb0ece4/badge_github.png)](https://github.com/koiverse/ArchiveTune/releases/latest/download/ArchiveTune.apk)
+  <h3>Unstable (nightly) builds</h3>
+  <a href="https://nightly.link/koiverse/ArchiveTune/workflows/build/main?preview">
+    <img src="https://github.com/machiav3lli/oandbackupx/blob/034b226cea5c1b30eb4f6a6f313e4dadcbb0ece4/badge_github.png" 
+         alt="Get it on GitHub" height="82">
+  </a>
 
+  <h3>Stable builds</h3>
+  <a href="https://github.com/koiverse/ArchiveTune/releases/latest/download/ArchiveTune.apk">
+    <img src="https://github.com/machiav3lli/oandbackupx/blob/034b226cea5c1b30eb4f6a6f313e4dadcbb0ece4/badge_github.png" 
+         alt="Get it on GitHub" height="82">
+  </a>
 </div>
+
 
 <h3> Q: Why ArchiveTune isn't showing in Android Auto? </h3>
 
