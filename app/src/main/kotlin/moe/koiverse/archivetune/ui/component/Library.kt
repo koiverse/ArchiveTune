@@ -168,8 +168,9 @@ fun LibraryPlaylistListItem(
     playlist: Playlist,
     modifier: Modifier = Modifier
 ) {
-    val (useNewDesign, onUseNewDesignChanged) =
-        rememberPreference(UseNewLibraryDesignKey, defaultValue = true)
+    // keep the MutableState so Compose observes changes and recomposes
+    val useNewDesignState = rememberPreference(UseNewLibraryDesignKey, defaultValue = true)
+    val useNewDesign = useNewDesignState.value
 
     val trailing: @Composable RowScope.() -> Unit = {
         androidx.compose.material3.IconButton(
@@ -221,6 +222,8 @@ fun LibraryPlaylistListItem(
 
     val clickableMod = modifier
         .fillMaxWidth()
+        .padding(horizontal = 12.dp)
+        .padding(bottom = 8.dp)
         .clickable {
             if (
                 !playlist.playlist.isEditable &&
