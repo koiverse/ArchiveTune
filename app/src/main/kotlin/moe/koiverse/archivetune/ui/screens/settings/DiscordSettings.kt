@@ -790,29 +790,46 @@ if (smallImageType == "custom") {
     TopAppBar(
         title = { Text(stringResource(R.string.discord_integration)) },
         navigationIcon = {
-            Row {
-                IconButton(
-                    onClick = navController::navigateUp,
-                    onLongClick = navController::backToMain,
-                ) { Icon(painterResource(R.drawable.arrow_back), contentDescription = null) }
+            IconButton(
+                onClick = navController::navigateUp,
+                onLongClick = navController::backToMain,
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.arrow_back),
+                    contentDescription = null
+                )
+            }
+        },
+        actions = {
+            var threeDotMenuExpanded by remember { mutableStateOf(false) }
 
-                var threeDotMenuExpanded by remember { mutableStateOf(false) }
-                IconButton(onClick = { threeDotMenuExpanded = true }) {
-                    Icon(painterResource(R.drawable.more_vert), contentDescription = null)
-                }
-                DropdownMenu(expanded = threeDotMenuExpanded, onDismissRequest = { threeDotMenuExpanded = false }) {
-                    DropdownMenuItem(
-                        text = { Text(stringResource(R.string.experiment_settings)) },
-                        onClick = {
-                            threeDotMenuExpanded = false
-                            navController.navigate("settings/discord/experimental")
-                        },
-                        leadingIcon = { Icon(painterResource(R.drawable.experiment), contentDescription = null) }
-                    )
-                }
+            IconButton(onClick = { threeDotMenuExpanded = true }) {
+                Icon(
+                    painter = painterResource(R.drawable.more_vert),
+                    contentDescription = null
+                )
+            }
+
+            DropdownMenu(
+                expanded = threeDotMenuExpanded,
+                onDismissRequest = { threeDotMenuExpanded = false }
+            ) {
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.experiment_settings)) },
+                    onClick = {
+                        threeDotMenuExpanded = false
+                        navController.navigate("settings/discord/experimental")
+                    },
+                    leadingIcon = {
+                        Icon(
+                            painter = painterResource(R.drawable.experiment),
+                            contentDescription = null
+                        )
+                    }
+                )
             }
         }
-    )
+      )
     }
 }
 
