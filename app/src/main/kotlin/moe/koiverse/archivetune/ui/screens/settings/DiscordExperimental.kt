@@ -1,34 +1,26 @@
 package moe.koiverse.archivetune.ui.screens.settings
 
-import androidx.compose.foundation.layout.*
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.pointerinput.pointerInput
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.Alignment
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import moe.koiverse.archivetune.constants.*
-import moe.koiverse.archivetune.ui.component.ListItem
-import androidx.compose.foundation.clickable
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.Alignment
+import moe.koiverse.archivetune.constants.*
+import moe.koiverse.archivetune.ui.component.ListItem
 import androidx.navigation.NavController
 import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.ui.component.PreferenceEntry
 import moe.koiverse.archivetune.ui.component.SwitchPreference
 import moe.koiverse.archivetune.utils.TranslatorLanguages
 import moe.koiverse.archivetune.utils.rememberPreference
-import moe.koiverse.archivetune.utils.rememberEnumPreference
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -38,7 +30,7 @@ fun DiscordExperimental(
     Scaffold { inner ->
         Column(Modifier.fillMaxSize()) {
             TopAppBar(
-                title = { Text(stringResource(R.string.discord_integration)) },
+                title = { Text(stringResource(R.string.experiment_settings)) },
                 navigationIcon = {
                     IconButton(onClick = navController::navigateUp) {
                         Icon(painterResource(R.drawable.arrow_back), contentDescription = null)
@@ -57,15 +49,15 @@ fun DiscordExperimental(
                     )
 
                     val (translatorEnabled, onTranslatorEnabledChange) = rememberPreference(
-                        key = "EnableTranslatorKey",
+                        key = EnableTranslatorKey,
                         defaultValue = false
                     )
                     val (translatorContexts, onTranslatorContextsChange) = rememberPreference(
-                        key = "TranslatorContextsKey",
+                        key = TranslatorContextsKey,
                         defaultValue = "{song},{artist},{album}"
                     )
                     val (translatorTargetLang, onTranslatorTargetLangChange) = rememberPreference(
-                        key = "TranslatorTargetLangKey",
+                        key = TranslatorTargetLangKey,
                         defaultValue = "ENGLISH"
                     )
 
@@ -149,19 +141,19 @@ fun DiscordExperimental(
 
                 item {
                     val (button1Label, onButton1LabelChange) = rememberPreference(
-                        key = "DiscordActivityButton1LabelKey",
+                        key = DiscordActivityButton1LabelKey,
                         defaultValue = "Listen on YouTube Music"
                     )
                     val (button1Enabled, onButton1EnabledChange) = rememberPreference(
-                        key = "DiscordActivityButton1EnabledKey",
+                        key = DiscordActivityButton1EnabledKey,
                         defaultValue = true
                     )
                     val (button2Label, onButton2LabelChange) = rememberPreference(
-                        key = "DiscordActivityButton2LabelKey",
+                        key = DiscordActivityButton2LabelKey,
                         defaultValue = "View Album"
                     )
                     val (button2Enabled, onButton2EnabledChange) = rememberPreference(
-                        key = "DiscordActivityButton2EnabledKey",
+                        key = DiscordActivityButton2EnabledKey,
                         defaultValue = true
                     )
 
