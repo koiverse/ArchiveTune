@@ -57,12 +57,10 @@
 <h1>Download Now</h1>
 
 <h3>Unstable (nightly) builds</h3>
-[<img src="https://github.com/machiav3lli/oandbackupx/blob/034b226cea5c1b30eb4f6a6f313e4dadcbb0ece4/badge_github.png" alt="Get it on GitHub" height="82"
-align="center">](https://nightly.link/koiverse/ArchiveTune/workflows/build/main?preview)
+[![](https://github.com/machiav3lli/oandbackupx/blob/034b226cea5c1b30eb4f6a6f313e4dadcbb0ece4/badge_github.png)](https://nightly.link/koiverse/ArchiveTune/workflows/build/main?preview)
 <br>
 <h3>Stable builds</h3>
-[<img src="https://github.com/machiav3lli/oandbackupx/blob/034b226cea5c1b30eb4f6a6f313e4dadcbb0ece4/badge_github.png" alt="Get it on GitHub" height="82"
-align="center">](https://github.com/koiverse/ArchiveTune/releases/latest/download/ArchiveTune.apk)
+[![](https://github.com/machiav3lli/oandbackupx/blob/034b226cea5c1b30eb4f6a6f313e4dadcbb0ece4/badge_github.png)](https://github.com/koiverse/ArchiveTune/releases/latest/download/ArchiveTune.apk)
 
 </div>
 
