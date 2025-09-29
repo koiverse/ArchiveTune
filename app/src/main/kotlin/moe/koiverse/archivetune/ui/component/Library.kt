@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.runtime.remember
 import moe.koiverse.archivetune.utils.rememberPreference
 import moe.koiverse.archivetune.constants.UseNewLibraryDesignKey
