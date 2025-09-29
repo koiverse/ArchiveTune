@@ -306,6 +306,9 @@ fun NavGraphBuilder.navigationBuilder(
     composable("settings/discord") {
         DiscordSettings(navController, scrollBehavior)
     }
+    composable("settings/discord/experimental") {
+        moe.koiverse.archivetune.ui.screens.settings.DiscordExperimental(navController)
+    }
     composable("settings/misc") {
         DebugSettings(navController)
     }
