@@ -244,6 +244,8 @@
     <string name="cancel_button">Cancel</string>
     <string name="ok_button">OK</string>
     <string name="custom_radius">Customize thumbnail corner radius</string>
+    <string name="new_library_design">New library design</string>
+    <string name="new_library_design_description">Enable the new library design (may be unstable)</string>
     <string name="show_button1_description">Toggle visibility of button 1 in Discord Rich Presence</string>
     <string name="show_button2_description">Toggle visibility of button 2 in Discord Rich Presence</string>
     <string name="discord_activity_type">Activity type</string>

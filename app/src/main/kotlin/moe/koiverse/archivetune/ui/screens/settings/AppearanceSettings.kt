@@ -122,6 +122,10 @@ fun AppearanceSettings(
         UseNewMiniPlayerDesignKey,
         defaultValue = true
     )
+    val (useNewLibraryDesign, onUseNewLibraryDesignChange) = rememberPreference(
+        key = moe.koiverse.archivetune.constants.UseNewLibraryDesignKey,
+        defaultValue = true
+    )
     val (hidePlayerThumbnail, onHidePlayerThumbnailChange) = rememberPreference(
         HidePlayerThumbnailKey,
         defaultValue = false
@@ -409,6 +413,14 @@ fun AppearanceSettings(
             icon = { Icon(painterResource(R.drawable.nav_bar), null) },
             checked = useNewMiniPlayerDesign,
             onCheckedChange = onUseNewMiniPlayerDesignChange,
+        )
+
+        SwitchPreference(
+            title = { Text(stringResource(R.string.new_library_design)) },
+            description = stringResource(R.string.new_library_design_description),
+            icon = { Icon(painterResource(R.drawable.grid_view), null) },
+            checked = useNewLibraryDesign,
+            onCheckedChange = onUseNewLibraryDesignChange,
         )
 
         EnumListPreference(
