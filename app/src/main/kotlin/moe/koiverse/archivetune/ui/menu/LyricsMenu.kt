@@ -414,6 +414,19 @@ fun LyricsMenu(
                             coroutineScope.launch {
                                 try {
                                     val translator = Translator()
+
+                                    val lang = try {
+                                        Language(selectedLanguageCode) 
+                                    } catch (e: Exception) {
+                                        try { Language(selectedLanguageName) } catch (_: Exception) { null }
+                                    }
+
+                                    if (lang == null) {
+                                        Toast.makeText(context, "Unsupported language: $selectedLanguageName", Toast.LENGTH_SHORT).show()
+                                        isTranslating = false
+                                        return@launch
+                                    }
+
                                     val lines = textFieldValue.text.split("\n")
                                     val tsRegex = Regex("^((?:\\[[0-9]{2}:[0-9]{2}(?:\\.[0-9]+)?\\])+)")
                                     val contents = mutableListOf<String?>()
