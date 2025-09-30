@@ -164,17 +164,20 @@ fun LibraryAlbumGridItem(
 
 @Composable
 fun LibraryPlaylistListItem(
-    navController: NavController,
+    navController: NavController? = null,
     menuState: MenuState,
     coroutineScope: CoroutineScope,
     playlist: Playlist,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onClick: (() -> Unit)? = null,
+    autoPlaylist: Boolean = false,
+    trailingContent: (@Composable RowScope.() -> Unit)? = null,
 ) {
     // keep the MutableState so Compose observes changes and recomposes
-    val useNewDesignState = rememberPreference(UseNewLibraryDesignKey, defaultValue = true)
-    val useNewDesign = useNewDesignState.value
+    // Use delegated state so reads are Compose-friendly and recompose when changed
+    val useNewDesign by rememberPreference(UseNewLibraryDesignKey, defaultValue = true)
 
-    val trailing: @Composable RowScope.() -> Unit = {
+    val trailing: @Composable RowScope.() -> Unit = trailingContent ?: {
         androidx.compose.material3.IconButton(
             onClick = {
                 menuState.show {
@@ -227,7 +230,8 @@ fun LibraryPlaylistListItem(
         .padding(horizontal = 12.dp)
         .padding(bottom = 8.dp)
 
-    val clickableMod = baseMod.clickable {
+    val defaultNavigate = {
+        if (navController == null) return@let
         if (
             !playlist.playlist.isEditable &&
             playlist.songCount == 0 &&
@@ -239,26 +243,24 @@ fun LibraryPlaylistListItem(
         }
     }
 
+    val actualOnClick = onClick ?: defaultNavigate
+
+    val clickableMod = baseMod.clickable {
+        actualOnClick()
+    }
+
     if (useNewDesign) {
         OverlayPlaylistListItem(
             playlist = playlist,
             trailingContent = trailing,
+            autoPlaylist = autoPlaylist,
             modifier = baseMod,
-            onClick = {
-                if (
-                    !playlist.playlist.isEditable &&
-                    playlist.songCount == 0 &&
-                    playlist.playlist.remoteSongCount != 0
-                ) {
-                    navController.navigate("online_playlist/${playlist.playlist.browseId}")
-                } else {
-                    navController.navigate("local_playlist/${playlist.id}")
-                }
-            }
+            onClick = actualOnClick
         )
     } else {
         PlaylistListItem(
             playlist = playlist,
+            autoPlaylist = autoPlaylist,
             trailingContent = trailing,
             modifier = clickableMod
         )
@@ -269,60 +271,178 @@ fun LibraryPlaylistListItem(
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun LibraryPlaylistGridItem(
-    navController: NavController,
+    navController: NavController? = null,
     menuState: MenuState,
     coroutineScope: CoroutineScope,
     playlist: Playlist,
-    modifier: Modifier = Modifier
-) = PlaylistGridItem(
-    playlist = playlist,
-    fillMaxWidth = true,
-    modifier = modifier
-        .fillMaxWidth()
-        .combinedClickable(
-            onClick = {
-                if (!playlist.playlist.isEditable && playlist.songCount == 0 && playlist.playlist.remoteSongCount != 0)
-                    navController.navigate("online_playlist/${playlist.playlist.browseId}")
-                else
-                    navController.navigate("local_playlist/${playlist.id}")
-            },
-            onLongClick = {
-                menuState.show {
-                    if (playlist.playlist.isEditable || playlist.songCount != 0) {
-                        PlaylistMenu(
-                            playlist = playlist,
-                            coroutineScope = coroutineScope,
-                            onDismiss = menuState::dismiss
-                        )
-                    } else {
-                        playlist.playlist.browseId?.let { browseId ->
-                            YouTubePlaylistMenu(
-                                playlist = PlaylistItem(
-                                    id = browseId,
-                                    title = playlist.playlist.name,
-                                    author = null,
-                                    songCountText = null,
-                                    thumbnail = playlist.thumbnails.getOrNull(0) ?: "",
-                                    playEndpoint = WatchEndpoint(
-                                        playlistId = browseId,
-                                        params = playlist.playlist.playEndpointParams
-                                    ),
-                                    shuffleEndpoint = WatchEndpoint(
-                                        playlistId = browseId,
-                                        params = playlist.playlist.shuffleEndpointParams
-                                    ),
-                                    radioEndpoint = WatchEndpoint(
-                                        playlistId = "RDAMPL$browseId",
-                                        params = playlist.playlist.radioEndpointParams
-                                    ),
-                                    isEditable = false
-                                ),
+    modifier: Modifier = Modifier,
+    onClick: (() -> Unit)? = null,
+    autoPlaylist: Boolean = false,
+    trailingContent: (@Composable RowScope.() -> Unit)? = null,
+) {
+    val useNewDesign by rememberPreference(UseNewLibraryDesignKey, defaultValue = true)
+
+    val defaultNavigate = {
+        if (navController == null) return@let
+        if (!playlist.playlist.isEditable && playlist.songCount == 0 && playlist.playlist.remoteSongCount != 0)
+            navController.navigate("online_playlist/${playlist.playlist.browseId}")
+        else
+            navController.navigate("local_playlist/${playlist.id}")
+    }
+
+    val actualOnClick = onClick ?: defaultNavigate
+
+    val trailing = trailingContent ?: run {
+        @Composable {
+            androidx.compose.material3.IconButton(
+                onClick = {
+                    menuState.show {
+                        if (playlist.playlist.isEditable || playlist.songCount != 0) {
+                            PlaylistMenu(
+                                playlist = playlist,
                                 coroutineScope = coroutineScope,
                                 onDismiss = menuState::dismiss
                             )
+                        } else {
+                            playlist.playlist.browseId?.let { browseId ->
+                                YouTubePlaylistMenu(
+                                    playlist = PlaylistItem(
+                                        id = browseId,
+                                        title = playlist.playlist.name,
+                                        author = null,
+                                        songCountText = null,
+                                        thumbnail = playlist.thumbnails.getOrNull(0) ?: "",
+                                        playEndpoint = WatchEndpoint(
+                                            playlistId = browseId,
+                                            params = playlist.playlist.playEndpointParams
+                                        ),
+                                        shuffleEndpoint = WatchEndpoint(
+                                            playlistId = browseId,
+                                            params = playlist.playlist.shuffleEndpointParams
+                                        ),
+                                        radioEndpoint = WatchEndpoint(
+                                            playlistId = "RDAMPL$browseId",
+                                            params = playlist.playlist.radioEndpointParams
+                                        ),
+                                        isEditable = false
+                                    ),
+                                    coroutineScope = coroutineScope,
+                                    onDismiss = menuState::dismiss
+                                )
+                            }
                         }
                     }
                 }
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.more_vert),
+                    contentDescription = null
+                )
             }
+        }
+    }
+
+    if (useNewDesign) {
+        OverlayPlaylistListItem(
+            playlist = playlist,
+            trailingContent = trailing,
+            autoPlaylist = autoPlaylist,
+            modifier = modifier
+                .fillMaxWidth()
+                .combinedClickable(
+                    onClick = {
+                        actualOnClick()
+                    },
+                    onLongClick = {
+                        menuState.show {
+                            if (playlist.playlist.isEditable || playlist.songCount != 0) {
+                                PlaylistMenu(
+                                    playlist = playlist,
+                                    coroutineScope = coroutineScope,
+                                    onDismiss = menuState::dismiss
+                                )
+                            } else {
+                                playlist.playlist.browseId?.let { browseId ->
+                                    YouTubePlaylistMenu(
+                                        playlist = PlaylistItem(
+                                            id = browseId,
+                                            title = playlist.playlist.name,
+                                            author = null,
+                                            songCountText = null,
+                                            thumbnail = playlist.thumbnails.getOrNull(0) ?: "",
+                                            playEndpoint = WatchEndpoint(
+                                                playlistId = browseId,
+                                                params = playlist.playlist.playEndpointParams
+                                            ),
+                                            shuffleEndpoint = WatchEndpoint(
+                                                playlistId = browseId,
+                                                params = playlist.playlist.shuffleEndpointParams
+                                            ),
+                                            radioEndpoint = WatchEndpoint(
+                                                playlistId = "RDAMPL$browseId",
+                                                params = playlist.playlist.radioEndpointParams
+                                            ),
+                                            isEditable = false
+                                        ),
+                                        coroutineScope = coroutineScope,
+                                        onDismiss = menuState::dismiss
+                                    )
+                                }
+                            }
+                        }
+                    }
+                )
         )
-)
+    } else {
+        PlaylistGridItem(
+            playlist = playlist,
+            autoPlaylist = autoPlaylist,
+            fillMaxWidth = true,
+            modifier = modifier
+                .fillMaxWidth()
+                .combinedClickable(
+                    onClick = {
+                        actualOnClick()
+                    },
+                    onLongClick = {
+                        menuState.show {
+                            if (playlist.playlist.isEditable || playlist.songCount != 0) {
+                                PlaylistMenu(
+                                    playlist = playlist,
+                                    coroutineScope = coroutineScope,
+                                    onDismiss = menuState::dismiss
+                                )
+                            } else {
+                                playlist.playlist.browseId?.let { browseId ->
+                                    YouTubePlaylistMenu(
+                                        playlist = PlaylistItem(
+                                            id = browseId,
+                                            title = playlist.playlist.name,
+                                            author = null,
+                                            songCountText = null,
+                                            thumbnail = playlist.thumbnails.getOrNull(0) ?: "",
+                                            playEndpoint = WatchEndpoint(
+                                                playlistId = browseId,
+                                                params = playlist.playlist.playEndpointParams
+                                            ),
+                                            shuffleEndpoint = WatchEndpoint(
+                                                playlistId = browseId,
+                                                params = playlist.playlist.shuffleEndpointParams
+                                            ),
+                                            radioEndpoint = WatchEndpoint(
+                                                playlistId = "RDAMPL$browseId",
+                                                params = playlist.playlist.radioEndpointParams
+                                            ),
+                                            isEditable = false
+                                        ),
+                                        coroutineScope = coroutineScope,
+                                        onDismiss = menuState::dismiss
+                                    )
+                                }
+                            }
+                        }
+                    }
+                )
+        )
+    }
+}

@@ -277,16 +277,17 @@ fun LibraryPlaylistsScreen(
                             key = "likedPlaylist",
                             contentType = { CONTENT_TYPE_PLAYLIST },
                         ) {
-                            PlaylistListItem(
+                            LibraryPlaylistListItem(
+                                navController = navController,
+                                menuState = LocalMenuState.current,
+                                coroutineScope = rememberCoroutineScope(),
                                 playlist = likedPlaylist,
                                 autoPlaylist = true,
                                 modifier =
                                 Modifier
                                     .fillMaxWidth()
-                                    .clickable {
-                                        navController.navigate("auto_playlist/liked")
-                                    }
                                     .animateItem(),
+                                onClick = { navController.navigate("auto_playlist/liked") }
                             )
                         }
                     }
@@ -296,16 +297,17 @@ fun LibraryPlaylistsScreen(
                             key = "downloadedPlaylist",
                             contentType = { CONTENT_TYPE_PLAYLIST },
                         ) {
-                            PlaylistListItem(
+                            LibraryPlaylistListItem(
+                                navController = navController,
+                                menuState = LocalMenuState.current,
+                                coroutineScope = rememberCoroutineScope(),
                                 playlist = downloadPlaylist,
                                 autoPlaylist = true,
                                 modifier =
                                 Modifier
                                     .fillMaxWidth()
-                                    .clickable {
-                                        navController.navigate("auto_playlist/downloaded")
-                                    }
                                     .animateItem(),
+                                onClick = { navController.navigate("auto_playlist/downloaded") }
                             )
                         }
                     }
@@ -315,16 +317,17 @@ fun LibraryPlaylistsScreen(
                             key = "TopPlaylist",
                             contentType = { CONTENT_TYPE_PLAYLIST },
                         ) {
-                            PlaylistListItem(
+                            LibraryPlaylistListItem(
+                                navController = navController,
+                                menuState = LocalMenuState.current,
+                                coroutineScope = rememberCoroutineScope(),
                                 playlist = topPlaylist,
                                 autoPlaylist = true,
                                 modifier =
                                 Modifier
                                     .fillMaxWidth()
-                                    .clickable {
-                                        navController.navigate("top_playlist/$topSize")
-                                    }
                                     .animateItem(),
+                                onClick = { navController.navigate("top_playlist/$topSize") }
                             )
                         }
                     }
@@ -334,16 +337,17 @@ fun LibraryPlaylistsScreen(
                             key = "cachePlaylist",
                             contentType = { CONTENT_TYPE_PLAYLIST },
                         ) {
-                            PlaylistListItem(
+                            LibraryPlaylistListItem(
+                                navController = navController,
+                                menuState = LocalMenuState.current,
+                                coroutineScope = rememberCoroutineScope(),
                                 playlist = cachePlaylist,
                                 autoPlaylist = true,
                                 modifier =
                                 Modifier
                                     .fillMaxWidth()
-                                    .clickable {
-                                        navController.navigate("cache_playlist/cached")
-                                    }
                                     .animateItem(),
+                                onClick = { navController.navigate("cache_playlist/cached") }
                             )
                         }
                     }

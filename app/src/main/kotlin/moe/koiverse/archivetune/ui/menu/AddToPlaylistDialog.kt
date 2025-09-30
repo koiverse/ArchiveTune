@@ -102,7 +102,10 @@ fun AddToPlaylistDialog(
                                 },
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            PlaylistListItem(
+                            LibraryPlaylistListItem(
+                                navController = null,
+                                menuState = LocalMenuState.current,
+                                coroutineScope = rememberCoroutineScope(),
                                 playlist = playlist,
                                 modifier = Modifier.weight(1f)
                             )

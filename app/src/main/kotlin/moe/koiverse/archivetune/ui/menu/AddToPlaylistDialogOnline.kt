@@ -113,7 +113,10 @@ fun AddToPlaylistDialogOnline(
             }
 
             items(playlists) { playlist ->
-                PlaylistListItem(
+                LibraryPlaylistListItem(
+                    navController = null,
+                    menuState = LocalMenuState.current,
+                    coroutineScope = coroutineScope,
                     playlist = playlist,
                     modifier = Modifier.clickable {
                         selectedPlaylist = playlist
