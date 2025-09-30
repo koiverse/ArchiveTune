@@ -222,27 +222,39 @@ fun LibraryPlaylistListItem(
         }
     }
 
-    val clickableMod = modifier
+    val baseMod = modifier
         .fillMaxWidth()
         .padding(horizontal = 12.dp)
         .padding(bottom = 8.dp)
-        .clickable {
-            if (
-                !playlist.playlist.isEditable &&
-                playlist.songCount == 0 &&
-                playlist.playlist.remoteSongCount != 0
-            ) {
-                navController.navigate("online_playlist/${playlist.playlist.browseId}")
-            } else {
-                navController.navigate("local_playlist/${playlist.id}")
-            }
+
+    val clickableMod = baseMod.clickable {
+        if (
+            !playlist.playlist.isEditable &&
+            playlist.songCount == 0 &&
+            playlist.playlist.remoteSongCount != 0
+        ) {
+            navController.navigate("online_playlist/${playlist.playlist.browseId}")
+        } else {
+            navController.navigate("local_playlist/${playlist.id}")
         }
+    }
 
     if (useNewDesign) {
         OverlayPlaylistListItem(
             playlist = playlist,
             trailingContent = trailing,
-            modifier = clickableMod
+            modifier = baseMod,
+            onClick = {
+                if (
+                    !playlist.playlist.isEditable &&
+                    playlist.songCount == 0 &&
+                    playlist.playlist.remoteSongCount != 0
+                ) {
+                    navController.navigate("online_playlist/${playlist.playlist.browseId}")
+                } else {
+                    navController.navigate("local_playlist/${playlist.id}")
+                }
+            }
         )
     } else {
         PlaylistListItem(
