@@ -327,6 +327,12 @@
     <string name="logout_confirm_yes">ログアウト</string>
     <string name="logout_confirm_no">キャンセル</string>
 
+    <string name="translate">翻訳</string>
+    <string name="language_label">言語</string>
+    <string name="lyrics">歌詞</string>
+    <string name="translation_success">翻訳を保存しました</string>
+    <string name="translation_failed">翻訳に失敗しました</string>
+
     <string name="experiment_settings">実験設定</string>
     <string name="show_discord_debug_ui">デバッグ UI を表示</string>
     <string name="enable_discord_debug_lines">デバッグ設定行を有効化</string>

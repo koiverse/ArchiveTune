@@ -55,7 +55,6 @@
     <string name="starting_radio">라디오 시작 중</string>
     <string name="now_playing">재생 중</string>
 
-    <string name="lyrics">가사</string>
     <string name="close">닫기</string>
     <string name="minimum_volume">최소 볼륨</string>
     <string name="maximum_volume">최대 볼륨</string>
