@@ -61,6 +61,8 @@ import moe.koiverse.archivetune.ui.component.NewAction
 import moe.koiverse.archivetune.ui.component.NewActionGrid
 import moe.koiverse.archivetune.ui.component.TextFieldDialog
 import moe.koiverse.archivetune.viewmodels.LyricsMenuViewModel
+import java.util.UUID
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
