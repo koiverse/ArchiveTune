@@ -40,10 +40,16 @@ import moe.koiverse.archivetune.ui.component.IconButton
 import moe.koiverse.archivetune.ui.component.PreferenceEntry
 import moe.koiverse.archivetune.ui.component.PreferenceGroupTitle
 import moe.koiverse.archivetune.ui.component.SwitchPreference
+import moe.koiverse.archivetune.ui.component.ListItem
 import moe.koiverse.archivetune.ui.utils.backToMain
 import moe.koiverse.archivetune.utils.makeTimeString
 import moe.koiverse.archivetune.utils.rememberEnumPreference
 import moe.koiverse.archivetune.utils.rememberPreference
+import moe.koiverse.archivetune.utils.TranslatorLanguages
+import androidx.compose.material3.AlertDialog
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.TextButton
 import com.my.kizzy.rpc.KizzyRPC
 import timber.log.Timber
 import moe.koiverse.archivetune.utils.DiscordRPC
@@ -476,7 +482,7 @@ if (intervalSelection == "Custom") {
     }
 }
 
-
+        // PREVIEW HEADING
         Text(
             text = stringResource(R.string.preview),
             style = MaterialTheme.typography.headlineSmall,
@@ -556,138 +562,6 @@ if (intervalSelection == "Custom") {
             key = DiscordActivityButton2CustomUrlKey,
             defaultValue = ""
         )
-
-        Text(
-            text = stringResource(R.string.discord_button_options),
-            style = MaterialTheme.typography.headlineSmall,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp)
-        )
-
-        PreferenceEntry(
-            title = { Text(stringResource(R.string.show_button)) },
-            description = stringResource(R.string.show_button1_description),
-            icon = { Icon(painterResource(R.drawable.buttons), null) },
-            trailingContent = {
-                Switch(checked = button1Enabled, onCheckedChange = onButton1EnabledChange)
-            }
-        )
-
-    if (button1Enabled) {
-    var expanded by remember { mutableStateOf(false) }
-    ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
-        TextField(
-            value = button1UrlSource,
-            onValueChange = {},
-            readOnly = true,
-            label = { Text("Button 1 URL Source") },
-            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-            modifier = Modifier
-                .fillMaxWidth()
-                .menuAnchor()
-                .pointerInput(Unit) { detectTapGestures { expanded = true } }
-                .padding(horizontal = 13.dp, vertical = 16.dp),
-            leadingIcon = { Icon(painterResource(R.drawable.link), null) }
-        )
-        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            urlOptions.forEach { opt ->
-                val display = when (opt) {
-                    "songurl" -> "Song URL"
-                    "artisturl" -> "Artist URL"
-                    "albumurl" -> "Album URL"
-                    "custom" -> "Custom URL"
-                    else -> opt
-                }
-                DropdownMenuItem(
-                    text = { Text(display) },
-                    onClick = {
-                        onButton1UrlSourceChange(opt)
-                        expanded = false
-                    }
-                )
-            }
-        }
-    }
-    EditablePreference(
-            title = stringResource(R.string.discord_activity_button1_label),
-            iconRes = R.drawable.buttons,
-            value = button1Label,
-            defaultValue = "Listen on YouTube Music",
-            onValueChange = onButton1LabelChange
-    )
-    if (button1UrlSource == "custom") {
-        EditablePreference(
-            title = "Button 1 Custom URL",
-            iconRes = R.drawable.link,
-            value = button1CustomUrl,
-            defaultValue = "",
-            onValueChange = onButton1CustomUrlChange
-        )
-    }
-}
-
-        PreferenceEntry(
-            title = { Text(stringResource(R.string.show_button)) },
-            description = stringResource(R.string.show_button2_description),
-            icon = { Icon(painterResource(R.drawable.buttons), null) },
-            trailingContent = {
-                Switch(checked = button2Enabled, onCheckedChange = onButton2EnabledChange)
-            }
-        )
-
-    if (button2Enabled) {
-    var expanded2 by remember { mutableStateOf(false) }
-    ExposedDropdownMenuBox(expanded = expanded2, onExpandedChange = { expanded2 = it }) {
-        TextField(
-            value = button2UrlSource,
-            onValueChange = {},
-            readOnly = true,
-            label = { Text("Button 2 URL Source") },
-            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded2) },
-            modifier = Modifier
-                .fillMaxWidth()
-                .menuAnchor()
-                .pointerInput(Unit) { detectTapGestures { expanded2 = true } }
-                .padding(horizontal = 13.dp, vertical = 16.dp),
-            leadingIcon = { Icon(painterResource(R.drawable.link), null) }
-        )
-        ExposedDropdownMenu(expanded = expanded2, onDismissRequest = { expanded2 = false }) {
-            urlOptions.forEach { opt ->
-                val display = when (opt) {
-                    "songurl" -> "Song URL"
-                    "artisturl" -> "Artist URL"
-                    "albumurl" -> "Album URL"
-                    "custom" -> "Custom URL"
-                    else -> opt
-                }
-                DropdownMenuItem(
-                    text = { Text(display) },
-                    onClick = {
-                        onButton2UrlSourceChange(opt)
-                        expanded2 = false
-                    }
-                )
-            }
-        }
-    }
-    EditablePreference(
-            title = stringResource(R.string.discord_activity_button2_label),
-            iconRes = R.drawable.buttons,
-            value = button2Label,
-            defaultValue = "View Album",
-            onValueChange = onButton2LabelChange
-    )
-    if (button2UrlSource == "custom") {
-        EditablePreference(
-            title = "Button 2 Custom URL",
-            iconRes = R.drawable.link,
-            value = button2CustomUrl,
-            defaultValue = "",
-            onValueChange = onButton2CustomUrlChange
-        )
-    }
-}
 
         var showWhenPaused by rememberPreference(
         key = DiscordShowWhenPausedKey,
@@ -913,15 +787,49 @@ if (smallImageType == "custom") {
     )
     }
 
-     TopAppBar(
-                title = { Text(stringResource(R.string.discord_integration)) },
-                navigationIcon = {
-                    IconButton(
-                        onClick = navController::navigateUp,
-                        onLongClick = navController::backToMain,
-                    ) { Icon(painterResource(R.drawable.arrow_back), contentDescription = null) }
-                }
-            )
+    TopAppBar(
+        title = { Text(stringResource(R.string.discord_integration)) },
+        navigationIcon = {
+            IconButton(
+                onClick = navController::navigateUp,
+                onLongClick = navController::backToMain,
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.arrow_back),
+                    contentDescription = null
+                )
+            }
+        },
+        actions = {
+            var threeDotMenuExpanded by remember { mutableStateOf(false) }
+
+            IconButton(onClick = { threeDotMenuExpanded = true }) {
+                Icon(
+                    painter = painterResource(R.drawable.more_vert),
+                    contentDescription = null
+                )
+            }
+
+            DropdownMenu(
+                expanded = threeDotMenuExpanded,
+                onDismissRequest = { threeDotMenuExpanded = false }
+            ) {
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.experiment_settings)) },
+                    onClick = {
+                        threeDotMenuExpanded = false
+                        navController.navigate("settings/discord/experimental")
+                    },
+                    leadingIcon = {
+                        Icon(
+                            painter = painterResource(R.drawable.experiment),
+                            contentDescription = null
+                        )
+                    }
+                )
+            }
+        }
+      )
     }
 }
 

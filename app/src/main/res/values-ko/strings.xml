@@ -289,4 +289,55 @@
     <string name="disable_screenshot_desc">이 설정을 켜면, 스크린샷이 비활성화되고 최근 앱에서 보이는 앱 화면이 숨겨집니다.</string>
     <string name="enable_discord_rpc">활동 상태 공유</string>
     <string name="action_login">로그인</string>
+    <string name="discord_activity_name">활동 이름</string>
+    <string name="discord_activity_details">활동 세부 정보</string>
+    <string name="discord_activity_state">활동 상태</string>
+    <string name="discord_activity_button_url">버튼 URL 출처</string>
+    <string name="discord_activity_button1_label">버튼 1 레이블</string>
+    <string name="discord_activity_button1_url">버튼 1 URL</string>
+    <string name="button1_url_description">버튼 1의 URL (기본값 사용 시 비워 두세요)</string>
+    <string name="discord_activity_button2_label">버튼 2 레이블</string>
+    <string name="discord_activity_button2_url">버튼 2 URL</string>
+    <string name="button2_url_description">버튼 2의 URL (기본값 사용 시 비워 두세요)</string>
+
+    <string name="translator_options">번역기 옵션</string>
+    <string name="enable_translator">번역기 활성화</string>
+    <string name="enable_translator_desc">Discord RPC로 전송하기 전에 선택한 필드를 번역합니다</string>
+    <string name="context_info">컨텍스트 (쉼표로 구분)</string>
+    <string name="translator_info_usage">사용 예시: {song}, {artist}, {album}</string>
+    <string name="target_language">대상 언어</string>
+    <string name="select_language">언어 선택</string>
+    <string name="close_dialog">닫기</string>
+    <string name="select_dialog">선택</string>
+
+    <string name="discord_button_options">버튼 옵션</string>
+    <string name="discord_image_options">이미지 옵션</string>
+    <string name="refresh">새로고침</string>
+    <string name="description_refresh">Discord 활동 상태를 수동으로 새로고침</string>
+    <string name="discord_show_when_paused">일시정지 시 RPC 표시</string>
+    <string name="discord_show_when_paused_desc">활성화하면 일시정지 상태에서도 일시정지 아이콘과 함께 활동 상태가 표시됩니다. 비활성화하면 일시정지 시 RPC가 사라집니다.</string>
+    <string name="discord_paused">일시정지됨</string>
+    <string name="show_small_image">작은 이미지 표시</string>
+    <string name="description_show_small_image">활성화하면 작은 원형 이미지가 미리보기와 Discord로 전송됩니다(가능한 경우)</string>
+
+    <string name="logout_confirm_title">로그아웃 확인</string>
+    <string name="logout_confirm_message">Discord에서 로그아웃하시겠습니까?</string>
+    <string name="logout_confirm_yes">로그아웃</string>
+    <string name="logout_confirm_no">취소</string>
+
+    <string name="translate">번역</string>
+    <string name="language_label">언어</string>
+    <string name="lyrics">가사</string>
+    <string name="translation_success">번역이 저장되었습니다</string>
+    <string name="translation_failed">번역에 실패했습니다</string>
+
+    <string name="experiment_settings">실험 설정</string>
+    <string name="show_discord_debug_ui">디버그 UI 표시</string>
+    <string name="enable_discord_debug_lines">디버그 설정 라인 활성화</string>
+    <string name="presence_manager_running">Presence manager: 실행 중</string>
+    <string name="presence_manager_stopped">Presence manager: 중지됨</string>
+    <string name="debug_last_rpc_times">마지막 RPC 시작: %1$s  종료: %2$s</string>
+    <string name="filter_levels">필터 수준</string>
+    <string name="reset_to_default_levels">기본값으로 재설정</string>
+    <string name="no_logs">로그 없음</string>
 </resources>

@@ -4,10 +4,17 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.foundation.layout.RowScope
+import androidx.compose.runtime.remember
+import moe.koiverse.archivetune.utils.rememberPreference
+import moe.koiverse.archivetune.constants.UseNewLibraryDesignKey
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import moe.koiverse.archivetune.innertube.models.PlaylistItem
 import moe.koiverse.archivetune.innertube.models.WatchEndpoint
@@ -162,9 +169,12 @@ fun LibraryPlaylistListItem(
     coroutineScope: CoroutineScope,
     playlist: Playlist,
     modifier: Modifier = Modifier
-) = PlaylistListItem(
-    playlist = playlist,
-    trailingContent = {
+) {
+    // keep the MutableState so Compose observes changes and recomposes
+    val useNewDesignState = rememberPreference(UseNewLibraryDesignKey, defaultValue = true)
+    val useNewDesign = useNewDesignState.value
+
+    val trailing: @Composable RowScope.() -> Unit = {
         androidx.compose.material3.IconButton(
             onClick = {
                 menuState.show {
@@ -210,16 +220,51 @@ fun LibraryPlaylistListItem(
                 contentDescription = null
             )
         }
-    },
-    modifier = modifier
+    }
+
+    val baseMod = modifier
         .fillMaxWidth()
-        .clickable {
-            if (!playlist.playlist.isEditable && playlist.songCount == 0 && playlist.playlist.remoteSongCount != 0)
-                navController.navigate("online_playlist/${playlist.playlist.browseId}")
-            else
-                navController.navigate("local_playlist/${playlist.id}")
+        .padding(horizontal = 12.dp)
+        .padding(bottom = 8.dp)
+
+    val clickableMod = baseMod.clickable {
+        if (
+            !playlist.playlist.isEditable &&
+            playlist.songCount == 0 &&
+            playlist.playlist.remoteSongCount != 0
+        ) {
+            navController.navigate("online_playlist/${playlist.playlist.browseId}")
+        } else {
+            navController.navigate("local_playlist/${playlist.id}")
         }
-)
+    }
+
+    if (useNewDesign) {
+        OverlayPlaylistListItem(
+            playlist = playlist,
+            trailingContent = trailing,
+            modifier = baseMod,
+            onClick = {
+                if (
+                    !playlist.playlist.isEditable &&
+                    playlist.songCount == 0 &&
+                    playlist.playlist.remoteSongCount != 0
+                ) {
+                    navController.navigate("online_playlist/${playlist.playlist.browseId}")
+                } else {
+                    navController.navigate("local_playlist/${playlist.id}")
+                }
+            }
+        )
+    } else {
+        PlaylistListItem(
+            playlist = playlist,
+            trailingContent = trailing,
+            modifier = clickableMod
+        )
+    }
+}
+
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable

@@ -215,6 +215,7 @@ dependencies {
     implementation(libs.timber)
     testImplementation(libs.junit)
     // Ensure ProcessLifecycleOwner is available for the presence manager and CI unit tests
+    implementation("com.github.therealbush:translator:1.1.1")
     implementation("androidx.lifecycle:lifecycle-process:2.6.2")
 }
 

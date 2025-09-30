@@ -173,11 +173,11 @@ fun SettingsScreen(
                         )
                     )
                 }
-                // Misc / Developer options
+                // Experimental / Developer options
                 add(
                     Material3SettingsItem(
-                        icon = painterResource(R.drawable.tools),
-                        title = { Text("Misc") },
+                        icon = painterResource(R.drawable.experiment),
+                        title = { Text(stringResource(R.string.experiment_settings)) },
                         onClick = { navController.navigate("settings/misc") }
                     )
                 )

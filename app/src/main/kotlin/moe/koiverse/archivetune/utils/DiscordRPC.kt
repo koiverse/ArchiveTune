@@ -9,6 +9,9 @@ import com.my.kizzy.rpc.KizzyRPC
 import com.my.kizzy.rpc.RpcImage
 import kotlinx.coroutines.withTimeoutOrNull
 import timber.log.Timber
+import me.bush.translator.Translator
+import me.bush.translator.Language
+
 
 class DiscordRPC(
     val context: Context,
@@ -23,7 +26,9 @@ class DiscordRPC(
     }
 
     private val repo = com.my.kizzy.repository.KizzyRepository()
+    private val translationCache: MutableMap<String, String> = mutableMapOf()
     private val preloadResults: MutableMap<String, String?> = mutableMapOf()
+    private var lastSongId: String? = null
 
     private fun pickSourceValue(pref: String, song: Song?, default: String): String = when (pref) {
         "ARTIST" -> song?.artists?.firstOrNull()?.name ?: default
@@ -79,9 +84,16 @@ class DiscordRPC(
             }
         }
 
-        preloadResults[key] = resolved
+        // If resolution failed (null), try to fallback to raw external URL for ExternalImage
+        val finalResolved = when {
+            !resolved.isNullOrBlank() -> resolved
+            image is RpcImage.ExternalImage -> image.image // fallback to original URL
+            else -> null
+        }
+
+        preloadResults[key] = finalResolved
         Timber.tag(logtag).v("Invocation preload result for %s -> %s", key, resolved)
-        return resolved
+        return finalResolved
     }
 
     private fun wrapResolved(original: RpcImage?, resolved: String?): RpcImage? {
@@ -97,6 +109,12 @@ class DiscordRPC(
         val currentTime = System.currentTimeMillis()
         val calculatedStartTime = currentTime - currentPlaybackTimeMillis
 
+        // Reset cache if song changes
+        if (lastSongId != song.song.id) {
+            translationCache.clear()
+            lastSongId = song.song.id
+        }
+
         val namePref = context.dataStore[DiscordActivityNameKey] ?: "APP"
         val detailsPref = context.dataStore[DiscordActivityDetailsKey] ?: "SONG"
         val statePref = context.dataStore[DiscordActivityStateKey] ?: "ARTIST"
@@ -109,9 +127,57 @@ class DiscordRPC(
             return@runCatching
         }
 
-        val activityName = pickSourceValue(namePref, song, context.getString(R.string.app_name))
-        val activityDetails = pickSourceValue(detailsPref, song, song.song.title)
-        val activityState = pickSourceValue(statePref, song, song.artists.joinToString { it.name })
+
+        // --- Translator Integration with Cache ---
+        val translatorEnabled = context.dataStore[EnableTranslatorKey] ?: false
+        val translatedMap = mutableMapOf<String, String>()
+
+        if (translatorEnabled) {
+            val contextList = (context.dataStore[TranslatorContextsKey] ?: "{song}")
+                .split(",")
+                .map { it.trim() }
+            val targetLang = context.dataStore[TranslatorTargetLangKey] ?: "ENGLISH"
+
+            val rawMap = mapOf(
+                "{song}" to song.song.title,
+                "{artist}" to song.artists.joinToString { it.name },
+                "{album}" to (song.song.albumName ?: song.album?.title ?: "")
+            )
+
+            try {
+                val translator = Translator()
+                for (ctx in contextList) {
+                    val value = rawMap[ctx]
+                    if (!value.isNullOrBlank()) {
+                        val cacheKey = "${song.song.id}:$ctx:$targetLang"
+                        val translated = translationCache[cacheKey]
+
+                        if (translated != null) {
+                            translatedMap[ctx] = translated
+                        } else {
+                            try {
+                                val result = translator.translateBlocking(value, Language.valueOf(targetLang.uppercase()))
+                                translatedMap[ctx] = result.translatedText
+                                translationCache[cacheKey] = result.translatedText
+                            } catch (e: Exception) {
+                                Timber.tag(logtag).e(e, "Translation failed for $ctx")
+                                translatedMap[ctx] = value // fallback original
+                                translationCache[cacheKey] = value
+                            }
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                Timber.tag(logtag).e(e, "Translator init failed")
+            }
+        }
+        // --- End Translator ---
+
+
+        // Update translation mapping keys as per corrected context
+        val activityName = translatedMap["{album}"] ?: pickSourceValue(namePref, song, context.getString(R.string.app_name))
+        val activityDetails = translatedMap["{song}"] ?: pickSourceValue(detailsPref, song, song.song.title)
+        val activityState = translatedMap["{artist}"] ?: pickSourceValue(statePref, song, song.artists.joinToString { it.name })
 
         val baseSongUrl = "https://music.youtube.com/watch?v=${song.song.id}"
 
@@ -162,19 +228,34 @@ class DiscordRPC(
 
         val largeRequestedButFailed = largeImageRpc != null && resolvedLargeImage == null
         val smallRequestedButFailed = smallImageRpc != null && resolvedSmallImage == null
-        if (largeRequestedButFailed && smallRequestedButFailed) {
-            Timber.tag(logtag).w("Skipping presence update because both images failed")
-            return@runCatching
+        if (largeRequestedButFailed || smallRequestedButFailed) {
+            Timber.tag(logtag).w("One or more RPC images failed to resolve (large=%s small=%s). Continuing with available/fallback images.", largeRequestedButFailed, smallRequestedButFailed)
         }
 
-        val resolvedLargeText = when ((context.dataStore[DiscordLargeTextSourceKey] ?: "album").lowercase()) {
-            "song" -> song.song.title
-            "artist" -> song.artists.firstOrNull()?.name
-            "album" -> song.song.albumName ?: song.album?.title
+        val largeTextSource = (context.dataStore[DiscordLargeTextSourceKey] ?: "album").lowercase()
+        val resolvedLargeText = when (largeTextSource) {
+            "song" -> translatedMap["{song}"] ?: song.song.title
+            "artist" -> translatedMap["{artist}"] ?: song.artists.firstOrNull()?.name
+            "album" -> translatedMap["{album}"] ?: song.song.albumName ?: song.album?.title
             "app" -> context.getString(R.string.app_name)
             "custom" -> (context.dataStore[DiscordLargeTextCustomKey] ?: "").ifBlank { null }
             "dontshow" -> null
-            else -> song.song.albumName ?: song.album?.title
+            else -> translatedMap["{album}"] ?: song.song.albumName ?: song.album?.title
+        }
+
+        // Derive small text from small image type, prefer translated values when available
+        val sendSmallText = if (isPaused) {
+            context.getString(R.string.discord_paused)
+        } else {
+            when (smallImageTypePref.lowercase()) {
+                "song" -> translatedMap["{song}"] ?: song.song.title
+                "artist" -> translatedMap["{artist}"] ?: song.artists.firstOrNull()?.name
+                // thumbnail is commonly the album cover, so use album text
+                "thumbnail", "album" -> translatedMap["{album}"] ?: song.song.albumName ?: song.album?.title
+                "appicon", "app" -> context.getString(R.string.app_name)
+                "custom" -> song.artists.firstOrNull()?.name
+                else -> translatedMap["{artist}"] ?: song.artists.firstOrNull()?.name
+            }
         }
 
         val finalLargeImage: RpcImage? = wrapResolved(largeImageRpc, resolvedLargeImage)
@@ -189,7 +270,6 @@ class DiscordRPC(
         val sendStartTime = if (isPaused) null else calculatedStartTime
         val sendEndTime = if (isPaused) null else currentTime + (song.song.duration * 1000L - currentPlaybackTimeMillis)
         val sendSince = if (isPaused) null else currentTime
-        val sendSmallText = if (isPaused) context.getString(R.string.discord_paused) else song.artists.firstOrNull()?.name
 
         val safeStatus = when (statusPref.lowercase()) {
             "online", "idle", "dnd", "invisible" -> statusPref
@@ -197,24 +277,45 @@ class DiscordRPC(
         }
 
         try {
-            this.refreshRPC(
-                name = activityName.removeSuffix(" Debug"),
-                details = activityDetails,
-                state = activityState,
-                detailsUrl = baseSongUrl,
-                largeImage = finalLargeImage,
-                smallImage = finalSmallImage,
-                largeText = resolvedLargeText,
-                smallText = sendSmallText,
-                buttons = finalButtons,
-                type = resolvedType,
-                statusDisplayType = StatusDisplayType.STATE,
-                since = sendSince,
-                startTime = sendStartTime,
-                endTime = sendEndTime,
-                applicationId = applicationIdToSend,
-                status = safeStatus
-            )
+            // Only include the buttons argument when we actually have buttons to send.
+            if (finalButtons.isNotEmpty()) {
+                this.refreshRPC(
+                    name = activityName.removeSuffix(" Debug"),
+                    details = activityDetails,
+                    state = activityState,
+                    detailsUrl = baseSongUrl,
+                    largeImage = finalLargeImage,
+                    smallImage = finalSmallImage,
+                    largeText = resolvedLargeText,
+                    smallText = sendSmallText,
+                    buttons = finalButtons,
+                    type = resolvedType,
+                    statusDisplayType = StatusDisplayType.STATE,
+                    since = sendSince,
+                    startTime = sendStartTime,
+                    endTime = sendEndTime,
+                    applicationId = applicationIdToSend,
+                    status = safeStatus
+                )
+            } else {
+                this.refreshRPC(
+                    name = activityName.removeSuffix(" Debug"),
+                    details = activityDetails,
+                    state = activityState,
+                    detailsUrl = baseSongUrl,
+                    largeImage = finalLargeImage,
+                    smallImage = finalSmallImage,
+                    largeText = resolvedLargeText,
+                    smallText = sendSmallText,
+                    type = resolvedType,
+                    statusDisplayType = StatusDisplayType.STATE,
+                    since = sendSince,
+                    startTime = sendStartTime,
+                    endTime = sendEndTime,
+                    applicationId = applicationIdToSend,
+                    status = safeStatus
+                )
+            }
             Timber.tag(logtag).i("sending presence name=%s details=%s state=%s", activityName, activityDetails, activityState)
         } catch (ex: Exception) {
             Timber.tag(logtag).e(ex, "updatePresence failed")

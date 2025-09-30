@@ -258,6 +258,23 @@ fun StorageSettings(
                 )
             }
         )
+
+        if (clearImageCacheDialog) {
+            ActionPromptDialog(
+                title = stringResource(R.string.clear_image_cache),
+                onDismiss = { clearImageCacheDialog = false },
+                onConfirm = {
+                    coroutineScope.launch(Dispatchers.IO) {
+                        imageDiskCache.clear()
+                    }
+                    clearImageCacheDialog = false
+                },
+                onCancel = { clearImageCacheDialog = false },
+                content = {
+                    Text(text = stringResource(R.string.clear_image_cache_dialog))
+                }
+            )
+        }
     }
 
     TopAppBar(
@@ -296,27 +313,43 @@ fun CacheCard(
     ) {
         Column(Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    painter = painterResource(icon),
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(end = 12.dp)
-                )
+                Card(
+                    modifier = Modifier.padding(end = 12.dp),
+                    shape = MaterialTheme.shapes.small,
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
+                ) {
+                    androidx.compose.foundation.layout.Box(modifier = Modifier.padding(8.dp), contentAlignment = Alignment.Center) {
+                        Icon(
+                            painter = painterResource(icon),
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                        )
+                    }
+                }
                 Column {
                     Text(title, style = MaterialTheme.typography.titleMedium)
                     Text(description, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
             if (progress != null) {
-                LinearProgressIndicator(
-                    progress = progress,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 8.dp),
-                    color = MaterialTheme.colorScheme.primary,
-                    trackColor = MaterialTheme.colorScheme.surfaceVariant,
-                    strokeCap = StrokeCap.Round
-                )
+                Spacer(Modifier.padding(top = 8.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    LinearProgressIndicator(
+                        progress = progress,
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(end = 8.dp),
+                        color = MaterialTheme.colorScheme.primary,
+                        trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                        strokeCap = StrokeCap.Round
+                    )
+                    // percent label
+                    Text(
+                        text = "${(progress * 100).toInt()}%",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
             Spacer(Modifier.padding(4.dp))
             actions()

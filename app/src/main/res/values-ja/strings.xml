@@ -291,4 +291,55 @@
     <string name="use_login_for_browse_desc">例えば、Premiumのアカウントでログインした時に、Premium限定のアルバムが表示されるようになります</string>
     <string name="use_login_for_browse">表示されるコンテンツをアカウントと結び付ける</string>
     <string name="action_login">ログイン</string>
+    <string name="discord_activity_name">アクティビティ名</string>
+    <string name="discord_activity_details">アクティビティの詳細</string>
+    <string name="discord_activity_state">アクティビティの状態</string>
+    <string name="discord_activity_button_url">ボタン URL ソース</string>
+    <string name="discord_activity_button1_label">ボタン1ラベル</string>
+    <string name="discord_activity_button1_url">ボタン1のURL</string>
+    <string name="button1_url_description">ボタン1の URL (デフォルトにするには空欄にしてください)</string>
+    <string name="discord_activity_button2_label">ボタン2ラベル</string>
+    <string name="discord_activity_button2_url">ボタン2のURL</string>
+    <string name="button2_url_description">ボタン2の URL (デフォルトにするには空欄にしてください)</string>
+
+    <string name="translator_options">翻訳オプション</string>
+    <string name="enable_translator">翻訳を有効化</string>
+    <string name="enable_translator_desc">Discord RPC に送信する前に選択したフィールドを翻訳します</string>
+    <string name="context_info">コンテキスト (カンマ区切り)</string>
+    <string name="translator_info_usage">使用例: {song}, {artist}, {album}</string>
+    <string name="target_language">ターゲット言語</string>
+    <string name="select_language">言語を選択</string>
+    <string name="close_dialog">閉じる</string>
+    <string name="select_dialog">選択</string>
+
+    <string name="discord_button_options">ボタンオプション</string>
+    <string name="discord_image_options">画像オプション</string>
+    <string name="refresh">更新</string>
+    <string name="description_refresh">Discord Rich Presence を手動で更新</string>
+    <string name="discord_show_when_paused">一時停止中でも RPC を表示</string>
+    <string name="discord_show_when_paused_desc">有効なら一時停止中も一時停止アイコン付きで活動が表示されます。無効なら一時停止時に RPC は消えます。</string>
+    <string name="discord_paused">一時停止中</string>
+    <string name="show_small_image">小さい画像を表示</string>
+    <string name="description_show_small_image">有効にすると、可能な場合にプレビューと Discord に小さい円形画像が表示され/送信されます</string>
+
+    <string name="logout_confirm_title">ログアウトを確認</string>
+    <string name="logout_confirm_message">Discord からログアウトしてもよろしいですか？</string>
+    <string name="logout_confirm_yes">ログアウト</string>
+    <string name="logout_confirm_no">キャンセル</string>
+
+    <string name="translate">翻訳</string>
+    <string name="language_label">言語</string>
+    <string name="lyrics">歌詞</string>
+    <string name="translation_success">翻訳を保存しました</string>
+    <string name="translation_failed">翻訳に失敗しました</string>
+
+    <string name="experiment_settings">実験設定</string>
+    <string name="show_discord_debug_ui">デバッグ UI を表示</string>
+    <string name="enable_discord_debug_lines">デバッグ設定行を有効化</string>
+    <string name="presence_manager_running">Presence manager: 実行中</string>
+    <string name="presence_manager_stopped">Presence manager: 停止</string>
+    <string name="debug_last_rpc_times">最後の RPC 開始: %1$s  終了: %2$s</string>
+    <string name="filter_levels">フィルタレベル</string>
+    <string name="reset_to_default_levels">デフォルトにリセット</string>
+    <string name="no_logs">ログなし</string>
 </resources>

@@ -35,6 +35,10 @@ import moe.koiverse.archivetune.ui.utils.backToMain
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -69,7 +73,7 @@ fun DebugSettings(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Debug Settings") },
+                title = { Text(stringResource(R.string.experiment_settings)) },
                 navigationIcon = {
                     IconButton(onClick = navController::navigateUp, onLongClick = navController::backToMain) {
                         Icon(painterResource(R.drawable.arrow_back), contentDescription = null)
@@ -80,8 +84,8 @@ fun DebugSettings(
     ) { innerPadding: androidx.compose.foundation.layout.PaddingValues ->
         Column(Modifier.padding(innerPadding).padding(16.dp)) {
             PreferenceEntry(
-                title = { Text("Show Discord debug UI") },
-                description = "Enable debug lines in Discord settings",
+                title = { Text(stringResource(R.string.show_discord_debug_ui)) },
+                description = stringResource(R.string.enable_discord_debug_lines),
                 icon = { Icon(painterResource(R.drawable.info), null) },
                 trailingContent = {
                     Switch(checked = showDevDebug, onCheckedChange = onShowDevDebugChange)
@@ -96,8 +100,8 @@ fun DebugSettings(
                 val lastEnd: String = lastEndTs?.let { makeTimeString(it) } ?: "-"
 
                 PreferenceEntry(
-                    title = { Text(if (DiscordPresenceManager.isRunning()) "Presence manager: running" else "Presence manager: stopped") },
-                    description = "Last RPC start: $lastStart  end: $lastEnd",
+                    title = { Text(if (DiscordPresenceManager.isRunning()) stringResource(R.string.presence_manager_running) else stringResource(R.string.presence_manager_stopped)) },
+                    description = stringResource(id = R.string.debug_last_rpc_times, lastStart, lastEnd),
                     icon = { Icon(painterResource(R.drawable.info), null) }
                 )
 
@@ -107,11 +111,9 @@ fun DebugSettings(
                 val context = LocalContext.current
                 val clipboard = androidx.compose.ui.platform.LocalClipboardManager.current
 
-                val filterMode = remember { mutableStateOf("discord-only") } // "all" or "discord-only"
+                val filterMode = remember { mutableStateOf("discord-only") }
                 val query = remember { mutableStateOf("") }
 
-                // Filter logs by tag/class or search query
-                // selectedLevels controls which log levels are visible. Default: Info, Warn, Error
                 val selectedLevels = remember {
                     androidx.compose.runtime.mutableStateOf(
                         setOf(android.util.Log.INFO, android.util.Log.WARN, android.util.Log.ERROR)
@@ -146,20 +148,20 @@ fun DebugSettings(
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 TextButton(onClick = { filterMode.value = if (filterMode.value == "all") "discord-only" else "all" }) {
-                                    Text(if (filterMode.value == "all") "All logs" else "Discord-only")
-                                }
-                                TextButton(onClick = { GlobalLog.clear() }, enabled = filtered.isNotEmpty()) { Text("Clear") }
-                                TextButton(onClick = {
-                                    if (filtered.isEmpty()) return@TextButton
-                                    // Share filtered logs
-                                    val sb = StringBuilder()
-                                    filtered.forEach { sb.appendLine(GlobalLog.format(it)) }
-                                    val send = Intent(Intent.ACTION_SEND).apply {
-                                        type = "text/plain"
-                                        putExtra(Intent.EXTRA_TEXT, sb.toString())
+                                        Text(if (filterMode.value == "all") "All logs" else "Discord-only")
                                     }
-                                    context.startActivity(Intent.createChooser(send, "Share logs"))
-                                }, enabled = filtered.isNotEmpty()) { Text("Share") }
+                                    TextButton(onClick = { GlobalLog.clear() }, enabled = filtered.isNotEmpty()) { Text("Clear") }
+                                    TextButton(onClick = {
+                                        if (filtered.isEmpty()) return@TextButton
+                                        // Share filtered logs
+                                        val sb = StringBuilder()
+                                        filtered.forEach { sb.appendLine(GlobalLog.format(it)) }
+                                        val send = Intent(Intent.ACTION_SEND).apply {
+                                            type = "text/plain"
+                                            putExtra(Intent.EXTRA_TEXT, sb.toString())
+                                        }
+                                        context.startActivity(Intent.createChooser(send, "Share logs"))
+                                    }, enabled = filtered.isNotEmpty()) { Text("Share") }
                             }
 
                             // Sort / level-picker dropdown anchored to an IconButton on the right
@@ -169,29 +171,29 @@ fun DebugSettings(
 
                             Column {
                                 androidx.compose.material3.IconButton(onClick = { levelsMenuExpanded.value = true }) {
-                                    Icon(painter = painterResource(R.drawable.filter_alt), contentDescription = "Filter levels")
+                                    Icon(painter = painterResource(R.drawable.filter_alt), contentDescription = stringResource(R.string.filter_levels))
                                 }
 
                                 DropdownMenu(expanded = levelsMenuExpanded.value, onDismissRequest = { levelsMenuExpanded.value = false }) {
-                                    // Helper to create an item for each level
-                                    @Composable
-                                    fun levelItem(label: String, level: Int) {
-                                        DropdownMenuItem(onClick = {
-                                            val current = selLevels.value.toMutableSet()
-                                            if (current.contains(level)) current.remove(level) else current.add(level)
-                                            selLevels.value = current
-                                        }, text = {
-                                            Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                                                Checkbox(checked = selLevels.value.contains(level), onCheckedChange = {
-                                                    val current = selLevels.value.toMutableSet()
-                                                    if (it) current.add(level) else current.remove(level)
-                                                    selLevels.value = current
-                                                })
-                                                Spacer(modifier = Modifier.padding(6.dp))
-                                                Text(label)
-                                            }
-                                        })
-                                    }
+                                        // Helper to create an item for each level
+                                        @Composable
+                                        fun levelItem(label: String, level: Int) {
+                                            DropdownMenuItem(onClick = {
+                                                val current = selLevels.value.toMutableSet()
+                                                if (current.contains(level)) current.remove(level) else current.add(level)
+                                                selLevels.value = current
+                                            }, text = {
+                                                Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                                                    Checkbox(checked = selLevels.value.contains(level), onCheckedChange = {
+                                                        val current = selLevels.value.toMutableSet()
+                                                        if (it) current.add(level) else current.remove(level)
+                                                        selLevels.value = current
+                                                    })
+                                                    Spacer(modifier = Modifier.padding(6.dp))
+                                                    Text(label)
+                                                }
+                                            })
+                                        }
 
                                     levelItem("Verbose", android.util.Log.VERBOSE)
                                     levelItem("Debug", android.util.Log.DEBUG)
@@ -203,7 +205,7 @@ fun DebugSettings(
                                     DropdownMenuItem(onClick = {
                                         selLevels.value = setOf(android.util.Log.INFO, android.util.Log.WARN, android.util.Log.ERROR)
                                         levelsMenuExpanded.value = false
-                                    }, text = { Text("Reset to default (Info/Warn/Error)") })
+                                    }, text = { Text(stringResource(R.string.reset_to_default_levels)) })
                                 }
                             }
                         }
@@ -218,11 +220,32 @@ fun DebugSettings(
                                     .padding(top = 16.dp),
                                 contentAlignment = androidx.compose.ui.Alignment.Center
                             ) {
-                                Text(
-                                    text = "No Logs",
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
+                                Column(horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally) {
+                                    // Fade-in animation for the image
+                                    val visible = remember { androidx.compose.runtime.mutableStateOf(false) }
+                                    LaunchedEffect(Unit) { visible.value = true }
+
+                                    androidx.compose.animation.AnimatedVisibility(
+                                        visible = visible.value,
+                                        enter = androidx.compose.animation.fadeIn(
+                                            animationSpec = androidx.compose.animation.core.tween(durationMillis = 350)
+                                        )
+                                    ) {
+                                        Image(
+                                            painter = painterResource(R.drawable.anime_blank),
+                                            contentDescription = null,
+                                            modifier = Modifier.size(140.dp)
+                                        )
+                                    }
+
+                                    Spacer(modifier = Modifier.height(12.dp))
+
+                                    Text(
+                                        text = stringResource(R.string.no_logs),
+                                        style = MaterialTheme.typography.headlineSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
                             }
                         }
 
@@ -282,11 +305,11 @@ fun DebugSettings(
                                             Text(header, style = MaterialTheme.typography.bodyMedium)
                                         }
 
-                                        // Clicking the row copies the entry message and toggles expansion (no separate buttons)
+                                        // Clicking the row toggles expansion. Copy on long-press only (hold).
                                         Spacer(modifier = Modifier.padding(4.dp))
                                     }
 
-                                    // Message body (collapsed vs expanded)
+                                    // Message body (collapsed vs expanded). Use combinedClickable to support long-press copy.
                                     Text(
                                         text = if (isExpanded) entry.message else entry.message.lines().firstOrNull() ?: "",
                                         color = color,
@@ -296,14 +319,17 @@ fun DebugSettings(
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .padding(start = 8.dp, top = 4.dp)
-                                            .clickable {
-                                                // copy entry message to clipboard and toggle expansion
-                                                clipboard.setText(androidx.compose.ui.text.AnnotatedString(entry.message))
-                                                coroutineScope.launch {
-                                                    // small toast-style feedback via snackbar is not available here; no-op
+                                            .combinedClickable(
+                                                onClick = { setExpanded(!isExpanded) },
+                                                onLongClick = {
+                                                    // copy entry message to clipboard on long-press
+                                                    clipboard.setText(androidx.compose.ui.text.AnnotatedString(entry.message))
+                                                    coroutineScope.launch {
+                                                        // Optionally provide feedback via logs
+                                                        GlobalLog.append(android.util.Log.INFO, "DebugSettings", "Copied log to clipboard")
+                                                    }
                                                 }
-                                                setExpanded(!isExpanded)
-                                            }
+                                            )
                                     )
                                 }
                             }
