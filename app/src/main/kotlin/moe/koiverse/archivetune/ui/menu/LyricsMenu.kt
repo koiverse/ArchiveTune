@@ -41,6 +41,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.launch
+import me.bush.translator.Translator
+import me.bush.translator.Language
+import moe.koiverse.archivetune.utils.TranslatorLanguages
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.TextFieldValue
@@ -73,6 +82,9 @@ fun LyricsMenu(
     var showEditDialog by rememberSaveable {
         mutableStateOf(false)
     }
+
+    var showTranslateDialog by rememberSaveable { mutableStateOf(false) }
+    val coroutineScope = rememberCoroutineScope()
 
     if (showEditDialog) {
         TextFieldDialog(
@@ -329,6 +341,87 @@ fun LyricsMenu(
             NewAction(
                 icon = {
                     Icon(
+                        painter = painterResource(R.drawable.translate),
+                        contentDescription = null,
+                        modifier = Modifier.size(28.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                },
+                text = stringResource(R.string.translate),
+                onClick = {
+                    showTranslateDialog = true
+                }
+            )
+            NewAction(
+                icon = {
+                    Icon(
+
+    if (showTranslateDialog) {
+        val initialText = lyricsProvider()?.lyrics.orEmpty()
+        val (textFieldValue, setTextFieldValue) = rememberSaveable(stateSaver = TextFieldValue.Saver) { mutableStateOf(TextFieldValue(text = initialText)) }
+        val languages = remember { TranslatorLanguages.load(context) }
+        var expanded by remember { mutableStateOf(false) }
+        var selectedLanguageCode by rememberSaveable { mutableStateOf("ENGLISH") }
+        val selectedLanguageName = languages.firstOrNull { it.code == selectedLanguageCode }?.name ?: selectedLanguageCode
+
+        DefaultDialog(
+            onDismiss = { showTranslateDialog = false },
+            icon = { Icon(painter = painterResource(R.drawable.translate), contentDescription = null) },
+            title = { Text(stringResource(R.string.translate)) },
+            buttons = {
+                TextButton(onClick = { showTranslateDialog = false }) { Text(stringResource(android.R.string.cancel)) }
+                Spacer(Modifier.width(8.dp))
+                TextButton(onClick = {
+                    // Kick off translation
+                    coroutineScope.launch {
+                        try {
+                            val translator = Translator()
+                            val result = withContext(Dispatchers.IO) {
+                                // Use translateBlocking inside IO dispatcher to avoid blocking UI
+                                translator.translateBlocking(textFieldValue.text, Language.valueOf(selectedLanguageCode))
+                            }
+                            val translated = result.translatedText
+                            database.query {
+                                upsert(LyricsEntity(id = mediaMetadataProvider().id, lyrics = translated))
+                            }
+                            Toast.makeText(context, context.getString(R.string.translation_success), Toast.LENGTH_SHORT).show()
+                            showTranslateDialog = false
+                        } catch (e: Exception) {
+                            Toast.makeText(context, context.getString(R.string.translation_failed), Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }) { Text(stringResource(R.string.translate)) }
+            }
+        ) {
+            OutlinedTextField(
+                value = textFieldValue,
+                onValueChange = setTextFieldValue,
+                singleLine = false,
+                label = { Text(stringResource(R.string.lyrics)) },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(Modifier.height(12.dp))
+
+            // Language selector
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(text = stringResource(R.string.language_label), modifier = Modifier.width(96.dp))
+                Box {
+                    TextButton(onClick = { expanded = true }) {
+                        Text(text = selectedLanguageName)
+                    }
+                    DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                        languages.forEach { lang ->
+                            DropdownMenuItem(text = { Text(lang.name) }, onClick = {
+                                selectedLanguageCode = lang.code
+                                expanded = false
+                            })
+                        }
+                    }
+                }
+            }
+        }
+    }
                         painter = painterResource(R.drawable.cached),
                         contentDescription = null,
                         modifier = Modifier.size(28.dp),
