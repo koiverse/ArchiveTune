@@ -424,8 +424,7 @@ fun LyricsMenu(
                                     }
 
                                     val lines = textFieldValue.text.split("\n")
-                                    val tsRegex =
-                                        Regex("^((?:\\[[0-9]{2}:[0-9]{2}(?:\\.[0-9]+)?\\])+")
+                                    val tsRegex = Regex("^((?:\\[[0-9]{2}:[0-9]{2}(?:\\.[0-9]+)?\\])+)")
                                     val out = buildList {
                                         for (line in lines) {
                                             val trimmed = line.trimEnd()
@@ -480,7 +479,7 @@ fun LyricsMenu(
                                 } catch (e: Exception) {
                                     Toast.makeText(
                                         context,
-                                        context.getString(R.string.translation_failed),
+                                        context.getString(R.string.translation_failed) + ": " + (e.localizedMessage ?: e.toString()),
                                         Toast.LENGTH_SHORT
                                     ).show()
                                 } finally {
