@@ -488,16 +488,17 @@ fun LyricsMenu(
                 // Language selector
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(text = stringResource(R.string.language_label), modifier = Modifier.width(96.dp))
-                    Box(modifier = Modifier.weight(1f)) {
+                    Box(modifier = Modifier.weight(1f).clickable { expanded = true }) {
                         OutlinedTextField(
                             value = selectedLanguageName,
                             onValueChange = {},
                             readOnly = true,
                             singleLine = true,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { expanded = true },
-                            label = null
+                            modifier = Modifier.fillMaxWidth(),
+                            label = null,
+                            trailingIcon = {
+                                Icon(painter = painterResource(if (expanded) R.drawable.expand_less else R.drawable.expand_more), contentDescription = null)
+                            }
                         )
 
                         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
