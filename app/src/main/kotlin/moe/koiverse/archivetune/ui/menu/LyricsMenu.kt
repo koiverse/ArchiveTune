@@ -5,6 +5,8 @@ import android.content.Intent
 import android.widget.Toast
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -488,13 +490,16 @@ fun LyricsMenu(
                 // Language selector
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(text = stringResource(R.string.language_label), modifier = Modifier.width(96.dp))
-                    Box(modifier = Modifier.weight(1f).clickable { expanded = true }) {
+                    Box(modifier = Modifier
+                        .weight(1f)
+                        .pointerInput(Unit) { detectTapGestures { expanded = true } }
+                    ) {
                         OutlinedTextField(
                             value = selectedLanguageName,
                             onValueChange = {},
                             readOnly = true,
                             singleLine = true,
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier.fillMaxWidth().menuAnchor(),
                             label = null,
                             trailingIcon = {
                                 Icon(painter = painterResource(if (expanded) R.drawable.expand_less else R.drawable.expand_more), contentDescription = null)
