@@ -395,12 +395,35 @@ fun LyricsMenu(
                     CircularProgressIndicator(modifier = Modifier.size(20.dp))
                 } else {
                     TextButton(onClick = {
-                        // Kick off translation (batched)
+                        // Kick off translation (batched) with robust language resolution
                         isTranslating = true
                         coroutineScope.launch {
                             try {
                                 val translator = Translator()
-                                val lang = Language.valueOf(selectedLanguageCode)
+
+                                // Resolve Language enum safely: try code, then normalized code, then by display name
+                                fun resolveLanguage(code: String, name: String): Language? {
+                                    try {
+                                        return Language.valueOf(code)
+                                    } catch (_: Exception) {
+                                    }
+
+                                    val normalizedCode = code.uppercase().replace('-', '_').replace(' ', '_')
+                                    Language.values().firstOrNull { it.name == normalizedCode }?.let { return it }
+
+                                    val normalizedName = name.uppercase().replace(' ', '_')
+                                    Language.values().firstOrNull { it.name == normalizedName }?.let { return it }
+
+                                    // As a last resort, try to match by starting substrings
+                                    Language.values().firstOrNull { it.name.startsWith(normalizedCode) || it.name.startsWith(normalizedName) }
+                                }
+
+                                val lang = resolveLanguage(selectedLanguageCode, selectedLanguageName)
+                                if (lang == null) {
+                                    Toast.makeText(context, "Unsupported language: $selectedLanguageName", Toast.LENGTH_SHORT).show()
+                                    isTranslating = false
+                                    return@launch
+                                }
 
                                 // Prepare lines and only translate the lyric content parts
                                 val lines = textFieldValue.text.split("\n")
@@ -456,6 +479,7 @@ fun LyricsMenu(
                                 Toast.makeText(context, context.getString(R.string.translation_success), Toast.LENGTH_SHORT).show()
                                 showTranslateDialog = false
                             } catch (e: Exception) {
+                                // Provide a slightly more informative message in development builds
                                 Toast.makeText(context, context.getString(R.string.translation_failed), Toast.LENGTH_SHORT).show()
                             } finally {
                                 isTranslating = false
