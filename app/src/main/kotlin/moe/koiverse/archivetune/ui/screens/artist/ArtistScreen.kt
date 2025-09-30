@@ -476,7 +476,7 @@ fun ArtistScreen(
                                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                                 modifier = Modifier
                                     .padding(horizontal = 16.dp)
-                                    .fadingEdge(horizontal = 32.dp)
+                                    .fadingEdge(left = 32.dp, right = 32.dp)
                             ) {
                                 items(filteredLibrarySongs.chunked(5)) { chunk ->
                                     Column(
@@ -610,76 +610,75 @@ fun ArtistScreen(
                             }
                         }
 
-                        if ((section.items.firstOrNull() as? SongItem)?.album != null) {
-                                // Render online songs as a horizontal grouped carousel (chunks of 5)
-                                item {
-                                    LazyRow(
-                                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                                        modifier = Modifier
-                                            .padding(horizontal = 16.dp)
-                                            .fadingEdge(horizontal = 32.dp)
-                                    ) {
-                                        items(section.items.distinctBy { it.id }.chunked(5)) { chunk ->
-                                            Column(
-                                                verticalArrangement = Arrangement.spacedBy(0.dp),
-                                                modifier = Modifier.fillParentMaxWidth(0.9f)
-                                            ) {
-                                                chunk.forEach { song ->
-                                                    YouTubeListItem(
-                                                        item = song as SongItem,
-                                                        isActive = mediaMetadata?.id == song.id,
-                                                        isPlaying = isPlaying,
-                                                        trailingContent = {
-                                                            IconButton(
-                                                                onClick = {
-                                                                    menuState.show {
-                                                                        YouTubeSongMenu(
-                                                                            song = song,
-                                                                            navController = navController,
-                                                                            onDismiss = menuState::dismiss,
-                                                                        )
-                                                                    }
-                                                                },
-                                                            ) {
-                                                                Icon(
-                                                                    painter = painterResource(R.drawable.more_vert),
-                                                                    contentDescription = null,
-                                                                )
-                                                            }
-                                                        },
-                                                        modifier = Modifier
-                                                            .fillMaxWidth()
-                                                            .combinedClickable(
-                                                                onClick = {
-                                                                    if (song.id == mediaMetadata?.id) {
-                                                                        playerConnection.player.togglePlayPause()
-                                                                    } else {
-                                                                        playerConnection.playQueue(
-                                                                            YouTubeQueue(
-                                                                                WatchEndpoint(videoId = song.id),
-                                                                                song.toMediaMetadata()
-                                                                            )
-                                                                        )
-                                                                    }
-                                                                },
-                                                                onLongClick = {
-                                                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                                                    menuState.show {
-                                                                        YouTubeSongMenu(
-                                                                            song = song,
-                                                                            navController = navController,
-                                                                            onDismiss = menuState::dismiss,
-                                                                        )
-                                                                    }
-                                                                },
+                        if (section.items.firstOrNull() is SongItem) {
+                            item {
+                                LazyRow(
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                    modifier = Modifier
+                                        .padding(horizontal = 16.dp)
+                                        .fadingEdge(left = 32.dp, right = 32.dp)
+                                ) {
+                                    items(section.items.distinctBy { it.id }.chunked(5)) { chunk ->
+                                        Column(
+                                            verticalArrangement = Arrangement.spacedBy(0.dp),
+                                            modifier = Modifier.fillParentMaxWidth(0.9f)
+                                        ) {
+                                            chunk.forEach { song ->
+                                                YouTubeListItem(
+                                                    item = song as SongItem,
+                                                    isActive = mediaMetadata?.id == song.id,
+                                                    isPlaying = isPlaying,
+                                                    trailingContent = {
+                                                        IconButton(
+                                                            onClick = {
+                                                                menuState.show {
+                                                                    YouTubeSongMenu(
+                                                                        song = song,
+                                                                        navController = navController,
+                                                                        onDismiss = menuState::dismiss,
+                                                                    )
+                                                                }
+                                                            },
+                                                        ) {
+                                                            Icon(
+                                                                painter = painterResource(R.drawable.more_vert),
+                                                                contentDescription = null,
                                                             )
-                                                            .animateItem()
-                                                    )
-                                                }
+                                                        }
+                                                    },
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .combinedClickable(
+                                                            onClick = {
+                                                                if (song.id == mediaMetadata?.id) {
+                                                                    playerConnection.player.togglePlayPause()
+                                                                } else {
+                                                                    playerConnection.playQueue(
+                                                                        YouTubeQueue(
+                                                                            WatchEndpoint(videoId = song.id),
+                                                                            song.toMediaMetadata()
+                                                                        )
+                                                                    )
+                                                                }
+                                                            },
+                                                            onLongClick = {
+                                                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                                menuState.show {
+                                                                    YouTubeSongMenu(
+                                                                        song = song,
+                                                                        navController = navController,
+                                                                        onDismiss = menuState::dismiss,
+                                                                    )
+                                                                }
+                                                            },
+                                                        )
+                                                        .animateItem()
+                                                )
                                             }
                                         }
                                     }
                                 }
+                            }
                         } else {
                             item {
                                 LazyRow {
