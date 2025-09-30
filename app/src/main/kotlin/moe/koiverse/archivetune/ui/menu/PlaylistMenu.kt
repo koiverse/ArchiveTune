@@ -240,10 +240,7 @@ fun PlaylistMenu(
         )
     }
 
-    LibraryPlaylistListItem(
-        navController = null,
-        menuState = LocalMenuState.current,
-        coroutineScope = coroutineScope,
+    PlaylistListItem(
         playlist = playlist,
         trailingContent = {
             if (playlist.playlist.isEditable != true) {

@@ -219,17 +219,14 @@ fun LocalSearchScreen(
                                 .animateItem(),
                         )
 
-                        is Playlist -> LibraryPlaylistListItem(
-                            navController = navController,
-                            menuState = menuState,
-                            coroutineScope = rememberCoroutineScope(),
+                        is Playlist -> PlaylistListItem(
                             playlist = item,
                             modifier = Modifier
+                                .clickable {
+                                    onDismiss()
+                                    navController.navigate("local_playlist/${item.id}")
+                                }
                                 .animateItem(),
-                            onClick = {
-                                onDismiss()
-                                navController.navigate("local_playlist/${item.id}")
-                            }
                         )
                     }
                 }
