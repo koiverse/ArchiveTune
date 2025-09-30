@@ -325,6 +325,12 @@
     <string name="logout_confirm_yes">로그아웃</string>
     <string name="logout_confirm_no">취소</string>
 
+    <string name="translate">번역</string>
+    <string name="language_label">언어</string>
+    <string name="lyrics">가사</string>
+    <string name="translation_success">번역이 저장되었습니다</string>
+    <string name="translation_failed">번역에 실패했습니다</string>
+
     <string name="experiment_settings">실험 설정</string>
     <string name="show_discord_debug_ui">디버그 UI 표시</string>
     <string name="enable_discord_debug_lines">디버그 설정 라인 활성화</string>

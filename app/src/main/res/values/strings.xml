@@ -244,6 +244,8 @@
     <string name="cancel_button">Cancel</string>
     <string name="ok_button">OK</string>
     <string name="custom_radius">Customize thumbnail corner radius</string>
+    <string name="new_library_design">New library design</string>
+    <string name="new_library_design_description">Enable the new library design (may be unstable)</string>
     <string name="show_button1_description">Toggle visibility of button 1 in Discord Rich Presence</string>
     <string name="show_button2_description">Toggle visibility of button 2 in Discord Rich Presence</string>
     <string name="discord_activity_type">Activity type</string>
@@ -374,6 +376,13 @@
     <string name="select_language">Select Language</string>
     <string name="close_dialog">Close</string>
     <string name="select_dialog">Select</string>
+
+    <!-- Translate UI strings -->
+    <string name="translate">Translate</string>
+    <string name="language_label">Language</string>
+    <string name="lyrics">Lyrics</string>
+    <string name="translation_success">Translation saved</string>
+    <string name="translation_failed">Translation failed</string>
 
     <!-- Discord settings additions -->
     <string name="discord_button_options">Button Options</string>

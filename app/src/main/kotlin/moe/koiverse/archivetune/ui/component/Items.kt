@@ -11,6 +11,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkOut
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.Orientation
@@ -43,6 +44,12 @@ import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.AlertDialog
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -56,10 +63,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
@@ -650,6 +657,122 @@ fun PlaylistListItem(
     trailingContent = trailingContent,
     modifier = modifier
 )
+
+@Composable
+fun OverlayPlaylistListItem(
+    playlist: Playlist,
+    modifier: Modifier = Modifier,
+    autoPlaylist: Boolean = false,
+    badges: @Composable RowScope.() -> Unit = {},
+    trailingContent: @Composable RowScope.() -> Unit = {},
+    onClick: (() -> Unit)? = null,
+) {
+    var showPreview by remember { mutableStateOf(false) }
+    val backgroundUrl = playlist.thumbnails.getOrNull(0)
+
+    Card(
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        shape = RoundedCornerShape(12.dp),
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable { onClick?.invoke() }
+    ) {
+        Box(modifier = Modifier.height(120.dp)) {
+            if (!backgroundUrl.isNullOrBlank()) {
+                AsyncImage(
+                    model = backgroundUrl,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize().blur(8.dp)
+                )
+                Box(modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.45f)),
+                            startY = 40f
+                        )
+                    )
+                )
+            } else {
+                Box(modifier = Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.surfaceContainer)
+                )
+            }
+
+            Row(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                PlaylistThumbnail(
+                    thumbnails = playlist.thumbnails,
+                    size = 72.dp,
+                    placeHolder = {
+                        val painter = when (playlist.playlist.name) {
+                            stringResource(R.string.liked) -> R.drawable.favorite_border
+                            stringResource(R.string.offline) -> R.drawable.offline
+                            stringResource(R.string.cached_playlist) -> R.drawable.cached
+                            else -> if (autoPlaylist) R.drawable.trending_up else R.drawable.queue_music
+                        }
+                        Icon(
+                            painter = painterResource(painter),
+                            contentDescription = null,
+                            tint = LocalContentColor.current.copy(alpha = 0.9f),
+                            modifier = Modifier.size(36.dp)
+                        )
+                    },
+                    shape = RoundedCornerShape(8.dp)
+                )
+
+                Spacer(Modifier.width(12.dp))
+
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = playlist.playlist.name,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        style = MaterialTheme.typography.titleMedium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    val subtitle = if (autoPlaylist) "" else {
+                        if (playlist.songCount == 0 && playlist.playlist.remoteSongCount != null) {
+                            pluralStringResource(R.plurals.n_song, playlist.playlist.remoteSongCount, playlist.playlist.remoteSongCount)
+                        } else {
+                            pluralStringResource(R.plurals.n_song, playlist.songCount, playlist.songCount)
+                        }
+                    }
+                    Text(
+                        text = subtitle,
+                        color = MaterialTheme.colorScheme.secondary,
+                        style = MaterialTheme.typography.bodyMedium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+
+                Row(modifier = Modifier.padding(start = 8.dp), verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.End) {
+                    trailingContent()
+                }
+            }
+        }
+    }
+
+    if (showPreview) {
+        AlertDialog(
+            onDismissRequest = { showPreview = false },
+            confirmButton = { TextButton(onClick = { showPreview = false }) { Text(stringResource(R.string.close_dialog)) } },
+            text = {
+                Box(modifier = Modifier.fillMaxWidth().height(360.dp)) {
+                    AsyncImage(model = backgroundUrl, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+                }
+            }
+        )
+    }
+}
 
 @Composable
 fun PlaylistGridItem(
