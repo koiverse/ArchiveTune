@@ -78,6 +78,7 @@ import moe.koiverse.archivetune.innertube.models.AlbumItem
 import moe.koiverse.archivetune.innertube.models.ArtistItem
 import moe.koiverse.archivetune.innertube.models.PlaylistItem
 import moe.koiverse.archivetune.innertube.models.SongItem
+import moe.koiverse.archivetune.db.entities.Song
 import moe.koiverse.archivetune.innertube.models.WatchEndpoint
 import moe.koiverse.archivetune.LocalDatabase
 import moe.koiverse.archivetune.LocalPlayerAwareWindowInsets
@@ -481,8 +482,8 @@ fun ArtistScreen(
                             ) {
                                 itemsIndexed(
                                     items = filteredLibrarySongs.chunked(5),
-                                    key = { index: Int, item: List<*> -> "local_song_${item.firstOrNull()?.let { (it as? Any)?.toString() } }_$index" }
-                                ) { _: Int, chunk: List<*> ->
+                                    key = { index: Int, item: List<Song> -> "local_song_${item.firstOrNull()?.id}_$index" }
+                                ) { _: Int, chunk: List<Song> ->
                                     Column(
                                         verticalArrangement = Arrangement.spacedBy(0.dp),
                                         modifier = Modifier
@@ -626,8 +627,8 @@ fun ArtistScreen(
                                 ) {
                                         itemsIndexed(
                                             items = section.items.distinctBy { it.id }.chunked(5),
-                                            key = { index: Int, item: List<*> -> "youtube_song_${item.firstOrNull()?.let { (it as? Any)?.toString() } }_$index" }
-                                        ) { _: Int, chunk: List<*> ->
+                                            key = { index: Int, item: List<SongItem> -> "youtube_song_${item.firstOrNull()?.id}_$index" }
+                                        ) { _: Int, chunk: List<SongItem> ->
                                         Column(
                                             verticalArrangement = Arrangement.spacedBy(0.dp),
                                             modifier = Modifier
@@ -636,7 +637,7 @@ fun ArtistScreen(
                                         ) {
                                             chunk.forEach { song ->
                                                 YouTubeListItem(
-                                                    item = song as SongItem,
+                                                    item = song,
                                                     isActive = mediaMetadata?.id == song.id,
                                                     isPlaying = isPlaying,
                                                     trailingContent = {
