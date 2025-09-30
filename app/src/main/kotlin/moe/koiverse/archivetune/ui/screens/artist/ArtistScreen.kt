@@ -479,10 +479,10 @@ fun ArtistScreen(
                                     .padding(horizontal = 16.dp)
                                     .fadingEdge(left = 32.dp, right = 32.dp)
                             ) {
-                                items(
+                                itemsIndexed(
                                     items = filteredLibrarySongs.chunked(5),
-                                    key = { index, item -> "local_song_${item.firstOrNull()?.id}_$index" }
-                                ) { chunk ->
+                                    key = { index: Int, item: List<*> -> "local_song_${item.firstOrNull()?.let { (it as? Any)?.toString() } }_$index" }
+                                ) { _: Int, chunk: List<*> ->
                                     Column(
                                         verticalArrangement = Arrangement.spacedBy(0.dp),
                                         modifier = Modifier
@@ -624,10 +624,10 @@ fun ArtistScreen(
                                         .padding(horizontal = 16.dp)
                                         .fadingEdge(left = 32.dp, right = 32.dp)
                                 ) {
-                                        items(
+                                        itemsIndexed(
                                             items = section.items.distinctBy { it.id }.chunked(5),
-                                            key = { index, item -> "youtube_song_${item.firstOrNull()?.id}_$index" }
-                                        ) { chunk ->
+                                            key = { index: Int, item: List<*> -> "youtube_song_${item.firstOrNull()?.let { (it as? Any)?.toString() } }_$index" }
+                                        ) { _: Int, chunk: List<*> ->
                                         Column(
                                             verticalArrangement = Arrangement.spacedBy(0.dp),
                                             modifier = Modifier
