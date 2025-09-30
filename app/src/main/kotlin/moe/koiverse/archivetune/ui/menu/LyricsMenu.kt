@@ -417,29 +417,33 @@ fun LyricsMenu(
                 }) { Text(stringResource(R.string.translate)) }
             }
         ) {
-            OutlinedTextField(
-                value = textFieldValue,
-                onValueChange = setTextFieldValue,
-                singleLine = false,
-                label = { Text(stringResource(R.string.lyrics)) },
-                modifier = Modifier.fillMaxWidth()
-            )
+            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                OutlinedTextField(
+                    value = textFieldValue,
+                    onValueChange = setTextFieldValue,
+                    singleLine = false,
+                    label = { Text(stringResource(R.string.lyrics)) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 80.dp, max = 220.dp)
+                )
 
-            Spacer(Modifier.height(12.dp))
+                Spacer(Modifier.height(12.dp))
 
-            // Language selector
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(text = stringResource(R.string.language_label), modifier = Modifier.width(96.dp))
-                Box {
-                    TextButton(onClick = { expanded = true }) {
-                        Text(text = selectedLanguageName)
-                    }
-                    DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-                        languages.forEach { lang ->
-                            DropdownMenuItem(text = { Text(lang.name) }, onClick = {
-                                selectedLanguageCode = lang.code
-                                expanded = false
-                            })
+                // Language selector
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(text = stringResource(R.string.language_label), modifier = Modifier.width(96.dp))
+                    Box {
+                        TextButton(onClick = { expanded = true }) {
+                            Text(text = selectedLanguageName)
+                        }
+                        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                            languages.forEach { lang ->
+                                DropdownMenuItem(text = { Text(lang.name) }, onClick = {
+                                    selectedLanguageCode = lang.code
+                                    expanded = false
+                                })
+                            }
                         }
                     }
                 }
