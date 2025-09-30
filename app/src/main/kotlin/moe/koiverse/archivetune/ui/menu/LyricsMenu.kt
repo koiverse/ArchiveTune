@@ -334,8 +334,21 @@ fun LyricsMenu(
                     )
                 },
                 text = stringResource(R.string.edit),
+                onClick = { showEditDialog = true }
+            ),
+            NewAction(
+                icon = {
+                    Icon(
+                        painter = painterResource(R.drawable.cached),
+                        contentDescription = null,
+                        modifier = Modifier.size(28.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                },
+                text = stringResource(R.string.refetch),
                 onClick = {
-                    showEditDialog = true
+                    onDismiss()
+                    viewModel.refetchLyrics(mediaMetadataProvider(), lyricsProvider())
                 }
             ),
             NewAction(
@@ -348,14 +361,25 @@ fun LyricsMenu(
                     )
                 },
                 text = stringResource(R.string.translate),
-                onClick = {
-                    showTranslateDialog = true
-                }
-            )
+                onClick = { showTranslateDialog = true }
+            ),
             NewAction(
                 icon = {
                     Icon(
+                        painter = painterResource(R.drawable.search),
+                        contentDescription = null,
+                        modifier = Modifier.size(28.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                },
+                text = stringResource(R.string.search),
+                onClick = { showSearchDialog = true }
+            )
+        ),
+        modifier = Modifier.padding(horizontal = 4.dp, vertical = 16.dp)
+    )
 
+    // Translate dialog moved outside of action list
     if (showTranslateDialog) {
         val initialText = lyricsProvider()?.lyrics.orEmpty()
         val (textFieldValue, setTextFieldValue) = rememberSaveable(stateSaver = TextFieldValue.Saver) { mutableStateOf(TextFieldValue(text = initialText)) }
@@ -422,35 +446,6 @@ fun LyricsMenu(
             }
         }
     }
-                        painter = painterResource(R.drawable.cached),
-                        contentDescription = null,
-                        modifier = Modifier.size(28.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                },
-                text = stringResource(R.string.refetch),
-                onClick = {
-                    onDismiss()
-                    viewModel.refetchLyrics(mediaMetadataProvider(), lyricsProvider())
-                }
-            ),
-            NewAction(
-                icon = {
-                    Icon(
-                        painter = painterResource(R.drawable.search),
-                        contentDescription = null,
-                        modifier = Modifier.size(28.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                },
-                text = stringResource(R.string.search),
-                onClick = {
-                    showSearchDialog = true
-                }
-            )
-        ),
-        modifier = Modifier.padding(horizontal = 4.dp, vertical = 16.dp)
-    )
 
     LazyColumn(
         contentPadding = PaddingValues(
