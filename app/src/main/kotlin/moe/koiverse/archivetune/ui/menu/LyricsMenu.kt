@@ -474,7 +474,13 @@ fun LyricsMenu(
                                 Toast.makeText(context, context.getString(R.string.translation_success), Toast.LENGTH_SHORT).show()
                                 showTranslateDialog = false
                             } catch (e: Exception) {
-                                Toast.makeText(context, context.getString(R.string.translation_failed), Toast.LENGTH_SHORT).show()
+                                // Log the exception and show a toast with the message to aid debugging
+                                try {
+                                    android.util.Log.e("LyricsMenu", "Translation error", e)
+                                } catch (_: Exception) {
+                                }
+                                val msg = e.message ?: context.getString(R.string.translation_failed)
+                                Toast.makeText(context, "${context.getString(R.string.translation_failed)}: $msg", Toast.LENGTH_LONG).show()
                             } finally {
                                 isTranslating = false
                             }
