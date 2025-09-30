@@ -121,7 +121,7 @@ jobs:
           
       - name: Create Release
         env:
-          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           UNIVERSAL_APK=$(find downloaded_artifacts/ArchiveTune -name "*.apk")
           ABI_APKS=$(find downloaded_artifacts -path "*/app-*-release/*.apk")
