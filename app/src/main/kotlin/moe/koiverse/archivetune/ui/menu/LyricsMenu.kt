@@ -447,28 +447,23 @@ fun LyricsMenu(
                                     }
                                 }
 
-                                // Batch translate non-null contents using a unique delimiter to preserve splits
-                                val SPLIT = "__ARCHIVETUNE_SPLIT__"
-                                val toTranslate = contents.map { it ?: "" }.joinToString("\n$SPLIT\n")
-
-                                val rawResult = withContext(Dispatchers.IO) {
-                                    translator.translateBlocking(toTranslate, lang)
-                                }.translatedText
-
-                                val translatedParts = rawResult.split("\n$SPLIT\n")
-
-                                // Reconstruct lines
                                 val out = mutableListOf<String>()
-                                var idx = 0
                                 for (i in contents.indices) {
                                     val stamp = stampsFor[i]
                                     val c = contents[i]
                                     if (c == null) {
-                                        // preserve stamp or blank line
                                         if (stamp != null) out.add(stamp) else out.add("")
                                     } else {
-                                        val translated = if (idx < translatedParts.size) translatedParts[idx++] else ""
-                                        if (stamp != null) out.add("$stamp $translated") else out.add(translated)
+                                        val translated = try {
+                                            withContext(Dispatchers.IO) {
+                                                translator.translateBlocking(c, lang).translatedText
+                                            }
+                                        } catch (e: Exception) {
+                                            null
+                                        }
+
+                                        val finalTranslated = translated ?: c
+                                        if (stamp != null) out.add("$stamp $finalTranslated") else out.add(finalTranslated)
                                     }
                                 }
 
@@ -479,7 +474,6 @@ fun LyricsMenu(
                                 Toast.makeText(context, context.getString(R.string.translation_success), Toast.LENGTH_SHORT).show()
                                 showTranslateDialog = false
                             } catch (e: Exception) {
-                                // Provide a slightly more informative message in development builds
                                 Toast.makeText(context, context.getString(R.string.translation_failed), Toast.LENGTH_SHORT).show()
                             } finally {
                                 isTranslating = false
