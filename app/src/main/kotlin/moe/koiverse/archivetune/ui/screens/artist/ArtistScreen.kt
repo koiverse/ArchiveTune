@@ -476,7 +476,7 @@ fun ArtistScreen(
                                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                                 modifier = Modifier
                                     .padding(horizontal = 16.dp)
-                                    .fadingEdge(start = 32.dp, end = 32.dp)
+                                    .fadingEdge(horizontal = 32.dp)
                             ) {
                                 items(filteredLibrarySongs.chunked(5)) { chunk ->
                                     Column(
@@ -617,7 +617,7 @@ fun ArtistScreen(
                                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                                         modifier = Modifier
                                             .padding(horizontal = 16.dp)
-                                            .fadingEdge(start = 32.dp, end = 32.dp)
+                                            .fadingEdge(horizontal = 32.dp)
                                     ) {
                                         items(section.items.distinctBy { it.id }.chunked(5)) { chunk ->
                                             Column(
