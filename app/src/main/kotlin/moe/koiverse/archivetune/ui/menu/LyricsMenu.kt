@@ -384,9 +384,10 @@ fun LyricsMenu(
     if (showTranslateDialog) {
         val initialText = lyricsProvider()?.lyrics.orEmpty()
         val (textFieldValue, setTextFieldValue) = rememberSaveable(stateSaver = TextFieldValue.Saver) { mutableStateOf(TextFieldValue(text = initialText)) }
-        val languages = remember { TranslatorLanguages.load(context) }
-        var expanded by remember { mutableStateOf(false) }
-        var selectedLanguageCode by rememberSaveable { mutableStateOf("ENGLISH") }
+    val languages = remember { TranslatorLanguages.load(context) }
+    var expanded by remember { mutableStateOf(false) }
+    var selectedLanguageCode by rememberSaveable { mutableStateOf("ENGLISH") }
+    var isTranslating by remember { mutableStateOf(false) }
         val selectedLanguageName = languages.firstOrNull { it.code == selectedLanguageCode }?.name ?: selectedLanguageCode
 
         DefaultDialog(
@@ -396,54 +397,79 @@ fun LyricsMenu(
             buttons = {
                 TextButton(onClick = { showTranslateDialog = false }) { Text(stringResource(android.R.string.cancel)) }
                 Spacer(Modifier.width(8.dp))
-                TextButton(onClick = {
-                    // Kick off translation
-                    coroutineScope.launch {
-                        try {
-                            val translator = Translator()
-                            val lang = Language.valueOf(selectedLanguageCode)
+                // Show progress indicator while translating
+                if (isTranslating) {
+                    CircularProgressIndicator(modifier = Modifier.size(20.dp))
+                } else {
+                    TextButton(onClick = {
+                        // Kick off translation (batched)
+                        isTranslating = true
+                        coroutineScope.launch {
+                            try {
+                                val translator = Translator()
+                                val lang = Language.valueOf(selectedLanguageCode)
 
-                            // Preserve LRC-style timestamps like [00:21.45] by translating only the lyric text
-                            val lines = textFieldValue.text.split("\n")
-                            val tsRegex = Regex("^((?:\\[[0-9]{2}:[0-9]{2}(?:\\.[0-9]+)?\\])+)")
-                            val translatedLines = mutableListOf<String>()
+                                // Prepare lines and only translate the lyric content parts
+                                val lines = textFieldValue.text.split("\n")
+                                val tsRegex = Regex("^((?:\\[[0-9]{2}:[0-9]{2}(?:\\.[0-9]+)?\\])+")
 
-                            for (line in lines) {
-                                val trimmed = line.trimEnd()
-                                val m = tsRegex.find(trimmed)
-                                if (m != null) {
-                                    val stamps = m.groupValues[1]
-                                    val content = trimmed.substring(m.range.last + 1).trimStart()
-                                    if (content.isBlank()) {
-                                        translatedLines.add(stamps)
+                                // Collect contents to translate in order; null means blank/no-translate
+                                val contents = mutableListOf<String?>()
+                                val stampsFor = mutableListOf<String?>()
+
+                                for (line in lines) {
+                                    val trimmed = line.trimEnd()
+                                    val m = tsRegex.find(trimmed)
+                                    if (m != null) {
+                                        val stamps = m.groupValues[1]
+                                        val content = trimmed.substring(m.range.last + 1).trimStart()
+                                        stampsFor.add(stamps)
+                                        if (content.isBlank()) contents.add(null) else contents.add(content)
                                     } else {
-                                        val result = withContext(Dispatchers.IO) {
-                                            translator.translateBlocking(content, lang)
-                                        }
-                                        translatedLines.add("$stamps ${result.translatedText}")
-                                    }
-                                } else {
-                                    if (trimmed.isBlank()) translatedLines.add("")
-                                    else {
-                                        val result = withContext(Dispatchers.IO) {
-                                            translator.translateBlocking(trimmed, lang)
-                                        }
-                                        translatedLines.add(result.translatedText)
+                                        stampsFor.add(null)
+                                        if (trimmed.isBlank()) contents.add(null) else contents.add(trimmed)
                                     }
                                 }
-                            }
 
-                            val translated = translatedLines.joinToString("\n")
-                            database.query {
-                                upsert(LyricsEntity(id = mediaMetadataProvider().id, lyrics = translated))
+                                // Batch translate non-null contents using a unique delimiter to preserve splits
+                                val SPLIT = "__ARCHIVETUNE_SPLIT__"
+                                val toTranslate = contents.map { it ?: "" }.joinToString("\n$SPLIT\n")
+
+                                val rawResult = withContext(Dispatchers.IO) {
+                                    translator.translateBlocking(toTranslate, lang)
+                                }.translatedText
+
+                                val translatedParts = rawResult.split("\n$SPLIT\n")
+
+                                // Reconstruct lines
+                                val out = mutableListOf<String>()
+                                var idx = 0
+                                for (i in contents.indices) {
+                                    val stamp = stampsFor[i]
+                                    val c = contents[i]
+                                    if (c == null) {
+                                        // preserve stamp or blank line
+                                        if (stamp != null) out.add(stamp) else out.add("")
+                                    } else {
+                                        val translated = if (idx < translatedParts.size) translatedParts[idx++] else ""
+                                        if (stamp != null) out.add("$stamp $translated") else out.add(translated)
+                                    }
+                                }
+
+                                val translated = out.joinToString("\n")
+                                database.query {
+                                    upsert(LyricsEntity(id = mediaMetadataProvider().id, lyrics = translated))
+                                }
+                                Toast.makeText(context, context.getString(R.string.translation_success), Toast.LENGTH_SHORT).show()
+                                showTranslateDialog = false
+                            } catch (e: Exception) {
+                                Toast.makeText(context, context.getString(R.string.translation_failed), Toast.LENGTH_SHORT).show()
+                            } finally {
+                                isTranslating = false
                             }
-                            Toast.makeText(context, context.getString(R.string.translation_success), Toast.LENGTH_SHORT).show()
-                            showTranslateDialog = false
-                        } catch (e: Exception) {
-                            Toast.makeText(context, context.getString(R.string.translation_failed), Toast.LENGTH_SHORT).show()
                         }
-                    }
-                }) { Text(stringResource(R.string.translate)) }
+                    }) { Text(stringResource(R.string.translate)) }
+                }
             }
         ) {
             Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
@@ -462,10 +488,18 @@ fun LyricsMenu(
                 // Language selector
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(text = stringResource(R.string.language_label), modifier = Modifier.width(96.dp))
-                    Box {
-                        TextButton(onClick = { expanded = true }) {
-                            Text(text = selectedLanguageName)
-                        }
+                    Box(modifier = Modifier.weight(1f)) {
+                        OutlinedTextField(
+                            value = selectedLanguageName,
+                            onValueChange = {},
+                            readOnly = true,
+                            singleLine = true,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { expanded = true },
+                            label = null
+                        )
+
                         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
                             languages.forEach { lang ->
                                 DropdownMenuItem(text = { Text(lang.name) }, onClick = {
