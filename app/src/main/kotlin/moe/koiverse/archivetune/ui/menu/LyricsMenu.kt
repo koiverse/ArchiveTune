@@ -415,7 +415,7 @@ fun LyricsMenu(
                                     Language.values().firstOrNull { it.name == normalizedName }?.let { return it }
 
                                     // As a last resort, try to match by starting substrings
-                                    Language.values().firstOrNull { it.name.startsWith(normalizedCode) || it.name.startsWith(normalizedName) }
+                                    return Language.values().firstOrNull { it.name.startsWith(normalizedCode) || it.name.startsWith(normalizedName) }
                                 }
 
                                 val lang = resolveLanguage(selectedLanguageCode, selectedLanguageName)
