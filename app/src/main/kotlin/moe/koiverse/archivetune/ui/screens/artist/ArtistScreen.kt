@@ -84,6 +84,7 @@ import moe.koiverse.archivetune.LocalPlayerAwareWindowInsets
 import moe.koiverse.archivetune.LocalPlayerConnection
 import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.constants.AppBarHeight
+import moe.koiverse.archivetune.constants.ListItemHeight
 import moe.koiverse.archivetune.constants.HideExplicitKey
 import moe.koiverse.archivetune.db.entities.ArtistEntity
 import moe.koiverse.archivetune.extensions.togglePlayPause
@@ -481,7 +482,9 @@ fun ArtistScreen(
                                 items(filteredLibrarySongs.chunked(5)) { chunk ->
                                     Column(
                                         verticalArrangement = Arrangement.spacedBy(0.dp),
-                                        modifier = Modifier.fillParentMaxWidth(0.9f)
+                                        modifier = Modifier
+                                            .fillParentMaxWidth(0.9f)
+                                            .height(ListItemHeight * chunk.size)
                                     ) {
                                         chunk.forEach { song ->
                                             SongListItem(
@@ -618,10 +621,12 @@ fun ArtistScreen(
                                         .padding(horizontal = 16.dp)
                                         .fadingEdge(left = 32.dp, right = 32.dp)
                                 ) {
-                                    items(section.items.distinctBy { it.id }.chunked(5)) { chunk ->
+                                        items(section.items.distinctBy { it.id }.chunked(5)) { chunk ->
                                         Column(
                                             verticalArrangement = Arrangement.spacedBy(0.dp),
-                                            modifier = Modifier.fillParentMaxWidth(0.9f)
+                                            modifier = Modifier
+                                                .fillParentMaxWidth(0.9f)
+                                                .height(ListItemHeight * chunk.size)
                                         ) {
                                             chunk.forEach { song ->
                                                 YouTubeListItem(
