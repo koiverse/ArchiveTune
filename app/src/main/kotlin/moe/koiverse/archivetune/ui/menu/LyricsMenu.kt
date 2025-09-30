@@ -374,176 +374,182 @@ fun LyricsMenu(
     )
 
     // Translate dialog moved outside of action list
-    if (showTranslateDialog) {
-        val initialText = lyricsProvider()?.lyrics.orEmpty()
-        val (textFieldValue, setTextFieldValue) = rememberSaveable(stateSaver = TextFieldValue.Saver) { mutableStateOf(TextFieldValue(text = initialText)) }
-    val languages = remember { TranslatorLanguages.load(context) }
-    var expanded by remember { mutableStateOf(false) }
-    var selectedLanguageCode by rememberSaveable { mutableStateOf("ENGLISH") }
-    var isTranslating by remember { mutableStateOf(false) }
-        val selectedLanguageName = languages.firstOrNull { it.code == selectedLanguageCode }?.name ?: selectedLanguageCode
+        if (showTranslateDialog) {
+            val initialText = lyricsProvider()?.lyrics.orEmpty()
+            val (textFieldValue, setTextFieldValue) =
+                rememberSaveable(stateSaver = TextFieldValue.Saver) {
+                    mutableStateOf(TextFieldValue(text = initialText))
+                }
 
-        DefaultDialog(
-            onDismiss = { showTranslateDialog = false },
-            icon = { Icon(painter = painterResource(R.drawable.translate), contentDescription = null) },
-            title = { Text(stringResource(R.string.translate)) },
-            buttons = {
-                TextButton(onClick = { showTranslateDialog = false }) { Text(stringResource(android.R.string.cancel)) }
-                Spacer(Modifier.width(8.dp))
-                // Show progress indicator while translating
-                if (isTranslating) {
-                    CircularProgressIndicator(modifier = Modifier.size(20.dp))
-                } else {
-                    TextButton(onClick = {
-                        // Kick off translation (batched) with robust language resolution
-                        isTranslating = true
-                        coroutineScope.launch {
-                            try {
-                                val translator = Translator()
+            val languages = remember { TranslatorLanguages.load(context) }
+            var expanded by remember { mutableStateOf(false) }
+            var selectedLanguageCode by rememberSaveable { mutableStateOf("ENGLISH") }
+            var isTranslating by remember { mutableStateOf(false) }
+            val selectedLanguageName =
+                languages.firstOrNull { it.code == selectedLanguageCode }?.name ?: selectedLanguageCode
 
-                                // Resolve Language enum safely: try code, then normalized code, then by display name
-                                fun resolveLanguage(code: String, name: String): Language? {
-                                    try {
-                                        return Language.valueOf(code)
-                                    } catch (_: Exception) {
-                                    }
+            DefaultDialog(
+                onDismiss = { showTranslateDialog = false },
+                icon = {
+                    Icon(painter = painterResource(R.drawable.translate), contentDescription = null)
+                },
+                title = { Text(stringResource(R.string.translate)) },
+                buttons = {
+                    TextButton(onClick = { showTranslateDialog = false }) {
+                        Text(stringResource(android.R.string.cancel))
+                    }
+                    Spacer(Modifier.width(8.dp))
+                    if (isTranslating) {
+                        CircularProgressIndicator(modifier = Modifier.size(20.dp))
+                    } else {
+                        TextButton(onClick = {
+                            isTranslating = true
+                            coroutineScope.launch {
+                                try {
+                                    val translator = Translator()
 
-                                    val normalizedCode = code.uppercase().replace('-', '_').replace(' ', '_')
-                                    Language.values().firstOrNull { it.name == normalizedCode }?.let { return it }
-
-                                    val normalizedName = name.uppercase().replace(' ', '_')
-                                    Language.values().firstOrNull { it.name == normalizedName }?.let { return it }
-
-                                    // As a last resort, try to match by starting substrings
-                                    return Language.values().firstOrNull { it.name.startsWith(normalizedCode) || it.name.startsWith(normalizedName) }
-                                }
-
-                                val lang = resolveLanguage(selectedLanguageCode, selectedLanguageName)
-                                if (lang == null) {
-                                    Toast.makeText(context, "Unsupported language: $selectedLanguageName", Toast.LENGTH_SHORT).show()
-                                    isTranslating = false
-                                    return@launch
-                                }
-
-                                // Prepare lines and only translate the lyric content parts
-                                val lines = textFieldValue.text.split("\n")
-                                val tsRegex = Regex("^((?:\\[[0-9]{2}:[0-9]{2}(?:\\.[0-9]+)?\\])+")
-
-                                // Collect contents to translate in order; null means blank/no-translate
-                                val contents = mutableListOf<String?>()
-                                val stampsFor = mutableListOf<String?>()
-
-                                for (line in lines) {
-                                    val trimmed = line.trimEnd()
-                                    val m = tsRegex.find(trimmed)
-                                    if (m != null) {
-                                        val stamps = m.groupValues[1]
-                                        val content = trimmed.substring(m.range.last + 1).trimStart()
-                                        stampsFor.add(stamps)
-                                        if (content.isBlank()) contents.add(null) else contents.add(content)
-                                    } else {
-                                        stampsFor.add(null)
-                                        if (trimmed.isBlank()) contents.add(null) else contents.add(trimmed)
-                                    }
-                                }
-
-                                val out = mutableListOf<String>()
-                                for (i in contents.indices) {
-                                    val stamp = stampsFor[i]
-                                    val c = contents[i]
-                                    if (c == null) {
-                                        if (stamp != null) out.add(stamp) else out.add("")
-                                    } else {
-                                        val translated = try {
-                                            withContext(Dispatchers.IO) {
-                                                translator.translateBlocking(c, lang).translatedText
-                                            }
-                                        } catch (e: Exception) {
-                                            null
+                                    // ✅ Use library's built-in language resolver
+                                    val lang = runCatching { Language(selectedLanguageCode) }
+                                        .getOrElse {
+                                            runCatching { Language(selectedLanguageName) }.getOrNull()
                                         }
 
-                                        val finalTranslated = translated ?: c
-                                        if (stamp != null) out.add("$stamp $finalTranslated") else out.add(finalTranslated)
+                                    if (lang == null) {
+                                        Toast.makeText(
+                                            context,
+                                            "Unsupported language: $selectedLanguageName",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+                                        return@launch
                                     }
-                                }
 
-                                val translated = out.joinToString("\n")
-                                database.query {
-                                    upsert(LyricsEntity(id = mediaMetadataProvider().id, lyrics = translated))
+                                    val lines = textFieldValue.text.split("\n")
+                                    val tsRegex =
+                                        Regex("^((?:\\[[0-9]{2}:[0-9]{2}(?:\\.[0-9]+)?\\])+")
+                                    val out = buildList {
+                                        for (line in lines) {
+                                            val trimmed = line.trimEnd()
+                                            val m = tsRegex.find(trimmed)
+                                            if (m != null) {
+                                                val stamps = m.groupValues[1]
+                                                val content =
+                                                    trimmed.substring(m.range.last + 1).trimStart()
+                                                if (content.isBlank()) {
+                                                    add(stamps)
+                                                } else {
+                                                    val translated =
+                                                        runCatching {
+                                                            withContext(Dispatchers.IO) {
+                                                                translator.translateBlocking(
+                                                                    content,
+                                                                    lang
+                                                                ).translatedText
+                                                            }
+                                                        }.getOrNull() ?: content
+                                                    add("$stamps $translated")
+                                                }
+                                            } else {
+                                                if (trimmed.isBlank()) {
+                                                    add("")
+                                                } else {
+                                                    val translated =
+                                                        runCatching {
+                                                            withContext(Dispatchers.IO) {
+                                                                translator.translateBlocking(
+                                                                    trimmed,
+                                                                    lang
+                                                                ).translatedText
+                                                            }
+                                                        }.getOrNull() ?: trimmed
+                                                    add(translated)
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    val translatedLyrics = out.joinToString("\n")
+                                    database.query {
+                                        upsert(
+                                            LyricsEntity(
+                                                id = mediaMetadataProvider().id,
+                                                lyrics = translatedLyrics
+                                            )
+                                        )
+                                    }
+                                    showTranslateDialog = false
+                                } catch (e: Exception) {
+                                    Toast.makeText(
+                                        context,
+                                        context.getString(R.string.translation_failed),
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                } finally {
+                                    isTranslating = false
                                 }
-                                Toast.makeText(context, context.getString(R.string.translation_success), Toast.LENGTH_SHORT).show()
-                                showTranslateDialog = false
-                            } catch (e: Exception) {
-                                // Log the exception and show a toast with the message to aid debugging
-                                try {
-                                    android.util.Log.e("LyricsMenu", "Translation error", e)
-                                } catch (_: Exception) {
-                                }
-                                val msg = e.message ?: context.getString(R.string.translation_failed)
-                                Toast.makeText(context, "${context.getString(R.string.translation_failed)}: $msg", Toast.LENGTH_LONG).show()
-                            } finally {
-                                isTranslating = false
                             }
+                        }) {
+                            Text(stringResource(R.string.translate))
                         }
-                    }) { Text(stringResource(R.string.translate)) }
+                    }
                 }
-            }
-        ) {
-            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
-                OutlinedTextField(
-                    value = textFieldValue,
-                    onValueChange = setTextFieldValue,
-                    singleLine = false,
-                    label = { Text(stringResource(R.string.lyrics)) },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(min = 80.dp, max = 220.dp)
-                )
-
-                Spacer(Modifier.height(12.dp))
-
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = stringResource(R.string.language_label),
-                    modifier = Modifier.width(96.dp)
-                )
-
-                ExposedDropdownMenuBox(
-                    expanded = expanded,
-                    onExpandedChange = { expanded = it },
-                    modifier = Modifier.weight(1f),
-                ) {
+            ) {
+                Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
                     OutlinedTextField(
-                        value = selectedLanguageName,
-                        onValueChange = {},
-                        readOnly = true,
-                        singleLine = true,
-                        label = null,
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                        value = textFieldValue,
+                        onValueChange = setTextFieldValue,
+                        singleLine = false,
+                        label = { Text(stringResource(R.string.lyrics)) },
                         modifier = Modifier
-                            .menuAnchor()
                             .fillMaxWidth()
+                            .heightIn(min = 80.dp, max = 220.dp)
                     )
 
-                    ExposedDropdownMenu(
-                        expanded = expanded,
-                        onDismissRequest = { expanded = false }
-                    ) {
-                        languages.forEach { lang ->
-                            DropdownMenuItem(
-                                text = { Text(lang.name) },
-                                onClick = {
-                                    selectedLanguageCode = lang.code
-                                    expanded = false
-                                }
+                    Spacer(Modifier.height(12.dp))
+
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = stringResource(R.string.language_label),
+                            modifier = Modifier.width(96.dp)
+                        )
+
+                        ExposedDropdownMenuBox(
+                            expanded = expanded,
+                            onExpandedChange = { expanded = it },
+                            modifier = Modifier.weight(1f),
+                        ) {
+                            OutlinedTextField(
+                                value = selectedLanguageName,
+                                onValueChange = {},
+                                readOnly = true,
+                                singleLine = true,
+                                trailingIcon = {
+                                    ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
+                                },
+                                modifier = Modifier
+                                    .menuAnchor()
+                                    .fillMaxWidth()
                             )
+
+                            ExposedDropdownMenu(
+                                expanded = expanded,
+                                onDismissRequest = { expanded = false }
+                            ) {
+                                languages.forEach { lang ->
+                                    DropdownMenuItem(
+                                        text = { Text(lang.name) },
+                                        onClick = {
+                                            selectedLanguageCode = lang.code
+                                            expanded = false
+                                        }
+                                    )
+                                }
+                            }
                         }
                     }
                 }
             }
-          }
         }
-    }
+
 
     LazyColumn(
         contentPadding = PaddingValues(
