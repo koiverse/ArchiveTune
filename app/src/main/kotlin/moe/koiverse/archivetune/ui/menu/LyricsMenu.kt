@@ -51,8 +51,11 @@ import kotlinx.coroutines.launch
 import me.bush.translator.Translator
 import me.bush.translator.Language
 import moe.koiverse.archivetune.utils.TranslatorLanguages
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenu
+import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.menuAnchor
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.TextFieldValue
@@ -492,25 +495,25 @@ fun LyricsMenu(
                     text = stringResource(R.string.language_label),
                     modifier = Modifier.width(96.dp)
                 )
-                Box(modifier = Modifier.weight(1f)) {
+
+                ExposedDropdownMenuBox(
+                    expanded = expanded,
+                    onExpandedChange = { expanded = it },
+                    modifier = Modifier.weight(1f),
+                ) {
                     OutlinedTextField(
                         value = selectedLanguageName,
                         onValueChange = {},
                         readOnly = true,
                         singleLine = true,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { expanded = true },
                         label = null,
-                        trailingIcon = {
-                            Icon(
-                                painter = painterResource(if (expanded) R.drawable.expand_less else R.drawable.expand_more),
-                                contentDescription = null
-                            )
-                        }
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                        modifier = Modifier
+                            .menuAnchor()
+                            .fillMaxWidth()
                     )
 
-                    DropdownMenu(
+                    ExposedDropdownMenu(
                         expanded = expanded,
                         onDismissRequest = { expanded = false }
                     ) {
