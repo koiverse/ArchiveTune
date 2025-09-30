@@ -401,11 +401,39 @@ fun LyricsMenu(
                     coroutineScope.launch {
                         try {
                             val translator = Translator()
-                            val result = withContext(Dispatchers.IO) {
-                                // Use translateBlocking inside IO dispatcher to avoid blocking UI
-                                translator.translateBlocking(textFieldValue.text, Language.valueOf(selectedLanguageCode))
+                            val lang = Language.valueOf(selectedLanguageCode)
+
+                            // Preserve LRC-style timestamps like [00:21.45] by translating only the lyric text
+                            val lines = textFieldValue.text.split("\n")
+                            val tsRegex = Regex("^((?:\\[[0-9]{2}:[0-9]{2}(?:\\.[0-9]+)?\\])+)")
+                            val translatedLines = mutableListOf<String>()
+
+                            for (line in lines) {
+                                val trimmed = line.trimEnd()
+                                val m = tsRegex.find(trimmed)
+                                if (m != null) {
+                                    val stamps = m.groupValues[1]
+                                    val content = trimmed.substring(m.range.last + 1).trimStart()
+                                    if (content.isBlank()) {
+                                        translatedLines.add(stamps)
+                                    } else {
+                                        val result = withContext(Dispatchers.IO) {
+                                            translator.translateBlocking(content, lang)
+                                        }
+                                        translatedLines.add("$stamps ${result.translatedText}")
+                                    }
+                                } else {
+                                    if (trimmed.isBlank()) translatedLines.add("")
+                                    else {
+                                        val result = withContext(Dispatchers.IO) {
+                                            translator.translateBlocking(trimmed, lang)
+                                        }
+                                        translatedLines.add(result.translatedText)
+                                    }
+                                }
                             }
-                            val translated = result.translatedText
+
+                            val translated = translatedLines.joinToString("\n")
                             database.query {
                                 upsert(LyricsEntity(id = mediaMetadataProvider().id, lyrics = translated))
                             }
