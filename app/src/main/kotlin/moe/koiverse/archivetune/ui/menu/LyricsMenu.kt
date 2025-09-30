@@ -400,7 +400,7 @@ fun LyricsMenu(
                     }
                     Spacer(Modifier.width(8.dp))
                     if (isTranslating) {
-                        CircularProgressIndicator
+                        CircularProgressIndicator(
                         modifier = Modifier
                         .size(20.dp)
                         .align(Alignment.CenterVertically),
