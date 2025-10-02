@@ -213,11 +213,13 @@
     <string name="dark_theme_on">On</string>
     <string name="dark_theme_off">Off</string>
     <string name="show_button">Show button</string>
-    <string name="corner_radius">Corner radius: %1$d</string>
+    <string name="corner_radius">Corner radius: </string>
     <string name="adjust_radius">Adjust corner radius</string>
     <string name="cancel_button">Cancel</string>
     <string name="ok_button">OK</string>
     <string name="custom_radius">Customize thumbnail corner radius</string>
+    <string name="new_library_design">New library design</string>
+    <string name="new_library_design_description">Enable the new library design (may be unstable)</string>
     <string name="show_button1_description">Toggle visibility of button 1 in Discord Rich Presence</string>
     <string name="show_button2_description">Toggle visibility of button 2 in Discord Rich Presence</string>
     <string name="discord_activity_type">Activity type</string>
@@ -327,6 +329,22 @@
     <string name="discord_activity_button2_label">Button 2 label</string>
     <string name="discord_activity_button2_url">Button 2 URL</string>
     <string name="button2_url_description">The URL that Button 2 (Leave Blank for Default)</string>
+    <!--Discord Tranalstor Settings-->
+    <string name="translator_options">Translator Options</string>
+    <string name="enable_translator">Enable Translator</string>
+    <string name="enable_translator_desc">Translate selected fields before sending to Discord RPC</string>
+    <string name="context_info">Contexts (comma-separated)</string>
+    <string name="translator_info_usage">Use Example: {song}, {artist}, {album}</string>
+    <string name="target_language">Target Language</string>
+    <string name="select_language">Select Language</string>
+    <string name="close_dialog">Close</string>
+    <string name="select_dialog">Select</string>
+    <!-- Translate UI strings -->
+    <string name="translate">Translate</string>
+    <string name="language_label">Language</string>
+    <string name="lyrics">Lyrics</string>
+    <string name="translation_success">Translation saved</string>
+    <string name="translation_failed">Translation failed</string>
     <!-- Discord settings additions -->
     <string name="discord_button_options">Button Options</string>
     <string name="discord_image_options">Image Options</string>
@@ -341,6 +359,20 @@
     <string name="logout_confirm_message">Are you sure you want to log out of Discord?.</string>
     <string name="logout_confirm_yes">Log out</string>
     <string name="logout_confirm_no">Cancel</string>
+    <!--Misc settings additions-->
+    <string name="experiment_settings">Experimental Settings</string>
+    <string name="show_discord_debug_ui">Show Debug UI</string>
+    <string name="enable_discord_debug_lines">Enable debug settings lines</string>
+    <string name="presence_manager_running">Presence manager: running</string>
+    <string name="presence_manager_stopped">Presence manager: stopped</string>
+    <string name="debug_last_rpc_times">Last RPC start: %1$s  end: %2$s</string>
+    <string name="filter_levels">Filter levels</string>
+    <string name="experimental_features">Experimental Features</string>
+    <string name="experimental_features_description">Advanced or experimental Discord options (moved to separate screen)</string>
+    <string name="experimental_feature">Experimental Feature</string>
+    <string name="open">Open</string>
+    <string name="reset_to_default_levels">Reset to default</string>
+    <string name="no_logs">No Logs</string>
     <string name="about">About</string>
     <string name="app_version">App version</string>
     <string name="new_version_available">New version available</string>
