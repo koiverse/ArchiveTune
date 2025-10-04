@@ -55,16 +55,19 @@ fun StarDialog(
             FilledTonalButton(
                 onClick = {
                     try {
-                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/koiverse/ArchiveTune"))
-                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        val intent = Intent(
+                            Intent.ACTION_VIEW,
+                            Uri.parse("https://github.com/koiverse/ArchiveTune")
+                        )
                         context.startActivity(intent)
-                    } catch (_: Exception) {
+                    } catch (e: Exception) {
+                        e.printStackTrace()
                     }
                     onStar()
                 },
                 colors = ButtonDefaults.buttonColors(),
             ) {
-                    Icon(
+                Icon(
                     painter = painterResource(id = R.drawable.star),
                     contentDescription = "Star",
                     modifier = Modifier.size(18.dp)
