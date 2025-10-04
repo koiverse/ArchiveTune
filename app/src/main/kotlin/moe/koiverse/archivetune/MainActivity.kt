@@ -193,6 +193,10 @@ import java.net.URLEncoder
 import java.util.Locale
 import javax.inject.Inject
 import kotlin.time.Duration.Companion.days
+import moe.koiverse.archivetune.constants.LaunchCountKey
+import moe.koiverse.archivetune.constants.HasPressedStarKey
+import moe.koiverse.archivetune.constants.RemindAfterKey
+import moe.koiverse.archivetune.ui.component.StarDialog
 
 @Suppress("DEPRECATION", "ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
 @AndroidEntryPoint
@@ -608,6 +612,49 @@ class MainActivity : ComponentActivity() {
                         } else {
                             handleDeepLinkIntent(intent, navController)
                         }
+                    }
+
+                    // Star dialog: increment launch count and decide whether to show the dialog
+                    var showStarDialog by remember { mutableStateOf(false) }
+
+                    LaunchedEffect(Unit) {
+                        // increment launch count
+                        val current = dataStore[LaunchCountKey] ?: 0
+                        val newCount = current + 1
+                        dataStore.edit { prefs ->
+                            prefs[LaunchCountKey] = newCount
+                        }
+
+                        val hasPressed = dataStore[HasPressedStarKey] ?: false
+                        val remindAfter = dataStore[RemindAfterKey] ?: Int.MAX_VALUE
+
+                        if (!hasPressed && newCount >= remindAfter) {
+                            showStarDialog = true
+                        }
+                    }
+
+                    if (showStarDialog) {
+                        StarDialog(
+                            onDismissRequest = { showStarDialog = false },
+                            onStar = {
+                                lifecycleScope.launch {
+                                    dataStore.edit { prefs ->
+                                        prefs[HasPressedStarKey] = true
+                                        prefs[RemindAfterKey] = Int.MAX_VALUE
+                                    }
+                                    showStarDialog = false
+                                }
+                            },
+                            onLater = {
+                                lifecycleScope.launch {
+                                    val launch = dataStore[LaunchCountKey] ?: 0
+                                    dataStore.edit { prefs ->
+                                        prefs[RemindAfterKey] = launch + 10
+                                    }
+                                    showStarDialog = false
+                                }
+                            }
+                        )
                     }
 
                     DisposableEffect(Unit) {
