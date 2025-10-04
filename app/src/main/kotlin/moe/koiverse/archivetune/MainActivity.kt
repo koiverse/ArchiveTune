@@ -618,35 +618,28 @@ class MainActivity : ComponentActivity() {
                     var showStarDialog by remember { mutableStateOf(false) }
 
                     LaunchedEffect(Unit) {
-                        val shouldShow = withContext(Dispatchers.IO) {
-                            try {
-                                val current = dataStore[LaunchCountKey] ?: 0
-                                val newCount = current + 1
-                                dataStore.edit { prefs ->
-                                    prefs[LaunchCountKey] = newCount
-                                }
-
-                                val hasPressed = dataStore[HasPressedStarKey] ?: false
-                                val remindAfter = dataStore[RemindAfterKey] ?: Int.MAX_VALUE
-
-                                !hasPressed && newCount >= remindAfter
-                            } catch (t: Throwable) {
-                                reportException(t)
-                                false
+                        withContext(Dispatchers.IO) {
+                            val current = dataStore[LaunchCountKey] ?: 0
+                            val newCount = current + 1
+                            dataStore.edit { prefs ->
+                                prefs[LaunchCountKey] = newCount
                             }
                         }
 
+                        val shouldShow = withContext(Dispatchers.IO) {
+                            val hasPressed = dataStore[HasPressedStarKey] ?: false
+                            val remindAfter = dataStore[RemindAfterKey] ?: Int.MAX_VALUE
+                            !hasPressed && (dataStore[LaunchCountKey] ?: 0) >= remindAfter
+                        }
+
                         if (shouldShow) {
-                            try {
-                                delay(250)
-                                showStarDialog = true
-                            } catch (t: Throwable) {
-                                reportException(t)
-                            }
+                            delay(1000)
+                            showStarDialog = true
                         }
                     }
 
                     if (showStarDialog) {
+                    try {
                         StarDialog(
                             onDismissRequest = { showStarDialog = false },
                             onStar = {
@@ -672,6 +665,9 @@ class MainActivity : ComponentActivity() {
                                 }
                             }
                         )
+                        } catch (e: Exception) {
+                            showStarDialog = false
+                        }
                     }
 
                     DisposableEffect(Unit) {
