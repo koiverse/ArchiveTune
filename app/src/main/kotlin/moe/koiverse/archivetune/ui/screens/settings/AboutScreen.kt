@@ -212,7 +212,7 @@ fun AboutScreen(
                 onClick = { uriHandler.openUri("https://github.com/koiverse/ArchiveTune") },
             ) {
                 Icon(
-                    painter = painterResource(R.drawable.ic_star),
+                    painter = painterResource(R.drawable.star),
                     contentDescription = stringResource(R.string.support_github),
                 )
             }
