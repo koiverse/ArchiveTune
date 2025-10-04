@@ -199,6 +199,27 @@ fun AboutScreen(
 
         Spacer(Modifier.height(8.dp))
 
+        Row {
+            Text(
+                text = stringResource(R.string.support_github),
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(top = 8.dp, bottom = 8.dp, start = 8.dp)
+            )
+
+            Spacer(Modifier.width(8.dp))
+
+            IconButton(
+                onClick = { uriHandler.openUri("https://github.com/koiverse/ArchiveTune") },
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.ic_star),
+                    contentDescription = stringResource(R.string.support_github),
+                )
+            }
+        }
+
+        Spacer(Modifier.height(8.dp))
+
        Column(
        verticalArrangement = Arrangement.spacedBy(16.dp),
        horizontalAlignment = Alignment.CenterHorizontally,
