@@ -1,1 +1,1 @@
-Cliente de YouTube Music en Material 3 para Android
+Cliente mejorado de transmisión de música para Android con Material 3 Expressive

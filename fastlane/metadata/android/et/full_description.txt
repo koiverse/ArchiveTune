@@ -1,23 +1,24 @@
-Material 3 põhine YouTube Musicu klient Androidile
+Täiustatud muusika voogedastuse klient Androidile koos Material 3 Expressive'iga
 
-Funktsionaalsused:
+Funktsioonid:
 
-- Kuula või vaata kõiki lugusid YT Musicust
-- Taasesitus taustal 
-- Isiklikud kiirvalikud 
-- Muusikakogu haldus 
-- Laadi lugusid alla hilisemaks esitamiseks ilma võrguühendust kasutamata
-- Otsi lugusid, albumeid, esitajaid, videoid ja esitusloendeid
-- Laulusõnad kuulamise ajal 
-- YouTube Musicu kasutajakonto pruukimise võimalus
-- Lugude, esitajate, albumite ja esitusloendite sünkroonimine sinu kasutajakontoga
-- Vaikuse vahelejätmine 
-- Esitusloendite import 
-- Heli normaliseerimine 
-- Kohenda tempot ja helikõrgust
-- Esitusloendite kohaliku haldamise võimalus
-- Võimalus muuta lugude järjestust esitusloendis või esitusjärjekorras
-- Hele, tume, must ja dünaamiline kujundus
-- Unetaimer
-- Material 3 kujunduskeel 
-- ja palju muud.
+- Mängi mis tahes laulu või videot YT Musicust
+- Taustal taasesitus
+- Isikupärastatud kiirvalikud
+- Teegi haldamine
+- Laulude allalaadimine ja vahemällu salvestamine võrguühenduseta taasesituseks
+- Otsi laule, albumeid, artiste, videoid ja esitusloendeid
+- Reaalajas laulusõnad
+- YouTube Musicu konto sisselogimise tugi
+- Laulude, artistide, albumite ja esitusloendite sünkroonimine sinu kontoga ja kontolt
+- Vaiguse (vaikuse) vahelejätmine
+- Esitusloendite import
+- Heli normaliseerimine
+- Tempo/tonaalsuse kohandamine
+- Kohalike esitusloendite haldamine
+- Lugude ümberjärjestamine esitusloendis või järjekorras
+- Hele – Tume – Must – Dünaamiline teema
+- Une taimer
+- Material 3
+- Kohandatav Discordi kohalolek
+- jne

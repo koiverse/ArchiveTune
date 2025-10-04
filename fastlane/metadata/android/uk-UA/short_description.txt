@@ -1,1 +1,1 @@
-Неофіційний додаток YouTube Music з дизайном Material 3 для Android
+Покращений клієнт для потокової музики на Android з Material 3 Expressive

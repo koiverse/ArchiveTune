@@ -1,1 +1,1 @@
-Material 3 YouTube Music klient pro Android
+Vylepšený hudební streamovací klient pro Android s Material 3 Expressive

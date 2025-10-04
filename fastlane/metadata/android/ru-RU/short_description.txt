@@ -1,1 +1,1 @@
-Музыкальный проигрыватель с YouTube Music в дизайне Material 3
+Улучшенный клиент для потоковой передачи музыки на Android с Material 3 Expressive

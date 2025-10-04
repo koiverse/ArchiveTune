@@ -1,1 +1,1 @@
-Material 3 YouTube Music client for Android
+Enhanced Music Streaming Client for Android With Material 3 Expressive

@@ -1,23 +1,24 @@
-Material 3 YouTube Music klient pro Android
+Vylepšený hudební streamovací klient pro Android s Material 3 Expressive
 
 Funkce:
 
-- Přehrání jakékoli skladby nebo videa z YT Music
+- Přehrávejte jakoukoli skladbu nebo video z YT Music
 - Přehrávání na pozadí
-- Personalizovaný rychlý výběr
+- Personalizované rychlé volby
 - Správa knihovny
-- Stahování a ukládání skladeb do mezipaměti pro offline přehrávání
-- Hledání skladeb, alb, umělců, videí a playlistů
-- Živé texty
+- Stahování a ukládání skladeb pro offline poslech
+- Vyhledávání skladeb, alb, interpretů, videí a playlistů
+- Živé texty písní
 - Podpora přihlášení k účtu YouTube Music
-- Oboustranná synchronizace skladeb, umělců, alb a playlistů s účtem
-- Přeskočení ticha
+- Synchronizace skladeb, interpretů, alb a playlistů z a do vašeho účtu
+- Přeskakování ticha
 - Import playlistů
 - Normalizace zvuku
-- Úprava tempa/výšky
-- Místní správa playlistů
-- Změna pořadí skladeb v playlistu nebo ve frontě
-- Světlý / tmavý / černý / dynamický motiv
+- Úprava tempa/tóniny
+- Správa místních playlistů
+- Přeskupení skladeb v playlistu nebo frontě
+- Světlý – Tmavý – Černý – Dynamický motiv
 - Časovač spánku
 - Material 3
+- Přizpůsobitelný Discord Presence
 - atd.

@@ -1,4 +1,4 @@
-Material 3 YouTube Music client for Android
+Enhanced Music Streaming Client for Android With Material 3 Expressive
 
 Features:
 
@@ -19,5 +19,6 @@ Features:
 - Reorder songs in playlist or queue 
 - Light - Dark - black - Dynamic theme
 - Sleep timer
-- Material 3 
+- Material 3
+- Customizable Discord Presence
 - etc.
