@@ -637,7 +637,12 @@ class MainActivity : ComponentActivity() {
                         }
 
                         if (shouldShow) {
-                            showStarDialog = true
+                            try {
+                                delay(250)
+                                showStarDialog = true
+                            } catch (t: Throwable) {
+                                reportException(t)
+                            }
                         }
                     }
 
