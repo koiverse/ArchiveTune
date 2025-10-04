@@ -376,13 +376,6 @@
     <string name="select_language">Select Language</string>
     <string name="close_dialog">Close</string>
     <string name="select_dialog">Select</string>
-
-    <!-- Star dialog -->
-    <string name="star_dialog_title">Support development</string>
-    <string name="star_dialog_message">Hey there! I&apos;m Koiverse, the developer of ArchiveTune. I have been putting a lot of love into making this app better every day. &#10;&#10;If you enjoy using ArchiveTune, you can support its development by giving the project a star — it really helps and keeps me motivated to keep improving it!&#10;&#10;Thanks a bunch for your support and for being part of this journey!</string>
-
-    <string name="star_dialog_star">Star</string>
-    <string name="star_dialog_later">Later</string>
     <string name="support_github">Star ArchiveTune!</string>
 
     <!-- Translate UI strings -->
