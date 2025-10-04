@@ -193,6 +193,7 @@ import java.net.URLEncoder
 import java.util.Locale
 import javax.inject.Inject
 import kotlin.time.Duration.Companion.days
+import androidx.datastore.preferences.core.edit
 import moe.koiverse.archivetune.constants.LaunchCountKey
 import moe.koiverse.archivetune.constants.HasPressedStarKey
 import moe.koiverse.archivetune.constants.RemindAfterKey
