@@ -615,21 +615,28 @@ class MainActivity : ComponentActivity() {
                         }
                     }
 
-                    // Star dialog: increment launch count and decide whether to show the dialog
                     var showStarDialog by remember { mutableStateOf(false) }
 
                     LaunchedEffect(Unit) {
-                        // increment launch count
-                        val current = dataStore[LaunchCountKey] ?: 0
-                        val newCount = current + 1
-                        dataStore.edit { prefs ->
-                            prefs[LaunchCountKey] = newCount
+                        val shouldShow = withContext(Dispatchers.IO) {
+                            try {
+                                val current = dataStore[LaunchCountKey] ?: 0
+                                val newCount = current + 1
+                                dataStore.edit { prefs ->
+                                    prefs[LaunchCountKey] = newCount
+                                }
+
+                                val hasPressed = dataStore[HasPressedStarKey] ?: false
+                                val remindAfter = dataStore[RemindAfterKey] ?: Int.MAX_VALUE
+
+                                !hasPressed && newCount >= remindAfter
+                            } catch (t: Throwable) {
+                                reportException(t)
+                                false
+                            }
                         }
 
-                        val hasPressed = dataStore[HasPressedStarKey] ?: false
-                        val remindAfter = dataStore[RemindAfterKey] ?: Int.MAX_VALUE
-
-                        if (!hasPressed && newCount >= remindAfter) {
+                        if (shouldShow) {
                             showStarDialog = true
                         }
                     }
@@ -638,19 +645,23 @@ class MainActivity : ComponentActivity() {
                         StarDialog(
                             onDismissRequest = { showStarDialog = false },
                             onStar = {
-                                lifecycleScope.launch {
-                                    dataStore.edit { prefs ->
-                                        prefs[HasPressedStarKey] = true
-                                        prefs[RemindAfterKey] = Int.MAX_VALUE
+                                coroutineScope.launch {
+                                    withContext(Dispatchers.IO) {
+                                        dataStore.edit { prefs ->
+                                            prefs[HasPressedStarKey] = true
+                                            prefs[RemindAfterKey] = Int.MAX_VALUE
+                                        }
                                     }
                                     showStarDialog = false
                                 }
                             },
                             onLater = {
-                                lifecycleScope.launch {
-                                    val launch = dataStore[LaunchCountKey] ?: 0
-                                    dataStore.edit { prefs ->
-                                        prefs[RemindAfterKey] = launch + 10
+                                coroutineScope.launch {
+                                    val launch = withContext(Dispatchers.IO) { dataStore[LaunchCountKey] ?: 0 }
+                                    withContext(Dispatchers.IO) {
+                                        dataStore.edit { prefs ->
+                                            prefs[RemindAfterKey] = launch + 10
+                                        }
                                     }
                                     showStarDialog = false
                                 }
