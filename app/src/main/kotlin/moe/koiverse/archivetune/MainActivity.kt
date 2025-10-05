@@ -639,35 +639,41 @@ class MainActivity : ComponentActivity() {
                     }
 
                     if (showStarDialog) {
-                    try {
                         StarDialog(
                             onDismissRequest = { showStarDialog = false },
                             onStar = {
                                 coroutineScope.launch {
-                                    withContext(Dispatchers.IO) {
-                                        dataStore.edit { prefs ->
-                                            prefs[HasPressedStarKey] = true
-                                            prefs[RemindAfterKey] = Int.MAX_VALUE
+                                    try {
+                                        withContext(Dispatchers.IO) {
+                                            dataStore.edit { prefs ->
+                                                prefs[HasPressedStarKey] = true
+                                                prefs[RemindAfterKey] = Int.MAX_VALUE
+                                            }
                                         }
+                                    } catch (e: Exception) {
+                                        reportException(e)
+                                    } finally {
+                                        showStarDialog = false
                                     }
-                                    showStarDialog = false
                                 }
                             },
                             onLater = {
                                 coroutineScope.launch {
-                                    val launch = withContext(Dispatchers.IO) { dataStore[LaunchCountKey] ?: 0 }
-                                    withContext(Dispatchers.IO) {
-                                        dataStore.edit { prefs ->
-                                            prefs[RemindAfterKey] = launch + 10
+                                    try {
+                                        val launch = withContext(Dispatchers.IO) { dataStore[LaunchCountKey] ?: 0 }
+                                        withContext(Dispatchers.IO) {
+                                            dataStore.edit { prefs ->
+                                                prefs[RemindAfterKey] = launch + 10
+                                            }
                                         }
+                                    } catch (e: Exception) {
+                                        reportException(e)
+                                    } finally {
+                                        showStarDialog = false
                                     }
-                                    showStarDialog = false
                                 }
                             }
                         )
-                        } catch (e: Exception) {
-                            showStarDialog = false
-                        }
                     }
 
                     DisposableEffect(Unit) {
