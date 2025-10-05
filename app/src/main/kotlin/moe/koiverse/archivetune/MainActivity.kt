@@ -628,7 +628,7 @@ class MainActivity : ComponentActivity() {
 
                         val shouldShow = withContext(Dispatchers.IO) {
                             val hasPressed = dataStore[HasPressedStarKey] ?: false
-                            val remindAfter = dataStore[RemindAfterKey] ?: Int.MAX_VALUE
+                            val remindAfter = dataStore[RemindAfterKey] ?: 3
                             !hasPressed && (dataStore[LaunchCountKey] ?: 0) >= remindAfter
                         }
 
