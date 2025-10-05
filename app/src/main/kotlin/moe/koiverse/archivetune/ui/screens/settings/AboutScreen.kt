@@ -52,6 +52,31 @@ data class TeamMember(
     val profileUrl: String? = null
 )
 
+
+@Composable
+fun OutlinedIconChip(
+    iconRes: Int,
+    text: String,
+    onClick: () -> Unit
+) {
+    androidx.compose.material3.OutlinedButton(
+        onClick = onClick,
+        shape = CircleShape,
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(
+            horizontal = 12.dp,
+            vertical = 6.dp
+        )
+    ) {
+        Icon(
+            painter = painterResource(id = iconRes),
+            contentDescription = text,
+            modifier = Modifier.size(18.dp)
+        )
+        Spacer(Modifier.width(6.dp))
+        Text(text = text, style = MaterialTheme.typography.labelLarge)
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AboutScreen(
@@ -199,27 +224,6 @@ fun AboutScreen(
 
         Spacer(Modifier.height(8.dp))
 
-        Row {
-            Text(
-                text = stringResource(R.string.support_github),
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.padding(top = 8.dp, bottom = 8.dp, start = 8.dp)
-            )
-
-            Spacer(Modifier.width(8.dp))
-
-            IconButton(
-                onClick = { uriHandler.openUri("https://github.com/koiverse/ArchiveTune") },
-            ) {
-                Icon(
-                    painter = painterResource(R.drawable.star),
-                    contentDescription = stringResource(R.string.support_github),
-                )
-            }
-        }
-
-        Spacer(Modifier.height(8.dp))
-
        Column(
        verticalArrangement = Arrangement.spacedBy(16.dp),
        horizontalAlignment = Alignment.CenterHorizontally,
@@ -260,6 +264,28 @@ fun AboutScreen(
              )
           }
        }
+    }
+
+    Spacer(Modifier.height(8.dp))
+
+        Row(
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
+    ) {
+        OutlinedIconChip(
+            iconRes = R.drawable.github,
+            text = "Github",
+            onClick = { uriHandler.openUri("https://github.com/koiverse/archivetune") }
+        )
+
+        OutlinedIconChip(
+            iconRes = R.drawable.alternate_email,
+            text = "Discord",
+            onClick = { uriHandler.openUri("https://discord.com/users/886971572668219392") }
+        )
     }
 }
 
