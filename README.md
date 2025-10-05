@@ -1,7 +1,7 @@
 <div align="center">
 <img src="https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/icon.png" width="160" height="160" style="display: block; margin: 0 auto"/>
 <h1>ArchiveTune</h1>
-<p>Enhanced YouTube Music client for Android</p>
+<p>Enhanced Music Streaming Client for Android</p>
 
   <div style="padding: 16px; margin: 16px 0; background-color: #FFFBE5; border-left: 6px solid #FFC107; border-radius: 4px;">
   <h2 style="margin: 0;"><strong>⚠Warning</strong></h2>
