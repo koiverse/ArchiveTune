@@ -268,9 +268,9 @@ fun AboutScreen(
 
     Spacer(Modifier.height(8.dp))
 
-        Row(
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalAlignment = Alignment.CenterVertically,
+    Row(
+       verticalArrangement = Arrangement.spacedBy(12.dp),
+       horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp),
