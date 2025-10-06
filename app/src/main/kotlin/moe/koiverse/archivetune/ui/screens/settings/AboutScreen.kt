@@ -87,7 +87,7 @@ fun AboutScreen(
 
     val teamMembers = listOf(
         TeamMember(
-            avatarUrl = "https://raw.githubusercontent.com/koiverse/ArchiveTune/refs/heads/main/fastlane/metadata/android/en-US/images/about/IMG_20250914_221508.jpg",
+            avatarUrl = "https://avatar-api.koiisannn.cloud/discord/avatar/886971572668219392",
             name = "Koiverse",
             position = "always on mode UwU",
             profileUrl = "https://github.com/koiverse"
@@ -213,7 +213,7 @@ fun AboutScreen(
             Spacer(Modifier.width(8.dp))
 
             IconButton(
-                onClick = { uriHandler.openUri("https://prplmoe.me") },
+                onClick = { uriHandler.openUri("https://archivetune.prplmoe.me") },
             ) {
                 Icon(
                     painter = painterResource(R.drawable.website),
@@ -278,13 +278,19 @@ fun AboutScreen(
         OutlinedIconChip(
             iconRes = R.drawable.github,
             text = "Github",
-            onClick = { uriHandler.openUri("https://github.com/koiverse/archivetune") }
+            onClick = { uriHandler.openUri("https://github.com/koiverse") }
         )
 
         OutlinedIconChip(
             iconRes = R.drawable.alternate_email,
             text = "Discord",
             onClick = { uriHandler.openUri("https://discord.com/users/886971572668219392") }
+        )
+
+        OutlinedIconChip(
+            iconRes = R.drawable.website,
+            text = "Website",
+            onClick = { uriHandler.openUri("https://prplmoe.me") }
         )
     }
 }
