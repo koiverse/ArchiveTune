@@ -193,6 +193,11 @@ import java.net.URLEncoder
 import java.util.Locale
 import javax.inject.Inject
 import kotlin.time.Duration.Companion.days
+import androidx.datastore.preferences.core.edit
+import moe.koiverse.archivetune.constants.LaunchCountKey
+import moe.koiverse.archivetune.constants.HasPressedStarKey
+import moe.koiverse.archivetune.constants.RemindAfterKey
+import moe.koiverse.archivetune.ui.component.StarDialog
 
 @Suppress("DEPRECATION", "ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
 @AndroidEntryPoint
@@ -608,6 +613,67 @@ class MainActivity : ComponentActivity() {
                         } else {
                             handleDeepLinkIntent(intent, navController)
                         }
+                    }
+
+                    var showStarDialog by remember { mutableStateOf(false) }
+
+                    LaunchedEffect(Unit) {
+                        withContext(Dispatchers.IO) {
+                            val current = dataStore[LaunchCountKey] ?: 0
+                            val newCount = current + 1
+                            dataStore.edit { prefs ->
+                                prefs[LaunchCountKey] = newCount
+                            }
+                        }
+
+                        val shouldShow = withContext(Dispatchers.IO) {
+                            val hasPressed = dataStore[HasPressedStarKey] ?: false
+                            val remindAfter = dataStore[RemindAfterKey] ?: 3
+                            !hasPressed && (dataStore[LaunchCountKey] ?: 0) >= remindAfter
+                        }
+
+                        if (shouldShow) {
+                            delay(1000)
+                            showStarDialog = true
+                        }
+                    }
+
+                    if (showStarDialog) {
+                        StarDialog(
+                            onDismissRequest = { showStarDialog = false },
+                            onStar = {
+                                coroutineScope.launch {
+                                    try {
+                                        withContext(Dispatchers.IO) {
+                                            dataStore.edit { prefs ->
+                                                prefs[HasPressedStarKey] = true
+                                                prefs[RemindAfterKey] = Int.MAX_VALUE
+                                            }
+                                        }
+                                    } catch (e: Exception) {
+                                        reportException(e)
+                                    } finally {
+                                        showStarDialog = false
+                                    }
+                                }
+                            },
+                            onLater = {
+                                coroutineScope.launch {
+                                    try {
+                                        val launch = withContext(Dispatchers.IO) { dataStore[LaunchCountKey] ?: 0 }
+                                        withContext(Dispatchers.IO) {
+                                            dataStore.edit { prefs ->
+                                                prefs[RemindAfterKey] = launch + 10
+                                            }
+                                        }
+                                    } catch (e: Exception) {
+                                        reportException(e)
+                                    } finally {
+                                        showStarDialog = false
+                                    }
+                                }
+                            }
+                        )
                     }
 
                     DisposableEffect(Unit) {

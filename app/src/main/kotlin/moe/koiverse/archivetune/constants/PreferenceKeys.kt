@@ -364,3 +364,8 @@ val CountryCodeToName =
         "KR" to "South Korea", //
         "US" to "United States",
     )
+
+// App rating / star prompt preferences
+val LaunchCountKey = intPreferencesKey("launch_count")
+val HasPressedStarKey = booleanPreferencesKey("has_pressed_star")
+val RemindAfterKey = intPreferencesKey("remind_after")

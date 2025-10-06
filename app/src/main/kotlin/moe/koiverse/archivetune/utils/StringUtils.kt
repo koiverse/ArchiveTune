@@ -28,7 +28,7 @@ fun makeTimeString(duration: Long?): String {
         day > 0 -> "%dd %dh %dm %ds".format(day, hour, minute, sec)
         hour > 0 -> "%dh %dm %ds".format(hour, minute, sec)
         minute > 0 -> "%d:%02d".format(minute, sec)
-        else -> "%ds".format(sec)
+        else -> "%d:%02d".format(0, sec)
     }
 }
 

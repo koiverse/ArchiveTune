@@ -52,6 +52,31 @@ data class TeamMember(
     val profileUrl: String? = null
 )
 
+
+@Composable
+fun OutlinedIconChip(
+    iconRes: Int,
+    text: String,
+    onClick: () -> Unit
+) {
+    androidx.compose.material3.OutlinedButton(
+        onClick = onClick,
+        shape = CircleShape,
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(
+            horizontal = 12.dp,
+            vertical = 6.dp
+        )
+    ) {
+        Icon(
+            painter = painterResource(id = iconRes),
+            contentDescription = text,
+            modifier = Modifier.size(18.dp)
+        )
+        Spacer(Modifier.width(6.dp))
+        Text(text = text, style = MaterialTheme.typography.labelLarge)
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AboutScreen(
@@ -62,7 +87,7 @@ fun AboutScreen(
 
     val teamMembers = listOf(
         TeamMember(
-            avatarUrl = "https://raw.githubusercontent.com/koiverse/ArchiveTune/refs/heads/main/fastlane/metadata/android/en-US/images/about/IMG_20250914_221508.jpg",
+            avatarUrl = "https://avatar-api.koiisannn.cloud/discord/avatar/886971572668219392",
             name = "Koiverse",
             position = "always on mode UwU",
             profileUrl = "https://github.com/koiverse"
@@ -188,7 +213,7 @@ fun AboutScreen(
             Spacer(Modifier.width(8.dp))
 
             IconButton(
-                onClick = { uriHandler.openUri("https://prplmoe.me") },
+                onClick = { uriHandler.openUri("https://archivetune.prplmoe.me") },
             ) {
                 Icon(
                     painter = painterResource(R.drawable.website),
@@ -239,6 +264,34 @@ fun AboutScreen(
              )
           }
        }
+    }
+
+    Spacer(Modifier.height(8.dp))
+
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally),
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
+    ) {
+        OutlinedIconChip(
+            iconRes = R.drawable.github,
+            text = "Github",
+            onClick = { uriHandler.openUri("https://github.com/koiverse") }
+        )
+
+        OutlinedIconChip(
+            iconRes = R.drawable.alternate_email,
+            text = "Discord",
+            onClick = { uriHandler.openUri("https://discord.com/users/886971572668219392") }
+        )
+
+        OutlinedIconChip(
+            iconRes = R.drawable.website,
+            text = "Website",
+            onClick = { uriHandler.openUri("https://prplmoe.me") }
+        )
     }
 }
 

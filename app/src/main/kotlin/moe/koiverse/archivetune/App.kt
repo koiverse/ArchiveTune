@@ -33,6 +33,10 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
+import android.content.Intent
+import java.io.PrintWriter
+import java.io.StringWriter
+import kotlin.system.exitProcess
 import timber.log.Timber
 import java.net.Proxy
 import java.util.*
@@ -101,6 +105,36 @@ class App : Application(), SingletonImageLoader.Factory {
                             }
                         }
                 }
+        }
+
+        try {
+            val defaultHandler = Thread.getDefaultUncaughtExceptionHandler()
+            Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
+                try {
+                    val sw = StringWriter()
+                    val pw = PrintWriter(sw)
+                    throwable.printStackTrace(pw)
+                    val stack = sw.toString()
+
+                    val intent = Intent(this@App, DebugActivity::class.java).apply {
+                        putExtra(DebugActivity.EXTRA_STACK_TRACE, stack)
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+                    }
+                    startActivity(intent)
+                    try { Thread.sleep(100) } catch (_: InterruptedException) {}
+                } catch (e: Exception) {
+                    reportException(e)
+                } finally {
+                    try {
+                        defaultHandler?.uncaughtException(thread, throwable)
+                    } catch (_: Exception) {
+                        android.os.Process.killProcess(android.os.Process.myPid())
+                        exitProcess(2)
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            reportException(e)
         }
         applicationScope.launch {
             dataStore.data
