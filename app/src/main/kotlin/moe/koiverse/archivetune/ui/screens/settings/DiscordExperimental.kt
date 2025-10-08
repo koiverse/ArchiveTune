@@ -54,7 +54,7 @@ fun DiscordExperimental(
                     )
                     val (translatorContexts, onTranslatorContextsChange) = rememberPreference(
                         key = TranslatorContextsKey,
-                        defaultValue = "{song},{artist},{album}"
+                        defaultValue = "{song}, {artist}, {album}"
                     )
                     val (translatorTargetLang, onTranslatorTargetLangChange) = rememberPreference(
                         key = TranslatorTargetLangKey,
@@ -151,7 +151,7 @@ fun DiscordExperimental(
                     )
                     val (button2Label, onButton2LabelChange) = rememberPreference(
                         key = DiscordActivityButton2LabelKey,
-                        defaultValue = "View Album"
+                        defaultValue = "Go to ArchiveTune"
                     )
                     val (button2Enabled, onButton2EnabledChange) = rememberPreference(
                         key = DiscordActivityButton2EnabledKey,
