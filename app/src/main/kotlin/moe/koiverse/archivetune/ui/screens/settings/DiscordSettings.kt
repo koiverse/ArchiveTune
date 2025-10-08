@@ -530,7 +530,7 @@ if (intervalSelection == "Custom") {
         )
         val (button2Label, onButton2LabelChange) = rememberPreference(
             key = DiscordActivityButton2LabelKey,
-            defaultValue = "View Album"
+            defaultValue = "Go to ArchiveTune"
         )
         val (button2Enabled, onButton2EnabledChange) = rememberPreference(
             key = DiscordActivityButton2EnabledKey,
@@ -556,11 +556,11 @@ if (intervalSelection == "Custom") {
         )
         val (button2UrlSource, onButton2UrlSourceChange) = rememberPreference(
             key = DiscordActivityButton2UrlSourceKey,
-            defaultValue = "albumurl"
+            defaultValue = "custom"
         )
         val (button2CustomUrl, onButton2CustomUrlChange) = rememberPreference(
             key = DiscordActivityButton2CustomUrlKey,
-            defaultValue = ""
+            defaultValue = "https://github.com/koiverse/ArchiveTune"
         )
 
         var showWhenPaused by rememberPreference(
