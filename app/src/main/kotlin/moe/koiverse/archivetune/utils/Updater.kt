@@ -22,6 +22,16 @@ object Updater {
             versionName
         }
 
+    suspend fun getLatestReleaseNotes(): Result<String?> =
+        runCatching {
+            val response =
+                client.get("https://api.github.com/repos/koiverse/ArchiveTune/releases/latest")
+                    .bodyAsText()
+            val json = JSONObject(response)
+            lastCheckTime = System.currentTimeMillis()
+            if (json.has("body")) json.optString("body") else null
+        }
+
     fun getLatestDownloadUrl(): String {
         val baseUrl = "https://github.com/koiverse/ArchiveTune/releases/latest/download/"
         val architecture = BuildConfig.ARCHITECTURE
