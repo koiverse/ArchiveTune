@@ -378,6 +378,11 @@
     <string name="select_dialog">Select</string>
     <string name="support_github">Star ArchiveTune!</string>
 
+    <!-- Update dialog -->
+    <string name="new_update_available">New update available</string>
+    <string name="release_notes_unavailable">Release notes are unavailable</string>
+    <string name="update_text">Update</string>
+
     <!-- Translate UI strings -->
     <string name="translate">Translate</string>
     <string name="language_label">Language</string>
