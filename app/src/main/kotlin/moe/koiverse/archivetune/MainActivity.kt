@@ -27,6 +27,10 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -313,16 +317,12 @@ class MainActivity : ComponentActivity() {
                 }
             }
 
-                    // Prepare BottomSheetPageState and UriHandler for showing update sheet
                     val bottomSheetPageState = LocalBottomSheetPageState.current
                     val uriHandler = LocalUriHandler.current
-
-                    // remember a state holder for fetched release notes
                     val releaseNotesState = remember { mutableStateOf<String?>(null) }
-
-                    // Prepare the composable content lambda in composition (no composable calls in LaunchedEffect)
-                    val updateSheetContent = remember(latestVersionName, releaseNotesState.value) {
-                        @Composable fun ColumnScope.Content() {
+                    val updateSheetContent: @Composable ColumnScope.() -> Unit = remember(latestVersionName, releaseNotesState.value) {
+                        @Composable
+                        { // receiver: ColumnScope
                             Text(
                                 text = stringResource(R.string.new_update_available),
                                 style = MaterialTheme.typography.titleLarge,
@@ -387,8 +387,6 @@ class MainActivity : ComponentActivity() {
                                 Text(text = stringResource(R.string.update))
                             }
                         }
-
-                        { content: ColumnScope.() -> Content() }
                     }
 
                     // fetch release notes and show sheet when a new version is detected
