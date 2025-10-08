@@ -383,7 +383,7 @@ class MainActivity : ComponentActivity() {
                             },
                             modifier = Modifier.fillMaxWidth(),
                         ) {
-                            Text(text = stringResource(R.string.update))
+                            Text(text = stringResource(R.string.update_text))
                         }
                     }
 
