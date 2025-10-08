@@ -312,6 +312,102 @@ class MainActivity : ComponentActivity() {
                 }
             }
 
+                    // Show a BottomSheet when a new version is detected
+                    LaunchedEffect(latestVersionName) {
+                        if (latestVersionName != BuildConfig.VERSION_NAME) {
+                            val bottomSheetPageState = LocalBottomSheetPageState.current
+                            val uriHandler = LocalUriHandler.current
+                            bottomSheetPageState.show {
+                                androidx.compose.foundation.layout.Column(
+                                    horizontalAlignment = Alignment.Start,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    androidx.compose.material3.Text(
+                                        text = stringResource(R.string.new_update_available),
+                                        style = MaterialTheme.typography.titleLarge,
+                                    )
+
+                                    Spacer(Modifier.height(8.dp))
+
+                                    androidx.compose.material3.OutlinedButton(
+                                        onClick = {},
+                                        shape = CircleShape,
+                                        contentPadding = androidx.compose.foundation.layout.PaddingValues(
+                                            horizontal = 12.dp,
+                                            vertical = 6.dp
+                                        )
+                                    ) {
+                                        Text(text = latestVersionName, style = MaterialTheme.typography.labelLarge)
+                                    }
+
+                                    Spacer(Modifier.height(12.dp))
+                                    val releaseNotes = remember { mutableStateOf<String?>(null) }
+                                    LaunchedEffect(Unit) {
+                                        kotlinx.coroutines.withContext(Dispatchers.IO) {
+                                            kotlin.runCatching {
+                                                val client = Updater
+                                                try {
+                                                    val url = "https://api.github.com/repos/koiverse/ArchiveTune/releases/latest"
+                                                    val text = io.ktor.client.HttpClient().get(url).bodyAsText()
+                                                    val json = org.json.JSONObject(text)
+                                                    releaseNotes.value = json.optString("body")
+                                                } catch (_: Exception) {
+                                                    releaseNotes.value = null
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    androidx.compose.foundation.layout.Box(modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(240.dp)
+                                        .verticalScroll(rememberScrollState())
+                                    ) {
+                                        if (releaseNotes.value != null) {
+                                            // Simple markdown-like formatting using typography: split by lines and display
+                                            val lines = releaseNotes.value!!.lines()
+                                            Column(modifier = Modifier.padding(end = 8.dp)) {
+                                                lines.forEach { line ->
+                                                    when {
+                                                        line.startsWith("# ") -> Text(line.removePrefix("# ").trim(), style = MaterialTheme.typography.titleLarge)
+                                                        line.startsWith("## ") -> Text(line.removePrefix("## ").trim(), style = MaterialTheme.typography.titleMedium)
+                                                        line.startsWith("### ") -> Text(line.removePrefix("### ").trim(), style = MaterialTheme.typography.titleSmall)
+                                                        line.startsWith("- ") -> Row {
+                                                            Text("• ", style = MaterialTheme.typography.bodyLarge)
+                                                            Text(line.removePrefix("- ").trim(), style = MaterialTheme.typography.bodyLarge)
+                                                        }
+                                                        else -> Text(line, style = MaterialTheme.typography.bodyMedium)
+                                                    }
+                                                    Spacer(Modifier.height(6.dp))
+                                                }
+                                            }
+                                        } else {
+                                            Text(
+                                                text = stringResource(R.string.release_notes_unavailable),
+                                                style = MaterialTheme.typography.bodyMedium,
+                                            )
+                                        }
+                                    }
+
+                                    Spacer(Modifier.height(12.dp))
+                                    androidx.compose.material3.Button(
+                                        onClick = {
+                                            val uri = Updater.getLatestDownloadUrl()
+                                            try {
+                                                uriHandler.openUri(uri)
+                                            } catch (_: Exception) {
+                                            }
+                                        },
+                                        modifier = Modifier
+                                            .fillMaxWidth(),
+                                    ) {
+                                        Text(text = stringResource(R.string.update_text))
+                                    }
+                                }
+                            }
+                        }
+                    }
+
             val enableDynamicTheme by rememberPreference(DynamicThemeKey, defaultValue = true)
             val darkTheme by rememberEnumPreference(DarkModeKey, defaultValue = DarkMode.AUTO)
             val isSystemInDarkTheme = isSystemInDarkTheme()
