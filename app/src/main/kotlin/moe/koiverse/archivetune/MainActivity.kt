@@ -68,6 +68,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.contentColorFor
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -320,72 +321,69 @@ class MainActivity : ComponentActivity() {
                     val bottomSheetPageState = LocalBottomSheetPageState.current
                     val uriHandler = LocalUriHandler.current
                     val releaseNotesState = remember { mutableStateOf<String?>(null) }
-                    val updateSheetContent: @Composable ColumnScope.() -> Unit = remember(latestVersionName, releaseNotesState.value) {
-                        @Composable
-                        { // receiver: ColumnScope
-                            Text(
-                                text = stringResource(R.string.new_update_available),
-                                style = MaterialTheme.typography.titleLarge,
+                    val updateSheetContent: @Composable ColumnScope.() -> Unit = { // receiver: ColumnScope
+                        Text(
+                            text = stringResource(R.string.new_update_available),
+                            style = MaterialTheme.typography.titleLarge,
+                        )
+
+                        Spacer(Modifier.height(8.dp))
+
+                        androidx.compose.material3.OutlinedButton(
+                            onClick = {},
+                            shape = CircleShape,
+                            contentPadding = androidx.compose.foundation.layout.PaddingValues(
+                                horizontal = 12.dp,
+                                vertical = 6.dp
                             )
+                        ) {
+                            Text(text = latestVersionName, style = MaterialTheme.typography.labelLarge)
+                        }
 
-                            Spacer(Modifier.height(8.dp))
+                        Spacer(Modifier.height(12.dp))
 
-                            androidx.compose.material3.OutlinedButton(
-                                onClick = {},
-                                shape = CircleShape,
-                                contentPadding = androidx.compose.foundation.layout.PaddingValues(
-                                    horizontal = 12.dp,
-                                    vertical = 6.dp
-                                )
-                            ) {
-                                Text(text = latestVersionName, style = MaterialTheme.typography.labelLarge)
-                            }
-
-                            Spacer(Modifier.height(12.dp))
-
-                            Box(modifier = Modifier
-                                .fillMaxWidth()
-                                .height(240.dp)
-                                .verticalScroll(rememberScrollState())
-                            ) {
-                                val notes = releaseNotesState.value
-                                if (notes != null && notes.isNotBlank()) {
-                                    val lines = notes.lines()
-                                    Column(modifier = Modifier.padding(end = 8.dp)) {
-                                        lines.forEach { line ->
-                                            when {
-                                                line.startsWith("# ") -> Text(line.removePrefix("# ").trim(), style = MaterialTheme.typography.titleLarge)
-                                                line.startsWith("## ") -> Text(line.removePrefix("## ").trim(), style = MaterialTheme.typography.titleMedium)
-                                                line.startsWith("### ") -> Text(line.removePrefix("### ").trim(), style = MaterialTheme.typography.titleSmall)
-                                                line.startsWith("- ") -> Row {
-                                                    Text("• ", style = MaterialTheme.typography.bodyLarge)
-                                                    Text(line.removePrefix("- ").trim(), style = MaterialTheme.typography.bodyLarge)
-                                                }
-                                                else -> Text(line, style = MaterialTheme.typography.bodyMedium)
+                        Box(modifier = Modifier
+                            .fillMaxWidth()
+                            .height(240.dp)
+                            .verticalScroll(rememberScrollState())
+                        ) {
+                            val notes = releaseNotesState.value
+                            if (notes != null && notes.isNotBlank()) {
+                                val lines = notes.lines()
+                                Column(modifier = Modifier.padding(end = 8.dp)) {
+                                    lines.forEach { line ->
+                                        when {
+                                            line.startsWith("# ") -> Text(line.removePrefix("# ").trim(), style = MaterialTheme.typography.titleLarge)
+                                            line.startsWith("## ") -> Text(line.removePrefix("## ").trim(), style = MaterialTheme.typography.titleMedium)
+                                            line.startsWith("### ") -> Text(line.removePrefix("### ").trim(), style = MaterialTheme.typography.titleSmall)
+                                            line.startsWith("- ") -> Row {
+                                                Text("• ", style = MaterialTheme.typography.bodyLarge)
+                                                Text(line.removePrefix("- ").trim(), style = MaterialTheme.typography.bodyLarge)
                                             }
-                                            Spacer(Modifier.height(6.dp))
+                                            else -> Text(line, style = MaterialTheme.typography.bodyMedium)
                                         }
+                                        Spacer(Modifier.height(6.dp))
                                     }
-                                } else {
-                                    Text(
-                                        text = stringResource(R.string.release_notes_unavailable),
-                                        style = MaterialTheme.typography.bodyMedium,
-                                    )
                                 }
+                            } else {
+                                Text(
+                                    text = stringResource(R.string.release_notes_unavailable),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                )
                             }
+                        }
 
-                            Spacer(Modifier.height(12.dp))
+                        Spacer(Modifier.height(12.dp))
 
-                            androidx.compose.material3.Button(
-                                onClick = {
-                                    try {
-                                        uriHandler.openUri(Updater.getLatestDownloadUrl())
-                                    } catch (_: Exception) {}
-                                },
-                                modifier = Modifier.fillMaxWidth(),
-                            ) {
-                                Text(text = stringResource(R.string.update))
-                            }
+                        androidx.compose.material3.Button(
+                            onClick = {
+                                try {
+                                    uriHandler.openUri(Updater.getLatestDownloadUrl())
+                                } catch (_: Exception) {}
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Text(text = stringResource(R.string.update))
                         }
                     }
 
