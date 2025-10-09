@@ -3,6 +3,7 @@ package moe.koiverse.archivetune.utils
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import moe.koiverse.archivetune.utils.reportException
 import android.net.Uri
 import androidx.core.graphics.createBitmap
 import androidx.media3.common.util.BitmapLoader
@@ -25,8 +26,24 @@ class CoilBitmapLoader(
 
     override fun decodeBitmap(data: ByteArray): ListenableFuture<Bitmap> =
         scope.future(Dispatchers.IO) {
-            BitmapFactory.decodeByteArray(data, 0, data.size)
-                ?: error("Could not decode image data")
+            try {
+                // Defensive checks: ensure length and offsets are valid for decodeByteArray
+                if (data.isEmpty()) {
+                    throw IllegalArgumentException("Empty image data")
+                }
+
+                // decodeByteArray can throw or return null for malformed data; catch and fallback
+                BitmapFactory.decodeByteArray(data, 0, data.size)?.also { bitmap ->
+                    return@future bitmap
+                }
+
+                // If decode returned null, throw to jump to fallback
+                throw IllegalStateException("Could not decode image data")
+            } catch (e: Exception) {
+                reportException(e)
+                // Return a small fallback bitmap instead of crashing
+                return@future createBitmap(64, 64)
+            }
         }
 
     override fun loadBitmap(uri: Uri): ListenableFuture<Bitmap> =

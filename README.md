@@ -1,19 +1,52 @@
+# ArchiveTune
+
+<img src="https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/icon.png" height="88" alt="ArchiveTune app icon">
+
+Enhanced Music Streaming Client for Android
+
+[![Latest release](https://img.shields.io/github/v/release/koiverse/ArchiveTune?style=for-the-badge&include_prereleases)](https://github.com/koiverse/ArchiveTune/releases)
+[![GitHub license](https://img.shields.io/github/license/koiverse/ArchiveTune?style=for-the-badge)](https://github.com/koiverse/ArchiveTune/blob/main/LICENSE)
+[![Downloads](https://img.shields.io/github/downloads/koiverse/ArchiveTune/total?style=for-the-badge)](https://github.com/koiverse/ArchiveTune/releases)
+![IzzyDroid](https://shields.rbtlog.dev/simple/moe.koiverse.archivetune?style=for-the-badge)
+
+
+<!-- use "⠀⠀" for spacing -->
+[<img src="https://raw.githubusercontent.com/OuterTune/OuterTune/refs/heads/dev/assets/badge_github.png" alt="Get it on GitHub" height="40">](https://github.com/koiverse/ArchiveTune/releases/latest)⠀⠀[<img src="https://raw.githubusercontent.com/OuterTune/OuterTune/a33f0b182c42f499b320b5eb2029c34bf28465d9/assets/IzzyOnDroidButtonGreyBorder.svg" alt="Get it on IzzyOnDroid" height="40">](https://apt.izzysoft.de/fdroid/index/apk/moe.koiverse.archivetune)
+
+
+> [!WARNING]
+> ArchiveTune is in a "stable beta" phase. While this app can certainly be used as your main music player, be aware there is a possibility of bugs, incomplete features, or any other unexpected behaviour.
+
+> [!WARNING]
+> If you're in a region where YouTube Music is not supported, you won't be able to use this app unless you have a proxy or VPN to connect to a YTM-supported region.
+
+## Features
+
+- YouTube Music client features
+    - Song downloading (offline playback)
+    - Seamless playback: no ads & background playback
+    - Account synchronization
+    - Access to your library, playlists, and mixes
+    - Search for songs, albums, artists, and playlists
+- Sleek Material3 design
+- Multiple queues
+- Synchronized lyrics, and support for word by word/Karaoke lyrics formats (e.g LRC, TTML)
+- Translatable synced lyrics
+- Audio normalization, tempo/pitch adjustment, and various other audio effects
+- Android Auto support
+- Support for Android 8 (Oreo) and higher
+- Customizable Discord Rich Presence
+- And many many more!
+
+> [!NOTE]
+> Android 8 (Oreo) and higher is supported. While the app may work on Android 7.x (Nougat), we do not officially support this version
+
 <div align="center">
-<img src="https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/icon.png" width="160" height="160" style="display: block; margin: 0 auto"/>
-<h1>ArchiveTune</h1>
-<p>Enhanced Music Streaming Client for Android</p>
-
-  <div style="padding: 16px; margin: 16px 0; background-color: #FFFBE5; border-left: 6px solid #FFC107; border-radius: 4px;">
-  <h2 style="margin: 0;"><strong>⚠Warning</strong></h2>
- If you're in a region where YouTube Music is not supported, you won't be able to use this app <strong>unless</strong> you have a proxy or VPN to connect to a YTM-supported region.
-  </div>
-
 <h1>phoneScreenshots</h1>
 
   <img src="https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/phoneScreenshots/screenshot_1.jpg" width="30%" />
   <img src="https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/phoneScreenshots/screenshot_2.jpg" width="30%" />
   <img src="https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/phoneScreenshots/screenshot_3.jpg" width="30%" />
-
   <img src="https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/phoneScreenshots/screenshot_4.jpg" width="30%" />
   <img src="https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/phoneScreenshots/screenshot_5.jpg" width="30%" />
   <img src="https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/phoneScreenshots/screenshot_6.jpg" width="30%" />
@@ -22,52 +55,6 @@
   <img src="https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/phoneScreenshots/screenshot_9.jpg" width="30%" />
   <img src="https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/featureGraphicEnlarger.png" width="91%" />
 </p>
-
-[![Latest release](https://img.shields.io/github/v/release/koiverse/ArchiveTune?style=for-the-badge)](https://github.com/koiverse/ArchiveTune/releases)
-[![GitHub license](https://img.shields.io/github/license/koiverse/ArchiveTune?style=for-the-badge)](https://github.com/koiverse/ArchiveTune/blob/main/LICENSE)
-[![Downloads](https://img.shields.io/github/downloads/koiverse/ArchiveTune/total?style=for-the-badge)](https://github.com/koiverse/ArchiveTune/releases)
-![IzzyDroid](https://shields.rbtlog.dev/simple/moe.koiverse.archivetune?style=for-the-badge)
-</div>
-
-<div align="center">
-<h1>Features</h1>
- </div>
- 
-- Play any song or video from YT Music
-- Background playback 
-- Personalized quick picks 
-- Library management 
-- Download and cache songs for offline playback
-- Search for songs, albums, artists, videos and playlists
-- Live lyrics 
-- YouTube Music account login support
-- Syncing of songs, artists, albums and playlists, from and to your account
-- Skip silence 
-- Import playlists 
-- Audio normalization 
-- Adjust tempo/pitch 
-- Local playlist management
-- Reorder songs in playlist or queue 
-- Light - Dark - black - Dynamic theme
-- Sleep timer
-- Material 3 
-- Customizable Discord Presence
-- etc.
-
-<div align="center">
-  <h1>Download Now</h1>
-
-  <h3>Unstable (nightly) builds</h3>
-  <a href="https://nightly.link/koiverse/ArchiveTune/workflows/build/main?preview">
-    <img src="https://github.com/machiav3lli/oandbackupx/blob/034b226cea5c1b30eb4f6a6f313e4dadcbb0ece4/badge_github.png" 
-         alt="Get it on GitHub" height="82">
-  </a>
-
-  <h3>Stable builds</h3>
-  <a href="https://github.com/koiverse/ArchiveTune/releases/latest/download/ArchiveTune.apk">
-    <img src="https://github.com/machiav3lli/oandbackupx/blob/034b226cea5c1b30eb4f6a6f313e4dadcbb0ece4/badge_github.png" 
-         alt="Get it on GitHub" height="82">
-  </a>
 </div>
 
 

@@ -27,6 +27,10 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -64,6 +68,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.contentColorFor
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -84,6 +89,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -311,6 +317,88 @@ class MainActivity : ComponentActivity() {
                     }
                 }
             }
+
+                    val bottomSheetPageState = LocalBottomSheetPageState.current
+                    val uriHandler = LocalUriHandler.current
+                    val releaseNotesState = remember { mutableStateOf<String?>(null) }
+                    val updateSheetContent: @Composable ColumnScope.() -> Unit = { // receiver: ColumnScope
+                        Text(
+                            text = stringResource(R.string.new_update_available),
+                            style = MaterialTheme.typography.titleLarge,
+                        )
+
+                        Spacer(Modifier.height(8.dp))
+
+                        androidx.compose.material3.OutlinedButton(
+                            onClick = {},
+                            shape = CircleShape,
+                            contentPadding = androidx.compose.foundation.layout.PaddingValues(
+                                horizontal = 12.dp,
+                                vertical = 6.dp
+                            )
+                        ) {
+                            Text(text = latestVersionName, style = MaterialTheme.typography.labelLarge)
+                        }
+
+                        Spacer(Modifier.height(12.dp))
+
+                        Box(modifier = Modifier
+                            .fillMaxWidth()
+                            .height(240.dp)
+                            .verticalScroll(rememberScrollState())
+                        ) {
+                            val notes = releaseNotesState.value
+                            if (notes != null && notes.isNotBlank()) {
+                                val lines = notes.lines()
+                                Column(modifier = Modifier.padding(end = 8.dp)) {
+                                    lines.forEach { line ->
+                                        when {
+                                            line.startsWith("# ") -> Text(line.removePrefix("# ").trim(), style = MaterialTheme.typography.titleLarge)
+                                            line.startsWith("## ") -> Text(line.removePrefix("## ").trim(), style = MaterialTheme.typography.titleMedium)
+                                            line.startsWith("### ") -> Text(line.removePrefix("### ").trim(), style = MaterialTheme.typography.titleSmall)
+                                            line.startsWith("- ") -> Row {
+                                                Text("• ", style = MaterialTheme.typography.bodyLarge)
+                                                Text(line.removePrefix("- ").trim(), style = MaterialTheme.typography.bodyLarge)
+                                            }
+                                            else -> Text(line, style = MaterialTheme.typography.bodyMedium)
+                                        }
+                                        Spacer(Modifier.height(6.dp))
+                                    }
+                                }
+                            } else {
+                                Text(
+                                    text = stringResource(R.string.release_notes_unavailable),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                )
+                            }
+                        }
+
+                        Spacer(Modifier.height(12.dp))
+
+                        androidx.compose.material3.Button(
+                            onClick = {
+                                try {
+                                    uriHandler.openUri(Updater.getLatestDownloadUrl())
+                                } catch (_: Exception) {}
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Text(text = stringResource(R.string.update_text))
+                        }
+                    }
+
+                    // fetch release notes and show sheet when a new version is detected
+                    LaunchedEffect(latestVersionName) {
+                        if (latestVersionName != BuildConfig.VERSION_NAME) {
+                            Updater.getLatestReleaseNotes().onSuccess {
+                                releaseNotesState.value = it
+                            }.onFailure {
+                                releaseNotesState.value = null
+                            }
+
+                            bottomSheetPageState.show(updateSheetContent)
+                        }
+                    }
 
             val enableDynamicTheme by rememberPreference(DynamicThemeKey, defaultValue = true)
             val darkTheme by rememberEnumPreference(DarkModeKey, defaultValue = DarkMode.AUTO)

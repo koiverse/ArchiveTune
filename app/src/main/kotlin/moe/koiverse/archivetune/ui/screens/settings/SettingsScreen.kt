@@ -59,6 +59,11 @@ fun SettingsScreen(
             )
         )
 
+        if (latestVersionName != BuildConfig.VERSION_NAME) {
+            Spacer(modifier = Modifier.height(16.dp))
+            ReleaseNotesCard()
+        }
+
         // User Interface Section
         Material3SettingsGroup(
             title = stringResource(R.string.settings_section_ui),
@@ -211,11 +216,6 @@ fun SettingsScreen(
                 }
             }
         )
-        
-        if (latestVersionName != BuildConfig.VERSION_NAME) {
-            Spacer(modifier = Modifier.height(16.dp))
-            ReleaseNotesCard()
-        }
         
         Spacer(modifier = Modifier.height(16.dp))
     }
