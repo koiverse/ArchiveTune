@@ -167,15 +167,58 @@ fun DiscordExperimental(
                         }
                     )
 
-                    if (button1Enabled) {
-                        EditablePreference(
-                            title = stringResource(R.string.discord_activity_button1_label),
-                            iconRes = R.drawable.buttons,
-                            value = button1Label,
-                            defaultValue = "Listen on YouTube Music",
-                            onValueChange = onButton1LabelChange
-                        )
+                if (button1Enabled) {
+                var expanded by remember { mutableStateOf(false) }
+                ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
+                    TextField(
+                        value = button1UrlSource,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Button 1 URL Source") },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .menuAnchor()
+                            .pointerInput(Unit) { detectTapGestures { expanded = true } }
+                            .padding(horizontal = 13.dp, vertical = 16.dp),
+                        leadingIcon = { Icon(painterResource(R.drawable.link), null) }
+                    )
+                    ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                        urlOptions.forEach { opt ->
+                            val display = when (opt) {
+                                "songurl" -> "Song URL"
+                                "artisturl" -> "Artist URL"
+                                "albumurl" -> "Album URL"
+                                "custom" -> "Custom URL"
+                                else -> opt
+                            }
+                            DropdownMenuItem(
+                                text = { Text(display) },
+                                onClick = {
+                                    onButton1UrlSourceChange(opt)
+                                    expanded = false
+                                }
+                            )
+                        }
                     }
+                }
+                EditablePreference(
+                        title = stringResource(R.string.discord_activity_button1_label),
+                        iconRes = R.drawable.buttons,
+                        value = button1Label,
+                        defaultValue = "Listen on YouTube Music",
+                        onValueChange = onButton1LabelChange
+                )
+                if (button1UrlSource == "custom") {
+                    EditablePreference(
+                        title = "Button 1 Custom URL",
+                        iconRes = R.drawable.link,
+                        value = button1CustomUrl,
+                        defaultValue = "",
+                        onValueChange = onButton1CustomUrlChange
+                    )
+                }
+            }
 
                     PreferenceEntry(
                         title = { Text(stringResource(R.string.show_button)) },
@@ -186,15 +229,58 @@ fun DiscordExperimental(
                         }
                     )
 
-                    if (button2Enabled) {
-                        EditablePreference(
-                            title = stringResource(R.string.discord_activity_button2_label),
-                            iconRes = R.drawable.buttons,
-                            value = button2Label,
-                            defaultValue = "Go to ArchiveTune",
-                            onValueChange = onButton2LabelChange
+            if (button2Enabled) {
+            var expanded2 by remember { mutableStateOf(false) }
+            ExposedDropdownMenuBox(expanded = expanded2, onExpandedChange = { expanded2 = it }) {
+                TextField(
+                    value = button2UrlSource,
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("Button 2 URL Source") },
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded2) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .menuAnchor()
+                        .pointerInput(Unit) { detectTapGestures { expanded2 = true } }
+                        .padding(horizontal = 13.dp, vertical = 16.dp),
+                    leadingIcon = { Icon(painterResource(R.drawable.link), null) }
+                )
+                ExposedDropdownMenu(expanded = expanded2, onDismissRequest = { expanded2 = false }) {
+                    urlOptions.forEach { opt ->
+                        val display = when (opt) {
+                            "songurl" -> "Song URL"
+                            "artisturl" -> "Artist URL"
+                            "albumurl" -> "Album URL"
+                            "custom" -> "Custom URL"
+                            else -> opt
+                        }
+                        DropdownMenuItem(
+                            text = { Text(display) },
+                            onClick = {
+                                onButton2UrlSourceChange(opt)
+                                expanded2 = false
+                            }
                         )
                     }
+                }
+            }
+            EditablePreference(
+                    title = stringResource(R.string.discord_activity_button2_label),
+                    iconRes = R.drawable.buttons,
+                    value = button2Label,
+                    defaultValue = "Go to ArchiveTune",
+                    onValueChange = onButton2LabelChange
+            )
+            if (button2UrlSource == "custom") {
+                EditablePreference(
+                    title = "Button 2 Custom URL",
+                    iconRes = R.drawable.link,
+                    value = button2CustomUrl,
+                    defaultValue = "",
+                    onValueChange = onButton2CustomUrlChange
+                )
+            }
+        }
                 }
             }
         }
