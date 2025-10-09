@@ -289,7 +289,19 @@ fun ArtistScreen(
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(top = 16.dp)
+                                .padding(
+                                    top = if (thumbnail != null) {
+                                        // Position content at the bottom part of the image
+                                        // Using screen width to calculate aspect ratio height minus overlap
+                                        LocalResources.current.displayMetrics.widthPixels.let { screenWidth ->
+                                            with(density) {
+                                                ((screenWidth / 1.2f) - 144).toDp()
+                                            }
+                                        }
+                                    } else {
+                                        16.dp
+                                    }
+                                )
                         ) {
                             Column(
                                 modifier = Modifier
@@ -436,6 +448,7 @@ fun ArtistScreen(
                                     }
                                 }
                             }
+                            //Spacer(modifier = Modifier.height(16.dp))
                         }
                     }
                 }
