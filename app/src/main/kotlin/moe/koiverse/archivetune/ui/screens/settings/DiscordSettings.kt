@@ -545,24 +545,6 @@ if (intervalSelection == "Custom") {
         )
         val activityOptions = listOf("PLAYING", "STREAMING", "LISTENING", "WATCHING", "COMPETING")
 
-        val urlOptions = listOf("songurl", "artisturl", "albumurl", "custom")
-        val (button1UrlSource, onButton1UrlSourceChange) = rememberPreference(
-            key = DiscordActivityButton1UrlSourceKey,
-            defaultValue = "songurl"
-        )
-        val (button1CustomUrl, onButton1CustomUrlChange) = rememberPreference(
-            key = DiscordActivityButton1CustomUrlKey,
-            defaultValue = ""
-        )
-        val (button2UrlSource, onButton2UrlSourceChange) = rememberPreference(
-            key = DiscordActivityButton2UrlSourceKey,
-            defaultValue = "custom"
-        )
-        val (button2CustomUrl, onButton2CustomUrlChange) = rememberPreference(
-            key = DiscordActivityButton2CustomUrlKey,
-            defaultValue = "https://github.com/koiverse/ArchiveTune"
-        )
-
         var showWhenPaused by rememberPreference(
         key = DiscordShowWhenPausedKey,
         defaultValue = false
