@@ -5,6 +5,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -156,6 +158,24 @@ fun DiscordExperimental(
                     val (button2Enabled, onButton2EnabledChange) = rememberPreference(
                         key = DiscordActivityButton2EnabledKey,
                         defaultValue = true
+                    )
+
+                    val urlOptions = listOf("songurl", "artisturl", "albumurl", "custom")
+                    val (button1UrlSource, onButton1UrlSourceChange) = rememberPreference(
+                        key = DiscordActivityButton1UrlSourceKey,
+                        defaultValue = "songurl"
+                    )
+                    val (button1CustomUrl, onButton1CustomUrlChange) = rememberPreference(
+                        key = DiscordActivityButton1CustomUrlKey,
+                        defaultValue = ""
+                    )
+                    val (button2UrlSource, onButton2UrlSourceChange) = rememberPreference(
+                        key = DiscordActivityButton2UrlSourceKey,
+                        defaultValue = "custom"
+                    )
+                    val (button2CustomUrl, onButton2CustomUrlChange) = rememberPreference(
+                        key = DiscordActivityButton2CustomUrlKey,
+                        defaultValue = "https://github.com/koiverse/ArchiveTune"
                     )
 
                     PreferenceEntry(
