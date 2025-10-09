@@ -957,15 +957,15 @@ fun RichPresence(
    val (button1Label) = rememberPreference(DiscordActivityButton1LabelKey, "Listen on YouTube Music")
    val (button1Enabled) = rememberPreference(DiscordActivityButton1EnabledKey, true)
 
-   val (button2Label) = rememberPreference(DiscordActivityButton2LabelKey, "View Album")
+   val (button2Label) = rememberPreference(DiscordActivityButton2LabelKey, "Go to ArchiveTune")
    val (button2Enabled) = rememberPreference(DiscordActivityButton2EnabledKey, true)
 
 // Button URL sources + custom
    val (button1UrlSource) = rememberPreference(DiscordActivityButton1UrlSourceKey, "songurl")
    val (button1CustomUrl) = rememberPreference(DiscordActivityButton1CustomUrlKey, "")
 
-   val (button2UrlSource) = rememberPreference(DiscordActivityButton2UrlSourceKey, "albumurl")
-   val (button2CustomUrl) = rememberPreference(DiscordActivityButton2CustomUrlKey, "")
+   val (button2UrlSource) = rememberPreference(DiscordActivityButton2UrlSourceKey, "custom")
+   val (button2CustomUrl) = rememberPreference(DiscordActivityButton2CustomUrlKey, "https://github.com/koiverse/ArchiveTune")
 
 // Large text source + custom
    val (largeTextSource) = rememberPreference(DiscordLargeTextSourceKey, "album")
