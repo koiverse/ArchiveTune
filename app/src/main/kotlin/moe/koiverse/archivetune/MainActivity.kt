@@ -318,7 +318,12 @@ class MainActivity : ComponentActivity() {
                 }
             }
 
-                    val bottomSheetPageState = LocalBottomSheetPageState.current
+                    // Use remembered instances so the same state object is used everywhere
+                    // (previously retrieving the composition local directly created different
+                    // instances in different composition scopes which caused the update
+                    // bottom sheet to not appear and overlay interactions to be blocked).
+                    val bottomSheetPageState = remember { moe.koiverse.archivetune.ui.component.BottomSheetPageState() }
+                    val menuState = remember { moe.koiverse.archivetune.ui.component.MenuState() }
                     val uriHandler = LocalUriHandler.current
                     val releaseNotesState = remember { mutableStateOf<String?>(null) }
                     val updateSheetContent: @Composable ColumnScope.() -> Unit = { // receiver: ColumnScope
@@ -792,6 +797,8 @@ class MainActivity : ComponentActivity() {
                         LocalDownloadUtil provides downloadUtil,
                         LocalShimmerTheme provides ShimmerTheme,
                         LocalSyncUtils provides syncUtils,
+                        moe.koiverse.archivetune.ui.component.LocalBottomSheetPageState provides bottomSheetPageState,
+                        moe.koiverse.archivetune.ui.component.LocalMenuState provides menuState,
                     ) {
                         Scaffold(
                             topBar = {
@@ -1075,6 +1082,7 @@ class MainActivity : ComponentActivity() {
                                                             overflow = TextOverflow.Ellipsis
                                                         )
                                                     }
+
                                                 },
                                                 onClick = {
                                                     if (screen.route == Screens.Search.route) {
