@@ -17,8 +17,8 @@ android {
     applicationId = "moe.koiverse.archivetune"
         minSdk = 26
         targetSdk = 36
-        versionCode = 125
-        versionName = "12.4.1"
+        versionCode = 126
+        versionName = "12.4.2"
 
         multiDexEnabled = true
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
