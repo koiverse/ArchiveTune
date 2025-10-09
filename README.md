@@ -10,10 +10,8 @@ Enhanced Music Streaming Client for Android
 ![IzzyDroid](https://shields.rbtlog.dev/simple/moe.koiverse.archivetune?style=for-the-badge)
 
 
-<!-- use  "⠀⠀" for spacing -->
-[<img src="https://github.com/machiav3lli/oandbackupx/blob/034b226cea5c1b30eb4f6a6f313e4dadcbb0ece4/badge_github.png" alt="Get it on GitHub" height="40">](https://github.com/koiverse/ArchiveTune/releases/latest)
-
-[<img src="https://raw.githubusercontent.com/OuterTune/OuterTune/a33f0b182c42f499b320b5eb2029c34bf28465d9/assets/IzzyOnDroidButtonGreyBorder.svg" alt="Get it on IzzyOnDroid" height="40">](https://apt.izzysoft.de/fdroid/index/apk/moe.koiverse.archivetune)⠀⠀
+<!-- use "⠀⠀" for spacing -->
+[<img src="https://raw.githubusercontent.com/OuterTune/OuterTune/refs/heads/dev/assets/badge_github.png" alt="Get it on GitHub" height="40">](https://github.com/koiverse/ArchiveTune/releases/latest)⠀⠀[<img src="https://raw.githubusercontent.com/OuterTune/OuterTune/a33f0b182c42f499b320b5eb2029c34bf28465d9/assets/IzzyOnDroidButtonGreyBorder.svg" alt="Get it on IzzyOnDroid" height="40">](https://apt.izzysoft.de/fdroid/index/apk/moe.koiverse.archivetune)
 
 
 > [!WARNING]
@@ -23,8 +21,6 @@ Enhanced Music Streaming Client for Android
 > If you're in a region where YouTube Music is not supported, you won't be able to use this app unless you have a proxy or VPN to connect to a YTM-supported region.
 
 ## Features
-
-ArchiveTune is a supercharged fork of [InnerTune](https://github.com/z-huang/InnerTune). This app is both a local media player, and a YouTube Music client.
 
 - YouTube Music client features
     - Song downloading (offline playback)
