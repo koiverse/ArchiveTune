@@ -53,7 +53,10 @@ object DiscordPresenceManager {
         token: String,
         song: Song?,
         positionMs: Long,
-        isPaused: Boolean
+        isPaused: Boolean,
+        // Optional pre-resolved image URLs to avoid duplicate resolution work.
+        resolvedLargeImageUrl: String? = null,
+        resolvedSmallImageUrl: String? = null,
     ): Boolean = withContext(Dispatchers.IO) {
         try {
             if (token.isBlank()) {
@@ -69,9 +72,9 @@ object DiscordPresenceManager {
             }
 
             val rpc = getOrCreateRpc(context, token)
-            // Attempt to compute resolved thumbnail/artist cover to speed up Discord image handling
-            val resolvedLarge = song.song.thumbnailUrl
-            val resolvedSmall = song.artists.firstOrNull()?.thumbnailUrl
+            // Prefer caller-provided resolved URLs; otherwise fall back to song fields
+            val resolvedLarge = resolvedLargeImageUrl ?: song.song.thumbnailUrl
+            val resolvedSmall = resolvedSmallImageUrl ?: song.artists.firstOrNull()?.thumbnailUrl
             val result = rpc.updateSong(song, positionMs, isPaused, resolvedLargeImageUrl = resolvedLarge, resolvedSmallImageUrl = resolvedSmall)
             if (result.isSuccess) {
                 Timber.tag(logTag).d(
@@ -153,13 +156,17 @@ object DiscordPresenceManager {
         token: String,
         song: Song?,
         positionMs: Long,
-        isPaused: Boolean
+        isPaused: Boolean,
+        resolvedLargeImageUrl: String? = null,
+        resolvedSmallImageUrl: String? = null,
     ): Boolean = updatePresence(
         context = context,
         token = token,
         song = song,
         positionMs = positionMs,
-        isPaused = isPaused
+        isPaused = isPaused,
+        resolvedLargeImageUrl = resolvedLargeImageUrl,
+        resolvedSmallImageUrl = resolvedSmallImageUrl,
     )
 
     /** Stop the manager. */
