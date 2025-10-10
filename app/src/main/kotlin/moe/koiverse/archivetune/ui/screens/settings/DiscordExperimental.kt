@@ -39,7 +39,11 @@ fun DiscordExperimental(
                 }
             )
 
-            LazyColumn(modifier = Modifier.padding(16.dp)) {
+            LazyColumn(
+                modifier = Modifier
+                    .padding(inner) // respect Scaffold insets (safe area)
+                    .padding(bottom = 80.dp, start = 16.dp, end = 16.dp) // extra space for mini player
+            ) {
                 item {
                     Text(
                         text = stringResource(R.string.translator_options),
@@ -332,7 +336,6 @@ fun DiscordExperimental(
                             )
                         }
                     }
-                    Spacer(Modifier.height(16.dp))
                 }
             }
         }
