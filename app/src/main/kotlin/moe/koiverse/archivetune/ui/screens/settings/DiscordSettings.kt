@@ -86,11 +86,20 @@ fun DiscordSettings(
     LaunchedEffect(discordToken) {
         val token = discordToken
         if (token.isNotEmpty()) {
-            coroutineScope.launch(Dispatchers.IO) {
-                KizzyRPC.getUserInfo(token).onSuccess {
+            // Run the network call inside this LaunchedEffect coroutine so it is
+            // cancelled automatically if the composable leaves the composition.
+            try {
+                withContext(Dispatchers.IO) {
+                    // KizzyRPC.getUserInfo may throw network/socket exceptions when the
+                    // app is backgrounded or network drops; catch them to avoid crashing.
+                    KizzyRPC.getUserInfo(token)
+                }.onSuccess {
                     discordUsername = it.username
                     discordName = it.name
                 }
+            } catch (e: Exception) {
+                // Log and ignore network errors (e.g. SocketException on resume).
+                Timber.tag("DiscordSettings").w(e, "getUserInfo failed")
             }
         }
     }
