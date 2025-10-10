@@ -207,7 +207,7 @@ fun DiscordExperimental(
                                 value = button1UrlSource,
                                 onValueChange = {},
                                 readOnly = true,
-                                label = { Text("Button 1 URL Source") },
+                                label = { Text(stringResource(R.string.discord_activity_button_1_url)) },
                                 trailingIcon = {
                                     ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
                                 },
@@ -252,7 +252,7 @@ fun DiscordExperimental(
                         )
                         if (button1UrlSource == "custom") {
                             EditablePreference(
-                                title = "Button 1 Custom URL",
+                                title = stringResource(R.string.discord_activity_button1_url),
                                 iconRes = R.drawable.link,
                                 value = button1CustomUrl,
                                 defaultValue = "",
@@ -283,7 +283,7 @@ fun DiscordExperimental(
                                 value = button2UrlSource,
                                 onValueChange = {},
                                 readOnly = true,
-                                label = { Text("Button 2 URL Source") },
+                                label = { Text(stringResource(R.string.discord_activity_button_2_url)) },
                                 trailingIcon = {
                                     ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded2)
                                 },
@@ -328,7 +328,7 @@ fun DiscordExperimental(
                         )
                         if (button2UrlSource == "custom") {
                             EditablePreference(
-                                title = "Button 2 Custom URL",
+                                title = stringResource(R.string.discord_activity_button2_url),
                                 iconRes = R.drawable.link,
                                 value = button2CustomUrl,
                                 defaultValue = "",
