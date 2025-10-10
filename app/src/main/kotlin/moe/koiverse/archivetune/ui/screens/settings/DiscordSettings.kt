@@ -293,9 +293,15 @@ LaunchedEffect(discordToken, discordRPC) {
                        context = context,
                        token = discordToken,
                        song = song,
-                       positionMs = playerConnection.player.currentPosition,
-                       isPaused = !(playerConnection.player.playWhenReady &&
-                       playerConnection.player.playbackState == STATE_READY)
+                             positionMs = playerConnection.player.currentPosition,
+                             isPaused = !(playerConnection.player.playWhenReady &&
+                              playerConnection.player.playbackState == STATE_READY),
+                             // pass resolved URLs we already have from the Song object
+                             // to avoid extra resolution work inside DiscordRPC
+                             // (nullable if unavailable)
+                             // large = song thumbnail, small = first artist thumbnail
+                             resolvedLargeImageUrl = song?.song?.thumbnailUrl,
+                             resolvedSmallImageUrl = song?.artists?.firstOrNull()?.thumbnailUrl
                      )
                        isRefreshing = false
                         // Show snackbar on main thread
