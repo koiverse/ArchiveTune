@@ -727,6 +727,14 @@ class MainActivity : ComponentActivity() {
 
                         if (shouldShow) {
                             delay(1000)
+                            var waited = 0L
+                            val waitStep = 500L
+                            val maxWait = 30_000L // 30 seconds max
+                            while (bottomSheetPageState.isVisible && waited < maxWait) {
+                                delay(waitStep)
+                                waited += waitStep
+                            }
+
                             showStarDialog = true
                         }
                     }
