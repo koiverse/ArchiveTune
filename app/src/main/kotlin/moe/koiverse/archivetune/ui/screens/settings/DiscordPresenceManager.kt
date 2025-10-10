@@ -69,7 +69,10 @@ object DiscordPresenceManager {
             }
 
             val rpc = getOrCreateRpc(context, token)
-            val result = rpc.updateSong(song, positionMs, isPaused)
+            // Attempt to compute resolved thumbnail/artist cover to speed up Discord image handling
+            val resolvedLarge = song.song.thumbnailUrl
+            val resolvedSmall = song.artists.firstOrNull()?.thumbnailUrl
+            val result = rpc.updateSong(song, positionMs, isPaused, resolvedLargeImageUrl = resolvedLarge, resolvedSmallImageUrl = resolvedSmall)
             if (result.isSuccess) {
                 Timber.tag(logTag).d(
                     "updatePresence success (song=%s, paused=%s)",
