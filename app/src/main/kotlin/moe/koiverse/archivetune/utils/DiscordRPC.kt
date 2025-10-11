@@ -7,6 +7,7 @@ import moe.koiverse.archivetune.constants.*
 import moe.koiverse.archivetune.utils.dataStore
 import com.my.kizzy.rpc.KizzyRPC
 import com.my.kizzy.rpc.RpcImage
+import com.my.kizzy.utils.toRpcImage
 import timber.log.Timber
 import me.bush.translator.Translator
 import me.bush.translator.Language
@@ -179,18 +180,18 @@ class DiscordRPC(
             resolveAndPersistImages(context, song, isPaused)
 
         val finalLargeImage: RpcImage? = when {
-            !resolvedLargeImageUrl.isNullOrBlank() -> RpcImage.ExternalImage(resolvedLargeImageUrl)
+            !resolvedLargeImageUrl.isNullOrBlank() -> resolvedLargeImageUrl.toRpcImage()
             largeImageTypePref.lowercase() == "appicon" -> RpcImage.DiscordImage("appicon")
-            !resolvedLargeFromResolver.isNullOrBlank() -> RpcImage.ExternalImage(resolvedLargeFromResolver)
+            !resolvedLargeFromResolver.isNullOrBlank() -> resolvedLargeFromResolver.toRpcImage()
             else -> null
         }
 
         val finalSmallImage: RpcImage? = when {
-            !resolvedSmallImageUrl.isNullOrBlank() -> RpcImage.ExternalImage(resolvedSmallImageUrl)
+            !resolvedSmallImageUrl.isNullOrBlank() -> resolvedSmallImageUrl.toRpcImage()
             smallImageTypePref.lowercase() in listOf("none", "dontshow") -> null
-            isPaused -> RpcImage.ExternalImage(PAUSE_IMAGE_URL)
+            isPaused -> PAUSE_IMAGE_URL.toRpcImage()
             smallImageTypePref.lowercase() == "appicon" -> RpcImage.DiscordImage("appicon")
-            !resolvedSmallFromResolver.isNullOrBlank() -> RpcImage.ExternalImage(resolvedSmallFromResolver)
+            !resolvedSmallFromResolver.isNullOrBlank() -> resolvedSmallFromResolver.toRpcImage()
             else -> null
         }
 
