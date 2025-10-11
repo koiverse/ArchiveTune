@@ -52,4 +52,16 @@ object ArtworkStorage {
         } catch (_: Exception) {
         }
     }
+
+    fun removeBySongId(context: Context, songId: String) {
+        try {
+            val list = loadAll(context).toMutableList()
+            val idx = list.indexOfFirst { it.songId == songId }
+            if (idx >= 0) {
+                list.removeAt(idx)
+                fileFor(context).writeText(json.encodeToString(list))
+            }
+        } catch (_: Exception) {
+        }
+    }
 }
