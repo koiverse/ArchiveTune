@@ -1225,7 +1225,18 @@ class MusicService :
                 .setAudioProcessorChain(
                     DefaultAudioSink.DefaultAudioProcessorChain(
                         emptyArray(),
-                        SilenceSkippingAudioProcessor(2_000_000, 20_000, 256),
+                        // Use the non-deprecated constructor with explicit types to avoid any
+                        // ambiguity or unexpected overload-resolution issues.
+                        // minimumSilenceDurationUs = 2_000_000L, silenceRetentionRatio = 0.2f,
+                        // maxSilenceToKeepDurationUs = 20_000L, minVolumeToKeepPercentageWhenMuting = 10,
+                        // silenceThresholdLevel = 256
+                        SilenceSkippingAudioProcessor(
+                            2_000_000L,
+                            0.2f,
+                            20_000L,
+                            10,
+                            256.toShort(),
+                        ),
                         SonicAudioProcessor(),
                     ),
                 ).build()

@@ -42,8 +42,17 @@ class DiscordRPC(
         "songurl" -> "https://music.youtube.com/watch?v=${song.song.id}"
         "artisturl" -> song.artists.firstOrNull()?.id?.let { "https://music.youtube.com/channel/$it" }
         "albumurl" -> song.album?.playlistId?.let { "https://music.youtube.com/playlist?list=$it" }
-        "custom" -> if (custom.isNotBlank()) custom else null
+        "custom" -> custom.takeIf { it.isNotBlank() }?.let { normalizeUrl(it) }
         else -> null
+    }
+
+    private fun normalizeUrl(input: String): String? {
+        val trimmed = input.trim()
+        if (trimmed.isBlank()) return null
+        if (trimmed.startsWith("http://", ignoreCase = true) || trimmed.startsWith("https://", ignoreCase = true)) {
+            return trimmed
+        }
+        return "https://$trimmed"
     }
 
     private fun String?.toExternal(): RpcImage? {
@@ -105,7 +114,15 @@ class DiscordRPC(
         }
     }
 
-    suspend fun updateSong(song: Song, currentPlaybackTimeMillis: Long, isPaused: Boolean = false) = runCatching {
+    suspend fun updateSong(
+        song: Song,
+        currentPlaybackTimeMillis: Long,
+        isPaused: Boolean = false,
+        // If callers already have resolved image URLs (external HTTP URLs), they can
+        // pass them here to avoid additional resolution/preload work.
+        resolvedLargeImageUrl: String? = null,
+        resolvedSmallImageUrl: String? = null,
+    ) = runCatching {
         val currentTime = System.currentTimeMillis()
         val calculatedStartTime = currentTime - currentPlaybackTimeMillis
 
@@ -183,13 +200,13 @@ class DiscordRPC(
 
         val button1Label = context.dataStore[DiscordActivityButton1LabelKey] ?: "Listen on YouTube Music"
         val button1Enabled = context.dataStore[DiscordActivityButton1EnabledKey] ?: true
-        val button2Label = context.dataStore[DiscordActivityButton2LabelKey] ?: "View Album"
+        val button2Label = context.dataStore[DiscordActivityButton2LabelKey] ?: "Go to ArchiveTune"
         val button2Enabled = context.dataStore[DiscordActivityButton2EnabledKey] ?: true
 
         val button1UrlSource = context.dataStore[DiscordActivityButton1UrlSourceKey] ?: "songurl"
         val button1CustomUrl = context.dataStore[DiscordActivityButton1CustomUrlKey] ?: ""
-        val button2UrlSource = context.dataStore[DiscordActivityButton2UrlSourceKey] ?: "albumurl"
-        val button2CustomUrl = context.dataStore[DiscordActivityButton2CustomUrlKey] ?: ""
+        val button2UrlSource = context.dataStore[DiscordActivityButton2UrlSourceKey] ?: "custom"
+        val button2CustomUrl = context.dataStore[DiscordActivityButton2CustomUrlKey] ?: "https://github.com/koiverse/ArchiveTune"
 
         val resolvedButton1Url = resolveUrl(button1UrlSource, song, button1CustomUrl)
         val resolvedButton2Url = resolveUrl(button2UrlSource, song, button2CustomUrl)
@@ -217,19 +234,34 @@ class DiscordRPC(
         val smallImageTypePref = context.dataStore[DiscordSmallImageTypeKey] ?: "artist"
         val smallImageCustomPref = context.dataStore[DiscordSmallImageCustomUrlKey] ?: ""
 
-        val largeImageRpc = pickImage(largeImageTypePref, largeImageCustomPref, song, false)
-        val smallImageRpc =
-            if (isPaused) RpcImage.ExternalImage(PAUSE_IMAGE_URL)
-            else if (smallImageTypePref.lowercase() in listOf("none", "dontshow")) null
-            else pickImage(smallImageTypePref, smallImageCustomPref, song, true)
+        // If the caller provided already-resolved image URLs, use them directly.
+        val finalLargeImage: RpcImage? = when {
+            !resolvedLargeImageUrl.isNullOrBlank() -> RpcImage.ExternalImage(resolvedLargeImageUrl)
+            else -> {
+                val largeImageRpc = pickImage(largeImageTypePref, largeImageCustomPref, song, false)
+                val resolvedLargeImage = resolveOnce(largeImageRpc)
+                val largeRequestedButFailed = largeImageRpc != null && resolvedLargeImage == null
+                if (largeRequestedButFailed) {
+                    Timber.tag(logtag).w("Large RPC image failed to resolve. Continuing without it.")
+                }
+                wrapResolved(largeImageRpc, resolvedLargeImage)
+            }
+        }
 
-        val resolvedLargeImage = resolveOnce(largeImageRpc)
-        val resolvedSmallImage = resolveOnce(smallImageRpc)
-
-        val largeRequestedButFailed = largeImageRpc != null && resolvedLargeImage == null
-        val smallRequestedButFailed = smallImageRpc != null && resolvedSmallImage == null
-        if (largeRequestedButFailed || smallRequestedButFailed) {
-            Timber.tag(logtag).w("One or more RPC images failed to resolve (large=%s small=%s). Continuing with available/fallback images.", largeRequestedButFailed, smallRequestedButFailed)
+        val finalSmallImage: RpcImage? = when {
+            !resolvedSmallImageUrl.isNullOrBlank() -> RpcImage.ExternalImage(resolvedSmallImageUrl)
+            else -> {
+                val smallImageRpc =
+                    if (isPaused) RpcImage.ExternalImage(PAUSE_IMAGE_URL)
+                    else if (smallImageTypePref.lowercase() in listOf("none", "dontshow")) null
+                    else pickImage(smallImageTypePref, smallImageCustomPref, song, true)
+                val resolvedSmallImage = resolveOnce(smallImageRpc)
+                val smallRequestedButFailed = smallImageRpc != null && resolvedSmallImage == null
+                if (smallRequestedButFailed) {
+                    Timber.tag(logtag).w("Small RPC image failed to resolve. Continuing without it.")
+                }
+                wrapResolved(smallImageRpc, resolvedSmallImage)
+            }
         }
 
         val largeTextSource = (context.dataStore[DiscordLargeTextSourceKey] ?: "album").lowercase()
@@ -258,11 +290,8 @@ class DiscordRPC(
             }
         }
 
-        val finalLargeImage: RpcImage? = wrapResolved(largeImageRpc, resolvedLargeImage)
-        val finalSmallImage: RpcImage? = wrapResolved(smallImageRpc, resolvedSmallImage)
-
         val applicationIdToSend =
-            if (largeImageRpc is RpcImage.DiscordImage || smallImageRpc is RpcImage.DiscordImage) APPLICATION_ID else null
+            if (finalLargeImage is RpcImage.DiscordImage || finalSmallImage is RpcImage.DiscordImage) APPLICATION_ID else null
 
         val platformPref = context.dataStore[DiscordActivityPlatformKey] ?: "desktop"
         this.setPlatform(platformPref)

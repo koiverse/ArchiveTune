@@ -86,11 +86,20 @@ fun DiscordSettings(
     LaunchedEffect(discordToken) {
         val token = discordToken
         if (token.isNotEmpty()) {
-            coroutineScope.launch(Dispatchers.IO) {
-                KizzyRPC.getUserInfo(token).onSuccess {
+            // Run the network call inside this LaunchedEffect coroutine so it is
+            // cancelled automatically if the composable leaves the composition.
+            try {
+                withContext(Dispatchers.IO) {
+                    // KizzyRPC.getUserInfo may throw network/socket exceptions when the
+                    // app is backgrounded or network drops; catch them to avoid crashing.
+                    KizzyRPC.getUserInfo(token)
+                }.onSuccess {
                     discordUsername = it.username
                     discordName = it.name
                 }
+            } catch (e: Exception) {
+                // Log and ignore network errors (e.g. SocketException on resume).
+                Timber.tag("DiscordSettings").w(e, "getUserInfo failed")
             }
         }
     }
@@ -284,9 +293,15 @@ LaunchedEffect(discordToken, discordRPC) {
                        context = context,
                        token = discordToken,
                        song = song,
-                       positionMs = playerConnection.player.currentPosition,
-                       isPaused = !(playerConnection.player.playWhenReady &&
-                       playerConnection.player.playbackState == STATE_READY)
+                             positionMs = playerConnection.player.currentPosition,
+                             isPaused = !(playerConnection.player.playWhenReady &&
+                              playerConnection.player.playbackState == STATE_READY),
+                             // pass resolved URLs we already have from the Song object
+                             // to avoid extra resolution work inside DiscordRPC
+                             // (nullable if unavailable)
+                             // large = song thumbnail, small = first artist thumbnail
+                             resolvedLargeImageUrl = song?.song?.thumbnailUrl,
+                             resolvedSmallImageUrl = song?.artists?.firstOrNull()?.thumbnailUrl
                      )
                        isRefreshing = false
                         // Show snackbar on main thread
@@ -544,24 +559,6 @@ if (intervalSelection == "Custom") {
             defaultValue = "LISTENING"
         )
         val activityOptions = listOf("PLAYING", "STREAMING", "LISTENING", "WATCHING", "COMPETING")
-
-        val urlOptions = listOf("songurl", "artisturl", "albumurl", "custom")
-        val (button1UrlSource, onButton1UrlSourceChange) = rememberPreference(
-            key = DiscordActivityButton1UrlSourceKey,
-            defaultValue = "songurl"
-        )
-        val (button1CustomUrl, onButton1CustomUrlChange) = rememberPreference(
-            key = DiscordActivityButton1CustomUrlKey,
-            defaultValue = ""
-        )
-        val (button2UrlSource, onButton2UrlSourceChange) = rememberPreference(
-            key = DiscordActivityButton2UrlSourceKey,
-            defaultValue = "custom"
-        )
-        val (button2CustomUrl, onButton2CustomUrlChange) = rememberPreference(
-            key = DiscordActivityButton2CustomUrlKey,
-            defaultValue = "https://github.com/koiverse/ArchiveTune"
-        )
 
         var showWhenPaused by rememberPreference(
         key = DiscordShowWhenPausedKey,
@@ -957,15 +954,15 @@ fun RichPresence(
    val (button1Label) = rememberPreference(DiscordActivityButton1LabelKey, "Listen on YouTube Music")
    val (button1Enabled) = rememberPreference(DiscordActivityButton1EnabledKey, true)
 
-   val (button2Label) = rememberPreference(DiscordActivityButton2LabelKey, "View Album")
+   val (button2Label) = rememberPreference(DiscordActivityButton2LabelKey, "Go to ArchiveTune")
    val (button2Enabled) = rememberPreference(DiscordActivityButton2EnabledKey, true)
 
 // Button URL sources + custom
    val (button1UrlSource) = rememberPreference(DiscordActivityButton1UrlSourceKey, "songurl")
    val (button1CustomUrl) = rememberPreference(DiscordActivityButton1CustomUrlKey, "")
 
-   val (button2UrlSource) = rememberPreference(DiscordActivityButton2UrlSourceKey, "albumurl")
-   val (button2CustomUrl) = rememberPreference(DiscordActivityButton2CustomUrlKey, "")
+   val (button2UrlSource) = rememberPreference(DiscordActivityButton2UrlSourceKey, "custom")
+   val (button2CustomUrl) = rememberPreference(DiscordActivityButton2CustomUrlKey, "https://github.com/koiverse/ArchiveTune")
 
 // Large text source + custom
    val (largeTextSource) = rememberPreference(DiscordLargeTextSourceKey, "album")

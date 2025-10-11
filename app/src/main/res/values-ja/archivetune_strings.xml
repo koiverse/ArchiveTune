@@ -1,165 +1,202 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <plurals name="n_element">
-        <item quantity="other">%d 要素</item>
-    </plurals>
-    <string name="explore">探索</string>
-    <string name="local_history">ローカル</string>
+    <string name="explore">探検する</string>
+
+    <string name="local_history">地元</string>
     <string name="remote_history">リモート</string>
+
     <string name="charts">チャート</string>
     <string name="back_button_desc">戻る</string>
     <string name="no_title">タイトルなし</string>
     <string name="unknown_artist">不明なアーティスト</string>
-    <string name="unknown_item_type">不明な項目の種類</string>
-    <string name="loading_charts">チャートを読み込み中...</string>
-    <string name="retry_button">再試行</string>
+    <string name="unknown_item_type">不明なアイテムの種類</string>
+    <string name="loading_charts">チャートを読み込んでいます...</string>
+    <string name="retry_button">リトライ</string>
     <string name="album_cover_desc">アルバムカバー</string>
-    <string name="trending">急上昇</string>
-    <string name="weeks">週</string>
+    <string name="top_music_videos">人気のミュージック ビデオ</string>
+    <string name="trending">トレンド</string>
+
+    <string name="weeks">週間</string>
     <string name="months">月</string>
     <string name="years">年</string>
-    <string name="continuous">連続</string>
-    <string name="liked">高く評価した</string>
+    <string name="continuous">継続的</string>
+
+    <string name="liked">気に入った</string>
     <string name="offline">ダウンロード済み</string>
-    <string name="top_music_videos">トップミュージック ビデオ</string>
-    <string name="my_top">マイトップ</string>
-    <string name="cached_playlist">キャッシュ済み</string>
-    <string name="sync_playlist">再生リストを同期</string>
-    <string name="sync_disabled">同期は無効</string>
-    <string name="generating_image">画像を生成中です</string>
+    <string name="my_top">私のトップ</string>
+    <string name="cached_playlist">キャッシュされた</string>
+    <string name="sync_playlist">プレイリストを同期する</string>
+    <string name="sync_disabled">同期は無効です</string>
+    <string name="elements_selected">%1$d 個の要素が選択されました</string>
+    <string name="allows_for_sync_witch_youtube">注: これにより、YouTube Music との同期が可能になります。これは後から変更することはできません。</string>
+    <string name="generating_image">画像の生成</string>
     <string name="please_wait">お待ちください</string>
     <string name="cancel">キャンセル</string>
-    <string name="share_lyrics">歌詞を共有</string>
-    <string name="customize_colors">カラーをカスタマイズ</string>
+    <string name="share_lyrics">歌詞を共有する</string>
+    <string name="share_as_text">テキストとして共有する</string>
+    <string name="share_as_image">画像として共有</string>
+    <string name="max_selection_limit">最大選択制限</string>
+    <string name="share_selected">選択した共有</string>
+    <string name="customize_colors">色のカスタマイズ</string>
     <string name="more_options">その他のオプション</string>
-    <string name="text_color">テキストカラー</string>
-    <string name="secondary_text_color">セカンダリテキストカラー</string>
+    <string name="text_color">文字の色</string>
+    <string name="secondary_text_color">二次テキストの色</string>
     <string name="background_color">背景色</string>
+
+    <string name="added_to_play_next">次にプレイするために追加されました</string>
+    <string name="added_to_queue">キューに追加されました</string>
     <string name="remove_from_cache">キャッシュから削除</string>
     <string name="copy_link">リンクをコピー</string>
     <string name="select">すべて選択</string>
-    <string name="like_all">すべて高く評価</string>
-    <string name="link_copied">リンクをクリップボードにコピーしました</string>
-    <string name="dislike_all">すべて低く評価</string>
-    <string name="share_as_text">テキストとして共有</string>
-    <string name="share_as_image">画像として共有</string>
-    <string name="max_selection_limit">選択の最大制限</string>
-    <string name="share_selected">選択済みを共有</string>
-    <string name="added_to_play_next">次に再生に追加しました</string>
-    <string name="added_to_queue">キューに追加しました</string>
-    <string name="already_in_playlist">再生リストに追加済みです:</string>
-    <string name="login_settings">ログイン設定</string>
-    <string name="general_settings">一般設定</string>
-    <string name="lyrics_click_change">タップで歌詞を変更</string>
-    <string name="slim">スリム</string>
-    <string name="similar_content">似ているコンテンツ</string>
-    <string name="enable_squiggly_slider">波線のスライダーを有効化</string>
-    <string name="show_cached_playlist">キャッシュ済みの再生リストを表示</string>
-    <string name="google">Google</string>
-    <string name="discord">Discord</string>
-    <string name="auto_playlists">自動再生リスト</string>
-    <string name="show_liked_playlist">高く評価した音楽の再生リストを表示</string>
-    <string name="show_downloaded_playlist">ダウンロード済みの曲の再生リストを表示</string>
-    <string name="show_top_playlist">トップの再生リストを表示</string>
-    <string name="advanced_login">トークンを使用したログイン</string>
-    <string name="token_hidden">タップでトークンを表示</string>
-    <string name="token_shown">再度タップでコピーまたは編集</string>
-    <string name="general">一般</string>
-    <string name="proxy">プロキシ</string>
-    <string name="app_language">アプリの言語</string>
-    <string name="configure_app_language">アプリの言語を設定します</string>
-    <string name="open_supported_links">デフォルトで開く対応リンク</string>
-    <string name="configure_supported_links">対応リンクを設定します</string>
-    <string name="ytm_sync">YouTube Music のアカウントと自動的に同期する</string>
-    <string name="slim_navbar">ボトムナビゲーションバーのラベルを非表示</string>
-    <string name="enable_similar_content">似ているコンテンツを有効化</string>
-    <string name="follow_theme">テーマに従う</string>
-    <string name="secondary_color_style">セカンダリ</string>
-    <string name="set_first_lyrics_provider">推奨の歌詞プロバイダー</string>
-    <plurals name="seconds">
-        <item quantity="other">%d 秒</item>
-    </plurals>
-    <string name="percentage_format">%d%%</string>
-    <string name="release_notes">リリースノート</string>
-    <string name="player_background_style">プレーヤーの背景スタイル</string>
-    <string name="numbers">番号</string>
-    <string name="player_background_blur">ぼかす</string>
-    <string name="player_buttons_style">プレーヤーボタンの色</string>
-    <string name="information">情報</string>
-    <string name="default_style">デフォルト</string>
-    <string name="enable_swipe_thumbnail">スワイプで曲の変更を有効化</string>
-    <string name="dislikes">低く評価</string>
-    <string name="audio_quality_max">最大 (Beta)</string>
-    <string name="auto_download_on_like">高く評価で自動ダウンロード</string>
-    <string name="description">説明</string>
-    <string name="not_logged_in_youtube">YouTube にログインしていません</string>
-    <string name="subscribers">チャンネル登録</string>
-    <string name="default_links">対応リンクを開く</string>
-    <string name="views">視聴</string>
-    <string name="likes">高く評価</string>
-    <string name="elements_selected">%1$d 個の要素が選択されました</string>
-    <string name="allows_for_sync_witch_youtube">注: これにより、YouTube Musicとの同期が可能になります。これは後から変更できません。</string>
+    <string name="like_all">みんなと同じように</string>
+    <string name="dislike_all">全部嫌い</string>
     <string name="sort_by_last_updated">更新日</string>
-    <plurals name="n_time">
-        <item quantity="other">%d 回</item>
-    </plurals>
-    <string name="gradient">グラデーション</string>
-    <string name="new_player_design">新しいプレーヤーのデザイン</string>
-    <string name="new_mini_player_design">新しいミニプレーヤーのデザイン</string>
-    <string name="swipe_song_to_add">曲を左にスワイプするとキューに追加され右にスワイプすると次に再生されます</string>
-    <string name="lyrics_auto_scroll">歌詞の自動スクロール</string>
-    <string name="lyrics_romanize_japanese">日本語の歌詞のローマ字表記</string>
-    <string name="lyrics_romanize_korean">韓国語の歌詞のローマ字表記</string>
-    <string name="token_adv_login_description">これは高度なログイン方法です。ウェブポータルの代わりに、ここでログイントークンを直接入力または更新できます。そうすることで、複数のデバイスへのログインを高速化できます。アプリが解析できない無効なトークン形式は受け入れられないことにご注意ください</string>
-    <string name="yt_sync">アカウントとの自動同期</string>
-    <string name="more_content">その他のコンテンツ</string>
-    <string name="default_lib_chips">デフォルトのライブラリチップを変更</string>
-    <string name="set_quick_picks">クイックピックを設定</string>
-    <string name="last_song_listened">最後に聴いた曲に基づく</string>
-    <string name="intent_app_language_not_found">アプリの言語設定が見つかりません。手動で設定してください</string>
-    <string name="intent_supported_links_not_found">サポートされているリンク設定が見つかりませんでした。手動で設定してください</string>
-    <string name="similar_content_desc">キューの最後に達すると、類似の曲を自動で追加します</string>
-    <string name="min_playback_duration_title">最小再生時間</string>
-    <string name="min_playback_duration_description">曲が「再生された」とみなす再生時間</string>
-    <string name="minimum_playback_duration">最小再生時間</string>
-    <string name="import_online">m3u形式のプレイリストをインポート</string>
-    <string name="import_csv">「csv」形式のプレイリストをインポート</string>
-    <string name="playlist_add_local_to_synced_note">注: 同期/リモートプレイリストへのローカル曲の追加はサポートされていません。その他の組み合わせは有効です</string>
-    <string name="auto_download_on_like_desc">気に入った曲を自動的にダウンロード</string>
-    <string name="swipe_sensitivity">ミニプレーヤーのスワイプ感度</string>
-    <string name="swipe_sensitivity_desc">曲を変更する際のスワイプ操作の感度を調整します</string>
-    <string name="clear_song_cache_dialog">キャッシュされた曲をすべて消去してもよろしいですか？</string>
-    <string name="clear_image_cache_dialog">キャッシュされた画像をすべて消去してもよろしいですか？</string>
-    <string name="clear_downloads_dialog">すべてのダウンロードをクリアしてもよろしいですか？</string>
-    <string name="disable">無効</string>
-    <string name="pause_remote_listen_history">一時停止、再生履歴をYouTube Musicと共有</string>
-    <string name="open_app_settings_error">アプリの設定を開けませんでした</string>
-    <string name="all_time">全期間</string>
-    <string name="past_24_hours">過去24時間</string>
-    <string name="past_week">過去1週間</string>
-    <string name="past_month">過去1ヶ月間</string>
-    <string name="past_year">過去1年間</string>
-    <string name="top_length">マイトップリストの長さ</string>
-    <string name="history_duration">履歴期間</string>
-    <string name="subscribe">定期購読</string>
-    <string name="subscribed">定期購読済み</string>
-    <string name="sensitivity_percentage">%1$d%%</string>
-    <string name="now_playing">再生中</string>
-    <string name="close">閉じる</string>
-    <string name="minimum_volume">最低音量</string>
+    <string name="link_copied">リンクがクリップボードにコピーされました</string>
+    <string name="starting_radio">ラジオを開始します</string>
+    <string name="now_playing">プレイ中</string>
+
+    <string name="close">近い</string>
+    <string name="minimum_volume">最小音量</string>
     <string name="maximum_volume">最大音量</string>
-    <string name="hide_player_thumbnail">プレイヤーにサムネイルを表示しない</string>
-    <string name="hide_player_thumbnail_desc">プレイヤー中のアルバムのカバーをアプリのロゴで置換する</string>
+    <string name="hide_player_thumbnail">プレーヤーのサムネイルを非表示にする</string>
+    <string name="hide_player_thumbnail_desc">プレーヤーでアルバムのアートワークをアプリのロゴに置き換える</string>
+
+    <string name="already_in_playlist">すでにプレイリストにあります:</string>
+
+    <plurals name="n_element">
+        <item quantity="one">%d 要素</item>
+        <item quantity="other">%d 要素</item>
+    </plurals>
+    <plurals name="n_time">
+        <item quantity="one">%d時間</item>
+        <item quantity="other">%d回</item>
+    </plurals>
+
     <string name="seek_backward">5秒戻る</string>
     <string name="seek_forward">5秒進む</string>
-    <string name="seek_forward_dynamic">%1$d秒進む</string>
-    <string name="seek_backward_dynamic">%1$d秒戻る</string>
-    <string name="seek_seconds_addup">段階的スキップ</string>
-    <string name="seek_seconds_addup_description">有効な場合、スキップごとにスキップ時間が5秒伸びる</string>
+    <string name="seek_forward_dynamic">+%1$d 秒進む</string>
+    <string name="seek_backward_dynamic">-%1$d 秒前に戻る</string>
+    <string name="seek_seconds_addup">プログレッシブシーク</string>
+    <string name="seek_seconds_addup_description">有効にすると、シークスキップごとに 5 秒ずつ追加されます。</string>
+
+    <string name="similar_content">類似のコンテンツ</string>
+
+    <string name="login_settings">ログイン設定</string>
+    <string name="general_settings">一般設定</string>
+
+    <string name="player_background_style">プレーヤーの背景スタイル</string>
+    <string name="follow_theme">テーマに従う</string>
+    <string name="gradient">勾配</string>
+    <string name="new_player_design">新しいプレーヤーのデザイン</string>
+    <string name="new_mini_player_design">新しいミニプレーヤーのデザイン</string>
+    <string name="player_background_blur">ぼかし</string>
+    <string name="player_buttons_style">プレーヤーのボタンの色</string>
+    <string name="default_style">デフォルト</string>
+    <string name="secondary_color_style">二次</string>
+    <string name="enable_squiggly_slider">波線スライダーを有効にする</string>
+    <string name="enable_swipe_thumbnail">スワイプによる曲変更を有効にする</string>
+    <string name="swipe_song_to_add">曲を左にスワイプしてキューに追加するか、右にスワイプして次に再生します</string>
+    <string name="lyrics_click_change">クリックすると歌詞が変わります</string>
+    <string name="lyrics_auto_scroll">自動スクロール歌詞</string>
+    <string name="lyrics_romanize_japanese">日本語の歌詞をローマ字化する</string>
+    <string name="lyrics_romanize_korean">韓国語の歌詞をローマ字化</string>
+    <string name="slim">スリム</string>
+    <string name="slim_navbar">スリムな下部ナビゲーション バー</string>
+    <string name="auto_playlists">自動プレイリスト</string>
+    <string name="show_liked_playlist">「いいね！」プレイリストを表示</string>
+    <string name="show_downloaded_playlist">「ダウンロード済み」プレイリストを表示する</string>
+    <string name="show_top_playlist">「トップ」プレイリストを表示</string>
+    <string name="show_cached_playlist">「キャッシュされた」プレイリストを表示する</string>
+
+    <string name="google">グーグル</string>
+    <string name="discord">不和</string>
+    <string name="advanced_login">トークンを使用してログインする</string>
+    <string name="token_hidden">タップしてトークンを表示</string>
+    <string name="token_shown">もう一度タップしてコピーまたは編集します</string>
+    <string name="token_adv_login_description">これは高度なログイン方法です。 Web ポータルの代わりに、ここでログイン トークンを直接入力または更新することもできます。たとえば、これにより複数のデバイスでのログインが高速化されます。アプリが解析できない無効なトークン形式は受け入れられないことに注意してください。</string>
+    <string name="ytm_sync">YouTube Music アカウントと自動的に同期します</string>
+    <string name="yt_sync">アカウントと自動同期</string>
+    <string name="more_content">さらなるコンテンツ</string>
+    <string name="general">一般的な</string>
+    <string name="proxy">プロキシ</string>
+    <string name="default_lib_chips">デフォルトのライブラリチップを変更する</string>
+    <string name="set_quick_picks">クイックピックを設定する</string>
+    <string name="last_song_listened">最後に聴いた曲に基づいて</string>
+    <string name="app_language">アプリ言語</string>
+    <string name="configure_app_language">アプリの言語を構成する</string>
+    <string name="intent_app_language_not_found">アプリの言語設定が見つかりませんでした。手動で設定してください</string>
+    <string name="open_supported_links">デフォルトでサポートされているリンクを開く</string>
+    <string name="configure_supported_links">サポートされているリンクを構成する</string>
+    <string name="intent_supported_links_not_found">サポートされているリンク設定が見つかりませんでした。手動で設定してください</string>
+    <string name="set_first_lyrics_provider">優先歌詞プロバイダー</string>
+
+    <string name="audio_quality_max">マックス（ベータ版）</string>
+    <string name="enable_similar_content">同様のコンテンツを有効にする</string>
+    <string name="similar_content_desc">キューの終わりに達すると、類似した曲を自動的に追加します</string>
+    <string name="min_playback_duration_title">最小再生時間</string>
+    <string name="min_playback_duration_description">「再生済み」とみなされる前に再生する必要がある曲の最小量</string>
+    <string name="percentage_format">%d%%</string>
+    <string name="minimum_playback_duration">最小再生時間</string>
+
+    <string name="import_online">「m3u」プレイリストをインポートする</string>
+    <string name="import_csv">「csv」プレイリストをインポートする</string>
+    <string name="playlist_add_local_to_synced_note">注: ローカルの曲を同期/リモートのプレイリストに追加することはサポートされていません。他の組み合わせは有効です</string>
+
+    <string name="auto_download_on_like">「いいね！」で自動ダウンロード</string>
+    <string name="auto_download_on_like_desc">気に入った曲を自動的にダウンロード</string>
+
+    <string name="swipe_sensitivity">ミニプレーヤーのスワイプ感度</string>
+    <string name="swipe_sensitivity_desc">曲を変更する際のスワイプ ジェスチャの感度を調整する</string>
+    <string name="sensitivity_percentage">%1$d%%</string>
+
+    <string name="clear_song_cache_dialog">  キャッシュされた曲をすべてクリアしてもよろしいですか?</string>
+    <string name="clear_image_cache_dialog">  キャッシュされた画像をすべてクリアしてもよろしいですか?</string>
+    <string name="clear_downloads_dialog">  すべてのダウンロードをクリアしてもよろしいですか?</string>
+
+    <string name="disable">無効にする</string>
+
+    <string name="pause_remote_listen_history">YouTube Music での視聴履歴の共有を一時停止する</string>
+    <string name="not_logged_in_youtube">YouTube にログインしていません</string>
+
+    <string name="default_links">サポートされているリンクを開く</string>
+    <string name="open_app_settings_error">アプリ設定を開けませんでした</string>
+
+    <string name="release_notes">リリースノート</string>
+
+    <string name="all_time">ずっと</string>
+    <string name="past_24_hours">過去 24 時間</string>
+    <string name="past_week">過去 1 週間</string>
+    <string name="past_month">先月</string>
+    <string name="past_year">過去1年</string>
+    <string name="top_length">私のトップリストの長さ</string>
+    <string name="history_duration">履歴期間</string>
+    <string name="information">情報</string>
+    <string name="description">説明</string>
+    <string name="numbers">数字</string>
+    <string name="subscribers">購読者</string>
+    <string name="views">ビュー</string>
+    <string name="likes">いいね！</string>
+    <string name="dislikes">嫌いなもの</string>
+    <string name="subscribe">購読する</string>
+    <string name="subscribed">購読しました</string>
     <string name="playlist_not_found">プレイリストが見つかりません</string>
-    <string name="playlist_not_found_desc">リクエストされたプレイリストが読み込めませんでした</string>
+    <string name="playlist_not_found_desc">要求されたプレイリストをロードできませんでした</string>
     <string name="empty_playlist">空のプレイリスト</string>
     <string name="empty_playlist_desc">このプレイリストには曲が含まれていません</string>
-    <string name="disable_load_more_when_repeat_all">全曲リピートが有効な時、\"追加の曲をさらに読み込む\"機能を無効化する</string>
-    <string name="disable_load_more_when_repeat_all_desc">全曲リピートが有効な時、曲の自動追加や似ているコンテンツの追加を行わない</string>
+    <plurals name="seconds">
+        <item quantity="one">1 second</item>
+        <item quantity="other">%d秒</item>
+    </plurals>
+
+    <!-- Player Settings -->
+    <string name="disable_load_more_when_repeat_all">すべて繰り返すときにさらに読み込みを無効にする</string>
+    <string name="disable_load_more_when_repeat_all_desc">全リピートモードが有効になっている場合、さらに曲や類似のコンテンツを自動ロードしないでください。</string>
+    
+    <!-- Material 3 Settings Sections -->
+    <string name="settings_section_ui">ユーザーインターフェース</string>
+    <string name="settings_section_privacy">プライバシー &amp; セキュリティ</string>
+    <string name="settings_section_player">プレーヤー &amp; メディア</string>
+    <string name="settings_section_player_content">プレーヤー &amp; のコンテンツ</string>
+    <string name="settings_section_storage">ストレージ &amp; データ</string>
+    <string name="settings_section_system">システム &amp; について</string>
 </resources>
