@@ -86,9 +86,9 @@ suspend fun resolveAndPersistImages(context: Context, song: Song, isPaused: Bool
             else -> song.artists.firstOrNull()?.thumbnailUrl
         }
 
-        // Try saved values first
-        val resolvedLargeFromSaved = saved?.thumbnail?.asHttp()
-        val resolvedSmallFromSaved = saved?.artist?.asHttp()
+    // Try saved values first — but ignore saved values that are the pause image.
+        val resolvedLargeFromSaved = saved?.thumbnail?.asHttp()?.takeIf { it != PAUSE_IMAGE_URL }
+        val resolvedSmallFromSaved = saved?.artist?.asHttp()?.takeIf { it != PAUSE_IMAGE_URL }
 
         var finalLarge: String? = null
         var finalSmall: String? = null
@@ -98,12 +98,10 @@ suspend fun resolveAndPersistImages(context: Context, song: Song, isPaused: Bool
         } else {
             val candidate = originalLargeCandidate?.takeIf { it.isNotBlank() }
             finalLarge = resolveUrlCandidate(candidate)
-            // persist if external
-            if (!finalLarge.isNullOrBlank() && (finalLarge.startsWith("http://") || finalLarge.startsWith("https://"))) {
+            if (!finalLarge.isNullOrBlank() && (finalLarge.startsWith("http://") || finalLarge.startsWith("https://")) && finalLarge != PAUSE_IMAGE_URL) {
                 try {
                     val updated = SavedArtwork(songId = song.song.id, thumbnail = finalLarge, artist = saved?.artist)
                     ArtworkStorage.saveOrUpdate(context, updated)
-                    // seed repo cache
                     if (!candidate.isNullOrBlank()) repo.putToCache(candidate, finalLarge)
                 } catch (e: Exception) {
                     Timber.tag(TAG).v(e, "failed to persist large image")
@@ -116,7 +114,7 @@ suspend fun resolveAndPersistImages(context: Context, song: Song, isPaused: Bool
         } else {
             val candidate = originalSmallCandidate?.takeIf { it.isNotBlank() }
             finalSmall = resolveUrlCandidate(candidate)
-            if (!finalSmall.isNullOrBlank() && (finalSmall.startsWith("http://") || finalSmall.startsWith("https://"))) {
+            if (!finalSmall.isNullOrBlank() && (finalSmall.startsWith("http://") || finalSmall.startsWith("https://")) && finalSmall != PAUSE_IMAGE_URL) {
                 try {
                     val updated = SavedArtwork(songId = song.song.id, thumbnail = saved?.thumbnail, artist = finalSmall)
                     ArtworkStorage.saveOrUpdate(context, updated)
