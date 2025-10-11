@@ -40,6 +40,10 @@ class KizzyRepository {
                 }
             }
         }
+        @Synchronized
+        fun remove(key: String) {
+            map.remove(key)
+        }
     }
 
     /**
@@ -64,7 +68,7 @@ class KizzyRepository {
     @Synchronized
     fun removeCache(key: String?) {
         if (key.isNullOrBlank()) return
-        imageCache.map.remove(key)
+        imageCache.remove(key)
     }
 
     suspend fun getImage(url: String): String? {
