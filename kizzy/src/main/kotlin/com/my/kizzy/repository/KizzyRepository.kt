@@ -32,10 +32,32 @@ class KizzyRepository {
         fun put(key: String, value: String) {
             map[key] = value
             if (map.size > maxSize) {
+                // remove eldest entry (LinkedHashMap with accessOrder=true maintains LRU ordering)
                 val it = map.entries.iterator()
-                if (it.hasNext()) it.remove()
+                if (it.hasNext()) {
+                    it.next()
+                    it.remove()
+                }
             }
         }
+    }
+
+    /**
+     * Public helper to seed the in-memory cache from callers (e.g. when an external
+     * storage has a previously resolved mapping). This avoids re-resolving the same
+     * external URL repeatedly.
+     */
+    @Synchronized
+    fun putToCache(key: String?, value: String?) {
+        if (key.isNullOrBlank() || value.isNullOrBlank()) return
+        imageCache.put(key, value)
+    }
+
+    /** Peek the in-memory cache for a key. */
+    @Synchronized
+    fun peekCache(key: String?): String? {
+        if (key.isNullOrBlank()) return null
+        return imageCache.get(key)
     }
 
     suspend fun getImage(url: String): String? {
