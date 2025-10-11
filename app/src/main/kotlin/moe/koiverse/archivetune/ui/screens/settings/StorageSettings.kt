@@ -106,6 +106,7 @@ fun StorageSettings(
         if (maxImageCacheSize == 0) {
             coroutineScope.launch(Dispatchers.IO) {
                 imageDiskCache.clear()
+                moe.koiverse.archivetune.utils.ArtworkStorage.clear(context)
             }
         }
     }
@@ -266,6 +267,7 @@ fun StorageSettings(
                 onConfirm = {
                     coroutineScope.launch(Dispatchers.IO) {
                         imageDiskCache.clear()
+                        moe.koiverse.archivetune.utils.ArtworkStorage.clear(context)
                     }
                     clearImageCacheDialog = false
                 },
