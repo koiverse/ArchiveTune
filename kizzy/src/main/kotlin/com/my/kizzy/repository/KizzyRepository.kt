@@ -60,6 +60,13 @@ class KizzyRepository {
         return imageCache.get(key)
     }
 
+    /** Remove a mapping from in-memory cache. */
+    @Synchronized
+    fun removeCache(key: String?) {
+        if (key.isNullOrBlank()) return
+        imageCache.map.remove(key)
+    }
+
     suspend fun getImage(url: String): String? {
         imageCache.get(url)?.let { return it }
         val result = api.getImage(url).getOrNull()?.toImageAsset()
