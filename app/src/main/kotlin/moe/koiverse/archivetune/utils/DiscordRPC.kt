@@ -309,10 +309,11 @@ class DiscordRPC(
             !resolvedSmallImageUrl.isNullOrBlank() -> RpcImage.ExternalImage(resolvedSmallImageUrl)
             !saved?.artist.isNullOrBlank() -> RpcImage.ExternalImage(saved!!.artist!!)
             else -> {
-                val smallImageRpc =
-                    if (isPaused) RpcImage.ExternalImage(PAUSE_IMAGE_URL)
-                    else if (smallImageTypePref.lowercase() in listOf("none", "dontshow")) null
-                    else pickImage(smallImageTypePref, smallImageCustomPref, song, true)
+                val smallImageRpc = when {
+                    smallImageTypePref.lowercase() in listOf("none", "dontshow") -> null
+                    isPaused -> RpcImage.ExternalImage(PAUSE_IMAGE_URL)
+                    else -> pickImage(smallImageTypePref, smallImageCustomPref, song, true)
+                }
                 val resolvedSmallImage = resolveOnce(smallImageRpc)
                 val smallRequestedButFailed = smallImageRpc != null && resolvedSmallImage == null
                 if (smallRequestedButFailed) {
