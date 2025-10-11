@@ -86,10 +86,18 @@ class DiscordRPC(
         val key = rpcKey(image)
         if (preloadResults.containsKey(key)) return preloadResults[key]
 
+        // Check repo's in-memory cache first (peek to avoid triggering network)
+        val cached = when (image) {
+            is RpcImage.ExternalImage -> repo.peekCache(image.image)
+            else -> null
+        }
+
         val resolved = withTimeoutOrNull(4000L) {
-            when (image) {
-                is RpcImage.ExternalImage -> repo.getImage(image.image) ?: image.image
-                is RpcImage.DiscordImage -> image.image
+            when {
+                image is RpcImage.ExternalImage && !cached.isNullOrBlank() -> cached
+                image is RpcImage.ExternalImage -> repo.getImage(image.image) ?: image.image
+                image is RpcImage.DiscordImage -> image.image
+                else -> null
             }
         }
 
@@ -235,8 +243,27 @@ class DiscordRPC(
         val smallImageCustomPref = context.dataStore[DiscordSmallImageCustomUrlKey] ?: ""
 
         // If the caller provided already-resolved image URLs, use them directly.
-        // Try saved artwork first (persisted by previous successful resolutions)
+        // Try saved artwork first (persisted by previous successful resolutions). Also seed
+        // the repository in-memory cache with these saved external URLs so repo.getImage
+        // and resolveOnce can return them quickly when asked with the original external URL.
         val saved = ArtworkStorage.findBySongId(context, song.song.id)
+        if (saved != null) {
+            try {
+                // seed mapping: original thumbnail URL -> saved thumbnail
+                song.song.thumbnailUrl?.let { original ->
+                    if (!original.isBlank() && !saved.thumbnail.isNullOrBlank()) {
+                        repo.putToCache(original, saved.thumbnail)
+                    }
+                }
+                // seed mapping: original artist thumbnail -> saved artist
+                song.artists.firstOrNull()?.thumbnailUrl?.let { originalArtist ->
+                    if (!originalArtist.isBlank() && !saved.artist.isNullOrBlank()) {
+                        repo.putToCache(originalArtist, saved.artist)
+                    }
+                }
+            } catch (_: Exception) {
+            }
+        }
 
         val finalLargeImage: RpcImage? = when {
             !resolvedLargeImageUrl.isNullOrBlank() -> RpcImage.ExternalImage(resolvedLargeImageUrl)
@@ -253,6 +280,11 @@ class DiscordRPC(
                     try {
                         val updated = SavedArtwork(songId = song.song.id, thumbnail = resolvedLargeImage, artist = saved?.artist)
                         ArtworkStorage.saveOrUpdate(context, updated)
+                        // also seed the repo in-memory cache so future resolves are instant
+                        repo.putToCache(when (largeImageRpc) {
+                            is RpcImage.ExternalImage -> largeImageRpc.image
+                            else -> null
+                        }, resolvedLargeImage)
                     } catch (e: Exception) {
                         Timber.tag(logtag).v(e, "failed to persist large image")
                     }
@@ -279,6 +311,10 @@ class DiscordRPC(
                     try {
                         val updated = SavedArtwork(songId = song.song.id, thumbnail = saved?.thumbnail, artist = resolvedSmallImage)
                         ArtworkStorage.saveOrUpdate(context, updated)
+                        repo.putToCache(when (smallImageRpc) {
+                            is RpcImage.ExternalImage -> smallImageRpc.image
+                            else -> null
+                        }, resolvedSmallImage)
                     } catch (e: Exception) {
                         Timber.tag(logtag).v(e, "failed to persist small image")
                     }
