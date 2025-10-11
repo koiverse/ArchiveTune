@@ -7,7 +7,6 @@ import moe.koiverse.archivetune.constants.*
 import moe.koiverse.archivetune.utils.dataStore
 import com.my.kizzy.rpc.KizzyRPC
 import com.my.kizzy.rpc.RpcImage
-import kotlinx.coroutines.withTimeoutOrNull
 import timber.log.Timber
 import me.bush.translator.Translator
 import me.bush.translator.Language
@@ -25,9 +24,7 @@ class DiscordRPC(
         private const val logtag = "DiscordRPC"
     }
 
-    private val repo = com.my.kizzy.repository.KizzyRepository()
     private val translationCache: MutableMap<String, String> = mutableMapOf()
-    private val preloadResults: MutableMap<String, String?> = mutableMapOf()
     private var lastSongId: String? = null
 
     private fun pickSourceValue(pref: String, song: Song?, default: String): String = when (pref) {
@@ -54,73 +51,7 @@ class DiscordRPC(
         }
         return "https://$trimmed"
     }
-
-    private fun String?.toExternal(): RpcImage? {
-        if (this == null) return null
-        return if (startsWith("http://") || startsWith("https://")) {
-            RpcImage.ExternalImage(this)
-        } else {
-            Timber.tag(logtag).v("Skipping non-http image for RPC: %s", this)
-            null
-        }
-    }
-
-    private fun pickImage(type: String, custom: String?, song: Song?, preferArtist: Boolean = false): RpcImage? {
-        return when (type) {
-            "thumbnail" -> song?.song?.thumbnailUrl.toExternal()
-            "artist" -> song?.artists?.firstOrNull()?.thumbnailUrl.toExternal()
-            "appicon" -> RpcImage.DiscordImage("appicon")
-            "custom" -> (custom?.takeIf { it.isNotBlank() } ?: song?.song?.thumbnailUrl).toExternal()
-            else -> if (preferArtist) song?.artists?.firstOrNull()?.thumbnailUrl.toExternal()
-            else song?.song?.thumbnailUrl.toExternal()
-        }
-    }
-
-    private fun rpcKey(image: RpcImage): String = when (image) {
-        is RpcImage.DiscordImage -> "discord:${image.image}"
-        is RpcImage.ExternalImage -> "external:${image.image}"
-    }
-
-    private suspend fun resolveOnce(image: RpcImage?): String? {
-        if (image == null) return null
-        val key = rpcKey(image)
-        if (preloadResults.containsKey(key)) return preloadResults[key]
-
-        // Check repo's in-memory cache first (peek to avoid triggering network)
-        val cached = when (image) {
-            is RpcImage.ExternalImage -> repo.peekCache(image.image)
-            else -> null
-        }
-
-        val resolved = withTimeoutOrNull(4000L) {
-            when {
-                image is RpcImage.ExternalImage && !cached.isNullOrBlank() -> cached
-                image is RpcImage.ExternalImage -> repo.getImage(image.image) ?: image.image
-                image is RpcImage.DiscordImage -> image.image
-                else -> null
-            }
-        }
-
-        // If resolution failed (null), try to fallback to raw external URL for ExternalImage
-        val finalResolved = when {
-            !resolved.isNullOrBlank() -> resolved
-            image is RpcImage.ExternalImage -> image.image // fallback to original URL
-            else -> null
-        }
-
-        preloadResults[key] = finalResolved
-        Timber.tag(logtag).v("Invocation preload result for %s -> %s", key, resolved)
-        return finalResolved
-    }
-
-    private fun wrapResolved(original: RpcImage?, resolved: String?): RpcImage? {
-        if (resolved.isNullOrBlank()) return original
-        return when {
-            resolved.startsWith("http://") || resolved.startsWith("https://") -> RpcImage.ExternalImage(resolved)
-            resolved.startsWith("mp:") || resolved.startsWith("b7.") -> original
-            else -> original
-        }
-    }
+    // Image resolution and persistence are handled by `resolveAndPersistImages` in ResolveImages.kt
 
     suspend fun updateSong(
         song: Song,
@@ -242,107 +173,25 @@ class DiscordRPC(
         val smallImageTypePref = context.dataStore[DiscordSmallImageTypeKey] ?: "artist"
         val smallImageCustomPref = context.dataStore[DiscordSmallImageCustomUrlKey] ?: ""
 
-        // If the caller provided already-resolved image URLs, use them directly.
-        // Try saved artwork first (persisted by previous successful resolutions). Also seed
-        // the repository in-memory cache with these saved external URLs so repo.getImage
-        // and resolveOnce can return them quickly when asked with the original external URL.
-        val saved = ArtworkStorage.findBySongId(context, song.song.id)
-        if (saved != null) {
-            try {
-                // seed mapping: original thumbnail URL -> saved thumbnail
-                song.song.thumbnailUrl?.let { original ->
-                    if (!original.isBlank() && !saved.thumbnail.isNullOrBlank()) {
-                        repo.putToCache(original, saved.thumbnail)
-                    }
-                }
-                // seed mapping: original artist thumbnail -> saved artist
-                song.artists.firstOrNull()?.thumbnailUrl?.let { originalArtist ->
-                    if (!originalArtist.isBlank() && !saved.artist.isNullOrBlank()) {
-                        repo.putToCache(originalArtist, saved.artist)
-                    }
-                }
-            } catch (_: Exception) {
-            }
-        }
+        // Resolve images (and persist) using the shared helper in ResolveImages.kt.
+        // If callers provided already-resolved URLs, prefer those.
+        val (resolvedLargeFromResolver, resolvedSmallFromResolver) =
+            resolveAndPersistImages(context, song, isPaused)
 
         val finalLargeImage: RpcImage? = when {
             !resolvedLargeImageUrl.isNullOrBlank() -> RpcImage.ExternalImage(resolvedLargeImageUrl)
-            !saved?.thumbnail.isNullOrBlank() -> RpcImage.ExternalImage(saved!!.thumbnail!!)
-            else -> {
-                val largeImageRpc = pickImage(largeImageTypePref, largeImageCustomPref, song, false)
-                val resolvedLargeImage = resolveOnce(largeImageRpc)
-                val largeRequestedButFailed = largeImageRpc != null && resolvedLargeImage == null
-                if (largeRequestedButFailed) {
-                    Timber.tag(logtag).w("Large RPC image failed to resolve. Continuing without it.")
-                    // If we previously saved an artwork for this song, it might be stale. Remove it and
-                    // the associated repo cache mapping so a fresh resolve can be attempted next time.
-                    try {
-                        if (!saved?.thumbnail.isNullOrBlank()) {
-                            ArtworkStorage.removeBySongId(context, song.song.id)
-                            // remove mapping from original external URL -> saved thumbnail
-                            song.song.thumbnailUrl?.let { orig ->
-                                if (!orig.isBlank()) repo.removeCache(orig)
-                            }
-                        }
-                    } catch (_: Exception) {
-                    }
-                }
-                // If resolved to an external http(s) url, persist it
-                if (!resolvedLargeImage.isNullOrBlank() && (resolvedLargeImage.startsWith("http://") || resolvedLargeImage.startsWith("https://"))) {
-                    try {
-                        val updated = SavedArtwork(songId = song.song.id, thumbnail = resolvedLargeImage, artist = saved?.artist)
-                        ArtworkStorage.saveOrUpdate(context, updated)
-                        // also seed the repo in-memory cache so future resolves are instant
-                        repo.putToCache(when (largeImageRpc) {
-                            is RpcImage.ExternalImage -> largeImageRpc.image
-                            else -> null
-                        }, resolvedLargeImage)
-                    } catch (e: Exception) {
-                        Timber.tag(logtag).v(e, "failed to persist large image")
-                    }
-                }
-                wrapResolved(largeImageRpc, resolvedLargeImage)
-            }
+            largeImageTypePref.lowercase() == "appicon" -> RpcImage.DiscordImage("appicon")
+            !resolvedLargeFromResolver.isNullOrBlank() -> RpcImage.ExternalImage(resolvedLargeFromResolver)
+            else -> null
         }
 
         val finalSmallImage: RpcImage? = when {
             !resolvedSmallImageUrl.isNullOrBlank() -> RpcImage.ExternalImage(resolvedSmallImageUrl)
-            !saved?.artist.isNullOrBlank() -> RpcImage.ExternalImage(saved!!.artist!!)
-            else -> {
-                val smallImageRpc = when {
-                    smallImageTypePref.lowercase() in listOf("none", "dontshow") -> null
-                    isPaused -> RpcImage.ExternalImage(PAUSE_IMAGE_URL)
-                    else -> pickImage(smallImageTypePref, smallImageCustomPref, song, true)
-                }
-                val resolvedSmallImage = resolveOnce(smallImageRpc)
-                val smallRequestedButFailed = smallImageRpc != null && resolvedSmallImage == null
-                if (smallRequestedButFailed) {
-                    Timber.tag(logtag).w("Small RPC image failed to resolve. Continuing without it.")
-                    try {
-                        if (!saved?.artist.isNullOrBlank()) {
-                            ArtworkStorage.removeBySongId(context, song.song.id)
-                            song.artists.firstOrNull()?.thumbnailUrl?.let { orig ->
-                                if (!orig.isBlank()) repo.removeCache(orig)
-                            }
-                        }
-                    } catch (_: Exception) {
-                    }
-                }
-                // Persist artist image when resolved to external http(s)
-                if (!resolvedSmallImage.isNullOrBlank() && (resolvedSmallImage.startsWith("http://") || resolvedSmallImage.startsWith("https://"))) {
-                    try {
-                        val updated = SavedArtwork(songId = song.song.id, thumbnail = saved?.thumbnail, artist = resolvedSmallImage)
-                        ArtworkStorage.saveOrUpdate(context, updated)
-                        repo.putToCache(when (smallImageRpc) {
-                            is RpcImage.ExternalImage -> smallImageRpc.image
-                            else -> null
-                        }, resolvedSmallImage)
-                    } catch (e: Exception) {
-                        Timber.tag(logtag).v(e, "failed to persist small image")
-                    }
-                }
-                wrapResolved(smallImageRpc, resolvedSmallImage)
-            }
+            smallImageTypePref.lowercase() in listOf("none", "dontshow") -> null
+            isPaused -> RpcImage.ExternalImage(PAUSE_IMAGE_URL)
+            smallImageTypePref.lowercase() == "appicon" -> RpcImage.DiscordImage("appicon")
+            !resolvedSmallFromResolver.isNullOrBlank() -> RpcImage.ExternalImage(resolvedSmallFromResolver)
+            else -> null
         }
 
         val largeTextSource = (context.dataStore[DiscordLargeTextSourceKey] ?: "album").lowercase()
