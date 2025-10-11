@@ -274,6 +274,18 @@ class DiscordRPC(
                 val largeRequestedButFailed = largeImageRpc != null && resolvedLargeImage == null
                 if (largeRequestedButFailed) {
                     Timber.tag(logtag).w("Large RPC image failed to resolve. Continuing without it.")
+                    // If we previously saved an artwork for this song, it might be stale. Remove it and
+                    // the associated repo cache mapping so a fresh resolve can be attempted next time.
+                    try {
+                        if (!saved?.thumbnail.isNullOrBlank()) {
+                            ArtworkStorage.removeBySongId(context, song.song.id)
+                            // remove mapping from original external URL -> saved thumbnail
+                            song.song.thumbnailUrl?.let { orig ->
+                                if (!orig.isBlank()) repo.removeCache(orig)
+                            }
+                        }
+                    } catch (_: Exception) {
+                    }
                 }
                 // If resolved to an external http(s) url, persist it
                 if (!resolvedLargeImage.isNullOrBlank() && (resolvedLargeImage.startsWith("http://") || resolvedLargeImage.startsWith("https://"))) {
@@ -305,6 +317,15 @@ class DiscordRPC(
                 val smallRequestedButFailed = smallImageRpc != null && resolvedSmallImage == null
                 if (smallRequestedButFailed) {
                     Timber.tag(logtag).w("Small RPC image failed to resolve. Continuing without it.")
+                    try {
+                        if (!saved?.artist.isNullOrBlank()) {
+                            ArtworkStorage.removeBySongId(context, song.song.id)
+                            song.artists.firstOrNull()?.thumbnailUrl?.let { orig ->
+                                if (!orig.isBlank()) repo.removeCache(orig)
+                            }
+                        }
+                    } catch (_: Exception) {
+                    }
                 }
                 // Persist artist image when resolved to external http(s)
                 if (!resolvedSmallImage.isNullOrBlank() && (resolvedSmallImage.startsWith("http://") || resolvedSmallImage.startsWith("https://"))) {
