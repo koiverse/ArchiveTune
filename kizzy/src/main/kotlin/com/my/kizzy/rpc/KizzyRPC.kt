@@ -84,9 +84,7 @@ open class KizzyRPC(private val token: String, private val injectedLogger: Kizzy
         try {
             logger.info("Resolved assets: large=$resolvedLarge small=$resolvedSmall")
         } catch (_: Exception) {}
-
-        // If applicationId is provided, only send it when it's meaningful (non-null and buttons exist).
-        val finalApplicationId = applicationId.takeIf { !buttons.isNullOrEmpty() }
+        val finalApplicationId = applicationId
 
         return Presence(
             activities = listOf(
