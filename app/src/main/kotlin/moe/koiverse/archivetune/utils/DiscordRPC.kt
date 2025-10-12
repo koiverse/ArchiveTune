@@ -188,13 +188,16 @@ class DiscordRPC(
             else -> null
         }
 
+        // Small image selection: user 'custom' preference must take top priority.
+        // If the user explicitly chose custom, ignore any resolvedSmallImageUrl passed by callers.
         val finalSmallImage: RpcImage? = when {
-            !resolvedSmallImageUrl.isNullOrBlank() -> resolvedSmallImageUrl.toRpcImage()
             smallImageTypePref.lowercase() == "custom" ->
-            smallImageCustomPref.takeIf { it.startsWith("http") }?.toRpcImage()
+                // only accept explicit http(s) custom URLs
+                smallImageCustomPref.takeIf { it.startsWith("http") }?.toRpcImage()
             smallImageTypePref.lowercase() in listOf("none", "dontshow") -> null
             isPaused -> PAUSE_IMAGE_URL.toRpcImage()
             smallImageTypePref.lowercase() == "appicon" -> RpcImage.DiscordImage("appicon")
+            !resolvedSmallImageUrl.isNullOrBlank() -> resolvedSmallImageUrl.toRpcImage()
             !resolvedSmallFromResolver.isNullOrBlank() -> resolvedSmallFromResolver.toRpcImage()
             else -> null
         }
