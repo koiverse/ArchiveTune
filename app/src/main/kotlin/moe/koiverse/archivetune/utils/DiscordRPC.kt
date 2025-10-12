@@ -181,6 +181,8 @@ class DiscordRPC(
 
         val finalLargeImage: RpcImage? = when {
             !resolvedLargeImageUrl.isNullOrBlank() -> resolvedLargeImageUrl.toRpcImage()
+            largeImageTypePref.lowercase() == "custom" ->
+            largeImageCustomPref.takeIf { it.startsWith("http") }?.toRpcImage()
             largeImageTypePref.lowercase() == "appicon" -> RpcImage.DiscordImage("appicon")
             !resolvedLargeFromResolver.isNullOrBlank() -> resolvedLargeFromResolver.toRpcImage()
             else -> null
@@ -188,12 +190,15 @@ class DiscordRPC(
 
         val finalSmallImage: RpcImage? = when {
             !resolvedSmallImageUrl.isNullOrBlank() -> resolvedSmallImageUrl.toRpcImage()
+            smallImageTypePref.lowercase() == "custom" ->
+            smallImageCustomPref.takeIf { it.startsWith("http") }?.toRpcImage()
             smallImageTypePref.lowercase() in listOf("none", "dontshow") -> null
             isPaused -> PAUSE_IMAGE_URL.toRpcImage()
             smallImageTypePref.lowercase() == "appicon" -> RpcImage.DiscordImage("appicon")
             !resolvedSmallFromResolver.isNullOrBlank() -> resolvedSmallFromResolver.toRpcImage()
             else -> null
         }
+
 
         val largeTextSource = (context.dataStore[DiscordLargeTextSourceKey] ?: "album").lowercase()
         val resolvedLargeText = when (largeTextSource) {
