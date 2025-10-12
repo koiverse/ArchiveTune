@@ -97,13 +97,12 @@ suspend fun resolveAndPersistImages(context: Context, song: Song, isPaused: Bool
         }
 
 
-        // Try saved values first — but ignore saved values that are the pause image.
         val resolvedLargeFromSaved = saved?.thumbnail?.asHttp()?.takeIf { it != PAUSE_IMAGE_URL }
         val smallPrefLower = smallImageTypePref.lowercase()
         val allowSavedSmall = when {
             smallPrefLower in listOf("none", "dontshow", "appicon", "app") -> false
             isPaused -> false
-            smallPrefLower in listOf("song", "artist", "thumbnail", "album", "custom") -> true
+            smallPrefLower in listOf("song", "artist", "thumbnail", "album") -> true
             else -> true
         }
 
