@@ -289,20 +289,23 @@ LaunchedEffect(discordToken, discordRPC) {
                     coroutineScope.launch {
                        isRefreshing = true
                        val start = System.currentTimeMillis()
+                       val smallTypePref = context.dataStore[DiscordSmallImageTypeKey] ?: "artist"
+                       val resolvedSmallToPass = if (smallTypePref.lowercase() == "custom") {
+                           null
+                       } else {
+                           song?.artists?.firstOrNull()?.thumbnailUrl
+                       }
+
                        val success = DiscordPresenceManager.updatePresence(
-                       context = context,
-                       token = discordToken,
-                       song = song,
-                             positionMs = playerConnection.player.currentPosition,
-                             isPaused = !(playerConnection.player.playWhenReady &&
-                              playerConnection.player.playbackState == STATE_READY),
-                             // pass resolved URLs we already have from the Song object
-                             // to avoid extra resolution work inside DiscordRPC
-                             // (nullable if unavailable)
-                             // large = song thumbnail, small = first artist thumbnail
-                             resolvedLargeImageUrl = song?.song?.thumbnailUrl,
-                             resolvedSmallImageUrl = song?.artists?.firstOrNull()?.thumbnailUrl
-                     )
+                           context = context,
+                           token = discordToken,
+                           song = song,
+                           positionMs = playerConnection.player.currentPosition,
+                           isPaused = !(playerConnection.player.playWhenReady &&
+                                   playerConnection.player.playbackState == STATE_READY),
+                           resolvedLargeImageUrl = song?.song?.thumbnailUrl,
+                           resolvedSmallImageUrl = resolvedSmallToPass
+                       )
                        isRefreshing = false
                         // Show snackbar on main thread
                         withContext(Dispatchers.Main) {
