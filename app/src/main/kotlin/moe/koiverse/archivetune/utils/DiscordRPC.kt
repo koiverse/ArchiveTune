@@ -27,6 +27,14 @@ class DiscordRPC(
 
     private val translationCache: MutableMap<String, String> = mutableMapOf()
     private var lastSongId: String? = null
+    // Remember last successfully resolved external image URLs so we can reuse them
+    // when resolution fails or when a pause-icon temporarily replaced them.
+    @Volatile
+    private var lastResolvedLargeUrl: String? = null
+    @Volatile
+    private var lastResolvedSmallUrl: String? = null
+    // lock used to synchronize reads/writes to the last-resolved fields
+    private val resolvedLock = Any()
 
     private fun pickSourceValue(pref: String, song: Song?, default: String): String = when (pref) {
         "ARTIST" -> song?.artists?.firstOrNull()?.name ?: default
@@ -66,10 +74,12 @@ class DiscordRPC(
         val currentTime = System.currentTimeMillis()
         val calculatedStartTime = currentTime - currentPlaybackTimeMillis
 
-        // Reset cache if song changes
+        // Reset cache and stored resolved images if song changes
         if (lastSongId != song.song.id) {
             translationCache.clear()
             lastSongId = song.song.id
+            lastResolvedLargeUrl = null
+            lastResolvedSmallUrl = null
         }
 
         val namePref = context.dataStore[DiscordActivityNameKey] ?: "APP"
@@ -174,31 +184,49 @@ class DiscordRPC(
         val smallImageTypePref = context.dataStore[DiscordSmallImageTypeKey] ?: "artist"
         val smallImageCustomPref = context.dataStore[DiscordSmallImageCustomUrlKey] ?: ""
 
-        // Resolve images (and persist) using the shared helper in ResolveImages.kt.
-        // If callers provided already-resolved URLs, prefer those.
         val (resolvedLargeFromResolver, resolvedSmallFromResolver) =
             resolveAndPersistImages(context, song, isPaused)
+
+        // Treat resolver results that equal the pause image as empty when not paused.
+        val safeResolvedLarge = resolvedLargeFromResolver?.takeIf { it.isNotBlank() && it != PAUSE_IMAGE_URL }
+        val safeResolvedSmall = resolvedSmallFromResolver?.takeIf { it.isNotBlank() && it != PAUSE_IMAGE_URL }
+
+        // Update the last-known resolved images atomically under a lock.
+        try {
+            synchronized(resolvedLock) {
+                if (!safeResolvedLarge.isNullOrBlank()) lastResolvedLargeUrl = safeResolvedLarge
+                if (!safeResolvedSmall.isNullOrBlank()) lastResolvedSmallUrl = safeResolvedSmall
+            }
+        } catch (_: Exception) { }
+
+        // snapshot the last-resolved urls under the lock to avoid races during selection
+        val lastLargeSnapshot: String?
+        val lastSmallSnapshot: String?
+        synchronized(resolvedLock) {
+            lastLargeSnapshot = lastResolvedLargeUrl
+            lastSmallSnapshot = lastResolvedSmallUrl
+        }
 
         val finalLargeImage: RpcImage? = when {
             !resolvedLargeImageUrl.isNullOrBlank() -> resolvedLargeImageUrl.toRpcImage()
             largeImageTypePref.lowercase() == "custom" ->
-            largeImageCustomPref.takeIf { it.startsWith("http") }?.toRpcImage()
+                largeImageCustomPref.takeIf { it.startsWith("http") }?.toRpcImage()
             largeImageTypePref.lowercase() == "appicon" -> RpcImage.DiscordImage("appicon")
-            !resolvedLargeFromResolver.isNullOrBlank() -> resolvedLargeFromResolver.toRpcImage()
+            !safeResolvedLarge.isNullOrBlank() -> safeResolvedLarge!!.toRpcImage()
+            !lastLargeSnapshot.isNullOrBlank() -> lastLargeSnapshot!!.toRpcImage()
             else -> null
         }
 
-        // Small image selection: user 'custom' preference must take top priority.
-        // If the user explicitly chose custom, ignore any resolvedSmallImageUrl passed by callers.
         val finalSmallImage: RpcImage? = when {
             smallImageTypePref.lowercase() == "custom" ->
-                // only accept explicit http(s) custom URLs
                 smallImageCustomPref.takeIf { it.startsWith("http") }?.toRpcImage()
             smallImageTypePref.lowercase() in listOf("none", "dontshow") -> null
             isPaused -> PAUSE_IMAGE_URL.toRpcImage()
             smallImageTypePref.lowercase() == "appicon" -> RpcImage.DiscordImage("appicon")
             !resolvedSmallImageUrl.isNullOrBlank() -> resolvedSmallImageUrl.toRpcImage()
-            !resolvedSmallFromResolver.isNullOrBlank() -> resolvedSmallFromResolver.toRpcImage()
+            // prefer resolver result (filtered), otherwise use last-known resolved value
+            !safeResolvedSmall.isNullOrBlank() -> safeResolvedSmall!!.toRpcImage()
+            !lastSmallSnapshot.isNullOrBlank() -> lastSmallSnapshot!!.toRpcImage()
             else -> null
         }
 
