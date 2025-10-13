@@ -111,7 +111,6 @@ import moe.koiverse.archivetune.playback.queues.YouTubeQueue
 import moe.koiverse.archivetune.playback.queues.filterExplicit
 import moe.koiverse.archivetune.utils.CoilBitmapLoader
 import moe.koiverse.archivetune.utils.DiscordRPC
-import moe.koiverse.archivetune.utils.resolveAndPersistImages
 import moe.koiverse.archivetune.ui.screens.settings.DiscordPresenceManager
 import moe.koiverse.archivetune.utils.SyncUtils
 import moe.koiverse.archivetune.utils.YTPlayerUtils
@@ -1005,23 +1004,6 @@ class MusicService :
         saveQueueToDisk()
     }
     ensurePresenceManager()
-
-    // Immediately resolve images so UI / RPC can show thumbnails & artist cover right away
-    scope.launch {
-        try {
-            val cur = currentSong.first()
-            if (cur != null) {
-                val (large, small) = resolveAndPersistImages(this@MusicService, cur, player.playbackState != STATE_IDLE && !player.playWhenReady)
-                discordRpc?.let { rpc ->
-                    try {
-                        rpc.updateSong(cur, player.currentPosition, isPaused = !player.playWhenReady, resolvedLargeImageUrl = large, resolvedSmallImageUrl = small)
-                    } catch (_: Exception) { }
-                }
-            }
-        } catch (e: Exception) {
-            Timber.tag("MusicService").v(e, "resolve images on transition failed")
-        }
-    }
 }
 
     override fun onPlaybackStateChanged(@Player.State playbackState: Int) {
@@ -1031,23 +1013,6 @@ class MusicService :
         saveQueueToDisk()
     }
     ensurePresenceManager()
-
-    // When play state changes, resolve images immediately so presence updates quickly
-    scope.launch {
-        try {
-            val cur = currentSong.first()
-            if (cur != null) {
-                val (large, small) = resolveAndPersistImages(this@MusicService, cur, playbackState == STATE_IDLE || !player.playWhenReady)
-                discordRpc?.let { rpc ->
-                    try {
-                        rpc.updateSong(cur, player.currentPosition, isPaused = player.playbackState != Player.STATE_READY || !player.playWhenReady, resolvedLargeImageUrl = large, resolvedSmallImageUrl = small)
-                    } catch (_: Exception) { }
-                }
-            }
-        } catch (e: Exception) {
-            Timber.tag("MusicService").v(e, "resolve images on playstate failed")
-        }
-    }
 }
 
 
@@ -1069,43 +1034,10 @@ class MusicService :
 
     if (events.containsAny(EVENT_TIMELINE_CHANGED, EVENT_POSITION_DISCONTINUITY)) {
         currentMediaMetadata.value = player.currentMetadata
-
-        // Resolve images immediately on timeline change
-        scope.launch {
-            try {
-                val cur = currentSong.first()
-                if (cur != null) {
-                    val (large, small) = resolveAndPersistImages(this@MusicService, cur, player.playbackState != STATE_IDLE && !player.playWhenReady)
-                    discordRpc?.let { rpc ->
-                        try {
-                            rpc.updateSong(cur, player.currentPosition, isPaused = !player.playWhenReady, resolvedLargeImageUrl = large, resolvedSmallImageUrl = small)
-                        } catch (_: Exception) { }
-                    }
-                }
-            } catch (e: Exception) {
-                Timber.tag("MusicService").v(e, "resolve images on timeline failed")
-            }
-        }
     }
 
    if (events.containsAny(Player.EVENT_IS_PLAYING_CHANGED)) {
         ensurePresenceManager()
-        // when playing starts/stops, refresh images immediately
-        scope.launch {
-            try {
-                val cur = currentSong.first()
-                if (cur != null) {
-                    val (large, small) = resolveAndPersistImages(this@MusicService, cur, player.playbackState != STATE_IDLE && !player.playWhenReady)
-                    discordRpc?.let { rpc ->
-                        try {
-                            rpc.updateSong(cur, player.currentPosition, isPaused = !player.playWhenReady, resolvedLargeImageUrl = large, resolvedSmallImageUrl = small)
-                        } catch (_: Exception) { }
-                    }
-                }
-            } catch (e: Exception) {
-                Timber.tag("MusicService").v(e, "resolve images on playing changed failed")
-            }
-        }
     } else if (events.contains(Player.EVENT_MEDIA_ITEM_TRANSITION)) {
         ensurePresenceManager()
     } else {
