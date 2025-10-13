@@ -290,7 +290,7 @@ LaunchedEffect(discordToken, discordRPC) {
                     coroutineScope.launch {
                        isRefreshing = true
                        val start = System.currentTimeMillis()
-                       val smallTypePref = context.dataStore[DiscordSmallImageTypeKey] ?: "artist"
+                       val smallTypePref = context.dataStore.get(DiscordSmallImageTypeKey) ?: "artist"
                        val resolvedSmallToPass = if (smallTypePref.lowercase() == "custom") {
                            null
                        } else {
