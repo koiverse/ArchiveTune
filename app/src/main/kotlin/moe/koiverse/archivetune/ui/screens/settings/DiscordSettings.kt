@@ -292,10 +292,12 @@ LaunchedEffect(discordToken, discordRPC) {
                        isRefreshing = true
                        val start = System.currentTimeMillis()
                        val smallTypePref = context.dataStore.get(DiscordSmallImageTypeKey) ?: "artist"
-                       val resolvedSmallToPass = if (smallTypePref.lowercase() == "custom") {
-                           null
-                       } else {
-                           song?.artists?.firstOrNull()?.thumbnailUrl
+                       val resolvedSmallToPass = when (smallTypePref.lowercase()) {
+                           "custom" -> null
+                           "artist" -> song?.artists?.firstOrNull()?.thumbnailUrl
+                           "song", "thumbnail", "album" -> song?.song?.thumbnailUrl
+                           "appicon", "app", "none", "dontshow" -> null
+                           else -> song?.artists?.firstOrNull()?.thumbnailUrl
                        }
 
                        val success = DiscordPresenceManager.updatePresence(
