@@ -57,11 +57,17 @@ class DiscordRPC(
 
     private fun String?.toExternal(): RpcImage? {
         if (this == null) return null
-        return if (startsWith("http://") || startsWith("https://")) {
-            RpcImage.ExternalImage(this)
-        } else {
-            Timber.tag(logtag).v("Skipping non-http image for RPC: %s", this)
-            null
+        return when {
+            startsWith("http://", ignoreCase = true) || startsWith("https://", ignoreCase = true) -> RpcImage.ExternalImage(this)
+            startsWith("mp:") || startsWith("b7.") -> RpcImage.ExternalImage(this)
+            else -> {
+                val normalized = normalizeUrl(this)
+                if (!normalized.isNullOrBlank()) RpcImage.ExternalImage(normalized)
+                else {
+                    Timber.tag(logtag).v("Skipping non-http image for RPC: %s", this)
+                    null
+                }
+            }
         }
     }
 
@@ -190,11 +196,29 @@ class DiscordRPC(
         }
         // --- End Translator ---
 
+        val activityName = when (namePref.uppercase()) {
+            "ARTIST" -> translatedMap["{artist}"] ?: pickSourceValue(namePref, song, context.getString(R.string.app_name))
+            "ALBUM" -> translatedMap["{album}"] ?: pickSourceValue(namePref, song, context.getString(R.string.app_name))
+            "SONG" -> translatedMap["{song}"] ?: pickSourceValue(namePref, song, context.getString(R.string.app_name))
+            "APP" -> context.getString(R.string.app_name)
+            else -> pickSourceValue(namePref, song, context.getString(R.string.app_name))
+        }
 
-        // Update translation mapping keys as per corrected context
-        val activityName = translatedMap["{album}"] ?: pickSourceValue(namePref, song, context.getString(R.string.app_name))
-        val activityDetails = translatedMap["{song}"] ?: pickSourceValue(detailsPref, song, song.song.title)
-        val activityState = translatedMap["{artist}"] ?: pickSourceValue(statePref, song, song.artists.joinToString { it.name })
+        val activityDetails = when (detailsPref.uppercase()) {
+            "ARTIST" -> translatedMap["{artist}"] ?: pickSourceValue(detailsPref, song, song.song.title)
+            "ALBUM" -> translatedMap["{album}"] ?: pickSourceValue(detailsPref, song, song.song.title)
+            "SONG" -> translatedMap["{song}"] ?: pickSourceValue(detailsPref, song, song.song.title)
+            "APP" -> context.getString(R.string.app_name)
+            else -> pickSourceValue(detailsPref, song, song.song.title)
+        }
+
+        val activityState = when (statePref.uppercase()) {
+            "ARTIST" -> translatedMap["{artist}"] ?: pickSourceValue(statePref, song, song.artists.joinToString { it.name })
+            "ALBUM" -> translatedMap["{album}"] ?: pickSourceValue(statePref, song, song.artists.joinToString { it.name })
+            "SONG" -> translatedMap["{song}"] ?: pickSourceValue(statePref, song, song.artists.joinToString { it.name })
+            "APP" -> context.getString(R.string.app_name)
+            else -> pickSourceValue(statePref, song, song.artists.joinToString { it.name })
+        }
 
         val baseSongUrl = "https://music.youtube.com/watch?v=${song.song.id}"
 
