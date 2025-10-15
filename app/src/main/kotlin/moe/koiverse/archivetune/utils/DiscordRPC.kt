@@ -326,19 +326,21 @@ class DiscordRPC(
         val sendSmallText = if (isPaused) {
             context.getString(R.string.discord_paused)
         } else {
-            when (smallImageTypePref.lowercase()) {
+            val baseSmallText = when (smallImageTypePref.lowercase()) {
                 "song" -> translatedMap["{song}"] ?: song.song.title
                 "artist" -> translatedMap["{artist}"] ?: song.artists.firstOrNull()?.name
-                // thumbnail is commonly the album cover, so use album text
                 "thumbnail", "album" -> translatedMap["{album}"] ?: song.song.albumName ?: song.album?.title
                 "appicon", "app" -> context.getString(R.string.app_name)
                 "custom" -> song.artists.firstOrNull()?.name
                 else -> translatedMap["{artist}"] ?: song.artists.firstOrNull()?.name
             }
+            "$baseSmallText on ArchiveTune"
         }
 
+
+        val hasHoverText = !resolvedLargeText.isNullOrBlank() || !sendSmallText.isNullOrBlank()
         val applicationIdToSend =
-            if (finalLargeImage is RpcImage.DiscordImage || finalSmallImage is RpcImage.DiscordImage) APPLICATION_ID else null
+            if (hasHoverText) APPLICATION_ID else null
 
         val platformPref = context.dataStore[DiscordActivityPlatformKey] ?: "desktop"
         this.setPlatform(platformPref)
@@ -362,8 +364,8 @@ class DiscordRPC(
                     detailsUrl = baseSongUrl,
                     largeImage = finalLargeImage,
                     smallImage = finalSmallImage,
-                    largeText = resolvedLargeText,
-                    smallText = sendSmallText,
+                    largeText = resolvedLargeText ?: "",
+                    smallText = sendSmallText ?: "",
                     buttons = finalButtons,
                     type = resolvedType,
                     statusDisplayType = StatusDisplayType.STATE,
@@ -381,8 +383,8 @@ class DiscordRPC(
                     detailsUrl = baseSongUrl,
                     largeImage = finalLargeImage,
                     smallImage = finalSmallImage,
-                    largeText = resolvedLargeText,
-                    smallText = sendSmallText,
+                    largeText = resolvedLargeText ?: "",
+                    smallText = sendSmallText ?: "",
                     type = resolvedType,
                     statusDisplayType = StatusDisplayType.STATE,
                     since = sendSince,
