@@ -244,6 +244,8 @@
     <string name="cancel_button">キャンセル</string>
     <string name="ok_button">OK</string>
     <string name="custom_radius">サムネイルの角の半径をカスタマイズ</string>
+    <string name="custom">カスタム</string>
+    <string name="custom_value">カスタム値</string>
     <string name="new_library_design">新しいライブラリのデザイン</string>
     <string name="new_library_design_description">新しいライブラリのデザインを有効にする(不安定な可能性があります)</string>
     <string name="show_button1_description">Discord Richのボタン1の表示を切り替え プレゼンス</string>
@@ -364,6 +366,15 @@
     <string name="discord_activity_button1_url">ボタン 1 カスタム URL</string>
     <string name="discord_activity_button2_label">ボタン 2ラベル</string>
     <string name="discord_activity_button2_url">ボタン 2 カスタム URL</string>
+    <string name="large_image_custom_url">大きな画像のカスタムURL</string>
+    <string name="large_text">大きなテキスト</string>
+    <string name="custom_large_text">カスタム大きなテキスト</string>
+    <string name="small_image">小さな画像</string>
+    <string name="small_image_custom_url">小さな画像のカスタムURL</string>
+    <string name="activity_status">アクティビティステータス</string>
+    <string name="platform_status">プラットフォーム</string>
+    <string name="update_interval">プレゼンス更新間隔</string>
+
 
     <!--Discord Tranalstor Settings-->
     <string name="translator_options">トランスレーター オプション</string>

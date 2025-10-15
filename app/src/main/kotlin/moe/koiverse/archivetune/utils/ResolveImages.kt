@@ -75,20 +75,38 @@ suspend fun resolveAndPersistImages(context: Context, song: Song, isPaused: Bool
             else -> song.song.thumbnailUrl
         }
 
+        // --- small image resolution ---
         val originalSmallCandidate = when {
+            // user explicitly disabled small image
             smallImageTypePref.lowercase() in listOf("none", "dontshow") -> null
+            // ✅ only override the small image when paused; keep large image untouched
             isPaused -> PAUSE_IMAGE_URL
+            // song cover as small image
             smallImageTypePref.lowercase() == "song" -> song.song.thumbnailUrl
+            // artist profile picture
             smallImageTypePref.lowercase() == "artist" -> song.artists.firstOrNull()?.thumbnailUrl
+            // album cover
             smallImageTypePref.lowercase() == "thumbnail" || smallImageTypePref.lowercase() == "album" -> song.song.thumbnailUrl
+            // app icon (handled later as Discord internal asset, so no HTTP here)
             smallImageTypePref.lowercase() == "appicon" || smallImageTypePref.lowercase() == "app" -> null
-            smallImageTypePref.lowercase() == "custom" -> smallImageCustomPref.takeIf { it.isNotBlank() } ?: song.artists.firstOrNull()?.thumbnailUrl
+            // ✅ handle custom URLs correctly
+            smallImageTypePref.lowercase() == "custom" ->
+                smallImageCustomPref.takeIf { it.isNotBlank() } ?: song.artists.firstOrNull()?.thumbnailUrl
+            // fallback: artist image
             else -> song.artists.firstOrNull()?.thumbnailUrl
         }
 
-    // Try saved values first — but ignore saved values that are the pause image.
+
         val resolvedLargeFromSaved = saved?.thumbnail?.asHttp()?.takeIf { it != PAUSE_IMAGE_URL }
-        val resolvedSmallFromSaved = saved?.artist?.asHttp()?.takeIf { it != PAUSE_IMAGE_URL }
+        val smallPrefLower = smallImageTypePref.lowercase()
+        val allowSavedSmall = when {
+            smallPrefLower in listOf("none", "dontshow", "appicon", "app") -> false
+            isPaused -> false
+            smallPrefLower in listOf("song", "artist", "thumbnail", "album") -> true
+            else -> true
+        }
+
+        val resolvedSmallFromSaved = if (allowSavedSmall) saved?.artist?.asHttp()?.takeIf { it != PAUSE_IMAGE_URL } else null
 
         var finalLarge: String? = null
         var finalSmall: String? = null

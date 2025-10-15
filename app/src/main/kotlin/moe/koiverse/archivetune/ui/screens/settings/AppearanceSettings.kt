@@ -94,11 +94,13 @@ import moe.koiverse.archivetune.ui.component.PlayerSliderTrack
 import moe.koiverse.archivetune.ui.component.PreferenceEntry
 import moe.koiverse.archivetune.ui.component.PreferenceGroupTitle
 import moe.koiverse.archivetune.ui.component.SwitchPreference
+import moe.koiverse.archivetune.ui.component.ThumbnailCornerRadiusSelectorButton
 import moe.koiverse.archivetune.ui.utils.backToMain
 import moe.koiverse.archivetune.utils.rememberEnumPreference
 import moe.koiverse.archivetune.utils.rememberPreference
 import me.saket.squiggles.SquigglySlider
 import kotlin.math.roundToInt
+import timber.log.Timber
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -444,165 +446,14 @@ fun AppearanceSettings(
             checked = hidePlayerThumbnail,
             onCheckedChange = onHidePlayerThumbnailChange
         )
+      
 
- var showCornerRadiusDialog by rememberSaveable { mutableStateOf(false) }
-
- if (showCornerRadiusDialog) {
-    var tempRadius by remember { mutableFloatStateOf(thumbnailCornerRadius) }
-
-    DefaultDialog(
-        onDismiss = { showCornerRadiusDialog = false },
-        buttons = {
-            TextButton(onClick = { showCornerRadiusDialog = false }) {
-                Text(text = stringResource(R.string.cancel_button))
+        ThumbnailCornerRadiusSelectorButton(
+            modifier = Modifier.padding(16.dp),
+            onRadiusSelected = { selectedRadius ->
+                Timber.tag("Thumbnail").d("Radius Selector: $selectedRadius")
             }
-            TextButton(onClick = {
-                onThumbnailCornerRadiusChange(tempRadius)
-                showCornerRadiusDialog = false
-            }) {
-                Text(text = stringResource(R.string.ok_button))
-            }
-        }
-    ) {
-        var customValue by rememberSaveable { mutableStateOf("") }
-        val presets = listOf(0, 8, 16, 24, 32, 40)
-
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.padding(16.dp)
-        ) {
-            // Preview with dp overlay
-            Box(contentAlignment = Alignment.BottomCenter) {
-                Image(
-                    painter = painterResource(R.drawable.ic_music_placeholder),
-                    contentDescription = null,
-                    modifier = Modifier
-                        .size(140.dp)
-                        .clip(RoundedCornerShape(tempRadius.dp))
-                )
-                Text(
-                    text = "${tempRadius.roundToInt()}dp",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier
-                        .background(
-                            MaterialTheme.colorScheme.surface.copy(alpha = 0.75f),
-                            RoundedCornerShape(6.dp)
-                        )
-                        .padding(horizontal = 8.dp, vertical = 2.dp)
-                )
-            }
-
-            Spacer(Modifier.height(16.dp))
-
-            // Preset chips
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                presets.forEach { preset ->
-            val selected = tempRadius.roundToInt() == preset
-            SuggestionChip(
-            onClick = {
-            tempRadius = preset.toFloat()
-            customValue = "" // reset custom
-            },
-            label = { Text("$preset") },
-            enabled = true,
-            modifier = Modifier.weight(1f),
-            colors = SuggestionChipDefaults.suggestionChipColors(
-                containerColor = if (selected) MaterialTheme.colorScheme.primary
-                else MaterialTheme.colorScheme.surfaceVariant,
-                labelColor = if (selected) MaterialTheme.colorScheme.onPrimary
-                else MaterialTheme.colorScheme.onSurfaceVariant
-            ),
-            border = BorderStroke(
-                width = if (selected) 2.dp else 1.dp,
-                color = if (selected) MaterialTheme.colorScheme.primary
-                else MaterialTheme.colorScheme.outlineVariant
-            )
         )
-    }
-            }
-
-            Spacer(Modifier.height(12.dp))
-
-            // Custom chip + input
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                val isCustom = customValue.isNotEmpty()
-                SuggestionChip(
-                onClick = {
-                if (!isCustom) customValue = tempRadius.roundToInt().toString()
-                },
-                label = { Text("Custom") },
-                enabled = true,
-                modifier = Modifier.weight(1f),
-                colors = SuggestionChipDefaults.suggestionChipColors(
-                    containerColor = if (isCustom) MaterialTheme.colorScheme.primary
-                    else MaterialTheme.colorScheme.surfaceVariant,
-                    labelColor = if (isCustom) MaterialTheme.colorScheme.onPrimary
-                    else MaterialTheme.colorScheme.onSurfaceVariant
-                ),
-                border = BorderStroke(
-                    width = if (isCustom) 2.dp else 1.dp,
-                    color = if (isCustom) MaterialTheme.colorScheme.primary
-                    else MaterialTheme.colorScheme.outlineVariant
-            )
-        )
-
-
-
-                if (isCustom) {
-                    OutlinedTextField(
-                        value = customValue,
-                        onValueChange = {
-                            customValue = it.filter { c -> c.isDigit() }
-                            tempRadius = customValue.toFloatOrNull() ?: tempRadius
-                        },
-                        modifier = Modifier.weight(1f),
-                        singleLine = true,
-                        suffix = { Text("dp") }
-                    )
-                }
-            }
-
-            Spacer(Modifier.height(16.dp))
-
-            // Slider
-            Text(
-                text = stringResource(R.string.adjust_radius),
-                style = MaterialTheme.typography.labelLarge,
-                modifier = Modifier.fillMaxWidth()
-            )
-            Slider(
-                value = tempRadius,
-                onValueChange = { value ->
-                    tempRadius = value
-                    customValue = "" // reset custom when slider used
-                },
-                valueRange = 0f..45f,
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            Text(
-                stringResource(R.string.corner_radius, tempRadius.roundToInt()),
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.padding(top = 4.dp)
-            )
-        }
-    }
-}
-
-       PreferenceEntry(
-         title = { Text(stringResource(R.string.custom_radius)) },
-         description = "${thumbnailCornerRadius.roundToInt()} dp",
-         icon = { Icon(painterResource(R.drawable.image), null) },
-         onClick = { showCornerRadiusDialog = true }
-      )
 
 
         EnumListPreference(

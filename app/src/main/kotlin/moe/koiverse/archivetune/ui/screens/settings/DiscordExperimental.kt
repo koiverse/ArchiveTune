@@ -42,7 +42,7 @@ fun DiscordExperimental(
             LazyColumn(
                 modifier = Modifier
                     .padding(inner.calculateBottomPadding())
-                    .padding(bottom = 80.dp, start = 16.dp, end = 16.dp) // extra space for mini player
+                    .padding(bottom = 80.dp) // extra space for mini player
             ) {
                 item {
                     Text(

@@ -104,6 +104,7 @@ import androidx.compose.ui.util.fastFirstOrNull
 import androidx.compose.ui.util.fastForEach
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.text.font.FontWeight
 import androidx.core.net.toUri
 import androidx.core.util.Consumer
 import androidx.core.view.WindowCompat
@@ -329,7 +330,8 @@ class MainActivity : ComponentActivity() {
                     val updateSheetContent: @Composable ColumnScope.() -> Unit = { // receiver: ColumnScope
                         Text(
                             text = stringResource(R.string.new_update_available),
-                            style = MaterialTheme.typography.titleLarge,
+                            style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
+                            modifier = Modifier.padding(top = 16.dp)
                         )
 
                         Spacer(Modifier.height(8.dp))
@@ -338,8 +340,8 @@ class MainActivity : ComponentActivity() {
                             onClick = {},
                             shape = CircleShape,
                             contentPadding = androidx.compose.foundation.layout.PaddingValues(
-                                horizontal = 12.dp,
-                                vertical = 6.dp
+                                horizontal = 5.dp,
+                                vertical = 5.dp
                             )
                         ) {
                             Text(text = latestVersionName, style = MaterialTheme.typography.labelLarge)
@@ -349,7 +351,7 @@ class MainActivity : ComponentActivity() {
 
                         Box(modifier = Modifier
                             .fillMaxWidth()
-                            .height(240.dp)
+                            .weight(1f, fill = false)
                             .verticalScroll(rememberScrollState())
                         ) {
                             val notes = releaseNotesState.value
@@ -804,11 +806,21 @@ class MainActivity : ComponentActivity() {
                                 if (shouldShowTopBar) {
                                     TopAppBar(
                                         title = {
-                                            Text(
-                                                text = currentTitleRes?.let { stringResource(it) }
-                                                    ?: "",
-                                                style = MaterialTheme.typography.titleLarge,
-                                            )
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                // app icon
+                                                Icon(
+                                                    painter = painterResource(R.drawable.about_splash),
+                                                    contentDescription = null,
+                                                    modifier = Modifier
+                                                        .size(32.dp)
+                                                        .padding(end = 6.dp)
+                                                )
+
+                                                Text(
+                                                    text = stringResource(R.string.app_name),
+                                                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
+                                                )
+                                            }
                                         },
                                         actions = {
                                             IconButton(onClick = { navController.navigate("history") }) {
@@ -847,11 +859,10 @@ class MainActivity : ComponentActivity() {
                                                 }
                                             }
                                         },
-                                        scrollBehavior =
-                                        searchBarScrollBehavior,
+                                        scrollBehavior = searchBarScrollBehavior,
                                         colors = TopAppBarDefaults.topAppBarColors(
-                                            containerColor = if (pureBlack) Color.Black else MaterialTheme.colorScheme.surfaceContainer,
-                                            scrolledContainerColor = if (pureBlack) Color.Black else MaterialTheme.colorScheme.surfaceContainer,
+                                            containerColor = if (pureBlack) Color.Black else MaterialTheme.colorScheme.surface,
+                                            scrolledContainerColor = if (pureBlack) Color.Black else MaterialTheme.colorScheme.surface,
                                             titleContentColor = MaterialTheme.colorScheme.onSurface,
                                             actionIconContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                                             navigationIconContentColor = MaterialTheme.colorScheme.onSurfaceVariant

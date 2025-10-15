@@ -46,6 +46,8 @@ import moe.koiverse.archivetune.utils.makeTimeString
 import moe.koiverse.archivetune.utils.rememberEnumPreference
 import moe.koiverse.archivetune.utils.rememberPreference
 import moe.koiverse.archivetune.utils.TranslatorLanguages
+import moe.koiverse.archivetune.utils.dataStore
+import moe.koiverse.archivetune.utils.get
 import androidx.compose.material3.AlertDialog
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -55,6 +57,7 @@ import timber.log.Timber
 import moe.koiverse.archivetune.utils.DiscordRPC
 import moe.koiverse.archivetune.utils.getPresenceIntervalMillis
 import kotlinx.coroutines.*
+import moe.koiverse.archivetune.utils.ArtworkStorage
 
 enum class ActivitySource { ARTIST, ALBUM, SONG, APP }
 
@@ -109,28 +112,27 @@ fun DiscordSettings(
         defaultValue = true
     )
 
-LaunchedEffect(discordToken, discordRPC) {
-    if (discordRPC && discordToken.isNotBlank()) {
-        Timber.tag("DiscordSettings").d("RPC enabled with token, MusicService will handle start")
-        // DiscordPresenceManager.start(
-        //     context = context,
-        //     token = discordToken,
-        //     songProvider = { song },
-        //     positionProvider = { playerConnection.player.currentPosition },
-        //     isPausedProvider = {
-        //         val isPlaying = playerConnection.player.playWhenReady &&
-        //                 playerConnection.player.playbackState == STATE_READY
-        //         !isPlaying
-        //     },
-        //     intervalProvider = { getPresenceIntervalMillis(context) }
-        // )
-    } else {
-        // user disabled RPC or cleared token -> ensure manager is stopped
-        Timber.tag("DiscordSettings").d("RPC disabled or no token, stopping manager")
-        DiscordPresenceManager.stop()
+    LaunchedEffect(discordToken, discordRPC) {
+        if (discordRPC && discordToken.isNotBlank()) {
+            Timber.tag("DiscordSettings").d("RPC enabled with token, MusicService will handle start")
+            // DiscordPresenceManager.start(
+            //     context = context,
+            //     token = discordToken,
+            //     songProvider = { song },
+            //     positionProvider = { playerConnection.player.currentPosition },
+            //     isPausedProvider = {
+            //         val isPlaying = playerConnection.player.playWhenReady &&
+            //                 playerConnection.player.playbackState == STATE_READY
+            //         !isPlaying
+            //     },
+            //     intervalProvider = { getPresenceIntervalMillis(context) }
+            // )
+        } else {
+            // user disabled RPC or cleared token -> ensure manager is stopped
+            Timber.tag("DiscordSettings").d("RPC disabled or no token, stopping manager")
+            DiscordPresenceManager.stop()
+        }
     }
-}
-
 
     val isLoggedIn = remember(discordToken) { discordToken.isNotEmpty() }
 
@@ -269,9 +271,35 @@ LaunchedEffect(discordToken, discordRPC) {
         //     }
         // )
         
-     var isRefreshing by remember { mutableStateOf(false) }
+        // Discord presence image preferences (hoisted so refresh action can read them)
+        val imageOptions = listOf("thumbnail", "artist", "appicon", "custom")
+        val smallImageOptions = listOf("thumbnail", "artist", "appicon", "custom", "dontshow")
 
-    PreferenceEntry(
+        val (largeImageType, onLargeImageTypeChange) = rememberPreference(
+            key = DiscordLargeImageTypeKey,
+            defaultValue = "thumbnail"
+     )
+        val (largeImageCustomUrl, onLargeImageCustomUrlChange) = rememberPreference(
+            key = DiscordLargeImageCustomUrlKey,
+            defaultValue = ""
+     )
+        val (smallImageType, onSmallImageTypeChange) = rememberPreference(
+            key = DiscordSmallImageTypeKey,
+            defaultValue = "artist"
+     )
+        val (smallImageCustomUrl, onSmallImageCustomUrlChange) = rememberPreference(
+            key = DiscordSmallImageCustomUrlKey,
+            defaultValue = ""
+     )
+
+        // When large/small image selection changes, clear any stored artwork for the current song
+        LaunchedEffect(largeImageType, smallImageType) {
+            ArtworkStorage.removeBySongId(context, song?.song?.id ?: return@LaunchedEffect)
+        }
+
+        var isRefreshing by remember { mutableStateOf(false) }
+
+        PreferenceEntry(
         title = { Text(stringResource(R.string.refresh)) },
         description = stringResource(R.string.description_refresh),
         icon = { Icon(painterResource(R.drawable.update), null) },
@@ -289,20 +317,36 @@ LaunchedEffect(discordToken, discordRPC) {
                     coroutineScope.launch {
                        isRefreshing = true
                        val start = System.currentTimeMillis()
+
+                       // Resolve large image from current Compose state (respect user selection)
+                       val resolvedLargeToPass = when (largeImageType.lowercase()) {
+                           "thumbnail" -> song?.song?.thumbnailUrl
+                           "artist" -> song?.artists?.firstOrNull()?.thumbnailUrl
+                           "appicon", "app" -> "https://raw.githubusercontent.com/koiverse/ArchiveTune/main/fastlane/metadata/android/en-US/images/icon.png"
+                           "custom" -> largeImageCustomUrl.ifBlank { song?.song?.thumbnailUrl }
+                           else -> song?.song?.thumbnailUrl
+                       }
+
+                       // Resolve small image from current Compose state
+                       val resolvedSmallToPass = when (smallImageType.lowercase()) {
+                           "thumbnail" -> song?.song?.thumbnailUrl
+                           "artist" -> song?.artists?.firstOrNull()?.thumbnailUrl
+                           "appicon", "app" -> "https://raw.githubusercontent.com/koiverse/ArchiveTune/main/fastlane/metadata/android/en-US/images/icon.png"
+                           "custom" -> smallImageCustomUrl.ifBlank { song?.artists?.firstOrNull()?.thumbnailUrl }
+                           "dontshow", "none" -> null
+                           else -> song?.artists?.firstOrNull()?.thumbnailUrl
+                       }
+
                        val success = DiscordPresenceManager.updatePresence(
-                       context = context,
-                       token = discordToken,
-                       song = song,
-                             positionMs = playerConnection.player.currentPosition,
-                             isPaused = !(playerConnection.player.playWhenReady &&
-                              playerConnection.player.playbackState == STATE_READY),
-                             // pass resolved URLs we already have from the Song object
-                             // to avoid extra resolution work inside DiscordRPC
-                             // (nullable if unavailable)
-                             // large = song thumbnail, small = first artist thumbnail
-                             resolvedLargeImageUrl = song?.song?.thumbnailUrl,
-                             resolvedSmallImageUrl = song?.artists?.firstOrNull()?.thumbnailUrl
-                     )
+                           context = context,
+                           token = discordToken,
+                           song = song,
+                           positionMs = playerConnection.player.currentPosition,
+                           isPaused = !(playerConnection.player.playWhenReady &&
+                                   playerConnection.player.playbackState == STATE_READY),
+                           resolvedLargeImageUrl = resolvedLargeToPass,
+                           resolvedSmallImageUrl = resolvedSmallToPass
+                       )
                        isRefreshing = false
                         // Show snackbar on main thread
                         withContext(Dispatchers.Main) {
@@ -340,7 +384,7 @@ LaunchedEffect(discordToken, discordRPC) {
                 },
                 onValueChange = {},
                 readOnly = true,
-                label = { Text("Activity Status") },
+                label = { Text(stringResource(R.string.activity_status)) },
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = activityStatusExpanded) },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -379,7 +423,7 @@ LaunchedEffect(discordToken, discordRPC) {
                 value = platformSelection.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() },
                 onValueChange = {},
                 readOnly = true,
-                label = { Text("Platform") },
+                label = { Text(stringResource(R.string.platform_status)) },
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = platformExpanded) },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -412,7 +456,7 @@ ExposedDropdownMenuBox(expanded = intervalExpanded, onExpandedChange = { interva
         value = intervalSelection,
         onValueChange = {},
         readOnly = true,
-        label = { Text("Presence Update Interval") },
+        label = { Text(stringResource(R.string.update_interval)) },
         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = intervalExpanded) },
         modifier = Modifier
             .fillMaxWidth()
@@ -608,37 +652,16 @@ if (intervalSelection == "Custom") {
             .padding(horizontal = 16.dp, vertical = 8.dp)
     )
 
-    // Discord presence image selection
-        // Discord presence image selection
-    val imageOptions = listOf("thumbnail", "artist", "appicon", "custom")
-    val smallImageOptions = listOf("thumbnail", "artist", "appicon", "custom", "dontshow")
-    val largeTextOptions = listOf("song", "artist", "album", "app", "custom", "dontshow")
+        val largeTextOptions = listOf("song", "artist", "album", "app", "custom", "dontshow")
 
-    val (largeTextSource, onLargeTextSourceChange) = rememberPreference(
-      key = DiscordLargeTextSourceKey,
-      defaultValue = "album"
-   )
-    val (largeTextCustom, onLargeTextCustomChange) = rememberPreference(
-      key = DiscordLargeTextCustomKey,
-      defaultValue = ""
-   )
-
-    val (largeImageType, onLargeImageTypeChange) = rememberPreference(
-      key = DiscordLargeImageTypeKey,
-      defaultValue = "thumbnail"
-   )
-    val (largeImageCustomUrl, onLargeImageCustomUrlChange) = rememberPreference(
-      key = DiscordLargeImageCustomUrlKey,
-      defaultValue = ""
-   )
-    val (smallImageType, onSmallImageTypeChange) = rememberPreference(
-      key = DiscordSmallImageTypeKey,
-      defaultValue = "artist"
-   )
-    val (smallImageCustomUrl, onSmallImageCustomUrlChange) = rememberPreference(
-      key = DiscordSmallImageCustomUrlKey,
-      defaultValue = ""
-   )
+        val (largeTextSource, onLargeTextSourceChange) = rememberPreference(
+            key = DiscordLargeTextSourceKey,
+            defaultValue = "album"
+     )
+        val (largeTextCustom, onLargeTextCustomChange) = rememberPreference(
+            key = DiscordLargeTextCustomKey,
+            defaultValue = ""
+     )
 
 var largeImageExpanded by remember { mutableStateOf(false) }
 ExposedDropdownMenuBox(expanded = largeImageExpanded, onExpandedChange = { largeImageExpanded = it }) {
@@ -670,7 +693,7 @@ ExposedDropdownMenuBox(expanded = largeImageExpanded, onExpandedChange = { large
 }
 if (largeImageType == "custom") {
     EditablePreference(
-        title = "Large image custom URL",
+        title = stringResource(R.string.large_image_custom_url),
         iconRes = R.drawable.link,
         value = largeImageCustomUrl,
         defaultValue = "",
@@ -684,7 +707,7 @@ ExposedDropdownMenuBox(expanded = largeTextExpanded, onExpandedChange = { largeT
         value = largeTextSource,
         onValueChange = {},
         readOnly = true,
-        label = { Text("Large text") },
+        label = { Text(stringResource(R.string.large_text)) },
         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = largeTextExpanded) },
         modifier = Modifier
             .fillMaxWidth()
@@ -717,7 +740,7 @@ ExposedDropdownMenuBox(expanded = largeTextExpanded, onExpandedChange = { largeT
 
 if (largeTextSource == "custom") {
     EditablePreference(
-        title = "Custom large text",
+        title = stringResource(R.string.custom_large_text),
         iconRes = R.drawable.text_fields,
         value = largeTextCustom,
         defaultValue = "",
@@ -731,7 +754,7 @@ ExposedDropdownMenuBox(expanded = smallImageExpanded, onExpandedChange = { small
         value = smallImageType,
         onValueChange = {},
         readOnly = true,
-        label = { Text("Small image") },
+        label = { Text(stringResource(R.string.small_image)) },
         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = smallImageExpanded) },
         modifier = Modifier
             .fillMaxWidth()
@@ -756,7 +779,7 @@ ExposedDropdownMenuBox(expanded = smallImageExpanded, onExpandedChange = { small
 }
 if (smallImageType == "custom") {
     EditablePreference(
-        title = "Small image custom URL",
+        title = stringResource(R.string.small_image_custom_url),
         iconRes = R.drawable.link,
         value = smallImageCustomUrl,
         defaultValue = "",

@@ -244,6 +244,8 @@
     <string name="cancel_button">모서리 반경 조정</string>
     <string name="ok_button">취소</string>
     <string name="custom_radius">확인</string>
+    <string name="custom">사용자 지정</string>
+    <string name="custom_value">사용자 지정 값</string>
     <string name="new_library_design">썸네일 모서리 반경 사용자 지정</string>
     <string name="new_library_design_description">새 라이브러리 디자인</string>
     <string name="show_button1_description">새 라이브러리 디자인 활성화(불안정할 수 있음)</string>
@@ -364,6 +366,15 @@
     <string name="discord_activity_button1_url">버튼 1 라벨</string>
     <string name="discord_activity_button2_label">버튼 1 사용자 정의 URL</string>
     <string name="discord_activity_button2_url">버튼 2 라벨</string>
+    <string name="large_image_custom_url">큰 이미지 사용자 지정 URL</string>
+    <string name="large_text">큰 텍스트</string>
+    <string name="custom_large_text">사용자 지정 큰 텍스트</string>
+    <string name="small_image">작은 이미지</string>
+    <string name="small_image_custom_url">작은 이미지 사용자 지정 URL</string>
+    <string name="activity_status">활동 상태</string>
+    <string name="platform_status">플랫폼</string>
+    <string name="update_interval">상태 업데이트 간격</string>
+
 
     <!--Discord Tranalstor Settings-->
     <string name="translator_options">버튼 2 맞춤 URL</string>

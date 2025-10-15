@@ -244,6 +244,8 @@
     <string name="cancel_button">Cancel</string>
     <string name="ok_button">OK</string>
     <string name="custom_radius">Customize thumbnail corner radius</string>
+    <string name="custom">Custom</string>
+    <string name="custom_value">Custom value</string>
     <string name="new_library_design">New library design</string>
     <string name="new_library_design_description">Enable the new library design (may be unstable)</string>
     <string name="show_button1_description">Toggle visibility of button 1 in Discord Rich Presence</string>
@@ -364,6 +366,14 @@
     <string name="discord_activity_button1_url">Button 1 Custom URL</string>
     <string name="discord_activity_button2_label">Button 2 label</string>
     <string name="discord_activity_button2_url">Button 2 Custom URL</string>
+    <string name="large_image_custom_url">Large image custom URL</string>
+    <string name="large_text">Large Text</string>
+    <string name="custom_large_text">Custom Large Text</string>
+    <string name="small_image">Small Image</string>
+    <string name="small_image_custom_url">Small image custom URL</string>
+    <string name="activity_status">Activity Status</string>
+    <string name="platform_status">Platform</string>
+    <string name="update_interval">Presence Update Interval</string>
 
     <!--Discord Tranalstor Settings-->
     <string name="translator_options">Translator Options</string>
