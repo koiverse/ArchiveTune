@@ -57,6 +57,7 @@ import timber.log.Timber
 import moe.koiverse.archivetune.utils.DiscordRPC
 import moe.koiverse.archivetune.utils.getPresenceIntervalMillis
 import kotlinx.coroutines.*
+import moe.koiverse.archivetune.utils.ArtworkStorage
 
 enum class ActivitySource { ARTIST, ALBUM, SONG, APP }
 
@@ -111,27 +112,32 @@ fun DiscordSettings(
         defaultValue = true
     )
 
-LaunchedEffect(discordToken, discordRPC) {
-    if (discordRPC && discordToken.isNotBlank()) {
-        Timber.tag("DiscordSettings").d("RPC enabled with token, MusicService will handle start")
-        // DiscordPresenceManager.start(
-        //     context = context,
-        //     token = discordToken,
-        //     songProvider = { song },
-        //     positionProvider = { playerConnection.player.currentPosition },
-        //     isPausedProvider = {
-        //         val isPlaying = playerConnection.player.playWhenReady &&
-        //                 playerConnection.player.playbackState == STATE_READY
-        //         !isPlaying
-        //     },
-        //     intervalProvider = { getPresenceIntervalMillis(context) }
-        // )
-    } else {
-        // user disabled RPC or cleared token -> ensure manager is stopped
-        Timber.tag("DiscordSettings").d("RPC disabled or no token, stopping manager")
-        DiscordPresenceManager.stop()
+    LaunchedEffect(discordToken, discordRPC) {
+        if (discordRPC && discordToken.isNotBlank()) {
+            Timber.tag("DiscordSettings").d("RPC enabled with token, MusicService will handle start")
+            // DiscordPresenceManager.start(
+            //     context = context,
+            //     token = discordToken,
+            //     songProvider = { song },
+            //     positionProvider = { playerConnection.player.currentPosition },
+            //     isPausedProvider = {
+            //         val isPlaying = playerConnection.player.playWhenReady &&
+            //                 playerConnection.player.playbackState == STATE_READY
+            //         !isPlaying
+            //     },
+            //     intervalProvider = { getPresenceIntervalMillis(context) }
+            // )
+        } else {
+            // user disabled RPC or cleared token -> ensure manager is stopped
+            Timber.tag("DiscordSettings").d("RPC disabled or no token, stopping manager")
+            DiscordPresenceManager.stop()
+        }
     }
-}
+
+    LaunchedEffect(largeImageType, smallImageType) {
+        ArtworkStorage.deleteBySongId(context, song?.song?.id ?: return@LaunchedEffect)
+    }
+
 
 
     val isLoggedIn = remember(discordToken) { discordToken.isNotEmpty() }
@@ -291,12 +297,23 @@ LaunchedEffect(discordToken, discordRPC) {
                     coroutineScope.launch {
                        isRefreshing = true
                        val start = System.currentTimeMillis()
-                       val smallTypePref = context.dataStore.get(DiscordSmallImageTypeKey) ?: "artist"
-                       val resolvedSmallToPass = when (smallTypePref.lowercase()) {
-                           "custom" -> null
+
+                       // Resolve large image from current Compose state (respect user selection)
+                       val resolvedLargeToPass = when (largeImageType.lowercase()) {
+                           "thumbnail" -> song?.song?.thumbnailUrl
                            "artist" -> song?.artists?.firstOrNull()?.thumbnailUrl
-                           "song", "thumbnail", "album" -> song?.song?.thumbnailUrl
-                           "appicon", "app", "none", "dontshow" -> null
+                           "appicon", "app" -> "https://raw.githubusercontent.com/koiverse/ArchiveTune/main/fastlane/metadata/android/en-US/images/icon.png"
+                           "custom" -> largeImageCustomUrl.ifBlank { song?.song?.thumbnailUrl }
+                           else -> song?.song?.thumbnailUrl
+                       }
+
+                       // Resolve small image from current Compose state
+                       val resolvedSmallToPass = when (smallImageType.lowercase()) {
+                           "thumbnail" -> song?.song?.thumbnailUrl
+                           "artist" -> song?.artists?.firstOrNull()?.thumbnailUrl
+                           "appicon", "app" -> "https://raw.githubusercontent.com/koiverse/ArchiveTune/main/fastlane/metadata/android/en-US/images/icon.png"
+                           "custom" -> smallImageCustomUrl.ifBlank { song?.artists?.firstOrNull()?.thumbnailUrl }
+                           "dontshow", "none" -> null
                            else -> song?.artists?.firstOrNull()?.thumbnailUrl
                        }
 
@@ -307,7 +324,7 @@ LaunchedEffect(discordToken, discordRPC) {
                            positionMs = playerConnection.player.currentPosition,
                            isPaused = !(playerConnection.player.playWhenReady &&
                                    playerConnection.player.playbackState == STATE_READY),
-                           resolvedLargeImageUrl = song?.song?.thumbnailUrl,
+                           resolvedLargeImageUrl = resolvedLargeToPass,
                            resolvedSmallImageUrl = resolvedSmallToPass
                        )
                        isRefreshing = false
