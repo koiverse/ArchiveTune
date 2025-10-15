@@ -366,6 +366,15 @@
     <string name="discord_activity_button1_url">ボタン 1 カスタム URL</string>
     <string name="discord_activity_button2_label">ボタン 2ラベル</string>
     <string name="discord_activity_button2_url">ボタン 2 カスタム URL</string>
+    <string name="large_image_custom_url">大きな画像のカスタムURL</string>
+    <string name="large_text">大きなテキスト</string>
+    <string name="custom_large_text">カスタム大きなテキスト</string>
+    <string name="small_image">小さな画像</string>
+    <string name="small_image_custom_url">小さな画像のカスタムURL</string>
+    <string name="activity_status">アクティビティステータス</string>
+    <string name="platform_status">プラットフォーム</string>
+    <string name="update_interval">プレゼンス更新間隔</string>
+
 
     <!--Discord Tranalstor Settings-->
     <string name="translator_options">トランスレーター オプション</string>

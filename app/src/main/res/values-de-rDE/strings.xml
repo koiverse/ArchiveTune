@@ -366,6 +366,15 @@
     <string name="discord_activity_button1_url">Schaltfläche 1 Benutzerdefinierte URL</string>
     <string name="discord_activity_button2_label">Beschriftung der Schaltfläche 2</string>
     <string name="discord_activity_button2_url">Schaltfläche 2 Benutzerdefinierte URL</string>
+    <string name="large_image_custom_url">Benutzerdefinierte URL für großes Bild</string>
+    <string name="large_text">Großer Text</string>
+    <string name="custom_large_text">Benutzerdefinierter großer Text</string>
+    <string name="small_image">Kleines Bild</string>
+    <string name="small_image_custom_url">Benutzerdefinierte URL für kleines Bild</string>
+    <string name="activity_status">Aktivitätsstatus</string>
+    <string name="platform_status">Plattform</string>
+    <string name="update_interval">Aktualisierungsintervall der Präsenz</string>
+
 
     <!--Discord Tranalstor Settings-->
     <string name="translator_options">Übersetzeroptionen</string>

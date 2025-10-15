@@ -134,12 +134,6 @@ fun DiscordSettings(
         }
     }
 
-    LaunchedEffect(largeImageType, smallImageType) {
-        ArtworkStorage.deleteBySongId(context, song?.song?.id ?: return@LaunchedEffect)
-    }
-
-
-
     val isLoggedIn = remember(discordToken) { discordToken.isNotEmpty() }
 
     Scaffold(
@@ -364,7 +358,7 @@ fun DiscordSettings(
                 },
                 onValueChange = {},
                 readOnly = true,
-                label = { Text("Activity Status") },
+                label = { Text(stringResource(R.string.activity_status)) },
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = activityStatusExpanded) },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -403,7 +397,7 @@ fun DiscordSettings(
                 value = platformSelection.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() },
                 onValueChange = {},
                 readOnly = true,
-                label = { Text("Platform") },
+                label = { Text(stringResource(R.string.platform)) },
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = platformExpanded) },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -436,7 +430,7 @@ ExposedDropdownMenuBox(expanded = intervalExpanded, onExpandedChange = { interva
         value = intervalSelection,
         onValueChange = {},
         readOnly = true,
-        label = { Text("Presence Update Interval") },
+        label = { Text(stringResource(R.string.update_interval)) },
         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = intervalExpanded) },
         modifier = Modifier
             .fillMaxWidth()
@@ -664,6 +658,10 @@ if (intervalSelection == "Custom") {
       defaultValue = ""
    )
 
+    LaunchedEffect(largeImageType, smallImageType) {
+        ArtworkStorage.deleteBySongId(context, song?.song?.id ?: return@LaunchedEffect)
+    }
+
 var largeImageExpanded by remember { mutableStateOf(false) }
 ExposedDropdownMenuBox(expanded = largeImageExpanded, onExpandedChange = { largeImageExpanded = it }) {
     TextField(
@@ -694,7 +692,7 @@ ExposedDropdownMenuBox(expanded = largeImageExpanded, onExpandedChange = { large
 }
 if (largeImageType == "custom") {
     EditablePreference(
-        title = "Large image custom URL",
+        title = stringResource(R.string.large_image_custom_url),
         iconRes = R.drawable.link,
         value = largeImageCustomUrl,
         defaultValue = "",
@@ -708,7 +706,7 @@ ExposedDropdownMenuBox(expanded = largeTextExpanded, onExpandedChange = { largeT
         value = largeTextSource,
         onValueChange = {},
         readOnly = true,
-        label = { Text("Large text") },
+        label = { Text(stringResource(R.string.large_text)) },
         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = largeTextExpanded) },
         modifier = Modifier
             .fillMaxWidth()
@@ -741,7 +739,7 @@ ExposedDropdownMenuBox(expanded = largeTextExpanded, onExpandedChange = { largeT
 
 if (largeTextSource == "custom") {
     EditablePreference(
-        title = "Custom large text",
+        title = stringResource(R.string.custom_large_text),
         iconRes = R.drawable.text_fields,
         value = largeTextCustom,
         defaultValue = "",
@@ -755,7 +753,7 @@ ExposedDropdownMenuBox(expanded = smallImageExpanded, onExpandedChange = { small
         value = smallImageType,
         onValueChange = {},
         readOnly = true,
-        label = { Text("Small image") },
+        label = { Text(stringResource(R.string.small_image)) },
         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = smallImageExpanded) },
         modifier = Modifier
             .fillMaxWidth()
@@ -780,7 +778,7 @@ ExposedDropdownMenuBox(expanded = smallImageExpanded, onExpandedChange = { small
 }
 if (smallImageType == "custom") {
     EditablePreference(
-        title = "Small image custom URL",
+        title = stringResource(R.string.small_image_custom_url),
         iconRes = R.drawable.link,
         value = smallImageCustomUrl,
         defaultValue = "",
