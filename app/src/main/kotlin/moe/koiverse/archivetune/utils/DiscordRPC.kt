@@ -264,7 +264,7 @@ class DiscordRPC(
 
         val finalLargeImage: RpcImage? = when {
             !resolvedLargeImageUrl.isNullOrBlank() -> RpcImage.ExternalImage(resolvedLargeImageUrl)
-            !saved?.thumbnail.isNullOrBlank() -> RpcImage.ExternalImage(saved!!.thumbnail!!)
+            (largeImageTypePref.equals("thumbnail", true) && !saved?.thumbnail.isNullOrBlank()) -> RpcImage.ExternalImage(saved!!.thumbnail!!)
             else -> {
                 val largeImageRpc = pickImage(largeImageTypePref, largeImageCustomPref, song, false)
                 val resolvedLargeImage = resolveOnce(largeImageRpc)
