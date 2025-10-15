@@ -271,9 +271,35 @@ fun DiscordSettings(
         //     }
         // )
         
-     var isRefreshing by remember { mutableStateOf(false) }
+        // Discord presence image preferences (hoisted so refresh action can read them)
+        val imageOptions = listOf("thumbnail", "artist", "appicon", "custom")
+        val smallImageOptions = listOf("thumbnail", "artist", "appicon", "custom", "dontshow")
 
-    PreferenceEntry(
+        val (largeImageType, onLargeImageTypeChange) = rememberPreference(
+            key = DiscordLargeImageTypeKey,
+            defaultValue = "thumbnail"
+     )
+        val (largeImageCustomUrl, onLargeImageCustomUrlChange) = rememberPreference(
+            key = DiscordLargeImageCustomUrlKey,
+            defaultValue = ""
+     )
+        val (smallImageType, onSmallImageTypeChange) = rememberPreference(
+            key = DiscordSmallImageTypeKey,
+            defaultValue = "artist"
+     )
+        val (smallImageCustomUrl, onSmallImageCustomUrlChange) = rememberPreference(
+            key = DiscordSmallImageCustomUrlKey,
+            defaultValue = ""
+     )
+
+        // When large/small image selection changes, clear any stored artwork for the current song
+        LaunchedEffect(largeImageType, smallImageType) {
+                ArtworkStorage.deleteBySongId(context, song?.song?.id ?: return@LaunchedEffect)
+        }
+
+        var isRefreshing by remember { mutableStateOf(false) }
+
+        PreferenceEntry(
         title = { Text(stringResource(R.string.refresh)) },
         description = stringResource(R.string.description_refresh),
         icon = { Icon(painterResource(R.drawable.update), null) },
@@ -397,7 +423,7 @@ fun DiscordSettings(
                 value = platformSelection.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() },
                 onValueChange = {},
                 readOnly = true,
-                label = { Text(stringResource(R.string.platform)) },
+                label = { Text(stringResource(R.string.platform_status)) },
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = platformExpanded) },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -626,41 +652,16 @@ if (intervalSelection == "Custom") {
             .padding(horizontal = 16.dp, vertical = 8.dp)
     )
 
-    // Discord presence image selection
-        // Discord presence image selection
-    val imageOptions = listOf("thumbnail", "artist", "appicon", "custom")
-    val smallImageOptions = listOf("thumbnail", "artist", "appicon", "custom", "dontshow")
-    val largeTextOptions = listOf("song", "artist", "album", "app", "custom", "dontshow")
+        val largeTextOptions = listOf("song", "artist", "album", "app", "custom", "dontshow")
 
-    val (largeTextSource, onLargeTextSourceChange) = rememberPreference(
-      key = DiscordLargeTextSourceKey,
-      defaultValue = "album"
-   )
-    val (largeTextCustom, onLargeTextCustomChange) = rememberPreference(
-      key = DiscordLargeTextCustomKey,
-      defaultValue = ""
-   )
-
-    val (largeImageType, onLargeImageTypeChange) = rememberPreference(
-      key = DiscordLargeImageTypeKey,
-      defaultValue = "thumbnail"
-   )
-    val (largeImageCustomUrl, onLargeImageCustomUrlChange) = rememberPreference(
-      key = DiscordLargeImageCustomUrlKey,
-      defaultValue = ""
-   )
-    val (smallImageType, onSmallImageTypeChange) = rememberPreference(
-      key = DiscordSmallImageTypeKey,
-      defaultValue = "artist"
-   )
-    val (smallImageCustomUrl, onSmallImageCustomUrlChange) = rememberPreference(
-      key = DiscordSmallImageCustomUrlKey,
-      defaultValue = ""
-   )
-
-    LaunchedEffect(largeImageType, smallImageType) {
-        ArtworkStorage.deleteBySongId(context, song?.song?.id ?: return@LaunchedEffect)
-    }
+        val (largeTextSource, onLargeTextSourceChange) = rememberPreference(
+            key = DiscordLargeTextSourceKey,
+            defaultValue = "album"
+     )
+        val (largeTextCustom, onLargeTextCustomChange) = rememberPreference(
+            key = DiscordLargeTextCustomKey,
+            defaultValue = ""
+     )
 
 var largeImageExpanded by remember { mutableStateOf(false) }
 ExposedDropdownMenuBox(expanded = largeImageExpanded, onExpandedChange = { largeImageExpanded = it }) {
