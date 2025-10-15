@@ -244,6 +244,8 @@
     <string name="cancel_button">모서리 반경 조정</string>
     <string name="ok_button">취소</string>
     <string name="custom_radius">확인</string>
+    <string name="custom">사용자 지정</string>
+    <string name="custom_value">사용자 지정 값</string>
     <string name="new_library_design">썸네일 모서리 반경 사용자 지정</string>
     <string name="new_library_design_description">새 라이브러리 디자인</string>
     <string name="show_button1_description">새 라이브러리 디자인 활성화(불안정할 수 있음)</string>

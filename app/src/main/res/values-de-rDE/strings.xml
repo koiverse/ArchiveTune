@@ -244,6 +244,8 @@
     <string name="cancel_button">Stornieren</string>
     <string name="ok_button">OK</string>
     <string name="custom_radius">Passen Sie den Eckenradius der Miniaturansicht an</string>
+    <string name="custom">Benutzerdefiniert</string>
+    <string name="custom_value">Benutzerdefinierter Wert</string>
     <string name="new_library_design">Neues Bibliotheksdesign</string>
     <string name="new_library_design_description">Aktivieren Sie das neue Bibliotheksdesign (möglicherweise instabil).</string>
     <string name="show_button1_description">Schalten Sie die Sichtbarkeit von Schaltfläche 1 in Discord Rich Presence um</string>

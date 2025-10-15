@@ -100,6 +100,7 @@ import moe.koiverse.archivetune.utils.rememberEnumPreference
 import moe.koiverse.archivetune.utils.rememberPreference
 import me.saket.squiggles.SquigglySlider
 import kotlin.math.roundToInt
+import timber.log.Timber
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

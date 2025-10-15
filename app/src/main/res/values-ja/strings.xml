@@ -244,6 +244,8 @@
     <string name="cancel_button">キャンセル</string>
     <string name="ok_button">OK</string>
     <string name="custom_radius">サムネイルの角の半径をカスタマイズ</string>
+    <string name="custom">カスタム</string>
+    <string name="custom_value">カスタム値</string>
     <string name="new_library_design">新しいライブラリのデザイン</string>
     <string name="new_library_design_description">新しいライブラリのデザインを有効にする(不安定な可能性があります)</string>
     <string name="show_button1_description">Discord Richのボタン1の表示を切り替え プレゼンス</string>

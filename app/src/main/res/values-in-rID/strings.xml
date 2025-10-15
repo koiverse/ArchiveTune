@@ -244,6 +244,8 @@
     <string name="cancel_button">Batal</string>
     <string name="ok_button">OK</string>
     <string name="custom_radius">Sesuaikan radius sudut thumbnail</string>
+    <string name="custom">Kustom</string>
+    <string name="custom_value">Nilai kustom</string>
     <string name="new_library_design">Desain perpustakaan baru</string>
     <string name="new_library_design_description">Aktifkan desain perpustakaan baru (mungkin tidak stabil)</string>
     <string name="show_button1_description">Alihkan visibilitas tombol 1 di Perselisihan Kaya Kehadiran</string>
