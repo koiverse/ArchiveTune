@@ -234,7 +234,7 @@ fun ThumbnailCornerRadiusModal(
                             },
                             modifier = Modifier
                                 .weight(1f)
-                                .height(56.dp),
+                                .height(62.dp),
                             enabled = isCustomSelected,
                             label = {
                                 Text(
