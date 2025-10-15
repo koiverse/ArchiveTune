@@ -806,12 +806,22 @@ class MainActivity : ComponentActivity() {
                                 if (shouldShowTopBar) {
                                     TopAppBar(
                                         title = {
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                            // app icon
+                                            Icon(
+                                                painter = painterResource(R.drawable.about_splash),
+                                                contentDescription = null,
+                                                modifier = Modifier
+                                                    .size(24.dp)
+                                                    .padding(end = 6.dp)
+                                            )
+
                                             Text(
-                                                text = currentTitleRes?.let { stringResource(it) }
-                                                    ?: "",
-                                                style = MaterialTheme.typography.titleLarge,
+                                                text = stringResource(R.string.app_name),
+                                                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
                                             )
                                         },
+                                    },
                                         actions = {
                                             IconButton(onClick = { navController.navigate("history") }) {
                                                 Icon(
@@ -852,8 +862,8 @@ class MainActivity : ComponentActivity() {
                                         scrollBehavior =
                                         searchBarScrollBehavior,
                                         colors = TopAppBarDefaults.topAppBarColors(
-                                            containerColor = if (pureBlack) Color.Black else MaterialTheme.colorScheme.surfaceContainer,
-                                            scrolledContainerColor = if (pureBlack) Color.Black else MaterialTheme.colorScheme.surfaceContainer,
+                                            containerColor = if (pureBlack) Color.Black else MaterialTheme.colorScheme.surface,
+                                            scrolledContainerColor = if (pureBlack) Color.Black else MaterialTheme.colorScheme.surface,
                                             titleContentColor = MaterialTheme.colorScheme.onSurface,
                                             actionIconContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                                             navigationIconContentColor = MaterialTheme.colorScheme.onSurfaceVariant
