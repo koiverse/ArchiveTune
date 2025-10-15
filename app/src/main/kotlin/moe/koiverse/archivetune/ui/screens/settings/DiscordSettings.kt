@@ -294,7 +294,7 @@ fun DiscordSettings(
 
         // When large/small image selection changes, clear any stored artwork for the current song
         LaunchedEffect(largeImageType, smallImageType) {
-                ArtworkStorage.deleteBySongId(context, song?.song?.id ?: return@LaunchedEffect)
+            ArtworkStorage.removeBySongId(context, song?.song?.id ?: return@LaunchedEffect)
         }
 
         var isRefreshing by remember { mutableStateOf(false) }
