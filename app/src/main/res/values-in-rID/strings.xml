@@ -367,6 +367,7 @@
     <string name="discord_activity_button2_label">Tombol 2 label</string>
     <string name="discord_activity_button2_url">Tombol 2 URL Khusus</string>
     <string name="large_image_custom_url">URL kustom gambar besar</string>
+    <string name="large_image">Gambar besar</string>
     <string name="large_text">Teks besar</string>
     <string name="custom_large_text">Teks besar kustom</string>
     <string name="small_image">Gambar kecil</string>

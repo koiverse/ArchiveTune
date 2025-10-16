@@ -367,6 +367,7 @@
     <string name="discord_activity_button2_label">Button 2 label</string>
     <string name="discord_activity_button2_url">Button 2 Custom URL</string>
     <string name="large_image_custom_url">Large image custom URL</string>
+    <string name="large_image">Large Image</string>
     <string name="large_text">Large Text</string>
     <string name="custom_large_text">Custom Large Text</string>
     <string name="small_image">Small Image</string>
