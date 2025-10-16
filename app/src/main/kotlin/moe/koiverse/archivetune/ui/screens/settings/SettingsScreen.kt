@@ -63,13 +63,15 @@ fun SettingsScreen(
         LazyColumn(
             modifier = Modifier
                 .padding(innerPadding)
+                .fillMaxSize()
                 .windowInsetsPadding(
                     LocalPlayerAwareWindowInsets.current.only(
                         WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom
                     )
                 ),
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(5.dp)
         ) {
             // --- Appearance ---
             item {
@@ -210,7 +212,9 @@ private fun SettingsCardItem(
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant
         ),
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(30.dp)
     ) {
         Row(
             modifier = Modifier
