@@ -233,6 +233,7 @@
     <!-- Settings -->
     <string name="settings">Settings</string>
     <string name="appearance">Appearance</string>
+    <string name="appearance_description">Customize the look and feel of the app</string>
     <string name="theme">Theme</string>
     <string name="enable_dynamic_theme">Enable dynamic theme</string>
     <string name="dark_theme">Dark theme</string>
@@ -255,6 +256,7 @@
     <string name="pure_black">Pure black</string>
     <string name="customize_navigation_tabs">Customize navigation tabs</string>
     <string name="player">Player</string>
+    <string name="player_and_audio_description">Customize the look and behavior of the player</string>
     <string name="player_text_alignment">Player text alignment</string>
     <string name="lyrics_text_position">Lyrics text position</string>
     <string name="sided">Sided</string>
@@ -280,6 +282,7 @@
 
 
     <string name="content">Content</string>
+    <string name="content_description">Language and metadata configuration</string>
     <string name="action_logout">Log out</string>
     <string name="action_login">Log in</string>
     <string name="login">Login</string>
@@ -312,6 +315,7 @@
     <string name="equalizer">Equalizer</string>
 
     <string name="storage">Storage</string>
+    <string name="storage_description">Manage cache and data usage</string>
     <string name="cache">Cache</string>
     <string name="image_cache">Image Cache</string>
     <string name="song_cache">Song Cache</string>
@@ -325,6 +329,7 @@
     <string name="size_used">%s used</string>
 
     <string name="privacy">Privacy</string>
+    <string name="privacy_description">Manage permissions and privacy options</string>
     <string name="listen_history">Listen history</string>
     <string name="pause_listen_history">Pause listen history</string>
     <string name="clear_listen_history">Clear listen history</string>
@@ -342,6 +347,7 @@
     <string name="hide_explicit">Hide explicit content</string>
 
     <string name="backup_restore">Backup and restore</string>
+    <string name="backup_restore_description">Backup or restore your settings and data</string>
     <string name="action_backup">Backup</string>
     <string name="action_restore">Restore</string>
     <string name="imported_playlist">Imported playlist</string>
@@ -416,6 +422,7 @@
 
     <!--Misc settings additions-->
     <string name="experiment_settings">Experimental Settings</string>
+    <string name="experiment_settings_description">Try new experimental features</string>
     <string name="show_discord_debug_ui">Show Debug UI</string>
     <string name="enable_discord_debug_lines">Enable debug settings lines</string>
     <string name="presence_manager_running">Presence manager: running</string>
@@ -432,6 +439,7 @@
 
 
     <string name="about">About</string>
+    <string name="about_description">App version, credits, and licenses</string>
     <string name="app_version">App version</string>
 
     <string name="new_version_available">New version available</string>
