@@ -273,7 +273,7 @@ fun BottomSheetPlayer(
     }
     
     LaunchedEffect(mediaMetadata?.id, playerBackground) {
-        if (playerBackground == PlayerBackgroundStyle.GRADIENT) {
+        if (playerBackground == PlayerBackgroundStyle.GRADIENT || playerBackground == PlayerBackgroundStyle.COLORING || playerBackground == PlayerBackgroundStyle.BLUR_GRADIENT || playerBackground == PlayerBackgroundStyle.GLOW) {
             val currentMetadata = mediaMetadata
             if (currentMetadata != null && currentMetadata.thumbnailUrl != null) {
                 // Check cache first
@@ -332,6 +332,9 @@ fun BottomSheetPlayer(
             PlayerBackgroundStyle.DEFAULT -> MaterialTheme.colorScheme.onBackground
             PlayerBackgroundStyle.BLUR -> Color.White
             PlayerBackgroundStyle.GRADIENT -> Color.White
+            PlayerBackgroundStyle.COLORING -> Color.White
+            PlayerBackgroundStyle.BLUR_GRADIENT -> Color.White
+            PlayerBackgroundStyle.GLOW -> Color.White
         }
 
     val icBackgroundColor =
@@ -339,6 +342,9 @@ fun BottomSheetPlayer(
             PlayerBackgroundStyle.DEFAULT -> MaterialTheme.colorScheme.surface
             PlayerBackgroundStyle.BLUR -> Color.Black
             PlayerBackgroundStyle.GRADIENT -> Color.Black
+            PlayerBackgroundStyle.COLORING -> Color.Black
+            PlayerBackgroundStyle.BLUR_GRADIENT -> Color.Black
+            PlayerBackgroundStyle.GLOW -> Color.Black
         }
 
     val (textButtonColor, iconButtonColor) = when (playerButtonsStyle) {
@@ -1132,6 +1138,75 @@ fun BottomSheetPlayer(
                                     }
                                     Box(modifier = Modifier.fillMaxSize().background(Brush.verticalGradient(colorStops = gradientColorStops)))
                                     Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.2f)))
+                                }
+                            }
+                        }
+                    }
+                    PlayerBackgroundStyle.COLORING -> {
+                        AnimatedContent(
+                            targetState = gradientColors,
+                            transitionSpec = {
+                                fadeIn(tween(1000)) togetherWith fadeOut(tween(1000))
+                            }
+                        ) { colors ->
+                            if (colors.isNotEmpty()) {
+                                Box(modifier = Modifier.fillMaxSize().background(colors[0]))
+                            }
+                        }
+                    }
+                    PlayerBackgroundStyle.BLUR_GRADIENT -> {
+                        AnimatedContent(
+                            targetState = mediaMetadata?.thumbnailUrl,
+                            transitionSpec = {
+                                fadeIn(tween(1000)) togetherWith fadeOut(tween(1000))
+                            }
+                        ) { thumbnailUrl ->
+                            if (thumbnailUrl != null) {
+                                Box(modifier = Modifier.fillMaxSize()) {
+                                    AsyncImage(
+                                        model = thumbnailUrl,
+                                        contentDescription = "Blurred background",
+                                        contentScale = ContentScale.FillBounds,
+                                        modifier = Modifier.fillMaxSize().blur(radius = 50.dp)
+                                    )
+                                    val gradientColorStops = if (gradientColors.size >= 3) {
+                                        arrayOf(
+                                            0.0f to gradientColors[0].copy(alpha = 0.7f),
+                                            0.5f to gradientColors[1].copy(alpha = 0.7f),
+                                            1.0f to gradientColors[2].copy(alpha = 0.7f)
+                                        )
+                                    } else if (gradientColors.isNotEmpty()) {
+                                        arrayOf(
+                                            0.0f to gradientColors[0].copy(alpha = 0.7f),
+                                            0.6f to gradientColors[0].copy(alpha = 0.4f),
+                                            1.0f to Color.Black.copy(alpha = 0.7f)
+                                        )
+                                    } else {
+                                        arrayOf(
+                                            0.0f to Color.Transparent,
+                                            1.0f to Color.Transparent
+                                        )
+                                    }
+                                    Box(modifier = Modifier.fillMaxSize().background(Brush.verticalGradient(colorStops = gradientColorStops)))
+                                }
+                            }
+                        }
+                    }
+                    PlayerBackgroundStyle.GLOW -> {
+                        AnimatedContent(
+                            targetState = gradientColors,
+                            transitionSpec = {
+                                fadeIn(tween(1000)) togetherWith fadeOut(tween(1000))
+                            }
+                        ) { colors ->
+                            if (colors.isNotEmpty()) {
+                                Box(modifier = Modifier.fillMaxSize()) {
+                                    val radialGradient = Brush.radialGradient(
+                                        colors = listOf(colors[0], Color.Transparent),
+                                        center = Offset(x = 540f, y = 380f),
+                                        radius = 800f
+                                    )
+                                    Box(modifier = Modifier.fillMaxSize().background(radialGradient))
                                 }
                             }
                         }
