@@ -835,6 +835,12 @@ class MainActivity : ComponentActivity() {
                                                     contentDescription = stringResource(R.string.stats)
                                                 )
                                             }
+                                            IconButton(onClick = { navController.navigate("new_release") }) {
+                                                Icon(
+                                                    painter = painterResource(R.drawable.notifications_unread),
+                                                    contentDescription = stringResource(R.string.new_release_albums)
+                                                )
+                                            }
                                             IconButton(onClick = { showAccountDialog = true }) {
                                                 BadgedBox(badge = {
                                                     if (latestVersionName != BuildConfig.VERSION_NAME) {
