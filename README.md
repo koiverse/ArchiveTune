@@ -2,7 +2,7 @@
 
 <img src="https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/icon.png" height="88" alt="ArchiveTune app icon">
 
-Enhanced Music Streaming Client for Android
+Powered Forked [Metrolist](https://github.com/mostafaalagamy/Metrolist) But With Enhanced Features and Improvements Music Streaming Client for Android
 
 [![Latest release](https://img.shields.io/github/v/release/koiverse/ArchiveTune?style=for-the-badge&include_prereleases)](https://github.com/koiverse/ArchiveTune/releases)
 [![GitHub license](https://img.shields.io/github/license/koiverse/ArchiveTune?style=for-the-badge)](https://github.com/koiverse/ArchiveTune/blob/main/LICENSE)
@@ -63,6 +63,10 @@ Enhanced Music Streaming Client for Android
 Use other music scrobbler apps, I recommend [Pano Scrobbler](https://play.google.com/store/apps/details?id=com.arn.scrobble).
 
 </div>
+
+<h3>Thanks To</h3>
+
+[Metrolist](https://github.com/mostafaalagamy/Metrolist)
 
 <div align="center">
 <h1>Disclaimer</h1>
