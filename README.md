@@ -10,10 +10,6 @@ Enhanced Music Streaming Client for Android
 ![IzzyDroid](https://shields.rbtlog.dev/simple/moe.koiverse.archivetune?style=for-the-badge)
 
 
-<!-- use "⠀⠀" for spacing -->
-[<img src="https://raw.githubusercontent.com/OuterTune/OuterTune/refs/heads/dev/assets/badge_github.png" alt="Get it on GitHub" height="40">](https://github.com/koiverse/ArchiveTune/releases/latest)
-
-
 > [!WARNING]
 > ArchiveTune is in a "stable beta" phase. While this app can certainly be used as your main music player, be aware there is a possibility of bugs, incomplete features, or any other unexpected behaviour.
 
