@@ -11,7 +11,7 @@ Enhanced Music Streaming Client for Android
 
 
 <!-- use "⠀⠀" for spacing -->
-[<img src="https://raw.githubusercontent.com/OuterTune/OuterTune/refs/heads/dev/assets/badge_github.png" alt="Get it on GitHub" height="40">](https://github.com/koiverse/ArchiveTune/releases/latest)⠀⠀[<img src="https://raw.githubusercontent.com/OuterTune/OuterTune/a33f0b182c42f499b320b5eb2029c34bf28465d9/assets/IzzyOnDroidButtonGreyBorder.svg" alt="Get it on IzzyOnDroid" height="40">](https://apt.izzysoft.de/fdroid/index/apk/moe.koiverse.archivetune)
+[<img src="https://raw.githubusercontent.com/OuterTune/OuterTune/refs/heads/dev/assets/badge_github.png" alt="Get it on GitHub" height="40">](https://github.com/koiverse/ArchiveTune/releases/latest)
 
 
 > [!WARNING]
