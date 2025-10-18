@@ -66,10 +66,7 @@ Use other music scrobbler apps, I recommend [Pano Scrobbler](https://play.google
 
 ## Credits & Acknowledgments
 
-ArchiveTune is a derivative work based on  
-[**Metrolist**](https://github.com/mostafaalagamy/Metrolist)  
-by **Mostafa Alagamy**, licensed under the [GNU General Public License v3.0](https://www.gnu.org/licenses/gpl-3.0.html).  
-We thank the original author and contributors of Metrolist for their foundational work.
+ArchiveTune is a derivative work based on [**Metrolist**](https://github.com/mostafaalagamy/Metrolist) by **Mostafa Alagamy**, licensed under the [GNU General Public License v3.0](https://www.gnu.org/licenses/gpl-3.0.html). We thank the original author and contributors of Metrolist for their foundational work.
 
 Additional acknowledgments:
 - [**Kizzy**](https://github.com/dead8309/Kizzy) – for the Discord Rich Presence implementation and inspiration.
