@@ -2,16 +2,12 @@
 
 <img src="https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/icon.png" height="88" alt="ArchiveTune app icon">
 
-Enhanced Music Streaming Client for Android
+Powered Forked [Metrolist](https://github.com/mostafaalagamy/Metrolist) But With Enhanced Features and Improvements Music Streaming Client for Android
 
 [![Latest release](https://img.shields.io/github/v/release/koiverse/ArchiveTune?style=for-the-badge&include_prereleases)](https://github.com/koiverse/ArchiveTune/releases)
 [![GitHub license](https://img.shields.io/github/license/koiverse/ArchiveTune?style=for-the-badge)](https://github.com/koiverse/ArchiveTune/blob/main/LICENSE)
 [![Downloads](https://img.shields.io/github/downloads/koiverse/ArchiveTune/total?style=for-the-badge)](https://github.com/koiverse/ArchiveTune/releases)
 ![IzzyDroid](https://shields.rbtlog.dev/simple/moe.koiverse.archivetune?style=for-the-badge)
-
-
-<!-- use "⠀⠀" for spacing -->
-[<img src="https://raw.githubusercontent.com/OuterTune/OuterTune/refs/heads/dev/assets/badge_github.png" alt="Get it on GitHub" height="40">](https://github.com/koiverse/ArchiveTune/releases/latest)⠀⠀[<img src="https://raw.githubusercontent.com/OuterTune/OuterTune/a33f0b182c42f499b320b5eb2029c34bf28465d9/assets/IzzyOnDroidButtonGreyBorder.svg" alt="Get it on IzzyOnDroid" height="40">](https://apt.izzysoft.de/fdroid/index/apk/moe.koiverse.archivetune)
 
 
 > [!WARNING]
@@ -67,6 +63,12 @@ Enhanced Music Streaming Client for Android
 Use other music scrobbler apps, I recommend [Pano Scrobbler](https://play.google.com/store/apps/details?id=com.arn.scrobble).
 
 </div>
+
+<h3>Big Thanks To</h3>
+
+[Metrolist](https://github.com/mostafaalagamy/Metrolist) This Project we're based
+
+[Kizzy](https://github.com/dead8309/Kizzy) For Discord Rich Presence
 
 <div align="center">
 <h1>Disclaimer</h1>
