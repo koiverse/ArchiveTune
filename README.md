@@ -64,9 +64,11 @@ Use other music scrobbler apps, I recommend [Pano Scrobbler](https://play.google
 
 </div>
 
-<h3>Thanks To</h3>
+<h3>Big Thanks To</h3>
 
-[Metrolist](https://github.com/mostafaalagamy/Metrolist)
+[Metrolist](https://github.com/mostafaalagamy/Metrolist) This Project we're based
+
+[Kizzy](https://github.com/dead8309/Kizzy) For Discord Rich Presence
 
 <div align="center">
 <h1>Disclaimer</h1>
