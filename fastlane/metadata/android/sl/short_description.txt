@@ -1,1 +1,1 @@
-Izboljšan odjemalec za pretočno predvajanje glasbe za Android z Material 3 Expressive
+Izboljšan odjemalec za pretočno predvajanje glasbe za Android z Material 3
