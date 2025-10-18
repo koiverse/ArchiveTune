@@ -300,6 +300,9 @@ enum class PlayerBackgroundStyle {
     DEFAULT,
     GRADIENT,
     BLUR,
+    COLORING,
+    BLUR_GRADIENT,
+    GLOW,
 }
 
 

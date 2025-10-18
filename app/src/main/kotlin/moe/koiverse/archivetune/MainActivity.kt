@@ -809,11 +809,11 @@ class MainActivity : ComponentActivity() {
                                             Row(verticalAlignment = Alignment.CenterVertically) {
                                                 // app icon
                                                 Icon(
-                                                    painter = painterResource(R.drawable.about_splash),
+                                                    painter = painterResource(R.drawable.about_appbar),
                                                     contentDescription = null,
                                                     modifier = Modifier
-                                                        .size(32.dp)
-                                                        .padding(end = 6.dp)
+                                                        .size(35.dp)
+                                                        .padding(end = 3.dp)
                                                 )
 
                                                 Text(
@@ -833,6 +833,12 @@ class MainActivity : ComponentActivity() {
                                                 Icon(
                                                     painter = painterResource(R.drawable.stats),
                                                     contentDescription = stringResource(R.string.stats)
+                                                )
+                                            }
+                                            IconButton(onClick = { navController.navigate("new_release") }) {
+                                                Icon(
+                                                    painter = painterResource(R.drawable.notifications_unread),
+                                                    contentDescription = stringResource(R.string.new_release_albums)
                                                 )
                                             }
                                             IconButton(onClick = { showAccountDialog = true }) {

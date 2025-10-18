@@ -87,6 +87,9 @@
     <string name="player_background_style">플레이어 배경 스타일</string>
     <string name="follow_theme">테마 따르기</string>
     <string name="gradient">구배</string>
+    <string name="coloring">채색</string>
+    <string name="blur_gradient">블러 그라데이션</string>
+    <string name="glow">빛나다</string>
     <string name="new_player_design">새로운 플레이어 디자인</string>
     <string name="new_mini_player_design">새로운 미니 플레이어 디자인</string>
     <string name="player_background_blur">흐림</string>

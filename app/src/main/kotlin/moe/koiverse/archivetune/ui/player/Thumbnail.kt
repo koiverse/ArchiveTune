@@ -116,6 +116,9 @@ fun Thumbnail(
         PlayerBackgroundStyle.DEFAULT -> MaterialTheme.colorScheme.onBackground
         PlayerBackgroundStyle.BLUR -> Color.White
         PlayerBackgroundStyle.GRADIENT -> Color.White
+        PlayerBackgroundStyle.COLORING -> Color.White
+        PlayerBackgroundStyle.BLUR_GRADIENT -> Color.White
+        PlayerBackgroundStyle.GLOW -> Color.White
     }
     
     // Grid state

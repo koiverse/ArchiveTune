@@ -367,6 +367,7 @@
     <string name="discord_activity_button2_label">Beschriftung der Schaltfläche 2</string>
     <string name="discord_activity_button2_url">Schaltfläche 2 Benutzerdefinierte URL</string>
     <string name="large_image_custom_url">Benutzerdefinierte URL für großes Bild</string>
+    <string name="large_image">Großes Bild</string>
     <string name="large_text">Großer Text</string>
     <string name="custom_large_text">Benutzerdefinierter großer Text</string>
     <string name="small_image">Kleines Bild</string>

@@ -669,7 +669,7 @@ ExposedDropdownMenuBox(expanded = largeImageExpanded, onExpandedChange = { large
         value = largeImageType,
         onValueChange = {},
         readOnly = true,
-        label = { Text("Large image") },
+        label = { Text(stringResource(R.string.large_image)) },
         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = largeImageExpanded) },
         modifier = Modifier
             .fillMaxWidth()

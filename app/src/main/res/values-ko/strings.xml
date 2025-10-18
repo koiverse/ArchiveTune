@@ -367,6 +367,7 @@
     <string name="discord_activity_button2_label">버튼 1 사용자 정의 URL</string>
     <string name="discord_activity_button2_url">버튼 2 라벨</string>
     <string name="large_image_custom_url">큰 이미지 사용자 지정 URL</string>
+    <string name="large_image">큰 이미지</string>
     <string name="large_text">큰 텍스트</string>
     <string name="custom_large_text">사용자 지정 큰 텍스트</string>
     <string name="small_image">작은 이미지</string>

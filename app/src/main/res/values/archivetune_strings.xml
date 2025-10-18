@@ -90,6 +90,9 @@
     <string name="new_player_design">New player design</string>
     <string name="new_mini_player_design">New mini player design</string>
     <string name="player_background_blur">Blur</string>
+    <string name="coloring">Coloring</string>
+    <string name="blur_gradient">Blur Gradient</string>
+    <string name="glow">Glow</string>
     <string name="player_buttons_style">Player button colors</string>
     <string name="default_style">Default</string>
     <string name="secondary_color_style">Secondary</string>
