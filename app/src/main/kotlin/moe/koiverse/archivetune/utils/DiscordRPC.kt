@@ -259,10 +259,7 @@ class DiscordRPC(
             "$baseSmallText on ArchiveTune"
         }
 
-
-        val hasHoverText = !resolvedLargeText.isNullOrBlank() || !sendSmallText.isNullOrBlank()
-        val applicationIdToSend =
-            if (hasHoverText) APPLICATION_ID else null
+        val applicationIdToSend = APPLICATION_ID
 
         val platformPref = context.dataStore[DiscordActivityPlatformKey] ?: "desktop"
         this.setPlatform(platformPref)
