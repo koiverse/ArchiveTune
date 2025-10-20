@@ -21,6 +21,16 @@ object DiscordPresenceManager {
     private var rpcToken: String? = null
     private val logTag = "DiscordPresenceManager"
 
+    // Stored start parameters so we can restart the updater later.
+    // We intentionally store the application Context (or whatever the caller passed) — callers
+    // should prefer passing an Application context to avoid leaking Activities.
+    private var lastStartContext: Context? = null
+    private var lastToken: String? = null
+    private var lastSongProvider: (() -> Song?)? = null
+    private var lastPositionProvider: (() -> Long)? = null
+    private var lastIsPausedProvider: (() -> Boolean)? = null
+    private var lastIntervalProvider: (() -> Long)? = null
+
     // Last successful RPC timestamps (nullable). Exposed as StateFlow so Compose can observe changes.
     private val _lastRpcStartTime = MutableStateFlow<Long?>(null)
     val lastRpcStartTimeFlow = _lastRpcStartTime.asStateFlow()
@@ -107,6 +117,14 @@ object DiscordPresenceManager {
         intervalProvider: () -> Long
     ) {
         if (started.getAndSet(true)) return // <-- ensure only one job runs
+
+        // Save start parameters so callers can call restart() later.
+        lastStartContext = context
+        lastToken = token
+        lastSongProvider = songProvider
+        lastPositionProvider = positionProvider
+        lastIsPausedProvider = isPausedProvider
+        lastIntervalProvider = intervalProvider
         scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
         job = scope!!.launch {
             while (isActive) {
@@ -144,6 +162,30 @@ object DiscordPresenceManager {
             }
         }
         ProcessLifecycleOwner.get().lifecycle.addObserver(lifecycleObserver!!)
+    }
+
+    /**
+     * Restart the manager using the most recent parameters passed to `start()`.
+     * Returns true if restart was scheduled, false if there were no stored parameters.
+     */
+    fun restart(): Boolean {
+        val ctx = lastStartContext
+        val token = lastToken
+        val songProv = lastSongProvider
+        val posProv = lastPositionProvider
+        val pausedProv = lastIsPausedProvider
+        val intervalProv = lastIntervalProvider
+
+        if (ctx == null || token == null || songProv == null || posProv == null || pausedProv == null || intervalProv == null) {
+            Timber.tag(logTag).w("restart skipped (missing previous start parameters)")
+            return false
+        }
+
+        // Stop any running job and start a fresh one with saved params.
+        stop()
+        start(ctx, token, songProv, posProv, pausedProv, intervalProv)
+        Timber.tag(logTag).d("restarted")
+        return true
     }
 
     /** Run update immediately. */
