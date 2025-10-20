@@ -54,9 +54,7 @@ object DiscordPresenceManager {
         song: Song?,
         positionMs: Long,
         isPaused: Boolean,
-        // Optional pre-resolved image URLs to avoid duplicate resolution work.
-        resolvedLargeImageUrl: String? = null,
-        resolvedSmallImageUrl: String? = null,
+    // (removed optional pre-resolved image URL parameters)
     ): Boolean = withContext(Dispatchers.IO) {
         try {
             if (token.isBlank()) {
@@ -72,10 +70,7 @@ object DiscordPresenceManager {
             }
 
             val rpc = getOrCreateRpc(context, token)
-            // Prefer caller-provided resolved URLs; otherwise fall back to song fields
-            val resolvedLarge = resolvedLargeImageUrl ?: song.song.thumbnailUrl
-            val resolvedSmall = resolvedSmallImageUrl ?: song.artists.firstOrNull()?.thumbnailUrl
-            val result = rpc.updateSong(song, positionMs, isPaused, resolvedLargeImageUrl = resolvedLarge, resolvedSmallImageUrl = resolvedSmall)
+            val result = rpc.updateSong(song, positionMs, isPaused)
             if (result.isSuccess) {
                 Timber.tag(logTag).d(
                     "updatePresence success (song=%s, paused=%s)",
@@ -125,10 +120,8 @@ object DiscordPresenceManager {
                 context = context,
                 token = token,
                 song = song,
-                positionMs = position,
-                isPaused = isPaused
-            )
-            Timber.tag(logTag).d("background update executed, success=$success")
+                positionMs = positionMs,
+                isPaused = isPaused,
         } catch (e: CancellationException) {
             Timber.tag(logTag).d("updater cancelled")
             break
@@ -157,16 +150,12 @@ object DiscordPresenceManager {
         song: Song?,
         positionMs: Long,
         isPaused: Boolean,
-        resolvedLargeImageUrl: String? = null,
-        resolvedSmallImageUrl: String? = null,
     ): Boolean = updatePresence(
         context = context,
         token = token,
         song = song,
         positionMs = positionMs,
         isPaused = isPaused,
-        resolvedLargeImageUrl = resolvedLargeImageUrl,
-        resolvedSmallImageUrl = resolvedSmallImageUrl,
     )
 
     /** Stop the manager. */

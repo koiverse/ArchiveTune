@@ -87,47 +87,11 @@ class DiscordRPC(
         is RpcImage.ExternalImage -> "external:${image.image}"
     }
 
-    private suspend fun resolveOnce(image: RpcImage?): String? {
-        if (image == null) return null
-        val key = rpcKey(image)
-        if (preloadResults.containsKey(key)) return preloadResults[key]
-
-        val resolved = withTimeoutOrNull(4000L) {
-            when (image) {
-                is RpcImage.ExternalImage -> repo.getImage(image.image) ?: image.image
-                is RpcImage.DiscordImage -> image.image
-            }
-        }
-
-        // If resolution failed (null), try to fallback to raw external URL for ExternalImage
-        val finalResolved = when {
-            !resolved.isNullOrBlank() -> resolved
-            image is RpcImage.ExternalImage -> image.image // fallback to original URL
-            else -> null
-        }
-
-        preloadResults[key] = finalResolved
-        Timber.tag(logtag).v("Invocation preload result for %s -> %s", key, resolved)
-        return finalResolved
-    }
-
-    private fun wrapResolved(original: RpcImage?, resolved: String?): RpcImage? {
-        if (resolved.isNullOrBlank()) return original
-        return when {
-            resolved.startsWith("http://") || resolved.startsWith("https://") -> RpcImage.ExternalImage(resolved)
-            resolved.startsWith("mp:") || resolved.startsWith("b7.") -> original
-            else -> original
-        }
-    }
 
     suspend fun updateSong(
         song: Song,
         currentPlaybackTimeMillis: Long,
         isPaused: Boolean = false,
-        // If callers already have resolved image URLs (external HTTP URLs), they can
-        // pass them here to avoid additional resolution/preload work.
-        resolvedLargeImageUrl: String? = null,
-        resolvedSmallImageUrl: String? = null,
     ) = runCatching {
         val currentTime = System.currentTimeMillis()
         val calculatedStartTime = currentTime - currentPlaybackTimeMillis
@@ -263,52 +227,15 @@ class DiscordRPC(
         val saved = ArtworkStorage.findBySongId(context, song.song.id)
 
         val finalLargeImage: RpcImage? = when {
-            !resolvedLargeImageUrl.isNullOrBlank() -> RpcImage.ExternalImage(resolvedLargeImageUrl)
             (largeImageTypePref.equals("thumbnail", true) && !saved?.thumbnail.isNullOrBlank()) -> RpcImage.ExternalImage(saved!!.thumbnail!!)
-            else -> {
-                val largeImageRpc = pickImage(largeImageTypePref, largeImageCustomPref, song, false)
-                val resolvedLargeImage = resolveOnce(largeImageRpc)
-                val largeRequestedButFailed = largeImageRpc != null && resolvedLargeImage == null
-                if (largeRequestedButFailed) {
-                    Timber.tag(logtag).w("Large RPC image failed to resolve. Continuing without it.")
-                }
-                // If resolved to an external http(s) url, persist it
-                if (!resolvedLargeImage.isNullOrBlank() && (resolvedLargeImage.startsWith("http://") || resolvedLargeImage.startsWith("https://"))) {
-                    try {
-                        val updated = SavedArtwork(songId = song.song.id, thumbnail = resolvedLargeImage, artist = saved?.artist)
-                        ArtworkStorage.saveOrUpdate(context, updated)
-                    } catch (e: Exception) {
-                        Timber.tag(logtag).v(e, "failed to persist large image")
-                    }
-                }
-                wrapResolved(largeImageRpc, resolvedLargeImage)
-            }
+            else -> pickImage(largeImageTypePref, largeImageCustomPref, song, false)
         }
 
         val finalSmallImage: RpcImage? = when {
-            !resolvedSmallImageUrl.isNullOrBlank() -> RpcImage.ExternalImage(resolvedSmallImageUrl)
             smallImageTypePref.equals("artist", ignoreCase = true) && !saved?.artist.isNullOrBlank() -> RpcImage.ExternalImage(saved!!.artist!!)
-            else -> {
-                val smallImageRpc =
-                    if (isPaused) RpcImage.ExternalImage(PAUSE_IMAGE_URL)
-                    else if (smallImageTypePref.lowercase() in listOf("none", "dontshow")) null
-                    else pickImage(smallImageTypePref, smallImageCustomPref, song, true)
-                val resolvedSmallImage = resolveOnce(smallImageRpc)
-                val smallRequestedButFailed = smallImageRpc != null && resolvedSmallImage == null
-                if (smallRequestedButFailed) {
-                    Timber.tag(logtag).w("Small RPC image failed to resolve. Continuing without it.")
-                }
-                // Persist artist image when resolved to external http(s)
-                if (!resolvedSmallImage.isNullOrBlank() && (resolvedSmallImage.startsWith("http://") || resolvedSmallImage.startsWith("https://"))) {
-                    try {
-                        val updated = SavedArtwork(songId = song.song.id, thumbnail = saved?.thumbnail, artist = resolvedSmallImage)
-                        ArtworkStorage.saveOrUpdate(context, updated)
-                    } catch (e: Exception) {
-                        Timber.tag(logtag).v(e, "failed to persist small image")
-                    }
-                }
-                wrapResolved(smallImageRpc, resolvedSmallImage)
-            }
+            isPaused -> RpcImage.ExternalImage(PAUSE_IMAGE_URL)
+            smallImageTypePref.lowercase() in listOf("none", "dontshow") -> null
+            else -> pickImage(smallImageTypePref, smallImageCustomPref, song, true)
         }
 
         val largeTextSource = (context.dataStore[DiscordLargeTextSourceKey] ?: "album").lowercase()

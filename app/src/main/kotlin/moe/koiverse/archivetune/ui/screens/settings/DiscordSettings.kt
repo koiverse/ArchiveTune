@@ -319,24 +319,6 @@ fun DiscordSettings(
                        val start = System.currentTimeMillis()
 
                        // Resolve large image from current Compose state (respect user selection)
-                       val resolvedLargeToPass = when (largeImageType.lowercase()) {
-                           "thumbnail" -> song?.song?.thumbnailUrl
-                           "artist" -> song?.artists?.firstOrNull()?.thumbnailUrl
-                           "appicon", "app" -> "https://raw.githubusercontent.com/koiverse/ArchiveTune/main/fastlane/metadata/android/en-US/images/icon.png"
-                           "custom" -> largeImageCustomUrl.ifBlank { song?.song?.thumbnailUrl }
-                           else -> song?.song?.thumbnailUrl
-                       }
-
-                       // Resolve small image from current Compose state
-                       val resolvedSmallToPass = when (smallImageType.lowercase()) {
-                           "thumbnail" -> song?.song?.thumbnailUrl
-                           "artist" -> song?.artists?.firstOrNull()?.thumbnailUrl
-                           "appicon", "app" -> "https://raw.githubusercontent.com/koiverse/ArchiveTune/main/fastlane/metadata/android/en-US/images/icon.png"
-                           "custom" -> smallImageCustomUrl.ifBlank { song?.artists?.firstOrNull()?.thumbnailUrl }
-                           "dontshow", "none" -> null
-                           else -> song?.artists?.firstOrNull()?.thumbnailUrl
-                       }
-
                        val success = DiscordPresenceManager.updatePresence(
                            context = context,
                            token = discordToken,
@@ -344,8 +326,6 @@ fun DiscordSettings(
                            positionMs = playerConnection.player.currentPosition,
                            isPaused = !(playerConnection.player.playWhenReady &&
                                    playerConnection.player.playbackState == STATE_READY),
-                           resolvedLargeImageUrl = resolvedLargeToPass,
-                           resolvedSmallImageUrl = resolvedSmallToPass
                        )
                        isRefreshing = false
                         // Show snackbar on main thread
