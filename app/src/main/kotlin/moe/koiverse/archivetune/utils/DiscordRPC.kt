@@ -7,7 +7,7 @@ import moe.koiverse.archivetune.constants.*
 import moe.koiverse.archivetune.utils.dataStore
 import com.my.kizzy.rpc.KizzyRPC
 import com.my.kizzy.rpc.RpcImage
-import kotlinx.coroutines.withTimeoutOrNull
+// ...existing code...
 import timber.log.Timber
 import me.bush.translator.Translator
 import me.bush.translator.Language
@@ -25,9 +25,7 @@ class DiscordRPC(
         private const val logtag = "DiscordRPC"
     }
 
-    private val repo = com.my.kizzy.repository.KizzyRepository()
     private val translationCache: MutableMap<String, String> = mutableMapOf()
-    private val preloadResults: MutableMap<String, String?> = mutableMapOf()
     private var lastSongId: String? = null
 
     private fun pickSourceValue(pref: String, song: Song?, default: String): String = when (pref) {
@@ -82,10 +80,7 @@ class DiscordRPC(
         }
     }
 
-    private fun rpcKey(image: RpcImage): String = when (image) {
-        is RpcImage.DiscordImage -> "discord:${image.image}"
-        is RpcImage.ExternalImage -> "external:${image.image}"
-    }
+    // rpcKey removed — we no longer resolve or cache external images here
 
 
     suspend fun updateSong(

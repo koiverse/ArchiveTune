@@ -109,31 +109,34 @@ object DiscordPresenceManager {
         if (started.getAndSet(true)) return // <-- ensure only one job runs
         scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
         job = scope!!.launch {
-        while (isActive) {
-        try {
-            // switch to Main for player access
-            val (song, position, isPaused) = withContext(Dispatchers.Main) {
-                Triple(songProvider(), positionProvider(), isPausedProvider())
+            while (isActive) {
+                try {
+                    // switch to Main for player access
+                    val (song, position, isPaused) = withContext(Dispatchers.Main) {
+                        Triple(songProvider(), positionProvider(), isPausedProvider())
+                    }
+
+                    val success = updatePresence(
+                        context = context,
+                        token = token,
+                        song = song,
+                        positionMs = position,
+                        isPaused = isPaused,
+                    )
+
+                    // optional: handle `success` if needed
+                } catch (e: CancellationException) {
+                    Timber.tag(logTag).d("updater cancelled")
+                    break
+                } catch (e: Exception) {
+                    Timber.tag(logTag).e(e, "loop error → ${e.message}")
+                }
+
+                val delayMs = intervalProvider()
+                if (delayMs <= 0L) break
+                delay(delayMs)
             }
-
-            val success = updatePresence(
-                context = context,
-                token = token,
-                song = song,
-                positionMs = positionMs,
-                isPaused = isPaused,
-        } catch (e: CancellationException) {
-            Timber.tag(logTag).d("updater cancelled")
-            break
-        } catch (e: Exception) {
-            Timber.tag(logTag).e(e, "loop error → ${e.message}")
         }
-
-        val delayMs = intervalProvider()
-        if (delayMs <= 0L) break
-        delay(delayMs)
-    }
-}
 
         lifecycleObserver = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_DESTROY) {
