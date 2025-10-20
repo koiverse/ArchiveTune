@@ -501,13 +501,13 @@ class MusicService :
         }
 
         if (DiscordPresenceManager.isRunning() && lastPresenceToken == key) {
-            try {
-                if (DiscordPresenceManager.restart()) {
-                    Timber.tag("MusicService").d("Presence manager restarted with same token")
-                }
-            } catch (ex: Exception) {
-                Timber.tag("MusicService").e(ex, "Failed to restart presence manager")
-            }
+            // try {
+            //     if (DiscordPresenceManager.restart()) {
+            //         Timber.tag("MusicService").d("Presence manager restarted with same token")
+            //     }
+            // } catch (ex: Exception) {
+            //     Timber.tag("MusicService").e(ex, "Failed to restart presence manager")
+            // }
             return
         }
 
@@ -1009,6 +1009,7 @@ class MusicService :
     if (dataStore.get(PersistentQueueKey, true)) {
         saveQueueToDisk()
     }
+    DiscordPresenceManager.restart()
     ensurePresenceManager()
 }
 
@@ -1018,6 +1019,7 @@ class MusicService :
     if (dataStore.get(PersistentQueueKey, true)) {
         saveQueueToDisk()
     }
+    DiscordPresenceManager.restart()
     ensurePresenceManager()
 }
 
