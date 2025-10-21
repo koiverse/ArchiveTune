@@ -12,6 +12,7 @@ import moe.koiverse.archivetune.utils.DiscordRPC
 import timber.log.Timber
 import java.util.concurrent.atomic.AtomicBoolean
 import moe.koiverse.archivetune.utils.resolveAndPersistImages
+import moe.koiverse.archivetune.utils.ArtworkStorage
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
@@ -100,6 +101,18 @@ object DiscordPresenceManager {
                 rpc.stopActivity()
                 Timber.tag(logTag).d("cleared presence (no song)")
                 return@withContext true
+            }
+            try {
+                val saved = ArtworkStorage.findBySongId(context, song.song.id)
+                if (saved == null || saved.thumbnail.isNullOrBlank() || saved.artist.isNullOrBlank()) {
+                    try {
+                        withTimeoutOrNull(2500L) { resolveAndPersistImages(context, song, isPaused) }
+                    } catch (e: Exception) {
+                        Timber.tag(logTag).v(e, "resolveAndPersistImages failed in updatePresence")
+                    }
+                }
+            } catch (e: Exception) {
+                Timber.tag(logTag).v(e, "artwork check failed")
             }
 
             var rpc = getOrCreateRpc(context, token)
