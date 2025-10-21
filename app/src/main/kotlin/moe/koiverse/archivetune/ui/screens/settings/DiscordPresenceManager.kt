@@ -211,14 +211,50 @@ object DiscordPresenceManager {
 
                 // Run the first update immediately
                 try {
-                    val firstResult = updatePresence(
-                        context = context,
-                        token = token,
-                        song = firstSong,
-                        positionMs = firstPosition,
-                        isPaused = firstIsPaused,
-                    )
+                    // Bound the initial update so we don't hang on slow image resolution or RPC problems.
+                    val firstResult = withTimeoutOrNull(5000L) {
+                        updatePresence(
+                            context = context,
+                            token = token,
+                            song = firstSong,
+                            positionMs = firstPosition,
+                            isPaused = firstIsPaused,
+                        )
+                    } ?: run {
+                        Timber.tag(logTag).w("initial updatePresence timed out")
+                        false
+                    }
+
                     Timber.tag(logTag).d("initial updatePresence result=%s songId=%s", firstResult, firstSong?.song?.id)
+
+                    if (!firstResult) {
+                        Timber.tag(logTag).w("initial updatePresence returned false — attempting quick reconnect and retry")
+                        try {
+                            // Close and recreate the RPC to recover from transient failures
+                            rpcInstance?.let { prev ->
+                                try { withTimeoutOrNull(2000L) { prev.stopActivity() } } catch (_: Exception) {}
+                                try { prev.closeRPC() } catch (_: Exception) {}
+                            }
+                        } catch (ex: Exception) {
+                            Timber.tag(logTag).v(ex, "error while cleaning previous RPC during initial retry")
+                        }
+                        rpcInstance = null
+                        delay(250L)
+                        try {
+                            val retryResult = withTimeoutOrNull(5000L) {
+                                updatePresence(
+                                    context = context,
+                                    token = token,
+                                    song = firstSong,
+                                    positionMs = firstPosition,
+                                    isPaused = firstIsPaused,
+                                )
+                            } ?: false
+                            Timber.tag(logTag).d("initial retry result=%s songId=%s", retryResult, firstSong?.song?.id)
+                        } catch (ex: Exception) {
+                            Timber.tag(logTag).e(ex, "initial retry threw")
+                        }
+                    }
                 } catch (e: Exception) {
                     Timber.tag(logTag).e(e, "initial updatePresence failed")
                 }
@@ -233,15 +269,51 @@ object DiscordPresenceManager {
                         Triple(songProvider(), positionProvider(), isPausedProvider())
                     }
 
-                    val success = updatePresence(
-                        context = context,
-                        token = token,
-                        song = song,
-                        positionMs = position,
-                        isPaused = isPaused,
-                    )
+                    val success = try {
+                        withTimeoutOrNull(5000L) {
+                            updatePresence(
+                                context = context,
+                                token = token,
+                                song = song,
+                                positionMs = position,
+                                isPaused = isPaused,
+                            )
+                        } ?: false
+                    } catch (ex: CancellationException) {
+                        Timber.tag(logTag).w(ex, "updatePresence cancelled during loop")
+                        throw ex
+                    } catch (ex: Exception) {
+                        Timber.tag(logTag).e(ex, "updatePresence threw during loop")
+                        false
+                    }
 
-                    // optional: handle `success` if needed
+                    if (!success) {
+                        Timber.tag(logTag).w("updatePresence returned false in loop — attempting quick reconnect and retry")
+                        try {
+                            rpcInstance?.let { prev ->
+                                try { withTimeoutOrNull(2000L) { prev.stopActivity() } } catch (_: Exception) {}
+                                try { prev.closeRPC() } catch (_: Exception) {}
+                            }
+                        } catch (ex: Exception) {
+                            Timber.tag(logTag).v(ex, "error cleaning RPC during loop retry")
+                        }
+                        rpcInstance = null
+                        delay(200L)
+                        try {
+                            val retry = withTimeoutOrNull(5000L) {
+                                updatePresence(
+                                    context = context,
+                                    token = token,
+                                    song = song,
+                                    positionMs = position,
+                                    isPaused = isPaused,
+                                )
+                            } ?: false
+                            Timber.tag(logTag).d("loop retry result=%s songId=%s", retry, song?.song?.id)
+                        } catch (ex: Exception) {
+                            Timber.tag(logTag).e(ex, "loop retry threw")
+                        }
+                    }
                 } catch (e: CancellationException) {
                     Timber.tag(logTag).d("updater cancelled")
                     break
