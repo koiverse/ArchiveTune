@@ -97,9 +97,16 @@ object DiscordPresenceManager {
             }
 
             if (song == null) {
-                val rpc = getOrCreateRpc(context, token)
-                rpc.stopActivity()
-                Timber.tag(logTag).d("cleared presence (no song)")
+                if (rpcInstance != null && rpcToken == token) {
+                    try {
+                        withTimeoutOrNull(3000L) { rpcInstance?.stopActivity() }
+                        Timber.tag(logTag).d("cleared presence (stopped existing RPC)")
+                    } catch (ex: Exception) {
+                        Timber.tag(logTag).v(ex, "failed to stopActivity on existing RPC while clearing presence")
+                    }
+                } else {
+                    Timber.tag(logTag).d("no existing RPC instance to clear presence (skipping creation)")
+                }
                 return@withContext true
             }
             try {
