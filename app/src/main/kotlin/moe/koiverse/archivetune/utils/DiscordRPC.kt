@@ -286,8 +286,9 @@ class DiscordRPC(
             else -> "online"
         }
 
-        try {
+            try {
             // Only include the buttons argument when we actually have buttons to send.
+            Timber.tag(logtag).v("refreshing RPC: name=%s details=%s state=%s isPaused=%s", activityName, activityDetails, activityState, isPaused)
             if (finalButtons.isNotEmpty()) {
                 this.refreshRPC(
                     name = activityName.removeSuffix(" Debug"),
@@ -326,7 +327,7 @@ class DiscordRPC(
                     status = safeStatus
                 )
             }
-            Timber.tag(logtag).i("sending presence name=%s details=%s state=%s", activityName, activityDetails, activityState)
+            Timber.tag(logtag).i("sent presence name=%s details=%s state=%s", activityName, activityDetails, activityState)
         } catch (ex: Exception) {
             Timber.tag(logtag).e(ex, "updatePresence failed")
             throw ex

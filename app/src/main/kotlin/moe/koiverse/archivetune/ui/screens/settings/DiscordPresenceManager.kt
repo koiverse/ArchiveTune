@@ -95,8 +95,8 @@ object DiscordPresenceManager {
                 return@withContext true
             }
 
-            val rpc = getOrCreateRpc(context, token)
-            val result = rpc.updateSong(song, positionMs, isPaused)
+            var rpc = getOrCreateRpc(context, token)
+            var result = rpc.updateSong(song, positionMs, isPaused)
             if (result.isSuccess) {
                 Timber.tag(logTag).d(
                     "updatePresence success (song=%s, paused=%s)",
@@ -112,8 +112,30 @@ object DiscordPresenceManager {
                 }
                 true
             } else {
-                Timber.tag(logTag).w("updatePresence failed silently — updateSong returned failure")
-                return@withContext false
+                Timber.tag(logTag).w("updatePresence: first updateSong attempt failed: %s", result.exceptionOrNull())
+                // Try a single retry: close and recreate RPC client then try once more.
+                try {
+                    try { rpc.closeRPC() } catch (_: Exception) {}
+                    rpcInstance = null
+                    rpc = getOrCreateRpc(context, token)
+                    val retry = rpc.updateSong(song, positionMs, isPaused)
+                    if (retry.isSuccess) {
+                        Timber.tag(logTag).d("updatePresence: retry succeeded")
+                        if (!isPaused) {
+                            val now = System.currentTimeMillis()
+                            val calculatedStartTime = now - positionMs
+                            val calculatedEndTime = calculatedStartTime + song.song.duration * 1000L
+                            setLastRpcTimestamps(calculatedStartTime, calculatedEndTime)
+                        }
+                        return@withContext true
+                    } else {
+                        Timber.tag(logTag).w("updatePresence: retry failed: %s", retry.exceptionOrNull())
+                        return@withContext false
+                    }
+                } catch (ex: Exception) {
+                    Timber.tag(logTag).e(ex, "updatePresence retry threw")
+                    return@withContext false
+                }
             }
         } catch (ex: Exception) {
             Timber.tag(logTag).e(ex, "updatePresence failed")
