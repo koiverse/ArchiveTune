@@ -1018,20 +1018,33 @@ class MusicService :
     if (dataStore.get(PersistentQueueKey, true)) {
         saveQueueToDisk()
     }
-    // Ensure presence updates immediately when playback state changes (play/pause)
     ensurePresenceManager()
-    // Fire an immediate presence update to avoid stale paused states
     scope.launch {
         try {
             val token = dataStore.get(DiscordTokenKey, "")
             if (token.isNotBlank() && DiscordPresenceManager.isRunning()) {
-                DiscordPresenceManager.updateNow(
+                // Obtain the freshest Song from DB using current media item id to avoid stale currentSong.value
+                val mediaId = player.currentMediaItem?.mediaId
+                val song = if (mediaId != null) withContext(Dispatchers.IO) { database.song(mediaId).first() } else null
+
+                val success = DiscordPresenceManager.updateNow(
                     context = this@MusicService,
                     token = token,
-                    song = currentSong.value,
+                    song = song,
                     positionMs = player.currentPosition,
                     isPaused = !player.isPlaying,
                 )
+
+                if (!success) {
+                    Timber.tag("MusicService").w("immediate presence update returned false — attempting restart")
+                    try {
+                        if (DiscordPresenceManager.restart()) {
+                            Timber.tag("MusicService").d("presence manager restarted after failed update")
+                        }
+                    } catch (ex: Exception) {
+                        Timber.tag("MusicService").e(ex, "restart after failed presence update threw")
+                    }
+                }
             }
         } catch (e: Exception) {
             Timber.tag("MusicService").v(e, "immediate presence update failed")
@@ -1063,16 +1076,52 @@ class MusicService :
                 try {
                     val token = dataStore.get(DiscordTokenKey, "")
                     if (token.isNotBlank() && DiscordPresenceManager.isRunning()) {
-                        DiscordPresenceManager.updateNow(
+                        val mediaId = player.currentMediaItem?.mediaId
+                        val song = if (mediaId != null) withContext(Dispatchers.IO) { database.song(mediaId).first() } else null
+
+                        val success = DiscordPresenceManager.updateNow(
                             context = this@MusicService,
                             token = token,
-                            song = currentSong.value,
+                            song = song,
                             positionMs = player.currentPosition,
                             isPaused = !player.isPlaying,
                         )
+
+                        if (!success) {
+                            Timber.tag("MusicService").w("transition immediate presence update failed — attempting restart")
+                            try { DiscordPresenceManager.stop(); DiscordPresenceManager.start(this@MusicService, dataStore.get(DiscordTokenKey, ""), { song }, { player.currentPosition }, { !player.isPlaying }, { getPresenceIntervalMillis(this@MusicService) }) } catch (_: Exception) {}
+                        }
                     }
                 } catch (e: Exception) {
                     Timber.tag("MusicService").v(e, "immediate presence update failed on transition")
+                }
+            }
+        }
+
+        // Also handle immediate update for play state and media item transition events explicitly
+        if (events.containsAny(Player.EVENT_IS_PLAYING_CHANGED, Player.EVENT_MEDIA_ITEM_TRANSITION)) {
+            scope.launch {
+                try {
+                    val token = dataStore.get(DiscordTokenKey, "")
+                    if (token.isNotBlank() && DiscordPresenceManager.isRunning()) {
+                        val mediaId = player.currentMediaItem?.mediaId
+                        val song = if (mediaId != null) withContext(Dispatchers.IO) { database.song(mediaId).first() } else null
+
+                        val success = DiscordPresenceManager.updateNow(
+                            context = this@MusicService,
+                            token = token,
+                            song = song,
+                            positionMs = player.currentPosition,
+                            isPaused = !player.isPlaying,
+                        )
+
+                        if (!success) {
+                            Timber.tag("MusicService").w("isPlaying/mediaTransition immediate presence update failed — restarting manager")
+                            try { DiscordPresenceManager.stop(); DiscordPresenceManager.restart() } catch (_: Exception) {}
+                        }
+                    }
+                } catch (e: Exception) {
+                    Timber.tag("MusicService").v(e, "immediate presence update failed for isPlaying/mediaTransition")
                 }
             }
         }
