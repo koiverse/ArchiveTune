@@ -40,6 +40,7 @@ import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.constants.AudioNormalizationKey
 import moe.koiverse.archivetune.constants.AudioQuality
 import moe.koiverse.archivetune.constants.AudioQualityKey
+import moe.koiverse.archivetune.constants.NetworkMeteredKey
 import moe.koiverse.archivetune.constants.AutoDownloadOnLikeKey
 import moe.koiverse.archivetune.constants.AutoLoadMoreKey
 import moe.koiverse.archivetune.constants.DisableLoadMoreWhenRepeatAllKey
@@ -69,6 +70,10 @@ fun PlayerSettings(
     val (audioQuality, onAudioQualityChange) = rememberEnumPreference(
         AudioQualityKey,
         defaultValue = AudioQuality.AUTO
+    )
+    val (networkMetered, onNetworkMeteredChange) = rememberPreference(
+        NetworkMeteredKey,
+        defaultValue = true
     )
     val (persistentQueue, onPersistentQueueChange) = rememberPreference(
         PersistentQueueKey,
@@ -146,6 +151,14 @@ fun PlayerSettings(
                     AudioQuality.LOW -> stringResource(R.string.audio_quality_low)
                 }
             }
+        )
+
+        SwitchPreference(
+            title = { Text(stringResource(R.string.network_metered_title)) },
+            description = stringResource(R.string.network_metered_description),
+            icon = { Icon(painterResource(R.drawable.android_cell), null) },
+            checked = networkMetered,
+            onCheckedChange = onNetworkMeteredChange
         )
 
         SliderPreference(

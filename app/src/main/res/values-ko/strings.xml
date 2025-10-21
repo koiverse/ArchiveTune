@@ -299,6 +299,8 @@
     <string name="audio_quality_auto">오디오 품질</string>
     <string name="audio_quality_high">자동</string>
     <string name="audio_quality_low">높음</string>
+    <string name="network_metered_title">네트워크를 측정된 것으로 처리</string>
+    <string name="network_metered_description">이 옵션이 활성화된 경우 앱은 측정된 네트워크에서 낮은 품질의 스트림을 선호합니다</string>
     <string name="queue">낮음</string>
     <string name="persistent_queue">큐</string>
     <string name="persistent_queue_desc">지속적 대기열</string>

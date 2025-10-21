@@ -299,6 +299,8 @@
     <string name="audio_quality_auto">自動</string>
     <string name="audio_quality_high">高</string>
     <string name="audio_quality_low">低</string>
+    <string name="network_metered_title">ネットワークを従量制として扱う</string>
+    <string name="network_metered_description">このオプションが有効になっている場合、アプリは従量制ネットワークで低品質のストリームを優先します</string>
     <string name="queue">キュー</string>
     <string name="persistent_queue">永続キュー</string>
     <string name="persistent_queue_desc">アプリ起動時に最後のキューを復元</string>

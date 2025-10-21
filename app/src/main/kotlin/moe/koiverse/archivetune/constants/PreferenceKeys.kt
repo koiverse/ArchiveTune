@@ -43,6 +43,8 @@ val YtmSyncKey = booleanPreferencesKey("ytmSync")
 
 val AudioQualityKey = stringPreferencesKey("audioQuality")
 
+val NetworkMeteredKey = booleanPreferencesKey("networkMetered")
+
 enum class AudioQuality {
     AUTO,
     HIGH,

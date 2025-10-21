@@ -1279,10 +1279,12 @@ class MusicService :
             }
 
             val playbackData = runBlocking(Dispatchers.IO) {
+                val networkMeteredPref = this@MusicService.dataStore.get(moe.koiverse.archivetune.constants.NetworkMeteredKey, true)
                 YTPlayerUtils.playerResponseForPlayback(
                     mediaId,
                     audioQuality = audioQuality,
                     connectivityManager = connectivityManager,
+                    networkMetered = networkMeteredPref,
                 )
             }.getOrElse { throwable ->
                 when (throwable) {

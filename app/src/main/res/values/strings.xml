@@ -299,6 +299,8 @@
     <string name="audio_quality_auto">Auto</string>
     <string name="audio_quality_high">High</string>
     <string name="audio_quality_low">Low</string>
+    <string name="network_metered_title">Treat network as metered</string>
+    <string name="network_metered_description">When enabled, the app will prefer lower-quality streams on metered networks</string>
     <string name="queue">Queue</string>
     <string name="persistent_queue">Persistent queue</string>
     <string name="persistent_queue_desc">Restore your last queue when the app starts</string>
