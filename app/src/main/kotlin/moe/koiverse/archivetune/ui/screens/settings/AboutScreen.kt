@@ -6,6 +6,8 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -259,68 +261,85 @@ fun AboutScreen(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 teamMembers.forEach { member ->
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
+                    Card(
                         modifier = Modifier
                             .fillMaxWidth()
+                            .padding(horizontal = 16.dp)
                             .clickable(enabled = member.profileUrl != null) {
                                 member.profileUrl?.let { uriHandler.openUri(it) }
-                            }
-                            .padding(vertical = 8.dp)
+                            },
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                        shape = CardDefaults.shape
                     ) {
-                        AsyncImage(
-                            model = member.avatarUrl,
-                            contentDescription = member.name,
-                            modifier = Modifier
-                                .size(80.dp)
-                                .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.surfaceVariant)
-                        )
-
-                        Spacer(Modifier.height(8.dp))
-
-                        Text(
-                            text = member.name,
-                            style = MaterialTheme.typography.titleLarge.copy(
-                                fontWeight = FontWeight.Bold
-                            )
-                        )
-
-                        Text(
-                            text = member.position,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.secondary
-                        )
-
-                        Spacer(Modifier.height(8.dp))
-
                         Row(
-                            horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally),
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            member.github?.let {
-                                OutlinedIconChip(
-                                    iconRes = R.drawable.github,
-                                    text = "Github",
-                                    onClick = { uriHandler.openUri(it) }
-                                )
-                            }
+                            AsyncImage(
+                                model = member.avatarUrl,
+                                contentDescription = member.name,
+                                modifier = Modifier
+                                    .size(72.dp)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                            )
 
-                            member.website?.takeIf { it.isNotBlank() }?.let {
-                                OutlinedIconChip(
-                                    iconRes = R.drawable.website,
-                                    text = "Website",
-                                    onClick = { uriHandler.openUri(it) }
-                                )
-                            }
+                            Spacer(Modifier.width(12.dp))
 
-                            member.discord?.let {
-                                OutlinedIconChip(
-                                    iconRes = R.drawable.alternate_email,
-                                    text = "Discord",
-                                    onClick = { uriHandler.openUri(it) }
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = member.name,
+                                    style = MaterialTheme.typography.titleMedium.copy(
+                                        fontWeight = FontWeight.Bold
+                                    )
                                 )
+
+                                Spacer(Modifier.height(4.dp))
+
+                                Text(
+                                    text = member.position,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.secondary
+                                )
+
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier
+                                        .padding(top = 8.dp)
+                                ) {
+                                    member.github?.let {
+                                        IconButton(onClick = { uriHandler.openUri(it) }) {
+                                            Icon(
+                                                painter = painterResource(R.drawable.github),
+                                                contentDescription = "Github",
+                                                modifier = Modifier.size(20.dp)
+                                            )
+                                        }
+                                    }
+
+                                    member.website?.takeIf { it.isNotBlank() }?.let {
+                                        IconButton(onClick = { uriHandler.openUri(it) }) {
+                                            Icon(
+                                                painter = painterResource(R.drawable.website),
+                                                contentDescription = "Website",
+                                                modifier = Modifier.size(20.dp)
+                                            )
+                                        }
+                                    }
+
+                                    member.discord?.let {
+                                        IconButton(onClick = { uriHandler.openUri(it) }) {
+                                            Icon(
+                                                painter = painterResource(R.drawable.alternate_email),
+                                                contentDescription = "Discord",
+                                                modifier = Modifier.size(20.dp)
+                                            )
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
