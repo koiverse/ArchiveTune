@@ -1009,7 +1009,6 @@ class MusicService :
     if (dataStore.get(PersistentQueueKey, true)) {
         saveQueueToDisk()
     }
-    DiscordPresenceManager.restart()
     ensurePresenceManager()
 }
 
@@ -1019,7 +1018,6 @@ class MusicService :
     if (dataStore.get(PersistentQueueKey, true)) {
         saveQueueToDisk()
     }
-    DiscordPresenceManager.restart()
     ensurePresenceManager()
 }
 

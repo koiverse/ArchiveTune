@@ -11,6 +11,7 @@ import moe.koiverse.archivetune.db.entities.Song
 import moe.koiverse.archivetune.utils.DiscordRPC
 import timber.log.Timber
 import java.util.concurrent.atomic.AtomicBoolean
+import moe.koiverse.archivetune.utils.resolveAndPersistImages
 
 object DiscordPresenceManager {
     private val started = AtomicBoolean(false)
@@ -127,6 +128,40 @@ object DiscordPresenceManager {
         lastIntervalProvider = intervalProvider
         scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
         job = scope!!.launch {
+            // Perform an immediate first update (or at the first second of the interval).
+            try {
+                // switch to Main for player access
+                val (firstSong, firstPosition, firstIsPaused) = withContext(Dispatchers.Main) {
+                    Triple(songProvider(), positionProvider(), isPausedProvider())
+                }
+
+                // Try resolving and persisting image URLs before update so DiscordRPC can use saved artwork immediately.
+                try {
+                    firstSong?.let { song ->
+                        // resolve images with a short timeout inside resolveAndPersistImages implementation
+                        resolveAndPersistImages(context, song, firstIsPaused)
+                    }
+                } catch (e: Exception) {
+                    Timber.tag(logTag).v(e, "initial image resolution failed")
+                }
+
+                // Run the first update immediately
+                try {
+                    val firstResult = updatePresence(
+                        context = context,
+                        token = token,
+                        song = firstSong,
+                        positionMs = firstPosition,
+                        isPaused = firstIsPaused,
+                    )
+                    Timber.tag(logTag).d("initial updatePresence result=%s songId=%s", firstResult, firstSong?.song?.id)
+                } catch (e: Exception) {
+                    Timber.tag(logTag).e(e, "initial updatePresence failed")
+                }
+            } catch (e: Exception) {
+                Timber.tag(logTag).e(e, "initial first-run failed")
+            }
+
             while (isActive) {
                 try {
                     // switch to Main for player access
