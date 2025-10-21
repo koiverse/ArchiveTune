@@ -264,24 +264,27 @@ fun AboutScreen(
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 16.dp)
+                            .padding(horizontal = 16.dp, vertical = 6.dp)
                             .clickable(enabled = member.profileUrl != null) {
                                 member.profileUrl?.let { uriHandler.openUri(it) }
                             },
-                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-                        shape = CardDefaults.shape
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceContainer
+                        ),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                        shape = RoundedCornerShape(20.dp)
                     ) {
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(12.dp),
-                            verticalAlignment = Alignment.CenterVertically // centers text block
+                                .padding(14.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
                             AsyncImage(
                                 model = member.avatarUrl,
                                 contentDescription = member.name,
                                 modifier = Modifier
-                                    .size(72.dp)
+                                    .size(56.dp)
                                     .clip(CircleShape)
                                     .background(MaterialTheme.colorScheme.surfaceVariant)
                             )
@@ -291,7 +294,7 @@ fun AboutScreen(
                             Column(
                                 modifier = Modifier
                                     .weight(1f)
-                                    .align(Alignment.CenterVertically) // ensures column centers with avatar
+                                    .align(Alignment.CenterVertically)
                             ) {
                                 Text(
                                     text = member.name,
@@ -301,7 +304,7 @@ fun AboutScreen(
                                     )
                                 )
 
-                                Spacer(Modifier.height(4.dp))
+                                Spacer(Modifier.height(2.dp))
 
                                 Text(
                                     text = member.position,
@@ -309,41 +312,50 @@ fun AboutScreen(
                                     color = MaterialTheme.colorScheme.secondary
                                 )
 
-                                Spacer(Modifier.height(6.dp))
+                                Spacer(Modifier.height(4.dp))
 
                                 Row(
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     member.github?.let {
-                                        IconButton(onClick = { uriHandler.openUri(it) }) {
+                                        IconButton(
+                                            onClick = { uriHandler.openUri(it) },
+                                            modifier = Modifier.size(24.dp)
+                                        ) {
                                             Icon(
                                                 painter = painterResource(R.drawable.github),
-                                                contentDescription = "Github",
-                                                modifier = Modifier.size(20.dp),
-                                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                                contentDescription = "GitHub",
+                                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                modifier = Modifier.size(18.dp)
                                             )
                                         }
                                     }
 
                                     member.website?.takeIf { it.isNotBlank() }?.let {
-                                        IconButton(onClick = { uriHandler.openUri(it) }) {
+                                        IconButton(
+                                            onClick = { uriHandler.openUri(it) },
+                                            modifier = Modifier.size(24.dp)
+                                        ) {
                                             Icon(
                                                 painter = painterResource(R.drawable.website),
                                                 contentDescription = "Website",
-                                                modifier = Modifier.size(20.dp),
-                                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                modifier = Modifier.size(18.dp)
                                             )
                                         }
                                     }
 
                                     member.discord?.let {
-                                        IconButton(onClick = { uriHandler.openUri(it) }) {
+                                        IconButton(
+                                            onClick = { uriHandler.openUri(it) },
+                                            modifier = Modifier.size(24.dp)
+                                        ) {
                                             Icon(
                                                 painter = painterResource(R.drawable.alternate_email),
                                                 contentDescription = "Discord",
-                                                modifier = Modifier.size(20.dp),
-                                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                modifier = Modifier.size(18.dp)
                                             )
                                         }
                                     }
@@ -352,6 +364,7 @@ fun AboutScreen(
                         }
                     }
                 }
+
             }
         }
     }
