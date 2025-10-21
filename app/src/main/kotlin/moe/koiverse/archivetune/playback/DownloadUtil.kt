@@ -23,6 +23,8 @@ import moe.koiverse.archivetune.di.PlayerCache
 import moe.koiverse.archivetune.utils.YTPlayerUtils
 import moe.koiverse.archivetune.utils.enumPreference
 import moe.koiverse.archivetune.constants.NetworkMeteredKey
+import moe.koiverse.archivetune.utils.dataStore
+import moe.koiverse.archivetune.utils.get
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
