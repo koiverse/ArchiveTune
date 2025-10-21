@@ -84,6 +84,7 @@ import moe.koiverse.archivetune.constants.SkipSilenceKey
 import moe.koiverse.archivetune.db.MusicDatabase
 import moe.koiverse.archivetune.db.entities.Event
 import moe.koiverse.archivetune.db.entities.FormatEntity
+import moe.koiverse.archivetune.db.entities.ArtistEntity
 import moe.koiverse.archivetune.db.entities.LyricsEntity
 import moe.koiverse.archivetune.db.entities.RelatedSongMap
 import moe.koiverse.archivetune.di.DownloadCache
@@ -524,7 +525,18 @@ class MusicService :
             DiscordPresenceManager.start(
                 context = this@MusicService,
                 token = key,
-                songProvider = { currentSong.value },
+                songProvider = {
+                    currentSong.value ?: currentMediaMetadata.value?.let { meta ->
+                        val transientEntity = meta.toSongEntity()
+                        val transientArtists = meta.artists.map { a -> ArtistEntity(id = a.id ?: "", name = a.name) }
+                        moe.koiverse.archivetune.db.entities.Song(
+                            song = transientEntity,
+                            artists = transientArtists,
+                            album = null,
+                            format = null
+                        )
+                    }
+                },
                 positionProvider = { player.currentPosition },
                 // Use ExoPlayer's isPlaying which already accounts for buffering/ready state.
                 // This provides a more accurate paused/playing value and avoids race conditions
@@ -1033,7 +1045,17 @@ class MusicService :
             if (token.isNotBlank() && DiscordPresenceManager.isRunning()) {
                 // Obtain the freshest Song from DB using current media item id to avoid stale currentSong.value
                 val mediaId = player.currentMediaItem?.mediaId
-                val song = if (mediaId != null) withContext(Dispatchers.IO) { database.song(mediaId).first() } else null
+                val dbSong = if (mediaId != null) withContext(Dispatchers.IO) { database.song(mediaId).first() } else null
+                val song = dbSong ?: player.currentMetadata?.let { meta ->
+                    val transientEntity = meta.toSongEntity()
+                    val transientArtists = meta.artists.map { a -> ArtistEntity(id = a.id ?: "", name = a.name) }
+                    moe.koiverse.archivetune.db.entities.Song(
+                        song = transientEntity,
+                        artists = transientArtists,
+                        album = null,
+                        format = null
+                    )
+                }
 
                 val success = DiscordPresenceManager.updateNow(
                     context = this@MusicService,
@@ -1085,7 +1107,17 @@ class MusicService :
                     val token = dataStore.get(DiscordTokenKey, "")
                     if (token.isNotBlank() && DiscordPresenceManager.isRunning()) {
                         val mediaId = player.currentMediaItem?.mediaId
-                        val song = if (mediaId != null) withContext(Dispatchers.IO) { database.song(mediaId).first() } else null
+                        val dbSong = if (mediaId != null) withContext(Dispatchers.IO) { database.song(mediaId).first() } else null
+                        val song = dbSong ?: player.currentMetadata?.let { meta ->
+                            val transientEntity = meta.toSongEntity()
+                            val transientArtists = meta.artists.map { a -> ArtistEntity(id = a.id ?: "", name = a.name) }
+                            moe.koiverse.archivetune.db.entities.Song(
+                                song = transientEntity,
+                                artists = transientArtists,
+                                album = null,
+                                format = null
+                            )
+                        }
 
                         val success = DiscordPresenceManager.updateNow(
                             context = this@MusicService,
@@ -1113,7 +1145,17 @@ class MusicService :
                     val token = dataStore.get(DiscordTokenKey, "")
                     if (token.isNotBlank() && DiscordPresenceManager.isRunning()) {
                         val mediaId = player.currentMediaItem?.mediaId
-                        val song = if (mediaId != null) withContext(Dispatchers.IO) { database.song(mediaId).first() } else null
+                        val dbSong = if (mediaId != null) withContext(Dispatchers.IO) { database.song(mediaId).first() } else null
+                        val song = dbSong ?: player.currentMetadata?.let { meta ->
+                            val transientEntity = meta.toSongEntity()
+                            val transientArtists = meta.artists.map { a -> ArtistEntity(id = a.id ?: "", name = a.name) }
+                            moe.koiverse.archivetune.db.entities.Song(
+                                song = transientEntity,
+                                artists = transientArtists,
+                                album = null,
+                                format = null
+                            )
+                        }
 
                         val success = DiscordPresenceManager.updateNow(
                             context = this@MusicService,
