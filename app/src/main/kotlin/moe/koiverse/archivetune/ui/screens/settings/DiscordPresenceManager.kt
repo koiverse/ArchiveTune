@@ -49,18 +49,20 @@ object DiscordPresenceManager {
 
     fun getOrCreateRpc(context: Context, token: String): DiscordRPC {
         if (rpcInstance == null || rpcToken != token) {
-            try {
-                runBlocking {
-                    rpcInstance?.stopActivity()
+            val previous = rpcInstance
+            if (previous != null) {
+                CoroutineScope(Dispatchers.IO).launch {
+                    try {
+                        withTimeoutOrNull(3000L) { previous.stopActivity() }
+                    } catch (ex: Exception) {
+                        Timber.tag(logTag).v(ex, "failed to stopActivity on previous RPC instance (async)")
+                    }
+                    try {
+                        previous.closeRPC()
+                    } catch (ex: Exception) {
+                        Timber.tag(logTag).v(ex, "failed to close previous RPC instance (async)")
+                    }
                 }
-            } catch (ex: Exception) {
-                Timber.tag(logTag).v(ex, "failed to stopActivity on previous RPC instance")
-            }
-
-            try {
-                rpcInstance?.closeRPC()
-            } catch (ex: Exception) {
-                Timber.tag(logTag).v(ex, "failed to close previous RPC instance")
             }
 
             rpcInstance = DiscordRPC(context, token)
@@ -261,18 +263,20 @@ object DiscordPresenceManager {
         lifecycleObserver?.let { ProcessLifecycleOwner.get().lifecycle.removeObserver(it) }
         lifecycleObserver = null
 
-        try {
-            runBlocking {
-                rpcInstance?.stopActivity()
+        val previous = rpcInstance
+        if (previous != null) {
+            CoroutineScope(Dispatchers.IO).launch {
+                try {
+                    withTimeoutOrNull(3000L) { previous.stopActivity() }
+                } catch (ex: Exception) {
+                    Timber.tag(logTag).v(ex, "stopActivity failed during stop() (async)")
+                }
+                try {
+                    previous.closeRPC()
+                } catch (ex: Exception) {
+                    Timber.tag(logTag).v(ex, "closeRPC failed during stop() (async)")
+                }
             }
-        } catch (ex: Exception) {
-            Timber.tag(logTag).v(ex, "stopActivity failed during stop()")
-        }
-
-        try {
-            rpcInstance?.closeRPC()
-        } catch (ex: Exception) {
-            Timber.tag(logTag).v(ex, "closeRPC failed during stop()")
         }
 
         rpcInstance = null
