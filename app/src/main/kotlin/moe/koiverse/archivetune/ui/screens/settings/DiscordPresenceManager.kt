@@ -122,7 +122,7 @@ object DiscordPresenceManager {
                 Timber.tag(logTag).w("updatePresence: first updateSong attempt failed: %s", result.exceptionOrNull())
                 try {
                     try { rpc.closeRPC() } catch (_: Exception) {}
-                    rpcInstance = 
+                    rpcInstance = null
                     delay(200)
                     Timber.tag(logTag).d("attempting retry after short delay")
                     rpc = getOrCreateRpc(context, token)
