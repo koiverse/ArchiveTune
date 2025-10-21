@@ -324,8 +324,7 @@ fun DiscordSettings(
                            token = discordToken,
                            song = song,
                            positionMs = playerConnection.player.currentPosition,
-                           isPaused = !(playerConnection.player.playWhenReady &&
-                                   playerConnection.player.playbackState == STATE_READY),
+                           isPaused = !playerConnection.player.isPlaying,
                        )
                        isRefreshing = false
                         // Show snackbar on main thread

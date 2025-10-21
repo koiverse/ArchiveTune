@@ -392,22 +392,30 @@ class MusicService :
             .debounce(300)
             .distinctUntilChanged()
             .collect(scope) { (key, enabled) ->
-                if (discordRpc?.isRpcRunning() == true) {
-                    discordRpc?.closeRPC()
-                }
-                discordRpc = null
-                if (key != null && enabled) {
-                    // Create an in-service DiscordRPC for immediate updates
-                    discordRpc = DiscordRPC(this, key)
-                    if (player.playbackState == Player.STATE_READY && player.playWhenReady) {
-                        currentSong.value?.let {
-                            ensurePresenceManager()
+                    try {
+                        if (discordRpc?.isRpcRunning() == true) {
+                            discordRpc?.closeRPC()
                         }
+                    } catch (_: Exception) {}
+                    discordRpc = null
+                    if (!key.isNullOrBlank() && enabled) {
+                        try {
+                            discordRpc = DiscordRPC(this, key)
+                        } catch (ex: Exception) {
+                            Timber.tag("MusicService").e(ex, "failed to create DiscordRPC client")
+                            discordRpc = null
+                        }
+
+                        if (player.playbackState == Player.STATE_READY && player.playWhenReady) {
+                            currentSong.value?.let {
+                                ensurePresenceManager()
+                            }
+                        }
+                    } else {
+                        try { DiscordPresenceManager.stop() } catch (_: Exception) {}
+                        try { discordRpc?.closeRPC() } catch (_: Exception) {}
+                        discordRpc = null
                     }
-                      } else {
-                      // stop background manager when token removed or RPC disabled
-                     try { DiscordPresenceManager.stop() } catch (_: Exception) {}
-                      }
         }
 
         if (dataStore.get(PersistentQueueKey, true)) {
