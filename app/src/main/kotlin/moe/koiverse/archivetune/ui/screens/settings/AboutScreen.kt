@@ -275,7 +275,7 @@ fun AboutScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(12.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                            verticalAlignment = Alignment.CenterVertically // centers text block
                         ) {
                             AsyncImage(
                                 model = member.avatarUrl,
@@ -288,11 +288,16 @@ fun AboutScreen(
 
                             Spacer(Modifier.width(12.dp))
 
-                            Column(modifier = Modifier.weight(1f)) {
+                            Column(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .align(Alignment.CenterVertically) // ensures column centers with avatar
+                            ) {
                                 Text(
                                     text = member.name,
                                     style = MaterialTheme.typography.titleMedium.copy(
-                                        fontWeight = FontWeight.Bold
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSurface
                                     )
                                 )
 
@@ -304,18 +309,19 @@ fun AboutScreen(
                                     color = MaterialTheme.colorScheme.secondary
                                 )
 
+                                Spacer(Modifier.height(6.dp))
+
                                 Row(
                                     horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier
-                                        .padding(top = 8.dp)
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     member.github?.let {
                                         IconButton(onClick = { uriHandler.openUri(it) }) {
                                             Icon(
                                                 painter = painterResource(R.drawable.github),
                                                 contentDescription = "Github",
-                                                modifier = Modifier.size(20.dp)
+                                                modifier = Modifier.size(20.dp),
+                                                tint = MaterialTheme.colorScheme.onSurfaceVariant
                                             )
                                         }
                                     }
@@ -325,7 +331,8 @@ fun AboutScreen(
                                             Icon(
                                                 painter = painterResource(R.drawable.website),
                                                 contentDescription = "Website",
-                                                modifier = Modifier.size(20.dp)
+                                                modifier = Modifier.size(20.dp),
+                                                tint = MaterialTheme.colorScheme.onSurfaceVariant
                                             )
                                         }
                                     }
@@ -335,7 +342,8 @@ fun AboutScreen(
                                             Icon(
                                                 painter = painterResource(R.drawable.alternate_email),
                                                 contentDescription = "Discord",
-                                                modifier = Modifier.size(20.dp)
+                                                modifier = Modifier.size(20.dp),
+                                                tint = MaterialTheme.colorScheme.onSurfaceVariant
                                             )
                                         }
                                     }
