@@ -390,7 +390,7 @@ fun DiscordSettings(
         }
 
         // Platform selector (client platform displayed on Discord)
-        val platformOptions = listOf("android", "desktop", "embedded", "ios", "ps4", "ps5", "samsung", "xbox")
+        val platformOptions = listOf("android", "desktop", "web")
         val (platformSelection, onPlatformSelectionChange) = rememberPreference(
             key = DiscordActivityPlatformKey,
             defaultValue = "desktop"
