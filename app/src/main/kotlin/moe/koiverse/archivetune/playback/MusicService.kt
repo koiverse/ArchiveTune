@@ -518,10 +518,10 @@ class MusicService :
                 token = key,
                 songProvider = { currentSong.value },
                 positionProvider = { player.currentPosition },
-                isPausedProvider = {
-                    val isPlaying = player.playWhenReady && player.playbackState == Player.STATE_READY
-                    !isPlaying
-                },
+                // Use ExoPlayer's isPlaying which already accounts for buffering/ready state.
+                // This provides a more accurate paused/playing value and avoids race conditions
+                // where playWhenReady can be true but playback hasn't started yet.
+                isPausedProvider = { !player.isPlaying },
                 intervalProvider = { getPresenceIntervalMillis(this@MusicService) }
             )
             Timber.tag("MusicService").d("Presence manager started with token=$key")
@@ -1018,7 +1018,25 @@ class MusicService :
     if (dataStore.get(PersistentQueueKey, true)) {
         saveQueueToDisk()
     }
+    // Ensure presence updates immediately when playback state changes (play/pause)
     ensurePresenceManager()
+    // Fire an immediate presence update to avoid stale paused states
+    scope.launch {
+        try {
+            val token = dataStore.get(DiscordTokenKey, "")
+            if (token.isNotBlank() && DiscordPresenceManager.isRunning()) {
+                DiscordPresenceManager.updateNow(
+                    context = this@MusicService,
+                    token = token,
+                    song = currentSong.value,
+                    positionMs = player.currentPosition,
+                    isPaused = !player.isPlaying,
+                )
+            }
+        } catch (e: Exception) {
+            Timber.tag("MusicService").v(e, "immediate presence update failed")
+        }
+    }
 }
 
 
@@ -1038,9 +1056,26 @@ class MusicService :
         }
     }
 
-    if (events.containsAny(EVENT_TIMELINE_CHANGED, EVENT_POSITION_DISCONTINUITY)) {
-        currentMediaMetadata.value = player.currentMetadata
-    }
+       if (events.containsAny(EVENT_TIMELINE_CHANGED, EVENT_POSITION_DISCONTINUITY)) {
+            currentMediaMetadata.value = player.currentMetadata
+            // immediate update when media item transitions to avoid stale presence
+            scope.launch {
+                try {
+                    val token = dataStore.get(DiscordTokenKey, "")
+                    if (token.isNotBlank() && DiscordPresenceManager.isRunning()) {
+                        DiscordPresenceManager.updateNow(
+                            context = this@MusicService,
+                            token = token,
+                            song = currentSong.value,
+                            positionMs = player.currentPosition,
+                            isPaused = !player.isPlaying,
+                        )
+                    }
+                } catch (e: Exception) {
+                    Timber.tag("MusicService").v(e, "immediate presence update failed on transition")
+                }
+            }
+        }
 
    if (events.containsAny(Player.EVENT_IS_PLAYING_CHANGED)) {
         ensurePresenceManager()

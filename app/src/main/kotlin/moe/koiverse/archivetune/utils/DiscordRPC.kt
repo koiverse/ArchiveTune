@@ -163,7 +163,7 @@ class DiscordRPC(
             else -> pickSourceValue(namePref, song, context.getString(R.string.app_name))
         }
 
-        val activityDetails = when (detailsPref.uppercase()) {
+        var activityDetails = when (detailsPref.uppercase()) {
             "ARTIST" -> translatedMap["{artist}"] ?: pickSourceValue(detailsPref, song, song.song.title)
             "ALBUM" -> translatedMap["{album}"] ?: pickSourceValue(detailsPref, song, song.song.title)
             "SONG" -> translatedMap["{song}"] ?: pickSourceValue(detailsPref, song, song.song.title)
@@ -171,12 +171,21 @@ class DiscordRPC(
             else -> pickSourceValue(detailsPref, song, song.song.title)
         }
 
-        val activityState = when (statePref.uppercase()) {
+        // Ensure details are not empty — fallback to song title or app name so Discord shows something.
+        if (activityDetails.isNullOrBlank()) {
+            activityDetails = song.song.title.ifBlank { context.getString(R.string.app_name) }
+        }
+
+        var activityState = when (statePref.uppercase()) {
             "ARTIST" -> translatedMap["{artist}"] ?: pickSourceValue(statePref, song, song.artists.joinToString { it.name })
             "ALBUM" -> translatedMap["{album}"] ?: pickSourceValue(statePref, song, song.artists.joinToString { it.name })
             "SONG" -> translatedMap["{song}"] ?: pickSourceValue(statePref, song, song.artists.joinToString { it.name })
             "APP" -> context.getString(R.string.app_name)
             else -> pickSourceValue(statePref, song, song.artists.joinToString { it.name })
+        }
+
+        if (activityState.isNullOrBlank()) {
+            activityState = song.artists.firstOrNull()?.name ?: context.getString(R.string.app_name)
         }
 
         val baseSongUrl = "https://music.youtube.com/watch?v=${song.song.id}"
@@ -264,9 +273,13 @@ class DiscordRPC(
         val platformPref = context.dataStore[DiscordActivityPlatformKey] ?: "desktop"
         this.setPlatform(platformPref)
 
-        val sendStartTime = if (isPaused) null else calculatedStartTime
-        val sendEndTime = if (isPaused) null else currentTime + (song.song.duration * 1000L - currentPlaybackTimeMillis)
-        val sendSince = if (isPaused) null else currentTime
+        // Only send timestamps when we have a valid duration (> 0). Some sources report -1
+        // for unknown duration which would make endTime invalid and may prevent presence
+        // from showing. Also avoid sending timestamps while paused.
+        val hasValidDuration = (song.song.duration ?: -1) > 0
+        val sendStartTime = if (isPaused || !hasValidDuration) null else calculatedStartTime
+        val sendEndTime = if (isPaused || !hasValidDuration) null else currentTime + (song.song.duration * 1000L - currentPlaybackTimeMillis)
+        val sendSince = if (isPaused || !hasValidDuration) null else currentTime
 
         val safeStatus = when (statusPref.lowercase()) {
             "online", "idle", "dnd", "invisible" -> statusPref
