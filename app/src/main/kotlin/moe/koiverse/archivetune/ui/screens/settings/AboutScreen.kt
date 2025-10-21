@@ -76,6 +76,33 @@ fun OutlinedIconChip(
     }
 }
 
+@Composable
+fun OutlinedIconChipMembers(
+    iconRes: Int,
+    contentDescription: String?,
+    onClick: () -> Unit
+) {
+    OutlinedButton(
+        onClick = onClick,
+        shape = CircleShape,
+        contentPadding = PaddingValues(6.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        colors = ButtonDefaults.outlinedButtonColors(
+            containerColor = Color.Transparent,
+            contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+        ),
+        modifier = Modifier.size(32.dp)
+    ) {
+        Icon(
+            painter = painterResource(id = iconRes),
+            contentDescription = contentDescription,
+            modifier = Modifier.size(18.dp),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AboutScreen(
@@ -320,45 +347,27 @@ fun AboutScreen(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     member.github?.let {
-                                        IconButton(
+                                        OutlinedIconChipMembers(
+                                            iconRes = R.drawable.github,
                                             onClick = { uriHandler.openUri(it) },
-                                            modifier = Modifier.size(24.dp)
-                                        ) {
-                                            Icon(
-                                                painter = painterResource(R.drawable.github),
-                                                contentDescription = "GitHub",
-                                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                modifier = Modifier.size(18.dp)
-                                            )
-                                        }
+                                            contentDescription = "GitHub"
+                                        )
                                     }
 
                                     member.website?.takeIf { it.isNotBlank() }?.let {
-                                        IconButton(
+                                        OutlinedIconChipMembers(
+                                            iconRes = R.drawable.website,
                                             onClick = { uriHandler.openUri(it) },
-                                            modifier = Modifier.size(24.dp)
-                                        ) {
-                                            Icon(
-                                                painter = painterResource(R.drawable.website),
-                                                contentDescription = "Website",
-                                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                modifier = Modifier.size(18.dp)
-                                            )
-                                        }
+                                            contentDescription = "Website"
+                                        )
                                     }
 
                                     member.discord?.let {
-                                        IconButton(
+                                        OutlinedIconChipMembers(
+                                            iconRes = R.drawable.alternate_email,
                                             onClick = { uriHandler.openUri(it) },
-                                            modifier = Modifier.size(24.dp)
-                                        ) {
-                                            Icon(
-                                                painter = painterResource(R.drawable.alternate_email),
-                                                contentDescription = "Discord",
-                                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                modifier = Modifier.size(18.dp)
-                                            )
-                                        }
+                                            contentDescription = "Discord"
+                                        )
                                     }
                                 }
                             }
