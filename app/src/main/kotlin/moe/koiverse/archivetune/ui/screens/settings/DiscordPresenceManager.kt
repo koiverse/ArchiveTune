@@ -12,6 +12,8 @@ import moe.koiverse.archivetune.utils.DiscordRPC
 import timber.log.Timber
 import java.util.concurrent.atomic.AtomicBoolean
 import moe.koiverse.archivetune.utils.resolveAndPersistImages
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 object DiscordPresenceManager {
     private val started = AtomicBoolean(false)
@@ -46,6 +48,8 @@ object DiscordPresenceManager {
         _lastRpcStartTime.value = start
         _lastRpcEndTime.value = end
     }
+
+    private val updateMutex = Mutex()
 
     fun getOrCreateRpc(context: Context, token: String): DiscordRPC {
         if (rpcInstance == null || rpcToken != token) {
@@ -82,7 +86,10 @@ object DiscordPresenceManager {
         isPaused: Boolean,
     // (removed optional pre-resolved image URL parameters)
     ): Boolean = withContext(Dispatchers.IO) {
-        try {
+        // serialize updates to avoid concurrent websocket/connect activity causing cancellations
+        updateMutex.withLock {
+            Timber.tag(logTag).v("acquired updateMutex for updatePresence song=%s paused=%s", song?.song?.id, isPaused)
+            try {
             if (token.isBlank()) {
                 Timber.tag(logTag).w("updatePresence skipped (token missing)")
                 return@withContext false
@@ -113,10 +120,11 @@ object DiscordPresenceManager {
                 true
             } else {
                 Timber.tag(logTag).w("updatePresence: first updateSong attempt failed: %s", result.exceptionOrNull())
-                // Try a single retry: close and recreate RPC client then try once more.
                 try {
                     try { rpc.closeRPC() } catch (_: Exception) {}
-                    rpcInstance = null
+                    rpcInstance = 
+                    delay(200)
+                    Timber.tag(logTag).d("attempting retry after short delay")
                     rpc = getOrCreateRpc(context, token)
                     val retry = rpc.updateSong(song, positionMs, isPaused)
                     if (retry.isSuccess) {
@@ -137,9 +145,15 @@ object DiscordPresenceManager {
                     return@withContext false
                 }
             }
-        } catch (ex: Exception) {
-            Timber.tag(logTag).e(ex, "updatePresence failed")
-            false
+            } catch (ex: CancellationException) {
+                Timber.tag(logTag).w(ex, "updatePresence cancelled")
+                throw ex
+            } catch (ex: Exception) {
+                Timber.tag(logTag).e(ex, "updatePresence failed")
+                return@withContext false
+            } finally {
+                Timber.tag(logTag).v("released updateMutex for updatePresence song=%s", song?.song?.id)
+            }
         }
     }
 
