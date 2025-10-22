@@ -246,7 +246,7 @@ class DiscordRPC(
         val resolvedLargeText = when (largeTextSource) {
             "song" -> translatedMap["{song}"] ?: song.song.title
             "artist" -> translatedMap["{artist}"] ?: song.artists.firstOrNull()?.name
-            "album" -> translatedMap["{album}"] ?: song.song.albumName ?: song.album?.title
+            "album" -> translatedMap["{album}"] ?: song.song.albumName ?: song.album?.title ?: song.song.title
             "app" -> context.getString(R.string.app_name)
             "custom" -> (context.dataStore[DiscordLargeTextCustomKey] ?: "").ifBlank { null }
             "dontshow" -> null
