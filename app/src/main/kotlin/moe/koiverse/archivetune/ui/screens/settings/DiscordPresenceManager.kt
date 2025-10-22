@@ -216,39 +216,11 @@ object DiscordPresenceManager {
                     Timber.tag(logTag).v(e, "initial image resolution failed")
                 }
 
-                // Run the first update immediately
-                try {
-                    // Bound the initial update so we don't hang on slow image resolution or RPC problems.
-                    val firstResult = withTimeoutOrNull(5000L) {
-                        updatePresence(
-                            context = context,
-                            token = token,
-                            song = firstSong,
-                            positionMs = firstPosition,
-                            isPaused = firstIsPaused,
-                        )
-                    } ?: run {
-                        Timber.tag(logTag).w("initial updatePresence timed out")
-                        false
-                    }
-
-                    Timber.tag(logTag).d("initial updatePresence result=%s songId=%s", firstResult, firstSong?.song?.id)
-
-                    if (!firstResult) {
-                        Timber.tag(logTag).w("initial updatePresence returned false — attempting quick reconnect and retry")
-                        try {
-                            // Close and recreate the RPC to recover from transient failures
-                            rpcInstance?.let { prev ->
-                                try { withTimeoutOrNull(2000L) { prev.stopActivity() } } catch (_: Exception) {}
-                                try { prev.closeRPC() } catch (_: Exception) {}
-                            }
-                        } catch (ex: Exception) {
-                            Timber.tag(logTag).v(ex, "error while cleaning previous RPC during initial retry")
-                        }
-                        rpcInstance = null
-                        delay(250L)
-                        try {
-                            val retryResult = withTimeoutOrNull(5000L) {
+                scope?.launch {
+                    try {
+                        Timber.tag(logTag).d("scheduling background initial updatePresence songId=%s", firstSong?.song?.id)
+                        val firstResult = try {
+                            withTimeoutOrNull(15000L) {
                                 updatePresence(
                                     context = context,
                                     token = token,
@@ -257,13 +229,20 @@ object DiscordPresenceManager {
                                     isPaused = firstIsPaused,
                                 )
                             } ?: false
-                            Timber.tag(logTag).d("initial retry result=%s songId=%s", retryResult, firstSong?.song?.id)
                         } catch (ex: Exception) {
-                            Timber.tag(logTag).e(ex, "initial retry threw")
+                            Timber.tag(logTag).e(ex, "background initial updatePresence threw")
+                            false
                         }
+
+                        Timber.tag(logTag).d("background initial updatePresence result=%s songId=%s", firstResult, firstSong?.song?.id)
+                        if (!firstResult) {
+                            Timber.tag(logTag).w("background initial updatePresence returned false — will rely on regular loop updates to retry")
+                        }
+                    } catch (ex: CancellationException) {
+                        Timber.tag(logTag).d("background initial updatePresence cancelled")
+                    } catch (ex: Exception) {
+                        Timber.tag(logTag).e(ex, "unexpected error in background initial updatePresence")
                     }
-                } catch (e: Exception) {
-                    Timber.tag(logTag).e(e, "initial updatePresence failed")
                 }
             } catch (e: Exception) {
                 Timber.tag(logTag).e(e, "initial first-run failed")
