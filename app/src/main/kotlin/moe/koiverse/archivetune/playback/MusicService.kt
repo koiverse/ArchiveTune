@@ -84,7 +84,6 @@ import moe.koiverse.archivetune.constants.SkipSilenceKey
 import moe.koiverse.archivetune.db.MusicDatabase
 import moe.koiverse.archivetune.db.entities.Event
 import moe.koiverse.archivetune.db.entities.FormatEntity
-import moe.koiverse.archivetune.db.entities.ArtistEntity
 import moe.koiverse.archivetune.db.entities.LyricsEntity
 import moe.koiverse.archivetune.db.entities.RelatedSongMap
 import moe.koiverse.archivetune.di.DownloadCache
@@ -521,25 +520,11 @@ class MusicService :
         }
 
         try {
-            // Don't stop the manager explicitly here; `start` is idempotent and will
-            // return early if the manager is already running with the same token.
-            // Removing the unconditional stop avoids rapid stop/start cycles when
-            // `ensurePresenceManager()` is invoked frequently during fast track changes.
+            DiscordPresenceManager.stop()
             DiscordPresenceManager.start(
                 context = this@MusicService,
                 token = key,
-                songProvider = {
-                    currentSong.value ?: currentMediaMetadata.value?.let { meta ->
-                        val transientEntity = meta.toSongEntity()
-                        val transientArtists = meta.artists.map { a -> ArtistEntity(id = a.id ?: "", name = a.name) }
-                        moe.koiverse.archivetune.db.entities.Song(
-                            song = transientEntity,
-                            artists = transientArtists,
-                            album = null,
-                            format = null
-                        )
-                    }
-                },
+                songProvider = { currentSong.value },
                 positionProvider = { player.currentPosition },
                 // Use ExoPlayer's isPlaying which already accounts for buffering/ready state.
                 // This provides a more accurate paused/playing value and avoids race conditions
@@ -1048,17 +1033,7 @@ class MusicService :
             if (token.isNotBlank() && DiscordPresenceManager.isRunning()) {
                 // Obtain the freshest Song from DB using current media item id to avoid stale currentSong.value
                 val mediaId = player.currentMediaItem?.mediaId
-                val dbSong = if (mediaId != null) withContext(Dispatchers.IO) { database.song(mediaId).first() } else null
-                val song = dbSong ?: player.currentMetadata?.let { meta ->
-                    val transientEntity = meta.toSongEntity()
-                    val transientArtists = meta.artists.map { a -> ArtistEntity(id = a.id ?: "", name = a.name) }
-                    moe.koiverse.archivetune.db.entities.Song(
-                        song = transientEntity,
-                        artists = transientArtists,
-                        album = null,
-                        format = null
-                    )
-                }
+                val song = if (mediaId != null) withContext(Dispatchers.IO) { database.song(mediaId).first() } else null
 
                 val success = DiscordPresenceManager.updateNow(
                     context = this@MusicService,
@@ -1110,17 +1085,7 @@ class MusicService :
                     val token = dataStore.get(DiscordTokenKey, "")
                     if (token.isNotBlank() && DiscordPresenceManager.isRunning()) {
                         val mediaId = player.currentMediaItem?.mediaId
-                        val dbSong = if (mediaId != null) withContext(Dispatchers.IO) { database.song(mediaId).first() } else null
-                        val song = dbSong ?: player.currentMetadata?.let { meta ->
-                            val transientEntity = meta.toSongEntity()
-                            val transientArtists = meta.artists.map { a -> ArtistEntity(id = a.id ?: "", name = a.name) }
-                            moe.koiverse.archivetune.db.entities.Song(
-                                song = transientEntity,
-                                artists = transientArtists,
-                                album = null,
-                                format = null
-                            )
-                        }
+                        val song = if (mediaId != null) withContext(Dispatchers.IO) { database.song(mediaId).first() } else null
 
                         val success = DiscordPresenceManager.updateNow(
                             context = this@MusicService,
@@ -1132,12 +1097,7 @@ class MusicService :
 
                         if (!success) {
                             Timber.tag("MusicService").w("transition immediate presence update failed — attempting restart")
-                            try {
-                                // Prefer restart() so the manager reuses stored parameters when possible.
-                                if (!DiscordPresenceManager.restart()) {
-                                    DiscordPresenceManager.start(this@MusicService, dataStore.get(DiscordTokenKey, ""), { song }, { player.currentPosition }, { !player.isPlaying }, { getPresenceIntervalMillis(this@MusicService) })
-                                }
-                            } catch (_: Exception) {}
+                            try { DiscordPresenceManager.stop(); DiscordPresenceManager.start(this@MusicService, dataStore.get(DiscordTokenKey, ""), { song }, { player.currentPosition }, { !player.isPlaying }, { getPresenceIntervalMillis(this@MusicService) }) } catch (_: Exception) {}
                         }
                     }
                 } catch (e: Exception) {
@@ -1153,17 +1113,7 @@ class MusicService :
                     val token = dataStore.get(DiscordTokenKey, "")
                     if (token.isNotBlank() && DiscordPresenceManager.isRunning()) {
                         val mediaId = player.currentMediaItem?.mediaId
-                        val dbSong = if (mediaId != null) withContext(Dispatchers.IO) { database.song(mediaId).first() } else null
-                        val song = dbSong ?: player.currentMetadata?.let { meta ->
-                            val transientEntity = meta.toSongEntity()
-                            val transientArtists = meta.artists.map { a -> ArtistEntity(id = a.id ?: "", name = a.name) }
-                            moe.koiverse.archivetune.db.entities.Song(
-                                song = transientEntity,
-                                artists = transientArtists,
-                                album = null,
-                                format = null
-                            )
-                        }
+                        val song = if (mediaId != null) withContext(Dispatchers.IO) { database.song(mediaId).first() } else null
 
                         val success = DiscordPresenceManager.updateNow(
                             context = this@MusicService,
@@ -1175,12 +1125,7 @@ class MusicService :
 
                         if (!success) {
                             Timber.tag("MusicService").w("isPlaying/mediaTransition immediate presence update failed — restarting manager")
-                            try {
-                                if (!DiscordPresenceManager.restart()) {
-                                    // If restart not possible, try starting with current parameters
-                                    DiscordPresenceManager.start(this@MusicService, dataStore.get(DiscordTokenKey, ""), { song }, { player.currentPosition }, { !player.isPlaying }, { getPresenceIntervalMillis(this@MusicService) })
-                                }
-                            } catch (_: Exception) {}
+                            try { DiscordPresenceManager.stop(); DiscordPresenceManager.restart() } catch (_: Exception) {}
                         }
                     }
                 } catch (e: Exception) {
@@ -1292,12 +1237,10 @@ class MusicService :
             }
 
             val playbackData = runBlocking(Dispatchers.IO) {
-                val networkMeteredPref = this@MusicService.dataStore.get(moe.koiverse.archivetune.constants.NetworkMeteredKey, true)
                 YTPlayerUtils.playerResponseForPlayback(
                     mediaId,
                     audioQuality = audioQuality,
                     connectivityManager = connectivityManager,
-                    networkMetered = networkMeteredPref,
                 )
             }.getOrElse { throwable ->
                 when (throwable) {

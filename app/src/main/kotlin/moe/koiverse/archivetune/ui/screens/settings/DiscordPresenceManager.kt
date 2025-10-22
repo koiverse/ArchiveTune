@@ -12,9 +12,6 @@ import moe.koiverse.archivetune.utils.DiscordRPC
 import timber.log.Timber
 import java.util.concurrent.atomic.AtomicBoolean
 import moe.koiverse.archivetune.utils.resolveAndPersistImages
-import moe.koiverse.archivetune.utils.ArtworkStorage
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 
 object DiscordPresenceManager {
     private val started = AtomicBoolean(false)
@@ -50,24 +47,18 @@ object DiscordPresenceManager {
         _lastRpcEndTime.value = end
     }
 
-    private val updateMutex = Mutex()
-
-    fun getOrCreateRpc(context: Context, token: String): DiscordRPC {
+    suspend fun getOrCreateRpc(context: Context, token: String): DiscordRPC {
         if (rpcInstance == null || rpcToken != token) {
-            val previous = rpcInstance
-            if (previous != null) {
-                CoroutineScope(Dispatchers.IO).launch {
-                    try {
-                        withTimeoutOrNull(3000L) { previous.stopActivity() }
-                    } catch (ex: Exception) {
-                        Timber.tag(logTag).v(ex, "failed to stopActivity on previous RPC instance (async)")
-                    }
-                    try {
-                        previous.closeRPC()
-                    } catch (ex: Exception) {
-                        Timber.tag(logTag).v(ex, "failed to close previous RPC instance (async)")
-                    }
-                }
+            try {
+                rpcInstance?.stopActivity()
+            } catch (ex: Exception) {
+                Timber.tag(logTag).v(ex, "failed to stopActivity on previous RPC instance")
+            }
+
+            try {
+                rpcInstance?.closeRPC()
+            } catch (ex: Exception) {
+                Timber.tag(logTag).v(ex, "failed to close previous RPC instance")
             }
 
             rpcInstance = DiscordRPC(context, token)
@@ -87,54 +78,21 @@ object DiscordPresenceManager {
         isPaused: Boolean,
     // (removed optional pre-resolved image URL parameters)
     ): Boolean = withContext(Dispatchers.IO) {
-        // serialize updates to avoid concurrent websocket/connect activity causing cancellations
-        updateMutex.withLock {
-            Timber.tag(logTag).v("acquired updateMutex for updatePresence song=%s paused=%s", song?.song?.id, isPaused)
-            try {
+        try {
             if (token.isBlank()) {
                 Timber.tag(logTag).w("updatePresence skipped (token missing)")
                 return@withContext false
             }
 
             if (song == null) {
-                if (rpcInstance != null && rpcToken == token) {
-                    try {
-                        withTimeoutOrNull(3000L) { rpcInstance?.stopActivity() }
-                        Timber.tag(logTag).d("cleared presence (stopped existing RPC)")
-                    } catch (ex: Exception) {
-                        Timber.tag(logTag).v(ex, "failed to stopActivity on existing RPC while clearing presence")
-                    }
-                } else {
-                    Timber.tag(logTag).d("no existing RPC instance to clear presence (skipping creation)")
-                }
+                val rpc = getOrCreateRpc(context, token)
+                rpc.stopActivity()
+                Timber.tag(logTag).d("cleared presence (no song)")
                 return@withContext true
             }
-            try {
-                val saved = try {
-                    ArtworkStorage.findBySongId(context, song.song.id)
-                } catch (_: Exception) { null }
 
-                if (saved == null || saved.thumbnail.isNullOrBlank() || saved.artist.isNullOrBlank()) {
-                    Timber.tag(logTag).d("Artwork missing → attempting fallback resolution for transient song ${song.song.title}")
-                    try {
-                        resolveAndPersistImages(context, song, isPaused)
-                    } catch (e: Exception) {
-                        Timber.tag(logTag).v(e, "resolveAndPersistImages fallback failed, continuing without artwork")
-                    }
-                }
-            } catch (e: Exception) {
-                Timber.tag(logTag).v(e, "artwork check failed")
-            }
-
-            var rpc = getOrCreateRpc(context, token)
-            val fallbackSong = if (song.song.thumbnailUrl.isNullOrBlank() && song.artists.firstOrNull()?.thumbnailUrl.isNullOrBlank()) {
-                Timber.tag(logTag).d("Applying fallback artwork for transient song: ${song.song.title}")
-                song.copy(
-                    song = song.song.copy(thumbnailUrl = "https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/icon.png"),
-                    artists = song.artists.map { it.copy(thumbnailUrl = "https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/icon.png") }
-                )
-            } else song
-            var result = rpc.updateSong(fallbackSong, positionMs, isPaused)
+            val rpc = getOrCreateRpc(context, token)
+            val result = rpc.updateSong(song, positionMs, isPaused)
             if (result.isSuccess) {
                 Timber.tag(logTag).d(
                     "updatePresence success (song=%s, paused=%s)",
@@ -150,41 +108,12 @@ object DiscordPresenceManager {
                 }
                 true
             } else {
-                Timber.tag(logTag).w("updatePresence: first updateSong attempt failed: %s", result.exceptionOrNull())
-                try {
-                    try { rpc.closeRPC() } catch (_: Exception) {}
-                    rpcInstance = null
-                    delay(200)
-                    Timber.tag(logTag).d("attempting retry after short delay")
-                    rpc = getOrCreateRpc(context, token)
-                    val retry = rpc.updateSong(song, positionMs, isPaused)
-                    if (retry.isSuccess) {
-                        Timber.tag(logTag).d("updatePresence: retry succeeded")
-                        if (!isPaused) {
-                            val now = System.currentTimeMillis()
-                            val calculatedStartTime = now - positionMs
-                            val calculatedEndTime = calculatedStartTime + song.song.duration * 1000L
-                            setLastRpcTimestamps(calculatedStartTime, calculatedEndTime)
-                        }
-                        return@withContext true
-                    } else {
-                        Timber.tag(logTag).w("updatePresence: retry failed: %s", retry.exceptionOrNull())
-                        return@withContext false
-                    }
-                } catch (ex: Exception) {
-                    Timber.tag(logTag).e(ex, "updatePresence retry threw")
-                    return@withContext false
-                }
-            }
-            } catch (ex: CancellationException) {
-                Timber.tag(logTag).w(ex, "updatePresence cancelled")
-                throw ex
-            } catch (ex: Exception) {
-                Timber.tag(logTag).e(ex, "updatePresence failed")
+                Timber.tag(logTag).w("updatePresence failed silently — updateSong returned failure")
                 return@withContext false
-            } finally {
-                Timber.tag(logTag).v("released updateMutex for updatePresence song=%s", song?.song?.id)
             }
+        } catch (ex: Exception) {
+            Timber.tag(logTag).e(ex, "updatePresence failed")
+            false
         }
     }
 
@@ -227,33 +156,18 @@ object DiscordPresenceManager {
                     Timber.tag(logTag).v(e, "initial image resolution failed")
                 }
 
-                scope?.launch {
-                    try {
-                        Timber.tag(logTag).d("scheduling background initial updatePresence songId=%s", firstSong?.song?.id)
-                        val firstResult = try {
-                            withTimeoutOrNull(15000L) {
-                                updatePresence(
-                                    context = context,
-                                    token = token,
-                                    song = firstSong,
-                                    positionMs = firstPosition,
-                                    isPaused = firstIsPaused,
-                                )
-                            } ?: false
-                        } catch (ex: Exception) {
-                            Timber.tag(logTag).e(ex, "background initial updatePresence threw")
-                            false
-                        }
-
-                        Timber.tag(logTag).d("background initial updatePresence result=%s songId=%s", firstResult, firstSong?.song?.id)
-                        if (!firstResult) {
-                            Timber.tag(logTag).w("background initial updatePresence returned false — will rely on regular loop updates to retry")
-                        }
-                    } catch (ex: CancellationException) {
-                        Timber.tag(logTag).d("background initial updatePresence cancelled")
-                    } catch (ex: Exception) {
-                        Timber.tag(logTag).e(ex, "unexpected error in background initial updatePresence")
-                    }
+                // Run the first update immediately
+                try {
+                    val firstResult = updatePresence(
+                        context = context,
+                        token = token,
+                        song = firstSong,
+                        positionMs = firstPosition,
+                        isPaused = firstIsPaused,
+                    )
+                    Timber.tag(logTag).d("initial updatePresence result=%s songId=%s", firstResult, firstSong?.song?.id)
+                } catch (e: Exception) {
+                    Timber.tag(logTag).e(e, "initial updatePresence failed")
                 }
             } catch (e: Exception) {
                 Timber.tag(logTag).e(e, "initial first-run failed")
@@ -266,51 +180,15 @@ object DiscordPresenceManager {
                         Triple(songProvider(), positionProvider(), isPausedProvider())
                     }
 
-                    val success = try {
-                        withTimeoutOrNull(5000L) {
-                            updatePresence(
-                                context = context,
-                                token = token,
-                                song = song,
-                                positionMs = position,
-                                isPaused = isPaused,
-                            )
-                        } ?: false
-                    } catch (ex: CancellationException) {
-                        Timber.tag(logTag).w(ex, "updatePresence cancelled during loop")
-                        throw ex
-                    } catch (ex: Exception) {
-                        Timber.tag(logTag).e(ex, "updatePresence threw during loop")
-                        false
-                    }
+                    val success = updatePresence(
+                        context = context,
+                        token = token,
+                        song = song,
+                        positionMs = position,
+                        isPaused = isPaused,
+                    )
 
-                    if (!success) {
-                        Timber.tag(logTag).w("updatePresence returned false in loop — attempting quick reconnect and retry")
-                        try {
-                            rpcInstance?.let { prev ->
-                                try { withTimeoutOrNull(2000L) { prev.stopActivity() } } catch (_: Exception) {}
-                                try { prev.closeRPC() } catch (_: Exception) {}
-                            }
-                        } catch (ex: Exception) {
-                            Timber.tag(logTag).v(ex, "error cleaning RPC during loop retry")
-                        }
-                        rpcInstance = null
-                        delay(200L)
-                        try {
-                            val retry = withTimeoutOrNull(5000L) {
-                                updatePresence(
-                                    context = context,
-                                    token = token,
-                                    song = song,
-                                    positionMs = position,
-                                    isPaused = isPaused,
-                                )
-                            } ?: false
-                            Timber.tag(logTag).d("loop retry result=%s songId=%s", retry, song?.song?.id)
-                        } catch (ex: Exception) {
-                            Timber.tag(logTag).e(ex, "loop retry threw")
-                        }
-                    }
+                    // optional: handle `success` if needed
                 } catch (e: CancellationException) {
                     Timber.tag(logTag).d("updater cancelled")
                     break
@@ -381,20 +259,23 @@ object DiscordPresenceManager {
         lifecycleObserver?.let { ProcessLifecycleOwner.get().lifecycle.removeObserver(it) }
         lifecycleObserver = null
 
-        val previous = rpcInstance
-        if (previous != null) {
-            CoroutineScope(Dispatchers.IO).launch {
+        try {
+            val launcher = scope ?: CoroutineScope(Dispatchers.IO)
+            launcher.launch {
                 try {
-                    withTimeoutOrNull(3000L) { previous.stopActivity() }
+                    rpcInstance?.stopActivity()
                 } catch (ex: Exception) {
-                    Timber.tag(logTag).v(ex, "stopActivity failed during stop() (async)")
-                }
-                try {
-                    previous.closeRPC()
-                } catch (ex: Exception) {
-                    Timber.tag(logTag).v(ex, "closeRPC failed during stop() (async)")
+                    Timber.tag(logTag).v(ex, "stopActivity failed during stop()")
                 }
             }
+        } catch (ex: Exception) {
+            Timber.tag(logTag).v(ex, "failed scheduling stopActivity during stop()")
+        }
+
+        try {
+            rpcInstance?.closeRPC()
+        } catch (ex: Exception) {
+            Timber.tag(logTag).v(ex, "closeRPC failed during stop()")
         }
 
         rpcInstance = null
