@@ -86,6 +86,10 @@ import moe.koiverse.archivetune.db.entities.Event
 import moe.koiverse.archivetune.db.entities.FormatEntity
 import moe.koiverse.archivetune.db.entities.LyricsEntity
 import moe.koiverse.archivetune.db.entities.RelatedSongMap
+import moe.koiverse.archivetune.db.entities.Song
+import moe.koiverse.archivetune.db.entities.SongEntity
+import moe.koiverse.archivetune.db.entities.ArtistEntity
+import moe.koiverse.archivetune.db.entities.AlbumEntity
 import moe.koiverse.archivetune.di.DownloadCache
 import moe.koiverse.archivetune.di.PlayerCache
 import moe.koiverse.archivetune.extensions.SilentHandler
@@ -1034,11 +1038,12 @@ class MusicService :
                 // Obtain the freshest Song from DB using current media item id to avoid stale currentSong.value
                 val mediaId = player.currentMediaItem?.mediaId
                 val song = if (mediaId != null) withContext(Dispatchers.IO) { database.song(mediaId).first() } else null
+                val finalSong = song ?: player.currentMetadata?.let { createTransientSongFromMedia(it) }
 
                 val success = DiscordPresenceManager.updateNow(
                     context = this@MusicService,
                     token = token,
-                    song = song,
+                    song = finalSong,
                     positionMs = player.currentPosition,
                     isPaused = !player.isPlaying,
                 )
@@ -1086,11 +1091,12 @@ class MusicService :
                     if (token.isNotBlank() && DiscordPresenceManager.isRunning()) {
                         val mediaId = player.currentMediaItem?.mediaId
                         val song = if (mediaId != null) withContext(Dispatchers.IO) { database.song(mediaId).first() } else null
+                        val finalSong = song ?: player.currentMetadata?.let { createTransientSongFromMedia(it) }
 
                         val success = DiscordPresenceManager.updateNow(
                             context = this@MusicService,
                             token = token,
-                            song = song,
+                            song = finalSong,
                             positionMs = player.currentPosition,
                             isPaused = !player.isPlaying,
                         )
@@ -1114,11 +1120,12 @@ class MusicService :
                     if (token.isNotBlank() && DiscordPresenceManager.isRunning()) {
                         val mediaId = player.currentMediaItem?.mediaId
                         val song = if (mediaId != null) withContext(Dispatchers.IO) { database.song(mediaId).first() } else null
+                        val finalSong = song ?: player.currentMetadata?.let { createTransientSongFromMedia(it) }
 
                         val success = DiscordPresenceManager.updateNow(
                             context = this@MusicService,
                             token = token,
-                            song = song,
+                            song = finalSong,
                             positionMs = player.currentPosition,
                             isPaused = !player.isPlaying,
                         )
@@ -1378,6 +1385,47 @@ class MusicService :
                 }
             }
         }
+    }
+
+    // Create a transient Song object from current Player MediaMetadata when the DB doesn't have it.
+    private fun createTransientSongFromMedia(media: moe.koiverse.archivetune.models.MediaMetadata): Song {
+        val songEntity = SongEntity(
+            id = media.id,
+            title = media.title,
+            duration = media.duration,
+            thumbnailUrl = media.thumbnailUrl,
+            albumId = media.album?.id,
+            albumName = media.album?.title,
+            explicit = media.explicit,
+        )
+
+        val artists = media.artists.map { artist ->
+            ArtistEntity(
+                id = artist.id ?: "LA_unknown_${artist.name}",
+                name = artist.name,
+                thumbnailUrl = null,
+            )
+        }
+
+        val album = media.album?.let { alb ->
+            AlbumEntity(
+                id = alb.id,
+                playlistId = null,
+                title = alb.title,
+                year = null,
+                thumbnailUrl = media.thumbnailUrl,
+                themeColor = null,
+                songCount = 1,
+                duration = media.duration,
+            )
+        }
+
+        return Song(
+            song = songEntity,
+            artists = artists,
+            album = album,
+            format = null,
+        )
     }
 
     private fun saveQueueToDisk() {
