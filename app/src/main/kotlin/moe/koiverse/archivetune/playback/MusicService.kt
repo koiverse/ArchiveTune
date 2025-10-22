@@ -81,6 +81,7 @@ import moe.koiverse.archivetune.constants.RepeatModeKey
 import moe.koiverse.archivetune.constants.ShowLyricsKey
 import moe.koiverse.archivetune.constants.SimilarContent
 import moe.koiverse.archivetune.constants.SkipSilenceKey
+import moe.koiverse.archivetune.constants.StopMusicOnTaskClearKey
 import moe.koiverse.archivetune.db.MusicDatabase
 import moe.koiverse.archivetune.db.entities.Event
 import moe.koiverse.archivetune.db.entities.FormatEntity
