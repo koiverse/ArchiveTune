@@ -110,12 +110,16 @@ object DiscordPresenceManager {
                 return@withContext true
             }
             try {
-                val saved = ArtworkStorage.findBySongId(context, song.song.id)
+                val saved = try {
+                    ArtworkStorage.findBySongId(context, song.song.id)
+                } catch (_: Exception) { null }
+
                 if (saved == null || saved.thumbnail.isNullOrBlank() || saved.artist.isNullOrBlank()) {
+                    Timber.tag(logTag).d("Artwork missing → attempting fallback resolution for transient song ${song.song.title}")
                     try {
-                        withTimeoutOrNull(2500L) { resolveAndPersistImages(context, song, isPaused) }
+                        resolveAndPersistImages(context, song, isPaused)
                     } catch (e: Exception) {
-                        Timber.tag(logTag).v(e, "resolveAndPersistImages failed in updatePresence")
+                        Timber.tag(logTag).v(e, "resolveAndPersistImages fallback failed, continuing without artwork")
                     }
                 }
             } catch (e: Exception) {
@@ -123,7 +127,14 @@ object DiscordPresenceManager {
             }
 
             var rpc = getOrCreateRpc(context, token)
-            var result = rpc.updateSong(song, positionMs, isPaused)
+            val fallbackSong = if (song.song.thumbnailUrl.isNullOrBlank() && song.artists.firstOrNull()?.thumbnailUrl.isNullOrBlank()) {
+                Timber.tag(logTag).d("Applying fallback artwork for transient song: ${song.song.title}")
+                song.copy(
+                    song = song.song.copy(thumbnailUrl = "https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/icon.png"),
+                    artists = song.artists.map { it.copy(thumbnailUrl = "https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/icon.png") }
+                )
+            } else song
+            var result = rpc.updateSong(fallbackSong, positionMs, isPaused)
             if (result.isSuccess) {
                 Timber.tag(logTag).d(
                     "updatePresence success (song=%s, paused=%s)",

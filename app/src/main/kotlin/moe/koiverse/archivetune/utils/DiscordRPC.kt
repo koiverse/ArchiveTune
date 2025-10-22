@@ -242,6 +242,8 @@ class DiscordRPC(
             else -> pickImage(smallImageTypePref, smallImageCustomPref, song, true)
         }
 
+        Timber.tag(logtag).w("RPC update missing images: large=%s small=%s", finalLargeImage, finalSmallImage)
+
         val largeTextSource = (context.dataStore[DiscordLargeTextSourceKey] ?: "album").lowercase()
         val resolvedLargeText = when (largeTextSource) {
             "song" -> translatedMap["{song}"] ?: song.song.title
