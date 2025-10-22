@@ -182,6 +182,7 @@ import moe.koiverse.archivetune.utils.Updater
 import moe.koiverse.archivetune.utils.dataStore
 import moe.koiverse.archivetune.utils.get
 import moe.koiverse.archivetune.utils.rememberEnumPreference
+import moe.koiverse.archivetune.ui.screens.settings.DiscordPresenceManager
 import moe.koiverse.archivetune.utils.rememberPreference
 import moe.koiverse.archivetune.utils.reportException
 import moe.koiverse.archivetune.utils.setAppLocale
@@ -259,6 +260,12 @@ class MainActivity : ComponentActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
+        // Only clear/stop presence when the activity is actually finishing (not on rotation)
+        // and do not clear it for transient configuration changes.
+        if (isFinishing && !isChangingConfigurations) {
+            try { DiscordPresenceManager.stop() } catch (_: Exception) {}
+        }
+
         if (dataStore.get(
                 StopMusicOnTaskClearKey,
                 false
