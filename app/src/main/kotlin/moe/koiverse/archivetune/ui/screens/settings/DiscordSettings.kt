@@ -1091,7 +1091,7 @@ fun RichPresence(
                             // Compute a preview for the "state" line according to the selected stateSource
                             val previewState = when (stateSource) {
                                 ActivitySource.ARTIST -> song?.artists?.joinToString { it.name } ?: "Artist"
-                                ActivitySource.ALBUM -> song?.song?.albumName ?: song?.album?.title ?: song?.song?.title
+                                ActivitySource.ALBUM -> song?.song?.albumName ?: song?.album?.title ?: song?.song?.title ?: "Unknown Album"
                                 ActivitySource.SONG -> song?.song?.title ?: "Song"
                                 ActivitySource.APP -> stringResource(R.string.app_name)
                             }
