@@ -521,7 +521,10 @@ class MusicService :
         }
 
         try {
-            DiscordPresenceManager.stop()
+            // Don't stop the manager explicitly here; `start` is idempotent and will
+            // return early if the manager is already running with the same token.
+            // Removing the unconditional stop avoids rapid stop/start cycles when
+            // `ensurePresenceManager()` is invoked frequently during fast track changes.
             DiscordPresenceManager.start(
                 context = this@MusicService,
                 token = key,
@@ -1129,7 +1132,12 @@ class MusicService :
 
                         if (!success) {
                             Timber.tag("MusicService").w("transition immediate presence update failed — attempting restart")
-                            try { DiscordPresenceManager.stop(); DiscordPresenceManager.start(this@MusicService, dataStore.get(DiscordTokenKey, ""), { song }, { player.currentPosition }, { !player.isPlaying }, { getPresenceIntervalMillis(this@MusicService) }) } catch (_: Exception) {}
+                            try {
+                                // Prefer restart() so the manager reuses stored parameters when possible.
+                                if (!DiscordPresenceManager.restart()) {
+                                    DiscordPresenceManager.start(this@MusicService, dataStore.get(DiscordTokenKey, ""), { song }, { player.currentPosition }, { !player.isPlaying }, { getPresenceIntervalMillis(this@MusicService) })
+                                }
+                            } catch (_: Exception) {}
                         }
                     }
                 } catch (e: Exception) {
@@ -1167,7 +1175,12 @@ class MusicService :
 
                         if (!success) {
                             Timber.tag("MusicService").w("isPlaying/mediaTransition immediate presence update failed — restarting manager")
-                            try { DiscordPresenceManager.stop(); DiscordPresenceManager.restart() } catch (_: Exception) {}
+                            try {
+                                if (!DiscordPresenceManager.restart()) {
+                                    // If restart not possible, try starting with current parameters
+                                    DiscordPresenceManager.start(this@MusicService, dataStore.get(DiscordTokenKey, ""), { song }, { player.currentPosition }, { !player.isPlaying }, { getPresenceIntervalMillis(this@MusicService) })
+                                }
+                            } catch (_: Exception) {}
                         }
                     }
                 } catch (e: Exception) {
