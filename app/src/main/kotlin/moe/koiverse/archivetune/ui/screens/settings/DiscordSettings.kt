@@ -771,7 +771,7 @@ if (smallImageType == "custom") {
 
     RichPresence(
         song,
-        currentPlaybackTimeMillis = position,
+        currentPlaybackTimeMillis = playerConnection.player.currentPosition,
         nameSource = nameSource,
         detailsSource = detailsSource,
         stateSource = stateSource,
@@ -782,9 +782,9 @@ if (smallImageType == "custom") {
         smallImageCustomUrl = smallImageCustomUrl,
         button1Enabled = button1Enabled,
         button2Enabled = button2Enabled,
-        isPlaying = playerIsPlayingForPreview
+        isPlaying = playerConnection.player.isPlaying
     )
-    }
+}
 
     TopAppBar(
         title = { Text(stringResource(R.string.discord_integration)) },
@@ -1165,12 +1165,11 @@ fun SongProgressBar(
 ) {
     var displayedTime by remember { mutableStateOf(currentTimeMillis) }
 
-    LaunchedEffect(isPlaying, currentTimeMillis) {
-        displayedTime = currentTimeMillis
+    LaunchedEffect(isPlaying) {
         if (isPlaying) {
             while (isActive) {
-                delay(250)
-                displayedTime += 250
+                delay(500)
+                displayedTime += 500
                 if (displayedTime >= durationMillis) {
                     displayedTime = durationMillis
                     break
@@ -1179,22 +1178,22 @@ fun SongProgressBar(
         }
     }
 
-    val progress = if (durationMillis > 0) displayedTime.toFloat() / durationMillis else 0f
+    val progress = if (durationMillis > 0) {
+        displayedTime.toFloat() / durationMillis
+    } else 0f
+
     Column(modifier = Modifier.fillMaxWidth()) {
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(8.dp))
         LinearProgressIndicator(
-            progress = progress,
+            progress = progress.coerceIn(0f, 1f),
             modifier = Modifier
                 .fillMaxWidth()
                 .height(6.dp)
                 .clip(RoundedCornerShape(3.dp))
         )
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
+        Row(modifier = Modifier.fillMaxWidth()) {
             Text(
-                text = makeTimeString(displayedTime), // ✅ use displayedTime
+                text = makeTimeString(displayedTime),
                 modifier = Modifier.weight(1f),
                 textAlign = TextAlign.Start,
                 fontSize = 12.sp
