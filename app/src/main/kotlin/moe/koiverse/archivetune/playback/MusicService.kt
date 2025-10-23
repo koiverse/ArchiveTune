@@ -202,6 +202,8 @@ class MusicService :
     private var currentQueue: Queue = EmptyQueue
     var queueTitle: String? = null
     private var lastPresenceToken: String? = null
+    @Volatile
+    private var lastPresenceUpdateTime = 0L
 
     val currentMediaMetadata = MutableStateFlow<moe.koiverse.archivetune.models.MediaMetadata?>(null)
     private val currentSong =
@@ -529,18 +531,25 @@ class MusicService :
             DiscordPresenceManager.start(
                 context = this@MusicService,
                 token = key,
-                songProvider = { currentSong.value },
+                songProvider = { player.currentMetadata?.let { createTransientSongFromMedia(it) } ?: currentSong.value },
                 positionProvider = { player.currentPosition },
-                // Use ExoPlayer's isPlaying which already accounts for buffering/ready state.
-                // This provides a more accurate paused/playing value and avoids race conditions
-                // where playWhenReady can be true but playback hasn't started yet.
-                isPausedProvider = { !player.isPlaying },
+                isPausedProvider = { !player.isPlaying || !player.playWhenReady || player.playbackState != Player.STATE_READY },
                 intervalProvider = { getPresenceIntervalMillis(this@MusicService) }
             )
             Timber.tag("MusicService").d("Presence manager started with token=$key")
             lastPresenceToken = key
         } catch (ex: Exception) {
             Timber.tag("MusicService").e(ex, "Failed to start presence manager")
+        }
+    }
+
+    private fun canUpdatePresence(): Boolean {
+        val now = System.currentTimeMillis()
+        synchronized(this) {
+            return if (now - lastPresenceUpdateTime > MIN_PRESENCE_UPDATE_INTERVAL) {
+                lastPresenceUpdateTime = now
+                true
+            } else false
         }
     }
 
@@ -1041,6 +1050,7 @@ class MusicService :
                 val song = if (mediaId != null) withContext(Dispatchers.IO) { database.song(mediaId).first() } else null
                 val finalSong = song ?: player.currentMetadata?.let { createTransientSongFromMedia(it) }
 
+                if (canUpdatePresence()) {
                 val success = DiscordPresenceManager.updateNow(
                     context = this@MusicService,
                     token = token,
@@ -1048,6 +1058,7 @@ class MusicService :
                     positionMs = player.currentPosition,
                     isPaused = !player.isPlaying,
                 )
+                }
 
                 if (!success) {
                     Timber.tag("MusicService").w("immediate presence update returned false — attempting restart")
@@ -1094,6 +1105,7 @@ class MusicService :
                         val song = if (mediaId != null) withContext(Dispatchers.IO) { database.song(mediaId).first() } else null
                         val finalSong = song ?: player.currentMetadata?.let { createTransientSongFromMedia(it) }
 
+                        if (canUpdatePresence()) {
                         val success = DiscordPresenceManager.updateNow(
                             context = this@MusicService,
                             token = token,
@@ -1101,6 +1113,7 @@ class MusicService :
                             positionMs = player.currentPosition,
                             isPaused = !player.isPlaying,
                         )
+                        }
 
                         if (!success) {
                             Timber.tag("MusicService").w("transition immediate presence update failed — attempting restart")
@@ -1123,6 +1136,7 @@ class MusicService :
                         val song = if (mediaId != null) withContext(Dispatchers.IO) { database.song(mediaId).first() } else null
                         val finalSong = song ?: player.currentMetadata?.let { createTransientSongFromMedia(it) }
 
+                        if (canUpdatePresence()) {
                         val success = DiscordPresenceManager.updateNow(
                             context = this@MusicService,
                             token = token,
@@ -1130,6 +1144,7 @@ class MusicService :
                             positionMs = player.currentPosition,
                             isPaused = !player.isPlaying,
                         )
+                        }
 
                         if (!success) {
                             Timber.tag("MusicService").w("isPlaying/mediaTransition immediate presence update failed — restarting manager")

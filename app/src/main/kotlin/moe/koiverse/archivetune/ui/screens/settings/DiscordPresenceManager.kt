@@ -40,6 +40,7 @@ object DiscordPresenceManager {
     private val _lastRpcEndTime = MutableStateFlow<Long?>(null)
     val lastRpcEndTimeFlow = _lastRpcEndTime.asStateFlow()
     val lastRpcEndTime: Long? get() = _lastRpcEndTime.value
+    private val rpcMutex = Mutex()
 
     /** Public helper to update the last RPC timestamps from callers. */
     fun setLastRpcTimestamps(start: Long?, end: Long?) {
@@ -78,6 +79,7 @@ object DiscordPresenceManager {
         isPaused: Boolean,
     // (removed optional pre-resolved image URL parameters)
     ): Boolean = withContext(Dispatchers.IO) {
+        rpcMutex.withLock {
         try {
             if (token.isBlank()) {
                 Timber.tag(logTag).w("updatePresence skipped (token missing)")
@@ -115,6 +117,7 @@ object DiscordPresenceManager {
             Timber.tag(logTag).e(ex, "updatePresence failed")
             false
         }
+      }
     }
 
     /**
