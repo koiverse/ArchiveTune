@@ -1051,23 +1051,22 @@ class MusicService :
                 val finalSong = song ?: player.currentMetadata?.let { createTransientSongFromMedia(it) }
 
                 if (canUpdatePresence()) {
-                val success = DiscordPresenceManager.updateNow(
-                    context = this@MusicService,
-                    token = token,
-                    song = finalSong,
-                    positionMs = player.currentPosition,
-                    isPaused = !player.isPlaying,
-                )
-                }
-
-                if (!success) {
-                    Timber.tag("MusicService").w("immediate presence update returned false — attempting restart")
-                    try {
-                        if (DiscordPresenceManager.restart()) {
-                            Timber.tag("MusicService").d("presence manager restarted after failed update")
+                    val success = DiscordPresenceManager.updateNow(
+                        context = this@MusicService,
+                        token = token,
+                        song = finalSong,
+                        positionMs = player.currentPosition,
+                        isPaused = !player.isPlaying,
+                    )
+                    if (!success) {
+                        Timber.tag("MusicService").w("immediate presence update returned false — attempting restart")
+                        try {
+                            if (DiscordPresenceManager.restart()) {
+                                Timber.tag("MusicService").d("presence manager restarted after failed update")
+                            }
+                        } catch (ex: Exception) {
+                            Timber.tag("MusicService").e(ex, "restart after failed presence update threw")
                         }
-                    } catch (ex: Exception) {
-                        Timber.tag("MusicService").e(ex, "restart after failed presence update threw")
                     }
                 }
             }
@@ -1106,18 +1105,17 @@ class MusicService :
                         val finalSong = song ?: player.currentMetadata?.let { createTransientSongFromMedia(it) }
 
                         if (canUpdatePresence()) {
-                        val success = DiscordPresenceManager.updateNow(
-                            context = this@MusicService,
-                            token = token,
-                            song = finalSong,
-                            positionMs = player.currentPosition,
-                            isPaused = !player.isPlaying,
-                        )
-                        }
-
-                        if (!success) {
-                            Timber.tag("MusicService").w("transition immediate presence update failed — attempting restart")
-                            try { DiscordPresenceManager.stop(); DiscordPresenceManager.start(this@MusicService, dataStore.get(DiscordTokenKey, ""), { song }, { player.currentPosition }, { !player.isPlaying }, { getPresenceIntervalMillis(this@MusicService) }) } catch (_: Exception) {}
+                            val success = DiscordPresenceManager.updateNow(
+                                context = this@MusicService,
+                                token = token,
+                                song = finalSong,
+                                positionMs = player.currentPosition,
+                                isPaused = !player.isPlaying,
+                            )
+                            if (!success) {
+                                Timber.tag("MusicService").w("transition immediate presence update failed — attempting restart")
+                                try { DiscordPresenceManager.stop(); DiscordPresenceManager.start(this@MusicService, dataStore.get(DiscordTokenKey, ""), { song }, { player.currentPosition }, { !player.isPlaying }, { getPresenceIntervalMillis(this@MusicService) }) } catch (_: Exception) {}
+                            }
                         }
                     }
                 } catch (e: Exception) {
@@ -1137,18 +1135,17 @@ class MusicService :
                         val finalSong = song ?: player.currentMetadata?.let { createTransientSongFromMedia(it) }
 
                         if (canUpdatePresence()) {
-                        val success = DiscordPresenceManager.updateNow(
-                            context = this@MusicService,
-                            token = token,
-                            song = finalSong,
-                            positionMs = player.currentPosition,
-                            isPaused = !player.isPlaying,
-                        )
-                        }
-
-                        if (!success) {
-                            Timber.tag("MusicService").w("isPlaying/mediaTransition immediate presence update failed — restarting manager")
-                            try { DiscordPresenceManager.stop(); DiscordPresenceManager.restart() } catch (_: Exception) {}
+                            val success = DiscordPresenceManager.updateNow(
+                                context = this@MusicService,
+                                token = token,
+                                song = finalSong,
+                                positionMs = player.currentPosition,
+                                isPaused = !player.isPlaying,
+                            )
+                            if (!success) {
+                                Timber.tag("MusicService").w("isPlaying/mediaTransition immediate presence update failed — restarting manager")
+                                try { DiscordPresenceManager.stop(); DiscordPresenceManager.restart() } catch (_: Exception) {}
+                            }
                         }
                     }
                 } catch (e: Exception) {
@@ -1572,5 +1569,6 @@ class MusicService :
         const val PERSISTENT_AUTOMIX_FILE = "persistent_automix.data"
         const val PERSISTENT_PLAYER_STATE_FILE = "persistent_player_state.data"
         const val MAX_CONSECUTIVE_ERR = 5
+        const val MIN_PRESENCE_UPDATE_INTERVAL = 15000L
     }
 }

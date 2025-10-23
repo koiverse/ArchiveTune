@@ -2,6 +2,8 @@ package moe.koiverse.archivetune.ui.screens.settings
 
 import android.content.Context
 import kotlinx.coroutines.*
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import androidx.lifecycle.Lifecycle
@@ -31,6 +33,9 @@ object DiscordPresenceManager {
     private var lastPositionProvider: (() -> Long)? = null
     private var lastIsPausedProvider: (() -> Boolean)? = null
     private var lastIntervalProvider: (() -> Long)? = null
+    private var lastPresenceUpdateTime = 0L
+    private const val MIN_PRESENCE_UPDATE_INTERVAL = 2000L // 2 seconds debounce
+
 
     // Last successful RPC timestamps (nullable). Exposed as StateFlow so Compose can observe changes.
     private val _lastRpcStartTime = MutableStateFlow<Long?>(null)
@@ -80,44 +85,44 @@ object DiscordPresenceManager {
     // (removed optional pre-resolved image URL parameters)
     ): Boolean = withContext(Dispatchers.IO) {
         rpcMutex.withLock {
-        try {
-            if (token.isBlank()) {
-                Timber.tag(logTag).w("updatePresence skipped (token missing)")
-                return@withContext false
-            }
-
-            if (song == null) {
-                val rpc = getOrCreateRpc(context, token)
-                rpc.stopActivity()
-                Timber.tag(logTag).d("cleared presence (no song)")
-                return@withContext true
-            }
-
-            val rpc = getOrCreateRpc(context, token)
-            val result = rpc.updateSong(song, positionMs, isPaused)
-            if (result.isSuccess) {
-                Timber.tag(logTag).d(
-                    "updatePresence success (song=%s, paused=%s)",
-                    song.song.title,
-                    isPaused
-                )
-
-                if (!isPaused) {
-                    val now = System.currentTimeMillis()
-                    val calculatedStartTime = now - positionMs
-                    val calculatedEndTime = calculatedStartTime + song.song.duration * 1000L
-                    setLastRpcTimestamps(calculatedStartTime, calculatedEndTime)
+            try {
+                if (token.isBlank()) {
+                    Timber.tag(logTag).w("updatePresence skipped (token missing)")
+                    return@withLock false
                 }
-                true
-            } else {
-                Timber.tag(logTag).w("updatePresence failed silently — updateSong returned failure")
-                return@withContext false
+
+                if (song == null) {
+                    val rpc = getOrCreateRpc(context, token)
+                    rpc.stopActivity()
+                    Timber.tag(logTag).d("cleared presence (no song)")
+                    return@withLock true
+                }
+
+                val rpc = getOrCreateRpc(context, token)
+                val result = rpc.updateSong(song, positionMs, isPaused)
+                if (result.isSuccess) {
+                    Timber.tag(logTag).d(
+                        "updatePresence success (song=%s, paused=%s)",
+                        song.song.title,
+                        isPaused
+                    )
+
+                    if (!isPaused) {
+                        val now = System.currentTimeMillis()
+                        val calculatedStartTime = now - positionMs
+                        val calculatedEndTime = calculatedStartTime + song.song.duration * 1000L
+                        setLastRpcTimestamps(calculatedStartTime, calculatedEndTime)
+                    }
+                    true
+                } else {
+                    Timber.tag(logTag).w("updatePresence failed silently — updateSong returned failure")
+                    false
+                }
+            } catch (ex: Exception) {
+                Timber.tag(logTag).e(ex, "updatePresence failed")
+                false
             }
-        } catch (ex: Exception) {
-            Timber.tag(logTag).e(ex, "updatePresence failed")
-            false
         }
-      }
     }
 
     /**
