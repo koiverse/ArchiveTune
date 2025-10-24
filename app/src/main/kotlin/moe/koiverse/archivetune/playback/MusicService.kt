@@ -1416,7 +1416,7 @@ class MusicService :
             ArtistEntity(
                 id = artist.id ?: "LA_unknown_${artist.name}",
                 name = artist.name,
-                thumbnailUrl = null,
+                thumbnailUrl = media.thumbnailUrl,
             )
         }
 
