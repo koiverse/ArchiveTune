@@ -34,7 +34,7 @@ object DiscordPresenceManager {
     private var lastIsPausedProvider: (() -> Boolean)? = null
     private var lastIntervalProvider: (() -> Long)? = null
     private var lastPresenceUpdateTime = 0L
-    private const val MIN_PRESENCE_UPDATE_INTERVAL = 2000L // 2 seconds debounce
+    private const val MIN_PRESENCE_UPDATE_INTERVAL = 20_000L // 20 seconds debounce
 
 
     // Last successful RPC timestamps (nullable). Exposed as StateFlow so Compose can observe changes.
