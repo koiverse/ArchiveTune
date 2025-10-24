@@ -104,9 +104,11 @@ class DiscordRPC(
         val showWhenPaused = context.dataStore[DiscordShowWhenPausedKey] ?: false
 
         if (isPaused && !showWhenPaused) {
-            Timber.tag(logtag).v("paused and 'showWhenPaused' disabled → stopping activity")
-            stopActivity()
-            return@runCatching
+            if (currentPlaybackTimeMillis > 0) {
+                Timber.tag(logtag).v("paused and 'showWhenPaused' disabled → stopping activity")
+                stopActivity()
+                return@runCatching
+            }
         }
 
 
