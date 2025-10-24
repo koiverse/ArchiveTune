@@ -281,7 +281,7 @@ class DiscordRPC(
         val hasValidDuration = (song.song.duration ?: -1) > 0
         val sendStartTime = if (isPaused || !hasValidDuration) null else calculatedStartTime
         val sendEndTime = if (isPaused || !hasValidDuration) null else currentTime + (song.song.duration * 1000L - currentPlaybackTimeMillis)
-        val sendSince = if (isPaused || !hasValidDuration) null else currentTime
+        val sendSince = if (!isPaused || !hasValidDuration) null else currentTime
 
         val safeStatus = when (statusPref.lowercase()) {
             "online", "idle", "dnd", "invisible" -> statusPref
