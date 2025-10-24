@@ -533,7 +533,7 @@ class MusicService :
                 token = key,
                 songProvider = { player.currentMetadata?.let { createTransientSongFromMedia(it) } ?: currentSong.value },
                 positionProvider = { player.currentPosition },
-                isPausedProvider = { !player.isPlaying || !player.playWhenReady || player.playbackState != Player.STATE_READY },
+                isPausedProvider = { !player.playWhenReady || player.playbackState != Player.STATE_READY },
                 intervalProvider = { getPresenceIntervalMillis(this@MusicService) }
             )
             Timber.tag("MusicService").d("Presence manager started with token=$key")
@@ -1056,7 +1056,7 @@ class MusicService :
                         token = token,
                         song = finalSong,
                         positionMs = player.currentPosition,
-                        isPaused = !player.isPlaying,
+                        isPaused = !player.playWhenReady,
                     )
                     if (!success) {
                         Timber.tag("MusicService").w("immediate presence update returned false — attempting restart")
@@ -1569,6 +1569,6 @@ class MusicService :
         const val PERSISTENT_AUTOMIX_FILE = "persistent_automix.data"
         const val PERSISTENT_PLAYER_STATE_FILE = "persistent_player_state.data"
         const val MAX_CONSECUTIVE_ERR = 5
-        const val MIN_PRESENCE_UPDATE_INTERVAL = 15000L
+        const val MIN_PRESENCE_UPDATE_INTERVAL = 20_000L
     }
 }
