@@ -244,6 +244,12 @@
     <string name="cancel_button">모서리 반경 조정</string>
     <string name="ok_button">취소</string>
     <string name="custom_radius">확인</string>
+    <string name="customized_background">사용자 지정 배경</string>
+    <string name="customize_background_title">배경 사용자 지정</string>
+    <string name="add_image">이미지 추가</string>
+    <string name="blur">블러</string>
+    <string name="contrast">대비</string>
+    <string name="brightness">밝기</string>
     <string name="custom">사용자 지정</string>
     <string name="custom_value">사용자 지정 값</string>
     <string name="new_library_design">썸네일 모서리 반경 사용자 지정</string>
