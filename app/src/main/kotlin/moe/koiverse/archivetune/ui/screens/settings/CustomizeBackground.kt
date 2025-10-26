@@ -82,7 +82,7 @@ fun CustomizeBackground(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            val heightScale = 1.2f
+            val heightScale = 1.4f
             val playerPreviewHeight = (screenHeightDp * (1518f / 2400f) * heightScale).dp
             val lyricsPreviewHeight = (screenHeightDp * (1386f / 2400f) * heightScale).dp
 
