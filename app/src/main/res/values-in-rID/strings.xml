@@ -244,6 +244,12 @@
     <string name="cancel_button">Batal</string>
     <string name="ok_button">OK</string>
     <string name="custom_radius">Sesuaikan radius sudut thumbnail</string>
+    <string name="customized_background">Latar belakang yang disesuaikan</string>
+    <string name="customize_background_title">Sesuaikan latar belakang</string>
+    <string name="add_image">Tambahkan gambar</string>
+    <string name="blur">Buram</string>
+    <string name="contrast">Kontras</string>
+    <string name="brightness">Kecerahan</string>
     <string name="custom">Kustom</string>
     <string name="custom_value">Nilai kustom</string>
     <string name="new_library_design">Desain perpustakaan baru</string>

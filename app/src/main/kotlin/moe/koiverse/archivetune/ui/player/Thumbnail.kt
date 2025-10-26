@@ -119,6 +119,7 @@ fun Thumbnail(
         PlayerBackgroundStyle.COLORING -> Color.White
         PlayerBackgroundStyle.BLUR_GRADIENT -> Color.White
         PlayerBackgroundStyle.GLOW -> Color.White
+        PlayerBackgroundStyle.CUSTOM -> Color.White
     }
     
     // Grid state

@@ -246,6 +246,12 @@
     <string name="custom_radius">Passen Sie den Eckenradius der Miniaturansicht an</string>
     <string name="custom">Benutzerdefiniert</string>
     <string name="custom_value">Benutzerdefinierter Wert</string>
+    <string name="customized_background">Angepasster Hintergrund</string>
+    <string name="customize_background_title">Hintergrund anpassen</string>
+    <string name="add_image">Bild hinzufügen</string>
+    <string name="blur">Unschärfe</string>
+    <string name="contrast">Kontrast</string>
+    <string name="brightness">Helligkeit</string>
     <string name="new_library_design">Neues Bibliotheksdesign</string>
     <string name="new_library_design_description">Aktivieren Sie das neue Bibliotheksdesign (möglicherweise instabil).</string>
     <string name="show_button1_description">Schalten Sie die Sichtbarkeit von Schaltfläche 1 in Discord Rich Presence um</string>

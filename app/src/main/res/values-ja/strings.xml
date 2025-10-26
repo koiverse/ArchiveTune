@@ -244,6 +244,12 @@
     <string name="cancel_button">キャンセル</string>
     <string name="ok_button">OK</string>
     <string name="custom_radius">サムネイルの角の半径をカスタマイズ</string>
+    <string name="customized_background">カスタマイズされた背景</string>
+    <string name="customize_background_title">背景をカスタマイズ</string>
+    <string name="add_image">画像を追加</string>
+    <string name="blur">ぼかし</string>
+    <string name="contrast">コントラスト</string>
+    <string name="brightness">明るさ</string>
     <string name="custom">カスタム</string>
     <string name="custom_value">カスタム値</string>
     <string name="new_library_design">新しいライブラリのデザイン</string>
