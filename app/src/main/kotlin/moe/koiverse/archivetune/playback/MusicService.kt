@@ -533,7 +533,7 @@ class MusicService :
                 token = key,
                 songProvider = { player.currentMetadata?.let { createTransientSongFromMedia(it) } ?: currentSong.value },
                 positionProvider = { player.currentPosition },
-                isPausedProvider = { !player.playWhenReady || player.playbackState != Player.STATE_READY },
+                isPausedProvider = { !player.isPlaying },
                 intervalProvider = { getPresenceIntervalMillis(this@MusicService) }
             )
             Timber.tag("MusicService").d("Presence manager started with token=$key")
@@ -1416,7 +1416,7 @@ class MusicService :
             ArtistEntity(
                 id = artist.id ?: "LA_unknown_${artist.name}",
                 name = artist.name,
-                thumbnailUrl = artist.thumbnailUrl ?: media.thumbnailUrl,
+                thumbnailUrl = if (!artist.thumbnailUrl.isNullOrBlank()) artist.thumbnailUrl else media.thumbnailUrl,
             )
         }
 
