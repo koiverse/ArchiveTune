@@ -273,13 +273,10 @@ class DiscordRPC(
         val platformPref = context.dataStore[DiscordActivityPlatformKey] ?: "desktop"
         this.setPlatform(platformPref)
 
-        // Only send timestamps when we have a valid duration (> 0). Some sources report -1
-        // for unknown duration which would make endTime invalid and may prevent presence
-        // from showing. Also avoid sending timestamps while paused.
         val hasValidDuration = (song.song.duration ?: -1) > 0
         val sendStartTime = if (isPaused || !hasValidDuration) null else calculatedStartTime
         val sendEndTime = if (isPaused || !hasValidDuration) null else currentTime + (song.song.duration * 1000L - currentPlaybackTimeMillis)
-        val sendSince = if (!isPaused || !hasValidDuration) null else currentTime
+        val sendSince = if (isPaused && showWhenPaused && hasValidDuration) currentTime else null
 
         val safeStatus = when (statusPref.lowercase()) {
             "online", "idle", "dnd", "invisible" -> statusPref
