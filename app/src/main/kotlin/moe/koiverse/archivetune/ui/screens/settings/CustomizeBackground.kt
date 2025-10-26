@@ -49,7 +49,6 @@ fun CustomizeBackground(
 
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) {
-            // Persist permission
             context.contentResolver.takePersistableUriPermission(
                 uri,
                 Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
@@ -69,140 +68,142 @@ fun CustomizeBackground(
                 }
             )
         },
-        content = { innerPadding ->
-            Column(
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .padding(innerPadding)
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Box(
                 modifier = Modifier
-                    .padding(innerPadding)
-                    .fillMaxSize()
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                    .fillMaxWidth()
+                    .height(250.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                contentAlignment = Alignment.Center
             ) {
-                Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                if (imageUri.isNotBlank()) {
+                    val t = (1f - contrast) * 128f + (brightness - 1f) * 255f
+                    val cm = ColorMatrix(
+                        floatArrayOf(
+                            contrast, 0f, 0f, 0f, t,
+                            0f, contrast, 0f, 0f, t,
+                            0f, 0f, contrast, 0f, t,
+                            0f, 0f, 0f, 1f, 0f,
+                        )
+                    )
+                    AsyncImage(
+                        model = Uri.parse(imageUri),
+                        contentDescription = null,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .blur(blur.dp),
+                        contentScale = ContentScale.Crop,
+                        colorFilter = ColorFilter.colorMatrix(cm)
+                    )
                     Box(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .height(250.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(MaterialTheme.colorScheme.surfaceVariant),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        if (imageUri.isNotBlank()) {
-                            val t = (1f - contrast) * 128f + (brightness - 1f) * 255f
-                            val matrix = floatArrayOf(
-                                contrast, 0f, 0f, 0f, t,
-                                0f, contrast, 0f, 0f, t,
-                                0f, 0f, contrast, 0f, t,
-                                0f, 0f, 0f, 1f, 0f,
-                            )
-                            val cm = ColorMatrix(matrix)
-
-                            AsyncImage(
-                                model = Uri.parse(imageUri),
-                                contentDescription = null,
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .blur(blur.dp),
-                                contentScale = ContentScale.Crop,
-                                colorFilter = ColorFilter.colorMatrix(cm)
-                            )
-                            Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.35f)))
-                            Image(
-                                painter = painterResource(R.drawable.player_preview),
-                                contentDescription = null,
-                                modifier = Modifier.fillMaxSize(),
-                                contentScale = ContentScale.FillBounds
-                            )
-                        } else {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Icon(painterResource(R.drawable.image), contentDescription = null)
-                                Text(stringResource(R.string.add_image))
-                            }
-                        }
+                            .fillMaxSize()
+                            .background(Color.Black.copy(alpha = 0.35f))
+                    )
+                    Image(
+                        painter = painterResource(R.drawable.player_preview),
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.FillBounds
+                    )
+                } else {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(painterResource(R.drawable.image), contentDescription = null)
+                        Text(stringResource(R.string.add_image))
                     }
-
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(250.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(MaterialTheme.colorScheme.surfaceVariant),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        if (imageUri.isNotBlank()) {
-                            val t2 = (1f - contrast) * 128f + (brightness - 1f) * 255f
-                            val matrix2 = floatArrayOf(
-                                contrast, 0f, 0f, 0f, t2,
-                                0f, contrast, 0f, 0f, t2,
-                                0f, 0f, contrast, 0f, t2,
-                                0f, 0f, 0f, 1f, 0f,
-                            )
-                            val cm2 = ColorMatrix(matrix2)
-
-                            AsyncImage(
-                                model = Uri.parse(imageUri),
-                                contentDescription = null,
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .blur(blur.dp),
-                                contentScale = ContentScale.Crop,
-                                colorFilter = ColorFilter.colorMatrix(cm2)
-                            )
-                            Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.35f)))
-                            Image(
-                                painter = painterResource(R.drawable.lyrics_preview),
-                                contentDescription = null,
-                                modifier = Modifier.fillMaxSize(),
-                                contentScale = ContentScale.FillBounds
-                            )
-                        } else {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Icon(painterResource(R.drawable.image), contentDescription = null)
-                                Text(stringResource(R.string.add_image))
-                            }
-                        }
-                    }
-                }
-
-                Button(onClick = { launcher.launch(arrayOf("image/*")) }, modifier = Modifier.fillMaxWidth()) {
-                    Text(stringResource(R.string.add_image))
-                }
-
-                Text(stringResource(R.string.blur))
-                Slider(
-                    value = blur,
-                    onValueChange = onBlurChange,
-                    valueRange = 0f..50f,
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                Text(stringResource(R.string.contrast))
-                Slider(
-                    value = contrast,
-                    onValueChange = onContrastChange,
-                    valueRange = 0.5f..2f,
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                Text(stringResource(R.string.brightness))
-                Slider(
-                    value = brightness,
-                    onValueChange = onBrightnessChange,
-                    valueRange = 0.5f..2f,
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                Spacer(modifier = Modifier.weight(1f))
-
-                FilledTonalButton(
-                    onClick = {
-                        Toast.makeText(context, context.getString(R.string.save), Toast.LENGTH_SHORT).show()
-                        navController.navigateUp()
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(stringResource(R.string.save))
                 }
             }
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(250.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                contentAlignment = Alignment.Center
+            ) {
+                if (imageUri.isNotBlank()) {
+                    val t2 = (1f - contrast) * 128f + (brightness - 1f) * 255f
+                    val cm2 = ColorMatrix(
+                        floatArrayOf(
+                            contrast, 0f, 0f, 0f, t2,
+                            0f, contrast, 0f, 0f, t2,
+                            0f, 0f, contrast, 0f, t2,
+                            0f, 0f, 0f, 1f, 0f,
+                        )
+                    )
+                    AsyncImage(
+                        model = Uri.parse(imageUri),
+                        contentDescription = null,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .blur(blur.dp),
+                        contentScale = ContentScale.Crop,
+                        colorFilter = ColorFilter.colorMatrix(cm2)
+                    )
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color.Black.copy(alpha = 0.35f))
+                    )
+                    Image(
+                        painter = painterResource(R.drawable.lyrics_preview),
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.FillBounds
+                    )
+                } else {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(painterResource(R.drawable.image), contentDescription = null)
+                        Text(stringResource(R.string.add_image))
+                    }
+                }
+            }
+            Button(onClick = { launcher.launch(arrayOf("image/*")) }, modifier = Modifier.fillMaxWidth()) {
+                Text(stringResource(R.string.add_image))
+            }
+
+            Text(stringResource(R.string.blur))
+            Slider(
+                value = blur,
+                onValueChange = onBlurChange,
+                valueRange = 0f..50f,
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Text(stringResource(R.string.contrast))
+            Slider(
+                value = contrast,
+                onValueChange = onContrastChange,
+                valueRange = 0.5f..2f,
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Text(stringResource(R.string.brightness))
+            Slider(
+                value = brightness,
+                onValueChange = onBrightnessChange,
+                valueRange = 0.5f..2f,
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            FilledTonalButton(
+                onClick = {
+                    Toast.makeText(context, context.getString(R.string.save), Toast.LENGTH_SHORT).show()
+                    navController.navigateUp()
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(stringResource(R.string.save))
+            }
         }
-    )
+    }
 }
