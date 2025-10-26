@@ -25,6 +25,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import coil3.compose.AsyncImage
+import moe.koiverse.archivetune.ui.player.PlayerPreview
+import moe.koiverse.archivetune.constants.PlayerBackgroundStyle
 import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.constants.PlayerCustomBrightnessKey
 import moe.koiverse.archivetune.constants.PlayerCustomContrastKey
@@ -74,49 +76,17 @@ fun CustomizeBackground(
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                // Preview area
-                Box(
+                PlayerPreview(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(250.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant),
-                    contentAlignment = Alignment.Center
-                ) {
-                        if (imageUri.isNotBlank()) {
-                            val blurPx = blur
-                            val contrastVal = contrast
-                            val brightnessVal = brightness
-
-                            // Construct a color matrix to approximate contrast + brightness
-                            val t = (1f - contrastVal) * 128f + (brightnessVal - 1f) * 255f
-                            val matrix = floatArrayOf(
-                                contrastVal, 0f, 0f, 0f, t,
-                                0f, contrastVal, 0f, 0f, t,
-                                0f, 0f, contrastVal, 0f, t,
-                                0f, 0f, 0f, 1f, 0f,
-                            )
-
-                            val cm = ColorMatrix(matrix)
-
-                            AsyncImage(
-                                model = Uri.parse(imageUri),
-                                contentDescription = null,
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .blur(blurPx.dp),
-                                contentScale = ContentScale.Crop,
-                                colorFilter = ColorFilter.colorMatrix(cm)
-                            )
-                        // Note: applying blur/contrast/brightness to the preview image is left as a visual improvement
-                        // Placeholder: these values are saved and used by the player UI which reads the preferences
-                    } else {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Icon(painterResource(R.drawable.image), contentDescription = null)
-                            Text(stringResource(R.string.add_image))
-                        }
-                    }
-                }
+                        .clip(RoundedCornerShape(12.dp)),
+                    playerBackground = PlayerBackgroundStyle.CUSTOM,
+                    imageUri = imageUri,
+                    blur = blur,
+                    contrast = contrast,
+                    brightness = brightness,
+                )
 
                 Button(onClick = { launcher.launch(arrayOf("image/*")) }, modifier = Modifier.fillMaxWidth()) {
                     Text(stringResource(R.string.add_image))
