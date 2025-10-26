@@ -24,6 +24,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -71,6 +72,8 @@ fun CustomizeBackground(
             )
         },
     ) { innerPadding ->
+        val screenHeightDp = LocalConfiguration.current.screenHeightDp.toFloat()
+
         Column(
             modifier = Modifier
                 .padding(innerPadding)
@@ -79,10 +82,13 @@ fun CustomizeBackground(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            val playerPreviewHeight = (screenHeightDp * (1518f / 2400f)).dp
+            val lyricsPreviewHeight = (screenHeightDp * (1386f / 2400f)).dp
+
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(250.dp)
+                    .height(playerPreviewHeight)
                     .clip(RoundedCornerShape(12.dp))
                     .background(MaterialTheme.colorScheme.surfaceVariant),
                 contentAlignment = Alignment.Center
@@ -127,7 +133,7 @@ fun CustomizeBackground(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(250.dp)
+                    .height(lyricsPreviewHeight)
                     .clip(RoundedCornerShape(12.dp))
                     .background(MaterialTheme.colorScheme.surfaceVariant),
                 contentAlignment = Alignment.Center
