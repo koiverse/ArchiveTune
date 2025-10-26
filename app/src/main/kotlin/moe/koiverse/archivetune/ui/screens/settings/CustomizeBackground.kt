@@ -77,12 +77,10 @@ fun CustomizeBackground(
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                // Two previews side-by-side: player overlay and lyrics overlay
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    // Player overlay preview
+                Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Box(
                         modifier = Modifier
-                            .weight(1f)
+                            .fillMaxWidth()
                             .height(250.dp)
                             .clip(RoundedCornerShape(12.dp))
                             .background(MaterialTheme.colorScheme.surfaceVariant),
@@ -122,10 +120,9 @@ fun CustomizeBackground(
                         }
                     }
 
-                    // Lyrics overlay preview
                     Box(
                         modifier = Modifier
-                            .weight(1f)
+                            .fillMaxWidth()
                             .height(250.dp)
                             .clip(RoundedCornerShape(12.dp))
                             .background(MaterialTheme.colorScheme.surfaceVariant),
