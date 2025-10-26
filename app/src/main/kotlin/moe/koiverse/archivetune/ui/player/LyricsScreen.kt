@@ -77,6 +77,9 @@ import coil3.request.allowHardware
 import coil3.size.Size
 import coil3.toBitmap
 import moe.koiverse.archivetune.LocalDatabase
+import android.net.Uri
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.ColorMatrix
 import moe.koiverse.archivetune.LocalPlayerConnection
 import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.constants.PlayerBackgroundStyle
@@ -385,10 +388,6 @@ fun LyricsScreen(
                         }
                     }
                 }
-                else -> {
-                    Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface))
-                }
-            }
                 PlayerBackgroundStyle.CUSTOM -> {
                     AnimatedContent(
                         targetState = playerCustomImageUri,
@@ -426,7 +425,10 @@ fun LyricsScreen(
                         }
                     }
                 }
-
+                else -> {
+                    Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface))
+                }
+            }
             if (playerBackground != PlayerBackgroundStyle.DEFAULT) {
                 Box(
                     modifier = Modifier
