@@ -98,6 +98,14 @@ object DiscordPresenceManager {
                     return@withLock true
                 }
 
+                try {
+                    withTimeout(5_000L) {
+                        resolveAndPersistImages(context, song, isPaused)
+                    }
+                } catch (e: Exception) {
+                    Timber.tag(logTag).v(e, "image resolution for presence failed or timed out")
+                }
+
                 val rpc = getOrCreateRpc(context, token)
                 val result = rpc.updateSong(song, positionMs, isPaused)
                 if (result.isSuccess) {
