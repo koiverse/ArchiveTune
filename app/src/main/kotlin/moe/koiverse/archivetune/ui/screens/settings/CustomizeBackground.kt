@@ -7,6 +7,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -96,6 +97,8 @@ fun CustomizeBackground(
                                 0f, 0f, 0f, 1f, 0f,
                             )
 
+                            val cm = ColorMatrix(matrix)
+
                             AsyncImage(
                                 model = Uri.parse(imageUri),
                                 contentDescription = null,
@@ -103,7 +106,7 @@ fun CustomizeBackground(
                                     .fillMaxSize()
                                     .blur(blurPx.dp),
                                 contentScale = ContentScale.Crop,
-                                colorFilter = ColorFilter.colorMatrix(matrix)
+                                colorFilter = ColorFilter.colorMatrix(cm)
                             )
                         // Note: applying blur/contrast/brightness to the preview image is left as a visual improvement
                         // Placeholder: these values are saved and used by the player UI which reads the preferences

@@ -75,12 +75,12 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.graphics.ColorFilter
 import android.net.Uri
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
@@ -348,6 +348,7 @@ fun BottomSheetPlayer(
             PlayerBackgroundStyle.COLORING -> Color.White
             PlayerBackgroundStyle.BLUR_GRADIENT -> Color.White
             PlayerBackgroundStyle.GLOW -> Color.White
+            PlayerBackgroundStyle.CUSTOM -> Color.White
         }
 
     val icBackgroundColor =
@@ -358,6 +359,7 @@ fun BottomSheetPlayer(
             PlayerBackgroundStyle.COLORING -> Color.Black
             PlayerBackgroundStyle.BLUR_GRADIENT -> Color.Black
             PlayerBackgroundStyle.GLOW -> Color.Black
+            PlayerBackgroundStyle.CUSTOM -> Color.Black
         }
 
     val (textButtonColor, iconButtonColor) = when (playerButtonsStyle) {
@@ -1226,12 +1228,14 @@ fun BottomSheetPlayer(
                                                 0f, 0f, 0f, 1f, 0f,
                                             )
 
+                                            val cm = ColorMatrix(matrix)
+
                                             AsyncImage(
                                                 model = Uri.parse(uri),
                                                 contentDescription = "Custom background",
                                                 contentScale = ContentScale.FillBounds,
                                                 modifier = Modifier.fillMaxSize().blur(radius = blurPx.dp),
-                                                colorFilter = ColorFilter.colorMatrix(matrix)
+                                                colorFilter = ColorFilter.colorMatrix(cm)
                                             )
                                             Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.4f)))
                                         }
