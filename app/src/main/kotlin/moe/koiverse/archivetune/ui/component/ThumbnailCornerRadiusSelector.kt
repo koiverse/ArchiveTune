@@ -53,7 +53,7 @@ fun ThumbnailCornerRadiusSelectorButton(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 0.dp),
+                .padding(horizontal = 5.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
