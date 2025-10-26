@@ -58,6 +58,7 @@ import moe.koiverse.archivetune.ui.screens.search.OnlineSearchResult
 import moe.koiverse.archivetune.ui.screens.settings.AboutScreen
 import moe.koiverse.archivetune.ui.screens.settings.AccountSettings
 import moe.koiverse.archivetune.ui.screens.settings.AppearanceSettings
+import moe.koiverse.archivetune.ui.screens.settings.CustomizeBackground
 import moe.koiverse.archivetune.ui.screens.settings.BackupAndRestore
 import moe.koiverse.archivetune.ui.screens.settings.ContentSettings
 import moe.koiverse.archivetune.ui.screens.settings.DarkMode
@@ -317,6 +318,9 @@ fun NavGraphBuilder.navigationBuilder(
     }
     composable("settings/about") {
         AboutScreen(navController, scrollBehavior)
+    }
+    composable("customize_background") {
+        CustomizeBackground(navController)
     }
     composable("login") {
         LoginScreen(navController)

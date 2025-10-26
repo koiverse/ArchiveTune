@@ -245,6 +245,12 @@
     <string name="ok_button">OK</string>
     <string name="custom_radius">Customize thumbnail corner radius</string>
     <string name="custom">Custom</string>
+    <string name="customized_background">Customized background</string>
+    <string name="customize_background_title">Customize background</string>
+    <string name="add_image">Add image</string>
+    <string name="blur">Blur</string>
+    <string name="contrast">Contrast</string>
+    <string name="brightness">Brightness</string>
     <string name="custom_value">Custom value</string>
     <string name="new_library_design">New library design</string>
     <string name="new_library_design_description">Enable the new library design (may be unstable)</string>
