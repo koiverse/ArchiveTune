@@ -51,7 +51,9 @@ fun ThumbnailCornerRadiusSelectorButton(
         onClick = { showDialog = true }
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
