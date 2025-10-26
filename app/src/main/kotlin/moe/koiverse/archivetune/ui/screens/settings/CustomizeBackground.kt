@@ -8,6 +8,8 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ColorMatrix
+import androidx.compose.foundation.Image
+import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -25,7 +27,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import coil3.compose.AsyncImage
-import moe.koiverse.archivetune.ui.player.PlayerPreview
 import moe.koiverse.archivetune.constants.PlayerBackgroundStyle
 import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.constants.PlayerCustomBrightnessKey
@@ -76,17 +77,94 @@ fun CustomizeBackground(
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                PlayerPreview(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(250.dp)
-                        .clip(RoundedCornerShape(12.dp)),
-                    playerBackground = PlayerBackgroundStyle.CUSTOM,
-                    imageUri = imageUri,
-                    blur = blur,
-                    contrast = contrast,
-                    brightness = brightness,
-                )
+                // Two previews side-by-side: player overlay and lyrics overlay
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    // Player overlay preview
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(250.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (imageUri.isNotBlank()) {
+                            val t = (1f - contrast) * 128f + (brightness - 1f) * 255f
+                            val matrix = floatArrayOf(
+                                contrast, 0f, 0f, 0f, t,
+                                0f, contrast, 0f, 0f, t,
+                                0f, 0f, contrast, 0f, t,
+                                0f, 0f, 0f, 1f, 0f,
+                            )
+                            val cm = ColorMatrix(matrix)
+
+                            AsyncImage(
+                                model = Uri.parse(imageUri),
+                                contentDescription = null,
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .blur(blur.dp),
+                                contentScale = ContentScale.Crop,
+                                colorFilter = ColorFilter.colorMatrix(cm)
+                            )
+                            Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.35f)))
+                            Image(
+                                painter = painterResource(R.drawable.player_preview),
+                                contentDescription = null,
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.FillBounds
+                            )
+                        } else {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Icon(painterResource(R.drawable.image), contentDescription = null)
+                                Text(stringResource(R.string.add_image))
+                            }
+                        }
+                    }
+
+                    // Lyrics overlay preview
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(250.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (imageUri.isNotBlank()) {
+                            val t2 = (1f - contrast) * 128f + (brightness - 1f) * 255f
+                            val matrix2 = floatArrayOf(
+                                contrast, 0f, 0f, 0f, t2,
+                                0f, contrast, 0f, 0f, t2,
+                                0f, 0f, contrast, 0f, t2,
+                                0f, 0f, 0f, 1f, 0f,
+                            )
+                            val cm2 = ColorMatrix(matrix2)
+
+                            AsyncImage(
+                                model = Uri.parse(imageUri),
+                                contentDescription = null,
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .blur(blur.dp),
+                                contentScale = ContentScale.Crop,
+                                colorFilter = ColorFilter.colorMatrix(cm2)
+                            )
+                            Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.35f)))
+                            Image(
+                                painter = painterResource(R.drawable.lyrics_preview),
+                                contentDescription = null,
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.FillBounds
+                            )
+                        } else {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Icon(painterResource(R.drawable.image), contentDescription = null)
+                                Text(stringResource(R.string.add_image))
+                            }
+                        }
+                    }
+                }
 
                 Button(onClick = { launcher.launch(arrayOf("image/*")) }, modifier = Modifier.fillMaxWidth()) {
                     Text(stringResource(R.string.add_image))
