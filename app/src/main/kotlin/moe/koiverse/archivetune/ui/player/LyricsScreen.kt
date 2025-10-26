@@ -77,6 +77,9 @@ import coil3.request.allowHardware
 import coil3.size.Size
 import coil3.toBitmap
 import moe.koiverse.archivetune.LocalDatabase
+import android.net.Uri
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.ColorMatrix
 import moe.koiverse.archivetune.LocalPlayerConnection
 import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.constants.PlayerBackgroundStyle
@@ -99,6 +102,11 @@ import moe.koiverse.archivetune.ui.menu.LyricsMenu
 import moe.koiverse.archivetune.ui.theme.PlayerColorExtractor
 import moe.koiverse.archivetune.ui.theme.PlayerSliderColors
 import moe.koiverse.archivetune.utils.rememberEnumPreference
+import moe.koiverse.archivetune.utils.rememberPreference
+import moe.koiverse.archivetune.constants.PlayerCustomImageUriKey
+import moe.koiverse.archivetune.constants.PlayerCustomBlurKey
+import moe.koiverse.archivetune.constants.PlayerCustomContrastKey
+import moe.koiverse.archivetune.constants.PlayerCustomBrightnessKey
 import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -169,6 +177,11 @@ fun LyricsScreen(
 
     val playerBackground by rememberEnumPreference(PlayerBackgroundStyleKey, PlayerBackgroundStyle.DEFAULT)
 
+    val (playerCustomImageUri) = rememberPreference(PlayerCustomImageUriKey, "")
+    val (playerCustomBlur) = rememberPreference(PlayerCustomBlurKey, 0f)
+    val (playerCustomContrast) = rememberPreference(PlayerCustomContrastKey, 1f)
+    val (playerCustomBrightness) = rememberPreference(PlayerCustomBrightnessKey, 1f)
+
     var gradientColors by remember { mutableStateOf<List<Color>>(emptyList()) }
     val gradientColorsCache = remember { mutableMapOf<String, List<Color>>() }
 
@@ -228,6 +241,7 @@ fun LyricsScreen(
         PlayerBackgroundStyle.COLORING -> Color.White
         PlayerBackgroundStyle.BLUR_GRADIENT -> Color.White
         PlayerBackgroundStyle.GLOW -> Color.White
+        PlayerBackgroundStyle.CUSTOM -> Color.White
     }
 
     val icBackgroundColor = when (playerBackground) {
@@ -237,6 +251,7 @@ fun LyricsScreen(
         PlayerBackgroundStyle.COLORING -> Color.Black
         PlayerBackgroundStyle.BLUR_GRADIENT -> Color.Black
         PlayerBackgroundStyle.GLOW -> Color.Black
+        PlayerBackgroundStyle.CUSTOM -> Color.Black
     }
 
     LaunchedEffect(playbackState) {
@@ -372,11 +387,47 @@ fun LyricsScreen(
                         }
                     }
                 }
+                PlayerBackgroundStyle.CUSTOM -> {
+                    AnimatedContent(
+                        targetState = playerCustomImageUri,
+                        transitionSpec = {
+                            fadeIn(tween(1000)) togetherWith fadeOut(tween(1000))
+                        }
+                    ) { uri ->
+                        if (!uri.isNullOrBlank()) {
+                            Box(modifier = Modifier.fillMaxSize()) {
+                                val blurPx = playerCustomBlur
+                                val contrastVal = playerCustomContrast
+                                val brightnessVal = playerCustomBrightness
+
+                                val t = (1f - contrastVal) * 128f + (brightnessVal - 1f) * 255f
+                                val matrix = floatArrayOf(
+                                    contrastVal, 0f, 0f, 0f, t,
+                                    0f, contrastVal, 0f, 0f, t,
+                                    0f, 0f, contrastVal, 0f, t,
+                                    0f, 0f, 0f, 1f, 0f,
+                                )
+
+                                val cm = ColorMatrix(matrix)
+
+                                AsyncImage(
+                                    model = Uri.parse(uri),
+                                    contentDescription = "Custom background",
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier.fillMaxSize().blur(radius = blurPx.dp),
+                                    colorFilter = ColorFilter.colorMatrix(cm)
+                                )
+                                Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.4f)))
+                            }
+                        } else {
+                            Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface))
+                        }
+                    }
+                }
                 else -> {
                     Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface))
                 }
             }
-
             if (playerBackground != PlayerBackgroundStyle.DEFAULT) {
                 Box(
                     modifier = Modifier

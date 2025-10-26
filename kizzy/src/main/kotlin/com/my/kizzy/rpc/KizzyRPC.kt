@@ -110,7 +110,7 @@ open class KizzyRPC(private val token: String, private val injectedLogger: Kizzy
                     url = streamUrl
                 )
             ),
-            afk = true,
+            afk = false,
             since = since,
             status = status ?: "online"
         )

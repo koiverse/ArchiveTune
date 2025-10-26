@@ -38,6 +38,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.ui.draw.blur
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
@@ -74,11 +75,13 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import android.net.Uri
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -115,6 +118,10 @@ import moe.koiverse.archivetune.constants.UseNewPlayerDesignKey
 import moe.koiverse.archivetune.constants.UseNewMiniPlayerDesignKey
 import moe.koiverse.archivetune.constants.PlayerBackgroundStyle
 import moe.koiverse.archivetune.constants.PlayerBackgroundStyleKey
+import moe.koiverse.archivetune.constants.PlayerCustomImageUriKey
+import moe.koiverse.archivetune.constants.PlayerCustomBlurKey
+import moe.koiverse.archivetune.constants.PlayerCustomContrastKey
+import moe.koiverse.archivetune.constants.PlayerCustomBrightnessKey
 import moe.koiverse.archivetune.constants.PlayerButtonsStyle
 import moe.koiverse.archivetune.constants.PlayerButtonsStyleKey
 import moe.koiverse.archivetune.ui.theme.PlayerColorExtractor
@@ -176,6 +183,12 @@ fun BottomSheetPlayer(
         key = PlayerBackgroundStyleKey,
         defaultValue = PlayerBackgroundStyle.DEFAULT
     )
+
+    // Custom background preferences (image + effects)
+    val (playerCustomImageUri) = rememberPreference(PlayerCustomImageUriKey, "")
+    val (playerCustomBlur) = rememberPreference(PlayerCustomBlurKey, 0f)
+    val (playerCustomContrast) = rememberPreference(PlayerCustomContrastKey, 1f)
+    val (playerCustomBrightness) = rememberPreference(PlayerCustomBrightnessKey, 1f)
 
     val playerButtonsStyle by rememberEnumPreference(
         key = PlayerButtonsStyleKey,
@@ -335,6 +348,7 @@ fun BottomSheetPlayer(
             PlayerBackgroundStyle.COLORING -> Color.White
             PlayerBackgroundStyle.BLUR_GRADIENT -> Color.White
             PlayerBackgroundStyle.GLOW -> Color.White
+            PlayerBackgroundStyle.CUSTOM -> Color.White
         }
 
     val icBackgroundColor =
@@ -345,6 +359,7 @@ fun BottomSheetPlayer(
             PlayerBackgroundStyle.COLORING -> Color.Black
             PlayerBackgroundStyle.BLUR_GRADIENT -> Color.Black
             PlayerBackgroundStyle.GLOW -> Color.Black
+            PlayerBackgroundStyle.CUSTOM -> Color.Black
         }
 
     val (textButtonColor, iconButtonColor) = when (playerButtonsStyle) {
@@ -1192,6 +1207,41 @@ fun BottomSheetPlayer(
                             }
                         }
                     }
+                            PlayerBackgroundStyle.CUSTOM -> {
+                                AnimatedContent(
+                                    targetState = playerCustomImageUri,
+                                    transitionSpec = {
+                                        fadeIn(tween(1000)) togetherWith fadeOut(tween(1000))
+                                    }
+                                ) { uri ->
+                                    if (!uri.isNullOrBlank()) {
+                                        Box(modifier = Modifier.fillMaxSize()) {
+                                            val blurPx = playerCustomBlur
+                                            val contrastVal = playerCustomContrast
+                                            val brightnessVal = playerCustomBrightness
+
+                                            val t = (1f - contrastVal) * 128f + (brightnessVal - 1f) * 255f
+                                            val matrix = floatArrayOf(
+                                                contrastVal, 0f, 0f, 0f, t,
+                                                0f, contrastVal, 0f, 0f, t,
+                                                0f, 0f, contrastVal, 0f, t,
+                                                0f, 0f, 0f, 1f, 0f,
+                                            )
+
+                                            val cm = ColorMatrix(matrix)
+
+                                            AsyncImage(
+                                                model = Uri.parse(uri),
+                                                contentDescription = "Custom background",
+                                                contentScale = ContentScale.FillBounds,
+                                                modifier = Modifier.fillMaxSize().blur(radius = blurPx.dp),
+                                                colorFilter = ColorFilter.colorMatrix(cm)
+                                            )
+                                            Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.4f)))
+                                        }
+                                    }
+                                }
+                            }
                     PlayerBackgroundStyle.GLOW -> {
                         AnimatedContent(
                             targetState = gradientColors,

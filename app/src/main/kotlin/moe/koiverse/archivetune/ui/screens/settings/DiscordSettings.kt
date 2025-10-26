@@ -319,33 +319,12 @@ fun DiscordSettings(
                        val start = System.currentTimeMillis()
 
                        // Resolve large image from current Compose state (respect user selection)
-                       val resolvedLargeToPass = when (largeImageType.lowercase()) {
-                           "thumbnail" -> song?.song?.thumbnailUrl
-                           "artist" -> song?.artists?.firstOrNull()?.thumbnailUrl
-                           "appicon", "app" -> "https://raw.githubusercontent.com/koiverse/ArchiveTune/main/fastlane/metadata/android/en-US/images/icon.png"
-                           "custom" -> largeImageCustomUrl.ifBlank { song?.song?.thumbnailUrl }
-                           else -> song?.song?.thumbnailUrl
-                       }
-
-                       // Resolve small image from current Compose state
-                       val resolvedSmallToPass = when (smallImageType.lowercase()) {
-                           "thumbnail" -> song?.song?.thumbnailUrl
-                           "artist" -> song?.artists?.firstOrNull()?.thumbnailUrl
-                           "appicon", "app" -> "https://raw.githubusercontent.com/koiverse/ArchiveTune/main/fastlane/metadata/android/en-US/images/icon.png"
-                           "custom" -> smallImageCustomUrl.ifBlank { song?.artists?.firstOrNull()?.thumbnailUrl }
-                           "dontshow", "none" -> null
-                           else -> song?.artists?.firstOrNull()?.thumbnailUrl
-                       }
-
                        val success = DiscordPresenceManager.updatePresence(
                            context = context,
                            token = discordToken,
                            song = song,
                            positionMs = playerConnection.player.currentPosition,
-                           isPaused = !(playerConnection.player.playWhenReady &&
-                                   playerConnection.player.playbackState == STATE_READY),
-                           resolvedLargeImageUrl = resolvedLargeToPass,
-                           resolvedSmallImageUrl = resolvedSmallToPass
+                           isPaused = !playerConnection.player.isPlaying,
                        )
                        isRefreshing = false
                         // Show snackbar on main thread
@@ -411,7 +390,7 @@ fun DiscordSettings(
         }
 
         // Platform selector (client platform displayed on Discord)
-        val platformOptions = listOf("android", "desktop", "embedded", "ios", "ps4", "ps5", "samsung", "xbox")
+        val platformOptions = listOf("android", "desktop", "web")
         val (platformSelection, onPlatformSelectionChange) = rememberPreference(
             key = DiscordActivityPlatformKey,
             defaultValue = "desktop"
@@ -792,7 +771,7 @@ if (smallImageType == "custom") {
 
     RichPresence(
         song,
-        currentPlaybackTimeMillis = position,
+        currentPlaybackTimeMillis = playerConnection.player.currentPosition,
         nameSource = nameSource,
         detailsSource = detailsSource,
         stateSource = stateSource,
@@ -803,9 +782,9 @@ if (smallImageType == "custom") {
         smallImageCustomUrl = smallImageCustomUrl,
         button1Enabled = button1Enabled,
         button2Enabled = button2Enabled,
-        isPlaying = playerIsPlayingForPreview
+        isPlaying = playerConnection.player.isPlaying
     )
-    }
+}
 
     TopAppBar(
         title = { Text(stringResource(R.string.discord_integration)) },
@@ -1112,7 +1091,7 @@ fun RichPresence(
                             // Compute a preview for the "state" line according to the selected stateSource
                             val previewState = when (stateSource) {
                                 ActivitySource.ARTIST -> song?.artists?.joinToString { it.name } ?: "Artist"
-                                ActivitySource.ALBUM -> song?.song?.albumName ?: song?.album?.title ?: "Album"
+                                ActivitySource.ALBUM -> song?.song?.albumName ?: song?.album?.title ?: song?.song?.title ?: "Unknown Album"
                                 ActivitySource.SONG -> song?.song?.title ?: "Song"
                                 ActivitySource.APP -> stringResource(R.string.app_name)
                             }
@@ -1186,12 +1165,11 @@ fun SongProgressBar(
 ) {
     var displayedTime by remember { mutableStateOf(currentTimeMillis) }
 
-    LaunchedEffect(isPlaying, currentTimeMillis) {
-        displayedTime = currentTimeMillis
+    LaunchedEffect(isPlaying) {
         if (isPlaying) {
             while (isActive) {
-                delay(250)
-                displayedTime += 250
+                delay(500)
+                displayedTime += 500
                 if (displayedTime >= durationMillis) {
                     displayedTime = durationMillis
                     break
@@ -1200,22 +1178,22 @@ fun SongProgressBar(
         }
     }
 
-    val progress = if (durationMillis > 0) displayedTime.toFloat() / durationMillis else 0f
+    val progress = if (durationMillis > 0) {
+        displayedTime.toFloat() / durationMillis
+    } else 0f
+
     Column(modifier = Modifier.fillMaxWidth()) {
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(8.dp))
         LinearProgressIndicator(
-            progress = progress,
+            progress = progress.coerceIn(0f, 1f),
             modifier = Modifier
                 .fillMaxWidth()
                 .height(6.dp)
                 .clip(RoundedCornerShape(3.dp))
         )
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
+        Row(modifier = Modifier.fillMaxWidth()) {
             Text(
-                text = makeTimeString(displayedTime), // ✅ use displayedTime
+                text = makeTimeString(displayedTime),
                 modifier = Modifier.weight(1f),
                 textAlign = TextAlign.Start,
                 fontSize = 12.sp

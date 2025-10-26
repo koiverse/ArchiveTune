@@ -434,6 +434,7 @@ fun AppearanceSettings(
                 when (it) {
                     PlayerBackgroundStyle.DEFAULT -> stringResource(R.string.follow_theme)
                     PlayerBackgroundStyle.GRADIENT -> stringResource(R.string.gradient)
+                        PlayerBackgroundStyle.CUSTOM -> stringResource(R.string.custom)
                     PlayerBackgroundStyle.BLUR -> stringResource(R.string.player_background_blur)
                     PlayerBackgroundStyle.COLORING -> stringResource(R.string.coloring)
                     PlayerBackgroundStyle.BLUR_GRADIENT -> stringResource(R.string.blur_gradient)
@@ -441,6 +442,15 @@ fun AppearanceSettings(
                 }
             },
         )
+
+        // When custom background is selected, show a direct link to customize it
+        if (playerBackground == PlayerBackgroundStyle.CUSTOM) {
+            PreferenceEntry(
+                title = { Text(stringResource(R.string.customized_background)) },
+                icon = { Icon(painterResource(R.drawable.image), null) },
+                onClick = { navController.navigate("customize_background") }
+            )
+        }
 
         SwitchPreference(
             title = { Text(stringResource(R.string.hide_player_thumbnail)) },

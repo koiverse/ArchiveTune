@@ -62,6 +62,8 @@ object YTPlayerUtils {
         playlistId: String? = null,
         audioQuality: AudioQuality,
         connectivityManager: ConnectivityManager,
+        // if provided, this preference overrides ConnectivityManager.isActiveNetworkMetered
+        networkMetered: Boolean? = null,
     ): Result<PlaybackData> = runCatching {
     Timber.tag(logTag).i("Fetching player response for videoId: $videoId, playlistId: $playlistId")
         /**
@@ -133,6 +135,7 @@ object YTPlayerUtils {
                         streamPlayerResponse,
                         audioQuality,
                         connectivityManager,
+                        networkMetered = networkMetered,
                     )
 
                 if (format == null) {
@@ -232,14 +235,17 @@ object YTPlayerUtils {
         playerResponse: PlayerResponse,
         audioQuality: AudioQuality,
         connectivityManager: ConnectivityManager,
+        // optional override from user preference; if non-null, use this instead of ConnectivityManager
+        networkMetered: Boolean? = null,
     ): PlayerResponse.StreamingData.Format? {
-        Timber.tag(logTag).i("Finding format with audioQuality: $audioQuality, network metered: ${connectivityManager.isActiveNetworkMetered}")
+        val isMetered = networkMetered ?: connectivityManager.isActiveNetworkMetered
+        Timber.tag(logTag).i("Finding format with audioQuality: $audioQuality, network metered: $isMetered")
 
         val format = playerResponse.streamingData?.adaptiveFormats
             ?.filter { it.isAudio }
             ?.maxByOrNull {
                 it.bitrate * when (audioQuality) {
-                    AudioQuality.AUTO -> if (connectivityManager.isActiveNetworkMetered) -1 else 1
+                    AudioQuality.AUTO -> if (isMetered) -1 else 1
                     AudioQuality.HIGH -> 1
                     AudioQuality.LOW -> -1
                 } + (if (it.mimeType.startsWith("audio/webm")) 10240 else 0) // prefer opus stream

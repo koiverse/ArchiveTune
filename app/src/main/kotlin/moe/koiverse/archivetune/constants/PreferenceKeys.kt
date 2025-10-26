@@ -43,6 +43,8 @@ val YtmSyncKey = booleanPreferencesKey("ytmSync")
 
 val AudioQualityKey = stringPreferencesKey("audioQuality")
 
+val NetworkMeteredKey = booleanPreferencesKey("networkMetered")
+
 enum class AudioQuality {
     AUTO,
     HIGH,
@@ -299,11 +301,18 @@ enum class PlayerButtonsStyle {
 enum class PlayerBackgroundStyle {
     DEFAULT,
     GRADIENT,
+    CUSTOM,
     BLUR,
     COLORING,
     BLUR_GRADIENT,
     GLOW,
 }
+
+// Keys for customized background
+val PlayerCustomImageUriKey = stringPreferencesKey("playerCustomImageUri")
+val PlayerCustomBlurKey = floatPreferencesKey("playerCustomBlur")
+val PlayerCustomContrastKey = floatPreferencesKey("playerCustomContrast")
+val PlayerCustomBrightnessKey = floatPreferencesKey("playerCustomBrightness")
 
 
 val LyricsAnimationStyleKey = stringPreferencesKey("lyricsAnimationStyle")

@@ -7,7 +7,7 @@ import moe.koiverse.archivetune.constants.*
 import moe.koiverse.archivetune.utils.dataStore
 import com.my.kizzy.rpc.KizzyRPC
 import com.my.kizzy.rpc.RpcImage
-import kotlinx.coroutines.withTimeoutOrNull
+// ...existing code...
 import timber.log.Timber
 import me.bush.translator.Translator
 import me.bush.translator.Language
@@ -25,9 +25,7 @@ class DiscordRPC(
         private const val logtag = "DiscordRPC"
     }
 
-    private val repo = com.my.kizzy.repository.KizzyRepository()
     private val translationCache: MutableMap<String, String> = mutableMapOf()
-    private val preloadResults: MutableMap<String, String?> = mutableMapOf()
     private var lastSongId: String? = null
 
     private fun pickSourceValue(pref: String, song: Song?, default: String): String = when (pref) {
@@ -82,52 +80,13 @@ class DiscordRPC(
         }
     }
 
-    private fun rpcKey(image: RpcImage): String = when (image) {
-        is RpcImage.DiscordImage -> "discord:${image.image}"
-        is RpcImage.ExternalImage -> "external:${image.image}"
-    }
+    // rpcKey removed — we no longer resolve or cache external images here
 
-    private suspend fun resolveOnce(image: RpcImage?): String? {
-        if (image == null) return null
-        val key = rpcKey(image)
-        if (preloadResults.containsKey(key)) return preloadResults[key]
-
-        val resolved = withTimeoutOrNull(4000L) {
-            when (image) {
-                is RpcImage.ExternalImage -> repo.getImage(image.image) ?: image.image
-                is RpcImage.DiscordImage -> image.image
-            }
-        }
-
-        // If resolution failed (null), try to fallback to raw external URL for ExternalImage
-        val finalResolved = when {
-            !resolved.isNullOrBlank() -> resolved
-            image is RpcImage.ExternalImage -> image.image // fallback to original URL
-            else -> null
-        }
-
-        preloadResults[key] = finalResolved
-        Timber.tag(logtag).v("Invocation preload result for %s -> %s", key, resolved)
-        return finalResolved
-    }
-
-    private fun wrapResolved(original: RpcImage?, resolved: String?): RpcImage? {
-        if (resolved.isNullOrBlank()) return original
-        return when {
-            resolved.startsWith("http://") || resolved.startsWith("https://") -> RpcImage.ExternalImage(resolved)
-            resolved.startsWith("mp:") || resolved.startsWith("b7.") -> original
-            else -> original
-        }
-    }
 
     suspend fun updateSong(
         song: Song,
         currentPlaybackTimeMillis: Long,
         isPaused: Boolean = false,
-        // If callers already have resolved image URLs (external HTTP URLs), they can
-        // pass them here to avoid additional resolution/preload work.
-        resolvedLargeImageUrl: String? = null,
-        resolvedSmallImageUrl: String? = null,
     ) = runCatching {
         val currentTime = System.currentTimeMillis()
         val calculatedStartTime = currentTime - currentPlaybackTimeMillis
@@ -204,7 +163,7 @@ class DiscordRPC(
             else -> pickSourceValue(namePref, song, context.getString(R.string.app_name))
         }
 
-        val activityDetails = when (detailsPref.uppercase()) {
+        var activityDetails = when (detailsPref.uppercase()) {
             "ARTIST" -> translatedMap["{artist}"] ?: pickSourceValue(detailsPref, song, song.song.title)
             "ALBUM" -> translatedMap["{album}"] ?: pickSourceValue(detailsPref, song, song.song.title)
             "SONG" -> translatedMap["{song}"] ?: pickSourceValue(detailsPref, song, song.song.title)
@@ -212,12 +171,21 @@ class DiscordRPC(
             else -> pickSourceValue(detailsPref, song, song.song.title)
         }
 
-        val activityState = when (statePref.uppercase()) {
+        // Ensure details are not empty — fallback to song title or app name so Discord shows something.
+        if (activityDetails.isNullOrBlank()) {
+            activityDetails = song.song.title.ifBlank { context.getString(R.string.app_name) }
+        }
+
+        var activityState = when (statePref.uppercase()) {
             "ARTIST" -> translatedMap["{artist}"] ?: pickSourceValue(statePref, song, song.artists.joinToString { it.name })
             "ALBUM" -> translatedMap["{album}"] ?: pickSourceValue(statePref, song, song.artists.joinToString { it.name })
             "SONG" -> translatedMap["{song}"] ?: pickSourceValue(statePref, song, song.artists.joinToString { it.name })
             "APP" -> context.getString(R.string.app_name)
             else -> pickSourceValue(statePref, song, song.artists.joinToString { it.name })
+        }
+
+        if (activityState.isNullOrBlank()) {
+            activityState = song.artists.firstOrNull()?.name ?: context.getString(R.string.app_name)
         }
 
         val baseSongUrl = "https://music.youtube.com/watch?v=${song.song.id}"
@@ -263,59 +231,22 @@ class DiscordRPC(
         val saved = ArtworkStorage.findBySongId(context, song.song.id)
 
         val finalLargeImage: RpcImage? = when {
-            !resolvedLargeImageUrl.isNullOrBlank() -> RpcImage.ExternalImage(resolvedLargeImageUrl)
             (largeImageTypePref.equals("thumbnail", true) && !saved?.thumbnail.isNullOrBlank()) -> RpcImage.ExternalImage(saved!!.thumbnail!!)
-            else -> {
-                val largeImageRpc = pickImage(largeImageTypePref, largeImageCustomPref, song, false)
-                val resolvedLargeImage = resolveOnce(largeImageRpc)
-                val largeRequestedButFailed = largeImageRpc != null && resolvedLargeImage == null
-                if (largeRequestedButFailed) {
-                    Timber.tag(logtag).w("Large RPC image failed to resolve. Continuing without it.")
-                }
-                // If resolved to an external http(s) url, persist it
-                if (!resolvedLargeImage.isNullOrBlank() && (resolvedLargeImage.startsWith("http://") || resolvedLargeImage.startsWith("https://"))) {
-                    try {
-                        val updated = SavedArtwork(songId = song.song.id, thumbnail = resolvedLargeImage, artist = saved?.artist)
-                        ArtworkStorage.saveOrUpdate(context, updated)
-                    } catch (e: Exception) {
-                        Timber.tag(logtag).v(e, "failed to persist large image")
-                    }
-                }
-                wrapResolved(largeImageRpc, resolvedLargeImage)
-            }
+            else -> pickImage(largeImageTypePref, largeImageCustomPref, song, false)
         }
 
         val finalSmallImage: RpcImage? = when {
-            !resolvedSmallImageUrl.isNullOrBlank() -> RpcImage.ExternalImage(resolvedSmallImageUrl)
             smallImageTypePref.equals("artist", ignoreCase = true) && !saved?.artist.isNullOrBlank() -> RpcImage.ExternalImage(saved!!.artist!!)
-            else -> {
-                val smallImageRpc =
-                    if (isPaused) RpcImage.ExternalImage(PAUSE_IMAGE_URL)
-                    else if (smallImageTypePref.lowercase() in listOf("none", "dontshow")) null
-                    else pickImage(smallImageTypePref, smallImageCustomPref, song, true)
-                val resolvedSmallImage = resolveOnce(smallImageRpc)
-                val smallRequestedButFailed = smallImageRpc != null && resolvedSmallImage == null
-                if (smallRequestedButFailed) {
-                    Timber.tag(logtag).w("Small RPC image failed to resolve. Continuing without it.")
-                }
-                // Persist artist image when resolved to external http(s)
-                if (!resolvedSmallImage.isNullOrBlank() && (resolvedSmallImage.startsWith("http://") || resolvedSmallImage.startsWith("https://"))) {
-                    try {
-                        val updated = SavedArtwork(songId = song.song.id, thumbnail = saved?.thumbnail, artist = resolvedSmallImage)
-                        ArtworkStorage.saveOrUpdate(context, updated)
-                    } catch (e: Exception) {
-                        Timber.tag(logtag).v(e, "failed to persist small image")
-                    }
-                }
-                wrapResolved(smallImageRpc, resolvedSmallImage)
-            }
+            isPaused -> RpcImage.ExternalImage(PAUSE_IMAGE_URL)
+            smallImageTypePref.lowercase() in listOf("none", "dontshow") -> null
+            else -> pickImage(smallImageTypePref, smallImageCustomPref, song, true)
         }
 
         val largeTextSource = (context.dataStore[DiscordLargeTextSourceKey] ?: "album").lowercase()
         val resolvedLargeText = when (largeTextSource) {
             "song" -> translatedMap["{song}"] ?: song.song.title
             "artist" -> translatedMap["{artist}"] ?: song.artists.firstOrNull()?.name
-            "album" -> translatedMap["{album}"] ?: song.song.albumName ?: song.album?.title
+            "album" -> translatedMap["{album}"] ?: song.song.albumName ?: song.album?.title ?: song.song.title
             "app" -> context.getString(R.string.app_name)
             "custom" -> (context.dataStore[DiscordLargeTextCustomKey] ?: "").ifBlank { null }
             "dontshow" -> null
@@ -337,17 +268,15 @@ class DiscordRPC(
             "$baseSmallText on ArchiveTune"
         }
 
-
-        val hasHoverText = !resolvedLargeText.isNullOrBlank() || !sendSmallText.isNullOrBlank()
-        val applicationIdToSend =
-            if (hasHoverText) APPLICATION_ID else null
+        val applicationIdToSend = APPLICATION_ID
 
         val platformPref = context.dataStore[DiscordActivityPlatformKey] ?: "desktop"
         this.setPlatform(platformPref)
 
-        val sendStartTime = if (isPaused) null else calculatedStartTime
-        val sendEndTime = if (isPaused) null else currentTime + (song.song.duration * 1000L - currentPlaybackTimeMillis)
-        val sendSince = if (isPaused) null else currentTime
+        val hasValidDuration = (song.song.duration ?: -1) > 0
+        val sendStartTime = if (isPaused || !hasValidDuration) null else calculatedStartTime
+        val sendEndTime = if (isPaused || !hasValidDuration) null else currentTime + (song.song.duration * 1000L - currentPlaybackTimeMillis)
+        val sendSince = if (isPaused && showWhenPaused && hasValidDuration) currentTime else null
 
         val safeStatus = when (statusPref.lowercase()) {
             "online", "idle", "dnd", "invisible" -> statusPref

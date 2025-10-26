@@ -244,6 +244,12 @@
     <string name="cancel_button">Batal</string>
     <string name="ok_button">OK</string>
     <string name="custom_radius">Sesuaikan radius sudut thumbnail</string>
+    <string name="customized_background">Latar belakang yang disesuaikan</string>
+    <string name="customize_background_title">Sesuaikan latar belakang</string>
+    <string name="add_image">Tambahkan gambar</string>
+    <string name="blur">Buram</string>
+    <string name="contrast">Kontras</string>
+    <string name="brightness">Kecerahan</string>
     <string name="custom">Kustom</string>
     <string name="custom_value">Nilai kustom</string>
     <string name="new_library_design">Desain perpustakaan baru</string>
@@ -299,6 +305,8 @@
     <string name="audio_quality_auto">Otomatis</string>
     <string name="audio_quality_high">Tinggi</string>
     <string name="audio_quality_low">Rendah</string>
+    <string name="network_metered_title">Perlakukan jaringan sebagai terukur</string>
+    <string name="network_metered_description">Jika opsi ini diaktifkan, aplikasi akan lebih memilih aliran dengan kualitas lebih rendah di jaringan terukur</string>
     <string name="queue">Antrian</string>
     <string name="persistent_queue">Antrian persisten</string>
     <string name="persistent_queue_desc">Pulihkan antrean terakhir Anda ketika aplikasi dimulai</string>
