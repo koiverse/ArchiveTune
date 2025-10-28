@@ -160,6 +160,9 @@ import kotlin.math.min
 import kotlin.math.pow
 import kotlin.time.Duration.Companion.seconds
 import timber.log.Timber
+import androidx.core.app.NotificationCompat
+import android.app.Notification
+import android.app.PendingIntent
 
 @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
 @AndroidEntryPoint
@@ -274,6 +277,24 @@ class MusicService :
                 ).setSeekBackIncrementMs(5000)
                 .setSeekForwardIncrementMs(5000)
                 .build()
+                try {
+                    val pending = PendingIntent.getActivity(
+                        this,
+                        0,
+                        Intent(this, MainActivity::class.java),
+                        PendingIntent.FLAG_IMMUTABLE
+                    )
+                    val notification: Notification = NotificationCompat.Builder(this, CHANNEL_ID)
+                        .setContentTitle(getString(R.string.music_player))
+                        .setContentText("")
+                        .setSmallIcon(R.drawable.small_icon)
+                        .setContentIntent(pending)
+                        .setOngoing(true)
+                        .build()
+                    startForeground(NOTIFICATION_ID, notification)
+                } catch (e: Exception) {
+                    reportException(e)
+                }
                 .apply {
                     addListener(this@MusicService)
                     sleepTimer = SleepTimer(scope, this)
@@ -808,7 +829,6 @@ class MusicService :
                 withContext(Dispatchers.IO) {
                     queue.getInitialStatus().filterExplicit(dataStore.get(HideExplicitKey, false))
                 }
-            if (queue.preloadItem != null && player.playbackState == STATE_IDLE) return@launch
             if (initialStatus.title != null) {
                 queueTitle = initialStatus.title
             }
@@ -1203,6 +1223,38 @@ class MusicService :
 
         if (!isNetworkConnected.value || isConnectionError) {
             waitOnNetworkError()
+            return
+        }
+
+        val skipSilenceCurrentlyEnabled = dataStore.get(SkipSilenceKey, false)
+        val causeText = (error.cause?.stackTraceToString() ?: error.stackTraceToString()).lowercase()
+        val looksLikeSilenceProcessor = skipSilenceCurrentlyEnabled && (
+            "silenceskippingaudioprocessor" in causeText || "silence" in causeText
+        )
+
+        if (looksLikeSilenceProcessor) {
+            scope.launch {
+                try {
+                    dataStore.edit { settings ->
+                        settings[SkipSilenceKey] = false
+                    }
+                    player.skipSilenceEnabled = false
+                    val currentPos = player.currentPosition
+                    val targetPos = min(currentPos + 1500L, if (player.duration > 0) player.duration - 1000L else currentPos + 1500L)
+                    player.seekTo(targetPos)
+                    player.prepare()
+                    player.play()
+                    return@launch
+                } catch (t: Throwable) {
+                    Timber.tag("MusicService").e(t, "failed to recover from silence-skipper error")
+                }
+                if (dataStore.get(AutoSkipNextOnErrorKey, false)) {
+                    skipOnError()
+                } else {
+                    stopOnError()
+                }
+            }
+
             return
         }
 
