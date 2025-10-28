@@ -140,6 +140,7 @@ fun OnlinePlaylistScreen(
     val lazyListState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
+    val importLabel = stringResource(R.string.import_playlist)
 
     var isSearching by rememberSaveable { mutableStateOf(false) }
 
@@ -442,6 +443,44 @@ fun OnlinePlaylistScreen(
                                             )
                                             Spacer(Modifier.size(ButtonDefaults.IconSpacing))
                                             Text(stringResource(R.string.radio))
+                                        }
+                                    }
+                                    if (dbPlaylist?.playlist == null || dbPlaylist?.playlist?.isLocal == false) {
+                                        OutlinedButton(
+                                            onClick = {
+                                                coroutineScope.launch {
+                                                    database.transaction {
+                                                        val imported = PlaylistEntity(
+                                                            name = playlist.title,
+                                                            thumbnailUrl = playlist.thumbnail,
+                                                            isEditable = playlist.isEditable,
+                                                            isLocal = true
+                                                        )
+                                                        insert(imported)
+                                                        songs.map(SongItem::toMediaMetadata)
+                                                            .onEach(::insert)
+                                                            .mapIndexed { index, song ->
+                                                                PlaylistSongMap(
+                                                                    songId = song.id,
+                                                                    playlistId = imported.id,
+                                                                    position = index
+                                                                )
+                                                            }
+                                                            .forEach(::insert)
+                                                    }
+                                                    snackbarHostState.showSnackbar("${playlist.title} $importLabel")
+                                                }
+                                            },
+                                            contentPadding = ButtonDefaults.ButtonWithIconContentPadding,
+                                            modifier = Modifier.weight(1f),
+                                        ) {
+                                            Icon(
+                                                painter = painterResource(R.drawable.download),
+                                                contentDescription = null,
+                                                modifier = Modifier.size(ButtonDefaults.IconSize),
+                                            )
+                                            Spacer(Modifier.size(ButtonDefaults.IconSpacing))
+                                            Text(stringResource(R.string.import_playlist))
                                         }
                                     }
                                 }
