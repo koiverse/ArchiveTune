@@ -143,7 +143,6 @@ fun OnlinePlaylistScreen(
     val lazyListState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
-    val importLabel = stringResource(R.string.import_playlist)
 
     var isSearching by rememberSaveable { mutableStateOf(false) }
 
