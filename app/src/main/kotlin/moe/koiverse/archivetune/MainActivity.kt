@@ -245,7 +245,16 @@ class MainActivity : ComponentActivity() {
 
     override fun onStart() {
         super.onStart()
-        startService(Intent(this, MusicService::class.java))
+        try {
+            val startIntent = Intent(this, MusicService::class.java)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                androidx.core.content.ContextCompat.startForegroundService(this, startIntent)
+            } else {
+                startService(startIntent)
+            }
+        } catch (e: Exception) {
+            reportException(e)
+        }
         bindService(
             Intent(this, MusicService::class.java),
             serviceConnection,
