@@ -289,7 +289,7 @@ fun AccountSettings(
             )
         }
 
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(4.dp))
 
         var showPlaylistDialog by remember { mutableStateOf(false) }
         PreferenceEntry(
