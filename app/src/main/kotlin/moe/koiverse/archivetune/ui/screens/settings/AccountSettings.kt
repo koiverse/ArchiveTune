@@ -82,6 +82,7 @@ import kotlinx.coroutines.launch
 import moe.koiverse.archivetune.constants.SelectedYtmPlaylistsKey
 import moe.koiverse.archivetune.innertube.utils.completed
 import moe.koiverse.archivetune.utils.dataStore
+import androidx.datastore.preferences.core.edit
 
 @Composable
 fun AccountSettings(
