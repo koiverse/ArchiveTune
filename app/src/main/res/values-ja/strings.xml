@@ -31,6 +31,7 @@
     <string name="your_youtube_playlists">YouTubeプレイリスト</string>
     <string name="similar_to">類似</string>
     <string name="new_release_albums">ニューリリースアルバム</string>
+    <string name="select_playlist_to_sync">同期するプレイリストを選択</string>
 
     <!-- History -->
     <string name="today">今日</string>

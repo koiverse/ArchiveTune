@@ -31,6 +31,7 @@
     <string name="your_youtube_playlists">Daftar putar YouTube Anda</string>
     <string name="similar_to">Mirip dengan</string>
     <string name="new_release_albums">Rilisan baru album</string>
+    <string name="select_playlist_to_sync">Pilih daftar putar untuk sinkronisasi</string>
 
     <!-- History -->
     <string name="today">Hari ini</string>
