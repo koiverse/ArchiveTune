@@ -162,7 +162,6 @@ import kotlin.time.Duration.Companion.seconds
 import timber.log.Timber
 import androidx.core.app.NotificationCompat
 import android.app.Notification
-import android.app.PendingIntent
 
 @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
 @AndroidEntryPoint
@@ -274,9 +273,10 @@ class MusicService :
                         .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
                         .build(),
                     false,
-                ).setSeekBackIncrementMs(5000)
-                .setSeekForwardIncrementMs(5000)
-                .build()
+                        .setSeekBackIncrementMs(5000)
+                        .setSeekForwardIncrementMs(5000)
+                        .build()
+
                 try {
                     val pending = PendingIntent.getActivity(
                         this,
@@ -295,7 +295,8 @@ class MusicService :
                 } catch (e: Exception) {
                     reportException(e)
                 }
-                .apply {
+
+                player.apply {
                     addListener(this@MusicService)
                     sleepTimer = SleepTimer(scope, this)
                     addListener(sleepTimer)
