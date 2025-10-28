@@ -78,6 +78,10 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
+import kotlinx.coroutines.launch
+import moe.koiverse.archivetune.constants.SelectedYtmPlaylistsKey
+import moe.koiverse.archivetune.innertube.utils.completed
+import moe.koiverse.archivetune.utils.dataStore
 
 @Composable
 fun AccountSettings(
