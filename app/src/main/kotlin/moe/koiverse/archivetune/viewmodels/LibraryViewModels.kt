@@ -229,24 +229,32 @@ constructor(
                                     }
                                 }
                         }
-                    AlbumFilter.DOWNLOADED_FULL ->
-                        downloadUtil.downloads.flatMapLatest { downloads ->
-                            database.allSongs()
-                                .flowOn(Dispatchers.IO)
-                                .map { songs ->
-                                    songs
-                                        .filter { song -> downloads[song.id]?.state == Download.STATE_COMPLETED }
-                                        .groupBy { it.song.albumId }
-                                        .mapValues { (_, list) -> list.size }
-                                }.flatMapLatest { downloadedCountByAlbum ->
-                                    database.albums(sortType, descending).map { albums ->
-                                        albums.filter { album ->
-                                            val downloadedCount = downloadedCountByAlbum[album.album.id] ?: 0
-                                            downloadedCount >= album.album.songCount
-                                        }.filterExplicitAlbums(hideExplicit)
+                    
+                        AlbumFilter.DOWNLOADED_FULL ->
+                            downloadUtil.downloads.flatMapLatest { downloads ->
+                                database.allSongs()
+                                    .flowOn(Dispatchers.IO)
+                                    .map { songs ->
+                                        val downloaded = songs
+                                            .filter { song -> downloads[song.id]?.state == Download.STATE_COMPLETED }
+                                            .groupBy { it.song.albumId }
+                                            .mapValues { (_, list) -> list.size }
+
+                                        val totalLocal = songs
+                                            .groupBy { it.song.albumId }
+                                            .mapValues { (_, list) -> list.size }
+
+                                        Pair(downloaded, totalLocal)
+                                    }.flatMapLatest { (downloadedCountByAlbum, totalCountByAlbum) ->
+                                        database.albums(sortType, descending).map { albums ->
+                                            albums.filter { album ->
+                                                val total = totalCountByAlbum[album.album.id] ?: 0
+                                                val downloaded = downloadedCountByAlbum[album.album.id] ?: 0
+                                                total > 0 && downloaded >= total
+                                            }.filterExplicitAlbums(hideExplicit)
+                                        }
                                     }
-                                }
-                        }
+                            }
                     AlbumFilter.LIBRARY -> database.albums(sortType, descending).map { it.filterExplicitAlbums(hideExplicit) }
                     AlbumFilter.LIKED -> database.albumsLiked(sortType, descending).map { it.filterExplicitAlbums(hideExplicit) }
                 }
