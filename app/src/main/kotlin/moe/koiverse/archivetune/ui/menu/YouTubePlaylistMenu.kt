@@ -489,8 +489,12 @@ fun YouTubePlaylistMenu(
                         checked = checked,
                         onCheckedChange = { newValue ->
                             coroutineScope.launch {
-                                // If playlist not present locally, create it and import songs
-                                if (dbPlaylist?.playlist == null) {
+                                val currentDbPlaylist = dbPlaylist
+                                if (currentDbPlaylist?.playlist == null) {
+                                    val fetchedSongs = withContext(Dispatchers.IO) {
+                                        YouTube.playlist(playlist.id).completed().getOrNull()?.songs.orEmpty()
+                                    }.map { it.toMediaMetadata() }
+
                                     database.transaction {
                                         val playlistEntity = PlaylistEntity(
                                             name = playlist.title,
@@ -506,12 +510,8 @@ fun YouTubePlaylistMenu(
                                             radioEndpointParams = playlist.radioEndpoint?.params
                                         )
                                         insert(playlistEntity)
-                                        // fetch songs and add
-                                        val allSongs = withContext(Dispatchers.IO) {
-                                            YouTube.playlist(playlist.id).completed().getOrNull()?.songs.orEmpty()
-                                        }.map { it.toMediaMetadata() }
-                                        allSongs.forEach(::insert)
-                                        allSongs.mapIndexed { index, song ->
+                                        fetchedSongs.forEach(::insert)
+                                        fetchedSongs.mapIndexed { index, song ->
                                             PlaylistSongMap(
                                                 songId = song.id,
                                                 playlistId = playlistEntity.id,
@@ -520,8 +520,8 @@ fun YouTubePlaylistMenu(
                                         }.forEach(::insert)
                                     }
                                 } else {
-                                    // Update existing playlist's isAutoSync flag
-                                    database.update(dbPlaylist.playlist.copy(isAutoSync = newValue))
+                                    val existing = currentDbPlaylist.playlist
+                                    database.update(existing.copy(isAutoSync = newValue))
                                 }
                             }
                         }

@@ -14,6 +14,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.TextFieldValue
 import moe.koiverse.archivetune.LocalDatabase
 import moe.koiverse.archivetune.R
@@ -35,6 +36,7 @@ fun ImportPlaylistDialog(
 ) {
     val database = LocalDatabase.current
     val coroutineScope = rememberCoroutineScope()
+    val context = LocalContext.current
 
     val textFieldValue by remember { mutableStateOf(TextFieldValue(text = playlistTitle)) }
     var songIds by remember {
@@ -91,7 +93,7 @@ fun ImportPlaylistDialog(
 
                         // success snackbar
                         withContext(Dispatchers.Main) {
-                            snackbarHostState?.showSnackbar(stringResource(R.string.playlist_synced))
+                            snackbarHostState?.showSnackbar(context.getString(R.string.playlist_synced))
                         }
                     } catch (e: Exception) {
                         withContext(Dispatchers.Main) {
@@ -130,7 +132,7 @@ fun ImportPlaylistDialog(
                                 database.addSongToPlaylist(playlist, ids)
                             }
                             withContext(Dispatchers.Main) {
-                                snackbarHostState?.showSnackbar(stringResource(R.string.playlist_synced))
+                                snackbarHostState?.showSnackbar(context.getString(R.string.playlist_synced))
                                 showDuplicateDialog = false
                                 onDismiss()
                             }
@@ -155,7 +157,7 @@ fun ImportPlaylistDialog(
                             val playlist = database.playlist(newPlaylist.id).firstOrNull()
                             if (playlist != null) database.addSongToPlaylist(playlist, ids)
                             withContext(Dispatchers.Main) {
-                                snackbarHostState?.showSnackbar(stringResource(R.string.playlist_synced))
+                                snackbarHostState?.showSnackbar(context.getString(R.string.playlist_synced))
                                 showDuplicateDialog = false
                                 onDismiss()
                             }
