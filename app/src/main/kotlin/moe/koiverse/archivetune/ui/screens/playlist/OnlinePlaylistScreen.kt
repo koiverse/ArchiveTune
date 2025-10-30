@@ -381,14 +381,15 @@ fun OnlinePlaylistScreen(
                                             IconButton(
                                                 onClick = {
                                                     menuState.show {
-                                                        YouTubePlaylistMenu(
-                                                            playlist = playlist,
-                                                            songs = songs,
-                                                            coroutineScope = coroutineScope,
-                                                            onDismiss = menuState::dismiss,
-                                                            selectAction = { selection = true },
-                                                            canSelect = true,
-                                                        )
+                                                            YouTubePlaylistMenu(
+                                                                playlist = playlist,
+                                                                songs = songs,
+                                                                coroutineScope = coroutineScope,
+                                                                onDismiss = menuState::dismiss,
+                                                                selectAction = { selection = true },
+                                                                canSelect = true,
+                                                                snackbarHostState = snackbarHostState,
+                                                            )
                                                     }
                                                 },
                                             ) {

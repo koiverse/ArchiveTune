@@ -88,7 +88,7 @@ class MusicDatabase(
         SortedSongAlbumMap::class,
         PlaylistSongMapPreview::class,
     ],
-    version = 23,
+    version = 24,
     exportSchema = true,
     autoMigrations = [
         AutoMigration(from = 2, to = 3),
@@ -126,7 +126,7 @@ abstract class InternalDatabase : RoomDatabase() {
                 delegate =
                 Room
                     .databaseBuilder(context, InternalDatabase::class.java, DB_NAME)
-                    .addMigrations(MIGRATION_1_2)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_23_24)
                     .fallbackToDestructiveMigration()
                     .build(),
             )
@@ -373,6 +373,14 @@ class Migration5To6 : AutoMigrationSpec {
         }
     }
 }
+
+val MIGRATION_23_24 =
+    object : Migration(23, 24) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            // Add isAutoSync column to playlist table. Stored as INTEGER (0/1) with default 0 (false).
+            db.execSQL("ALTER TABLE playlist ADD COLUMN isAutoSync INTEGER NOT NULL DEFAULT 0")
+        }
+    }
 
 class Migration6To7 : AutoMigrationSpec {
     override fun onPostMigrate(db: SupportSQLiteDatabase) {
