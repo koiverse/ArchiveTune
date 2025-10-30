@@ -111,8 +111,7 @@ class MusicDatabase(
         AutoMigration(from = 19, to = 20, spec = Migration19To20::class),
         AutoMigration(from = 20, to = 21, spec = Migration20To21::class),
         AutoMigration(from = 21, to = 22),
-        AutoMigration(from = 22, to = 23),
-        AutoMigration(from = 23, to = 24),
+    AutoMigration(from = 22, to = 23),
     ],
 )
 @TypeConverters(Converters::class)
