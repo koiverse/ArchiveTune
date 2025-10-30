@@ -35,6 +35,7 @@ import moe.koiverse.archivetune.constants.SongSortType
 import moe.koiverse.archivetune.constants.SongSortTypeKey
 import moe.koiverse.archivetune.constants.TopSize
 import moe.koiverse.archivetune.db.MusicDatabase
+import moe.koiverse.archivetune.db.entities.Song
 import moe.koiverse.archivetune.extensions.filterExplicit
 import moe.koiverse.archivetune.extensions.filterExplicitAlbums
 import moe.koiverse.archivetune.extensions.reversed
@@ -93,23 +94,23 @@ constructor(
                                 .allSongs()
                                 .flowOn(Dispatchers.IO)
                                 .map { songs ->
-                                    songs.filter {
-                                        downloads[it.id]?.state == Download.STATE_COMPLETED
+                                    songs.filter { song: Song ->
+                                        downloads[song.id]?.state == Download.STATE_COMPLETED
                                     }
                                 }.map { songs ->
                                     when (sortType) {
-                                        SongSortType.CREATE_DATE -> songs.sortedBy {
-                                            downloads[it.id]?.updateTimeMs ?: 0L
+                                        SongSortType.CREATE_DATE -> songs.sortedBy { song: Song ->
+                                            downloads[song.id]?.updateTimeMs ?: 0L
                                         }
 
-                                        SongSortType.NAME -> songs.sortedBy { it.song.title }
+                                        SongSortType.NAME -> songs.sortedBy { song: Song -> song.song.title }
                                         SongSortType.ARTIST -> {
                                             val collator =
                                                 Collator.getInstance(Locale.getDefault())
                                             collator.strength = Collator.PRIMARY
                                             songs
                                                 .sortedWith(
-                                                    compareBy(collator) { song ->
+                                                    compareBy(collator) { song: Song ->
                                                         song.artists.joinToString("") { it.name }
                                                     },
                                                 ).groupBy { it.album?.title }
@@ -122,7 +123,7 @@ constructor(
                                                 }
                                         }
 
-                                        SongSortType.PLAY_TIME -> songs.sortedBy { it.song.totalPlayTime }
+                                        SongSortType.PLAY_TIME -> songs.sortedBy { song: Song -> song.song.totalPlayTime }
                                     }.reversed(descending).filterExplicit(hideExplicit)
                                 }
                         }
@@ -215,8 +216,8 @@ constructor(
                     AlbumFilter.DOWNLOADED ->
                         downloadUtil.downloads.flatMapLatest { downloads ->
                             database.albums(sortType, descending).map { albums ->
-                                albums.filter { album ->
-                                    album.songs.any { song ->
+                                    albums.filter { album ->
+                                    album.songs.any { song: Song ->
                                         downloads[song.id]?.state == Download.STATE_COMPLETED
                                     }
                                 }.filterExplicitAlbums(hideExplicit)
@@ -225,8 +226,8 @@ constructor(
                     AlbumFilter.DOWNLOADED_FULL ->
                         downloadUtil.downloads.flatMapLatest { downloads ->
                             database.albums(sortType, descending).map { albums ->
-                                albums.filter { album ->
-                                    album.songs.all { song ->
+                                    albums.filter { album ->
+                                    album.songs.all { song: Song ->
                                         downloads[song.id]?.state == Download.STATE_COMPLETED
                                     }
                                 }.filterExplicitAlbums(hideExplicit)
