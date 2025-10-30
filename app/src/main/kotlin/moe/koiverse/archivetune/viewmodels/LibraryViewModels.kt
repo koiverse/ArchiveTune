@@ -215,23 +215,37 @@ constructor(
                 when (filter) {
                     AlbumFilter.DOWNLOADED ->
                         downloadUtil.downloads.flatMapLatest { downloads ->
-                            database.albums(sortType, descending).map { albums ->
-                                    albums.filter { album ->
-                                    album.songs.any { song: Song ->
-                                        downloads[song.id]?.state == Download.STATE_COMPLETED
+                            database.allSongs()
+                                .flowOn(Dispatchers.IO)
+                                .map { songs ->
+                                    songs
+                                        .filter { song -> downloads[song.id]?.state == Download.STATE_COMPLETED }
+                                        .mapNotNull { it.song.albumId }
+                                        .toSet()
+                                }.flatMapLatest { downloadedAlbumIds ->
+                                    database.albums(sortType, descending).map { albums ->
+                                        albums.filter { album -> downloadedAlbumIds.contains(album.album.id) }
+                                            .filterExplicitAlbums(hideExplicit)
                                     }
-                                }.filterExplicitAlbums(hideExplicit)
-                            }
+                                }
                         }
                     AlbumFilter.DOWNLOADED_FULL ->
                         downloadUtil.downloads.flatMapLatest { downloads ->
-                            database.albums(sortType, descending).map { albums ->
-                                    albums.filter { album ->
-                                    album.songs.all { song: Song ->
-                                        downloads[song.id]?.state == Download.STATE_COMPLETED
+                            database.allSongs()
+                                .flowOn(Dispatchers.IO)
+                                .map { songs ->
+                                    songs
+                                        .filter { song -> downloads[song.id]?.state == Download.STATE_COMPLETED }
+                                        .groupBy { it.song.albumId }
+                                        .mapValues { (_, list) -> list.size }
+                                }.flatMapLatest { downloadedCountByAlbum ->
+                                    database.albums(sortType, descending).map { albums ->
+                                        albums.filter { album ->
+                                            val downloadedCount = downloadedCountByAlbum[album.album.id] ?: 0
+                                            downloadedCount >= album.album.songCount
+                                        }.filterExplicitAlbums(hideExplicit)
                                     }
-                                }.filterExplicitAlbums(hideExplicit)
-                            }
+                                }
                         }
                     AlbumFilter.LIBRARY -> database.albums(sortType, descending).map { it.filterExplicitAlbums(hideExplicit) }
                     AlbumFilter.LIKED -> database.albumsLiked(sortType, descending).map { it.filterExplicitAlbums(hideExplicit) }
