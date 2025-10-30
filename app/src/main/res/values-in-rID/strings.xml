@@ -51,6 +51,7 @@
     <string name="filter_library">Perpustakaan</string>
     <string name="filter_liked">Disukai</string>
     <string name="filter_downloaded">Diunduh</string>
+    <string name="filter_downloaded_full">Diunduh (Semua)</string>
     <string name="filter_all">Semua</string>
     <string name="filter_songs">Lagu</string>
     <string name="filter_videos">Video</string>

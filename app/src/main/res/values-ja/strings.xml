@@ -51,6 +51,7 @@
     <string name="filter_library">ライブラリ</string>
     <string name="filter_liked">高評価</string>
     <string name="filter_downloaded">ダウンロード済み</string>
+    <string name="filter_downloaded_full">ダウンロード済み (完全)</string>
     <string name="filter_all">すべて</string>
     <string name="filter_songs">曲</string>
     <string name="filter_videos">ビデオ</string>

@@ -51,6 +51,7 @@
     <string name="filter_library">Bibliothek</string>
     <string name="filter_liked">Gefallen</string>
     <string name="filter_downloaded">Heruntergeladen</string>
+    <string name="filter_downloaded_full">Heruntergeladen (Vollständig)</string>
     <string name="filter_all">Alle</string>
     <string name="filter_songs">Lieder</string>
     <string name="filter_videos">Videos</string>

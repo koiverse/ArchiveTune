@@ -176,7 +176,9 @@ enum class ArtistFilter {
 
 enum class AlbumFilter {
     LIBRARY,
-    LIKED
+    LIKED,
+    DOWNLOADED,
+    DOWNLOADED_FULL
 }
 
 enum class SongSortType {

@@ -111,7 +111,9 @@ fun LibraryAlbumsScreen(
                 chips =
                 listOf(
                     AlbumFilter.LIKED to stringResource(R.string.filter_liked),
-                    AlbumFilter.LIBRARY to stringResource(R.string.filter_library)
+                    AlbumFilter.LIBRARY to stringResource(R.string.filter_library),
+                    AlbumFilter.DOWNLOADED to stringResource(R.string.filter_downloaded),
+                    AlbumFilter.DOWNLOADED_FULL to stringResource(R.string.filter_downloaded_full)
                 ),
                 currentValue = filter,
                 onValueUpdate = {

@@ -194,6 +194,7 @@ class LibraryAlbumsViewModel
 constructor(
     @ApplicationContext context: Context,
     database: MusicDatabase,
+    downloadUtil: DownloadUtil,
     private val syncUtils: SyncUtils,
 ) : ViewModel() {
     val allAlbums =
@@ -211,6 +212,26 @@ constructor(
             .flatMapLatest { (filterSort, hideExplicit) ->
                 val (filter, sortType, descending) = filterSort
                 when (filter) {
+                    AlbumFilter.DOWNLOADED ->
+                        downloadUtil.downloads.flatMapLatest { downloads ->
+                            database.albums(sortType, descending).map { albums ->
+                                albums.filter { album ->
+                                    album.songs.any { song ->
+                                        downloads[song.id]?.state == Download.STATE_COMPLETED
+                                    }
+                                }.filterExplicitAlbums(hideExplicit)
+                            }
+                        }
+                    AlbumFilter.DOWNLOADED_FULL ->
+                        downloadUtil.downloads.flatMapLatest { downloads ->
+                            database.albums(sortType, descending).map { albums ->
+                                albums.filter { album ->
+                                    album.songs.all { song ->
+                                        downloads[song.id]?.state == Download.STATE_COMPLETED
+                                    }
+                                }.filterExplicitAlbums(hideExplicit)
+                            }
+                        }
                     AlbumFilter.LIBRARY -> database.albums(sortType, descending).map { it.filterExplicitAlbums(hideExplicit) }
                     AlbumFilter.LIKED -> database.albumsLiked(sortType, descending).map { it.filterExplicitAlbums(hideExplicit) }
                 }

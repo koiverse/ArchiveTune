@@ -51,6 +51,7 @@
     <string name="filter_library">라이브러리</string>
     <string name="filter_liked">좋아요 표시됨</string>
     <string name="filter_downloaded">다운로드됨</string>
+    <string name="filter_downloaded_full">다운로드됨 (전체)</string>
     <string name="filter_all">모두</string>
     <string name="filter_songs">노래</string>
     <string name="filter_videos">동영상</string>
