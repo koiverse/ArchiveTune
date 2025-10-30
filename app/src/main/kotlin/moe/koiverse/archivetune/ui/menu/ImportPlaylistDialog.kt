@@ -142,7 +142,7 @@ fun ImportPlaylistDialog(
                             }
                         }
                     }
-                }) { Text(text = stringResource(R.string.update)) }
+                }) { Text(text = stringResource(R.string.update_button)) }
 
                 TextButton(onClick = {
                     // Import as new playlist (create copy)

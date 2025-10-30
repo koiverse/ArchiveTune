@@ -103,6 +103,7 @@
     <string name="downloading">ダウンロード中</string>
     <string name="remove_download">ダウンロードを削除</string>
     <string name="import_playlist">プレイリストをインポート</string>
+    <string name="update_button">更新</string>
     <string name="add_to_playlist">追加 プレイリスト</string>
     <string name="view_artist">アーティストの表示</string>
     <string name="view_album">アルバムの表示</string>

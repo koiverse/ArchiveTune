@@ -103,6 +103,7 @@
     <string name="downloading">다운로드 중</string>
     <string name="remove_download">다운로드 제거</string>
     <string name="import_playlist">가져오기 재생목록</string>
+    <string name="update_button">업데이트</string>
     <string name="add_to_playlist">재생목록에 추가</string>
     <string name="view_artist">보기 아티스트</string>
     <string name="view_album">앨범 보기</string>

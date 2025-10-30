@@ -103,6 +103,7 @@
     <string name="downloading">Herunterladen</string>
     <string name="remove_download">Download entfernen</string>
     <string name="import_playlist">Playlist importieren</string>
+    <string name="update_button">Aktualisieren</string>
     <string name="add_to_playlist">Zur Playlist hinzufügen</string>
     <string name="view_artist">Künstler ansehen</string>
     <string name="view_album">Album ansehen</string>
