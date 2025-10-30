@@ -88,7 +88,7 @@ class MusicDatabase(
         SortedSongAlbumMap::class,
         PlaylistSongMapPreview::class,
     ],
-    version = 24,
+    version = 23,
     exportSchema = true,
     autoMigrations = [
         AutoMigration(from = 2, to = 3),
