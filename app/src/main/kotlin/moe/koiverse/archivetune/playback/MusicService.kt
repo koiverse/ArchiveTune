@@ -162,6 +162,9 @@ import kotlin.time.Duration.Companion.seconds
 import timber.log.Timber
 import androidx.core.app.NotificationCompat
 import android.app.Notification
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.os.Build
 
 @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
 @AndroidEntryPoint
@@ -276,7 +279,17 @@ class MusicService :
             .setSeekForwardIncrementMs(5000)
             .build()
 
-                try {
+                try {\
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        val nm = getSystemService(NotificationManager::class.java)
+                        nm?.createNotificationChannel(
+                            NotificationChannel(
+                                CHANNEL_ID,
+                                getString(R.string.music_player),
+                                NotificationManager.IMPORTANCE_LOW
+                            )
+                        )
+                    }
                     val pending = PendingIntent.getActivity(
                         this,
                         0,
