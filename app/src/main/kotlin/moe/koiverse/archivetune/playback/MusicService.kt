@@ -279,7 +279,7 @@ class MusicService :
             .setSeekForwardIncrementMs(5000)
             .build()
 
-                try {\
+                try {
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                         val nm = getSystemService(NotificationManager::class.java)
                         nm?.createNotificationChannel(
