@@ -202,10 +202,14 @@ fun LyricsScreen(
                         .memoryCacheKey("gradient_${mediaMetadata.id}")
                         .build()
 
-                    val result = runCatching {
-                        context.imageLoader.execute(request).image
+                    val execResult = runCatching {
+                        withContext(Dispatchers.IO) {
+                            context.imageLoader.execute(request)
+                        }
                     }.getOrNull()
-                    
+
+                    val result = execResult?.image
+
                     if (result != null) {
                         val bitmap = result.toBitmap()
                         val palette = withContext(Dispatchers.Default) {
@@ -214,12 +218,12 @@ fun LyricsScreen(
                                 .resizeBitmapArea(PlayerColorExtractor.Config.BITMAP_AREA)
                                 .generate()
                         }
-                        
+
                         val extractedColors = PlayerColorExtractor.extractGradientColors(
                             palette = palette,
                             fallbackColor = fallbackColor
                         )
-                        
+
                         gradientColorsCache[mediaMetadata.id] = extractedColors
                         gradientColors = extractedColors
                     } else {

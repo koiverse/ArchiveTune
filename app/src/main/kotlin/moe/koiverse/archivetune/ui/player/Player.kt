@@ -300,10 +300,12 @@ fun BottomSheetPlayer(
                         .allowHardware(false)
                         .build()
 
-                    val result = runCatching { 
-                        context.imageLoader.execute(request)
+                    val result = runCatching {
+                        withContext(Dispatchers.IO) {
+                            context.imageLoader.execute(request)
+                        }
                     }.getOrNull()
-                    
+
                     if (result != null) {
                         val bitmap = result.image?.toBitmap()
                         if (bitmap != null) {
@@ -313,16 +315,14 @@ fun BottomSheetPlayer(
                                     .resizeBitmapArea(PlayerColorExtractor.Config.BITMAP_AREA)
                                     .generate()
                             }
-                        
-                        // Use the new color extraction system
-                        val extractedColors = PlayerColorExtractor.extractGradientColors(
-                            palette = palette,
-                            fallbackColor = fallbackColor
-                        )
-                        
-                        // Cache the extracted colors
-                        gradientColorsCache[currentMetadata.id] = extractedColors
-                        gradientColors = extractedColors
+
+                            val extractedColors = PlayerColorExtractor.extractGradientColors(
+                                palette = palette,
+                                fallbackColor = fallbackColor
+                            )
+
+                            gradientColorsCache[currentMetadata.id] = extractedColors
+                            gradientColors = extractedColors
                         } else {
                             gradientColors = defaultGradientColors
                         }
