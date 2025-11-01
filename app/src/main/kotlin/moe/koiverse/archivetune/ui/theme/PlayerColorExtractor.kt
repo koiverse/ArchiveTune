@@ -44,26 +44,25 @@ object PlayerColorExtractor {
 
         val primaryColor = if (bestSwatch != null) {
             val bestColor = Color(bestSwatch.rgb)
-            // Ensure the color is suitable for use
-            if (isColorVibrant(bestColor)) {
-                enhanceColorVividness(bestColor, 1.3f)
-            } else {
-                // If not vibrant, use dominant color with slight enhancement
-                enhanceColorVividness(fallbackDominant, 1.1f)
-            }
+                var chosen = if (isColorVibrant(bestColor)) {
+                    enhanceColorVividness(bestColor, 1.3f)
+                } else {
+                    enhanceColorVividness(fallbackDominant, 1.1f)
+                }
+                chosen = darkenIfTooBright(chosen)
+                chosen
         } else {
             enhanceColorVividness(fallbackDominant, 1.1f)
         }
-        
-        // Create sophisticated gradient with 3 color points
+        val darkerFactor = Config.DARKER_VARIANT_FACTOR
         listOf(
-            primaryColor, // Start: primary vibrant color
+            primaryColor,
             primaryColor.copy(
-                red = (primaryColor.red * 0.6f).coerceAtLeast(0f),
-                green = (primaryColor.green * 0.6f).coerceAtLeast(0f),
-                blue = (primaryColor.blue * 0.6f).coerceAtLeast(0f)
-            ), // Middle: darker version of primary color
-            Color.Black // End: black
+                red = (primaryColor.red * darkerFactor).coerceAtLeast(0f),
+                green = (primaryColor.green * darkerFactor).coerceAtLeast(0f),
+                blue = (primaryColor.blue * darkerFactor).coerceAtLeast(0f)
+            ),
+            Color.Black
         )
     }
 
@@ -79,10 +78,7 @@ object PlayerColorExtractor {
         android.graphics.Color.colorToHSV(argb, hsv)
         val saturation = hsv[1] // HSV[1] is saturation
         val brightness = hsv[2] // HSV[2] is brightness
-        
-        // Color is vibrant if it has sufficient saturation and appropriate brightness
-        // Avoid colors that are too dark or too bright
-        return saturation > 0.25f && brightness > 0.2f && brightness < 0.9f
+        return saturation > 0.25f && brightness > 0.2f && brightness < 0.82f
     }
     
     /**
@@ -99,10 +95,19 @@ object PlayerColorExtractor {
         
         // Increase saturation for more vivid colors
         hsv[1] = (hsv[1] * saturationFactor).coerceAtMost(1.0f)
-        // Adjust brightness for better visibility
-        hsv[2] = (hsv[2] * 0.9f).coerceIn(0.4f, 0.85f)
-        
+        hsv[2] = (hsv[2] * Config.BRIGHTNESS_MULTIPLIER).coerceIn(0.35f, 0.75f)
+
         return Color(android.graphics.Color.HSVToColor(hsv))
+    }
+    private fun darkenIfTooBright(color: Color, maxAllowedBrightness: Float = 0.78f): Color {
+        val argb = color.toArgb()
+        val hsv = FloatArray(3)
+        android.graphics.Color.colorToHSV(argb, hsv)
+        if (hsv[2] > maxAllowedBrightness) {
+            hsv[2] = maxAllowedBrightness
+            return Color(android.graphics.Color.HSVToColor(hsv))
+        }
+        return color
     }
 
     /**
@@ -150,10 +155,10 @@ object PlayerColorExtractor {
         const val VIBRANT_SATURATION_FACTOR = 1.3f
         const val FALLBACK_SATURATION_FACTOR = 1.1f
         
-        const val BRIGHTNESS_MULTIPLIER = 0.9f
-        const val BRIGHTNESS_MIN = 0.4f
-        const val BRIGHTNESS_MAX = 0.85f
+        const val BRIGHTNESS_MULTIPLIER = 0.85f
+        const val BRIGHTNESS_MIN = 0.35f
+        const val BRIGHTNESS_MAX = 0.75f
         
-        const val DARKER_VARIANT_FACTOR = 0.6f
+        const val DARKER_VARIANT_FACTOR = 0.5f
     }
 }

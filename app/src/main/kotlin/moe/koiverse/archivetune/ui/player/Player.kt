@@ -1124,7 +1124,7 @@ fun BottomSheetPlayer(
                                         contentScale = ContentScale.FillBounds,
                                         modifier = Modifier.fillMaxSize().blur(radius = 50.dp)
                                     )
-                                    Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.4f)))
+                                    Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.5f)))
                                 }
                             }
                         }
@@ -1140,19 +1140,20 @@ fun BottomSheetPlayer(
                                 Box(modifier = Modifier.fillMaxSize()) {
                                     val gradientColorStops = if (colors.size >= 3) {
                                         arrayOf(
-                                            0.0f to colors[0], // Top: primary vibrant color
-                                            0.5f to colors[1], // Middle: darker variant
-                                            1.0f to colors[2]  // Bottom: black
+                                            0.0f to colors[0].copy(alpha = 0.92f), // Top: primary vibrant color
+                                            0.5f to colors[1].copy(alpha = 0.75f), // Middle: darker variant
+                                            1.0f to colors[2].copy(alpha = 0.65f)  // Bottom: black-ish
                                         )
                                     } else {
                                         arrayOf(
-                                            0.0f to colors[0], // Top: primary color
-                                            0.6f to colors[0].copy(alpha = 0.7f), // Middle: faded variant
-                                            1.0f to Color.Black // Bottom: black
+                                            0.0f to colors[0].copy(alpha = 0.9f), // Top: primary color
+                                            0.6f to colors[0].copy(alpha = 0.55f), // Middle: faded variant
+                                            1.0f to Color.Black.copy(alpha = 0.7f) // Bottom: black
                                         )
                                     }
                                     Box(modifier = Modifier.fillMaxSize().background(Brush.verticalGradient(colorStops = gradientColorStops)))
-                                    Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.2f)))
+                                    // Keep a gentle dark overlay to ensure text contrast on bright artwork
+                                    Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.18f)))
                                 }
                             }
                         }
@@ -1184,17 +1185,18 @@ fun BottomSheetPlayer(
                                         contentScale = ContentScale.FillBounds,
                                         modifier = Modifier.fillMaxSize().blur(radius = 50.dp)
                                     )
+                                    // Make overlay gradients a touch stronger and smoother for blur+gradient mode
                                     val gradientColorStops = if (gradientColors.size >= 3) {
                                         arrayOf(
-                                            0.0f to gradientColors[0].copy(alpha = 0.7f),
-                                            0.5f to gradientColors[1].copy(alpha = 0.7f),
-                                            1.0f to gradientColors[2].copy(alpha = 0.7f)
+                                            0.0f to gradientColors[0].copy(alpha = 0.9f),
+                                            0.5f to gradientColors[1].copy(alpha = 0.75f),
+                                            1.0f to gradientColors[2].copy(alpha = 0.65f)
                                         )
                                     } else if (gradientColors.isNotEmpty()) {
                                         arrayOf(
-                                            0.0f to gradientColors[0].copy(alpha = 0.7f),
-                                            0.6f to gradientColors[0].copy(alpha = 0.4f),
-                                            1.0f to Color.Black.copy(alpha = 0.7f)
+                                            0.0f to gradientColors[0].copy(alpha = 0.9f),
+                                            0.6f to gradientColors[0].copy(alpha = 0.55f),
+                                            1.0f to Color.Black.copy(alpha = 0.75f)
                                         )
                                     } else {
                                         arrayOf(
