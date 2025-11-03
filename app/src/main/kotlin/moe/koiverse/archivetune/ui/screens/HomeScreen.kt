@@ -49,8 +49,12 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.zIndex
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -360,6 +364,63 @@ fun HomeScreen(
             ),
         contentAlignment = Alignment.TopStart
     ) {
+        // M3E Mesh gradient background layer at the top
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .fillMaxSize(0.6f) // Cover top 60% of screen
+                .align(Alignment.TopCenter)
+                .zIndex(-1f) // Place behind all content
+                .drawBehind {
+                    val width = size.width
+                    val height = size.height
+                    
+                    // Get M3 Expressive colors from theme
+                    val color1 = androidx.compose.material3.MaterialTheme.colorScheme.primary
+                    val color2 = androidx.compose.material3.MaterialTheme.colorScheme.secondary
+                    val color3 = androidx.compose.material3.MaterialTheme.colorScheme.tertiary
+                    
+                    // Create mesh gradient with multiple radial gradients at different positions
+                    // First color blob - top left
+                    drawRect(
+                        brush = Brush.radialGradient(
+                            colors = listOf(
+                                color1.copy(alpha = 0.5f),
+                                color1.copy(alpha = 0.3f),
+                                Color.Transparent
+                            ),
+                            center = Offset(width * 0.2f, height * 0.15f),
+                            radius = width * 0.6f
+                        )
+                    )
+                    
+                    // Second color blob - top right
+                    drawRect(
+                        brush = Brush.radialGradient(
+                            colors = listOf(
+                                color2.copy(alpha = 0.45f),
+                                color2.copy(alpha = 0.25f),
+                                Color.Transparent
+                            ),
+                            center = Offset(width * 0.8f, height * 0.25f),
+                            radius = width * 0.7f
+                        )
+                    )
+                    
+                    // Third color blob - middle
+                    drawRect(
+                        brush = Brush.radialGradient(
+                            colors = listOf(
+                                color3.copy(alpha = 0.4f),
+                                color3.copy(alpha = 0.2f),
+                                Color.Transparent
+                            ),
+                            center = Offset(width * 0.5f, height * 0.5f),
+                            radius = width * 0.8f
+                        )
+                    )
+                }
+        ) {}
         val horizontalLazyGridItemWidthFactor = if (maxWidth * 0.475f >= 320.dp) 0.475f else 0.9f
         val horizontalLazyGridItemWidth = maxWidth * horizontalLazyGridItemWidthFactor
         val quickPicksSnapLayoutInfoProvider = remember(quickPicksLazyGridState) {
