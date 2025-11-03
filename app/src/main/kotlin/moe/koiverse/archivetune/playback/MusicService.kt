@@ -1352,7 +1352,6 @@ class MusicService :
                 .setEnableAudioTrackPlaybackParams(enableAudioTrackPlaybackParams)
                 .setAudioProcessorChain(
                     DefaultAudioSink.DefaultAudioProcessorChain(
-                        emptyArray<AudioProcessor>(),
                         // Use the non-deprecated constructor with explicit types to avoid any
                         // ambiguity or unexpected overload-resolution issues.
                         // minimumSilenceDurationUs = 2_000_000L, silenceRetentionRatio = 0.2f,
