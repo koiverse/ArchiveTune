@@ -695,7 +695,19 @@ fun Lyrics(
                         } else if (isActiveLine && lyricsAnimationStyle == LyricsAnimationStyle.SLIDE) {
                             // SLIDE style with word-sync support
                             val currentPosition = (sliderPositionProvider() ?: playerConnection.player.currentPosition) / 1000.0
+                            val fillProgress = remember { Animatable(0f) }
                             val pulseProgress = remember { Animatable(0f) }
+                            
+                            LaunchedEffect(index) {
+                                fillProgress.snapTo(0f)
+                                fillProgress.animateTo(
+                                    targetValue = 1f,
+                                    animationSpec = tween(
+                                        durationMillis = 1200,
+                                        easing = FastOutSlowInEasing
+                                    )
+                                )
+                            }
                             
                             LaunchedEffect(Unit) {
                                 while (true) {
@@ -710,8 +722,10 @@ fun Lyrics(
                                 }
                             }
                             
+                            val fill = fillProgress.value
                             val pulse = pulseProgress.value
                             val pulseEffect = (kotlin.math.sin(pulse * Math.PI.toFloat()) * 0.15f).coerceIn(0f, 0.15f)
+                            val glowIntensity = (fill + pulseEffect).coerceIn(0f, 1.2f)
                             
                             val styledText = buildAnnotatedString {
                                 if (item.words != null && item.words.isNotEmpty()) {
@@ -746,22 +760,6 @@ fun Lyrics(
                                     }
                                 } else {
                                     // Line-synced fallback with slide animation
-                                    val fillProgress = remember { Animatable(0f) }
-                                    
-                                    LaunchedEffect(index) {
-                                        fillProgress.snapTo(0f)
-                                        fillProgress.animateTo(
-                                            targetValue = 1f,
-                                            animationSpec = tween(
-                                                durationMillis = 1200,
-                                                easing = FastOutSlowInEasing
-                                            )
-                                        )
-                                    }
-                                    
-                                    val fill = fillProgress.value
-                                    val glowIntensity = (fill + pulseEffect).coerceIn(0f, 1.2f)
-                                    
                                     val glowBrush = Brush.horizontalGradient(
                                         0.0f to expressiveAccent.copy(alpha = 0.3f),
                                         (fill * 0.7f).coerceIn(0f, 1f) to expressiveAccent.copy(alpha = 0.9f),
@@ -785,11 +783,21 @@ fun Lyrics(
                                 }
                             }
                             
+                            val bounceScale = if (fill < 0.3f) {
+                                1f + (kotlin.math.sin(fill * 3.33f * Math.PI.toFloat()) * 0.03f)
+                            } else {
+                                1f
+                            }
+                            
                             Text(
                                 text = styledText,
                                 fontSize = lyricsTextSize.sp,
                                 textAlign = alignment,
-                                fontWeight = FontWeight.ExtraBold
+                                fontWeight = FontWeight.ExtraBold,
+                                modifier = Modifier.graphicsLayer {
+                                    scaleX = bounceScale
+                                    scaleY = bounceScale
+                                }
                             )
                         } else {
                             // Default text rendering with word-sync support
