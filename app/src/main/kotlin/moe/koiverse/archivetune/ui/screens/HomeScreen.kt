@@ -54,6 +54,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.zIndex
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -378,7 +379,14 @@ fun HomeScreen(
                 .fillMaxWidth()
                 .fillMaxSize(0.75f) // Extended to 75% for smoother fade
                 .align(Alignment.TopCenter)
-                .zIndex(-1f) // Place behind all content
+                .zIndex(-1f) // Place behind all content including system bars
+                .layout { measurable, constraints ->
+                    val placeable = measurable.measure(constraints)
+                    layout(placeable.width, placeable.height) {
+                        // Place with negative y offset to extend behind system bars
+                        placeable.place(0, -WindowInsets.systemBars.getTop(this@BoxWithConstraints))
+                    }
+                }
                 .drawBehind {
                     val width = size.width
                     val height = size.height
