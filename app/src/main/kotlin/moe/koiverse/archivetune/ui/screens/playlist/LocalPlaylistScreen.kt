@@ -68,6 +68,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.zIndex
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
@@ -505,7 +507,7 @@ fun LocalPlaylistScreen(
     Box(
         modifier = Modifier.fillMaxSize(),
     ) {
-        // Gradient background layer - behind everything, extends beyond top bar to play/shuffle buttons
+        // Mesh gradient background layer - behind everything, extends beyond top bar to play/shuffle buttons
         if (gradientColors.isNotEmpty() && gradientAlpha > 0f) {
             Box(
                 modifier = Modifier
@@ -513,27 +515,66 @@ fun LocalPlaylistScreen(
                     .fillMaxSize(0.7f) // Cover top 70% to reach play/shuffle buttons
                     .align(Alignment.TopCenter)
                     .zIndex(-1f) // Place behind all content including top bar
-            ) {
-                val gradientColorStops = if (gradientColors.size >= 3) {
-                    arrayOf(
-                        0.0f to gradientColors[0].copy(alpha = gradientAlpha * 0.8f),
-                        0.3f to gradientColors[1].copy(alpha = gradientAlpha * 0.6f),
-                        0.6f to gradientColors[2].copy(alpha = gradientAlpha * 0.35f),
-                        1.0f to Color.Transparent
-                    )
-                } else {
-                    arrayOf(
-                        0.0f to gradientColors[0].copy(alpha = gradientAlpha * 0.8f),
-                        0.5f to gradientColors[0].copy(alpha = gradientAlpha * 0.4f),
-                        1.0f to Color.Transparent
-                    )
-                }
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(Brush.verticalGradient(colorStops = gradientColorStops))
-                )
-            }
+                    .drawBehind {
+                        val width = size.width
+                        val height = size.height
+                        
+                        // Create mesh gradient with multiple radial gradients at different positions
+                        if (gradientColors.size >= 3) {
+                            // First color blob - top left
+                            drawRect(
+                                brush = Brush.radialGradient(
+                                    colors = listOf(
+                                        gradientColors[0].copy(alpha = gradientAlpha * 0.7f),
+                                        gradientColors[0].copy(alpha = gradientAlpha * 0.4f),
+                                        Color.Transparent
+                                    ),
+                                    center = Offset(width * 0.2f, height * 0.15f),
+                                    radius = width * 0.6f
+                                )
+                            )
+                            
+                            // Second color blob - top right
+                            drawRect(
+                                brush = Brush.radialGradient(
+                                    colors = listOf(
+                                        gradientColors[1].copy(alpha = gradientAlpha * 0.6f),
+                                        gradientColors[1].copy(alpha = gradientAlpha * 0.35f),
+                                        Color.Transparent
+                                    ),
+                                    center = Offset(width * 0.8f, height * 0.25f),
+                                    radius = width * 0.7f
+                                )
+                            )
+                            
+                            // Third color blob - middle
+                            drawRect(
+                                brush = Brush.radialGradient(
+                                    colors = listOf(
+                                        gradientColors[2].copy(alpha = gradientAlpha * 0.5f),
+                                        gradientColors[2].copy(alpha = gradientAlpha * 0.25f),
+                                        Color.Transparent
+                                    ),
+                                    center = Offset(width * 0.5f, height * 0.5f),
+                                    radius = width * 0.8f
+                                )
+                            )
+                        } else {
+                            // Fallback: single radial gradient
+                            drawRect(
+                                brush = Brush.radialGradient(
+                                    colors = listOf(
+                                        gradientColors[0].copy(alpha = gradientAlpha * 0.7f),
+                                        gradientColors[0].copy(alpha = gradientAlpha * 0.4f),
+                                        Color.Transparent
+                                    ),
+                                    center = Offset(width * 0.5f, height * 0.3f),
+                                    radius = width * 0.8f
+                                )
+                            )
+                        }
+                    }
+            ) {}
         }
         LazyColumn(
             state = lazyListState,
