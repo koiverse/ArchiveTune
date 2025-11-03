@@ -104,19 +104,34 @@ object LyricsUtils {
     fun parseLyrics(lyrics: String): List<LyricsEntry> {
         val lines = lyrics.lines()
         val result = mutableListOf<LyricsEntry>()
-        var wordTimestamps: List<WordTimestamp>? = null
         
-        for (line in lines) {
-            if (line.trim().startsWith("<") && line.trim().endsWith(">")) {
-                // Parse word timestamps from Better Lyrics format: <word1:start:end|word2:start:end|...>
-                wordTimestamps = parseWordTimestamps(line.trim().removeSurrounding("<", ">"))
-            } else {
-                val entries = parseLine(line, wordTimestamps)
+        // First pass: parse all lyrics lines
+        var i = 0
+        while (i < lines.size) {
+            val line = lines[i]
+            if (!line.trim().startsWith("<") || !line.trim().endsWith(">")) {
+                // This is a lyrics line
+                val entries = parseLine(line, null)
                 if (entries != null) {
-                    result.addAll(entries)
-                    wordTimestamps = null // Reset after use
+                    // Check if next line has word timestamps
+                    val wordTimestamps = if (i + 1 < lines.size) {
+                        val nextLine = lines[i + 1]
+                        if (nextLine.trim().startsWith("<") && nextLine.trim().endsWith(">")) {
+                            parseWordTimestamps(nextLine.trim().removeSurrounding("<", ">"))
+                        } else null
+                    } else null
+                    
+                    // Add entries with word timestamps if available
+                    if (wordTimestamps != null) {
+                        result.addAll(entries.map { entry ->
+                            LyricsEntry(entry.time, entry.text, wordTimestamps)
+                        })
+                    } else {
+                        result.addAll(entries)
+                    }
                 }
             }
+            i++
         }
         return result.sorted()
     }

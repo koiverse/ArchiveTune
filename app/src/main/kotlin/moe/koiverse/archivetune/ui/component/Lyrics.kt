@@ -539,7 +539,7 @@ fun Lyrics(
             } else {
                 itemsIndexed(
                     items = lines,
-                    key = { index, item -> item.hashCode() } // Use object hashCode for unique identity
+                    key = { index, item -> "${item.time}-${item.text}" } // Stable key: time + text
                 ) { index, item ->
                     val isSelected = selectedIndices.contains(index)
                     val itemModifier = Modifier
