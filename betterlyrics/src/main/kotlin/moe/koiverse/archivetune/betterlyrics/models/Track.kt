@@ -3,6 +3,11 @@ package moe.koiverse.archivetune.betterlyrics.models
 import kotlinx.serialization.Serializable
 
 @Serializable
+data class TTMLResponse(
+    val ttml: String
+)
+
+@Serializable
 data class SearchResponse(
     val results: List<Track>
 )
