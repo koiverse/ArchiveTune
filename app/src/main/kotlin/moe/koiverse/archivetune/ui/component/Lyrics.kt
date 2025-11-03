@@ -249,6 +249,11 @@ fun Lyrics(
     var deferredCurrentLineIndex by rememberSaveable {
         mutableIntStateOf(0)
     }
+    
+    // Track current position for word-synced lyrics
+    var currentPlaybackPosition by remember {
+        mutableLongStateOf(0L)
+    }
 
     var previousLineIndex by rememberSaveable {
         mutableIntStateOf(0)
@@ -349,9 +354,11 @@ fun Lyrics(
             delay(50)
             val sliderPosition = sliderPositionProvider()
             isSeeking = sliderPosition != null
+            val position = sliderPosition ?: playerConnection.player.currentPosition
+            currentPlaybackPosition = position
             currentLineIndex = findCurrentLineIndex(
                 lines,
-                sliderPosition ?: playerConnection.player.currentPosition
+                position
             )
         }
     }
@@ -642,7 +649,61 @@ fun Lyrics(
                             LyricsPosition.RIGHT -> TextAlign.Right
                         }
                         
-                        if (isActiveLine && lyricsAnimationStyle == LyricsAnimationStyle.GLOW) {
+                        // Word-synced lyrics rendering
+                        val hasWordTimings = item.words?.isNotEmpty() == true
+                        
+                        if (hasWordTimings && isActiveLine && item.words != null) {
+                            // Render with word-by-word highlighting
+                            val styledText = buildAnnotatedString {
+                                item.words.forEachIndexed { wordIndex, word ->
+                                    val wordStartMs = (word.startTime * 1000).toLong()
+                                    val wordEndMs = (word.endTime * 1000).toLong()
+                                    val isWordActive = currentPlaybackPosition in wordStartMs..wordEndMs
+                                    val hasWordPassed = currentPlaybackPosition > wordEndMs
+                                    
+                                    // Calculate color and styling based on word state
+                                    val wordColor = when {
+                                        isWordActive -> expressiveAccent // Active word - full color
+                                        hasWordPassed -> expressiveAccent.copy(alpha = 0.7f) // Passed words - slightly dimmed
+                                        else -> expressiveAccent.copy(alpha = 0.4f) // Future words - very dim
+                                    }
+                                    
+                                    val wordWeight = when {
+                                        isWordActive -> FontWeight.ExtraBold
+                                        hasWordPassed -> FontWeight.Bold
+                                        else -> FontWeight.Normal
+                                    }
+                                    
+                                    withStyle(
+                                        style = SpanStyle(
+                                            color = wordColor,
+                                            fontWeight = wordWeight,
+                                            shadow = if (isWordActive && lyricsAnimationStyle == LyricsAnimationStyle.GLOW) {
+                                                Shadow(
+                                                    color = expressiveAccent.copy(alpha = 0.8f),
+                                                    offset = Offset(0f, 0f),
+                                                    blurRadius = 28f
+                                                )
+                                            } else null
+                                        )
+                                    ) {
+                                        append(word.text)
+                                    }
+                                    
+                                    // Add space between words (except for last word)
+                                    if (wordIndex < item.words.size - 1) {
+                                        append(" ")
+                                    }
+                                }
+                            }
+                            
+                            Text(
+                                text = styledText,
+                                fontSize = lyricsTextSize.sp,
+                                textAlign = alignment,
+                                lineHeight = (lyricsTextSize * 1.3f).sp
+                            )
+                        } else if (isActiveLine && lyricsAnimationStyle == LyricsAnimationStyle.GLOW) {
                             // GLOW style - static glow without animation
                             val styledText = buildAnnotatedString {
                                 withStyle(
