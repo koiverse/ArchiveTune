@@ -70,8 +70,16 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -104,6 +112,8 @@ import moe.koiverse.archivetune.constants.LyricsRomanizeJapaneseKey
 import moe.koiverse.archivetune.constants.LyricsRomanizeKoreanKey
 import moe.koiverse.archivetune.constants.LyricsScrollKey
 import moe.koiverse.archivetune.constants.LyricsTextPositionKey
+import moe.koiverse.archivetune.constants.LyricsAnimationStyle
+import moe.koiverse.archivetune.constants.LyricsAnimationStyleKey
 import moe.koiverse.archivetune.constants.PlayerBackgroundStyle
 import moe.koiverse.archivetune.constants.PlayerBackgroundStyleKey
 import moe.koiverse.archivetune.db.entities.LyricsEntity.Companion.LYRICS_NOT_FOUND
@@ -149,6 +159,7 @@ fun Lyrics(
         configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
 
     val lyricsTextPosition by rememberEnumPreference(LyricsTextPositionKey, LyricsPosition.CENTER)
+    val lyricsAnimationStyle by rememberEnumPreference(LyricsAnimationStyleKey, LyricsAnimationStyle.NONE)
     val changeLyrics by rememberPreference(LyricsClickKey, true)
     val scrollLyrics by rememberPreference(LyricsScrollKey, true)
     val romanizeJapaneseLyrics by rememberPreference(LyricsRomanizeJapaneseKey, true)
@@ -221,14 +232,12 @@ fun Lyrics(
             !lyrics.isNullOrEmpty() && lyrics.startsWith("[")
         }
 
-    val textColor = when (playerBackground) {
-        PlayerBackgroundStyle.DEFAULT -> MaterialTheme.colorScheme.secondary
-        else ->
-            if (useDarkTheme)
-                MaterialTheme.colorScheme.onSurface
-            else
-                MaterialTheme.colorScheme.onPrimary
+    // Use Material 3 expressive accents and keep glow/text colors unified
+    val expressiveAccent = when (playerBackground) {
+        PlayerBackgroundStyle.DEFAULT -> MaterialTheme.colorScheme.primary
+        else -> MaterialTheme.colorScheme.tertiary
     }
+    val textColor = expressiveAccent
 
     var currentLineIndex by remember {
         mutableIntStateOf(-1)
@@ -608,21 +617,97 @@ fun Lyrics(
                             LyricsPosition.RIGHT -> Alignment.End
                         }
                     ) {
-                        Text(
-                            text = item.text,
-                            fontSize = 24.sp, // Uniform size for all lines matching latest enh version
-                            color = if (index == displayedCurrentLineIndex && isSynced) {
-                                textColor // Full color for active line
+                        val isActiveLine = index == displayedCurrentLineIndex && isSynced
+                        val lineColor = if (isActiveLine) expressiveAccent else expressiveAccent.copy(alpha = 0.7f)
+                        val alignment = when (lyricsTextPosition) {
+                            LyricsPosition.LEFT -> TextAlign.Left
+                            LyricsPosition.CENTER -> TextAlign.Center
+                            LyricsPosition.RIGHT -> TextAlign.Right
+                        }
+                        
+                        if (isActiveLine && lyricsAnimationStyle == LyricsAnimationStyle.KARAOKE) {
+                            // KARAOKE style with left-to-right glow fill animation
+                            val fillProgress = remember { Animatable(0f) }
+                            val pulseProgress = remember { Animatable(0f) }
+                            
+                            LaunchedEffect(index) {
+                                fillProgress.snapTo(0f)
+                                fillProgress.animateTo(
+                                    targetValue = 1f,
+                                    animationSpec = tween(
+                                        durationMillis = 1200,
+                                        easing = FastOutSlowInEasing
+                                    )
+                                )
+                            }
+                            
+                            LaunchedEffect(Unit) {
+                                while (true) {
+                                    pulseProgress.animateTo(
+                                        targetValue = 1f,
+                                        animationSpec = tween(
+                                            durationMillis = 3000,
+                                            easing = LinearEasing
+                                        )
+                                    )
+                                    pulseProgress.snapTo(0f)
+                                }
+                            }
+                            
+                            val fill = fillProgress.value
+                            val pulse = pulseProgress.value
+                            val pulseEffect = (kotlin.math.sin(pulse * Math.PI.toFloat()) * 0.15f).coerceIn(0f, 0.15f)
+                            val glowIntensity = (fill + pulseEffect).coerceIn(0f, 1.2f)
+                            
+                            val glowBrush = Brush.horizontalGradient(
+                                0.0f to expressiveAccent.copy(alpha = 0.3f),
+                                (fill * 0.7f).coerceIn(0f, 1f) to expressiveAccent.copy(alpha = 0.9f),
+                                fill to expressiveAccent,
+                                (fill + 0.1f).coerceIn(0f, 1f) to expressiveAccent.copy(alpha = 0.7f),
+                                1.0f to expressiveAccent.copy(alpha = if (fill >= 1f) 1f else 0.3f)
+                            )
+                            
+                            val styledText = buildAnnotatedString {
+                                withStyle(
+                                    style = SpanStyle(
+                                        shadow = Shadow(
+                                            color = expressiveAccent.copy(alpha = 0.8f * glowIntensity),
+                                            offset = Offset(0f, 0f),
+                                            blurRadius = 28f * (1f + pulseEffect)
+                                        ),
+                                        brush = glowBrush
+                                    )
+                                ) {
+                                    append(item.text)
+                                }
+                            }
+                            
+                            val bounceScale = if (fill < 0.3f) {
+                                1f + (kotlin.math.sin(fill * 3.33f * Math.PI.toFloat()) * 0.03f)
                             } else {
-                                textColor.copy(alpha = 0.8f) // Slightly muted for inactive lines
-                            },
-                            textAlign = when (lyricsTextPosition) {
-                                LyricsPosition.LEFT -> TextAlign.Left
-                                LyricsPosition.CENTER -> TextAlign.Center
-                                LyricsPosition.RIGHT -> TextAlign.Right
-                            },
-                            fontWeight = if (index == displayedCurrentLineIndex && isSynced) FontWeight.ExtraBold else FontWeight.Bold
-                        )
+                                1f
+                            }
+                            
+                            Text(
+                                text = styledText,
+                                fontSize = 24.sp,
+                                textAlign = alignment,
+                                fontWeight = FontWeight.ExtraBold,
+                                modifier = Modifier.graphicsLayer {
+                                    scaleX = bounceScale
+                                    scaleY = bounceScale
+                                }
+                            )
+                        } else {
+                            // Default text rendering
+                            Text(
+                                text = item.text,
+                                fontSize = 24.sp,
+                                color = lineColor,
+                                textAlign = alignment,
+                                fontWeight = if (isActiveLine) FontWeight.ExtraBold else FontWeight.Bold
+                            )
+                        }
                         if (romanizeJapaneseLyrics || romanizeKoreanLyrics) {
                             // Show romanized text if available
                             val romanizedText by item.romanizedTextFlow.collectAsState()
@@ -630,7 +715,7 @@ fun Lyrics(
                                 Text(
                                     text = romanized,
                                     fontSize = 18.sp,
-                                    color = textColor.copy(alpha = 0.8f),
+                                    color = expressiveAccent.copy(alpha = 0.6f),
                                     textAlign = when (lyricsTextPosition) {
                                         LyricsPosition.LEFT -> TextAlign.Left
                                         LyricsPosition.CENTER -> TextAlign.Center
