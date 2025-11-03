@@ -114,6 +114,7 @@ import moe.koiverse.archivetune.constants.LyricsScrollKey
 import moe.koiverse.archivetune.constants.LyricsTextPositionKey
 import moe.koiverse.archivetune.constants.LyricsAnimationStyle
 import moe.koiverse.archivetune.constants.LyricsAnimationStyleKey
+import moe.koiverse.archivetune.constants.LyricsTextSizeKey
 import moe.koiverse.archivetune.constants.PlayerBackgroundStyle
 import moe.koiverse.archivetune.constants.PlayerBackgroundStyleKey
 import moe.koiverse.archivetune.db.entities.LyricsEntity.Companion.LYRICS_NOT_FOUND
@@ -160,6 +161,7 @@ fun Lyrics(
 
     val lyricsTextPosition by rememberEnumPreference(LyricsTextPositionKey, LyricsPosition.CENTER)
     val lyricsAnimationStyle by rememberEnumPreference(LyricsAnimationStyleKey, LyricsAnimationStyle.NONE)
+    val lyricsTextSize by rememberPreference(LyricsTextSizeKey, 24f)
     val changeLyrics by rememberPreference(LyricsClickKey, true)
     val scrollLyrics by rememberPreference(LyricsScrollKey, true)
     val romanizeJapaneseLyrics by rememberPreference(LyricsRomanizeJapaneseKey, true)
@@ -390,7 +392,7 @@ fun Lyrics(
                 if (itemInfo != null) {
                     // Item is visible, animate directly to center without sudden jumps
                     val viewportHeight = lazyListState.layoutInfo.viewportEndOffset - lazyListState.layoutInfo.viewportStartOffset
-                    val center = lazyListState.layoutInfo.viewportStartOffset + (viewportHeight / 3)
+                    val center = lazyListState.layoutInfo.viewportStartOffset + (viewportHeight / 2)
                     val itemCenter = itemInfo.offset + itemInfo.size / 2
                     val offset = itemCenter - center
 
@@ -690,7 +692,7 @@ fun Lyrics(
                             
                             Text(
                                 text = styledText,
-                                fontSize = 24.sp,
+                                fontSize = lyricsTextSize.sp,
                                 textAlign = alignment,
                                 fontWeight = FontWeight.ExtraBold,
                                 modifier = Modifier.graphicsLayer {
@@ -702,7 +704,7 @@ fun Lyrics(
                             // Default text rendering
                             Text(
                                 text = item.text,
-                                fontSize = 24.sp,
+                                fontSize = lyricsTextSize.sp,
                                 color = lineColor,
                                 textAlign = alignment,
                                 fontWeight = if (isActiveLine) FontWeight.ExtraBold else FontWeight.Bold
@@ -714,7 +716,7 @@ fun Lyrics(
                             romanizedText?.let { romanized ->
                                 Text(
                                     text = romanized,
-                                    fontSize = 18.sp,
+                                    fontSize = (lyricsTextSize * 0.75f).sp,
                                     color = expressiveAccent.copy(alpha = 0.6f),
                                     textAlign = when (lyricsTextPosition) {
                                         LyricsPosition.LEFT -> TextAlign.Left

@@ -53,11 +53,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.LinearEasing
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalConfiguration
@@ -430,123 +425,7 @@ fun LyricsScreen(
                     }
                 }
                 else -> {
-                    // DEFAULT background with smooth multi-color mesh gradient
-                    val primary = MaterialTheme.colorScheme.primary
-                    val secondary = MaterialTheme.colorScheme.secondary
-                    val tertiary = MaterialTheme.colorScheme.tertiary
-                    val primaryContainer = MaterialTheme.colorScheme.primaryContainer
-                    val secondaryContainer = MaterialTheme.colorScheme.secondaryContainer
-                    val tertiaryContainer = MaterialTheme.colorScheme.tertiaryContainer
-                    
-                    // Multiple slow-moving animation offsets for smooth mesh effect
-                    val offset1 = remember { Animatable(0f) }
-                    val offset2 = remember { Animatable(0.33f) }
-                    val offset3 = remember { Animatable(0.66f) }
-                    
-                    LaunchedEffect(Unit) {
-                        // Ultra-slow continuous animations with different speeds
-                        launch {
-                            offset1.animateTo(
-                                targetValue = 1f,
-                                animationSpec = infiniteRepeatable(
-                                    animation = tween(25000, easing = LinearEasing),
-                                    repeatMode = RepeatMode.Restart
-                                )
-                            )
-                        }
-                        launch {
-                            offset2.animateTo(
-                                targetValue = 1.33f,
-                                animationSpec = infiniteRepeatable(
-                                    animation = tween(35000, easing = LinearEasing),
-                                    repeatMode = RepeatMode.Restart
-                                )
-                            )
-                        }
-                        launch {
-                            offset3.animateTo(
-                                targetValue = 1.66f,
-                                animationSpec = infiniteRepeatable(
-                                    animation = tween(40000, easing = LinearEasing),
-                                    repeatMode = RepeatMode.Restart
-                                )
-                            )
-                        }
-                    }
-                    
-                    Box(
-                        modifier = Modifier.fillMaxSize()
-                    ) {
-                        // Base gradient layer
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .background(
-                                    Brush.linearGradient(
-                                        colors = listOf(
-                                            primary.copy(alpha = 0.4f),
-                                            tertiary.copy(alpha = 0.35f),
-                                            secondary.copy(alpha = 0.3f)
-                                        ),
-                                        start = Offset(
-                                            x = 0f + offset1.value * 200f,
-                                            y = 0f + offset1.value * 150f
-                                        ),
-                                        end = Offset(
-                                            x = 1500f - offset1.value * 200f,
-                                            y = 2000f - offset1.value * 150f
-                                        )
-                                    )
-                                )
-                        )
-                        
-                        // Second diagonal gradient layer
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .background(
-                                    Brush.linearGradient(
-                                        colors = listOf(
-                                            secondaryContainer.copy(alpha = 0.3f),
-                                            Color.Transparent,
-                                            primaryContainer.copy(alpha = 0.35f)
-                                        ),
-                                        start = Offset(
-                                            x = 500f - offset2.value * 150f,
-                                            y = 2000f - offset2.value * 300f
-                                        ),
-                                        end = Offset(
-                                            x = 1000f + offset2.value * 150f,
-                                            y = 0f + offset2.value * 300f
-                                        )
-                                    )
-                                )
-                        )
-                        
-                        // Third cross gradient layer for depth
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .background(
-                                    Brush.linearGradient(
-                                        colors = listOf(
-                                            tertiaryContainer.copy(alpha = 0.25f),
-                                            tertiary.copy(alpha = 0.2f),
-                                            Color.Transparent,
-                                            secondary.copy(alpha = 0.2f)
-                                        ),
-                                        start = Offset(
-                                            x = 1000f + offset3.value * 100f,
-                                            y = 0f + offset3.value * 200f
-                                        ),
-                                        end = Offset(
-                                            x = 0f - offset3.value * 100f,
-                                            y = 1500f - offset3.value * 200f
-                                        )
-                                    )
-                                )
-                        )
-                    }
+                    Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface))
                 }
             }
             if (playerBackground != PlayerBackgroundStyle.DEFAULT) {

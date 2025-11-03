@@ -74,6 +74,7 @@ import moe.koiverse.archivetune.constants.PlayerButtonsStyle
 import moe.koiverse.archivetune.constants.PlayerButtonsStyleKey
 import moe.koiverse.archivetune.constants.LyricsAnimationStyleKey
 import moe.koiverse.archivetune.constants.LyricsAnimationStyle
+import moe.koiverse.archivetune.constants.LyricsTextSizeKey
 import moe.koiverse.archivetune.constants.SliderStyle
 import moe.koiverse.archivetune.constants.SliderStyleKey
 import moe.koiverse.archivetune.constants.SlimNavBarKey
@@ -160,6 +161,7 @@ fun AppearanceSettings(
     )
     val (lyricsClick, onLyricsClickChange) = rememberPreference(LyricsClickKey, defaultValue = true)
     val (lyricsScroll, onLyricsScrollChange) = rememberPreference(LyricsScrollKey, defaultValue = true)
+    val (lyricsTextSize, onLyricsTextSizeChange) = rememberPreference(LyricsTextSizeKey, defaultValue = 24f)
 
     val (sliderStyle, onSliderStyleChange) = rememberEnumPreference(
         SliderStyleKey,
@@ -619,6 +621,24 @@ fun AppearanceSettings(
             checked = lyricsScroll,
             onCheckedChange = onLyricsScrollChange,
         )
+
+        PreferenceEntry(
+            title = { Text(stringResource(R.string.lyrics_text_size)) },
+            description = { Text("${lyricsTextSize.roundToInt()} sp") },
+            icon = { Icon(painterResource(R.drawable.format_size), null) },
+        ) {
+            Column(
+                modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 12.dp)
+            ) {
+                Slider(
+                    value = lyricsTextSize,
+                    onValueChange = onLyricsTextSizeChange,
+                    valueRange = 16f..36f,
+                    steps = 19,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        }
 
         PreferenceGroupTitle(
             title = stringResource(R.string.misc),

@@ -323,6 +323,8 @@ enum class LyricsAnimationStyle {
     KARAOKE,
 }
 
+val LyricsTextSizeKey = floatPreferencesKey("lyricsTextSize")
+
 val TopSize = stringPreferencesKey("topSize")
 val HistoryDuration = floatPreferencesKey("historyDuration")
 
