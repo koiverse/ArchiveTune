@@ -505,25 +505,25 @@ fun LocalPlaylistScreen(
     Box(
         modifier = Modifier.fillMaxSize(),
     ) {
-        // Gradient background layer - behind everything, extends to sort header
+        // Gradient background layer - behind everything, extends beyond top bar to play/shuffle buttons
         if (gradientColors.isNotEmpty() && gradientAlpha > 0f) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .fillMaxSize(0.55f) // Cover top 55% to reach sort header
+                    .fillMaxSize(0.7f) // Cover top 70% to reach play/shuffle buttons
                     .align(Alignment.TopCenter)
                     .zIndex(-1f) // Place behind all content including top bar
             ) {
                 val gradientColorStops = if (gradientColors.size >= 3) {
                     arrayOf(
-                        0.0f to gradientColors[0].copy(alpha = gradientAlpha * 0.7f),
-                        0.35f to gradientColors[1].copy(alpha = gradientAlpha * 0.5f),
-                        0.7f to gradientColors[2].copy(alpha = gradientAlpha * 0.3f),
+                        0.0f to gradientColors[0].copy(alpha = gradientAlpha * 0.8f),
+                        0.3f to gradientColors[1].copy(alpha = gradientAlpha * 0.6f),
+                        0.6f to gradientColors[2].copy(alpha = gradientAlpha * 0.35f),
                         1.0f to Color.Transparent
                     )
                 } else {
                     arrayOf(
-                        0.0f to gradientColors[0].copy(alpha = gradientAlpha * 0.7f),
+                        0.0f to gradientColors[0].copy(alpha = gradientAlpha * 0.8f),
                         0.5f to gradientColors[0].copy(alpha = gradientAlpha * 0.4f),
                         1.0f to Color.Transparent
                     )
@@ -873,6 +873,10 @@ fun LocalPlaylistScreen(
         )
 
         TopAppBar(
+            colors = androidx.compose.material3.TopAppBarDefaults.topAppBarColors(
+                containerColor = Color.Transparent,
+                scrolledContainerColor = Color.Transparent
+            ),
             title = {
                 if (selection) {
                     val count = wrappedSongs.count { it.isSelected }
