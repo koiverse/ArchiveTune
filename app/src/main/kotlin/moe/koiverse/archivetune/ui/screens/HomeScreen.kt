@@ -363,6 +363,10 @@ fun HomeScreen(
     val color5 = MaterialTheme.colorScheme.secondaryContainer
     val surfaceColor = MaterialTheme.colorScheme.surface
     
+    // Calculate top inset offset for layout modifier
+    val density = LocalDensity.current
+    val topOffset = with(density) { -WindowInsets.systemBars.getTop(this) }
+    
     BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
@@ -384,7 +388,7 @@ fun HomeScreen(
                     val placeable = measurable.measure(constraints)
                     layout(placeable.width, placeable.height) {
                         // Place with negative y offset to extend behind system bars
-                        placeable.place(0, -WindowInsets.systemBars.getTop(this))
+                        placeable.place(0, topOffset)
                     }
                 }
                 .drawBehind {
