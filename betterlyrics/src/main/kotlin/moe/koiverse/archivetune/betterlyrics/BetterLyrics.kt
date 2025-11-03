@@ -32,7 +32,7 @@ object BetterLyrics {
             }
 
             defaultRequest {
-                url("https://better-lyrics.boidu.dev")
+                url("https://lyrics-api-go-better-lyrics-api-pr-12.up.railway.app")
             }
 
             expectSuccess = true
@@ -42,8 +42,19 @@ object BetterLyrics {
     private suspend fun searchLyrics(
         artist: String,
         title: String,
+        duration: Int = -1,
     ): List<Track> = runCatching {
-        client.get("/search/$title/$artist").body<SearchResponse>().results
+        val url = buildString {
+            append("/getLyrics?s=")
+            append(title)
+            append("&a=")
+            append(artist)
+            if (duration != -1) {
+                append("&d=")
+                append(duration)
+            }
+        }
+        client.get(url).body<SearchResponse>().results
     }.getOrElse { emptyList() }
 
     suspend fun getLyrics(
@@ -51,7 +62,7 @@ object BetterLyrics {
         artist: String,
         duration: Int,
     ) = runCatching {
-        val tracks = searchLyrics(artist, title)
+        val tracks = searchLyrics(artist, title, duration)
         
         if (tracks.isEmpty()) {
             throw IllegalStateException("Lyrics unavailable")
@@ -100,7 +111,7 @@ object BetterLyrics {
         duration: Int,
         callback: (String) -> Unit,
     ) {
-        val tracks = searchLyrics(artist, title)
+        val tracks = searchLyrics(artist, title, duration)
         
         tracks
             .filter { it.lyrics != null }
