@@ -95,11 +95,10 @@ import androidx.media3.exoplayer.offline.DownloadRequest
 import androidx.media3.exoplayer.offline.DownloadService
 import androidx.navigation.NavController
 import androidx.palette.graphics.Palette
-import coil3.ImageRequest
 import coil3.compose.AsyncImage
 import coil3.imageLoader
-import coil3.request.ImageResult
-import coil3.request.SuccessResult
+import coil3.request.ImageRequest
+import coil3.request.allowHardware
 import coil3.toBitmap
 import moe.koiverse.archivetune.innertube.YouTube
 import moe.koiverse.archivetune.innertube.models.SongItem
@@ -450,6 +449,9 @@ fun LocalPlaylistScreen(
         mutableStateOf<List<Color>>(emptyList())
     }
     
+    // Capture fallback color in composable context
+    val fallbackColor = MaterialTheme.colorScheme.surface.toArgb()
+    
     // Extract gradient colors from playlist cover
     LaunchedEffect(playlist?.thumbnails) {
         val thumbnailUrl = playlist?.thumbnails?.firstOrNull()
@@ -476,7 +478,7 @@ fun LocalPlaylistScreen(
                 
                     val extractedColors = PlayerColorExtractor.extractGradientColors(
                         palette = palette,
-                        fallbackColor = MaterialTheme.colorScheme.surface.toArgb()
+                        fallbackColor = fallbackColor
                     )
                     gradientColors = extractedColors
                 }
