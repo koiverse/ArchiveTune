@@ -61,6 +61,7 @@ import moe.koiverse.archivetune.innertube.models.WatchEndpoint
 import moe.koiverse.archivetune.MainActivity
 import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.constants.AudioNormalizationKey
+import moe.koiverse.archivetune.constants.AudioCrossfadeDurationKey
 import moe.koiverse.archivetune.constants.AudioQualityKey
 import moe.koiverse.archivetune.constants.AutoLoadMoreKey
 import moe.koiverse.archivetune.constants.DisableLoadMoreWhenRepeatAllKey
@@ -241,7 +242,8 @@ class MusicService :
 
     private var consecutivePlaybackErr = 0
 
-    val maxSafeGainFactor = 1.414f // +3 dB    
+    val maxSafeGainFactor = 1.414f // +3 dB
+    private val crossfadeProcessor = CrossfadeAudioProcessor()
 
     override fun onCreate() {
         super.onCreate()
@@ -372,6 +374,13 @@ class MusicService :
             .distinctUntilChanged()
             .collectLatest(scope) {
                 player.skipSilenceEnabled = it
+            }
+        
+        dataStore.data
+            .map { (it[AudioCrossfadeDurationKey] ?: 0) * 1000 }
+            .distinctUntilChanged()
+            .collectLatest(scope) {
+                crossfadeProcessor.crossfadeDurationMs = it
             }
 
         combine(
@@ -1348,6 +1357,7 @@ class MusicService :
                         // minimumSilenceDurationUs = 2_000_000L, silenceRetentionRatio = 0.2f,
                         // maxSilenceToKeepDurationUs = 20_000L, minVolumeToKeepPercentageWhenMuting = 10,
                         // silenceThresholdLevel = 256
+                        crossfadeProcessor,
                         SilenceSkippingAudioProcessor(
                             2_000_000L,
                             0.2f,

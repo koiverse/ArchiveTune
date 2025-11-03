@@ -713,7 +713,7 @@ fun AutoPlaylistScreen(
 
         TopAppBar(
             colors = androidx.compose.material3.TopAppBarDefaults.topAppBarColors(
-                containerColor = if (state.firstVisibleItemIndex > 0) MaterialTheme.colorScheme.surface else Color.Transparent,
+                containerColor = if (state.firstVisibleItemIndex == 0) Color.Transparent else MaterialTheme.colorScheme.surface,
                 scrolledContainerColor = MaterialTheme.colorScheme.surface
             ),
             title = {
