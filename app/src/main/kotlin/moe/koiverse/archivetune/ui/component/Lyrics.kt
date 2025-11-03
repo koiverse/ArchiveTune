@@ -532,7 +532,7 @@ fun Lyrics(
             } else {
                 itemsIndexed(
                     items = lines,
-                    key = { index, item -> "$index-${item.time}" } // Add stable key
+                    key = { index, item -> "$index-${item.time}-${item.text.hashCode()}" } // Stable unique key
                 ) { index, item ->
                     val isSelected = selectedIndices.contains(index)
                     val itemModifier = Modifier
@@ -643,45 +643,18 @@ fun Lyrics(
                         }
                         
                         if (isActiveLine && lyricsAnimationStyle == LyricsAnimationStyle.GLOW) {
-                            // GLOW style - static glow without animation with word-sync support
-                            val currentPosition = (sliderPositionProvider() ?: playerConnection.player.currentPosition) / 1000.0
-                            
+                            // GLOW style - static glow without animation
                             val styledText = buildAnnotatedString {
-                                if (item.words != null && item.words.isNotEmpty()) {
-                                    // Word-synced lyrics
-                                    item.words.forEachIndexed { wordIndex, word ->
-                                        val isWordActive = currentPosition >= word.startTime && currentPosition < word.endTime
-                                        
-                                        withStyle(
-                                            style = SpanStyle(
-                                                color = if (isWordActive) expressiveAccent else expressiveAccent.copy(alpha = 0.5f),
-                                                shadow = if (isWordActive) Shadow(
-                                                    color = expressiveAccent.copy(alpha = 0.8f),
-                                                    offset = Offset(0f, 0f),
-                                                    blurRadius = 28f
-                                                ) else null,
-                                                fontWeight = if (isWordActive) FontWeight.ExtraBold else FontWeight.Bold
-                                            )
-                                        ) {
-                                            append(word.text)
-                                        }
-                                        if (wordIndex < item.words.size - 1) {
-                                            append(" ")
-                                        }
-                                    }
-                                } else {
-                                    // Line-synced lyrics (fallback)
-                                    withStyle(
-                                        style = SpanStyle(
-                                            shadow = Shadow(
-                                                color = expressiveAccent.copy(alpha = 0.8f),
-                                                offset = Offset(0f, 0f),
-                                                blurRadius = 28f
-                                            )
+                                withStyle(
+                                    style = SpanStyle(
+                                        shadow = Shadow(
+                                            color = expressiveAccent.copy(alpha = 0.8f),
+                                            offset = Offset(0f, 0f),
+                                            blurRadius = 28f
                                         )
-                                    ) {
-                                        append(item.text)
-                                    }
+                                    )
+                                ) {
+                                    append(item.text)
                                 }
                             }
                             
@@ -693,8 +666,7 @@ fun Lyrics(
                                 fontWeight = FontWeight.ExtraBold
                             )
                         } else if (isActiveLine && lyricsAnimationStyle == LyricsAnimationStyle.SLIDE) {
-                            // SLIDE style with word-sync support
-                            val currentPosition = (sliderPositionProvider() ?: playerConnection.player.currentPosition) / 1000.0
+                            // SLIDE style with left-to-right glow fill animation
                             val fillProgress = remember { Animatable(0f) }
                             val pulseProgress = remember { Animatable(0f) }
                             
@@ -727,59 +699,26 @@ fun Lyrics(
                             val pulseEffect = (kotlin.math.sin(pulse * Math.PI.toFloat()) * 0.15f).coerceIn(0f, 0.15f)
                             val glowIntensity = (fill + pulseEffect).coerceIn(0f, 1.2f)
                             
+                            val glowBrush = Brush.horizontalGradient(
+                                0.0f to expressiveAccent.copy(alpha = 0.3f),
+                                (fill * 0.7f).coerceIn(0f, 1f) to expressiveAccent.copy(alpha = 0.9f),
+                                fill to expressiveAccent,
+                                (fill + 0.1f).coerceIn(0f, 1f) to expressiveAccent.copy(alpha = 0.7f),
+                                1.0f to expressiveAccent.copy(alpha = if (fill >= 1f) 1f else 0.3f)
+                            )
+                            
                             val styledText = buildAnnotatedString {
-                                if (item.words != null && item.words.isNotEmpty()) {
-                                    // Word-synced slide effect
-                                    item.words.forEachIndexed { wordIndex, word ->
-                                        val isWordActive = currentPosition >= word.startTime && currentPosition < word.endTime
-                                        val wasWordSung = currentPosition >= word.endTime
-                                        
-                                        val wordGlowIntensity = if (isWordActive) (1.0f + pulseEffect) else if (wasWordSung) 1.0f else 0.3f
-                                        val wordColor = when {
-                                            isWordActive -> expressiveAccent
-                                            wasWordSung -> expressiveAccent.copy(alpha = 0.9f)
-                                            else -> expressiveAccent.copy(alpha = 0.4f)
-                                        }
-                                        
-                                        withStyle(
-                                            style = SpanStyle(
-                                                color = wordColor,
-                                                shadow = if (isWordActive || wasWordSung) Shadow(
-                                                    color = expressiveAccent.copy(alpha = 0.8f * wordGlowIntensity),
-                                                    offset = Offset(0f, 0f),
-                                                    blurRadius = if (isWordActive) 28f * (1f + pulseEffect) else 20f
-                                                ) else null,
-                                                fontWeight = if (isWordActive) FontWeight.ExtraBold else FontWeight.Bold
-                                            )
-                                        ) {
-                                            append(word.text)
-                                        }
-                                        if (wordIndex < item.words.size - 1) {
-                                            append(" ")
-                                        }
-                                    }
-                                } else {
-                                    // Line-synced fallback with slide animation
-                                    val glowBrush = Brush.horizontalGradient(
-                                        0.0f to expressiveAccent.copy(alpha = 0.3f),
-                                        (fill * 0.7f).coerceIn(0f, 1f) to expressiveAccent.copy(alpha = 0.9f),
-                                        fill to expressiveAccent,
-                                        (fill + 0.1f).coerceIn(0f, 1f) to expressiveAccent.copy(alpha = 0.7f),
-                                        1.0f to expressiveAccent.copy(alpha = if (fill >= 1f) 1f else 0.3f)
+                                withStyle(
+                                    style = SpanStyle(
+                                        shadow = Shadow(
+                                            color = expressiveAccent.copy(alpha = 0.8f * glowIntensity),
+                                            offset = Offset(0f, 0f),
+                                            blurRadius = 28f * (1f + pulseEffect)
+                                        ),
+                                        brush = glowBrush
                                     )
-                                    
-                                    withStyle(
-                                        style = SpanStyle(
-                                            shadow = Shadow(
-                                                color = expressiveAccent.copy(alpha = 0.8f * glowIntensity),
-                                                offset = Offset(0f, 0f),
-                                                blurRadius = 28f * (1f + pulseEffect)
-                                            ),
-                                            brush = glowBrush
-                                        )
-                                    ) {
-                                        append(item.text)
-                                    }
+                                ) {
+                                    append(item.text)
                                 }
                             }
                             
@@ -800,47 +739,11 @@ fun Lyrics(
                                 }
                             )
                         } else {
-                            // Default text rendering with word-sync support
-                            val currentPosition = (sliderPositionProvider() ?: playerConnection.player.currentPosition) / 1000.0
-                            
-                            val styledText = buildAnnotatedString {
-                                if (isActiveLine && item.words != null && item.words.isNotEmpty()) {
-                                    // Word-synced default style
-                                    item.words.forEachIndexed { wordIndex, word ->
-                                        val isWordActive = currentPosition >= word.startTime && currentPosition < word.endTime
-                                        val wasWordSung = currentPosition >= word.endTime
-                                        
-                                        withStyle(
-                                            style = SpanStyle(
-                                                color = when {
-                                                    isWordActive -> expressiveAccent
-                                                    wasWordSung -> expressiveAccent.copy(alpha = 0.85f)
-                                                    else -> expressiveAccent.copy(alpha = 0.5f)
-                                                },
-                                                fontWeight = if (isWordActive) FontWeight.ExtraBold else if (wasWordSung) FontWeight.Bold else FontWeight.Normal
-                                            )
-                                        ) {
-                                            append(word.text)
-                                        }
-                                        if (wordIndex < item.words.size - 1) {
-                                            append(" ")
-                                        }
-                                    }
-                                } else {
-                                    // Line-synced fallback
-                                    withStyle(
-                                        style = SpanStyle(
-                                            color = lineColor
-                                        )
-                                    ) {
-                                        append(item.text)
-                                    }
-                                }
-                            }
-                            
+                            // Default text rendering
                             Text(
-                                text = styledText,
+                                text = item.text,
                                 fontSize = lyricsTextSize.sp,
+                                color = lineColor,
                                 textAlign = alignment,
                                 fontWeight = if (isActiveLine) FontWeight.ExtraBold else FontWeight.Bold
                             )
