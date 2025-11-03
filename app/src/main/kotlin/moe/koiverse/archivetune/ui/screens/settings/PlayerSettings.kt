@@ -189,13 +189,19 @@ fun PlayerSettings(
         )
         
         SliderPreference(
-            title = { Text("Crossfade Duration") },
-            description = "Smooth transitions between tracks (0 = disabled)",
+            title = { 
+                Column {
+                    Text("Crossfade Duration")
+                    Text(
+                        text = "${crossfadeDuration}s (0 = disabled)",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.secondary
+                    )
+                }
+            },
             icon = { Icon(painterResource(R.drawable.graphic_eq), null) },
             value = crossfadeDuration.toFloat(),
-            onValueChange = { onCrossfadeDurationChange(it.roundToInt()) },
-            valueRange = 0f..10f,
-            valueText = { "${it.roundToInt()}s" }
+            onValueChange = { onCrossfadeDurationChange(it.roundToInt()) }
         )
 
         SwitchPreference(

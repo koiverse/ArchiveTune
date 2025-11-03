@@ -101,14 +101,45 @@ object LyricsUtils {
         Tokenizer()
     }
 
-    fun parseLyrics(lyrics: String): List<LyricsEntry> =
-        lyrics
-            .lines()
-            .flatMap { line ->
-                parseLine(line).orEmpty()
-            }.sorted()
+    fun parseLyrics(lyrics: String): List<LyricsEntry> {
+        val lines = lyrics.lines()
+        val result = mutableListOf<LyricsEntry>()
+        var wordTimestamps: List<WordTimestamp>? = null
+        
+        for (line in lines) {
+            if (line.trim().startsWith("<") && line.trim().endsWith(">")) {
+                // Parse word timestamps from Better Lyrics format: <word1:start:end|word2:start:end|...>
+                wordTimestamps = parseWordTimestamps(line.trim().removeSurrounding("<", ">"))
+            } else {
+                val entries = parseLine(line, wordTimestamps)
+                if (entries != null) {
+                    result.addAll(entries)
+                    wordTimestamps = null // Reset after use
+                }
+            }
+        }
+        return result.sorted()
+    }
+    
+    private fun parseWordTimestamps(data: String): List<WordTimestamp>? {
+        if (data.isBlank()) return null
+        return try {
+            data.split("|").mapNotNull { wordData ->
+                val parts = wordData.split(":")
+                if (parts.size == 3) {
+                    WordTimestamp(
+                        text = parts[0],
+                        startTime = parts[1].toDouble(),
+                        endTime = parts[2].toDouble()
+                    )
+                } else null
+            }
+        } catch (e: Exception) {
+            null
+        }
+    }
 
-    private fun parseLine(line: String): List<LyricsEntry>? {
+    private fun parseLine(line: String, words: List<WordTimestamp>? = null): List<LyricsEntry>? {
         if (line.isEmpty()) {
             return null
         }
@@ -127,7 +158,7 @@ object LyricsUtils {
                     mil *= 10
                 }
                 val time = min * DateUtils.MINUTE_IN_MILLIS + sec * DateUtils.SECOND_IN_MILLIS + mil
-                LyricsEntry(time, text)
+                LyricsEntry(time, text, words)
             }.toList()
     }
 
