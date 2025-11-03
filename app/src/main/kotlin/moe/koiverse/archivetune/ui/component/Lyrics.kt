@@ -539,7 +539,7 @@ fun Lyrics(
             } else {
                 itemsIndexed(
                     items = lines,
-                    key = { index, item -> "$index-${item.time}-${item.text.hashCode()}" } // Stable unique key
+                    key = { index, item -> item.hashCode() } // Use object hashCode for unique identity
                 ) { index, item ->
                     val isSelected = selectedIndices.contains(index)
                     val itemModifier = Modifier
@@ -652,23 +652,25 @@ fun Lyrics(
                         // Word-synced lyrics rendering
                         val hasWordTimings = item.words?.isNotEmpty() == true
                         
-                        if (hasWordTimings && isActiveLine && item.words != null) {
+                        if (hasWordTimings && item.words != null) {
                             // Render with word-by-word highlighting
                             val styledText = buildAnnotatedString {
                                 item.words.forEachIndexed { wordIndex, word ->
                                     val wordStartMs = (word.startTime * 1000).toLong()
                                     val wordEndMs = (word.endTime * 1000).toLong()
-                                    val isWordActive = currentPlaybackPosition in wordStartMs..wordEndMs
-                                    val hasWordPassed = currentPlaybackPosition > wordEndMs
+                                    val isWordActive = isActiveLine && currentPlaybackPosition in wordStartMs..wordEndMs
+                                    val hasWordPassed = isActiveLine && currentPlaybackPosition > wordEndMs
                                     
-                                    // Calculate color and styling based on word state
+                                    // Calculate color and styling based on word state and line state
                                     val wordColor = when {
+                                        !isActiveLine -> lineColor // Non-active lines use line color
                                         isWordActive -> expressiveAccent // Active word - full color
                                         hasWordPassed -> expressiveAccent.copy(alpha = 0.7f) // Passed words - slightly dimmed
                                         else -> expressiveAccent.copy(alpha = 0.4f) // Future words - very dim
                                     }
                                     
                                     val wordWeight = when {
+                                        !isActiveLine -> FontWeight.Bold
                                         isWordActive -> FontWeight.ExtraBold
                                         hasWordPassed -> FontWeight.Bold
                                         else -> FontWeight.Normal
