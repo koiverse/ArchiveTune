@@ -434,8 +434,8 @@ fun Lyrics(
                 // Fast scroll for seeking to center the target line (300ms)
                 val seekCenterIndex = kotlin.math.max(0, currentLineIndex )
                 performSmoothPageScroll(seekCenterIndex, 500) // Fast seek duration
-            } else if ((lastPreviewTime == 0L || currentLineIndex != previousLineIndex) && scrollLyrics) {
-                // Auto-scroll when lyrics settings allow it
+            } else if ((lastPreviewTime == 0L || currentLineIndex != previousLineIndex) && scrollLyrics && !isManualScrolling) {
+                // Auto-scroll when lyrics settings allow it AND user is not manually scrolling
                 if (currentLineIndex != previousLineIndex) {
                     // Calculate which line should be at the top to center the active group
                     val centerTargetIndex = kotlin.math.max(0, currentLineIndex ) // Show previous line at top to center current
@@ -601,7 +601,7 @@ fun Lyrics(
                         )
                         .padding(
                             horizontal = 24.dp,
-                            vertical = (8 + (lyricsTextSize - 24f) * 0.3f).dp
+                            vertical = (8 + (lyricsTextSize - 24f) * 0.6f).dp
                         )
                         // ArchiveTune-style depth effect with professional alpha transitions
                         .alpha(
