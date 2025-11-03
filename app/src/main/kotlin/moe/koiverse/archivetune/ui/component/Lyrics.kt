@@ -356,12 +356,21 @@ fun Lyrics(
         }
     }
 
+    var isManualScrolling by rememberSaveable {
+        mutableStateOf(false)
+    }
+
     LaunchedEffect(isSeeking, lastPreviewTime) {
         if (isSeeking) {
             lastPreviewTime = 0L
         } else if (lastPreviewTime != 0L) {
             delay(LyricsPreviewTime)
-            lastPreviewTime = 0L
+            // Don't reset lastPreviewTime if user is manually scrolling
+            if (!isManualScrolling) {
+                lastPreviewTime = 0L
+            } else {
+                // Keep it non-zero to indicate manual scroll state
+            }
         }
     }
 
@@ -477,8 +486,10 @@ fun Lyrics(
                             available: Offset,
                             source: NestedScrollSource
                         ): Offset {
-                            if (!isSelectionModeActive) { // Only update preview time if not selecting
+                            if (!isSelectionModeActive && source == NestedScrollSource.UserInput) {
+                                // User is manually scrolling
                                 lastPreviewTime = System.currentTimeMillis()
+                                isManualScrolling = true
                             }
                             return super.onPostScroll(consumed, available, source)
                         }
@@ -487,8 +498,9 @@ fun Lyrics(
                             consumed: Velocity,
                             available: Velocity
                         ): Velocity {
-                            if (!isSelectionModeActive) { // Only update preview time if not selecting
+                            if (!isSelectionModeActive) {
                                 lastPreviewTime = System.currentTimeMillis()
+                                isManualScrolling = true
                             }
                             return super.onPostFling(consumed, available)
                         }
@@ -587,7 +599,10 @@ fun Lyrics(
                             if (isSelected && isSelectionModeActive) MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
                             else Color.Transparent
                         )
-                        .padding(horizontal = 24.dp, vertical = 8.dp)
+                        .padding(
+                            horizontal = 24.dp,
+                            vertical = (8 + (lyricsTextSize - 24f) * 0.3f).dp
+                        )
                         // ArchiveTune-style depth effect with professional alpha transitions
                         .alpha(
                             when {
@@ -734,6 +749,44 @@ fun Lyrics(
         }
 
 
+
+        // Resume Autoscroll button when manually scrolling
+        if (isManualScrolling && scrollLyrics && !isSelectionModeActive) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 16.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Row(
+                    modifier = Modifier
+                        .background(
+                            color = MaterialTheme.colorScheme.primaryContainer,
+                            shape = RoundedCornerShape(24.dp)
+                        )
+                        .clickable {
+                            isManualScrolling = false
+                            lastPreviewTime = 0L
+                        }
+                        .padding(horizontal = 20.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.play),
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Text(
+                        text = stringResource(R.string.resume_autoscroll),
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            }
+        }
 
         // Action buttons: Close and Share buttons grouped together
         if (isSelectionModeActive) {
