@@ -384,7 +384,7 @@ fun HomeScreen(
                     val placeable = measurable.measure(constraints)
                     layout(placeable.width, placeable.height) {
                         // Place with negative y offset to extend behind system bars
-                        placeable.place(0, -WindowInsets.systemBars.getTop(this@BoxWithConstraints))
+                        placeable.place(0, -WindowInsets.systemBars.getTop(this))
                     }
                 }
                 .drawBehind {
