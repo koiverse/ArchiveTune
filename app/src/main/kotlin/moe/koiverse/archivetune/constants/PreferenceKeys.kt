@@ -319,6 +319,7 @@ val LyricsAnimationStyleKey = stringPreferencesKey("lyricsAnimationStyle")
 enum class LyricsAnimationStyle {
     NONE,
     FADE,
+    GLOW,
     SLIDE,
     KARAOKE,
 }

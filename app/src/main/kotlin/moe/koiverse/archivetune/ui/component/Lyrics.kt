@@ -642,8 +642,31 @@ fun Lyrics(
                             LyricsPosition.RIGHT -> TextAlign.Right
                         }
                         
-                        if (isActiveLine && lyricsAnimationStyle == LyricsAnimationStyle.KARAOKE) {
-                            // KARAOKE style with left-to-right glow fill animation
+                        if (isActiveLine && lyricsAnimationStyle == LyricsAnimationStyle.GLOW) {
+                            // GLOW style - static glow without animation
+                            val styledText = buildAnnotatedString {
+                                withStyle(
+                                    style = SpanStyle(
+                                        shadow = Shadow(
+                                            color = expressiveAccent.copy(alpha = 0.8f),
+                                            offset = Offset(0f, 0f),
+                                            blurRadius = 28f
+                                        )
+                                    )
+                                ) {
+                                    append(item.text)
+                                }
+                            }
+                            
+                            Text(
+                                text = styledText,
+                                fontSize = lyricsTextSize.sp,
+                                color = expressiveAccent,
+                                textAlign = alignment,
+                                fontWeight = FontWeight.ExtraBold
+                            )
+                        } else if (isActiveLine && lyricsAnimationStyle == LyricsAnimationStyle.SLIDE) {
+                            // SLIDE style with left-to-right glow fill animation
                             val fillProgress = remember { Animatable(0f) }
                             val pulseProgress = remember { Animatable(0f) }
                             

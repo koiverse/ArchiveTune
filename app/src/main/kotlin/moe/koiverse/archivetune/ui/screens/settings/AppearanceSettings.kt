@@ -606,6 +606,7 @@ fun AppearanceSettings(
               when (it) {
                   LyricsAnimationStyle.NONE -> stringResource(R.string.none)
                   LyricsAnimationStyle.FADE -> stringResource(R.string.fade)
+                  LyricsAnimationStyle.GLOW -> stringResource(R.string.glow)
                   LyricsAnimationStyle.SLIDE -> stringResource(R.string.slide)
                   LyricsAnimationStyle.KARAOKE -> stringResource(R.string.karaoke)
               }
