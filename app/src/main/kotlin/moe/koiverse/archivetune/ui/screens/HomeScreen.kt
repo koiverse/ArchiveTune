@@ -354,6 +354,11 @@ fun HomeScreen(
         forgottenFavoritesLazyGridState.scrollToItem(0)
     }
 
+    // Capture M3 Expressive colors from theme outside drawBehind
+    val color1 = MaterialTheme.colorScheme.primary
+    val color2 = MaterialTheme.colorScheme.secondary
+    val color3 = MaterialTheme.colorScheme.tertiary
+    
     BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
@@ -374,11 +379,6 @@ fun HomeScreen(
                 .drawBehind {
                     val width = size.width
                     val height = size.height
-                    
-                    // Get M3 Expressive colors from theme
-                    val color1 = androidx.compose.material3.MaterialTheme.colorScheme.primary
-                    val color2 = androidx.compose.material3.MaterialTheme.colorScheme.secondary
-                    val color3 = androidx.compose.material3.MaterialTheme.colorScheme.tertiary
                     
                     // Create mesh gradient with multiple radial gradients at different positions
                     // First color blob - top left
