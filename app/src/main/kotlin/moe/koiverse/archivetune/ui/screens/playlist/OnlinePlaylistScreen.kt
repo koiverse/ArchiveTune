@@ -706,8 +706,8 @@ fun OnlinePlaylistScreen(
 
         TopAppBar(
             colors = androidx.compose.material3.TopAppBarDefaults.topAppBarColors(
-                containerColor = Color.Transparent,
-                scrolledContainerColor = Color.Transparent
+                containerColor = if (showTopBarTitle) MaterialTheme.colorScheme.surface else Color.Transparent,
+                scrolledContainerColor = MaterialTheme.colorScheme.surface
             ),
             title = {
                 if (selection) {
