@@ -67,6 +67,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.zIndex
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
@@ -504,24 +505,26 @@ fun LocalPlaylistScreen(
     Box(
         modifier = Modifier.fillMaxSize(),
     ) {
-        // Gradient background layer - only at top, fades on scroll
+        // Gradient background layer - behind everything, extends to sort header
         if (gradientColors.isNotEmpty() && gradientAlpha > 0f) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .fillMaxSize(0.4f) // Only cover top 40% of screen
+                    .fillMaxSize(0.55f) // Cover top 55% to reach sort header
                     .align(Alignment.TopCenter)
+                    .zIndex(-1f) // Place behind all content including top bar
             ) {
                 val gradientColorStops = if (gradientColors.size >= 3) {
                     arrayOf(
-                        0.0f to gradientColors[0].copy(alpha = gradientAlpha * 0.6f),
-                        0.5f to gradientColors[1].copy(alpha = gradientAlpha * 0.4f),
+                        0.0f to gradientColors[0].copy(alpha = gradientAlpha * 0.7f),
+                        0.35f to gradientColors[1].copy(alpha = gradientAlpha * 0.5f),
+                        0.7f to gradientColors[2].copy(alpha = gradientAlpha * 0.3f),
                         1.0f to Color.Transparent
                     )
                 } else {
                     arrayOf(
-                        0.0f to gradientColors[0].copy(alpha = gradientAlpha * 0.6f),
-                        0.6f to gradientColors[0].copy(alpha = gradientAlpha * 0.3f),
+                        0.0f to gradientColors[0].copy(alpha = gradientAlpha * 0.7f),
+                        0.5f to gradientColors[0].copy(alpha = gradientAlpha * 0.4f),
                         1.0f to Color.Transparent
                     )
                 }
