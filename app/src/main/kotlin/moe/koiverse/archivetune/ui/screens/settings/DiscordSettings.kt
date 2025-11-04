@@ -1052,13 +1052,16 @@ fun RichPresence(
                                         ) else this
                                     },
                             )
-                            val smallModel = when (smallImageType) {
-                                "thumbnail" -> song?.song?.thumbnailUrl
-                                "artist" -> song?.artists?.firstOrNull()?.thumbnailUrl
+                            val songThumb = song?.song?.thumbnailUrl
+                            val artistThumb = song?.artists?.firstOrNull()?.thumbnailUrl
+
+                            val smallModel = when (smallImageType.lowercase()) {
+                                "thumbnail" -> songThumb ?: artistThumb
+                                "artist" -> artistThumb ?: songThumb
                                 "appicon" -> "https://raw.githubusercontent.com/koiverse/ArchiveTune/main/fastlane/metadata/android/en-US/images/icon.png"
-                                "custom" -> smallImageCustomUrl.ifBlank { song?.artists?.firstOrNull()?.thumbnailUrl }
+                                "custom" -> smallImageCustomUrl.takeIf { it.isNotBlank() } ?: (artistThumb ?: songThumb)
                                 "dontshow" -> null
-                                else -> song?.artists?.firstOrNull()?.thumbnailUrl
+                                else -> artistThumb ?: songThumb
                             }
                             smallModel?.let {
                                 Box(
