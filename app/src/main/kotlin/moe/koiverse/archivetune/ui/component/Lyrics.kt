@@ -80,6 +80,10 @@ import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.Placeholder
+import androidx.compose.ui.text.PlaceholderVerticalAlign
+import androidx.compose.foundation.text.InlineTextContent
+import kotlin.math.sin
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -665,52 +669,10 @@ fun Lyrics(
                         
                         if (hasWordTimings && item.words != null && lyricsAnimationStyle == LyricsAnimationStyle.GLOW) {
                             // GLOW MODE: Ultra-fluid word-by-word animation with perfect timing
-                            // Words glow and expand continuously without shifting layout
+                            // Subtle stretch + slow fluid shake during word drag
                             
-                            // Find currently active word index
-                            val currentWordIndex = if (isActiveLine) {
-                                item.words.indexOfFirst { word ->
-                                    val wordStartMs = (word.startTime * 1000).toLong()
-                                    val wordEndMs = (word.endTime * 1000).toLong()
-                                    currentPlaybackPosition in wordStartMs..wordEndMs
-                                }
-                            } else -1
-                            
-                            // Per-word pop-in animation - slow and smooth
-                            val wordPopIn = remember { Animatable(1f) }
-                            
-                            LaunchedEffect(currentWordIndex) {
-                                if (currentWordIndex >= 0) {
-                                    // New word becomes active - gentle pop in
-                                    wordPopIn.snapTo(0.96f)
-                                    wordPopIn.animateTo(
-                                        targetValue = 1f,
-                                        animationSpec = tween(
-                                            durationMillis = 300,
-                                            easing = FastOutSlowInEasing
-                                        )
-                                    )
-                                } else {
-                                    // Smooth fade back to normal
-                                    wordPopIn.animateTo(
-                                        targetValue = 1f,
-                                        animationSpec = tween(
-                                            durationMillis = 200,
-                                            easing = FastOutSlowInEasing
-                                        )
-                                    )
-                                }
-                            }
-                            
-                            // Render each word in a Box to prevent layout shifting
-                            Row(
-                                horizontalArrangement = when (lyricsTextPosition) {
-                                    LyricsPosition.LEFT -> Arrangement.Start
-                                    LyricsPosition.CENTER -> Arrangement.Center
-                                    LyricsPosition.RIGHT -> Arrangement.End
-                                },
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
+                            // Build annotated string with proper word styling
+                            val styledText = buildAnnotatedString {
                                 item.words.forEachIndexed { wordIndex, word ->
                                     val wordStartMs = (word.startTime * 1000).toLong()
                                     val wordEndMs = (word.endTime * 1000).toLong()
@@ -745,51 +707,67 @@ fun Lyrics(
                                         else -> FontWeight.Normal
                                     }
                                     
+                                    // Fluid shake animation during word drag - very slow wave
+                                    // Using sine wave for smooth back-and-forth motion
+                                    val shakeOffset = if (isWordActive && fillProgress > 0.1f) {
+                                        // Slow frequency: completes ~2 cycles during typical word duration
+                                        val frequency = 3.0f // Lower = slower shake
+                                        val amplitude = 1.5f // Subtle shake (1.5px)
+                                        val wave = sin(fillProgress * frequency * Math.PI * 2).toFloat()
+                                        Offset(wave * amplitude, 0f)
+                                    } else {
+                                        Offset.Zero
+                                    }
+                                    
                                     val wordShadow = if ((isWordActive || hasWordPassed) && glowIntensity > 0.05f) {
                                         Shadow(
                                             color = expressiveAccent.copy(alpha = 0.7f + (0.2f * glowIntensity)),
-                                            offset = Offset(0f, 0f),
+                                            offset = shakeOffset, // Apply shake to shadow
                                             blurRadius = 20f + (25f * glowIntensity)
                                         )
                                     } else null
                                     
-                                    // Per-word scale combining pop-in + continuous expansion
-                                    val wordScale = if (isWordActive) {
-                                        val expansion = 1f + (0.12f * fillProgress)
-                                        wordPopIn.value * expansion
+                                    // Subtle stretch effect: tiny scale increase (3% max)
+                                    // Quick stretch at start, then settle
+                                    val stretchScale = if (isWordActive) {
+                                        if (fillProgress < 0.15f) {
+                                            // Quick stretch in first 15% of word duration
+                                            1f + (0.03f * (fillProgress / 0.15f))
+                                        } else {
+                                            // Stay at 3% larger for remainder
+                                            1.03f
+                                        }
                                     } else {
                                         1f
                                     }
                                     
-                                    // Wrap each word in Box with graphicsLayer to prevent layout shift
-                                    Box(
-                                        contentAlignment = Alignment.Center,
-                                        modifier = Modifier.graphicsLayer {
-                                            scaleX = wordScale
-                                            scaleY = wordScale
-                                        }
-                                    ) {
-                                        Text(
-                                            text = word.text,
-                                            fontSize = lyricsTextSize.sp,
+                                    // Apply scaled font size to word
+                                    val scaledFontSize = (lyricsTextSize * stretchScale).sp
+                                    
+                                    withStyle(
+                                        style = SpanStyle(
                                             color = wordColor,
                                             fontWeight = wordWeight,
-                                            style = TextStyle(
-                                                shadow = wordShadow
-                                            )
+                                            shadow = wordShadow,
+                                            fontSize = scaledFontSize
                                         )
+                                    ) {
+                                        append(word.text)
                                     }
                                     
                                     // Add space between words
                                     if (wordIndex < item.words.size - 1) {
-                                        Text(
-                                            text = " ",
-                                            fontSize = lyricsTextSize.sp,
-                                            color = Color.Transparent
-                                        )
+                                        append(" ")
                                     }
                                 }
                             }
+                            
+                            Text(
+                                text = styledText,
+                                fontSize = lyricsTextSize.sp,
+                                textAlign = alignment,
+                                lineHeight = (lyricsTextSize * 1.3f).sp
+                            )
                         } else if (hasWordTimings && item.words != null && (lyricsAnimationStyle == LyricsAnimationStyle.SLIDE || lyricsAnimationStyle == LyricsAnimationStyle.NONE)) {
                             // SLIDE and NONE modes for word-synced lyrics
                             val styledText = buildAnnotatedString {
