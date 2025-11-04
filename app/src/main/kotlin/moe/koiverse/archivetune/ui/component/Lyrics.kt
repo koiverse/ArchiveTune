@@ -366,7 +366,7 @@ fun Lyrics(
             return@LaunchedEffect
         }
         while (isActive) {
-            delay(16) // ~60fps update rate for smooth animations
+            delay(8) // ~120fps update rate for ultra-smooth SLIDE animations
             val sliderPosition = sliderPositionProvider()
             isSeeking = sliderPosition != null
             val position = sliderPosition ?: playerConnection.player.currentPosition
@@ -772,9 +772,10 @@ fun Lyrics(
                             // SLIDE MODE: Perfect karaoke-style fill animation
                             // Words fill from left to right with ultra-smooth timing
                             
-                            // Force recomposition by using the playback position directly
-                            // This ensures the gradient updates immediately at 60fps
-                            val currentPosition = currentPlaybackPosition
+                            // Get player position DIRECTLY to avoid any state propagation delays
+                            // This bypasses the LaunchedEffect update cycle and reads immediately
+                            val sliderPos = sliderPositionProvider()
+                            val currentPosition = sliderPos ?: playerConnection.player.currentPosition
                             
                             val styledText = buildAnnotatedString {
                                 item.words.forEachIndexed { wordIndex, word ->
