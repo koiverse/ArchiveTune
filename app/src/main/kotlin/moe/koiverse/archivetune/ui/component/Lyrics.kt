@@ -655,7 +655,7 @@ fun Lyrics(
                         
                         if (hasWordTimings && item.words != null && lyricsAnimationStyle == LyricsAnimationStyle.GLOW) {
                             // GLOW MODE: Ultra-fluid word-by-word animation with perfect timing
-                            // Each word glows and enlarges when active - NO DELAYS, perfectly synced
+                            // Words glow and expand continuously as they're being sung
                             
                             // Build styled text with GLOW animation - ULTRA FLUID
                             val styledText = buildAnnotatedString {
@@ -676,17 +676,18 @@ fun Lyrics(
                                         0f
                                     }
                                     
-                                    // GLOW ANIMATION: Smooth brightness and glow intensity based on fill
+                                    // GLOW ANIMATION: Fast brightness ramp up, strong glow
                                     val glowIntensity = fillProgress
-                                    val brightness = 0.3f + (0.7f * fillProgress) // 0.3 to 1.0
+                                    // Faster brightness curve: 0.5 to 1.0 (brighter starting point)
+                                    val brightness = 0.5f + (0.5f * fillProgress)
                                     
                                     val wordColor = when {
                                         !isActiveLine -> expressiveAccent.copy(alpha = 0.5f) // Inactive lines: dim
                                         isWordActive || hasWordPassed -> {
-                                            // Active/passed: glow from dim to bright
+                                            // Active/passed: glow from bright to full bright
                                             expressiveAccent.copy(alpha = brightness)
                                         }
-                                        else -> expressiveAccent.copy(alpha = 0.3f) // Future words: very dim
+                                        else -> expressiveAccent.copy(alpha = 0.35f) // Future words: very dim
                                     }
                                     
                                     val wordWeight = when {
@@ -696,12 +697,12 @@ fun Lyrics(
                                         else -> FontWeight.Normal
                                     }
                                     
-                                    // Glow shadow that intensifies as word fills
-                                    val wordShadow = if ((isWordActive || hasWordPassed) && glowIntensity > 0.1f) {
+                                    // Strong glow shadow that intensifies as word fills
+                                    val wordShadow = if ((isWordActive || hasWordPassed) && glowIntensity > 0.05f) {
                                         Shadow(
-                                            color = expressiveAccent.copy(alpha = 0.6f + (0.3f * glowIntensity)),
+                                            color = expressiveAccent.copy(alpha = 0.7f + (0.2f * glowIntensity)),
                                             offset = Offset(0f, 0f),
-                                            blurRadius = 15f + (20f * glowIntensity) // Grows from 15 to 35
+                                            blurRadius = 20f + (25f * glowIntensity) // Grows from 20 to 45
                                         )
                                     } else null
                                     
@@ -722,35 +723,35 @@ fun Lyrics(
                                 }
                             }
                             
-                            // Find currently active word for scale animation
-                            val currentWordIndex = if (isActiveLine) {
-                                item.words.indexOfFirst { word ->
+                            // Find currently active word and calculate its expansion
+                            var activeWordProgress = 0f
+                            if (isActiveLine) {
+                                item.words.forEach { word ->
                                     val wordStartMs = (word.startTime * 1000).toLong()
                                     val wordEndMs = (word.endTime * 1000).toLong()
-                                    currentPlaybackPosition in wordStartMs..wordEndMs
+                                    val wordDuration = wordEndMs - wordStartMs
+                                    
+                                    if (currentPlaybackPosition in wordStartMs..wordEndMs && wordDuration > 0) {
+                                        activeWordProgress = ((currentPlaybackPosition - wordStartMs).toFloat() / wordDuration).coerceIn(0f, 1f)
+                                    }
                                 }
-                            } else -1
+                            }
                             
-                            // Per-word scale animation - word enlarges when active
-                            val wordScale = remember { Animatable(1f) }
+                            // Continuous expansion: scale grows throughout the word's duration
+                            // Scale from 1.0 to 1.12 as word progresses (12% expansion shows "dragging")
+                            val wordScale = 1f + (0.12f * activeWordProgress)
                             
-                            LaunchedEffect(currentWordIndex) {
-                                if (currentWordIndex >= 0) {
-                                    // Word just became active - immediate scale up (ultra fluid)
-                                    wordScale.snapTo(1f)
-                                    wordScale.animateTo(
-                                        targetValue = 1.08f, // Subtle enlarge
-                                        animationSpec = tween(
-                                            durationMillis = 100,
-                                            easing = FastOutSlowInEasing
-                                        )
-                                    )
-                                } else {
-                                    // Scale back down
-                                    wordScale.animateTo(
+                            // Per-LINE pop-in animation (not per-word) - slow and smooth
+                            val linePopIn = remember { Animatable(0.96f) }
+                            
+                            LaunchedEffect(index) {
+                                if (isActiveLine) {
+                                    // Line becomes active - gentle pop in
+                                    linePopIn.snapTo(0.96f)
+                                    linePopIn.animateTo(
                                         targetValue = 1f,
                                         animationSpec = tween(
-                                            durationMillis = 150,
+                                            durationMillis = 400, // Slow pop-in
                                             easing = FastOutSlowInEasing
                                         )
                                     )
@@ -763,8 +764,10 @@ fun Lyrics(
                                 textAlign = alignment,
                                 lineHeight = (lyricsTextSize * 1.3f).sp,
                                 modifier = Modifier.graphicsLayer {
-                                    scaleX = wordScale.value
-                                    scaleY = wordScale.value
+                                    // Combine line pop-in with continuous word expansion
+                                    val combinedScale = linePopIn.value * wordScale
+                                    scaleX = combinedScale
+                                    scaleY = combinedScale
                                 }
                             )
                         } else if (hasWordTimings && item.words != null && (lyricsAnimationStyle == LyricsAnimationStyle.SLIDE || lyricsAnimationStyle == LyricsAnimationStyle.NONE)) {
