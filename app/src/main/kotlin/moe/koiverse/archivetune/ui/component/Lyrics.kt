@@ -366,7 +366,7 @@ fun Lyrics(
             return@LaunchedEffect
         }
         while (isActive) {
-            delay(50)
+            delay(16) // ~60fps update rate for smooth animations
             val sliderPosition = sliderPositionProvider()
             isSeeking = sliderPosition != null
             val position = sliderPosition ?: playerConnection.player.currentPosition
@@ -783,42 +783,26 @@ fun Lyrics(
                                     
                                     if (lyricsAnimationStyle == LyricsAnimationStyle.SLIDE && isWordActive && wordDuration > 0) {
                                         // KARAOKE FILL: Calculate exact fill progress (0 to 1)
-                                        val rawProgress = ((currentPlaybackPosition - wordStartMs).toFloat() / wordDuration)
-                                        val fillProgress = rawProgress.coerceIn(0f, 1f)
-                                        
-                                        // Smooth easing curve for natural acceleration
-                                        // Starts soft, speeds up slightly in middle, ends gracefully
-                                        val easedProgress = if (fillProgress < 0.05f) {
-                                            // Gentle start: ease in slowly
-                                            fillProgress * 20f * fillProgress // Quadratic ease-in
-                                        } else if (fillProgress > 0.95f) {
-                                            // Graceful end: ease out to prevent abrupt stop
-                                            val endPhase = (fillProgress - 0.95f) / 0.05f
-                                            0.95f + (0.05f * (1f - (1f - endPhase) * (1f - endPhase)))
-                                        } else {
-                                            // Natural flow in middle
-                                            fillProgress
-                                        }
+                                        val fillProgress = ((currentPlaybackPosition - wordStartMs).toFloat() / wordDuration).coerceIn(0f, 1f)
                                         
                                         // Ultra-smooth karaoke gradient: sharp transition between filled/unfilled
-                                        // Creates clean "filling" effect like traditional karaoke
+                                        // Linear fill with no easing for perfect sync and smoothness
                                         val wordBrush = Brush.horizontalGradient(
                                             // Filled portion: full brightness
                                             0.0f to expressiveAccent,
-                                            (easedProgress * 0.98f).coerceIn(0f, 1f) to expressiveAccent,
-                                            // Sharp transition edge
-                                            easedProgress to expressiveAccent,
-                                            (easedProgress + 0.01f).coerceIn(0f, 1f) to expressiveAccent.copy(alpha = 0.3f),
+                                            (fillProgress * 0.99f).coerceIn(0f, 1f) to expressiveAccent,
+                                            // Sharp transition edge (1% width for clean karaoke effect)
+                                            fillProgress to expressiveAccent,
+                                            (fillProgress + 0.01f).coerceIn(0f, 1f) to expressiveAccent.copy(alpha = 0.3f),
                                             // Unfilled portion: dim
-                                            (easedProgress + 0.02f).coerceIn(0f, 1f) to expressiveAccent.copy(alpha = 0.3f),
                                             1.0f to expressiveAccent.copy(alpha = 0.3f)
                                         )
                                         
                                         // Enhanced shadow on filled portion for depth
                                         val fillShadow = Shadow(
-                                            color = expressiveAccent.copy(alpha = 0.6f + (0.3f * easedProgress)),
+                                            color = expressiveAccent.copy(alpha = 0.6f + (0.3f * fillProgress)),
                                             offset = Offset(0f, 0f),
-                                            blurRadius = 18f + (12f * easedProgress) // Grows from 18 to 30
+                                            blurRadius = 18f + (12f * fillProgress) // Grows from 18 to 30
                                         )
                                         
                                         withStyle(

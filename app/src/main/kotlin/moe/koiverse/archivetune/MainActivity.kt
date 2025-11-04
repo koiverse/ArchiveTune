@@ -874,10 +874,10 @@ class MainActivity : ComponentActivity() {
                                                 }
                                             }
                                         },
-                                        scrollBehavior = searchBarScrollBehavior,
+                                        scrollBehavior = if (navBackStackEntry?.destination?.route == Screens.Home.route) searchBarScrollBehavior else null,
                                         colors = TopAppBarDefaults.topAppBarColors(
                                             containerColor = if (navBackStackEntry?.destination?.route == Screens.Home.route) Color.Transparent else if (pureBlack) Color.Black else MaterialTheme.colorScheme.surface,
-                                            scrolledContainerColor = if (pureBlack) Color.Black else MaterialTheme.colorScheme.surface,
+                                            scrolledContainerColor = if (navBackStackEntry?.destination?.route == Screens.Home.route) Color.Transparent else if (pureBlack) Color.Black else MaterialTheme.colorScheme.surface,
                                             titleContentColor = MaterialTheme.colorScheme.onSurface,
                                             actionIconContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                                             navigationIconContentColor = MaterialTheme.colorScheme.onSurfaceVariant
