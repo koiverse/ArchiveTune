@@ -693,35 +693,28 @@ fun Lyrics(
                                             wordBrush = null
                                         }
                                         lyricsAnimationStyle == LyricsAnimationStyle.SLIDE && isWordActive -> {
-                                            // SLIDE mode: Karaoke-style horizontal gradient sweep per word
-                                            // Duration-responsive animation - animates faster for shorter words
+                                            // SLIDE mode: Immediate karaoke-style fill from left to right
                                             val wordDuration = wordEndMs - wordStartMs
-                                            val rawProgress = if (wordDuration > 0) {
-                                                ((currentPlaybackPosition - wordStartMs).toFloat() / wordDuration)
+                                            // Linear progress from 0 to 1 across the word's duration
+                                            val wordProgress = if (wordDuration > 0) {
+                                                ((currentPlaybackPosition - wordStartMs).toFloat() / wordDuration).coerceIn(0f, 1f)
                                             } else 1f
                                             
-                                            // Apply easing to make animation speed match word duration naturally
-                                            // Shorter words get sharper fill, longer words get smoother fill
-                                            val wordProgress = when {
-                                                wordDuration < 300 -> rawProgress.coerceIn(0f, 1f) // Fast words: linear
-                                                wordDuration < 600 -> rawProgress.toDouble().pow(0.8).toFloat().coerceIn(0f, 1f) // Medium: slight ease
-                                                else -> rawProgress.toDouble().pow(0.7).toFloat().coerceIn(0f, 1f) // Long: more ease
-                                            }
-                                            
-                                            // Create horizontal gradient that fills the word
+                                            // Create sharp horizontal gradient that sweeps left to right
+                                            // Filled portion is bright, unfilled is dim
                                             wordBrush = Brush.horizontalGradient(
-                                                0.0f to expressiveAccent, // Filled part - bright
-                                                (wordProgress * 0.85f).coerceIn(0f, 1f) to expressiveAccent,
-                                                wordProgress to expressiveAccent.copy(alpha = 0.6f), // Transition point
-                                                (wordProgress + 0.1f).coerceIn(0f, 1f) to expressiveAccent.copy(alpha = 0.4f), // Unfilled part - dim
-                                                1.0f to expressiveAccent.copy(alpha = 0.4f)
+                                                0.0f to expressiveAccent, // Start: bright (filled)
+                                                (wordProgress * 0.95f).coerceIn(0f, 1f) to expressiveAccent, // Near edge: still bright
+                                                wordProgress to expressiveAccent.copy(alpha = 0.35f), // Sharp transition
+                                                (wordProgress + 0.05f).coerceIn(0f, 1f) to expressiveAccent.copy(alpha = 0.35f), // Unfilled: dim
+                                                1.0f to expressiveAccent.copy(alpha = 0.35f) // End: dim
                                             )
                                             wordColor = Color.Unspecified // Use brush instead
                                             wordWeight = FontWeight.ExtraBold
                                             wordShadow = Shadow(
-                                                color = expressiveAccent.copy(alpha = 0.7f * wordProgress),
+                                                color = expressiveAccent.copy(alpha = 0.8f),
                                                 offset = Offset(0f, 0f),
-                                                blurRadius = 25f * wordProgress
+                                                blurRadius = 20f
                                             )
                                         }
                                         lyricsAnimationStyle == LyricsAnimationStyle.GLOW && isWordActive -> {
