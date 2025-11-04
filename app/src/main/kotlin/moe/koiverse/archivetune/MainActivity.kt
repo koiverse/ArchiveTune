@@ -649,10 +649,12 @@ class MainActivity : ComponentActivity() {
                         } else if (navigationItems.fastAny { it.route == navBackStackEntry?.destination?.route }) {
                             onQueryChange(TextFieldValue())
                             // Keep TopAppBar hidden when navigating back to home/library - only show when scrolled to top
-                            // Don't reset scroll offset here - let user scroll to reveal it
+                            // Don't reset scroll offset on homepage to keep it transparent
+                            if (navBackStackEntry?.destination?.route != Screens.Home.route) {
+                                searchBarScrollBehavior.state.resetHeightOffset()
+                                topAppBarScrollBehavior.state.resetHeightOffset()
+                            }
                         }
-                        searchBarScrollBehavior.state.resetHeightOffset()
-                        topAppBarScrollBehavior.state.resetHeightOffset()
                     }
                     LaunchedEffect(active) {
                         if (active) {

@@ -778,27 +778,31 @@ fun Lyrics(
                                     val wordEndMs = (word.endTime * 1000).toLong()
                                     val wordDuration = wordEndMs - wordStartMs
                                     
-                                    val isWordActive = isActiveLine && currentPlaybackPosition in wordStartMs..wordEndMs
+                                    val isWordActive = isActiveLine && currentPlaybackPosition >= wordStartMs && currentPlaybackPosition <= wordEndMs
                                     val hasWordPassed = isActiveLine && currentPlaybackPosition > wordEndMs
                                     
                                     if (lyricsAnimationStyle == LyricsAnimationStyle.SLIDE && isWordActive && wordDuration > 0) {
-                                        // KARAOKE FILL: Calculate exact fill progress (0 to 1)
-                                        val fillProgress = ((currentPlaybackPosition - wordStartMs).toFloat() / wordDuration).coerceIn(0f, 1f)
+                                        // KARAOKE FILL: Perfect time-based dynamic fill
+                                        // Starts IMMEDIATELY at wordStartMs with 0% fill
+                                        // Fills progressively to 100% at wordEndMs
+                                        // ZERO DELAY - uses >= comparison for instant start
+                                        val timeElapsed = currentPlaybackPosition - wordStartMs
+                                        val fillProgress = (timeElapsed.toFloat() / wordDuration.toFloat()).coerceIn(0f, 1f)
                                         
                                         // Ultra-smooth karaoke gradient: sharp transition between filled/unfilled
-                                        // Linear fill with no easing for perfect sync and smoothness
+                                        // The gradient position dynamically moves based on fillProgress
                                         val wordBrush = Brush.horizontalGradient(
-                                            // Filled portion: full brightness
+                                            // Filled portion: full brightness from start to current progress
                                             0.0f to expressiveAccent,
-                                            (fillProgress * 0.99f).coerceIn(0f, 1f) to expressiveAccent,
-                                            // Sharp transition edge (1% width for clean karaoke effect)
-                                            fillProgress to expressiveAccent,
-                                            (fillProgress + 0.01f).coerceIn(0f, 1f) to expressiveAccent.copy(alpha = 0.3f),
-                                            // Unfilled portion: dim
+                                            (fillProgress - 0.005f).coerceAtLeast(0f) to expressiveAccent,
+                                            // Sharp transition edge (0.5% width for ultra-sharp karaoke effect)
+                                            fillProgress to expressiveAccent.copy(alpha = 0.65f),
+                                            (fillProgress + 0.005f).coerceAtMost(1f) to expressiveAccent.copy(alpha = 0.3f),
+                                            // Unfilled portion: dim from current progress to end
                                             1.0f to expressiveAccent.copy(alpha = 0.3f)
                                         )
                                         
-                                        // Enhanced shadow on filled portion for depth
+                                        // Enhanced shadow that follows the fill
                                         val fillShadow = Shadow(
                                             color = expressiveAccent.copy(alpha = 0.6f + (0.3f * fillProgress)),
                                             offset = Offset(0f, 0f),
