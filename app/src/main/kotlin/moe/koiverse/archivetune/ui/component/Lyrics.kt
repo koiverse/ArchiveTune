@@ -783,15 +783,27 @@ fun Lyrics(
                                         }
                                     }
                                     
-                                    withStyle(
-                                        style = SpanStyle(
-                                            color = wordColor,
-                                            fontWeight = wordWeight,
-                                            shadow = wordShadow,
-                                            brush = wordBrush
-                                        )
-                                    ) {
-                                        append(word.text)
+                                    // Apply styling - use brush OR color, not both
+                                    if (wordBrush != null) {
+                                        withStyle(
+                                            style = SpanStyle(
+                                                brush = wordBrush,
+                                                fontWeight = wordWeight,
+                                                shadow = wordShadow
+                                            )
+                                        ) {
+                                            append(word.text)
+                                        }
+                                    } else {
+                                        withStyle(
+                                            style = SpanStyle(
+                                                color = wordColor,
+                                                fontWeight = wordWeight,
+                                                shadow = wordShadow
+                                            )
+                                        ) {
+                                            append(word.text)
+                                        }
                                     }
                                     
                                     // Add space between words (except for last word)
