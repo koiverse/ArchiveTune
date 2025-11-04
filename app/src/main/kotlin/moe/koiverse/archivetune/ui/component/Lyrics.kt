@@ -788,15 +788,15 @@ fun Lyrics(
                                     val hasWordPassed = isActiveLine && currentPosition > wordEndMs
                                     
                                     if (lyricsAnimationStyle == LyricsAnimationStyle.SLIDE && isWordActive && wordDuration > 0) {
-                                        // Calculate fill progress
+                                        // Calculate fill progress - INSTANT, NO DELAY
                                         val timeElapsed = currentPosition - wordStartMs
                                         val fillProgress = (timeElapsed.toFloat() / wordDuration.toFloat()).coerceIn(0f, 1f)
                                         
-                                        // Simple, sharp karaoke gradient
+                                        // Sharp karaoke gradient with minimal transition width
                                         val wordBrush = Brush.horizontalGradient(
                                             0.0f to expressiveAccent,
-                                            fillProgress to expressiveAccent,
-                                            fillProgress to expressiveAccent.copy(alpha = 0.3f),
+                                            (fillProgress - 0.001f).coerceAtLeast(0f) to expressiveAccent,
+                                            (fillProgress + 0.001f).coerceAtMost(1f) to expressiveAccent.copy(alpha = 0.3f),
                                             1.0f to expressiveAccent.copy(alpha = 0.3f)
                                         )
                                         
