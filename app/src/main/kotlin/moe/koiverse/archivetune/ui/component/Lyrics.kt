@@ -727,15 +727,15 @@ fun Lyrics(
                                         )
                                     } else null
                                     
-                                    // Subtle stretch effect: tiny scale increase (3% max)
+                                    // Subtle stretch effect: tiny scale increase (1.5% max) to minimize shift
                                     // Quick stretch at start, then settle
                                     val stretchScale = if (isWordActive) {
                                         if (fillProgress < 0.15f) {
                                             // Quick stretch in first 15% of word duration
-                                            1f + (0.03f * (fillProgress / 0.15f))
+                                            1f + (0.015f * (fillProgress / 0.15f))
                                         } else {
-                                            // Stay at 3% larger for remainder
-                                            1.03f
+                                            // Stay at 1.5% larger for remainder
+                                            1.015f
                                         }
                                     } else {
                                         1f
