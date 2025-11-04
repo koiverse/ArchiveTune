@@ -677,64 +677,118 @@ fun Lyrics(
                                     val isWordActive = isActiveLine && currentPlaybackPosition in wordStartMs..wordEndMs
                                     val hasWordPassed = isActiveLine && currentPlaybackPosition > wordEndMs
                                     
-                                    // SLIDE animation: calculate progress for word-based gradient
-                                    val wordProgress = if (isActiveLine && lyricsAnimationStyle == LyricsAnimationStyle.SLIDE) {
-                                        when {
-                                            hasWordPassed -> 1f
-                                            isWordActive -> {
-                                                val wordDuration = wordEndMs - wordStartMs
-                                                if (wordDuration > 0) {
-                                                    ((currentPlaybackPosition - wordStartMs).toFloat() / wordDuration).coerceIn(0f, 1f)
-                                                } else 0f
-                                            }
-                                            else -> 0f
-                                        }
-                                    } else null
+                                    // Calculate styling based on word state and animation mode
+                                    val wordColor: Color
+                                    val wordWeight: FontWeight
+                                    val wordShadow: Shadow?
+                                    val wordBrush: Brush?
                                     
-                                    // Calculate color and styling based on word state and animation
-                                    val wordColor = when {
-                                        !isActiveLine -> lineColor // Non-active lines use line color
-                                        wordProgress != null -> {
-                                            // SLIDE mode: blend from dim to bright based on progress
+                                    when {
+                                        !isActiveLine -> {
+                                            // Non-active lines
+                                            wordColor = lineColor
+                                            wordWeight = FontWeight.Bold
+                                            wordShadow = null
+                                            wordBrush = null
+                                        }
+                                        lyricsAnimationStyle == LyricsAnimationStyle.SLIDE && isWordActive -> {
+                                            // SLIDE mode: Karaoke-style horizontal gradient sweep per word
+                                            val wordDuration = wordEndMs - wordStartMs
+                                            val wordProgress = if (wordDuration > 0) {
+                                                ((currentPlaybackPosition - wordStartMs).toFloat() / wordDuration).coerceIn(0f, 1f)
+                                            } else 1f
+                                            
+                                            // Create horizontal gradient that fills the word
+                                            wordBrush = Brush.horizontalGradient(
+                                                0.0f to expressiveAccent, // Filled part - bright
+                                                (wordProgress * 0.85f).coerceIn(0f, 1f) to expressiveAccent,
+                                                wordProgress to expressiveAccent.copy(alpha = 0.6f), // Transition point
+                                                (wordProgress + 0.1f).coerceIn(0f, 1f) to expressiveAccent.copy(alpha = 0.4f), // Unfilled part - dim
+                                                1.0f to expressiveAccent.copy(alpha = 0.4f)
+                                            )
+                                            wordColor = Color.Unspecified // Use brush instead
+                                            wordWeight = FontWeight.ExtraBold
+                                            wordShadow = Shadow(
+                                                color = expressiveAccent.copy(alpha = 0.7f * wordProgress),
+                                                offset = Offset(0f, 0f),
+                                                blurRadius = 25f * wordProgress
+                                            )
+                                        }
+                                        lyricsAnimationStyle == LyricsAnimationStyle.GLOW && isWordActive -> {
+                                            // GLOW mode: Smooth color transition with glow
+                                            val wordDuration = wordEndMs - wordStartMs
+                                            val wordProgress = if (wordDuration > 0) {
+                                                ((currentPlaybackPosition - wordStartMs).toFloat() / wordDuration).coerceIn(0f, 1f)
+                                            } else 1f
+                                            
+                                            // Smooth blend from dim to bright
                                             val startColor = expressiveAccent.copy(alpha = 0.4f)
                                             val endColor = expressiveAccent
-                                            Color(
+                                            wordColor = Color(
                                                 red = startColor.red + (endColor.red - startColor.red) * wordProgress,
                                                 green = startColor.green + (endColor.green - startColor.green) * wordProgress,
                                                 blue = startColor.blue + (endColor.blue - startColor.blue) * wordProgress,
                                                 alpha = startColor.alpha + (endColor.alpha - startColor.alpha) * wordProgress
                                             )
+                                            wordWeight = if (wordProgress > 0.5f) FontWeight.ExtraBold else FontWeight.Bold
+                                            wordShadow = if (wordProgress > 0.3f) {
+                                                Shadow(
+                                                    color = expressiveAccent.copy(alpha = 0.6f * wordProgress),
+                                                    offset = Offset(0f, 0f),
+                                                    blurRadius = 25f * wordProgress
+                                                )
+                                            } else null
+                                            wordBrush = null
                                         }
-                                        isWordActive -> expressiveAccent // Active word - full color
-                                        hasWordPassed -> expressiveAccent.copy(alpha = 0.7f) // Passed words - slightly dimmed
-                                        else -> expressiveAccent.copy(alpha = 0.4f) // Future words - very dim
-                                    }
-                                    
-                                    val wordWeight = when {
-                                        !isActiveLine -> FontWeight.Bold
-                                        isWordActive || (wordProgress != null && wordProgress > 0.5f) -> FontWeight.ExtraBold
-                                        hasWordPassed -> FontWeight.Bold
-                                        else -> FontWeight.Normal
+                                        lyricsAnimationStyle == LyricsAnimationStyle.SLIDE && hasWordPassed -> {
+                                            // SLIDE: Passed words stay bright
+                                            wordColor = expressiveAccent
+                                            wordWeight = FontWeight.ExtraBold
+                                            wordShadow = null
+                                            wordBrush = null
+                                        }
+                                        lyricsAnimationStyle == LyricsAnimationStyle.GLOW && (isWordActive || hasWordPassed) -> {
+                                            // GLOW: Active or passed words
+                                            wordColor = if (hasWordPassed) expressiveAccent.copy(alpha = 0.7f) else expressiveAccent
+                                            wordWeight = if (isWordActive) FontWeight.ExtraBold else FontWeight.Bold
+                                            wordShadow = if (isWordActive) {
+                                                Shadow(
+                                                    color = expressiveAccent.copy(alpha = 0.8f),
+                                                    offset = Offset(0f, 0f),
+                                                    blurRadius = 28f
+                                                )
+                                            } else null
+                                            wordBrush = null
+                                        }
+                                        hasWordPassed -> {
+                                            // NONE mode: Passed words
+                                            wordColor = expressiveAccent.copy(alpha = 0.7f)
+                                            wordWeight = FontWeight.Bold
+                                            wordShadow = null
+                                            wordBrush = null
+                                        }
+                                        isWordActive -> {
+                                            // NONE mode: Active word
+                                            wordColor = expressiveAccent
+                                            wordWeight = FontWeight.ExtraBold
+                                            wordShadow = null
+                                            wordBrush = null
+                                        }
+                                        else -> {
+                                            // Future words
+                                            wordColor = expressiveAccent.copy(alpha = 0.4f)
+                                            wordWeight = FontWeight.Normal
+                                            wordShadow = null
+                                            wordBrush = null
+                                        }
                                     }
                                     
                                     withStyle(
                                         style = SpanStyle(
                                             color = wordColor,
                                             fontWeight = wordWeight,
-                                            shadow = if (isWordActive && lyricsAnimationStyle == LyricsAnimationStyle.GLOW) {
-                                                Shadow(
-                                                    color = expressiveAccent.copy(alpha = 0.8f),
-                                                    offset = Offset(0f, 0f),
-                                                    blurRadius = 28f
-                                                )
-                                            } else if (wordProgress != null && wordProgress > 0.3f) {
-                                                // SLIDE glow effect
-                                                Shadow(
-                                                    color = expressiveAccent.copy(alpha = 0.6f * wordProgress),
-                                                    offset = Offset(0f, 0f),
-                                                    blurRadius = 20f * wordProgress
-                                                )
-                                            } else null
+                                            shadow = wordShadow,
+                                            brush = wordBrush
                                         )
                                     ) {
                                         append(word.text)

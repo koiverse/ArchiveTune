@@ -648,6 +648,11 @@ class MainActivity : ComponentActivity() {
                             )
                         } else if (navigationItems.fastAny { it.route == navBackStackEntry?.destination?.route }) {
                             onQueryChange(TextFieldValue())
+                            // Reset scroll offset when returning to home to fix transparent TopAppBar
+                            if (navBackStackEntry?.destination?.route == Screens.Home.route) {
+                                searchBarScrollBehavior.state.resetHeightOffset()
+                                topAppBarScrollBehavior.state.resetHeightOffset()
+                            }
                         }
                         searchBarScrollBehavior.state.resetHeightOffset()
                         topAppBarScrollBehavior.state.resetHeightOffset()
