@@ -704,8 +704,8 @@ fun Lyrics(
                                             // Shorter words get sharper fill, longer words get smoother fill
                                             val wordProgress = when {
                                                 wordDuration < 300 -> rawProgress.coerceIn(0f, 1f) // Fast words: linear
-                                                wordDuration < 600 -> kotlin.math.pow(rawProgress, 0.8).toFloat().coerceIn(0f, 1f) // Medium: slight ease
-                                                else -> kotlin.math.pow(rawProgress, 0.7).toFloat().coerceIn(0f, 1f) // Long: more ease
+                                                wordDuration < 600 -> rawProgress.toDouble().pow(0.8).toFloat().coerceIn(0f, 1f) // Medium: slight ease
+                                                else -> rawProgress.toDouble().pow(0.7).toFloat().coerceIn(0f, 1f) // Long: more ease
                                             }
                                             
                                             // Create horizontal gradient that fills the word
