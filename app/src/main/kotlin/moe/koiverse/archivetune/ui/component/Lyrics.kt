@@ -657,6 +657,32 @@ fun Lyrics(
                             // GLOW MODE: Ultra-fluid word-by-word animation with perfect timing
                             // Words glow and expand continuously as they're being sung
                             
+                            // Find currently active word index for pop-in animation
+                            val currentWordIndex = if (isActiveLine) {
+                                item.words.indexOfFirst { word ->
+                                    val wordStartMs = (word.startTime * 1000).toLong()
+                                    val wordEndMs = (word.endTime * 1000).toLong()
+                                    currentPlaybackPosition in wordStartMs..wordEndMs
+                                }
+                            } else -1
+                            
+                            // Per-word pop-in animation - slow and smooth
+                            val wordPopIn = remember { Animatable(1f) }
+                            
+                            LaunchedEffect(currentWordIndex) {
+                                if (currentWordIndex >= 0) {
+                                    // New word becomes active - gentle pop in
+                                    wordPopIn.snapTo(0.96f)
+                                    wordPopIn.animateTo(
+                                        targetValue = 1f,
+                                        animationSpec = tween(
+                                            durationMillis = 300, // Slow pop-in
+                                            easing = FastOutSlowInEasing
+                                        )
+                                    )
+                                }
+                            }
+                            
                             // Build styled text with GLOW animation - ULTRA FLUID
                             val styledText = buildAnnotatedString {
                                 item.words.forEachIndexed { wordIndex, word ->
@@ -706,11 +732,25 @@ fun Lyrics(
                                         )
                                     } else null
                                     
+                                    // Per-word scale combining pop-in + continuous expansion
+                                    val wordScale = if (isWordActive) {
+                                        // Continuous expansion: scale grows throughout the word's duration
+                                        // Pop-in (0.96-1.0) * expansion (1.0-1.12) = smooth growth
+                                        val expansion = 1f + (0.12f * fillProgress)
+                                        wordPopIn.value * expansion
+                                    } else {
+                                        1f // Normal size for inactive words
+                                    }
+                                    
+                                    // Apply per-word font size scaling
+                                    val scaledFontSize = (lyricsTextSize * wordScale).sp
+                                    
                                     withStyle(
                                         style = SpanStyle(
                                             color = wordColor,
                                             fontWeight = wordWeight,
-                                            shadow = wordShadow
+                                            shadow = wordShadow,
+                                            fontSize = scaledFontSize
                                         )
                                     ) {
                                         append(word.text)
@@ -723,52 +763,11 @@ fun Lyrics(
                                 }
                             }
                             
-                            // Find currently active word and calculate its expansion
-                            var activeWordProgress = 0f
-                            if (isActiveLine) {
-                                item.words.forEach { word ->
-                                    val wordStartMs = (word.startTime * 1000).toLong()
-                                    val wordEndMs = (word.endTime * 1000).toLong()
-                                    val wordDuration = wordEndMs - wordStartMs
-                                    
-                                    if (currentPlaybackPosition in wordStartMs..wordEndMs && wordDuration > 0) {
-                                        activeWordProgress = ((currentPlaybackPosition - wordStartMs).toFloat() / wordDuration).coerceIn(0f, 1f)
-                                    }
-                                }
-                            }
-                            
-                            // Continuous expansion: scale grows throughout the word's duration
-                            // Scale from 1.0 to 1.12 as word progresses (12% expansion shows "dragging")
-                            val wordScale = 1f + (0.12f * activeWordProgress)
-                            
-                            // Per-LINE pop-in animation (not per-word) - slow and smooth
-                            val linePopIn = remember { Animatable(0.96f) }
-                            
-                            LaunchedEffect(index) {
-                                if (isActiveLine) {
-                                    // Line becomes active - gentle pop in
-                                    linePopIn.snapTo(0.96f)
-                                    linePopIn.animateTo(
-                                        targetValue = 1f,
-                                        animationSpec = tween(
-                                            durationMillis = 400, // Slow pop-in
-                                            easing = FastOutSlowInEasing
-                                        )
-                                    )
-                                }
-                            }
-                            
                             Text(
                                 text = styledText,
                                 fontSize = lyricsTextSize.sp,
                                 textAlign = alignment,
-                                lineHeight = (lyricsTextSize * 1.3f).sp,
-                                modifier = Modifier.graphicsLayer {
-                                    // Combine line pop-in with continuous word expansion
-                                    val combinedScale = linePopIn.value * wordScale
-                                    scaleX = combinedScale
-                                    scaleY = combinedScale
-                                }
+                                lineHeight = (lyricsTextSize * 1.3f).sp
                             )
                         } else if (hasWordTimings && item.words != null && (lyricsAnimationStyle == LyricsAnimationStyle.SLIDE || lyricsAnimationStyle == LyricsAnimationStyle.NONE)) {
                             // SLIDE and NONE modes for word-synced lyrics
