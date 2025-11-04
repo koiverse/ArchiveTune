@@ -73,6 +73,9 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.ClipOp
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
@@ -769,11 +772,9 @@ fun Lyrics(
                                 lineHeight = (lyricsTextSize * 1.3f).sp
                             )
                         } else if (hasWordTimings && item.words != null && (lyricsAnimationStyle == LyricsAnimationStyle.SLIDE || lyricsAnimationStyle == LyricsAnimationStyle.NONE)) {
-                            // SLIDE MODE: Perfect karaoke-style fill animation
-                            // Words fill from left to right with ultra-smooth timing
+                            // SLIDE MODE: Karaoke fill with gradient (direct rendering)
                             
-                            // Get player position DIRECTLY to avoid any state propagation delays
-                            // This bypasses the LaunchedEffect update cycle and reads immediately
+                            // Get player position DIRECTLY
                             val sliderPos = sliderPositionProvider()
                             val currentPosition = sliderPos ?: playerConnection.player.currentPosition
                             
@@ -787,48 +788,27 @@ fun Lyrics(
                                     val hasWordPassed = isActiveLine && currentPosition > wordEndMs
                                     
                                     if (lyricsAnimationStyle == LyricsAnimationStyle.SLIDE && isWordActive && wordDuration > 0) {
-                                        // KARAOKE FILL: Perfect time-based dynamic fill
-                                        // Calculates based on actual elapsed time vs word duration
+                                        // Calculate fill progress
                                         val timeElapsed = currentPosition - wordStartMs
-                                        val rawProgress = (timeElapsed.toFloat() / wordDuration.toFloat())
-                                        val fillProgress = rawProgress.coerceIn(0f, 1f)
+                                        val fillProgress = (timeElapsed.toFloat() / wordDuration.toFloat()).coerceIn(0f, 1f)
                                         
-                                        // Make fill more visible at the start - aggressive beginning
-                                        // This helps compensate for any timing inaccuracies in lyrics data
-                                        val adjustedProgress = if (fillProgress < 0.1f) {
-                                            // Boost early progress: 0-10% range maps to 0-15% visual
-                                            fillProgress * 1.5f
-                                        } else {
-                                            // After 10%, use linear fill
-                                            0.15f + (fillProgress - 0.1f) * 0.944f // 0.944 = (1-0.15)/0.9
-                                        }
-                                        
-                                        val visualProgress = adjustedProgress.coerceIn(0f, 1f)
-                                        
-                                        // Ultra-smooth karaoke gradient: sharp transition
+                                        // Simple, sharp karaoke gradient
                                         val wordBrush = Brush.horizontalGradient(
-                                            // Filled portion: full brightness
                                             0.0f to expressiveAccent,
-                                            (visualProgress - 0.01f).coerceAtLeast(0f) to expressiveAccent,
-                                            // Sharp transition edge
-                                            visualProgress to expressiveAccent.copy(alpha = 0.7f),
-                                            (visualProgress + 0.01f).coerceAtMost(1f) to expressiveAccent.copy(alpha = 0.3f),
-                                            // Unfilled portion: dim
+                                            fillProgress to expressiveAccent,
+                                            fillProgress to expressiveAccent.copy(alpha = 0.3f),
                                             1.0f to expressiveAccent.copy(alpha = 0.3f)
-                                        )
-                                        
-                                        // Enhanced shadow that follows the fill
-                                        val fillShadow = Shadow(
-                                            color = expressiveAccent.copy(alpha = 0.6f + (0.3f * visualProgress)),
-                                            offset = Offset(0f, 0f),
-                                            blurRadius = 18f + (12f * visualProgress) // Grows from 18 to 30
                                         )
                                         
                                         withStyle(
                                             style = SpanStyle(
                                                 brush = wordBrush,
                                                 fontWeight = FontWeight.ExtraBold,
-                                                shadow = fillShadow
+                                                shadow = Shadow(
+                                                    color = expressiveAccent.copy(alpha = 0.8f),
+                                                    offset = Offset(0f, 0f),
+                                                    blurRadius = 25f
+                                                )
                                             )
                                         ) {
                                             append(word.text)
