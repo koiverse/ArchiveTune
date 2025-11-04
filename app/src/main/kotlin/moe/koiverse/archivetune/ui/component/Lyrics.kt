@@ -693,10 +693,19 @@ fun Lyrics(
                                         }
                                         lyricsAnimationStyle == LyricsAnimationStyle.SLIDE && isWordActive -> {
                                             // SLIDE mode: Karaoke-style horizontal gradient sweep per word
+                                            // Duration-responsive animation - animates faster for shorter words
                                             val wordDuration = wordEndMs - wordStartMs
-                                            val wordProgress = if (wordDuration > 0) {
-                                                ((currentPlaybackPosition - wordStartMs).toFloat() / wordDuration).coerceIn(0f, 1f)
+                                            val rawProgress = if (wordDuration > 0) {
+                                                ((currentPlaybackPosition - wordStartMs).toFloat() / wordDuration)
                                             } else 1f
+                                            
+                                            // Apply easing to make animation speed match word duration naturally
+                                            // Shorter words get sharper fill, longer words get smoother fill
+                                            val wordProgress = when {
+                                                wordDuration < 300 -> rawProgress.coerceIn(0f, 1f) // Fast words: linear
+                                                wordDuration < 600 -> kotlin.math.pow(rawProgress, 0.8).toFloat().coerceIn(0f, 1f) // Medium: slight ease
+                                                else -> kotlin.math.pow(rawProgress, 0.7).toFloat().coerceIn(0f, 1f) // Long: more ease
+                                            }
                                             
                                             // Create horizontal gradient that fills the word
                                             wordBrush = Brush.horizontalGradient(
@@ -983,21 +992,90 @@ fun Lyrics(
                             )
                         }
                         if (romanizeJapaneseLyrics || romanizeKoreanLyrics) {
-                            // Show romanized text if available
+                            // Show romanized text if available with synced word-by-word animation
                             val romanizedText by item.romanizedTextFlow.collectAsState()
                             romanizedText?.let { romanized ->
-                                Text(
-                                    text = romanized,
-                                    fontSize = (lyricsTextSize * 0.75f).sp,
-                                    color = expressiveAccent.copy(alpha = 0.6f),
-                                    textAlign = when (lyricsTextPosition) {
-                                        LyricsPosition.LEFT -> TextAlign.Left
-                                        LyricsPosition.CENTER -> TextAlign.Center
-                                        LyricsPosition.RIGHT -> TextAlign.Right
-                                    },
-                                    fontWeight = FontWeight.Normal,
-                                    modifier = Modifier.padding(top = 2.dp)
-                                )
+                                // Apply same word-synced animation to romanization when available
+                                if (hasWordTimings && item.words != null && isActiveLine && lyricsAnimationStyle != LyricsAnimationStyle.NONE) {
+                                    // Build romanized text with word sync (split by spaces to roughly match main lyrics)
+                                    val romanizedWords = romanized.split(" ")
+                                    val mainWords = item.words
+                                    
+                                    val romanizedStyledText = buildAnnotatedString {
+                                        romanizedWords.forEachIndexed { romIndex, romWord ->
+                                            // Map romanized words to main words (may not be 1:1, so we approximate)
+                                            val wordIndex = (romIndex.toFloat() / romanizedWords.size * mainWords.size).toInt().coerceIn(0, mainWords.size - 1)
+                                            val word = mainWords.getOrNull(wordIndex)
+                                            
+                                            if (word != null) {
+                                                val wordStartMs = (word.startTime * 1000).toLong()
+                                                val wordEndMs = (word.endTime * 1000).toLong()
+                                                val isWordActive = currentPlaybackPosition in wordStartMs..wordEndMs
+                                                val hasWordPassed = currentPlaybackPosition > wordEndMs
+                                                
+                                                val romColor = when {
+                                                    !isActiveLine -> expressiveAccent.copy(alpha = 0.5f)
+                                                    isWordActive && lyricsAnimationStyle == LyricsAnimationStyle.SLIDE -> {
+                                                        expressiveAccent.copy(alpha = 0.8f) // Bright during active
+                                                    }
+                                                    isWordActive && lyricsAnimationStyle == LyricsAnimationStyle.GLOW -> {
+                                                        expressiveAccent.copy(alpha = 0.8f)
+                                                    }
+                                                    hasWordPassed -> expressiveAccent.copy(alpha = 0.7f)
+                                                    else -> expressiveAccent.copy(alpha = 0.4f) // Dim for future words
+                                                }
+                                                
+                                                withStyle(
+                                                    style = SpanStyle(
+                                                        color = romColor,
+                                                        fontWeight = if (isWordActive) FontWeight.SemiBold else FontWeight.Normal
+                                                    )
+                                                ) {
+                                                    append(romWord)
+                                                }
+                                            } else {
+                                                withStyle(
+                                                    style = SpanStyle(
+                                                        color = expressiveAccent.copy(alpha = 0.5f),
+                                                        fontWeight = FontWeight.Normal
+                                                    )
+                                                ) {
+                                                    append(romWord)
+                                                }
+                                            }
+                                            
+                                            // Add space between words (except for last word)
+                                            if (romIndex < romanizedWords.size - 1) {
+                                                append(" ")
+                                            }
+                                        }
+                                    }
+                                    
+                                    Text(
+                                        text = romanizedStyledText,
+                                        fontSize = (lyricsTextSize * 0.75f).sp,
+                                        textAlign = when (lyricsTextPosition) {
+                                            LyricsPosition.LEFT -> TextAlign.Left
+                                            LyricsPosition.CENTER -> TextAlign.Center
+                                            LyricsPosition.RIGHT -> TextAlign.Right
+                                        },
+                                        modifier = Modifier.padding(top = 2.dp)
+                                    )
+                                } else {
+                                    // Static romanization for non-active lines or when animations are disabled
+                                    Text(
+                                        text = romanized,
+                                        fontSize = (lyricsTextSize * 0.75f).sp,
+                                        color = expressiveAccent.copy(alpha = if (isActiveLine) 0.6f else 0.5f),
+                                        textAlign = when (lyricsTextPosition) {
+                                            LyricsPosition.LEFT -> TextAlign.Left
+                                            LyricsPosition.CENTER -> TextAlign.Center
+                                            LyricsPosition.RIGHT -> TextAlign.Right
+                                        },
+                                        fontWeight = FontWeight.Normal,
+                                        modifier = Modifier.padding(top = 2.dp)
+                                    )
+                                }
                             }
                         }
                     }
