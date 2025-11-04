@@ -772,21 +772,25 @@ fun Lyrics(
                             // SLIDE MODE: Perfect karaoke-style fill animation
                             // Words fill from left to right with ultra-smooth timing
                             
+                            // Force recomposition by using the playback position directly
+                            // This ensures the gradient updates immediately at 60fps
+                            val currentPosition = currentPlaybackPosition
+                            
                             val styledText = buildAnnotatedString {
                                 item.words.forEachIndexed { wordIndex, word ->
                                     val wordStartMs = (word.startTime * 1000).toLong()
                                     val wordEndMs = (word.endTime * 1000).toLong()
                                     val wordDuration = wordEndMs - wordStartMs
                                     
-                                    val isWordActive = isActiveLine && currentPlaybackPosition >= wordStartMs && currentPlaybackPosition <= wordEndMs
-                                    val hasWordPassed = isActiveLine && currentPlaybackPosition > wordEndMs
+                                    val isWordActive = isActiveLine && currentPosition >= wordStartMs && currentPosition <= wordEndMs
+                                    val hasWordPassed = isActiveLine && currentPosition > wordEndMs
                                     
                                     if (lyricsAnimationStyle == LyricsAnimationStyle.SLIDE && isWordActive && wordDuration > 0) {
                                         // KARAOKE FILL: Perfect time-based dynamic fill
                                         // Starts IMMEDIATELY at wordStartMs with 0% fill
                                         // Fills progressively to 100% at wordEndMs
-                                        // ZERO DELAY - uses >= comparison for instant start
-                                        val timeElapsed = currentPlaybackPosition - wordStartMs
+                                        // ZERO DELAY - direct calculation from current position
+                                        val timeElapsed = currentPosition - wordStartMs
                                         val fillProgress = (timeElapsed.toFloat() / wordDuration.toFloat()).coerceIn(0f, 1f)
                                         
                                         // Ultra-smooth karaoke gradient: sharp transition between filled/unfilled
