@@ -769,59 +769,94 @@ fun Lyrics(
                                 lineHeight = (lyricsTextSize * 1.3f).sp
                             )
                         } else if (hasWordTimings && item.words != null && (lyricsAnimationStyle == LyricsAnimationStyle.SLIDE || lyricsAnimationStyle == LyricsAnimationStyle.NONE)) {
-                            // SLIDE and NONE modes for word-synced lyrics
+                            // SLIDE MODE: Perfect karaoke-style fill animation
+                            // Words fill from left to right with ultra-smooth timing
+                            
                             val styledText = buildAnnotatedString {
                                 item.words.forEachIndexed { wordIndex, word ->
                                     val wordStartMs = (word.startTime * 1000).toLong()
                                     val wordEndMs = (word.endTime * 1000).toLong()
+                                    val wordDuration = wordEndMs - wordStartMs
+                                    
                                     val isWordActive = isActiveLine && currentPlaybackPosition in wordStartMs..wordEndMs
                                     val hasWordPassed = isActiveLine && currentPlaybackPosition > wordEndMs
                                     
-                                    if (lyricsAnimationStyle == LyricsAnimationStyle.SLIDE && isWordActive) {
-                                        val wordDuration = wordEndMs - wordStartMs
-                                        val wordProgress = if (wordDuration > 0) {
-                                            ((currentPlaybackPosition - wordStartMs).toFloat() / wordDuration).coerceIn(0f, 1f)
-                                        } else 1f
+                                    if (lyricsAnimationStyle == LyricsAnimationStyle.SLIDE && isWordActive && wordDuration > 0) {
+                                        // KARAOKE FILL: Calculate exact fill progress (0 to 1)
+                                        val rawProgress = ((currentPlaybackPosition - wordStartMs).toFloat() / wordDuration)
+                                        val fillProgress = rawProgress.coerceIn(0f, 1f)
                                         
+                                        // Smooth easing curve for natural acceleration
+                                        // Starts soft, speeds up slightly in middle, ends gracefully
+                                        val easedProgress = if (fillProgress < 0.05f) {
+                                            // Gentle start: ease in slowly
+                                            fillProgress * 20f * fillProgress // Quadratic ease-in
+                                        } else if (fillProgress > 0.95f) {
+                                            // Graceful end: ease out to prevent abrupt stop
+                                            val endPhase = (fillProgress - 0.95f) / 0.05f
+                                            0.95f + (0.05f * (1f - (1f - endPhase) * (1f - endPhase)))
+                                        } else {
+                                            // Natural flow in middle
+                                            fillProgress
+                                        }
+                                        
+                                        // Ultra-smooth karaoke gradient: sharp transition between filled/unfilled
+                                        // Creates clean "filling" effect like traditional karaoke
                                         val wordBrush = Brush.horizontalGradient(
+                                            // Filled portion: full brightness
                                             0.0f to expressiveAccent,
-                                            (wordProgress * 0.95f).coerceIn(0f, 1f) to expressiveAccent,
-                                            wordProgress to expressiveAccent.copy(alpha = 0.35f),
-                                            (wordProgress + 0.05f).coerceIn(0f, 1f) to expressiveAccent.copy(alpha = 0.35f),
-                                            1.0f to expressiveAccent.copy(alpha = 0.35f)
+                                            (easedProgress * 0.98f).coerceIn(0f, 1f) to expressiveAccent,
+                                            // Sharp transition edge
+                                            easedProgress to expressiveAccent,
+                                            (easedProgress + 0.01f).coerceIn(0f, 1f) to expressiveAccent.copy(alpha = 0.3f),
+                                            // Unfilled portion: dim
+                                            (easedProgress + 0.02f).coerceIn(0f, 1f) to expressiveAccent.copy(alpha = 0.3f),
+                                            1.0f to expressiveAccent.copy(alpha = 0.3f)
+                                        )
+                                        
+                                        // Enhanced shadow on filled portion for depth
+                                        val fillShadow = Shadow(
+                                            color = expressiveAccent.copy(alpha = 0.6f + (0.3f * easedProgress)),
+                                            offset = Offset(0f, 0f),
+                                            blurRadius = 18f + (12f * easedProgress) // Grows from 18 to 30
                                         )
                                         
                                         withStyle(
                                             style = SpanStyle(
                                                 brush = wordBrush,
                                                 fontWeight = FontWeight.ExtraBold,
-                                                shadow = Shadow(
-                                                    color = expressiveAccent.copy(alpha = 0.8f),
-                                                    offset = Offset(0f, 0f),
-                                                    blurRadius = 20f
-                                                )
+                                                shadow = fillShadow
                                             )
                                         ) {
                                             append(word.text)
                                         }
                                     } else {
+                                        // Non-active words: simple color states
                                         val wordColor = when {
                                             !isActiveLine -> lineColor
                                             hasWordPassed -> expressiveAccent.copy(alpha = if (lyricsAnimationStyle == LyricsAnimationStyle.SLIDE) 1f else 0.7f)
-                                            isWordActive -> expressiveAccent
-                                            else -> expressiveAccent.copy(alpha = 0.35f)
+                                            isWordActive -> expressiveAccent // Fallback for zero-duration words
+                                            else -> expressiveAccent.copy(alpha = 0.3f)
+                                        }
+                                        
+                                        val wordWeight = when {
+                                            !isActiveLine -> FontWeight.Bold
+                                            hasWordPassed -> FontWeight.Bold
+                                            isWordActive -> FontWeight.ExtraBold
+                                            else -> FontWeight.Normal
                                         }
                                         
                                         withStyle(
                                             style = SpanStyle(
                                                 color = wordColor,
-                                                fontWeight = if (isWordActive) FontWeight.ExtraBold else if (hasWordPassed) FontWeight.Bold else FontWeight.Normal
+                                                fontWeight = wordWeight
                                             )
                                         ) {
                                             append(word.text)
                                         }
                                     }
                                     
+                                    // Add space between words
                                     if (wordIndex < item.words.size - 1) {
                                         append(" ")
                                     }
