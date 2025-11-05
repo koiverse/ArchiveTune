@@ -1367,7 +1367,7 @@ fun LocalPlaylistHeader(
                 Text(stringResource(R.string.play))
             }
 
-            OutlinedButton(
+            Button(
                 onClick = {
                     playerConnection.playQueue(
                         ListQueue(

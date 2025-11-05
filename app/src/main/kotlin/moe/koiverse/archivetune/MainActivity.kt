@@ -648,9 +648,13 @@ class MainActivity : ComponentActivity() {
                             )
                         } else if (navigationItems.fastAny { it.route == navBackStackEntry?.destination?.route }) {
                             onQueryChange(TextFieldValue())
+                            // Keep TopAppBar hidden when navigating back to home/library - only show when scrolled to top
+                            // Don't reset scroll offset on homepage to keep it transparent
+                            if (navBackStackEntry?.destination?.route != Screens.Home.route) {
+                                searchBarScrollBehavior.state.resetHeightOffset()
+                                topAppBarScrollBehavior.state.resetHeightOffset()
+                            }
                         }
-                        searchBarScrollBehavior.state.resetHeightOffset()
-                        topAppBarScrollBehavior.state.resetHeightOffset()
                     }
                     LaunchedEffect(active) {
                         if (active) {
@@ -872,10 +876,10 @@ class MainActivity : ComponentActivity() {
                                                 }
                                             }
                                         },
-                                        scrollBehavior = searchBarScrollBehavior,
+                                        scrollBehavior = if (navBackStackEntry?.destination?.route == Screens.Home.route) searchBarScrollBehavior else null,
                                         colors = TopAppBarDefaults.topAppBarColors(
                                             containerColor = if (navBackStackEntry?.destination?.route == Screens.Home.route) Color.Transparent else if (pureBlack) Color.Black else MaterialTheme.colorScheme.surface,
-                                            scrolledContainerColor = if (pureBlack) Color.Black else MaterialTheme.colorScheme.surface,
+                                            scrolledContainerColor = if (navBackStackEntry?.destination?.route == Screens.Home.route) Color.Transparent else if (pureBlack) Color.Black else MaterialTheme.colorScheme.surface,
                                             titleContentColor = MaterialTheme.colorScheme.onSurface,
                                             actionIconContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                                             navigationIconContentColor = MaterialTheme.colorScheme.onSurfaceVariant

@@ -35,6 +35,7 @@ val ContentLanguageKey = stringPreferencesKey("contentLanguage")
 val ContentCountryKey = stringPreferencesKey("contentCountry")
 val EnableKugouKey = booleanPreferencesKey("enableKugou")
 val EnableLrcLibKey = booleanPreferencesKey("enableLrclib")
+val EnableBetterLyricsKey = booleanPreferencesKey("enableBetterLyrics")
 val HideExplicitKey = booleanPreferencesKey("hideExplicit")
 val ProxyEnabledKey = booleanPreferencesKey("proxyEnabled")
 val ProxyUrlKey = stringPreferencesKey("proxyUrl")
@@ -54,6 +55,7 @@ enum class AudioQuality {
 val PersistentQueueKey = booleanPreferencesKey("persistentQueue")
 val SkipSilenceKey = booleanPreferencesKey("skipSilence")
 val AudioNormalizationKey = booleanPreferencesKey("audioNormalization")
+val AudioCrossfadeDurationKey = intPreferencesKey("audioCrossfadeDuration")
 val AutoLoadMoreKey = booleanPreferencesKey("autoLoadMore")
 val DisableLoadMoreWhenRepeatAllKey = booleanPreferencesKey("disableLoadMoreWhenRepeatAll")
 val AutoDownloadOnLikeKey = booleanPreferencesKey("autoDownloadOnLike")
@@ -291,6 +293,7 @@ enum class QuickPicks {
 enum class PreferredLyricsProvider {
     LRCLIB,
     KUGOU,
+    BETTER_LYRICS,
 }
 
 enum class PlayerButtonsStyle {
@@ -321,7 +324,6 @@ enum class LyricsAnimationStyle {
     FADE,
     GLOW,
     SLIDE,
-    KARAOKE,
 }
 
 val LyricsTextSizeKey = floatPreferencesKey("lyricsTextSize")
