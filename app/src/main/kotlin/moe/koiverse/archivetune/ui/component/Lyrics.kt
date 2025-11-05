@@ -732,29 +732,12 @@ fun Lyrics(
                                         )
                                     } else null
                                     
-                                    // Subtle stretch effect: tiny scale increase (1.5% max) to minimize shift
-                                    // Quick stretch at start, then settle
-                                    val stretchScale = if (isWordActive) {
-                                        if (fillProgress < 0.15f) {
-                                            // Quick stretch in first 15% of word duration
-                                            1f + (0.015f * (fillProgress / 0.15f))
-                                        } else {
-                                            // Stay at 1.5% larger for remainder
-                                            1.015f
-                                        }
-                                    } else {
-                                        1f
-                                    }
-                                    
-                                    // Apply scaled font size to word
-                                    val scaledFontSize = (lyricsTextSize * stretchScale).sp
-                                    
+                                    // No scaling - just color and shadow for GLOW effect
                                     withStyle(
                                         style = SpanStyle(
                                             color = wordColor,
                                             fontWeight = wordWeight,
-                                            shadow = wordShadow,
-                                            fontSize = scaledFontSize
+                                            shadow = wordShadow
                                         )
                                     ) {
                                         append(word.text)
@@ -855,20 +838,7 @@ fun Lyrics(
                                 lineHeight = (lyricsTextSize * 1.3f).sp
                             )
                         } else if (isActiveLine && lyricsAnimationStyle == LyricsAnimationStyle.GLOW) {
-                            // GLOW MODE for line-synced lyrics: similar to word-synced style
-                            // Subtle pop-in animation
-                            val popInScale = remember { Animatable(0.96f) }
-                            
-                            LaunchedEffect(index) {
-                                popInScale.snapTo(0.96f)
-                                popInScale.animateTo(
-                                    targetValue = 1.015f, // Subtle 1.5% enlarge
-                                    animationSpec = tween(
-                                        durationMillis = 300,
-                                        easing = FastOutSlowInEasing
-                                    )
-                                )
-                            }
+                            // GLOW MODE for line-synced lyrics: just glow, no scaling
                             
                             // GLOW style with enhanced shadow
                             val styledText = buildAnnotatedString {
@@ -890,11 +860,7 @@ fun Lyrics(
                                 fontSize = lyricsTextSize.sp,
                                 color = expressiveAccent,
                                 textAlign = alignment,
-                                fontWeight = FontWeight.ExtraBold,
-                                modifier = Modifier.graphicsLayer {
-                                    scaleX = popInScale.value
-                                    scaleY = popInScale.value
-                                }
+                                fontWeight = FontWeight.ExtraBold
                             )
                         } else if (isActiveLine && lyricsAnimationStyle == LyricsAnimationStyle.SLIDE) {
                             // Subtle pop-in animation
