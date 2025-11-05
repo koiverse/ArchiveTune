@@ -567,7 +567,7 @@ fun OnlinePlaylistScreen(
                                     }
 
                                     playlist.radioEndpoint?.let { radioEndpoint ->
-                                        OutlinedButton(
+                                        Button(
                                             onClick = {
                                                 playerConnection.playQueue(
                                                     YouTubeQueue(

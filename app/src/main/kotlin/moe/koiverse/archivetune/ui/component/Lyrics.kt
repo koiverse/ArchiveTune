@@ -415,8 +415,8 @@ fun Lyrics(
 
         if (!isSynced) return@LaunchedEffect
         
-        // Smooth page animation without sudden jumps - direct animation to center
-        suspend fun performSmoothPageScroll(targetIndex: Int, duration: Int = 1500) {
+        // Optimized scroll animation with better performance
+        suspend fun performSmoothPageScroll(targetIndex: Int, duration: Int = 800) {
             if (isAnimating) return // Prevent multiple animations
             
             isAnimating = true
@@ -424,7 +424,7 @@ fun Lyrics(
             try {
                 val itemInfo = lazyListState.layoutInfo.visibleItemsInfo.firstOrNull { it.index == targetIndex }
                 if (itemInfo != null) {
-                    // Item is visible, animate directly to center without sudden jumps
+                    // Item is visible, animate directly to center
                     val viewportHeight = lazyListState.layoutInfo.viewportEndOffset - lazyListState.layoutInfo.viewportStartOffset
                     val center = lazyListState.layoutInfo.viewportStartOffset + (viewportHeight / 2)
                     val itemCenter = itemInfo.offset + itemInfo.size / 2
@@ -433,11 +433,14 @@ fun Lyrics(
                     if (kotlin.math.abs(offset) > 10) {
                         lazyListState.animateScrollBy(
                             value = offset.toFloat(),
-                            animationSpec = tween(durationMillis = duration)
+                            animationSpec = tween(
+                                durationMillis = duration,
+                                easing = FastOutSlowInEasing // Smooth easing for better perceived performance
+                            )
                         )
                     }
                 } else {
-                    // Item is not visible, scroll to it first without animation, then it will be handled in next cycle
+                    // Item is not visible, scroll to it first without animation
                     lazyListState.scrollToItem(targetIndex)
                 }
             } finally {
@@ -447,24 +450,23 @@ fun Lyrics(
         
         if((currentLineIndex == 0 && shouldScrollToFirstLine) || !initialScrollDone) {
             shouldScrollToFirstLine = false
-            // Initial scroll to center the first line with medium animation (600ms)
+            // Initial scroll to center the first line
             val initialCenterIndex = kotlin.math.max(0, currentLineIndex )
-            performSmoothPageScroll(initialCenterIndex, 800) // Initial scroll duration
+            performSmoothPageScroll(initialCenterIndex, 600) // Faster initial scroll
             if(!isAppMinimized) {
                 initialScrollDone = true
             }
         } else if (currentLineIndex != -1) {
             deferredCurrentLineIndex = currentLineIndex
             if (isSeeking) {
-                // Fast scroll for seeking to center the target line (300ms)
+                // Fast scroll for seeking
                 val seekCenterIndex = kotlin.math.max(0, currentLineIndex )
-                performSmoothPageScroll(seekCenterIndex, 500) // Fast seek duration
+                performSmoothPageScroll(seekCenterIndex, 400) // Faster seek
             } else if ((lastPreviewTime == 0L || currentLineIndex != previousLineIndex) && scrollLyrics && !isManualScrolling) {
-                // Auto-scroll when lyrics settings allow it AND user is not manually scrolling
+                // Auto-scroll when lyrics change
                 if (currentLineIndex != previousLineIndex) {
-                    // Calculate which line should be at the top to center the active group
-                    val centerTargetIndex = kotlin.math.max(0, currentLineIndex ) // Show previous line at top to center current
-                    performSmoothPageScroll(centerTargetIndex, 1500) // Auto scroll duration
+                    val centerTargetIndex = kotlin.math.max(0, currentLineIndex )
+                    performSmoothPageScroll(centerTargetIndex, 800) // Faster auto-scroll with smooth easing
                 }
             }
         }
@@ -853,28 +855,29 @@ fun Lyrics(
                                 lineHeight = (lyricsTextSize * 1.3f).sp
                             )
                         } else if (isActiveLine && lyricsAnimationStyle == LyricsAnimationStyle.GLOW) {
+                            // GLOW MODE for line-synced lyrics: similar to word-synced style
                             // Subtle pop-in animation
-                            val popInScale = remember { Animatable(0.95f) }
+                            val popInScale = remember { Animatable(0.96f) }
                             
                             LaunchedEffect(index) {
-                                popInScale.snapTo(0.95f)
+                                popInScale.snapTo(0.96f)
                                 popInScale.animateTo(
-                                    targetValue = 1f,
+                                    targetValue = 1.015f, // Subtle 1.5% enlarge
                                     animationSpec = tween(
-                                        durationMillis = 200,
+                                        durationMillis = 300,
                                         easing = FastOutSlowInEasing
                                     )
                                 )
                             }
                             
-                            // GLOW style - static glow without animation
+                            // GLOW style with enhanced shadow
                             val styledText = buildAnnotatedString {
                                 withStyle(
                                     style = SpanStyle(
                                         shadow = Shadow(
                                             color = expressiveAccent.copy(alpha = 0.8f),
                                             offset = Offset(0f, 0f),
-                                            blurRadius = 28f
+                                            blurRadius = 30f // Stronger glow
                                         )
                                     )
                                 ) {
