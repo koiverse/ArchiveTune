@@ -707,9 +707,9 @@ fun Lyrics(
                                     
                                     val wordWeight = when {
                                         !isActiveLine -> FontWeight.Bold
-                                        isWordActive -> FontWeight.ExtraBold
-                                        hasWordPassed -> FontWeight.Bold
-                                        else -> FontWeight.Normal
+                                        isWordActive -> FontWeight.ExtraBold // Active word: extra bold
+                                        hasWordPassed -> FontWeight.Bold // Sung words: normal bold
+                                        else -> FontWeight.Light // Unsung words: thin/light
                                     }
                                     
                                     // Fluid shake animation during word drag - very slow wave
@@ -724,7 +724,8 @@ fun Lyrics(
                                         Offset.Zero
                                     }
                                     
-                                    val wordShadow = if ((isWordActive || hasWordPassed) && glowIntensity > 0.05f) {
+                                    // Glow ONLY on currently active word
+                                    val wordShadow = if (isWordActive && glowIntensity > 0.05f) {
                                         Shadow(
                                             color = expressiveAccent.copy(alpha = 0.7f + (0.2f * glowIntensity)),
                                             offset = shakeOffset, // Apply shake to shadow
