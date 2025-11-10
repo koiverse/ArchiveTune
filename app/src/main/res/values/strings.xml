@@ -283,8 +283,7 @@
     <string name="fade">Fade</string>
     <string name="slide">Slide</string>
     <string name="karaoke">Karaoke</string>
-    <!-- Lyrics text settings -->
-    <string name="lyrics_text_size">Lyrics text size</string>
+    <!-- Lyrics line spacing -->
     <string name="lyrics_line_spacing">Lyrics line spacing</string>
 
 
