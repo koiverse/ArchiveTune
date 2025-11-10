@@ -56,6 +56,10 @@ import kotlinx.coroutines.launch
 import androidx.compose.foundation.background
 import androidx.compose.ui.unit.Dp
 import moe.koiverse.archivetune.utils.GlobalLog
+import moe.koiverse.archivetune.LocalPlayerConnection
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
+import kotlin.math.roundToInt
 
 // single GlobalLog import above
 @OptIn(ExperimentalMaterial3Api::class)
@@ -69,6 +73,13 @@ fun DebugSettings(
         key = booleanPreferencesKey("dev_show_discord_debug"),
         defaultValue = false
     )
+    
+    val (showNerdStats, onShowNerdStatsChange) = rememberPreference(
+        key = booleanPreferencesKey("dev_show_nerd_stats"),
+        defaultValue = false
+    )
+    
+    val playerConnection = LocalPlayerConnection.current
 
     Scaffold(
         topBar = {
@@ -89,6 +100,15 @@ fun DebugSettings(
                 icon = { Icon(painterResource(R.drawable.info), null) },
                 trailingContent = {
                     Switch(checked = showDevDebug, onCheckedChange = onShowDevDebugChange)
+                }
+            )
+            
+            PreferenceEntry(
+                title = { Text("Show Nerd Stats") },
+                description = "Display real-time playback statistics (codec, bitrate, buffer)",
+                icon = { Icon(painterResource(R.drawable.info), null) },
+                trailingContent = {
+                    Switch(checked = showNerdStats, onCheckedChange = onShowNerdStatsChange)
                 }
             )
 
@@ -342,6 +362,146 @@ fun DebugSettings(
                     if (filtered.isNotEmpty()) listState.animateScrollToItem(filtered.size - 1)
                 }
             }
+            
+            // Nerd Stats Section
+            if (showNerdStats && playerConnection != null) {
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                val currentFormat by playerConnection.currentFormat.collectAsState(initial = null)
+                val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
+                val player = playerConnection.player
+                
+                // Update stats periodically
+                var bufferPercentage by remember { mutableStateOf(0) }
+                var bufferedPosition by remember { mutableStateOf(0L) }
+                var currentPosition by remember { mutableStateOf(0L) }
+                var playbackSpeed by remember { mutableStateOf(1.0f) }
+                
+                LaunchedEffect(Unit) {
+                    while (coroutineScope.isActive) {
+                        bufferPercentage = player.bufferedPercentage
+                        bufferedPosition = player.bufferedPosition
+                        currentPosition = player.currentPosition
+                        playbackSpeed = player.playbackParameters.speed
+                        kotlinx.coroutines.delay(500) // Update every 500ms
+                    }
+                }
+                
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(
+                            color = MaterialTheme.colorScheme.surfaceVariant,
+                            shape = RoundedCornerShape(14.dp)
+                        )
+                        .padding(16.dp)
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            text = "🤓 Nerd Stats",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        
+                        if (mediaMetadata != null) {
+                            // Current Track Info
+                            NerdStatRow(
+                                label = "Track",
+                                value = mediaMetadata?.title ?: "No track playing"
+                            )
+                            
+                            // Format/Codec Info
+                            if (currentFormat != null) {
+                                NerdStatRow(
+                                    label = "Codec",
+                                    value = currentFormat?.mimeType?.substringAfter("/")?.uppercase() ?: "Unknown"
+                                )
+                                
+                                val bitrateKbps = currentFormat?.bitrate?.let { it / 1000 } ?: 0
+                                NerdStatRow(
+                                    label = "Bitrate",
+                                    value = if (bitrateKbps > 0) "$bitrateKbps kbps" else "Unknown"
+                                )
+                                
+                                val sampleRateKhz = currentFormat?.sampleRate?.let { (it / 1000.0).roundToInt() } ?: 0
+                                NerdStatRow(
+                                    label = "Sample Rate",
+                                    value = if (sampleRateKhz > 0) "$sampleRateKhz kHz" else "Unknown"
+                                )
+                                
+                                NerdStatRow(
+                                    label = "Content Length",
+                                    value = currentFormat?.contentLength?.let {
+                                        if (it > 0) "${(it / 1024.0 / 1024.0).roundToInt()} MB" else "Unknown"
+                                    } ?: "Unknown"
+                                )
+                            } else {
+                                NerdStatRow(label = "Format", value = "Loading...")
+                            }
+                            
+                            // Buffer Health
+                            val bufferDuration = ((bufferedPosition - currentPosition) / 1000.0).roundToInt()
+                            NerdStatRow(
+                                label = "Buffer Health",
+                                value = "$bufferPercentage% ($bufferDuration sec ahead)"
+                            )
+                            
+                            // Playback Speed
+                            NerdStatRow(
+                                label = "Playback Speed",
+                                value = "${playbackSpeed}x"
+                            )
+                            
+                            // Playback State
+                            val playbackStateText = when (player.playbackState) {
+                                androidx.media3.common.Player.STATE_IDLE -> "IDLE"
+                                androidx.media3.common.Player.STATE_BUFFERING -> "BUFFERING"
+                                androidx.media3.common.Player.STATE_READY -> "READY"
+                                androidx.media3.common.Player.STATE_ENDED -> "ENDED"
+                                else -> "UNKNOWN"
+                            }
+                            NerdStatRow(
+                                label = "State",
+                                value = playbackStateText
+                            )
+                            
+                            // Media ID
+                            NerdStatRow(
+                                label = "Media ID",
+                                value = mediaMetadata?.id ?: "N/A"
+                            )
+                        } else {
+                            Text(
+                                text = "No track currently playing",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+            }
         }
+    }
+}
+
+@Composable
+private fun NerdStatRow(label: String, value: String) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodySmall,
+            fontWeight = FontWeight.Medium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodySmall,
+            fontFamily = FontFamily.Monospace,
+            color = MaterialTheme.colorScheme.onSurface
+        )
     }
 }
