@@ -216,6 +216,42 @@ fun Queue(
         modifier = modifier,
         collapsedContent = {
             if (useNewPlayerDesign) {
+                // Codec Info Display (if enabled)
+                if (showCodecOnPlayer && currentFormat != null) {
+                    Row(
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 30.dp, vertical = 4.dp)
+                    ) {
+                        val codec = currentFormat?.mimeType?.substringAfter("/")?.uppercase() ?: "Unknown"
+                        val bitrate = currentFormat?.bitrate?.let { "${it / 1000} kbps" } ?: "Unknown"
+                        val fileSize = currentFormat?.contentLength?.let {
+                            if (it > 0) "${(it / 1024.0 / 1024.0).roundToInt()} MB" else ""
+                        } ?: ""
+                        
+                        Text(
+                            text = buildString {
+                                append(codec)
+                                if (bitrate != "Unknown") {
+                                    append(" • ")
+                                    append(bitrate)
+                                }
+                                if (fileSize.isNotEmpty()) {
+                                    append(" • ")
+                                    append(fileSize)
+                                }
+                            },
+                            style = MaterialTheme.typography.labelSmall,
+                            fontFamily = FontFamily.Monospace,
+                            color = TextBackgroundColor.copy(alpha = 0.7f),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+                
                 // New design
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(12.dp),

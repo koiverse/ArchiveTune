@@ -50,6 +50,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.ui.res.painterResource
+import androidx.compose.foundation.Canvas
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.StrokeCap
+import kotlin.math.sin
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
@@ -357,6 +362,63 @@ fun AppearanceSettings(
 
                     Text(
                         text = stringResource(R.string.slim),
+                        style = MaterialTheme.typography.labelLarge
+                    )
+                }
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                    modifier = Modifier
+                        .aspectRatio(1f)
+                        .weight(1f)
+                        .clip(RoundedCornerShape(16.dp))
+                        .border(
+                            1.dp,
+                            if (sliderStyle == SliderStyle.WAVY) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
+                            RoundedCornerShape(16.dp)
+                        )
+                        .clickable {
+                            onSliderStyleChange(SliderStyle.WAVY)
+                            showSliderOptionDialog = false
+                        }
+                        .padding(16.dp)
+                ) {
+                    var sliderValue by remember {
+                        mutableFloatStateOf(0.5f)
+                    }
+                    // Simple preview wave for WAVY style
+                    Canvas(
+                        modifier = Modifier.weight(1f).fillMaxWidth()
+                    ) {
+                        val width = size.width
+                        val height = size.height
+                        val centerY = height / 2
+                        val waveHeight = height * 0.3f
+                        val progress = sliderValue * width
+                        
+                        val path = Path()
+                        path.moveTo(0f, centerY)
+                        
+                        var x = 0f
+                        while (x <= width) {
+                            val frequency = if (x < progress) 0.015f else 0.02f
+                            val amplitude = if (x < progress) waveHeight else waveHeight * 0.5f
+                            val y = centerY + amplitude * sin(x * frequency)
+                            path.lineTo(x, y)
+                            x += 1f
+                        }
+                        
+                        drawPath(
+                            path = path,
+                            color = if (sliderStyle == SliderStyle.WAVY) 
+                                androidx.compose.ui.graphics.Color(0xFF6750A4) 
+                            else 
+                                androidx.compose.ui.graphics.Color.Gray,
+                            style = Stroke(width = 4f, cap = StrokeCap.Round)
+                        )
+                    }
+                    Text(
+                        text = "Wavy",
                         style = MaterialTheme.typography.labelLarge
                     )
                 }
