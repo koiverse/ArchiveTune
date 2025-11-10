@@ -32,6 +32,7 @@ import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -223,7 +224,8 @@ fun Queue(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 30.dp, vertical = 4.dp)
+                            .padding(horizontal = 30.dp)
+                            .offset(y = (-8).dp)
                     ) {
                         val codec = currentFormat?.mimeType?.substringAfter("/")?.uppercase() ?: "Unknown"
                         val bitrate = currentFormat?.bitrate?.let { "${it / 1000} kbps" } ?: "Unknown"
@@ -444,7 +446,8 @@ fun Queue(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 30.dp, vertical = 4.dp)
+                            .padding(horizontal = 30.dp)
+                            .offset(y = (-8).dp)
                     ) {
                         val codec = currentFormat?.mimeType?.substringAfter("/")?.uppercase() ?: "Unknown"
                         val bitrate = currentFormat?.bitrate?.let { "${it / 1000} kbps" } ?: "Unknown"
