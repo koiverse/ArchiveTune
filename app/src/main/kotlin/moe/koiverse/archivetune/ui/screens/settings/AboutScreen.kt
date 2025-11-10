@@ -57,6 +57,7 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.drawscope.translate
+import androidx.compose.material.ripple.rememberRipple
 
 data class TeamMember(
     val avatarUrl: String,
@@ -142,18 +143,9 @@ fun AboutScreen(
             discord = "https://discord.com/users/886971572668219392"
         ),
         TeamMember(
-            avatarUrl = "https://avatars.githubusercontent.com/u/80542861?v=4",
-            name = "MO AGAMY",
-            position = "Original Developer",
-            profileUrl = "https://github.com/mostafaalagamy",
-            github = "https://github.com/mostafaalagamy",
-            website = null,
-            discord = null
-        ),
-        TeamMember(
             avatarUrl = "https://avatars.githubusercontent.com/u/93458424?v=4",
             name = "WTTexe",
-            position = "Major Contributor - Word Synced Lyrics, Gradients and UI (;",
+            position = "Word Synced Lyrics, Gradients and UI Changes for the better!",
             profileUrl = "https://github.com/Windowstechtips",
             github = "https://github.com/Windowstechtips",
             website = null,
@@ -162,6 +154,15 @@ fun AboutScreen(
             easterEggName = "Hououin Kyouma",
             easterEggPosition = "El psy congroo",
             easterEggAvatarUrl = "https://media.discordapp.net/attachments/1213837772599726110/1437508743037456404/images.jpeg?ex=69137fd7&is=69122e57&hm=8c5a1605e480765fe4798035f89783cd0d40d188729832f8669007eb868c3935&=&format=webp"
+        ),
+        TeamMember(
+            avatarUrl = "https://avatars.githubusercontent.com/u/80542861?v=4",
+            name = "MO AGAMY",
+            position = "Original Developer",
+            profileUrl = "https://github.com/mostafaalagamy",
+            github = "https://github.com/mostafaalagamy",
+            website = null,
+            discord = null
         )
     )
 
@@ -426,7 +427,14 @@ fun AboutScreen(
                                     drawContent()
                                 }
                             }
-                            .clickable(enabled = member.profileUrl != null || member.hasEasterEgg) {
+                            .clickable(
+                                enabled = member.profileUrl != null || member.hasEasterEgg,
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = rememberRipple(
+                                    bounded = true,
+                                    radius = 300.dp
+                                )
+                            ) {
                                 if (member.hasEasterEgg && !showEasterEgg) {
                                     clickCount++
                                     if (clickCount >= 4) {
