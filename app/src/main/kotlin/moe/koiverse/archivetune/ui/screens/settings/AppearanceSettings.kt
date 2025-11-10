@@ -493,6 +493,7 @@ fun AppearanceSettings(
                     SliderStyle.DEFAULT -> stringResource(R.string.default_)
                     SliderStyle.SQUIGGLY -> stringResource(R.string.squiggly)
                     SliderStyle.SLIM -> stringResource(R.string.slim)
+                    SliderStyle.WAVY -> "Wavy"
                 },
             icon = { Icon(painterResource(R.drawable.sliders), null) },
             onClick = {
