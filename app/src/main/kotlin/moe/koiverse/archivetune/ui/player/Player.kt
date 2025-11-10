@@ -140,7 +140,6 @@ import moe.koiverse.archivetune.ui.component.LocalBottomSheetPageState
 import moe.koiverse.archivetune.ui.component.LocalMenuState
 import moe.koiverse.archivetune.ui.component.PlayerSliderTrack
 import moe.koiverse.archivetune.ui.component.ResizableIconButton
-import moe.koiverse.archivetune.ui.component.WavySlider
 import moe.koiverse.archivetune.ui.component.rememberBottomSheetState
 import moe.koiverse.archivetune.ui.menu.PlayerMenu
 import moe.koiverse.archivetune.ui.screens.settings.DarkMode
@@ -876,26 +875,6 @@ fun BottomSheetPlayer(
                                 colors = PlayerSliderColors.slimSliderColors(textButtonColor)
                             )
                         },
-                        modifier = Modifier.padding(horizontal = PlayerHorizontalPadding)
-                    )
-                }
-                
-                SliderStyle.WAVY -> {
-                    WavySlider(
-                        value = (sliderPosition ?: position).toFloat(),
-                        valueRange = 0f..(if (duration == C.TIME_UNSET) 0f else duration.toFloat()),
-                        onValueChange = {
-                            sliderPosition = it.toLong()
-                        },
-                        onValueChangeFinished = {
-                            sliderPosition?.let {
-                                playerConnection.player.seekTo(it)
-                                position = it
-                            }
-                            sliderPosition = null
-                        },
-                        colors = PlayerSliderColors.defaultSliderColors(textButtonColor),
-                        isPlaying = isPlaying,
                         modifier = Modifier.padding(horizontal = PlayerHorizontalPadding)
                     )
                 }

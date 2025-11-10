@@ -41,6 +41,14 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.graphics.graphicsLayer
+import kotlinx.coroutines.delay
+import kotlin.random.Random
 
 data class TeamMember(
     val avatarUrl: String,
@@ -49,8 +57,10 @@ data class TeamMember(
     val profileUrl: String? = null,
     val github: String? = null,
     val website: String? = null,
-    val discord: String? = null
-
+    val discord: String? = null,
+    val hasEasterEgg: Boolean = false,
+    val easterEggName: String? = null,
+    val easterEggPosition: String? = null
 )
 
 @Composable
@@ -130,6 +140,18 @@ fun AboutScreen(
             github = "https://github.com/mostafaalagamy",
             website = null,
             discord = null
+        ),
+        TeamMember(
+            avatarUrl = "https://avatars.githubusercontent.com/u/93458424?v=4",
+            name = "WTTexe",
+            position = "Major Contributor - Word Synced Lyrics, Gradients and UI (;",
+            profileUrl = "https://github.com/Windowstechtips",
+            github = "https://github.com/Windowstechtips",
+            website = null,
+            discord = "https://discord.com/users/840839409640800258",
+            hasEasterEgg = true,
+            easterEggName = "Hououin Kyouma",
+            easterEggPosition = "El psy congroo"
         )
     )
 
@@ -290,12 +312,52 @@ fun AboutScreen(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 teamMembers.forEach { member ->
+                    var isGlitching by remember { mutableStateOf(false) }
+                    var showEasterEgg by remember { mutableStateOf(false) }
+                    var glitchOffsetX by remember { mutableStateOf(0f) }
+                    var glitchOffsetY by remember { mutableStateOf(0f) }
+                    var glitchAlpha by remember { mutableStateOf(1f) }
+                    
+                    LaunchedEffect(isGlitching) {
+                        if (isGlitching) {
+                            // Glitch effect for 800ms
+                            repeat(20) {
+                                glitchOffsetX = Random.nextFloat() * 20f - 10f
+                                glitchOffsetY = Random.nextFloat() * 20f - 10f
+                                glitchAlpha = Random.nextFloat() * 0.5f + 0.5f
+                                delay(40)
+                            }
+                            // Reset and show easter egg
+                            glitchOffsetX = 0f
+                            glitchOffsetY = 0f
+                            glitchAlpha = 1f
+                            showEasterEgg = true
+                            isGlitching = false
+                        }
+                    }
+                    
+                    val displayName = if (showEasterEgg && member.hasEasterEgg) member.easterEggName ?: member.name else member.name
+                    val displayPosition = if (showEasterEgg && member.hasEasterEgg) member.easterEggPosition ?: member.position else member.position
+                    
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 16.dp, vertical = 6.dp)
-                            .clickable(enabled = member.profileUrl != null) {
-                                member.profileUrl?.let { uriHandler.openUri(it) }
+                            .graphicsLayer {
+                                if (isGlitching) {
+                                    translationX = glitchOffsetX
+                                    translationY = glitchOffsetY
+                                    alpha = glitchAlpha
+                                }
+                            }
+                            .clickable(enabled = member.profileUrl != null || member.hasEasterEgg) {
+                                if (member.hasEasterEgg && !showEasterEgg) {
+                                    isGlitching = true
+                                } else if (showEasterEgg && member.hasEasterEgg) {
+                                    showEasterEgg = false
+                                } else {
+                                    member.profileUrl?.let { uriHandler.openUri(it) }
+                                }
                             },
                         colors = CardDefaults.cardColors(
                             containerColor = MaterialTheme.colorScheme.surfaceContainer
@@ -326,7 +388,7 @@ fun AboutScreen(
                                     .align(Alignment.CenterVertically)
                             ) {
                                 Text(
-                                    text = member.name,
+                                    text = displayName,
                                     style = MaterialTheme.typography.titleMedium.copy(
                                         fontWeight = FontWeight.Bold,
                                         color = MaterialTheme.colorScheme.onSurface
@@ -336,7 +398,7 @@ fun AboutScreen(
                                 Spacer(Modifier.height(2.dp))
 
                                 Text(
-                                    text = member.position,
+                                    text = displayPosition,
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.secondary
                                 )

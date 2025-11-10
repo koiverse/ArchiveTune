@@ -95,7 +95,6 @@ import moe.koiverse.archivetune.models.MediaMetadata
 import moe.koiverse.archivetune.ui.component.Lyrics
 import moe.koiverse.archivetune.ui.component.LocalMenuState
 import moe.koiverse.archivetune.ui.component.PlayerSliderTrack
-import moe.koiverse.archivetune.ui.component.WavySlider
 import moe.koiverse.archivetune.ui.component.BigSeekBar
 import androidx.navigation.NavController
 import me.saket.squiggles.SquigglySlider
@@ -713,25 +712,6 @@ fun LyricsScreen(
                                         modifier = Modifier.fillMaxWidth()
                                     )
                                 }
-                                SliderStyle.WAVY -> {
-                                    WavySlider(
-                                        value = (sliderPosition ?: position).toFloat(),
-                                        valueRange = 0f..(if (duration == C.TIME_UNSET) 0f else duration.toFloat()),
-                                        onValueChange = {
-                                            sliderPosition = it.toLong()
-                                        },
-                                        onValueChangeFinished = {
-                                            sliderPosition?.let {
-                                                player.seekTo(it)
-                                                position = it
-                                            }
-                                            sliderPosition = null
-                                        },
-                                        colors = PlayerSliderColors.defaultSliderColors(textBackgroundColor),
-                                        isPlaying = isPlaying,
-                                        modifier = Modifier.fillMaxWidth()
-                                    )
-                                }
                             }
 
                             // Time display below slider
@@ -1053,25 +1033,6 @@ fun LyricsScreen(
                                             colors = PlayerSliderColors.slimSliderColors(textBackgroundColor)
                                         )
                                     },
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-                            }
-                            SliderStyle.WAVY -> {
-                                WavySlider(
-                                    value = (sliderPosition ?: position).toFloat(),
-                                    valueRange = 0f..(if (duration == C.TIME_UNSET) 0f else duration.toFloat()),
-                                    onValueChange = {
-                                        sliderPosition = it.toLong()
-                                    },
-                                    onValueChangeFinished = {
-                                        sliderPosition?.let {
-                                            player.seekTo(it)
-                                            position = it
-                                        }
-                                        sliderPosition = null
-                                    },
-                                    colors = PlayerSliderColors.defaultSliderColors(textBackgroundColor),
-                                    isPlaying = isPlaying,
                                     modifier = Modifier.fillMaxWidth()
                                 )
                             }
