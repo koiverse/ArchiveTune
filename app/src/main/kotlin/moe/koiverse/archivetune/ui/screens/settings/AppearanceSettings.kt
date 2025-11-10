@@ -770,7 +770,7 @@ fun AppearanceSettings(
         PreferenceEntry(
             title = { Text(stringResource(R.string.lyrics_line_spacing)) },
             description = "${String.format("%.1f", lyricsLineSpacing)}x",
-            icon = { Icon(painterResource(R.drawable.format_line_spacing), null) },
+            icon = { Icon(painterResource(R.drawable.text_fields), null) },
             onClick = { showLyricsLineSpacingDialog = true }
         )
 
