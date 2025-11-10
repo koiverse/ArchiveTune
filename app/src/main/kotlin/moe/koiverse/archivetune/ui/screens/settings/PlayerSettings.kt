@@ -38,6 +38,7 @@ import androidx.navigation.NavController
 import moe.koiverse.archivetune.LocalPlayerAwareWindowInsets
 import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.constants.AudioNormalizationKey
+import moe.koiverse.archivetune.constants.AudioCrossfadeDurationKey
 import moe.koiverse.archivetune.constants.AudioQuality
 import moe.koiverse.archivetune.constants.AudioQualityKey
 import moe.koiverse.archivetune.constants.NetworkMeteredKey
@@ -86,6 +87,11 @@ fun PlayerSettings(
     val (audioNormalization, onAudioNormalizationChange) = rememberPreference(
         AudioNormalizationKey,
         defaultValue = true
+    )
+    
+    val (crossfadeDuration, onCrossfadeDurationChange) = rememberPreference(
+        AudioCrossfadeDurationKey,
+        defaultValue = 0
     )
 
     val (seekExtraSeconds, onSeekExtraSeconds) = rememberPreference(
@@ -180,6 +186,22 @@ fun PlayerSettings(
             icon = { Icon(painterResource(R.drawable.volume_up), null) },
             checked = audioNormalization,
             onCheckedChange = onAudioNormalizationChange
+        )
+        
+        SliderPreference(
+            title = { 
+                Column {
+                    Text("Crossfade Duration")
+                    Text(
+                        text = "${crossfadeDuration}s (0 = disabled)",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.secondary
+                    )
+                }
+            },
+            icon = { Icon(painterResource(R.drawable.graphic_eq), null) },
+            value = crossfadeDuration.toFloat(),
+            onValueChange = { onCrossfadeDurationChange(it.roundToInt()) }
         )
 
         SwitchPreference(

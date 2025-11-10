@@ -28,6 +28,7 @@ import androidx.media3.common.Player.REPEAT_MODE_OFF
 import androidx.media3.common.Player.REPEAT_MODE_ONE
 import androidx.media3.common.Player.STATE_IDLE
 import androidx.media3.common.Timeline
+import androidx.media3.common.audio.AudioProcessor
 import androidx.media3.common.audio.SonicAudioProcessor
 import androidx.media3.datasource.DataSource
 import androidx.media3.datasource.DefaultDataSource
@@ -61,6 +62,7 @@ import moe.koiverse.archivetune.innertube.models.WatchEndpoint
 import moe.koiverse.archivetune.MainActivity
 import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.constants.AudioNormalizationKey
+import moe.koiverse.archivetune.constants.AudioCrossfadeDurationKey
 import moe.koiverse.archivetune.constants.AudioQualityKey
 import moe.koiverse.archivetune.constants.AutoLoadMoreKey
 import moe.koiverse.archivetune.constants.DisableLoadMoreWhenRepeatAllKey
@@ -246,7 +248,8 @@ class MusicService :
 
     private var consecutivePlaybackErr = 0
 
-    val maxSafeGainFactor = 1.414f // +3 dB    
+    val maxSafeGainFactor = 1.414f // +3 dB
+    private val crossfadeProcessor = CrossfadeAudioProcessor()
 
     override fun onCreate() {
         super.onCreate()
@@ -406,6 +409,13 @@ class MusicService :
             .distinctUntilChanged()
             .collectLatest(scope) {
                 player.skipSilenceEnabled = it
+            }
+        
+        dataStore.data
+            .map { (it[AudioCrossfadeDurationKey] ?: 0) * 1000 }
+            .distinctUntilChanged()
+            .collectLatest(scope) {
+                crossfadeProcessor.crossfadeDurationMs = it
             }
 
         combine(
@@ -1407,12 +1417,12 @@ class MusicService :
                 .setEnableAudioTrackPlaybackParams(enableAudioTrackPlaybackParams)
                 .setAudioProcessorChain(
                     DefaultAudioSink.DefaultAudioProcessorChain(
-                        emptyArray(),
                         // Use the non-deprecated constructor with explicit types to avoid any
                         // ambiguity or unexpected overload-resolution issues.
                         // minimumSilenceDurationUs = 2_000_000L, silenceRetentionRatio = 0.2f,
                         // maxSilenceToKeepDurationUs = 20_000L, minVolumeToKeepPercentageWhenMuting = 10,
                         // silenceThresholdLevel = 256
+                        crossfadeProcessor,
                         SilenceSkippingAudioProcessor(
                             2_000_000L,
                             0.2f,

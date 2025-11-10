@@ -71,6 +71,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -1252,14 +1253,100 @@ fun BottomSheetPlayer(
                             }
                         ) { colors ->
                             if (colors.isNotEmpty()) {
-                                Box(modifier = Modifier.fillMaxSize()) {
-                                    val radialGradient = Brush.radialGradient(
-                                        colors = listOf(colors[0], Color.Transparent),
-                                        center = Offset(x = 540f, y = 380f),
-                                        radius = 800f
-                                    )
-                                    Box(modifier = Modifier.fillMaxSize().background(radialGradient))
-                                }
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .drawBehind {
+                                            val width = size.width
+                                            val height = size.height
+                                            
+                                            // Create seamless mesh gradient with 5 overlapping blobs
+                                            if (colors.size >= 3) {
+                                                // First color blob - top left
+                                                drawRect(
+                                                    brush = Brush.radialGradient(
+                                                        colors = listOf(
+                                                            colors[0].copy(alpha = 0.7f),
+                                                            colors[0].copy(alpha = 0.5f),
+                                                            colors[0].copy(alpha = 0.2f),
+                                                            Color.Transparent
+                                                        ),
+                                                        center = Offset(width * 0.15f, height * 0.15f),
+                                                        radius = width * 0.8f
+                                                    )
+                                                )
+                                                
+                                                // Second color blob - top right
+                                                drawRect(
+                                                    brush = Brush.radialGradient(
+                                                        colors = listOf(
+                                                            colors[1].copy(alpha = 0.65f),
+                                                            colors[1].copy(alpha = 0.45f),
+                                                            colors[1].copy(alpha = 0.18f),
+                                                            Color.Transparent
+                                                        ),
+                                                        center = Offset(width * 0.85f, height * 0.2f),
+                                                        radius = width * 0.85f
+                                                    )
+                                                )
+                                                
+                                                // Third color blob - middle left
+                                                drawRect(
+                                                    brush = Brush.radialGradient(
+                                                        colors = listOf(
+                                                            colors[2].copy(alpha = 0.6f),
+                                                            colors[2].copy(alpha = 0.4f),
+                                                            colors[2].copy(alpha = 0.15f),
+                                                            Color.Transparent
+                                                        ),
+                                                        center = Offset(width * 0.25f, height * 0.5f),
+                                                        radius = width * 0.75f
+                                                    )
+                                                )
+                                                
+                                                // Fourth color blob - middle right
+                                                drawRect(
+                                                    brush = Brush.radialGradient(
+                                                        colors = listOf(
+                                                            colors[0].copy(alpha = 0.55f),
+                                                            colors[0].copy(alpha = 0.35f),
+                                                            colors[0].copy(alpha = 0.12f),
+                                                            Color.Transparent
+                                                        ),
+                                                        center = Offset(width * 0.75f, height * 0.6f),
+                                                        radius = width * 0.9f
+                                                    )
+                                                )
+                                                
+                                                // Fifth color blob - bottom center
+                                                drawRect(
+                                                    brush = Brush.radialGradient(
+                                                        colors = listOf(
+                                                            colors[1].copy(alpha = 0.5f),
+                                                            colors[1].copy(alpha = 0.3f),
+                                                            colors[1].copy(alpha = 0.1f),
+                                                            Color.Transparent
+                                                        ),
+                                                        center = Offset(width * 0.5f, height * 0.8f),
+                                                        radius = width * 0.95f
+                                                    )
+                                                )
+                                            } else {
+                                                // Fallback: single radial gradient
+                                                drawRect(
+                                                    brush = Brush.radialGradient(
+                                                        colors = listOf(
+                                                            colors[0].copy(alpha = 0.8f),
+                                                            colors[0].copy(alpha = 0.4f),
+                                                            Color.Transparent
+                                                        ),
+                                                        center = Offset(width * 0.5f, height * 0.4f),
+                                                        radius = width * 0.7f
+                                                    )
+                                                )
+                                            }
+                                        }
+                                ) {}
                             }
                         }
                     }

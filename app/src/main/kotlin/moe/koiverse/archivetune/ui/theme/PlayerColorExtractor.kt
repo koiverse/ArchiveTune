@@ -26,44 +26,77 @@ object PlayerColorExtractor {
         fallbackColor: Int
     ): List<Color> = withContext(Dispatchers.Default) {
         
-        // Extract all available colors with priority for dominant colors
-        val colorCandidates = listOfNotNull(
-            palette.dominantSwatch, // High priority for dominant color
-            palette.vibrantSwatch,
-            palette.darkVibrantSwatch,
-            palette.lightVibrantSwatch,
-            palette.mutedSwatch,
-            palette.darkMutedSwatch,
-            palette.lightMutedSwatch
-        )
-
-        // Select best color based on weight (dominance + vibrancy)
-        val bestSwatch = colorCandidates.maxByOrNull { calculateColorWeight(it) }
-        val fallbackDominant = palette.dominantSwatch?.rgb?.let { Color(it) }
-            ?: Color(palette.getDominantColor(fallbackColor))
-
-        val primaryColor = if (bestSwatch != null) {
-            val bestColor = Color(bestSwatch.rgb)
-                var chosen = if (isColorVibrant(bestColor)) {
-                    enhanceColorVividness(bestColor, 1.3f)
-                } else {
-                    enhanceColorVividness(fallbackDominant, 1.1f)
-                }
-                chosen = darkenIfTooBright(chosen)
-                chosen
-        } else {
-            enhanceColorVividness(fallbackDominant, 1.1f)
+        // Extract multiple distinct colors from the palette
+        val vibrantColor = palette.vibrantSwatch?.rgb?.let { Color(it) }
+        val darkVibrantColor = palette.darkVibrantSwatch?.rgb?.let { Color(it) }
+        val lightVibrantColor = palette.lightVibrantSwatch?.rgb?.let { Color(it) }
+        val dominantColor = palette.dominantSwatch?.rgb?.let { Color(it) }
+        val mutedColor = palette.mutedSwatch?.rgb?.let { Color(it) }
+        val darkMutedColor = palette.darkMutedSwatch?.rgb?.let { Color(it) }
+        
+        // Build list of available distinct colors
+        val availableColors = mutableListOf<Color>()
+        
+        // Add vibrant colors first (more colorful)
+        vibrantColor?.let { availableColors.add(enhanceColorVividness(it, 1.3f)) }
+        lightVibrantColor?.let { 
+            if (!isSimilarColor(it, vibrantColor)) {
+                availableColors.add(enhanceColorVividness(it, 1.2f))
+            }
         }
-        val darkerFactor = Config.DARKER_VARIANT_FACTOR
-        listOf(
-            primaryColor,
-            primaryColor.copy(
-                red = (primaryColor.red * darkerFactor).coerceAtLeast(0f),
-                green = (primaryColor.green * darkerFactor).coerceAtLeast(0f),
-                blue = (primaryColor.blue * darkerFactor).coerceAtLeast(0f)
-            ),
-            Color.Black
-        )
+        darkVibrantColor?.let { 
+            if (!isSimilarColor(it, vibrantColor) && !isSimilarColor(it, lightVibrantColor)) {
+                availableColors.add(enhanceColorVividness(it, 1.2f))
+            }
+        }
+        
+        // Add muted/dominant colors if we need more variety
+        dominantColor?.let { 
+            if (availableColors.size < 3 && !isSimilarToAny(it, availableColors)) {
+                availableColors.add(enhanceColorVividness(it, 1.1f))
+            }
+        }
+        mutedColor?.let { 
+            if (availableColors.size < 3 && !isSimilarToAny(it, availableColors)) {
+                availableColors.add(enhanceColorVividness(it, 1.0f))
+            }
+        }
+        darkMutedColor?.let { 
+            if (availableColors.size < 3 && !isSimilarToAny(it, availableColors)) {
+                availableColors.add(enhanceColorVividness(it, 0.9f))
+            }
+        }
+        
+        // Return 3 distinct colors, or create darkened versions if not enough
+        when {
+            availableColors.size >= 3 -> {
+                listOf(availableColors[0], availableColors[1], availableColors[2])
+            }
+            availableColors.size == 2 -> {
+                listOf(
+                    availableColors[0],
+                    availableColors[1],
+                    darkenColor(availableColors[1], 0.5f)
+                )
+            }
+            availableColors.size == 1 -> {
+                val base = availableColors[0]
+                listOf(
+                    base,
+                    darkenColor(base, 0.7f),
+                    darkenColor(base, 0.4f)
+                )
+            }
+            else -> {
+                // Fallback: use fallback color
+                val base = Color(fallbackColor)
+                listOf(
+                    base,
+                    darkenColor(base, 0.7f),
+                    darkenColor(base, 0.4f)
+                )
+            }
+        }
     }
 
     /**
@@ -133,6 +166,42 @@ object PlayerColorExtractor {
         return populationWeight * vibrancyBonus * (saturation + brightness) / 2f
     }
 
+    /**
+     * Checks if two colors are similar (to avoid using nearly identical colors)
+     */
+    private fun isSimilarColor(color1: Color?, color2: Color?): Boolean {
+        if (color1 == null || color2 == null) return false
+        val threshold = 40 // RGB difference threshold
+        val r1 = (color1.red * 255).toInt()
+        val g1 = (color1.green * 255).toInt()
+        val b1 = (color1.blue * 255).toInt()
+        val r2 = (color2.red * 255).toInt()
+        val g2 = (color2.green * 255).toInt()
+        val b2 = (color2.blue * 255).toInt()
+        
+        return kotlin.math.abs(r1 - r2) < threshold && 
+               kotlin.math.abs(g1 - g2) < threshold && 
+               kotlin.math.abs(b1 - b2) < threshold
+    }
+    
+    /**
+     * Checks if a color is similar to any in a list
+     */
+    private fun isSimilarToAny(color: Color, colors: List<Color>): Boolean {
+        return colors.any { isSimilarColor(color, it) }
+    }
+    
+    /**
+     * Darkens a color by a factor
+     */
+    private fun darkenColor(color: Color, factor: Float): Color {
+        return color.copy(
+            red = (color.red * factor).coerceAtLeast(0f),
+            green = (color.green * factor).coerceAtLeast(0f),
+            blue = (color.blue * factor).coerceAtLeast(0f)
+        )
+    }
+    
     /**
      * Configuration constants for color extraction
      */

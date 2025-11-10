@@ -3,6 +3,7 @@ package moe.koiverse.archivetune.ui.screens.playlist
 import android.annotation.SuppressLint
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
@@ -66,7 +67,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.zIndex
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -91,7 +97,12 @@ import androidx.media3.exoplayer.offline.Download
 import androidx.media3.exoplayer.offline.DownloadRequest
 import androidx.media3.exoplayer.offline.DownloadService
 import androidx.navigation.NavController
+import androidx.palette.graphics.Palette
 import coil3.compose.AsyncImage
+import coil3.imageLoader
+import coil3.request.ImageRequest
+import coil3.request.allowHardware
+import coil3.toBitmap
 import moe.koiverse.archivetune.innertube.YouTube
 import moe.koiverse.archivetune.innertube.models.SongItem
 import moe.koiverse.archivetune.innertube.utils.completed
@@ -129,6 +140,7 @@ import moe.koiverse.archivetune.ui.component.SortHeader
 import moe.koiverse.archivetune.ui.component.TextFieldDialog
 import moe.koiverse.archivetune.ui.menu.SelectionSongMenu
 import moe.koiverse.archivetune.ui.menu.SongMenu
+import moe.koiverse.archivetune.ui.theme.PlayerColorExtractor
 import moe.koiverse.archivetune.ui.utils.ItemWrapper
 import moe.koiverse.archivetune.ui.utils.backToMain
 import moe.koiverse.archivetune.utils.makeTimeString
@@ -136,6 +148,7 @@ import moe.koiverse.archivetune.utils.rememberEnumPreference
 import moe.koiverse.archivetune.utils.rememberPreference
 import moe.koiverse.archivetune.viewmodels.LocalPlaylistViewModel
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 import java.time.LocalDateTime
@@ -434,9 +447,135 @@ fun LocalPlaylistScreen(
         }
     }
 
+    // Gradient colors state for playlist cover
+    var gradientColors by remember {
+        mutableStateOf<List<Color>>(emptyList())
+    }
+    
+    // Capture fallback color in composable context
+    val fallbackColor = MaterialTheme.colorScheme.surface.toArgb()
+    
+    // Extract gradient colors from playlist cover
+    LaunchedEffect(playlist?.thumbnails) {
+        val thumbnailUrl = playlist?.thumbnails?.firstOrNull()
+        if (thumbnailUrl != null) {
+            val request = ImageRequest.Builder(context)
+                .data(thumbnailUrl)
+                .size(PlayerColorExtractor.Config.IMAGE_SIZE, PlayerColorExtractor.Config.IMAGE_SIZE)
+                .allowHardware(false)
+                .build()
+
+            val result = runCatching { 
+                context.imageLoader.execute(request)
+            }.getOrNull()
+            
+            if (result != null) {
+                val bitmap = result.image?.toBitmap()
+                if (bitmap != null) {
+                    val palette = withContext(Dispatchers.Default) {
+                        Palette.from(bitmap)
+                            .maximumColorCount(PlayerColorExtractor.Config.MAX_COLOR_COUNT)
+                            .resizeBitmapArea(PlayerColorExtractor.Config.BITMAP_AREA)
+                            .generate()
+                    }
+                
+                    val extractedColors = PlayerColorExtractor.extractGradientColors(
+                        palette = palette,
+                        fallbackColor = fallbackColor
+                    )
+                    gradientColors = extractedColors
+                }
+            }
+        } else {
+            gradientColors = emptyList()
+        }
+    }
+    
+    // Calculate gradient opacity based on scroll position
+    val gradientAlpha by remember {
+        derivedStateOf {
+            if (lazyListState.firstVisibleItemIndex == 0) {
+                val offset = lazyListState.firstVisibleItemScrollOffset
+                // Fade out over 300dp of scrolling
+                (1f - (offset / 900f)).coerceIn(0f, 1f)
+            } else {
+                0f
+            }
+        }
+    }
+
     Box(
         modifier = Modifier.fillMaxSize(),
     ) {
+        // Mesh gradient background layer - behind everything, extends beyond top bar to play/shuffle buttons
+        if (gradientColors.isNotEmpty() && gradientAlpha > 0f) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .fillMaxSize(0.7f) // Cover top 70% to reach play/shuffle buttons
+                    .align(Alignment.TopCenter)
+                    .zIndex(-1f) // Place behind all content including top bar
+                    .drawBehind {
+                        val width = size.width
+                        val height = size.height
+                        
+                        // Create mesh gradient with multiple radial gradients at different positions
+                        if (gradientColors.size >= 3) {
+                            // First color blob - top left
+                            drawRect(
+                                brush = Brush.radialGradient(
+                                    colors = listOf(
+                                        gradientColors[0].copy(alpha = gradientAlpha * 0.7f),
+                                        gradientColors[0].copy(alpha = gradientAlpha * 0.4f),
+                                        Color.Transparent
+                                    ),
+                                    center = Offset(width * 0.2f, height * 0.15f),
+                                    radius = width * 0.6f
+                                )
+                            )
+                            
+                            // Second color blob - top right
+                            drawRect(
+                                brush = Brush.radialGradient(
+                                    colors = listOf(
+                                        gradientColors[1].copy(alpha = gradientAlpha * 0.6f),
+                                        gradientColors[1].copy(alpha = gradientAlpha * 0.35f),
+                                        Color.Transparent
+                                    ),
+                                    center = Offset(width * 0.8f, height * 0.25f),
+                                    radius = width * 0.7f
+                                )
+                            )
+                            
+                            // Third color blob - middle
+                            drawRect(
+                                brush = Brush.radialGradient(
+                                    colors = listOf(
+                                        gradientColors[2].copy(alpha = gradientAlpha * 0.5f),
+                                        gradientColors[2].copy(alpha = gradientAlpha * 0.25f),
+                                        Color.Transparent
+                                    ),
+                                    center = Offset(width * 0.5f, height * 0.5f),
+                                    radius = width * 0.8f
+                                )
+                            )
+                        } else {
+                            // Fallback: single radial gradient
+                            drawRect(
+                                brush = Brush.radialGradient(
+                                    colors = listOf(
+                                        gradientColors[0].copy(alpha = gradientAlpha * 0.7f),
+                                        gradientColors[0].copy(alpha = gradientAlpha * 0.4f),
+                                        Color.Transparent
+                                    ),
+                                    center = Offset(width * 0.5f, height * 0.3f),
+                                    radius = width * 0.8f
+                                )
+                            )
+                        }
+                    }
+            ) {}
+        }
         LazyColumn(
             state = lazyListState,
             contentPadding = LocalPlayerAwareWindowInsets.current.union(WindowInsets.ime).asPaddingValues(),
@@ -775,6 +914,10 @@ fun LocalPlaylistScreen(
         )
 
         TopAppBar(
+            colors = androidx.compose.material3.TopAppBarDefaults.topAppBarColors(
+                containerColor = if (showTopBarTitle) MaterialTheme.colorScheme.surface else Color.Transparent,
+                scrolledContainerColor = MaterialTheme.colorScheme.surface
+            ),
             title = {
                 if (selection) {
                     val count = wrappedSongs.count { it.isSelected }
@@ -1224,7 +1367,7 @@ fun LocalPlaylistHeader(
                 Text(stringResource(R.string.play))
             }
 
-            OutlinedButton(
+            Button(
                 onClick = {
                     playerConnection.playQueue(
                         ListQueue(
