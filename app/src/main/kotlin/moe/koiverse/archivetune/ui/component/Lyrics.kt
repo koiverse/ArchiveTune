@@ -877,8 +877,8 @@ fun Lyrics(
                                     val wordEndMs = (word.endTime * 1000).toLong()
                                     val wordDuration = wordEndMs - wordStartMs
                                     
-                                    val isWordActive = isActiveLine && currentPlaybackPosition >= wordStartMs && currentPlaybackPosition <= wordEndMs
-                                    val hasWordPassed = isActiveLine && currentPlaybackPosition > wordEndMs
+                                    val isWordActive = isActiveLine && currentPlaybackPosition >= wordStartMs && currentPlaybackPosition < wordEndMs
+                                    val hasWordPassed = isActiveLine && currentPlaybackPosition >= wordEndMs
                                     
                                     if (isWordActive && wordDuration > 0) {
                                         // Calculate fill progress - INSTANT, NO DELAY
