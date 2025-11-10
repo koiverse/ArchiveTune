@@ -245,7 +245,16 @@ class MainActivity : ComponentActivity() {
 
     override fun onStart() {
         super.onStart()
-        startService(Intent(this, MusicService::class.java))
+        try {
+            val startIntent = Intent(this, MusicService::class.java)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                androidx.core.content.ContextCompat.startForegroundService(this, startIntent)
+            } else {
+                startService(startIntent)
+            }
+        } catch (e: Exception) {
+            reportException(e)
+        }
         bindService(
             Intent(this, MusicService::class.java),
             serviceConnection,
@@ -1322,17 +1331,42 @@ class MainActivity : ComponentActivity() {
                 
                 val playlistId = uri.getQueryParameter("list")
 
-                videoId?.let {
+                videoId?.let { vid ->
                     coroutineScope.launch {
-                        withContext(Dispatchers.IO) {
-                            YouTube.queue(listOf(it), playlistId)
-                        }.onSuccess {
-                            playerConnection?.playQueue(
-                                YouTubeQueue(
-                                    WatchEndpoint(videoId = it.firstOrNull()?.id, playlistId = playlistId),
-                                    it.firstOrNull()?.toMediaMetadata()
-                                )
-                            )
+                        val result = withContext(Dispatchers.IO) {
+                            YouTube.queue(listOf(vid), playlistId)
+                        }
+
+                        result.onSuccess { queued ->
+                            coroutineScope.launch {
+                                val timeoutMs = 3000L
+                                var waited = 0L
+                                val step = 100L
+                                while (playerConnection == null && waited < timeoutMs) {
+                                    delay(step)
+                                    waited += step
+                                }
+
+                                if (playerConnection != null) {
+                                    playerConnection?.playQueue(
+                                        YouTubeQueue(
+                                            WatchEndpoint(videoId = queued.firstOrNull()?.id, playlistId = playlistId),
+                                            queued.firstOrNull()?.toMediaMetadata()
+                                        )
+                                    )
+                                } else {
+                                    try {
+                                        val startIntent = Intent(this@MainActivity, MusicService::class.java)
+                                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                                            androidx.core.content.ContextCompat.startForegroundService(this@MainActivity, startIntent)
+                                        } else {
+                                            startService(startIntent)
+                                        }
+                                    } catch (e: Exception) {
+                                        reportException(e)
+                                    }
+                                }
+                            }
                         }.onFailure {
                             reportException(it)
                         }

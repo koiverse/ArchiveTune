@@ -31,6 +31,7 @@
     <string name="your_youtube_playlists">YouTube 재생 목록</string>
     <string name="similar_to">유사함</string>
     <string name="new_release_albums">새 릴리스 앨범</string>
+    <string name="select_playlist_to_sync">동기화할 재생 목록 선택</string>
 
     <!-- History -->
     <string name="today">오늘</string>
@@ -50,6 +51,7 @@
     <string name="filter_library">라이브러리</string>
     <string name="filter_liked">좋아요 표시됨</string>
     <string name="filter_downloaded">다운로드됨</string>
+    <string name="filter_downloaded_full">다운로드됨 (전체)</string>
     <string name="filter_all">모두</string>
     <string name="filter_songs">노래</string>
     <string name="filter_videos">동영상</string>
@@ -101,6 +103,7 @@
     <string name="downloading">다운로드 중</string>
     <string name="remove_download">다운로드 제거</string>
     <string name="import_playlist">가져오기 재생목록</string>
+    <string name="update_button">업데이트</string>
     <string name="add_to_playlist">재생목록에 추가</string>
     <string name="view_artist">보기 아티스트</string>
     <string name="view_album">앨범 보기</string>

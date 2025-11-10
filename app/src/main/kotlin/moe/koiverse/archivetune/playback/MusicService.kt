@@ -162,6 +162,11 @@ import kotlin.math.min
 import kotlin.math.pow
 import kotlin.time.Duration.Companion.seconds
 import timber.log.Timber
+import androidx.core.app.NotificationCompat
+import android.app.Notification
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.os.Build
 
 @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
 @AndroidEntryPoint
@@ -260,24 +265,53 @@ class MusicService :
                     setSmallIcon(R.drawable.small_icon)
                 },
         )
-        player =
-            ExoPlayer
-                .Builder(this)
-                .setMediaSourceFactory(createMediaSourceFactory())
-                .setRenderersFactory(createRenderersFactory())
-                .setHandleAudioBecomingNoisy(true)
-                .setWakeMode(C.WAKE_MODE_NETWORK)
-                .setAudioAttributes(
-                    AudioAttributes
-                        .Builder()
-                        .setUsage(C.USAGE_MEDIA)
-                        .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
-                        .build(),
-                    false,
-                ).setSeekBackIncrementMs(5000)
-                .setSeekForwardIncrementMs(5000)
-                .build()
-                .apply {
+        player = ExoPlayer
+            .Builder(this)
+            .setMediaSourceFactory(createMediaSourceFactory())
+            .setRenderersFactory(createRenderersFactory())
+            .setHandleAudioBecomingNoisy(true)
+            .setWakeMode(C.WAKE_MODE_NETWORK)
+            .setAudioAttributes(
+                AudioAttributes.Builder()
+                    .setUsage(C.USAGE_MEDIA)
+                    .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
+                    .build(),
+                false
+            )
+            .setSeekBackIncrementMs(5000)
+            .setSeekForwardIncrementMs(5000)
+            .build()
+
+                try {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        val nm = getSystemService(NotificationManager::class.java)
+                        nm?.createNotificationChannel(
+                            NotificationChannel(
+                                CHANNEL_ID,
+                                getString(R.string.music_player),
+                                NotificationManager.IMPORTANCE_LOW
+                            )
+                        )
+                    }
+                    val pending = PendingIntent.getActivity(
+                        this,
+                        0,
+                        Intent(this, MainActivity::class.java),
+                        PendingIntent.FLAG_IMMUTABLE
+                    )
+                    val notification: Notification = NotificationCompat.Builder(this, CHANNEL_ID)
+                        .setContentTitle(getString(R.string.music_player))
+                        .setContentText("")
+                        .setSmallIcon(R.drawable.small_icon)
+                        .setContentIntent(pending)
+                        .setOngoing(true)
+                        .build()
+                    startForeground(NOTIFICATION_ID, notification)
+                } catch (e: Exception) {
+                    reportException(e)
+                }
+
+                player.apply {
                     addListener(this@MusicService)
                     sleepTimer = SleepTimer(scope, this)
                     addListener(sleepTimer)
@@ -818,7 +852,6 @@ class MusicService :
                 withContext(Dispatchers.IO) {
                     queue.getInitialStatus().filterExplicit(dataStore.get(HideExplicitKey, false))
                 }
-            if (queue.preloadItem != null && player.playbackState == STATE_IDLE) return@launch
             if (initialStatus.title != null) {
                 queueTitle = initialStatus.title
             }
@@ -1213,6 +1246,38 @@ class MusicService :
 
         if (!isNetworkConnected.value || isConnectionError) {
             waitOnNetworkError()
+            return
+        }
+
+        val skipSilenceCurrentlyEnabled = dataStore.get(SkipSilenceKey, false)
+        val causeText = (error.cause?.stackTraceToString() ?: error.stackTraceToString()).lowercase()
+        val looksLikeSilenceProcessor = skipSilenceCurrentlyEnabled && (
+            "silenceskippingaudioprocessor" in causeText || "silence" in causeText
+        )
+
+        if (looksLikeSilenceProcessor) {
+            scope.launch {
+                try {
+                    dataStore.edit { settings ->
+                        settings[SkipSilenceKey] = false
+                    }
+                    player.skipSilenceEnabled = false
+                    val currentPos = player.currentPosition
+                    val targetPos = min(currentPos + 1500L, if (player.duration > 0) player.duration - 1000L else currentPos + 1500L)
+                    player.seekTo(targetPos)
+                    player.prepare()
+                    player.play()
+                    return@launch
+                } catch (t: Throwable) {
+                    Timber.tag("MusicService").e(t, "failed to recover from silence-skipper error")
+                }
+                if (dataStore.get(AutoSkipNextOnErrorKey, false)) {
+                    skipOnError()
+                } else {
+                    stopOnError()
+                }
+            }
+
             return
         }
 

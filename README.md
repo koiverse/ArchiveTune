@@ -10,6 +10,10 @@ Powered Forked [Metrolist](https://github.com/mostafaalagamy/Metrolist) But With
 ![IzzyDroid](https://shields.rbtlog.dev/simple/moe.koiverse.archivetune?style=for-the-badge)
 
 
+<!-- use "⠀⠀" for spacing -->
+[<img src="https://raw.githubusercontent.com/koiverse/ArchiveTune/refs/heads/dev/assets/badge_github.png" alt="Get it on GitHub" height="40">](https://github.com/koiverse/ArchiveTune/releases/latest)⠀⠀[<img src="https://raw.githubusercontent.com/koiverse/ArchiveTune/ad8a549d0474839acae0f5340a11be2fcb6636ea/assets/IzzyOnDroidButtonBorder.svg" alt="Get it on IzzyOnDroid" height="40">](https://apt.izzysoft.de/fdroid/index/apk/moe.koiverse.archivetune)  [<img src="https://www.openapk.net/images/openapk-badge.png" alt="Get it on OpenAPK" height="50">](https://www.openapk.net/archivetune/moe.koiverse.archivetune/)
+
+
 > [!WARNING]
 > ArchiveTune is in a "stable beta" phase. While this app can certainly be used as your main music player, be aware there is a possibility of bugs, incomplete features, or any other unexpected behaviour.
 

@@ -31,6 +31,7 @@
     <string name="your_youtube_playlists">Deine YouTube-Playlists</string>
     <string name="similar_to">Ähnlich</string>
     <string name="new_release_albums">Neue Veröffentlichungsalben</string>
+    <string name="select_playlist_to_sync">Wählen Sie eine Playlist zum Synchronisieren</string>
 
     <!-- History -->
     <string name="today">Heute</string>
@@ -50,6 +51,7 @@
     <string name="filter_library">Bibliothek</string>
     <string name="filter_liked">Gefallen</string>
     <string name="filter_downloaded">Heruntergeladen</string>
+    <string name="filter_downloaded_full">Heruntergeladen (Vollständig)</string>
     <string name="filter_all">Alle</string>
     <string name="filter_songs">Lieder</string>
     <string name="filter_videos">Videos</string>
@@ -101,6 +103,7 @@
     <string name="downloading">Herunterladen</string>
     <string name="remove_download">Download entfernen</string>
     <string name="import_playlist">Playlist importieren</string>
+    <string name="update_button">Aktualisieren</string>
     <string name="add_to_playlist">Zur Playlist hinzufügen</string>
     <string name="view_artist">Künstler ansehen</string>
     <string name="view_album">Album ansehen</string>

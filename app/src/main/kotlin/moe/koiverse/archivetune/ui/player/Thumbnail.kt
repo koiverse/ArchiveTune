@@ -361,7 +361,7 @@ fun Thumbnail(
                                             )
                                         }
                                     } else {
-                                        // Blurred background
+                                        // Blurred 
                                         AsyncImage(
                                             model = item.mediaMetadata.artworkUri?.toString(),
                                             contentDescription = null,
@@ -369,8 +369,8 @@ fun Thumbnail(
                                             modifier = Modifier
                                                 .fillMaxSize()
                                                 .graphicsLayer(
-                                                    renderEffect = BlurEffect(radiusX = 75f, radiusY = 75f),
-                                                    alpha = 0.5f
+                                                    renderEffect = BlurEffect(radiusX = 60f, radiusY = 60f),
+                                                    alpha = 0.6f
                                                 )
                                         )
 

@@ -78,8 +78,11 @@ object NewPipeUtils {
 
     fun getStreamUrl(format: PlayerResponse.StreamingData.Format, videoId: String): Result<String> =
         runCatching {
-            val url = format.url ?: format.signatureCipher?.let { signatureCipher ->
-                val params = parseQueryString(signatureCipher)
+            val url = format.url ?: run {
+                val cipherString = format.signatureCipher ?: format.cipher
+                if (cipherString == null) throw ParsingException("Could not find format url")
+
+                val params = parseQueryString(cipherString)
                 val obfuscatedSignature = params["s"]
                     ?: throw ParsingException("Could not parse cipher signature")
                 val signatureParam = params["sp"]
@@ -92,7 +95,7 @@ object NewPipeUtils {
                         obfuscatedSignature
                     )
                 url.toString()
-            } ?: throw ParsingException("Could not find format url")
+            }
 
             return@runCatching YoutubeJavaScriptPlayerManager.getUrlWithThrottlingParameterDeobfuscated(
                 videoId,

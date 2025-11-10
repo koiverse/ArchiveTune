@@ -31,6 +31,7 @@
     <string name="your_youtube_playlists">YouTubeプレイリスト</string>
     <string name="similar_to">類似</string>
     <string name="new_release_albums">ニューリリースアルバム</string>
+    <string name="select_playlist_to_sync">同期するプレイリストを選択</string>
 
     <!-- History -->
     <string name="today">今日</string>
@@ -50,6 +51,7 @@
     <string name="filter_library">ライブラリ</string>
     <string name="filter_liked">高評価</string>
     <string name="filter_downloaded">ダウンロード済み</string>
+    <string name="filter_downloaded_full">ダウンロード済み (完全)</string>
     <string name="filter_all">すべて</string>
     <string name="filter_songs">曲</string>
     <string name="filter_videos">ビデオ</string>
@@ -101,6 +103,7 @@
     <string name="downloading">ダウンロード中</string>
     <string name="remove_download">ダウンロードを削除</string>
     <string name="import_playlist">プレイリストをインポート</string>
+    <string name="update_button">更新</string>
     <string name="add_to_playlist">追加 プレイリスト</string>
     <string name="view_artist">アーティストの表示</string>
     <string name="view_album">アルバムの表示</string>

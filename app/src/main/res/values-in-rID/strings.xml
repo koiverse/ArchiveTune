@@ -31,6 +31,7 @@
     <string name="your_youtube_playlists">Daftar putar YouTube Anda</string>
     <string name="similar_to">Mirip dengan</string>
     <string name="new_release_albums">Rilisan baru album</string>
+    <string name="select_playlist_to_sync">Pilih daftar putar untuk sinkronisasi</string>
 
     <!-- History -->
     <string name="today">Hari ini</string>
@@ -50,6 +51,7 @@
     <string name="filter_library">Perpustakaan</string>
     <string name="filter_liked">Disukai</string>
     <string name="filter_downloaded">Diunduh</string>
+    <string name="filter_downloaded_full">Diunduh (Semua)</string>
     <string name="filter_all">Semua</string>
     <string name="filter_songs">Lagu</string>
     <string name="filter_videos">Video</string>
@@ -101,6 +103,7 @@
     <string name="downloading">Mengunduh</string>
     <string name="remove_download">Hapus unduhan</string>
     <string name="import_playlist">Impor daftar putar</string>
+    <string name="update_button">Perbarui</string>
     <string name="add_to_playlist">Tambahkan ke playlist</string>
     <string name="view_artist">Lihat artis</string>
     <string name="view_album">Lihat album</string>

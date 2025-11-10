@@ -123,6 +123,12 @@ fun LibraryPlaylistsScreen(
 
     val playlists by viewModel.allPlaylists.collectAsState()
 
+    val visiblePlaylists = playlists.distinctBy { it.id }
+        .filter { playlist ->
+            val name = playlist.playlist.name ?: ""
+            !name.contains("episode", ignoreCase = true)
+        }
+
     val topSize by viewModel.topValue.collectAsState(initial = 50)
 
     val likedPlaylist =
@@ -527,25 +533,23 @@ fun LibraryPlaylistsScreen(
                         }
                     }
 
-                    playlists.let { playlists ->
-                        if (playlists.isEmpty()) {
-                            item {
-                            }
+                    if (visiblePlaylists.isEmpty()) {
+                        item {
                         }
+                    }
 
-                        items(
-                            items = playlists.distinctBy { it.id },
-                            key = { it.id },
-                            contentType = { CONTENT_TYPE_PLAYLIST },
-                        ) { playlist ->
-                            LibraryPlaylistListItem(
-                                navController = navController,
-                                menuState = menuState,
-                                coroutineScope = coroutineScope,
-                                playlist = playlist,
-                                modifier = Modifier.animateItem()
-                            )
-                        }
+                    items(
+                        items = visiblePlaylists,
+                        key = { it.id },
+                        contentType = { CONTENT_TYPE_PLAYLIST },
+                    ) { playlist ->
+                        LibraryPlaylistListItem(
+                            navController = navController,
+                            menuState = menuState,
+                            coroutineScope = coroutineScope,
+                            playlist = playlist,
+                            modifier = Modifier.animateItem()
+                        )
                     }
                 }
 
@@ -671,25 +675,23 @@ fun LibraryPlaylistsScreen(
                         }
                     }
 
-                    playlists.let { playlists ->
-                        if (playlists.isEmpty()) {
-                            item(span = { GridItemSpan(maxLineSpan) }) {
-                            }
+                    if (visiblePlaylists.isEmpty()) {
+                        item(span = { GridItemSpan(maxLineSpan) }) {
                         }
+                    }
 
-                        items(
-                            items = playlists.distinctBy { it.id },
-                            key = { it.id },
-                            contentType = { CONTENT_TYPE_PLAYLIST },
-                        ) { playlist ->
-                            LibraryPlaylistGridItem(
-                                navController = navController,
-                                menuState = menuState,
-                                coroutineScope = coroutineScope,
-                                playlist = playlist,
-                                modifier = Modifier.animateItem()
-                            )
-                        }
+                    items(
+                        items = visiblePlaylists,
+                        key = { it.id },
+                        contentType = { CONTENT_TYPE_PLAYLIST },
+                    ) { playlist ->
+                        LibraryPlaylistGridItem(
+                            navController = navController,
+                            menuState = menuState,
+                            coroutineScope = coroutineScope,
+                            playlist = playlist,
+                            modifier = Modifier.animateItem()
+                        )
                     }
                 }
 
