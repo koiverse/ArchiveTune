@@ -83,6 +83,7 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
@@ -655,10 +656,8 @@ class MainActivity : ComponentActivity() {
                                     TextRange(searchQuery.length)
                                 )
                             )
-                        } else if (navigationItems.fastAny { it.route == navBackStackEntry?.destination?.route }) {
+                        } else if (navigationItems.fastAny { it.route == navBackStackEntry?.destination?.route } || navBackStackEntry?.destination?.route in topLevelScreens) {
                             onQueryChange(TextFieldValue())
-                            // Keep TopAppBar hidden when navigating back to home/library - only show when scrolled to top
-                            // Don't reset scroll offset on homepage to keep it transparent
                             if (navBackStackEntry?.destination?.route != Screens.Home.route) {
                                 searchBarScrollBehavior.state.resetHeightOffset()
                                 topAppBarScrollBehavior.state.resetHeightOffset()
@@ -824,7 +823,9 @@ class MainActivity : ComponentActivity() {
                         Scaffold(
                             topBar = {
                                 if (shouldShowTopBar) {
+                                    val isHomeTop = navBackStackEntry?.destination?.route == Screens.Home.route
                                     TopAppBar(
+                                        modifier = if (isHomeTop) Modifier.blur(12.dp) else Modifier,
                                         title = {
                                             Row(verticalAlignment = Alignment.CenterVertically) {
                                                 // app icon
@@ -885,10 +886,10 @@ class MainActivity : ComponentActivity() {
                                                 }
                                             }
                                         },
-                                        scrollBehavior = if (navBackStackEntry?.destination?.route == Screens.Home.route) searchBarScrollBehavior else null,
+                                        scrollBehavior = if (isHomeTop) searchBarScrollBehavior else topAppBarScrollBehavior,
                                         colors = TopAppBarDefaults.topAppBarColors(
-                                            containerColor = if (navBackStackEntry?.destination?.route == Screens.Home.route) Color.Transparent else if (pureBlack) Color.Black else MaterialTheme.colorScheme.surface,
-                                            scrolledContainerColor = if (navBackStackEntry?.destination?.route == Screens.Home.route) Color.Transparent else if (pureBlack) Color.Black else MaterialTheme.colorScheme.surface,
+                                            containerColor = if (isHomeTop) MaterialTheme.colorScheme.surface.copy(alpha = 0.55f) else if (pureBlack) Color.Black else MaterialTheme.colorScheme.surface,
+                                            scrolledContainerColor = if (isHomeTop) MaterialTheme.colorScheme.surface.copy(alpha = 0.65f) else if (pureBlack) Color.Black else MaterialTheme.colorScheme.surface,
                                             titleContentColor = MaterialTheme.colorScheme.onSurface,
                                             actionIconContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                                             navigationIconContentColor = MaterialTheme.colorScheme.onSurfaceVariant
