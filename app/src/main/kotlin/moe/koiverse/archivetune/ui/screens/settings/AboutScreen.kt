@@ -414,13 +414,13 @@ fun AboutScreen(
                                 if (chromaticAberration > 0f) {
                                     // Red channel
                                     translate(left = -chromaticAberration, top = 0f) {
-                                        drawContent()
+                                        this@drawWithContent.drawContent()
                                     }
                                     // Green channel (normal position)
                                     drawContent()
                                     // Blue channel
                                     translate(left = chromaticAberration, top = 0f) {
-                                        drawContent()
+                                        this@drawWithContent.drawContent()
                                     }
                                 } else {
                                     drawContent()
