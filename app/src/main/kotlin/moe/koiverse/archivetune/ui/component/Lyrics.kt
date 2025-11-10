@@ -867,11 +867,7 @@ fun Lyrics(
                                 lineHeight = (lyricsTextSize * 1.3f).sp
                             )
                         } else if (hasWordTimings && item.words != null && lyricsAnimationStyle == LyricsAnimationStyle.SLIDE) {
-                            // SLIDE MODE: Karaoke-style gradient slide/fill with pulsing glow (like line-synced)
-                            
-                            // Calculate pulse for glow animation (cycles every 3 seconds)
-                            val pulseValue = remember { (currentPlaybackPosition % 3000) / 3000f }
-                            val pulseEffect = (kotlin.math.sin(pulseValue * Math.PI.toFloat() * 2f) * 0.15f).coerceIn(0f, 0.15f)
+                            // SLIDE MODE: Karaoke-style gradient slide/fill with adaptive pulsing glow
                             
                             val styledText = buildAnnotatedString {
                                 item.words.forEachIndexed { wordIndex, word ->
@@ -887,7 +883,14 @@ fun Lyrics(
                                         val timeElapsed = currentPlaybackPosition - wordStartMs
                                         val fillProgress = (timeElapsed.toFloat() / wordDuration.toFloat()).coerceIn(0f, 1f)
                                         
-                                        // Smooth glow gradient with pulsing effect (same as line-synced SLIDE)
+                                        // Adaptive pulse based on word duration
+                                        // Fast words (< 500ms): faster pulse cycle
+                                        // Slow words (> 2000ms): slower pulse cycle
+                                        val pulseCycleDuration = wordDuration.toFloat().coerceIn(300f, 2000f)
+                                        val pulseValue = (timeElapsed % pulseCycleDuration) / pulseCycleDuration
+                                        val pulseEffect = (kotlin.math.sin(pulseValue * Math.PI.toFloat() * 2f) * 0.15f).coerceIn(0f, 0.15f)
+                                        
+                                        // Smooth glow gradient with adaptive pulsing effect
                                         val glowIntensity = (fillProgress + pulseEffect).coerceIn(0f, 1.2f)
                                         val wordBrush = Brush.horizontalGradient(
                                             0.0f to expressiveAccent.copy(alpha = 0.3f),
@@ -1094,7 +1097,7 @@ fun Lyrics(
                             val romanizedText by item.romanizedTextFlow.collectAsState()
                             romanizedText?.let { romanized ->
                                 // Apply same word-synced animation to romanization when available
-                                if (hasWordTimings && item.words != null && isActiveLine && (lyricsAnimationStyle == LyricsAnimationStyle.FADE || lyricsAnimationStyle == LyricsAnimationStyle.GLOW)) {
+                                if (hasWordTimings && item.words != null && isActiveLine && lyricsAnimationStyle != LyricsAnimationStyle.NONE) {
                                     // Build romanized text with word sync (split by spaces to roughly match main lyrics)
                                     val romanizedWords = romanized.split(" ")
                                     val mainWords = item.words
@@ -1111,20 +1114,114 @@ fun Lyrics(
                                                 val isWordActive = currentPlaybackPosition in wordStartMs..wordEndMs
                                                 val hasWordPassed = currentPlaybackPosition > wordEndMs
                                                 
-                                                val romColor = when {
-                                                    !isActiveLine -> expressiveAccent.copy(alpha = 0.5f)
-                                                    isWordActive -> expressiveAccent.copy(alpha = 0.8f) // Bright during active
-                                                    hasWordPassed -> expressiveAccent.copy(alpha = 0.7f)
-                                                    else -> expressiveAccent.copy(alpha = 0.4f) // Dim for future words
-                                                }
-                                                
-                                                withStyle(
-                                                    style = SpanStyle(
-                                                        color = romColor,
-                                                        fontWeight = if (isWordActive) FontWeight.SemiBold else FontWeight.Normal
-                                                    )
-                                                ) {
-                                                    append(romWord)
+                                                // Apply the same animation mode logic to romanization
+                                                when (lyricsAnimationStyle) {
+                                                    LyricsAnimationStyle.FADE -> {
+                                                        val wordDuration = wordEndMs - wordStartMs
+                                                        val fadeProgress = if (isWordActive && wordDuration > 0) {
+                                                            val timeElapsed = currentPlaybackPosition - wordStartMs
+                                                            (timeElapsed.toFloat() / wordDuration.toFloat()).coerceIn(0f, 1f)
+                                                        } else if (hasWordPassed) {
+                                                            1f
+                                                        } else {
+                                                            0f
+                                                        }
+                                                        val romAlpha = 0.3f + (0.5f * fadeProgress)
+                                                        
+                                                        withStyle(
+                                                            style = SpanStyle(
+                                                                color = expressiveAccent.copy(alpha = romAlpha),
+                                                                fontWeight = if (hasWordPassed || isWordActive) FontWeight.SemiBold else FontWeight.Normal
+                                                            )
+                                                        ) {
+                                                            append(romWord)
+                                                        }
+                                                    }
+                                                    LyricsAnimationStyle.SLIDE -> {
+                                                        val wordDuration = wordEndMs - wordStartMs
+                                                        if (isWordActive && wordDuration > 0) {
+                                                            val timeElapsed = currentPlaybackPosition - wordStartMs
+                                                            val fillProgress = (timeElapsed.toFloat() / wordDuration.toFloat()).coerceIn(0f, 1f)
+                                                            
+                                                            val romBrush = Brush.horizontalGradient(
+                                                                0.0f to expressiveAccent.copy(alpha = 0.3f),
+                                                                (fillProgress * 0.7f).coerceIn(0f, 1f) to expressiveAccent.copy(alpha = 0.7f),
+                                                                fillProgress to expressiveAccent.copy(alpha = 0.8f),
+                                                                (fillProgress + 0.1f).coerceIn(0f, 1f) to expressiveAccent.copy(alpha = 0.6f),
+                                                                1.0f to expressiveAccent.copy(alpha = if (fillProgress >= 1f) 0.8f else 0.3f)
+                                                            )
+                                                            
+                                                            withStyle(
+                                                                style = SpanStyle(
+                                                                    brush = romBrush,
+                                                                    fontWeight = FontWeight.SemiBold
+                                                                )
+                                                            ) {
+                                                                append(romWord)
+                                                            }
+                                                        } else {
+                                                            val romColor = when {
+                                                                hasWordPassed -> expressiveAccent.copy(alpha = 0.7f)
+                                                                else -> expressiveAccent.copy(alpha = 0.3f)
+                                                            }
+                                                            withStyle(
+                                                                style = SpanStyle(
+                                                                    color = romColor,
+                                                                    fontWeight = if (hasWordPassed) FontWeight.SemiBold else FontWeight.Normal
+                                                                )
+                                                            ) {
+                                                                append(romWord)
+                                                            }
+                                                        }
+                                                    }
+                                                    LyricsAnimationStyle.GLOW -> {
+                                                        val wordDuration = wordEndMs - wordStartMs
+                                                        val fillProgress = if (isWordActive && wordDuration > 0) {
+                                                            val timeElapsed = currentPlaybackPosition - wordStartMs
+                                                            (timeElapsed.toFloat() / wordDuration.toFloat()).coerceIn(0f, 1f)
+                                                        } else if (hasWordPassed) {
+                                                            1f
+                                                        } else {
+                                                            0f
+                                                        }
+                                                        
+                                                        val romAlpha = 0.4f + (0.4f * fillProgress)
+                                                        val romShadow = if (isWordActive && fillProgress > 0.05f) {
+                                                            Shadow(
+                                                                color = expressiveAccent.copy(alpha = 0.5f * fillProgress),
+                                                                offset = Offset.Zero,
+                                                                blurRadius = 10f * fillProgress
+                                                            )
+                                                        } else null
+                                                        
+                                                        withStyle(
+                                                            style = SpanStyle(
+                                                                color = expressiveAccent.copy(alpha = romAlpha),
+                                                                fontWeight = if (isWordActive) FontWeight.SemiBold else FontWeight.Normal,
+                                                                shadow = romShadow
+                                                            )
+                                                        ) {
+                                                            append(romWord)
+                                                        }
+                                                    }
+                                                    else -> {
+                                                        // NONE mode - default behavior
+                                                        val romColor = when {
+                                                            !isActiveLine -> expressiveAccent.copy(alpha = 0.5f)
+                                                            isWordActive -> expressiveAccent.copy(alpha = 0.8f)
+                                                            hasWordPassed -> expressiveAccent.copy(alpha = 0.7f)
+                                                            else -> expressiveAccent.copy(alpha = 0.4f)
+                                                        }
+                                                        
+                                                        withStyle(
+                                                            style = SpanStyle(
+                                                                color = romColor,
+                                                                fontWeight = if (isWordActive) FontWeight.SemiBold else FontWeight.Normal
+                                                            )
+                                                        ) {
+                                                            append(romWord)
+                                                        }
+                                                    }
                                                 }
                                             } else {
                                                 withStyle(
