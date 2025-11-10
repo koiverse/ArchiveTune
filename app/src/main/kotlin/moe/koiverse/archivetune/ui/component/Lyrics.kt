@@ -722,22 +722,18 @@ fun Lyrics(
                         } else if (hasWordTimings && item.words != null && lyricsAnimationStyle == LyricsAnimationStyle.FADE) {
                             // FADE MODE: Smooth fade-in animation for each word (karaoke-style horizontal gradient)
                             
-                            // Get player position DIRECTLY
-                            val sliderPos = sliderPositionProvider()
-                            val currentPosition = sliderPos ?: playerConnection.player.currentPosition
-                            
                             val styledText = buildAnnotatedString {
                                 item.words.forEachIndexed { wordIndex, word ->
                                     val wordStartMs = (word.startTime * 1000).toLong()
                                     val wordEndMs = (word.endTime * 1000).toLong()
                                     val wordDuration = wordEndMs - wordStartMs
                                     
-                                    val isWordActive = isActiveLine && currentPosition >= wordStartMs && currentPosition <= wordEndMs
-                                    val hasWordPassed = isActiveLine && currentPosition > wordEndMs
+                                    val isWordActive = isActiveLine && currentPlaybackPosition >= wordStartMs && currentPlaybackPosition <= wordEndMs
+                                    val hasWordPassed = isActiveLine && currentPlaybackPosition > wordEndMs
                                     
                                     if (isWordActive && wordDuration > 0) {
                                         // Calculate fill progress - INSTANT, NO DELAY
-                                        val timeElapsed = currentPosition - wordStartMs
+                                        val timeElapsed = currentPlaybackPosition - wordStartMs
                                         val fillProgress = (timeElapsed.toFloat() / wordDuration.toFloat()).coerceIn(0f, 1f)
                                         
                                         // Sharp karaoke gradient with minimal transition width
@@ -771,8 +767,8 @@ fun Lyrics(
                                         
                                         val wordWeight = when {
                                             !isActiveLine -> FontWeight.Bold
-                                            hasWordPassed -> FontWeight.Bold
-                                            else -> FontWeight.Normal
+                                            hasWordPassed -> FontWeight.ExtraBold
+                                            else -> FontWeight.Bold // Future words stay bold, not thin
                                         }
                                         
                                         withStyle(
@@ -884,11 +880,7 @@ fun Lyrics(
                                 lineHeight = (lyricsTextSize * 1.3f).sp
                             )
                         } else if (hasWordTimings && item.words != null && lyricsAnimationStyle == LyricsAnimationStyle.SLIDE) {
-                            // SLIDE MODE: Word-by-word pop-in animation with subtle scale effect
-                            
-                            // Get player position DIRECTLY
-                            val sliderPos = sliderPositionProvider()
-                            val currentPosition = sliderPos ?: playerConnection.player.currentPosition
+                            // SLIDE MODE: Word-by-word bouncy pop animation
                             
                             val styledText = buildAnnotatedString {
                                 item.words.forEachIndexed { wordIndex, word ->
@@ -896,41 +888,78 @@ fun Lyrics(
                                     val wordEndMs = (word.endTime * 1000).toLong()
                                     val wordDuration = wordEndMs - wordStartMs
                                     
-                                    val isWordActive = isActiveLine && currentPosition >= wordStartMs && currentPosition <= wordEndMs
-                                    val hasWordPassed = isActiveLine && currentPosition > wordEndMs
+                                    val isWordActive = isActiveLine && currentPlaybackPosition >= wordStartMs && currentPlaybackPosition <= wordEndMs
+                                    val hasWordPassed = isActiveLine && currentPlaybackPosition > wordEndMs
                                     
-                                    // Calculate pop-in progress for active word
+                                    // Calculate bouncy pop-in progress with overshoot
                                     val popProgress = if (isWordActive && wordDuration > 0) {
-                                        val timeElapsed = currentPosition - wordStartMs
-                                        // Quick pop-in at start (first 20% of word duration)
-                                        ((timeElapsed.toFloat() / (wordDuration * 0.2f))).coerceIn(0f, 1f)
+                                        val timeElapsed = currentPlaybackPosition - wordStartMs
+                                        // Pop animation happens in first 25% of word duration
+                                        val progress = (timeElapsed.toFloat() / (wordDuration * 0.25f)).coerceIn(0f, 1f)
+                                        
+                                        // Elastic bounce: overshoots then settles
+                                        if (progress < 0.5f) {
+                                            // First half: bounce up with overshoot
+                                            val t = progress * 2f
+                                            t * (2f - t) * 1.2f // Quadratic ease with 20% overshoot
+                                        } else {
+                                            // Second half: settle back to 1.0
+                                            val t = (progress - 0.5f) * 2f
+                                            1.2f - (t * 0.2f) // Ease back from overshoot
+                                        }
                                     } else if (hasWordPassed) {
                                         1f
                                     } else {
                                         0f
                                     }
                                     
-                                    // Simple color with pop animation
+                                    // Vibrant color with brightness burst during pop
+                                    val brightnessBoost = if (isWordActive && popProgress < 1f && popProgress > 0f) {
+                                        // Brightness burst: peaks at 50% of pop animation
+                                        val burst = if (popProgress < 0.5f) {
+                                            popProgress * 2f
+                                        } else {
+                                            2f - (popProgress * 2f)
+                                        }
+                                        burst * 0.3f // 30% brightness increase at peak
+                                    } else {
+                                        0f
+                                    }
+                                    
                                     val wordColor = when {
                                         !isActiveLine -> lineColor
                                         hasWordPassed -> expressiveAccent
-                                        isWordActive -> expressiveAccent
-                                        else -> expressiveAccent.copy(alpha = 0.3f)
+                                        isWordActive -> {
+                                            // Apply brightness boost by reducing alpha to make it "brighter"
+                                            if (brightnessBoost > 0f) {
+                                                expressiveAccent // Keep fully bright during burst
+                                            } else {
+                                                expressiveAccent
+                                            }
+                                        }
+                                        else -> expressiveAccent.copy(alpha = 0.25f) // Dimmer future words
                                     }
                                     
                                     val wordWeight = when {
                                         !isActiveLine -> FontWeight.Bold
-                                        hasWordPassed -> FontWeight.Bold
+                                        hasWordPassed -> FontWeight.ExtraBold
                                         isWordActive -> FontWeight.ExtraBold
-                                        else -> FontWeight.Normal
+                                        else -> FontWeight.Bold // Future words stay bold
                                     }
                                     
-                                    // Add subtle glow during pop-in
+                                    // Strong glow pulse during activation
                                     val wordShadow = if (isWordActive && popProgress < 1f) {
                                         Shadow(
-                                            color = expressiveAccent.copy(alpha = 0.6f * (1f - popProgress)),
+                                            color = expressiveAccent.copy(alpha = 0.9f * (1f - (popProgress - 0.5f).coerceAtLeast(0f) * 2f)),
                                             offset = Offset(0f, 0f),
-                                            blurRadius = 15f * (1f - popProgress)
+                                            blurRadius = (30f * (1f - (popProgress - 0.5f).coerceAtLeast(0f) * 2f))
+                                        )
+                                    } else if (isWordActive) {
+                                        // Subtle sustained glow on active word
+                                        Shadow(
+                                            color = expressiveAccent.copy(alpha = 0.4f),
+                                            offset = Offset(0f, 0f),
+                                            blurRadius = 12f
                                         )
                                     } else null
                                     
@@ -938,7 +967,8 @@ fun Lyrics(
                                         style = SpanStyle(
                                             color = wordColor,
                                             fontWeight = wordWeight,
-                                            shadow = wordShadow
+                                            shadow = wordShadow,
+                                            // Note: Scale effect would need custom drawing, so we use shadow for visual impact
                                         )
                                     ) {
                                         append(word.text)
