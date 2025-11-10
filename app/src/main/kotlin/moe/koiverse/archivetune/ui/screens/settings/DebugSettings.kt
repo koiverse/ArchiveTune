@@ -378,7 +378,7 @@ fun DebugSettings(
                 var playbackSpeed by remember { mutableStateOf(1.0f) }
                 
                 LaunchedEffect(Unit) {
-                    while (coroutineScope.isActive) {
+                    while (isActive) {
                         bufferPercentage = player.bufferedPercentage
                         bufferedPosition = player.bufferedPosition
                         currentPosition = player.currentPosition
