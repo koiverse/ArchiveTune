@@ -53,6 +53,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.text.style.TextOverflow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.isActive
 import androidx.compose.foundation.background
 import androidx.compose.ui.unit.Dp
 import moe.koiverse.archivetune.utils.GlobalLog
