@@ -913,24 +913,29 @@ fun Lyrics(
                                         ) {
                                             append(word.text)
                                         }
+                                    } else if (hasWordPassed) {
+                                        // Passed words: retain the filled glow effect (like line-synced)
+                                        withStyle(
+                                            style = SpanStyle(
+                                                color = expressiveAccent,
+                                                fontWeight = FontWeight.ExtraBold,
+                                                shadow = Shadow(
+                                                    color = expressiveAccent.copy(alpha = 0.5f),
+                                                    offset = Offset(0f, 0f),
+                                                    blurRadius = 15f
+                                                )
+                                            )
+                                        ) {
+                                            append(word.text)
+                                        }
                                     } else {
-                                        // Non-active words: simple color states
-                                        val wordColor = when {
-                                            !isActiveLine -> lineColor
-                                            hasWordPassed -> expressiveAccent // Full brightness
-                                            else -> expressiveAccent.copy(alpha = 0.3f)
-                                        }
-                                        
-                                        val wordWeight = when {
-                                            !isActiveLine -> FontWeight.Bold
-                                            hasWordPassed -> FontWeight.ExtraBold
-                                            else -> FontWeight.Bold
-                                        }
+                                        // Future words: dimmed
+                                        val wordColor = if (!isActiveLine) lineColor else expressiveAccent.copy(alpha = 0.3f)
                                         
                                         withStyle(
                                             style = SpanStyle(
                                                 color = wordColor,
-                                                fontWeight = wordWeight
+                                                fontWeight = FontWeight.Bold
                                             )
                                         ) {
                                             append(word.text)
