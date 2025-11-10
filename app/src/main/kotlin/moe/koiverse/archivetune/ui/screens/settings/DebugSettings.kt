@@ -112,6 +112,20 @@ fun DebugSettings(
                     Switch(checked = showNerdStats, onCheckedChange = onShowNerdStatsChange)
                 }
             )
+            
+            val (showCodecOnPlayer, onShowCodecOnPlayerChange) = rememberPreference(
+                key = booleanPreferencesKey("show_codec_on_player"),
+                defaultValue = false
+            )
+            
+            PreferenceEntry(
+                title = { Text("Display Codec on Player") },
+                description = "Show codec, bitrate, and file size above player buttons",
+                icon = { Icon(painterResource(R.drawable.info), null) },
+                trailingContent = {
+                    Switch(checked = showCodecOnPlayer, onCheckedChange = onShowCodecOnPlayerChange)
+                }
+            )
 
             if (showDevDebug) {
                 // Show manager status lines (observe flows so UI updates)
