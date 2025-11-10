@@ -916,15 +916,20 @@ fun Lyrics(
                                             append(word.text)
                                         }
                                     } else if (hasWordPassed) {
-                                        // Passed words: retain the filled glow effect (like line-synced)
+                                        // Passed words: retain the fully filled gradient brush (completed state)
+                                        val passedBrush = Brush.horizontalGradient(
+                                            0.0f to expressiveAccent,
+                                            1.0f to expressiveAccent
+                                        )
+                                        
                                         withStyle(
                                             style = SpanStyle(
-                                                color = expressiveAccent,
+                                                brush = passedBrush,
                                                 fontWeight = FontWeight.ExtraBold,
                                                 shadow = Shadow(
-                                                    color = expressiveAccent.copy(alpha = 0.5f),
+                                                    color = expressiveAccent.copy(alpha = 0.6f),
                                                     offset = Offset(0f, 0f),
-                                                    blurRadius = 15f
+                                                    blurRadius = 20f
                                                 )
                                             )
                                         ) {
