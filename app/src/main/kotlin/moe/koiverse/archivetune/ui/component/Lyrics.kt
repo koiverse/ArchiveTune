@@ -878,7 +878,8 @@ fun Lyrics(
                                     val wordDuration = wordEndMs - wordStartMs
                                     
                                     val isWordActive = isActiveLine && currentPlaybackPosition >= wordStartMs && currentPlaybackPosition < wordEndMs
-                                    val hasWordPassed = isActiveLine && currentPlaybackPosition >= wordEndMs
+                                    // Word has passed if: (in active line AND past end time) OR (line itself has passed)
+                                    val hasWordPassed = (isActiveLine && currentPlaybackPosition >= wordEndMs) || (!isActiveLine && index < displayedCurrentLineIndex)
                                     
                                     if (isWordActive && wordDuration > 0) {
                                         // Calculate fill progress - INSTANT, NO DELAY
@@ -915,10 +916,17 @@ fun Lyrics(
                                         ) {
                                             append(word.text)
                                         }
-                                    } else if (hasWordPassed) {
-                                        // Passed words: retain the fully filled gradient brush (completed state)
+                                    } else if (hasWordPassed && isActiveLine) {
+                                        // Passed words WITHIN active line: keep the same gradient as line-synced
+                                        // Calculate continuous pulse for passed words
+                                        val timeSinceEnd = currentPlaybackPosition - wordEndMs
+                                        val pulseValue = (timeSinceEnd % 2000) / 2000f // 2-second pulse cycle
+                                        val pulseEffect = (kotlin.math.sin(pulseValue * Math.PI.toFloat() * 2f) * 0.15f).coerceIn(0f, 0.15f)
+                                        val glowIntensity = (1f + pulseEffect).coerceIn(0f, 1.2f)
+                                        
                                         val passedBrush = Brush.horizontalGradient(
-                                            0.0f to expressiveAccent,
+                                            0.0f to expressiveAccent.copy(alpha = 0.3f),
+                                            0.7f to expressiveAccent.copy(alpha = 0.9f),
                                             1.0f to expressiveAccent
                                         )
                                         
@@ -927,9 +935,9 @@ fun Lyrics(
                                                 brush = passedBrush,
                                                 fontWeight = FontWeight.ExtraBold,
                                                 shadow = Shadow(
-                                                    color = expressiveAccent.copy(alpha = 0.6f),
+                                                    color = expressiveAccent.copy(alpha = 0.8f * glowIntensity),
                                                     offset = Offset(0f, 0f),
-                                                    blurRadius = 20f
+                                                    blurRadius = 28f * (1f + pulseEffect)
                                                 )
                                             )
                                         ) {
