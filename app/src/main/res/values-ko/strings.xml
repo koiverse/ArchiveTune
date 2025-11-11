@@ -302,6 +302,7 @@
     <string name="proxy_type">프록시 활성화</string>
     <string name="proxy_url">프록시 유형</string>
     <string name="restart_to_take_effect">프록시 URL</string>
+    <string name="enable_betterlyrics">적용하려면 다시 시작</string>
 
     <string name="player_and_audio">다시 시작하여 가져오기 효과</string>
     <string name="audio_quality">플레이어 및 오디오</string>

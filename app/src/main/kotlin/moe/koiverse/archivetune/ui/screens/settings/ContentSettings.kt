@@ -205,7 +205,7 @@ fun ContentSettings(
             onCheckedChange = onEnableKugouChange,
         )
         SwitchPreference(
-            title = { Text("Enable BetterLyrics") },
+            title = { Text(stringResource(R.string.enable_betterlyrics)) },
             icon = { Icon(painterResource(R.drawable.lyrics), null) },
             checked = enableBetterLyrics,
             onCheckedChange = onEnableBetterLyricsChange,

@@ -304,6 +304,7 @@
     <string name="proxy_type">Proxy type</string>
     <string name="proxy_url">Proxy URL</string>
     <string name="restart_to_take_effect">Restart to take effect</string>
+    <string name="enable_betterlyrics">Enable BetterLyrics</string>
 
     <string name="player_and_audio">Player and audio</string>
     <string name="audio_quality">Audio quality</string>

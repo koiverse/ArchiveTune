@@ -302,6 +302,7 @@
     <string name="proxy_type">プロキシの種類</string>
     <string name="proxy_url">プロキシURL</string>
     <string name="restart_to_take_effect">再起動して撮影 効果</string>
+    <string name="enable_betterlyrics">BetterLyricsを有効にする</string>
 
     <string name="player_and_audio">プレーヤーとオーディオ</string>
     <string name="audio_quality">音質</string>

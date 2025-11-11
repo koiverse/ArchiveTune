@@ -302,6 +302,7 @@
     <string name="proxy_type">Jenis proxy</string>
     <string name="proxy_url">Proxy URL</string>
     <string name="restart_to_take_effect">Mulai ulang untuk mengambil efek</string>
+    <string name="enable_betterlyrics">Aktifkan BetterLyrics</string>
 
     <string name="player_and_audio">Pemutar dan audio</string>
     <string name="audio_quality">Kualitas audio</string>

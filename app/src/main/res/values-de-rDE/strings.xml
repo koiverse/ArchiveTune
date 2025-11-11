@@ -302,6 +302,7 @@
     <string name="proxy_type">Proxy-Typ</string>
     <string name="proxy_url">Proxy-URL</string>
     <string name="restart_to_take_effect">Starten Sie neu, damit es wirksam wird</string>
+    <string name="enable_betterlyrics">Aktivieren Sie BetterLyrics</string>
 
     <string name="player_and_audio">Player und Audio</string>
     <string name="audio_quality">Audioqualität</string>
