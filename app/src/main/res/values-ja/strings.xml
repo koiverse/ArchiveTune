@@ -441,7 +441,27 @@
     <string name="open">開く</string>
     <string name="reset_to_default_levels">デフォルトにリセット</string>
     <string name="no_logs">ログなし</string>
-
+    <string name="show_nerd_stats">詳細な統計を表示</string>
+    <string name="description_show_nerd_stats">再生中のリアルタイム統計を表示（コーデック、ビットレート、バッファ）</string>
+    <string name="display_codec_on_player">プレイヤーにコーデックを表示</string>
+    <string name="description_display_codec_on_player">現在のオーディオコーデック情報をプレイヤーに表示します</string>
+    <string name="nerd_stats">詳細統計</string>
+    <string name="track_label">トラック</string>
+    <string name="no_track_playing">再生中のトラックはありません</string>
+    <string name="codec_label">コーデック</string>
+    <string name="unknown_codec">不明なコーデック</string>
+    <string name="bitrate_label">ビットレート</string>
+    <string name="unknown_bitrate">不明なビットレート</string>
+    <string name="sample_rate_label">サンプリングレート</string>
+    <string name="unknown_sample_rate">不明なサンプリングレート</string>
+    <string name="content_length_label">コンテンツの長さ</string>
+    <string name="unknown_content_length">不明なコンテンツの長さ</string>
+    <string name="format_label">フォーマット</string>
+    <string name="loading_format">フォーマットを読み込み中...</string>
+    <string name="buffer_health_label">バッファ状態</string>
+    <string name="playback_speed_label">再生速度</string>
+    <string name="state_label">状態</string>
+    <string name="media_id_label">メディアID</string>
 
 
     <string name="about">概要</string>

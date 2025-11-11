@@ -442,6 +442,27 @@
     <string name="open">Open</string>
     <string name="reset_to_default_levels">Reset to default</string>
     <string name="no_logs">No Logs</string>
+    <string name="show_nerd_stats">Show nerd stats</string>
+    <string name="description_show_nerd_stats">Display real-time playback statistics (codec, bitrate, buffer)</string>
+    <string name="display_codec_on_player">Display Codec on Player</string>
+    <string name="description_display_codec_on_player">Show current audio codec information on the player</string>
+    <string name="nerd_stats">Nerd Stats</string>
+    <string name="track_label">Track</string>
+    <string name="no_track_playing">No track playing</string>
+    <string name="codec_label">Codec</string>
+    <string name="unknown_codec">Unknown codec</string>
+    <string name="bitrate_label">Bitrate</string>
+    <string name="unknown_bitrate">Unknown bitrate</string>
+    <string name="sample_rate_label">Sample Rate</string>
+    <string name="unknown_sample_rate">Unknown sample rate</string>
+    <string name="content_length_label">Content Length</string>
+    <string name="unknown_content_length">Unknown content length</string>
+    <string name="format_label">Format</string>
+    <string name="loading_format">Loading format...</string>
+    <string name="buffer_health_label">Buffer Health</string>
+    <string name="playback_speed_label">Playback Speed</string>
+    <string name="state_label">State</string>
+    <string name="media_id_label">Media ID</string>
 
 
 

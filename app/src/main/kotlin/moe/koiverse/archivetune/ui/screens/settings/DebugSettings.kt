@@ -105,8 +105,8 @@ fun DebugSettings(
             )
             
             PreferenceEntry(
-                title = { Text("Show Nerd Stats") },
-                description = "Display real-time playback statistics (codec, bitrate, buffer)",
+                title = { Text(stringResource(R.string.show_nerd_stats)) },
+                description = stringResource(R.string.description_show_nerd_stats),
                 icon = { Icon(painterResource(R.drawable.info), null) },
                 trailingContent = {
                     Switch(checked = showNerdStats, onCheckedChange = onShowNerdStatsChange)
@@ -119,8 +119,8 @@ fun DebugSettings(
             )
             
             PreferenceEntry(
-                title = { Text("Display Codec on Player") },
-                description = "Show codec, bitrate, and file size above player buttons",
+                title = { Text(stringResource(R.string.display_codec_on_player)) },
+                description = stringResource(R.string.description_display_codec_on_player),
                 icon = { Icon(painterResource(R.drawable.info), null) },
                 trailingContent = {
                     Switch(checked = showCodecOnPlayer, onCheckedChange = onShowCodecOnPlayerChange)
@@ -413,7 +413,7 @@ fun DebugSettings(
                 ) {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(
-                            text = "🤓 Nerd Stats",
+                            text = stringResource(R.string.nerd_stats),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary
@@ -422,49 +422,49 @@ fun DebugSettings(
                         if (mediaMetadata != null) {
                             // Current Track Info
                             NerdStatRow(
-                                label = "Track",
-                                value = mediaMetadata?.title ?: "No track playing"
+                                label = stringResource(R.string.track_label),
+                                value = mediaMetadata?.title ?: stringResource(R.string.no_track_playing)
                             )
                             
                             // Format/Codec Info
                             if (currentFormat != null) {
                                 NerdStatRow(
-                                    label = "Codec",
-                                    value = currentFormat?.mimeType?.substringAfter("/")?.uppercase() ?: "Unknown"
+                                    label = stringResource(R.string.codec_label),
+                                    value = currentFormat?.mimeType?.substringAfter("/")?.uppercase() ?: stringResource(R.string.unknown_codec)
                                 )
                                 
                                 val bitrateKbps = currentFormat?.bitrate?.let { it / 1000 } ?: 0
                                 NerdStatRow(
-                                    label = "Bitrate",
-                                    value = if (bitrateKbps > 0) "$bitrateKbps kbps" else "Unknown"
+                                    label = stringResource(R.string.bitrate_label),
+                                    value = if (bitrateKbps > 0) "$bitrateKbps kbps" else stringResource(R.string.unknown_bitrate)
                                 )
                                 
                                 val sampleRateKhz = currentFormat?.sampleRate?.let { (it / 1000.0).roundToInt() } ?: 0
                                 NerdStatRow(
-                                    label = "Sample Rate",
-                                    value = if (sampleRateKhz > 0) "$sampleRateKhz kHz" else "Unknown"
+                                    label = stringResource(R.string.sample_rate_label),
+                                    value = if (sampleRateKhz > 0) "$sampleRateKhz kHz" else stringResource(R.string.unknown_sample_rate)
                                 )
                                 
                                 NerdStatRow(
-                                    label = "Content Length",
+                                    label = stringResource(R.string.content_length_label),
                                     value = currentFormat?.contentLength?.let {
-                                        if (it > 0) "${(it / 1024.0 / 1024.0).roundToInt()} MB" else "Unknown"
-                                    } ?: "Unknown"
+                                        if (it > 0) "${(it / 1024.0 / 1024.0).roundToInt()} MB" else stringResource(R.string.unknown_content_length)
+                                    } ?: stringResource(R.string.unknown_content_length)
                                 )
                             } else {
-                                NerdStatRow(label = "Format", value = "Loading...")
+                                NerdStatRow(label = stringResource(R.string.format_label), value = stringResource(R.string.loading_format))
                             }
                             
                             // Buffer Health
                             val bufferDuration = ((bufferedPosition - currentPosition) / 1000.0).roundToInt()
                             NerdStatRow(
-                                label = "Buffer Health",
+                                label = stringResource(R.string.buffer_health_label),
                                 value = "$bufferPercentage% ($bufferDuration sec ahead)"
                             )
                             
                             // Playback Speed
                             NerdStatRow(
-                                label = "Playback Speed",
+                                label = stringResource(R.string.playback_speed_label),
                                 value = "${playbackSpeed}x"
                             )
                             
@@ -477,18 +477,18 @@ fun DebugSettings(
                                 else -> "UNKNOWN"
                             }
                             NerdStatRow(
-                                label = "State",
+                                label = stringResource(R.string.state_label),
                                 value = playbackStateText
                             )
                             
                             // Media ID
                             NerdStatRow(
-                                label = "Media ID",
+                                label = stringResource(R.string.media_id_label),
                                 value = mediaMetadata?.id ?: "N/A"
                             )
                         } else {
                             Text(
-                                text = "No track currently playing",
+                                text = stringResource(R.string.no_track_playing),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )

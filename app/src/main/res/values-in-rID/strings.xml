@@ -440,6 +440,28 @@
     <string name="open">Terbuka</string>
     <string name="reset_to_default_levels">Setel ulang ke default</string>
     <string name="no_logs">Tanpa Log</string>
+    <string name="show_nerd_stats">Tampilkan statistik lanjutan</string>
+    <string name="description_show_nerd_stats">Tampilkan statistik pemutaran waktu nyata (codec, bitrate, buffer)</string>
+    <string name="display_codec_on_player">Tampilkan codec di pemutar</string>
+    <string name="description_display_codec_on_player">Tampilkan informasi codec audio saat ini di pemutar</string>
+    <string name="nerd_stats">Statistik lanjutan</string>
+    <string name="track_label">Lagu</string>
+    <string name="no_track_playing">Tidak ada lagu yang diputar</string>
+    <string name="codec_label">Codec</string>
+    <string name="unknown_codec">Codec tidak diketahui</string>
+    <string name="bitrate_label">Bitrate</string>
+    <string name="unknown_bitrate">Bitrate tidak diketahui</string>
+    <string name="sample_rate_label">Frekuensi Sampel</string>
+    <string name="unknown_sample_rate">Frekuensi sampel tidak diketahui</string>
+    <string name="content_length_label">Panjang Konten</string>
+    <string name="unknown_content_length">Panjang konten tidak diketahui</string>
+    <string name="format_label">Format</string>
+    <string name="loading_format">Memuat format...</string>
+    <string name="buffer_health_label">Kesehatan Buffer</string>
+    <string name="playback_speed_label">Kecepatan Pemutaran</string>
+    <string name="state_label">Status</string>
+    <string name="media_id_label">ID Media</string>
+
 
 
 
