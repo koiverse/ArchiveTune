@@ -57,7 +57,8 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.drawscope.translate
-import androidx.compose.material.ripple.rememberRipple
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.material3.ripple
 
 data class TeamMember(
     val avatarUrl: String,
@@ -430,10 +431,7 @@ fun AboutScreen(
                             .clickable(
                                 enabled = member.profileUrl != null || member.hasEasterEgg,
                                 interactionSource = remember { MutableInteractionSource() },
-                                indication = rememberRipple(
-                                    bounded = true,
-                                    radius = 300.dp
-                                )
+                                indication = ripple()
                             ) {
                                 if (member.hasEasterEgg && !showEasterEgg) {
                                     clickCount++
