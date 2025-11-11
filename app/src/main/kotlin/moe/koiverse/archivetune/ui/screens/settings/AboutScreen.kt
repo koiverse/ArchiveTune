@@ -164,7 +164,16 @@ fun AboutScreen(
             github = "https://github.com/mostafaalagamy",
             website = null,
             discord = null
-        )
+        ),
+        TeamMember(
+            avatarUrl = "https://avatars.githubusercontent.com/u/93458424?v=4",
+            name = "WTTexe",
+            position = "Contributor",
+            profileUrl = "https://github.com/Windowstechtips",
+            github = "https://github.com/Windowstechtips",
+            website = null,
+            discord = "https://discord.com/users/840839409640800258"
+        ),
     )
 
     Scaffold(
