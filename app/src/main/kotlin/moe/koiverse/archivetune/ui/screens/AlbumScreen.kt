@@ -375,16 +375,16 @@ fun AlbumScreen(
                             )
                         }
 
-                        OutlinedButton(
-                            onClick = {
-                                playerConnection.service.getAutomix(playlistId)
-                                playerConnection.playQueue(
-                                    LocalAlbumRadio(albumWithSongs.copy(songs = albumWithSongs.songs.shuffled())),
-                                )
-                            },
-                            contentPadding = ButtonDefaults.ButtonWithIconContentPadding,
-                            modifier = Modifier.weight(1f),
-                        ) {
+                    Button(
+                        onClick = {
+                            playerConnection.service.getAutomix(playlistId)
+                            playerConnection.playQueue(
+                                LocalAlbumRadio(albumWithSongs.copy(songs = albumWithSongs.songs.shuffled())),
+                            )
+                        },
+                        contentPadding = ButtonDefaults.ButtonWithIconContentPadding,
+                        modifier = Modifier.weight(1f),
+                    ) {
                             Icon(
                                 painter = painterResource(R.drawable.shuffle),
                                 contentDescription = null,
