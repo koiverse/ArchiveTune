@@ -83,7 +83,6 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
@@ -823,91 +822,76 @@ class MainActivity : ComponentActivity() {
                         Scaffold(
                             topBar = {
                                 if (shouldShowTopBar) {
-                                    val isHomeRoute = navBackStackEntry?.destination?.route == Screens.Home.route
-                                    val homeScrolled = searchBarScrollBehavior.state.heightOffset != 0f
+                                    TopAppBar(
+                                        title = {
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                // app icon
+                                                Icon(
+                                                    painter = painterResource(R.drawable.about_appbar),
+                                                    contentDescription = null,
+                                                    modifier = Modifier
+                                                        .size(35.dp)
+                                                        .padding(end = 3.dp)
+                                                )
 
-                                    Box(modifier = Modifier.fillMaxWidth()) {
-                                        if (isHomeRoute && homeScrolled) {
-                                            Box(
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .height(AppBarHeight)
-                                                    .blur(12.dp)
-                                                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.72f))
-                                            )
-                                        }
-
-                                        TopAppBar(
-                                            title = {
-                                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                                    // app icon
-                                                    Icon(
-                                                        painter = painterResource(R.drawable.about_appbar),
-                                                        contentDescription = null,
-                                                        modifier = Modifier
-                                                            .size(35.dp)
-                                                            .padding(end = 3.dp)
-                                                    )
-
-                                                    Text(
-                                                        text = stringResource(R.string.app_name),
-                                                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
-                                                    )
-                                                }
-                                            },
-                                            actions = {
-                                                IconButton(onClick = { navController.navigate("history") }) {
-                                                    Icon(
-                                                        painter = painterResource(R.drawable.history),
-                                                        contentDescription = stringResource(R.string.history)
-                                                    )
-                                                }
-                                                IconButton(onClick = { navController.navigate("stats") }) {
-                                                    Icon(
-                                                        painter = painterResource(R.drawable.stats),
-                                                        contentDescription = stringResource(R.string.stats)
-                                                    )
-                                                }
-                                                IconButton(onClick = { navController.navigate("new_release") }) {
-                                                    Icon(
-                                                        painter = painterResource(R.drawable.notifications_unread),
-                                                        contentDescription = stringResource(R.string.new_release_albums)
-                                                    )
-                                                }
-                                                IconButton(onClick = { showAccountDialog = true }) {
-                                                    BadgedBox(badge = {
-                                                        if (latestVersionName != BuildConfig.VERSION_NAME) {
-                                                            Badge()
-                                                        }
-                                                    }) {
-                                                        if (accountImageUrl != null) {
-                                                            AsyncImage(
-                                                                model = accountImageUrl,
-                                                                contentDescription = stringResource(R.string.account),
-                                                                modifier = Modifier
-                                                                    .size(24.dp)
-                                                                    .clip(CircleShape)
-                                                            )
-                                                        } else {
-                                                            Icon(
-                                                                painter = painterResource(R.drawable.account),
-                                                                contentDescription = stringResource(R.string.account),
-                                                                modifier = Modifier.size(24.dp)
-                                                            )
-                                                        }
+                                                Text(
+                                                    text = stringResource(R.string.app_name),
+                                                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
+                                                )
+                                            }
+                                        },
+                                        actions = {
+                                            IconButton(onClick = { navController.navigate("history") }) {
+                                                Icon(
+                                                    painter = painterResource(R.drawable.history),
+                                                    contentDescription = stringResource(R.string.history)
+                                                )
+                                            }
+                                            IconButton(onClick = { navController.navigate("stats") }) {
+                                                Icon(
+                                                    painter = painterResource(R.drawable.stats),
+                                                    contentDescription = stringResource(R.string.stats)
+                                                )
+                                            }
+                                            IconButton(onClick = { navController.navigate("new_release") }) {
+                                                Icon(
+                                                    painter = painterResource(R.drawable.notifications_unread),
+                                                    contentDescription = stringResource(R.string.new_release_albums)
+                                                )
+                                            }
+                                            IconButton(onClick = { showAccountDialog = true }) {
+                                                BadgedBox(badge = {
+                                                    if (latestVersionName != BuildConfig.VERSION_NAME) {
+                                                        Badge()
+                                                    }
+                                                }) {
+                                                    if (accountImageUrl != null) {
+                                                        AsyncImage(
+                                                            model = accountImageUrl,
+                                                            contentDescription = stringResource(R.string.account),
+                                                            modifier = Modifier
+                                                                .size(24.dp)
+                                                                .clip(CircleShape)
+                                                        )
+                                                    } else {
+                                                        Icon(
+                                                            painter = painterResource(R.drawable.account),
+                                                            contentDescription = stringResource(R.string.account),
+                                                            modifier = Modifier.size(24.dp)
+                                                        )
                                                     }
                                                 }
-                                            },
-                                            scrollBehavior = if (isHomeRoute) searchBarScrollBehavior else topAppBarScrollBehavior,
-                                            colors = TopAppBarDefaults.topAppBarColors(
-                                                containerColor = Color.Transparent,
-                                                scrolledContainerColor = Color.Transparent,
-                                                titleContentColor = MaterialTheme.colorScheme.onSurface,
-                                                actionIconContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                navigationIconContentColor = MaterialTheme.colorScheme.onSurfaceVariant
-                                            )
+                                            }
+                                        },
+                                        scrollBehavior = if (navBackStackEntry?.destination?.route == Screens.Home.route) searchBarScrollBehavior else topAppBarScrollBehavior,
+                                        colors = TopAppBarDefaults.topAppBarColors(
+                                            containerColor = if (navBackStackEntry?.destination?.route == Screens.Home.route) Color.Transparent else if (pureBlack) Color.Black else MaterialTheme.colorScheme.surface,
+                                            scrolledContainerColor = if (navBackStackEntry?.destination?.route == Screens.Home.route) Color.Transparent else if (pureBlack) Color.Black else MaterialTheme.colorScheme.surface,
+                                            titleContentColor = MaterialTheme.colorScheme.onSurface,
+                                            actionIconContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            navigationIconContentColor = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
-                                    }
+                                    )
                                 }
                                 AnimatedVisibility(
                                     visible = active || navBackStackEntry?.destination?.route?.startsWith("search/") == true,
