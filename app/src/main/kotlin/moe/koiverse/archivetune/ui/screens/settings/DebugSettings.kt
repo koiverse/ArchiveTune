@@ -11,6 +11,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import android.content.Intent
+import androidx.compose.ui.platform.rememberNestedScrollInteropConnection
 import androidx.compose.material3.*
 import androidx.compose.runtime.setValue
 import androidx.compose.material3.Checkbox
@@ -94,7 +95,7 @@ fun DebugSettings(
             )
         }
     ) { innerPadding: androidx.compose.foundation.layout.PaddingValues ->
-        Column(Modifier.padding(innerPadding).padding(16.dp)) {
+        Column(Modifier.padding(innerPadding).padding(16.dp).verticalScroll(rememberScrollState())) {
             PreferenceEntry(
                 title = { Text(stringResource(R.string.show_discord_debug_ui)) },
                 description = stringResource(R.string.enable_discord_debug_lines),
@@ -288,6 +289,7 @@ fun DebugSettings(
                             state = listState,
                             modifier = Modifier
                                 .fillMaxWidth()
+                                .nestedScroll(rememberNestedScrollInteropConnection())
                                 .padding(top = 8.dp)
                         ) {
                             itemsIndexed(filtered) { index, entry ->
