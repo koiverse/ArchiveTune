@@ -363,11 +363,7 @@ class Migration5To6 : AutoMigrationSpec {
         db.query("SELECT id FROM playlist WHERE id NOT LIKE 'LP%'").use { cursor ->
             while (cursor.moveToNext()) {
                 db.execSQL(
-                    "UPDATE playlist SET browseID = '${cursor.getString(0)}' WHERE id = '${
-                        cursor.getString(
-                            0
-                        )
-                    }'"
+                    "UPDATE playlist SET browseId = '${cursor.getString(0)}' WHERE id = '${cursor.getString(0)}'"
                 )
             }
         }
