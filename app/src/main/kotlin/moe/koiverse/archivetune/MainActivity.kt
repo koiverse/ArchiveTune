@@ -887,8 +887,8 @@ class MainActivity : ComponentActivity() {
                                         },
                                         scrollBehavior = if (navBackStackEntry?.destination?.route == Screens.Home.route) searchBarScrollBehavior else null,
                                         colors = TopAppBarDefaults.topAppBarColors(
-                                            containerColor = if (navBackStackEntry?.destination?.route == Screens.Home.route) Color.Transparent else if (pureBlack) Color.Black else MaterialTheme.colorScheme.surface,
-                                            scrolledContainerColor = if (navBackStackEntry?.destination?.route == Screens.Home.route) Color.Transparent else if (pureBlack) Color.Black else MaterialTheme.colorScheme.surface,
+                                            containerColor = if (navBackStackEntry?.destination?.route in listOf(Screens.Home.route, Screens.Library.route)) Color.Transparent else if (pureBlack) Color.Black else MaterialTheme.colorScheme.surface,
+                                            scrolledContainerColor = if (navBackStackEntry?.destination?.route in listOf(Screens.Home.route, Screens.Library.route)) Color.Transparent else if (pureBlack) Color.Black else MaterialTheme.colorScheme.surface,
                                             titleContentColor = MaterialTheme.colorScheme.onSurface,
                                             actionIconContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                                             navigationIconContentColor = MaterialTheme.colorScheme.onSurfaceVariant
