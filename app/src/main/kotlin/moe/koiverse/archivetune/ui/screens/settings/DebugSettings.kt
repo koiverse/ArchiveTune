@@ -12,6 +12,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import android.content.Intent
 import androidx.compose.ui.platform.rememberNestedScrollInteropConnection
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.setValue
 import androidx.compose.material3.Checkbox
