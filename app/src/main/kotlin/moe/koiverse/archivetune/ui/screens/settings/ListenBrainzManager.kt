@@ -31,12 +31,14 @@ object ListenBrainzManager {
                 val listenedAt = System.currentTimeMillis() / 1000L
                 val duration = song.song.duration
                 val artistNames = run {
-                    val b = StringBuilder()
-                    song.artists.forEachIndexed { idx, artist ->
-                        if (idx > 0) b.append(" & ")
-                        b.append(artist.name)
-                    }
-                    b.toString()
+                    song.artists.map { artist ->
+                        try {
+                            val method = artist.javaClass.getMethod("getName")
+                            (method.invoke(artist) as? String) ?: artist.toString()
+                        } catch (e: Exception) {
+                            artist.toString()
+                        }
+                    }.joinToString(" & ")
                 }
                 val releaseName = song.album?.name ?: ""
                 val trackMetadata = "{\"track_metadata\":{\"artist_name\":\"${escapeJson(artistNames)}\",\"track_name\":\"${escapeJson(song.title)}\",\"release_name\":\"${escapeJson(releaseName)}\",\"additional_info\":{\"duration_ms\":${duration * 1000},\"position_ms\":$positionMs,\"submission_client\":\"ArchiveTune\"}}}"
@@ -76,12 +78,14 @@ object ListenBrainzManager {
                 val listenedAt = endMs / 1000L
                 val duration = song.song.duration
                 val artistNames = run {
-                    val b = StringBuilder()
-                    song.artists.forEachIndexed { idx, artist ->
-                        if (idx > 0) b.append(" & ")
-                        b.append(artist.name)
-                    }
-                    b.toString()
+                    song.artists.map { artist ->
+                        try {
+                            val method = artist.javaClass.getMethod("getName")
+                            (method.invoke(artist) as? String) ?: artist.toString()
+                        } catch (e: Exception) {
+                            artist.toString()
+                        }
+                    }.joinToString(" & ")
                 }
                 val releaseName = song.album?.name ?: ""
                 val listenedAtStart = (startMs / 1000L).coerceAtLeast(0L)
