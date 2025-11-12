@@ -30,7 +30,7 @@ object ListenBrainzManager {
             try {
                 val listenedAt = System.currentTimeMillis() / 1000L
                 val duration = song.song.duration
-                val artistNames = song.artists.joinToString(" & ") { it.name }
+                val artistNames = song.artists.joinToString(" & ") { artist -> artist.name }
                 val releaseName = song.album?.name ?: ""
                 val listensJson = "[{\"artist_name\":\"${escapeJson(artistNames)}\",\"track_name\":\"${escapeJson(song.title)}\",\"release_name\":\"${escapeJson(releaseName)}\",\"listened_at\":$listenedAt,\"additional_info\":{\"duration\":$duration,\"position_ms\":$positionMs}}]"
                 val bodyJson = "{\"listen_type\":\"playing_now\",\"payload\":{\"listens\":$listensJson,\"source_name\":\"ArchiveTune\"}}"
@@ -67,7 +67,7 @@ object ListenBrainzManager {
             try {
                 val listenedAt = endMs / 1000L
                 val duration = song.song.duration
-                val artistNames = song.artists.joinToString(" & ") { it.name }
+                val artistNames = song.artists.joinToString(" & ") { artist -> artist.name }
                 val releaseName = song.album?.name ?: ""
                 val listensJson = "[{\"artist_name\":\"${escapeJson(artistNames)}\",\"track_name\":\"${escapeJson(song.title)}\",\"release_name\":\"${escapeJson(releaseName)}\",\"listened_at\":$listenedAt,\"additional_info\":{\"duration\":$duration,\"start_ms\":$startMs,\"end_ms\":$endMs}}]"
                 val bodyJson = "{\"listen_type\":\"single\",\"payload\":{\"listens\":$listensJson,\"source_name\":\"ArchiveTune\"}}"
