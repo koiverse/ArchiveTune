@@ -368,6 +368,13 @@
     <string name="preview">プレビュー</string>
     <string name="enable_discord_rpc">リッチ プレゼンスを有効にする</string>
 
+    <!-- ListenBrainz -->
+    <string name="listenbrainz_scrobbling">ListenBrainz スクロブル</string>
+    <string name="listenbrainz_scrobbling_description">再生中および再生完了した楽曲を ListenBrainz に送信する機能を有効にします</string>
+    <string name="set_listenbrainz_token">ListenBrainz トークンを設定</string>
+    <string name="edit_listenbrainz_token">ListenBrainz トークンを編集</string>
+
+
     <!-- Discord activity customization -->
     <string name="discord_activity_name">アクティビティ名</string>
     <string name="discord_activity_details">アクティビティの詳細</string>

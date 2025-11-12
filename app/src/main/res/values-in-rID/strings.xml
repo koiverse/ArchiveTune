@@ -368,6 +368,13 @@
     <string name="preview">Pratinjau</string>
     <string name="enable_discord_rpc">Aktifkan Kehadiran Kaya</string>
 
+    <!-- ListenBrainz -->
+    <string name="listenbrainz_scrobbling">Scrobbling ListenBrainz</string>
+    <string name="listenbrainz_scrobbling_description">Aktifkan pengiriman lagu yang sedang dan telah diputar ke ListenBrainz</string>
+    <string name="set_listenbrainz_token">Atur token ListenBrainz</string>
+    <string name="edit_listenbrainz_token">Edit token ListenBrainz</string>
+
+
     <!-- Discord activity customization -->
     <string name="discord_activity_name">Nama aktivitas</string>
     <string name="discord_activity_details">Rincian aktivitas</string>

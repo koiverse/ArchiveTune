@@ -368,6 +368,14 @@
     <string name="preview">옵션</string>
     <string name="enable_discord_rpc">미리보기</string>
 
+
+    <!-- ListenBrainz -->
+    <string name="listenbrainz_scrobbling">ListenBrainz 스크로블링</string>
+    <string name="listenbrainz_scrobbling_description">현재 재생 중 및 재생이 완료된 트랙을 ListenBrainz에 전송하도록 활성화합니다</string>
+    <string name="set_listenbrainz_token">ListenBrainz 토큰 설정</string>
+    <string name="edit_listenbrainz_token">ListenBrainz 토큰 수정</string>
+
+
     <!-- Discord activity customization -->
     <string name="discord_activity_name">리치 프레즌스 활성화</string>
     <string name="discord_activity_details">활동 이름</string>

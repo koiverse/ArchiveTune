@@ -129,6 +129,9 @@ import moe.koiverse.archivetune.utils.getPresenceIntervalMillis
 import moe.koiverse.archivetune.utils.reportException
 import moe.koiverse.archivetune.utils.NetworkConnectivityObserver
 import dagger.hilt.android.AndroidEntryPoint
+import moe.koiverse.archivetune.ui.screens.settings.ListenBrainzManager
+import moe.koiverse.archivetune.constants.ListenBrainzEnabledKey
+import moe.koiverse.archivetune.constants.ListenBrainzTokenKey
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -1111,6 +1114,20 @@ class MusicService :
                             Timber.tag("MusicService").e(ex, "restart after failed presence update threw")
                         }
                     }
+
+                    try {
+                        val lbEnabled = dataStore.get(ListenBrainzEnabledKey, false)
+                        val lbToken = dataStore.get(ListenBrainzTokenKey, "")
+                        if (lbEnabled && !lbToken.isNullOrBlank()) {
+                            scope.launch(Dispatchers.IO) {
+                                try {
+                                    ListenBrainzManager.submitPlayingNow(this@MusicService, lbToken, finalSong, player.currentPosition)
+                                } catch (ie: Exception) {
+                                    Timber.tag("MusicService").v(ie, "ListenBrainz playing_now submit failed")
+                                }
+                            }
+                        }
+                    } catch (_: Exception) {}
                 }
             }
         } catch (e: Exception) {
@@ -1159,6 +1176,19 @@ class MusicService :
                                 Timber.tag("MusicService").w("transition immediate presence update failed — attempting restart")
                                 try { DiscordPresenceManager.stop(); DiscordPresenceManager.start(this@MusicService, dataStore.get(DiscordTokenKey, ""), { song }, { player.currentPosition }, { !player.isPlaying }, { getPresenceIntervalMillis(this@MusicService) }) } catch (_: Exception) {}
                             }
+                            try {
+                                val lbEnabled = dataStore.get(ListenBrainzEnabledKey, false)
+                                val lbToken = dataStore.get(ListenBrainzTokenKey, "")
+                                if (lbEnabled && !lbToken.isNullOrBlank()) {
+                                    scope.launch(Dispatchers.IO) {
+                                        try {
+                                            ListenBrainzManager.submitPlayingNow(this@MusicService, lbToken, finalSong, player.currentPosition)
+                                        } catch (ie: Exception) {
+                                            Timber.tag("MusicService").v(ie, "ListenBrainz playing_now submit failed on transition")
+                                        }
+                                    }
+                                }
+                            } catch (_: Exception) {}
                         }
                     }
                 } catch (e: Exception) {
@@ -1189,6 +1219,19 @@ class MusicService :
                                 Timber.tag("MusicService").w("isPlaying/mediaTransition immediate presence update failed — restarting manager")
                                 try { DiscordPresenceManager.stop(); DiscordPresenceManager.restart() } catch (_: Exception) {}
                             }
+                            try {
+                                val lbEnabled = dataStore.get(ListenBrainzEnabledKey, false)
+                                val lbToken = dataStore.get(ListenBrainzTokenKey, "")
+                                if (lbEnabled && !lbToken.isNullOrBlank()) {
+                                    scope.launch(Dispatchers.IO) {
+                                        try {
+                                            ListenBrainzManager.submitPlayingNow(this@MusicService, lbToken, finalSong, player.currentPosition)
+                                        } catch (ie: Exception) {
+                                            Timber.tag("MusicService").v(ie, "ListenBrainz playing_now submit failed for isPlaying/mediaTransition")
+                                        }
+                                    }
+                                }
+                            } catch (_: Exception) {}
                         }
                     }
                 } catch (e: Exception) {
@@ -1458,6 +1501,22 @@ class MusicService :
                         ),
                     )
                 } catch (_: SQLException) {
+            }
+            CoroutineScope(Dispatchers.IO).launch {
+                try {
+                    val lbEnabled = dataStore.get(ListenBrainzEnabledKey, false)
+                    val lbToken = dataStore.get(ListenBrainzTokenKey, "")
+                    if (lbEnabled && !lbToken.isNullOrBlank()) {
+                        val song = database.song(mediaItem.mediaId).first()
+                        val endMs = System.currentTimeMillis()
+                        val startMs = endMs - playbackStats.totalPlayTimeMs
+                        try {
+                            ListenBrainzManager.submitFinished(this@MusicService, lbToken, song, startMs, endMs)
+                        } catch (ie: Exception) {
+                            Timber.tag("MusicService").v(ie, "ListenBrainz finished submit failed")
+                        }
+                    }
+                } catch (_: Exception) {}
             }
         }
 

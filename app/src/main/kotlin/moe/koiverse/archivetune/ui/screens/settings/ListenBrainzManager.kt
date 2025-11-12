@@ -1,0 +1,101 @@
+package moe.koiverse.archivetune.ui.screens.settings
+
+import android.content.Context
+import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import moe.koiverse.archivetune.db.entities.Song
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.RequestBody.Companion.toRequestBody
+import java.util.concurrent.atomic.AtomicBoolean
+import timber.log.Timber
+
+object ListenBrainzManager {
+    private val logTag = "ListenBrainzManager"
+    private val started = AtomicBoolean(false)
+    private var scope: CoroutineScope? = null
+    private var job: Job? = null
+    private var lifecycleObserver: Any? = null
+    private val httpClient = OkHttpClient()
+
+    private val _lastSubmitTime = MutableStateFlow<Long?>(null)
+    val lastSubmitTimeFlow = _lastSubmitTime.asStateFlow()
+
+    suspend fun submitPlayingNow(context: Context, token: String, song: Song?, positionMs: Long): Boolean {
+        if (token.isBlank()) return false
+        if (song == null) return false
+        return withContext(Dispatchers.IO) {
+            try {
+                val listenedAt = System.currentTimeMillis() / 1000L
+                val duration = song.song.duration
+                val listensJson = "[{\"artist_name\":\"${escapeJson(song.artists.joinToString(" & ") { it.name })}\",\"track_name\":\"${escapeJson(song.title)}\",\"release_name\":\"${escapeJson(song.album?.name ?: "")}\",\"listened_at\":$listenedAt,\"additional_info\":{\"duration\":$duration,\"position_ms\":$positionMs}}]"
+                val bodyJson = "{\"listen_type\":\"playing_now\",\"payload\":{\"listens\":$listensJson,\"source_name\":\"ArchiveTune\"}}"
+                val mediaType = "application/json".toMediaType()
+                val body = bodyJson.toRequestBody(mediaType)
+                val request = Request.Builder()
+                    .url("https://api.listenbrainz.org/1/submit-listens")
+                    .post(body)
+                    .addHeader("Content-Type", "application/json")
+                    .addHeader("Authorization", "Token $token")
+                    .build()
+
+                httpClient.newCall(request).execute().use { resp ->
+                    val success = resp.isSuccessful
+                    if (success) {
+                        _lastSubmitTime.value = System.currentTimeMillis()
+                        Timber.tag(logTag).d("playing_now submitted for %s", song.title)
+                    } else {
+                        Timber.tag(logTag).w("playing_now submit failed: %s", resp.code())
+                    }
+                    success
+                }
+            } catch (ex: Exception) {
+                Timber.tag(logTag).e(ex, "submitPlayingNow failed")
+                false
+            }
+        }
+    }
+
+    suspend fun submitFinished(context: Context, token: String, song: Song?, startMs: Long, endMs: Long): Boolean {
+        if (token.isBlank()) return false
+        if (song == null) return false
+        return withContext(Dispatchers.IO) {
+            try {
+                val listenedAt = endMs / 1000L
+                val duration = song.song.duration
+                val listensJson = "[{\"artist_name\":\"${escapeJson(song.artists.joinToString(" & ") { it.name })}\",\"track_name\":\"${escapeJson(song.title)}\",\"release_name\":\"${escapeJson(song.album?.name ?: "")}\",\"listened_at\":$listenedAt,\"additional_info\":{\"duration\":$duration,\"start_ms\":$startMs,\"end_ms\":$endMs}}]"
+                val bodyJson = "{\"listen_type\":\"single\",\"payload\":{\"listens\":$listensJson,\"source_name\":\"ArchiveTune\"}}"
+                val mediaType = "application/json".toMediaType()
+                val body = bodyJson.toRequestBody(mediaType)
+                val request = Request.Builder()
+                    .url("https://api.listenbrainz.org/1/submit-listens")
+                    .post(body)
+                    .addHeader("Content-Type", "application/json")
+                    .addHeader("Authorization", "Token $token")
+                    .build()
+
+                httpClient.newCall(request).execute().use { resp ->
+                    val success = resp.isSuccessful
+                    if (success) {
+                        _lastSubmitTime.value = System.currentTimeMillis()
+                        Timber.tag(logTag).d("finished listen submitted for %s", song.title)
+                    } else {
+                        Timber.tag(logTag).w("finished listen submit failed: %s", resp.code())
+                    }
+                    success
+                }
+            } catch (ex: Exception) {
+                Timber.tag(logTag).e(ex, "submitFinished failed")
+                false
+            }
+        }
+    }
+
+    private fun escapeJson(s: String): String {
+        return s.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n")
+    }
+
+    fun isRunning(): Boolean = started.get()
+}

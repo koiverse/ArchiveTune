@@ -368,6 +368,13 @@
     <string name="preview">Vorschau</string>
     <string name="enable_discord_rpc">Aktivieren Sie Rich Presence</string>
 
+        <!-- ListenBrainz -->
+    <string name="listenbrainz_scrobbling">ListenBrainz-Scrobbling</string>
+    <string name="listenbrainz_scrobbling_description">Übermitteln von „Jetzt läuft“ und abgeschlossenen Wiedergaben an ListenBrainz aktivieren</string>
+    <string name="set_listenbrainz_token">ListenBrainz-Token festlegen</string>
+    <string name="edit_listenbrainz_token">ListenBrainz-Token bearbeiten</string>
+
+
     <!-- Discord activity customization -->
     <string name="discord_activity_name">Aktivitätsname</string>
     <string name="discord_activity_details">Aktivitätsdetails</string>

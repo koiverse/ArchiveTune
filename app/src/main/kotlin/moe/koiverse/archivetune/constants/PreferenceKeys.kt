@@ -42,6 +42,10 @@ val ProxyUrlKey = stringPreferencesKey("proxyUrl")
 val ProxyTypeKey = stringPreferencesKey("proxyType")
 val YtmSyncKey = booleanPreferencesKey("ytmSync")
 val SelectedYtmPlaylistsKey = stringPreferencesKey("ytm_selected_playlists")
+    
+    // ListenBrainz scrobbling
+    val ListenBrainzEnabledKey = booleanPreferencesKey("listenbrainz_enabled")
+    val ListenBrainzTokenKey = stringPreferencesKey("listenbrainz_token")
 
 val AudioQualityKey = stringPreferencesKey("audioQuality")
 

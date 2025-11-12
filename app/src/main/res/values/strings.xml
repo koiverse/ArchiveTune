@@ -370,6 +370,12 @@
     <string name="preview">Preview</string>
     <string name="enable_discord_rpc">Enable Rich Presence</string>
 
+    <!-- ListenBrainz -->
+    <string name="listenbrainz_scrobbling">ListenBrainz scrobbling</string>
+    <string name="listenbrainz_scrobbling_description">Enable submitting now-playing and finished listens to ListenBrainz</string>
+    <string name="set_listenbrainz_token">Set ListenBrainz token</string>
+    <string name="edit_listenbrainz_token">Edit ListenBrainz token</string>
+
     <!-- Discord activity customization -->
     <string name="discord_activity_name">Activity name</string>
     <string name="discord_activity_details">Activity details</string>

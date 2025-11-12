@@ -62,6 +62,8 @@ import moe.koiverse.archivetune.constants.InnerTubeCookieKey
 import moe.koiverse.archivetune.constants.UseLoginForBrowse
 import moe.koiverse.archivetune.constants.VisitorDataKey
 import moe.koiverse.archivetune.constants.YtmSyncKey
+import moe.koiverse.archivetune.constants.ListenBrainzEnabledKey
+import moe.koiverse.archivetune.constants.ListenBrainzTokenKey
 import moe.koiverse.archivetune.ui.component.InfoLabel
 import moe.koiverse.archivetune.ui.component.PreferenceEntry
 import moe.koiverse.archivetune.ui.component.ReleaseNotesCard
@@ -105,6 +107,8 @@ fun AccountSettings(
     }
     val (useLoginForBrowse, onUseLoginForBrowseChange) = rememberPreference(UseLoginForBrowse, true)
     val (ytmSync, onYtmSyncChange) = rememberPreference(YtmSyncKey, true)
+    val (listenBrainzEnabled, onListenBrainzEnabledChange) = rememberPreference(ListenBrainzEnabledKey, false)
+    val (listenBrainzToken, onListenBrainzTokenChange) = rememberPreference(ListenBrainzTokenKey, "")
 
     val viewModel: HomeViewModel = hiltViewModel()
     val accountName by viewModel.accountName.collectAsState()
@@ -112,6 +116,7 @@ fun AccountSettings(
 
     var showToken by remember { mutableStateOf(false) }
     var showTokenEditor by remember { mutableStateOf(false) }
+    var showListenBrainzTokenEditor by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -287,6 +292,32 @@ fun AccountSettings(
                     .clip(RoundedCornerShape(16.dp))
                     .background(MaterialTheme.colorScheme.surface)
             )
+
+            Spacer(Modifier.height(4.dp))
+
+            SwitchPreference(
+                title = { Text(stringResource(R.string.listenbrainz_scrobbling)) },
+                description = { Text(stringResource(R.string.listenbrainz_scrobbling_description)) },
+                icon = { Icon(painterResource(R.drawable.token), null) },
+                checked = listenBrainzEnabled,
+                onCheckedChange = onListenBrainzEnabledChange,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(MaterialTheme.colorScheme.surface)
+            )
+
+            Spacer(Modifier.height(4.dp))
+
+            PreferenceEntry(
+                title = { Text(if (listenBrainzToken.isBlank()) stringResource(R.string.set_listenbrainz_token) else stringResource(R.string.edit_listenbrainz_token)) },
+                icon = { Icon(painterResource(R.drawable.token), null) },
+                onClick = { showListenBrainzTokenEditor = true },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(MaterialTheme.colorScheme.surface)
+            )
         }
 
         Spacer(Modifier.height(4.dp))
@@ -301,6 +332,24 @@ fun AccountSettings(
                 .clip(RoundedCornerShape(16.dp))
                 .background(MaterialTheme.colorScheme.surface)
         )
+
+        if (showListenBrainzTokenEditor) {
+            TextFieldDialog(
+                initialTextFieldValue = TextFieldValue(listenBrainzToken),
+                onDone = { data ->
+                    onListenBrainzTokenChange(data)
+                },
+                onDismiss = { showListenBrainzTokenEditor = false },
+                singleLine = true,
+                maxLines = 1,
+                isInputValid = {
+                    it.isNotEmpty()
+                },
+                extraContent = {
+                    InfoLabel(text = stringResource(R.string.listenbrainz_scrobbling_description))
+                }
+            )
+        }
 
         if (showPlaylistDialog) {
             val coroutineScope = rememberCoroutineScope()
