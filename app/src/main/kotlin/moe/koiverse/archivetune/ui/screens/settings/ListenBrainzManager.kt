@@ -40,7 +40,7 @@ object ListenBrainzManager {
                         }
                     }.joinToString(" & ")
                 }
-                val releaseName = song.album?.name ?: ""
+                val releaseName = song.album?.title ?: ""
                 val trackMetadata = "{\"track_metadata\":{\"artist_name\":\"${escapeJson(artistNames)}\",\"track_name\":\"${escapeJson(song.title)}\",\"release_name\":\"${escapeJson(releaseName)}\",\"additional_info\":{\"duration_ms\":${duration * 1000},\"position_ms\":$positionMs,\"submission_client\":\"ArchiveTune\"}}}"
                 val listensJson = "[$trackMetadata]"
                 val bodyJson = "{\"listen_type\":\"playing_now\",\"payload\":$listensJson}"
@@ -87,7 +87,7 @@ object ListenBrainzManager {
                         }
                     }.joinToString(" & ")
                 }
-                val releaseName = song.album?.name ?: ""
+                val releaseName = song.album?.title ?: ""
                 val listenedAtStart = (startMs / 1000L).coerceAtLeast(0L)
                 val trackMetadataSingle = "{\"listened_at\":$listenedAtStart,\"track_metadata\":{\"artist_name\":\"${escapeJson(artistNames)}\",\"track_name\":\"${escapeJson(song.title)}\",\"release_name\":\"${escapeJson(releaseName)}\",\"additional_info\":{\"duration_ms\":${duration * 1000},\"start_ms\":$startMs,\"end_ms\":$endMs,\"submission_client\":\"ArchiveTune\"}}}"
                 val listensJson = "[$trackMetadataSingle]"
