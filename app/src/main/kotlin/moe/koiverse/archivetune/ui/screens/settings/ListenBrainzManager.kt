@@ -30,10 +30,18 @@ object ListenBrainzManager {
             try {
                 val listenedAt = System.currentTimeMillis() / 1000L
                 val duration = song.song.duration
-                val artistNames = song.artists.map { it.name }.joinToString(" & ")
+                val artistNames = run {
+                    val b = StringBuilder()
+                    song.artists.forEachIndexed { idx, artist ->
+                        if (idx > 0) b.append(" & ")
+                        b.append(artist.name)
+                    }
+                    b.toString()
+                }
                 val releaseName = song.album?.name ?: ""
-                val listensJson = "[{\"artist_name\":\"${escapeJson(artistNames)}\",\"track_name\":\"${escapeJson(song.title)}\",\"release_name\":\"${escapeJson(releaseName)}\",\"listened_at\":$listenedAt,\"additional_info\":{\"duration\":$duration,\"position_ms\":$positionMs}}]"
-                val bodyJson = "{\"listen_type\":\"playing_now\",\"payload\":{\"listens\":$listensJson,\"source_name\":\"ArchiveTune\"}}"
+                val trackMetadata = "{\"track_metadata\":{\"artist_name\":\"${escapeJson(artistNames)}\",\"track_name\":\"${escapeJson(song.title)}\",\"release_name\":\"${escapeJson(releaseName)}\",\"additional_info\":{\"duration_ms\":${duration * 1000},\"position_ms\":$positionMs,\"submission_client\":\"ArchiveTune\"}}}"
+                val listensJson = "[$trackMetadata]"
+                val bodyJson = "{\"listen_type\":\"playing_now\",\"payload\":$listensJson}"
                 val mediaType = "application/json".toMediaType()
                 val body = bodyJson.toRequestBody(mediaType)
                 val request = Request.Builder()
@@ -67,10 +75,19 @@ object ListenBrainzManager {
             try {
                 val listenedAt = endMs / 1000L
                 val duration = song.song.duration
-                val artistNames = song.artists.map { it.name }.joinToString(" & ")
+                val artistNames = run {
+                    val b = StringBuilder()
+                    song.artists.forEachIndexed { idx, artist ->
+                        if (idx > 0) b.append(" & ")
+                        b.append(artist.name)
+                    }
+                    b.toString()
+                }
                 val releaseName = song.album?.name ?: ""
-                val listensJson = "[{\"artist_name\":\"${escapeJson(artistNames)}\",\"track_name\":\"${escapeJson(song.title)}\",\"release_name\":\"${escapeJson(releaseName)}\",\"listened_at\":$listenedAt,\"additional_info\":{\"duration\":$duration,\"start_ms\":$startMs,\"end_ms\":$endMs}}]"
-                val bodyJson = "{\"listen_type\":\"single\",\"payload\":{\"listens\":$listensJson,\"source_name\":\"ArchiveTune\"}}"
+                val listenedAtStart = (startMs / 1000L).coerceAtLeast(0L)
+                val trackMetadataSingle = "{\"listened_at\":$listenedAtStart,\"track_metadata\":{\"artist_name\":\"${escapeJson(artistNames)}\",\"track_name\":\"${escapeJson(song.title)}\",\"release_name\":\"${escapeJson(releaseName)}\",\"additional_info\":{\"duration_ms\":${duration * 1000},\"start_ms\":$startMs,\"end_ms\":$endMs,\"submission_client\":\"ArchiveTune\"}}}"
+                val listensJson = "[$trackMetadataSingle]"
+                val bodyJson = "{\"listen_type\":\"single\",\"payload\":$listensJson}"
                 val mediaType = "application/json".toMediaType()
                 val body = bodyJson.toRequestBody(mediaType)
                 val request = Request.Builder()
