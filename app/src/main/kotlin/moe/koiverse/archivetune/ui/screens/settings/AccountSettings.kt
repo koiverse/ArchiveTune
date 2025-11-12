@@ -297,7 +297,7 @@ fun AccountSettings(
 
             SwitchPreference(
                 title = { Text(stringResource(R.string.listenbrainz_scrobbling)) },
-                description = { Text(stringResource(R.string.listenbrainz_scrobbling_description)) },
+                description = stringResource(R.string.listenbrainz_scrobbling_description),
                 icon = { Icon(painterResource(R.drawable.token), null) },
                 checked = listenBrainzEnabled,
                 onCheckedChange = onListenBrainzEnabledChange,

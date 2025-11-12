@@ -30,7 +30,9 @@ object ListenBrainzManager {
             try {
                 val listenedAt = System.currentTimeMillis() / 1000L
                 val duration = song.song.duration
-                val listensJson = "[{\"artist_name\":\"${escapeJson(song.artists.joinToString(" & ") { it.name })}\",\"track_name\":\"${escapeJson(song.title)}\",\"release_name\":\"${escapeJson(song.album?.name ?: "")}\",\"listened_at\":$listenedAt,\"additional_info\":{\"duration\":$duration,\"position_ms\":$positionMs}}]"
+                val artistNames = song.artists.joinToString(" & ") { it.name }
+                val releaseName = song.album?.name ?: ""
+                val listensJson = "[{\"artist_name\":\"${escapeJson(artistNames)}\",\"track_name\":\"${escapeJson(song.title)}\",\"release_name\":\"${escapeJson(releaseName)}\",\"listened_at\":$listenedAt,\"additional_info\":{\"duration\":$duration,\"position_ms\":$positionMs}}]"
                 val bodyJson = "{\"listen_type\":\"playing_now\",\"payload\":{\"listens\":$listensJson,\"source_name\":\"ArchiveTune\"}}"
                 val mediaType = "application/json".toMediaType()
                 val body = bodyJson.toRequestBody(mediaType)
@@ -47,7 +49,7 @@ object ListenBrainzManager {
                         _lastSubmitTime.value = System.currentTimeMillis()
                         Timber.tag(logTag).d("playing_now submitted for %s", song.title)
                     } else {
-                        Timber.tag(logTag).w("playing_now submit failed: %s", resp.code())
+                        Timber.tag(logTag).w("playing_now submit failed: %s", resp.code)
                     }
                     success
                 }
@@ -65,7 +67,9 @@ object ListenBrainzManager {
             try {
                 val listenedAt = endMs / 1000L
                 val duration = song.song.duration
-                val listensJson = "[{\"artist_name\":\"${escapeJson(song.artists.joinToString(" & ") { it.name })}\",\"track_name\":\"${escapeJson(song.title)}\",\"release_name\":\"${escapeJson(song.album?.name ?: "")}\",\"listened_at\":$listenedAt,\"additional_info\":{\"duration\":$duration,\"start_ms\":$startMs,\"end_ms\":$endMs}}]"
+                val artistNames = song.artists.joinToString(" & ") { it.name }
+                val releaseName = song.album?.name ?: ""
+                val listensJson = "[{\"artist_name\":\"${escapeJson(artistNames)}\",\"track_name\":\"${escapeJson(song.title)}\",\"release_name\":\"${escapeJson(releaseName)}\",\"listened_at\":$listenedAt,\"additional_info\":{\"duration\":$duration,\"start_ms\":$startMs,\"end_ms\":$endMs}}]"
                 val bodyJson = "{\"listen_type\":\"single\",\"payload\":{\"listens\":$listensJson,\"source_name\":\"ArchiveTune\"}}"
                 val mediaType = "application/json".toMediaType()
                 val body = bodyJson.toRequestBody(mediaType)
@@ -82,7 +86,7 @@ object ListenBrainzManager {
                         _lastSubmitTime.value = System.currentTimeMillis()
                         Timber.tag(logTag).d("finished listen submitted for %s", song.title)
                     } else {
-                        Timber.tag(logTag).w("finished listen submit failed: %s", resp.code())
+                        Timber.tag(logTag).w("finished listen submit failed: %s", resp.code)
                     }
                     success
                 }
