@@ -24,6 +24,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Switch
 import androidx.compose.material3.ListItem
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -85,6 +86,7 @@ fun YouTubePlaylistMenu(
     onDismiss: () -> Unit,
     selectAction: () -> Unit = {},
     canSelect: Boolean = false,
+    snackbarHostState: androidx.compose.material3.SnackbarHostState? = null,
 ) {
     val context = LocalContext.current
     val database = LocalDatabase.current
@@ -255,6 +257,8 @@ fun YouTubePlaylistMenu(
             allSongs.map { it.id }
         },
         playlistTitle = playlist.title,
+        browseId = playlist.id,
+        snackbarHostState = snackbarHostState,
         onDismiss = { showImportPlaylistDialog = false }
     )
 
@@ -452,6 +456,76 @@ fun YouTubePlaylistMenu(
                 },
                 modifier = Modifier.clickable {
                     showChoosePlaylistDialog = true
+                }
+            )
+        }
+        item {
+            ListItem(
+                headlineContent = { Text(text = stringResource(R.string.import_playlist)) },
+                leadingContent = {
+                    Icon(
+                        painter = painterResource(R.drawable.add),
+                        contentDescription = null,
+                    )
+                },
+                modifier = Modifier.clickable {
+                    showImportPlaylistDialog = true
+                }
+            )
+        }
+        item {
+            // Auto-sync toggle: allow users to mark this external playlist to be auto-synced
+            ListItem(
+                headlineContent = { Text(text = stringResource(R.string.yt_sync)) },
+                leadingContent = {
+                    Icon(
+                        painter = painterResource(R.drawable.sync),
+                        contentDescription = null,
+                    )
+                },
+                trailingContent = {
+                    val checked = dbPlaylist?.playlist?.isAutoSync ?: false
+                    Switch(
+                        checked = checked,
+                        onCheckedChange = { newValue ->
+                            coroutineScope.launch {
+                                val currentDbPlaylist = dbPlaylist
+                                if (currentDbPlaylist?.playlist == null) {
+                                    val fetchedSongs = withContext(Dispatchers.IO) {
+                                        YouTube.playlist(playlist.id).completed().getOrNull()?.songs.orEmpty()
+                                    }.map { it.toMediaMetadata() }
+
+                                    database.transaction {
+                                        val playlistEntity = PlaylistEntity(
+                                            name = playlist.title,
+                                            browseId = playlist.id,
+                                            thumbnailUrl = playlist.thumbnail,
+                                            isEditable = false,
+                                            isAutoSync = newValue,
+                                            remoteSongCount = playlist.songCountText?.let {
+                                                Regex("""\d+""").find(it)?.value?.toIntOrNull()
+                                            },
+                                            playEndpointParams = playlist.playEndpoint?.params,
+                                            shuffleEndpointParams = playlist.shuffleEndpoint?.params,
+                                            radioEndpointParams = playlist.radioEndpoint?.params
+                                        )
+                                        insert(playlistEntity)
+                                        fetchedSongs.forEach(::insert)
+                                        fetchedSongs.mapIndexed { index, song ->
+                                            PlaylistSongMap(
+                                                songId = song.id,
+                                                playlistId = playlistEntity.id,
+                                                position = index
+                                            )
+                                        }.forEach(::insert)
+                                    }
+                                } else {
+                                    val existing = currentDbPlaylist.playlist
+                                    database.update(existing.copy(isAutoSync = newValue))
+                                }
+                            }
+                        }
+                    )
                 }
             )
         }

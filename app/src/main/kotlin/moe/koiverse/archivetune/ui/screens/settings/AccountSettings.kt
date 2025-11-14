@@ -70,6 +70,19 @@ import moe.koiverse.archivetune.ui.component.TextFieldDialog
 import moe.koiverse.archivetune.utils.Updater
 import moe.koiverse.archivetune.utils.rememberPreference
 import moe.koiverse.archivetune.viewmodels.HomeViewModel
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CircularProgressIndicator
+import kotlinx.coroutines.launch
+import moe.koiverse.archivetune.constants.SelectedYtmPlaylistsKey
+import moe.koiverse.archivetune.innertube.utils.completed
+import moe.koiverse.archivetune.utils.dataStore
+import androidx.datastore.preferences.core.edit
 
 @Composable
 fun AccountSettings(
@@ -274,6 +287,89 @@ fun AccountSettings(
                     .clip(RoundedCornerShape(16.dp))
                     .background(MaterialTheme.colorScheme.surface)
             )
+
+            Spacer(Modifier.height(4.dp))
+
+            // Integration settings were moved to a dedicated Integration screen.
+        }
+
+        Spacer(Modifier.height(4.dp))
+
+        var showPlaylistDialog by remember { mutableStateOf(false) }
+        PreferenceEntry(
+            title = { Text(stringResource(R.string.select_playlist_to_sync)) },
+            icon = { Icon(painterResource(R.drawable.playlist_add), null) },
+            onClick = { showPlaylistDialog = true },
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(16.dp))
+                .background(MaterialTheme.colorScheme.surface)
+        )
+
+        // ListenBrainz UI moved to Integration screen.
+
+        if (showPlaylistDialog) {
+            val coroutineScope = rememberCoroutineScope()
+            val context2 = LocalContext.current
+            val (initialSelected, _) = rememberPreference(SelectedYtmPlaylistsKey, "")
+            val selectedList = remember { mutableStateListOf<String>() }
+            LaunchedEffect(initialSelected) {
+                selectedList.clear()
+                if (initialSelected.isNotEmpty()) selectedList.addAll(initialSelected.split(',').map { it.trim() }.filter { it.isNotEmpty() })
+            }
+
+            var loading by remember { mutableStateOf(true) }
+            val playlists = remember { mutableStateListOf<moe.koiverse.archivetune.innertube.models.PlaylistItem>() }
+
+            LaunchedEffect(Unit) {
+                loading = true
+                moe.koiverse.archivetune.innertube.YouTube.library("FEmusic_liked_playlists").completed().onSuccess { page ->
+                    playlists.clear()
+                    playlists.addAll(page.items.filterIsInstance<moe.koiverse.archivetune.innertube.models.PlaylistItem>().filterNot { it.id == "LM" || it.id == "SE" }.reversed())
+                }.onFailure {
+                }
+                loading = false
+            }
+
+            AlertDialog(
+                onDismissRequest = { showPlaylistDialog = false },
+                confirmButton = {
+                    androidx.compose.material3.TextButton(onClick = {
+                        coroutineScope.launch {
+                            context2.dataStore.edit { settings ->
+                                settings[SelectedYtmPlaylistsKey] = selectedList.joinToString(",")
+                            }
+                        }
+                        showPlaylistDialog = false
+                    }) { Text(stringResource(R.string.save)) }
+                },
+                dismissButton = {
+                    androidx.compose.material3.TextButton(onClick = { showPlaylistDialog = false }) { Text(stringResource(R.string.cancel_button)) }
+                },
+                title = { Text(stringResource(R.string.select_playlist_to_sync)) },
+                text = {
+                    if (loading) {
+                        CircularProgressIndicator()
+                    } else {
+                        LazyColumn {
+                            items(playlists) { pl ->
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Checkbox(
+                                        checked = selectedList.contains(pl.id),
+                                        onCheckedChange = { checked ->
+                                            if (checked) selectedList.add(pl.id) else selectedList.remove(pl.id)
+                                        }
+                                    )
+                                    Spacer(Modifier.width(8.dp))
+                                    AsyncImage(model = pl.thumbnail, contentDescription = null, modifier = Modifier.size(40.dp).clip(RoundedCornerShape(4.dp)), contentScale = ContentScale.Crop)
+                                    Spacer(Modifier.width(8.dp))
+                                    Text(pl.title)
+                                }
+                            }
+                        }
+                    }
+                }
+            )
         }
 
         Spacer(Modifier.height(12.dp))
@@ -284,11 +380,11 @@ fun AccountSettings(
                 .background(MaterialTheme.colorScheme.surfaceContainer)
         ) {
             PreferenceEntry(
-                title = { Text(stringResource(R.string.discord_integration)) },
-                icon = { Icon(painterResource(R.drawable.discord), null) },
+                title = { Text(stringResource(R.string.integration)) },
+                icon = { Icon(painterResource(R.drawable.integration), null) },
                 onClick = {
                     onClose()
-                    navController.navigate("settings/discord")
+                    navController.navigate("settings/integration")
                 },
                 modifier = Modifier
                     .fillMaxWidth()

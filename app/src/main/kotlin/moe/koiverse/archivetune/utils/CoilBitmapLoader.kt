@@ -1,4 +1,4 @@
-package moe.koiverse.archivetune.utils
+ package moe.koiverse.archivetune.utils
 
 import android.content.Context
 import android.graphics.Bitmap
@@ -13,6 +13,7 @@ import coil3.request.ImageRequest
 import coil3.request.SuccessResult
 import coil3.request.allowHardware
 import coil3.toBitmap
+import kotlinx.coroutines.delay
 import com.google.common.util.concurrent.ListenableFuture
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -27,46 +28,55 @@ class CoilBitmapLoader(
     override fun decodeBitmap(data: ByteArray): ListenableFuture<Bitmap> =
         scope.future(Dispatchers.IO) {
             try {
-                // Defensive checks: ensure length and offsets are valid for decodeByteArray
                 if (data.isEmpty()) {
                     throw IllegalArgumentException("Empty image data")
                 }
 
-                // decodeByteArray can throw or return null for malformed data; catch and fallback
                 BitmapFactory.decodeByteArray(data, 0, data.size)?.also { bitmap ->
                     return@future bitmap
                 }
 
-                // If decode returned null, throw to jump to fallback
                 throw IllegalStateException("Could not decode image data")
             } catch (e: Exception) {
                 reportException(e)
-                // Return a small fallback bitmap instead of crashing
                 return@future createBitmap(64, 64)
             }
         }
 
     override fun loadBitmap(uri: Uri): ListenableFuture<Bitmap> =
         scope.future(Dispatchers.IO) {
-            val request = ImageRequest.Builder(context)
-                .data(uri)
-                .allowHardware(false)
-                .build()
+            val attempts = 3
+            for (attempt in 1..attempts) {
+                try {
+                    val request = ImageRequest.Builder(context)
+                        .data(uri)
+                        .allowHardware(false)
+                        .build()
 
-            val result = context.imageLoader.execute(request)
+                    val result = context.imageLoader.execute(request)
 
-            // In case of error, returns an empty bitmap
-            when (result) {
-                is ErrorResult -> {
-                    createBitmap(64, 64)
-                }
-                is SuccessResult -> {
-                    try {
-                        result.image.toBitmap()
-                    } catch (e: Exception) {
-                        createBitmap(64, 64)
+                    when (result) {
+                        is SuccessResult -> {
+                            try {
+                                return@future result.image.toBitmap()
+                            } catch (e: Exception) {
+                                reportException(e)
+                            }
+                        }
+
+                        is ErrorResult -> {
+                            result.throwable?.let { reportException(it) }
+                        }
                     }
+                } catch (e: Exception) {
+                    reportException(e)
+                }
+
+                if (attempt < attempts) {
+                    delay(250L * attempt)
+                    continue
                 }
             }
+            createBitmap(64, 64)
         }
 }

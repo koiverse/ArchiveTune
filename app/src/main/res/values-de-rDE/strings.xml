@@ -31,6 +31,8 @@
     <string name="your_youtube_playlists">Deine YouTube-Playlists</string>
     <string name="similar_to">Ähnlich</string>
     <string name="new_release_albums">Neue Veröffentlichungsalben</string>
+    <string name="select_playlist_to_sync">Wählen Sie eine Playlist zum Synchronisieren</string>
+    <string name="integration">Integration</string>
 
     <!-- History -->
     <string name="today">Heute</string>
@@ -50,6 +52,7 @@
     <string name="filter_library">Bibliothek</string>
     <string name="filter_liked">Gefallen</string>
     <string name="filter_downloaded">Heruntergeladen</string>
+    <string name="filter_downloaded_full">Heruntergeladen (Vollständig)</string>
     <string name="filter_all">Alle</string>
     <string name="filter_songs">Lieder</string>
     <string name="filter_videos">Videos</string>
@@ -101,6 +104,7 @@
     <string name="downloading">Herunterladen</string>
     <string name="remove_download">Download entfernen</string>
     <string name="import_playlist">Playlist importieren</string>
+    <string name="update_button">Aktualisieren</string>
     <string name="add_to_playlist">Zur Playlist hinzufügen</string>
     <string name="view_artist">Künstler ansehen</string>
     <string name="view_album">Album ansehen</string>
@@ -299,6 +303,7 @@
     <string name="proxy_type">Proxy-Typ</string>
     <string name="proxy_url">Proxy-URL</string>
     <string name="restart_to_take_effect">Starten Sie neu, damit es wirksam wird</string>
+    <string name="enable_betterlyrics">Aktivieren Sie BetterLyrics</string>
 
     <string name="player_and_audio">Player und Audio</string>
     <string name="audio_quality">Audioqualität</string>
@@ -363,6 +368,26 @@
     <string name="options">Optionen</string>
     <string name="preview">Vorschau</string>
     <string name="enable_discord_rpc">Aktivieren Sie Rich Presence</string>
+
+        <!-- Last.fm -->
+    <string name="scrobbling">Scrobbling</string>
+    <string name="lastfm_integration">Last.fm-Integration</string>
+    <string name="enable_scrobbling">Scrobbling aktivieren</string>
+    <string name="lastfm_now_playing">Aktuellen Titel aktualisieren</string>
+    <string name="scrobbling_configuration">Scrobbling-Konfiguration</string>
+    <string name="scrobble_min_track_duration">Minimale Titel­dauer</string>
+    <string name="scrobble_delay_percent">Scrobble-Verzögerung (Prozent)</string>
+    <string name="scrobble_delay_minutes">Scrobble-Verzögerung (Sekunden)</string>
+    <string name="username">Benutzername</string>
+    <string name="password">Passwort</string>
+
+
+        <!-- ListenBrainz -->
+    <string name="listenbrainz_scrobbling">ListenBrainz-Scrobbling</string>
+    <string name="listenbrainz_scrobbling_description">Übermitteln von „Jetzt läuft“ und abgeschlossenen Wiedergaben an ListenBrainz aktivieren</string>
+    <string name="set_listenbrainz_token">ListenBrainz-Token festlegen</string>
+    <string name="edit_listenbrainz_token">ListenBrainz-Token bearbeiten</string>
+
 
     <!-- Discord activity customization -->
     <string name="discord_activity_name">Aktivitätsname</string>
@@ -438,6 +463,28 @@
     <string name="open">Offen</string>
     <string name="reset_to_default_levels">Auf Standard zurücksetzen</string>
     <string name="no_logs">Keine Protokolle</string>
+    <string name="show_nerd_stats">Nerd-Statistiken anzeigen</string>
+    <string name="description_show_nerd_stats">Echtzeit-Wiedergabestatistiken anzeigen (Codec, Bitrate, Puffer)</string>
+    <string name="display_codec_on_player">Codec im Player anzeigen</string>
+    <string name="description_display_codec_on_player">Aktuelle Audio-Codec-Informationen im Player anzeigen</string>
+    <string name="nerd_stats">Nerd-Statistiken</string>
+    <string name="track_label">Titel</string>
+    <string name="no_track_playing">Kein Titel wird wiedergegeben</string>
+    <string name="codec_label">Codec</string>
+    <string name="unknown_codec">Unbekannter Codec</string>
+    <string name="bitrate_label">Bitrate</string>
+    <string name="unknown_bitrate">Unbekannte Bitrate</string>
+    <string name="sample_rate_label">Abtastrate</string>
+    <string name="unknown_sample_rate">Unbekannte Abtastrate</string>
+    <string name="content_length_label">Inhaltslänge</string>
+    <string name="unknown_content_length">Unbekannte Inhaltslänge</string>
+    <string name="format_label">Format</string>
+    <string name="loading_format">Format wird geladen...</string>
+    <string name="buffer_health_label">Pufferzustand</string>
+    <string name="playback_speed_label">Wiedergabegeschwindigkeit</string>
+    <string name="state_label">Status</string>
+    <string name="media_id_label">Medien-ID</string>
+
 
 
 

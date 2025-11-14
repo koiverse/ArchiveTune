@@ -1,5 +1,8 @@
 package moe.koiverse.archivetune.utils
 
+import android.content.Context
+import dagger.hilt.android.qualifiers.ApplicationContext
+import moe.koiverse.archivetune.constants.SelectedYtmPlaylistsKey
 import moe.koiverse.archivetune.innertube.YouTube
 import moe.koiverse.archivetune.innertube.models.AlbumItem
 import moe.koiverse.archivetune.innertube.models.ArtistItem
@@ -26,6 +29,7 @@ import javax.inject.Singleton
 @Singleton
 class SyncUtils @Inject constructor(
     private val database: MusicDatabase,
+    @ApplicationContext private val context: Context,
 ) {
     private val syncScope = CoroutineScope(Dispatchers.IO)
 
@@ -162,14 +166,20 @@ class SyncUtils @Inject constructor(
             val remotePlaylists = page.items.filterIsInstance<PlaylistItem>()
                 .filterNot { it.id == "LM" || it.id == "SE" }
                 .reversed()
-            val remoteIds = remotePlaylists.map { it.id }.toSet()
+
+            val selectedCsv = context.dataStore[SelectedYtmPlaylistsKey] ?: ""
+            val selectedIds = selectedCsv.split(',').map { it.trim() }.filter { it.isNotEmpty() }.toSet()
+
+            val playlistsToSync = if (selectedIds.isNotEmpty()) remotePlaylists.filter { it.id in selectedIds } else remotePlaylists
+
+            val remoteIds = playlistsToSync.map { it.id }.toSet()
             val localPlaylists = database.playlistsByNameAsc().first()
 
             localPlaylists.filterNot { it.playlist.browseId in remoteIds }
                 .filterNot { it.playlist.browseId == null }
                 .forEach { database.update(it.playlist.localToggleLike()) }
 
-            remotePlaylists.forEach { playlist ->
+            playlistsToSync.forEach { playlist ->
                 launch {
                     var playlistEntity = localPlaylists.find { it.playlist.browseId == playlist.id }?.playlist
                     if (playlistEntity == null) {
@@ -186,7 +196,6 @@ class SyncUtils @Inject constructor(
                         )
                         database.insert(playlistEntity)
                     } else {
-                        // Update existing playlist with latest information including thumbnail
                         database.update(playlistEntity, playlist)
                     }
                     syncPlaylist(playlist.id, playlistEntity.id)

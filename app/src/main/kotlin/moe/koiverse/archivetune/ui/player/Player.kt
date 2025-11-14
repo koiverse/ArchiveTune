@@ -71,6 +71,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -124,6 +125,7 @@ import moe.koiverse.archivetune.constants.PlayerCustomContrastKey
 import moe.koiverse.archivetune.constants.PlayerCustomBrightnessKey
 import moe.koiverse.archivetune.constants.PlayerButtonsStyle
 import moe.koiverse.archivetune.constants.PlayerButtonsStyleKey
+import moe.koiverse.archivetune.ui.theme.PlayerBackgroundColorUtils
 import moe.koiverse.archivetune.ui.theme.PlayerColorExtractor
 import moe.koiverse.archivetune.ui.theme.PlayerSliderColors
 import moe.koiverse.archivetune.constants.PlayerHorizontalPadding
@@ -300,10 +302,12 @@ fun BottomSheetPlayer(
                         .allowHardware(false)
                         .build()
 
-                    val result = runCatching { 
-                        context.imageLoader.execute(request)
+                    val result = runCatching {
+                        withContext(Dispatchers.IO) {
+                            context.imageLoader.execute(request)
+                        }
                     }.getOrNull()
-                    
+
                     if (result != null) {
                         val bitmap = result.image?.toBitmap()
                         if (bitmap != null) {
@@ -313,16 +317,14 @@ fun BottomSheetPlayer(
                                     .resizeBitmapArea(PlayerColorExtractor.Config.BITMAP_AREA)
                                     .generate()
                             }
-                        
-                        // Use the new color extraction system
-                        val extractedColors = PlayerColorExtractor.extractGradientColors(
-                            palette = palette,
-                            fallbackColor = fallbackColor
-                        )
-                        
-                        // Cache the extracted colors
-                        gradientColorsCache[currentMetadata.id] = extractedColors
-                        gradientColors = extractedColors
+
+                            val extractedColors = PlayerColorExtractor.extractGradientColors(
+                                palette = palette,
+                                fallbackColor = fallbackColor
+                            )
+
+                            gradientColorsCache[currentMetadata.id] = extractedColors
+                            gradientColors = extractedColors
                         } else {
                             gradientColors = defaultGradientColors
                         }
@@ -1122,9 +1124,15 @@ fun BottomSheetPlayer(
                                         model = thumbnailUrl,
                                         contentDescription = "Blurred background",
                                         contentScale = ContentScale.FillBounds,
-                                        modifier = Modifier.fillMaxSize().blur(radius = 50.dp)
+                                        modifier = Modifier.fillMaxSize().blur(radius = 60.dp)
                                     )
-                                    Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.4f)))
+                                    val overlayStops = PlayerBackgroundColorUtils.buildBlurOverlayStops(gradientColors)
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .background(Brush.verticalGradient(colorStops = overlayStops))
+                                    )
+                                    Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.3f)))
                                 }
                             }
                         }
@@ -1140,19 +1148,20 @@ fun BottomSheetPlayer(
                                 Box(modifier = Modifier.fillMaxSize()) {
                                     val gradientColorStops = if (colors.size >= 3) {
                                         arrayOf(
-                                            0.0f to colors[0], // Top: primary vibrant color
-                                            0.5f to colors[1], // Middle: darker variant
-                                            1.0f to colors[2]  // Bottom: black
+                                            0.0f to colors[0].copy(alpha = 0.92f), // Top: primary vibrant color
+                                            0.5f to colors[1].copy(alpha = 0.75f), // Middle: darker variant
+                                            1.0f to colors[2].copy(alpha = 0.65f)  // Bottom: black-ish
                                         )
                                     } else {
                                         arrayOf(
-                                            0.0f to colors[0], // Top: primary color
-                                            0.6f to colors[0].copy(alpha = 0.7f), // Middle: faded variant
-                                            1.0f to Color.Black // Bottom: black
+                                            0.0f to colors[0].copy(alpha = 0.9f), // Top: primary color
+                                            0.6f to colors[0].copy(alpha = 0.55f), // Middle: faded variant
+                                            1.0f to Color.Black.copy(alpha = 0.7f) // Bottom: black
                                         )
                                     }
                                     Box(modifier = Modifier.fillMaxSize().background(Brush.verticalGradient(colorStops = gradientColorStops)))
-                                    Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.2f)))
+                                    // Keep a gentle dark overlay to ensure text contrast on bright artwork
+                                    Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.18f)))
                                 }
                             }
                         }
@@ -1165,7 +1174,17 @@ fun BottomSheetPlayer(
                             }
                         ) { colors ->
                             if (colors.isNotEmpty()) {
-                                Box(modifier = Modifier.fillMaxSize().background(colors[0]))
+                                val baseColor = PlayerBackgroundColorUtils.ensureComfortableColor(colors.first())
+                                val gradientStops = PlayerBackgroundColorUtils.buildColoringStops(baseColor)
+                                Box(modifier = Modifier.fillMaxSize()) {
+                                    Box(modifier = Modifier.fillMaxSize().background(baseColor))
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .background(Brush.verticalGradient(colorStops = gradientStops))
+                                    )
+                                    Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.25f)))
+                                }
                             }
                         }
                     }
@@ -1182,27 +1201,15 @@ fun BottomSheetPlayer(
                                         model = thumbnailUrl,
                                         contentDescription = "Blurred background",
                                         contentScale = ContentScale.FillBounds,
-                                        modifier = Modifier.fillMaxSize().blur(radius = 50.dp)
+                                        modifier = Modifier.fillMaxSize().blur(radius = 65.dp)
                                     )
-                                    val gradientColorStops = if (gradientColors.size >= 3) {
-                                        arrayOf(
-                                            0.0f to gradientColors[0].copy(alpha = 0.7f),
-                                            0.5f to gradientColors[1].copy(alpha = 0.7f),
-                                            1.0f to gradientColors[2].copy(alpha = 0.7f)
-                                        )
-                                    } else if (gradientColors.isNotEmpty()) {
-                                        arrayOf(
-                                            0.0f to gradientColors[0].copy(alpha = 0.7f),
-                                            0.6f to gradientColors[0].copy(alpha = 0.4f),
-                                            1.0f to Color.Black.copy(alpha = 0.7f)
-                                        )
-                                    } else {
-                                        arrayOf(
-                                            0.0f to Color.Transparent,
-                                            1.0f to Color.Transparent
-                                        )
-                                    }
-                                    Box(modifier = Modifier.fillMaxSize().background(Brush.verticalGradient(colorStops = gradientColorStops)))
+                                    val gradientColorStops = PlayerBackgroundColorUtils.buildBlurGradientStops(gradientColors)
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .background(Brush.verticalGradient(colorStops = gradientColorStops))
+                                    )
+                                    Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.2f)))
                                 }
                             }
                         }
@@ -1250,14 +1257,100 @@ fun BottomSheetPlayer(
                             }
                         ) { colors ->
                             if (colors.isNotEmpty()) {
-                                Box(modifier = Modifier.fillMaxSize()) {
-                                    val radialGradient = Brush.radialGradient(
-                                        colors = listOf(colors[0], Color.Transparent),
-                                        center = Offset(x = 540f, y = 380f),
-                                        radius = 800f
-                                    )
-                                    Box(modifier = Modifier.fillMaxSize().background(radialGradient))
-                                }
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .drawBehind {
+                                            val width = size.width
+                                            val height = size.height
+                                            
+                                            // Create seamless mesh gradient with 5 overlapping blobs
+                                            if (colors.size >= 3) {
+                                                // First color blob - top left
+                                                drawRect(
+                                                    brush = Brush.radialGradient(
+                                                        colors = listOf(
+                                                            colors[0].copy(alpha = 0.7f),
+                                                            colors[0].copy(alpha = 0.5f),
+                                                            colors[0].copy(alpha = 0.2f),
+                                                            Color.Transparent
+                                                        ),
+                                                        center = Offset(width * 0.15f, height * 0.15f),
+                                                        radius = width * 0.8f
+                                                    )
+                                                )
+                                                
+                                                // Second color blob - top right
+                                                drawRect(
+                                                    brush = Brush.radialGradient(
+                                                        colors = listOf(
+                                                            colors[1].copy(alpha = 0.65f),
+                                                            colors[1].copy(alpha = 0.45f),
+                                                            colors[1].copy(alpha = 0.18f),
+                                                            Color.Transparent
+                                                        ),
+                                                        center = Offset(width * 0.85f, height * 0.2f),
+                                                        radius = width * 0.85f
+                                                    )
+                                                )
+                                                
+                                                // Third color blob - middle left
+                                                drawRect(
+                                                    brush = Brush.radialGradient(
+                                                        colors = listOf(
+                                                            colors[2].copy(alpha = 0.6f),
+                                                            colors[2].copy(alpha = 0.4f),
+                                                            colors[2].copy(alpha = 0.15f),
+                                                            Color.Transparent
+                                                        ),
+                                                        center = Offset(width * 0.25f, height * 0.5f),
+                                                        radius = width * 0.75f
+                                                    )
+                                                )
+                                                
+                                                // Fourth color blob - middle right
+                                                drawRect(
+                                                    brush = Brush.radialGradient(
+                                                        colors = listOf(
+                                                            colors[0].copy(alpha = 0.55f),
+                                                            colors[0].copy(alpha = 0.35f),
+                                                            colors[0].copy(alpha = 0.12f),
+                                                            Color.Transparent
+                                                        ),
+                                                        center = Offset(width * 0.75f, height * 0.6f),
+                                                        radius = width * 0.9f
+                                                    )
+                                                )
+                                                
+                                                // Fifth color blob - bottom center
+                                                drawRect(
+                                                    brush = Brush.radialGradient(
+                                                        colors = listOf(
+                                                            colors[1].copy(alpha = 0.5f),
+                                                            colors[1].copy(alpha = 0.3f),
+                                                            colors[1].copy(alpha = 0.1f),
+                                                            Color.Transparent
+                                                        ),
+                                                        center = Offset(width * 0.5f, height * 0.8f),
+                                                        radius = width * 0.95f
+                                                    )
+                                                )
+                                            } else {
+                                                // Fallback: single radial gradient
+                                                drawRect(
+                                                    brush = Brush.radialGradient(
+                                                        colors = listOf(
+                                                            colors[0].copy(alpha = 0.8f),
+                                                            colors[0].copy(alpha = 0.4f),
+                                                            Color.Transparent
+                                                        ),
+                                                        center = Offset(width * 0.5f, height * 0.4f),
+                                                        radius = width * 0.7f
+                                                    )
+                                                )
+                                            }
+                                        }
+                                ) {}
                             }
                         }
                     }

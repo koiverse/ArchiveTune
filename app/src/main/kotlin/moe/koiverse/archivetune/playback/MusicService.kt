@@ -28,6 +28,7 @@ import androidx.media3.common.Player.REPEAT_MODE_OFF
 import androidx.media3.common.Player.REPEAT_MODE_ONE
 import androidx.media3.common.Player.STATE_IDLE
 import androidx.media3.common.Timeline
+import androidx.media3.common.audio.AudioProcessor
 import androidx.media3.common.audio.SonicAudioProcessor
 import androidx.media3.datasource.DataSource
 import androidx.media3.datasource.DefaultDataSource
@@ -61,6 +62,7 @@ import moe.koiverse.archivetune.innertube.models.WatchEndpoint
 import moe.koiverse.archivetune.MainActivity
 import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.constants.AudioNormalizationKey
+import moe.koiverse.archivetune.constants.AudioCrossfadeDurationKey
 import moe.koiverse.archivetune.constants.AudioQualityKey
 import moe.koiverse.archivetune.constants.AutoLoadMoreKey
 import moe.koiverse.archivetune.constants.DisableLoadMoreWhenRepeatAllKey
@@ -127,6 +129,9 @@ import moe.koiverse.archivetune.utils.getPresenceIntervalMillis
 import moe.koiverse.archivetune.utils.reportException
 import moe.koiverse.archivetune.utils.NetworkConnectivityObserver
 import dagger.hilt.android.AndroidEntryPoint
+import moe.koiverse.archivetune.ui.screens.settings.ListenBrainzManager
+import moe.koiverse.archivetune.constants.ListenBrainzEnabledKey
+import moe.koiverse.archivetune.constants.ListenBrainzTokenKey
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -160,6 +165,11 @@ import kotlin.math.min
 import kotlin.math.pow
 import kotlin.time.Duration.Companion.seconds
 import timber.log.Timber
+import androidx.core.app.NotificationCompat
+import android.app.Notification
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.os.Build
 
 @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
 @AndroidEntryPoint
@@ -241,7 +251,8 @@ class MusicService :
 
     private var consecutivePlaybackErr = 0
 
-    val maxSafeGainFactor = 1.414f // +3 dB    
+    val maxSafeGainFactor = 1.414f // +3 dB
+    private val crossfadeProcessor = CrossfadeAudioProcessor()
 
     override fun onCreate() {
         super.onCreate()
@@ -257,24 +268,53 @@ class MusicService :
                     setSmallIcon(R.drawable.small_icon)
                 },
         )
-        player =
-            ExoPlayer
-                .Builder(this)
-                .setMediaSourceFactory(createMediaSourceFactory())
-                .setRenderersFactory(createRenderersFactory())
-                .setHandleAudioBecomingNoisy(true)
-                .setWakeMode(C.WAKE_MODE_NETWORK)
-                .setAudioAttributes(
-                    AudioAttributes
-                        .Builder()
-                        .setUsage(C.USAGE_MEDIA)
-                        .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
-                        .build(),
-                    false,
-                ).setSeekBackIncrementMs(5000)
-                .setSeekForwardIncrementMs(5000)
-                .build()
-                .apply {
+        player = ExoPlayer
+            .Builder(this)
+            .setMediaSourceFactory(createMediaSourceFactory())
+            .setRenderersFactory(createRenderersFactory())
+            .setHandleAudioBecomingNoisy(true)
+            .setWakeMode(C.WAKE_MODE_NETWORK)
+            .setAudioAttributes(
+                AudioAttributes.Builder()
+                    .setUsage(C.USAGE_MEDIA)
+                    .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
+                    .build(),
+                false
+            )
+            .setSeekBackIncrementMs(5000)
+            .setSeekForwardIncrementMs(5000)
+            .build()
+
+                try {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        val nm = getSystemService(NotificationManager::class.java)
+                        nm?.createNotificationChannel(
+                            NotificationChannel(
+                                CHANNEL_ID,
+                                getString(R.string.music_player),
+                                NotificationManager.IMPORTANCE_LOW
+                            )
+                        )
+                    }
+                    val pending = PendingIntent.getActivity(
+                        this,
+                        0,
+                        Intent(this, MainActivity::class.java),
+                        PendingIntent.FLAG_IMMUTABLE
+                    )
+                    val notification: Notification = NotificationCompat.Builder(this, CHANNEL_ID)
+                        .setContentTitle(getString(R.string.music_player))
+                        .setContentText("")
+                        .setSmallIcon(R.drawable.small_icon)
+                        .setContentIntent(pending)
+                        .setOngoing(true)
+                        .build()
+                    startForeground(NOTIFICATION_ID, notification)
+                } catch (e: Exception) {
+                    reportException(e)
+                }
+
+                player.apply {
                     addListener(this@MusicService)
                     sleepTimer = SleepTimer(scope, this)
                     addListener(sleepTimer)
@@ -372,6 +412,13 @@ class MusicService :
             .distinctUntilChanged()
             .collectLatest(scope) {
                 player.skipSilenceEnabled = it
+            }
+        
+        dataStore.data
+            .map { (it[AudioCrossfadeDurationKey] ?: 0) * 1000 }
+            .distinctUntilChanged()
+            .collectLatest(scope) {
+                crossfadeProcessor.crossfadeDurationMs = it
             }
 
         combine(
@@ -808,7 +855,6 @@ class MusicService :
                 withContext(Dispatchers.IO) {
                     queue.getInitialStatus().filterExplicit(dataStore.get(HideExplicitKey, false))
                 }
-            if (queue.preloadItem != null && player.playbackState == STATE_IDLE) return@launch
             if (initialStatus.title != null) {
                 queueTitle = initialStatus.title
             }
@@ -1068,6 +1114,20 @@ class MusicService :
                             Timber.tag("MusicService").e(ex, "restart after failed presence update threw")
                         }
                     }
+
+                    try {
+                        val lbEnabled = dataStore.get(ListenBrainzEnabledKey, false)
+                        val lbToken = dataStore.get(ListenBrainzTokenKey, "")
+                        if (lbEnabled && !lbToken.isNullOrBlank()) {
+                            scope.launch(Dispatchers.IO) {
+                                try {
+                                    ListenBrainzManager.submitPlayingNow(this@MusicService, lbToken, finalSong, player.currentPosition)
+                                } catch (ie: Exception) {
+                                    Timber.tag("MusicService").v(ie, "ListenBrainz playing_now submit failed")
+                                }
+                            }
+                        }
+                    } catch (_: Exception) {}
                 }
             }
         } catch (e: Exception) {
@@ -1116,6 +1176,19 @@ class MusicService :
                                 Timber.tag("MusicService").w("transition immediate presence update failed — attempting restart")
                                 try { DiscordPresenceManager.stop(); DiscordPresenceManager.start(this@MusicService, dataStore.get(DiscordTokenKey, ""), { song }, { player.currentPosition }, { !player.isPlaying }, { getPresenceIntervalMillis(this@MusicService) }) } catch (_: Exception) {}
                             }
+                            try {
+                                val lbEnabled = dataStore.get(ListenBrainzEnabledKey, false)
+                                val lbToken = dataStore.get(ListenBrainzTokenKey, "")
+                                if (lbEnabled && !lbToken.isNullOrBlank()) {
+                                    scope.launch(Dispatchers.IO) {
+                                        try {
+                                            ListenBrainzManager.submitPlayingNow(this@MusicService, lbToken, finalSong, player.currentPosition)
+                                        } catch (ie: Exception) {
+                                            Timber.tag("MusicService").v(ie, "ListenBrainz playing_now submit failed on transition")
+                                        }
+                                    }
+                                }
+                            } catch (_: Exception) {}
                         }
                     }
                 } catch (e: Exception) {
@@ -1146,6 +1219,19 @@ class MusicService :
                                 Timber.tag("MusicService").w("isPlaying/mediaTransition immediate presence update failed — restarting manager")
                                 try { DiscordPresenceManager.stop(); DiscordPresenceManager.restart() } catch (_: Exception) {}
                             }
+                            try {
+                                val lbEnabled = dataStore.get(ListenBrainzEnabledKey, false)
+                                val lbToken = dataStore.get(ListenBrainzTokenKey, "")
+                                if (lbEnabled && !lbToken.isNullOrBlank()) {
+                                    scope.launch(Dispatchers.IO) {
+                                        try {
+                                            ListenBrainzManager.submitPlayingNow(this@MusicService, lbToken, finalSong, player.currentPosition)
+                                        } catch (ie: Exception) {
+                                            Timber.tag("MusicService").v(ie, "ListenBrainz playing_now submit failed for isPlaying/mediaTransition")
+                                        }
+                                    }
+                                }
+                            } catch (_: Exception) {}
                         }
                     }
                 } catch (e: Exception) {
@@ -1203,6 +1289,38 @@ class MusicService :
 
         if (!isNetworkConnected.value || isConnectionError) {
             waitOnNetworkError()
+            return
+        }
+
+        val skipSilenceCurrentlyEnabled = dataStore.get(SkipSilenceKey, false)
+        val causeText = (error.cause?.stackTraceToString() ?: error.stackTraceToString()).lowercase()
+        val looksLikeSilenceProcessor = skipSilenceCurrentlyEnabled && (
+            "silenceskippingaudioprocessor" in causeText || "silence" in causeText
+        )
+
+        if (looksLikeSilenceProcessor) {
+            scope.launch {
+                try {
+                    dataStore.edit { settings ->
+                        settings[SkipSilenceKey] = false
+                    }
+                    player.skipSilenceEnabled = false
+                    val currentPos = player.currentPosition
+                    val targetPos = min(currentPos + 1500L, if (player.duration > 0) player.duration - 1000L else currentPos + 1500L)
+                    player.seekTo(targetPos)
+                    player.prepare()
+                    player.play()
+                    return@launch
+                } catch (t: Throwable) {
+                    Timber.tag("MusicService").e(t, "failed to recover from silence-skipper error")
+                }
+                if (dataStore.get(AutoSkipNextOnErrorKey, false)) {
+                    skipOnError()
+                } else {
+                    stopOnError()
+                }
+            }
+
             return
         }
 
@@ -1342,12 +1460,12 @@ class MusicService :
                 .setEnableAudioTrackPlaybackParams(enableAudioTrackPlaybackParams)
                 .setAudioProcessorChain(
                     DefaultAudioSink.DefaultAudioProcessorChain(
-                        emptyArray(),
                         // Use the non-deprecated constructor with explicit types to avoid any
                         // ambiguity or unexpected overload-resolution issues.
                         // minimumSilenceDurationUs = 2_000_000L, silenceRetentionRatio = 0.2f,
                         // maxSilenceToKeepDurationUs = 20_000L, minVolumeToKeepPercentageWhenMuting = 10,
                         // silenceThresholdLevel = 256
+                        crossfadeProcessor,
                         SilenceSkippingAudioProcessor(
                             2_000_000L,
                             0.2f,
@@ -1383,6 +1501,22 @@ class MusicService :
                         ),
                     )
                 } catch (_: SQLException) {
+            }
+            CoroutineScope(Dispatchers.IO).launch {
+                try {
+                    val lbEnabled = dataStore.get(ListenBrainzEnabledKey, false)
+                    val lbToken = dataStore.get(ListenBrainzTokenKey, "")
+                    if (lbEnabled && !lbToken.isNullOrBlank()) {
+                        val song = database.song(mediaItem.mediaId).first()
+                        val endMs = System.currentTimeMillis()
+                        val startMs = endMs - playbackStats.totalPlayTimeMs
+                        try {
+                            ListenBrainzManager.submitFinished(this@MusicService, lbToken, song, startMs, endMs)
+                        } catch (ie: Exception) {
+                            Timber.tag("MusicService").v(ie, "ListenBrainz finished submit failed")
+                        }
+                    }
+                } catch (_: Exception) {}
             }
         }
 

@@ -32,6 +32,7 @@ import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -128,6 +129,8 @@ import kotlinx.coroutines.launch
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 import kotlin.math.roundToInt
+import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.compose.ui.text.font.FontFamily
 
 @SuppressLint("UnrememberedMutableState")
 @OptIn(ExperimentalFoundationApi::class)
@@ -189,6 +192,11 @@ fun Queue(
         playerConnection.service.sleepTimer.isActive
     }
     var sleepTimerTimeLeft by remember { mutableStateOf(0L) }
+    
+    val (showCodecOnPlayer) = rememberPreference(
+        key = booleanPreferencesKey("show_codec_on_player"),
+        defaultValue = false
+    )
 
     LaunchedEffect(sleepTimerEnabled) {
         if (sleepTimerEnabled) {
@@ -209,6 +217,42 @@ fun Queue(
         modifier = modifier,
         collapsedContent = {
             if (useNewPlayerDesign) {
+                // Codec Info Display (if enabled)
+                if (showCodecOnPlayer && currentFormat != null) {
+                    Row(
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 30.dp, vertical = 6.dp)
+                    ) {
+                        val codec = currentFormat?.mimeType?.substringAfter("/")?.uppercase() ?: "Unknown"
+                        val bitrate = currentFormat?.bitrate?.let { "${it / 1000} kbps" } ?: "Unknown"
+                        val fileSize = currentFormat?.contentLength?.let {
+                            if (it > 0) "${(it / 1024.0 / 1024.0).roundToInt()} MB" else ""
+                        } ?: ""
+                        
+                        Text(
+                            text = buildString {
+                                append(codec)
+                                if (bitrate != "Unknown") {
+                                    append(" • ")
+                                    append(bitrate)
+                                }
+                                if (fileSize.isNotEmpty()) {
+                                    append(" • ")
+                                    append(fileSize)
+                                }
+                            },
+                            style = MaterialTheme.typography.labelSmall,
+                            fontFamily = FontFamily.Monospace,
+                            color = TextBackgroundColor.copy(alpha = 0.7f),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+                
                 // New design
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -394,6 +438,42 @@ fun Queue(
                     }
                 }
             } else {
+                // Codec Info Display (if enabled)
+                if (showCodecOnPlayer && currentFormat != null) {
+                    Row(
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 30.dp, vertical = 6.dp)
+                    ) {
+                        val codec = currentFormat?.mimeType?.substringAfter("/")?.uppercase() ?: "Unknown"
+                        val bitrate = currentFormat?.bitrate?.let { "${it / 1000} kbps" } ?: "Unknown"
+                        val fileSize = currentFormat?.contentLength?.let {
+                            if (it > 0) "${(it / 1024.0 / 1024.0).roundToInt()} MB" else ""
+                        } ?: ""
+                        
+                        Text(
+                            text = buildString {
+                                append(codec)
+                                if (bitrate != "Unknown") {
+                                    append(" • ")
+                                    append(bitrate)
+                                }
+                                if (fileSize.isNotEmpty()) {
+                                    append(" • ")
+                                    append(fileSize)
+                                }
+                            },
+                            style = MaterialTheme.typography.labelSmall,
+                            fontFamily = FontFamily.Monospace,
+                            color = TextBackgroundColor.copy(alpha = 0.7f),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+                
                 // Old design
                 Row(
                     horizontalArrangement = Arrangement.SpaceBetween,

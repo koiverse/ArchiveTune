@@ -23,6 +23,7 @@ import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
 import moe.koiverse.archivetune.innertube.utils.parseCookieString
 import moe.koiverse.archivetune.LocalDatabase
 import moe.koiverse.archivetune.R
@@ -40,6 +41,7 @@ import kotlinx.coroutines.launch
 import androidx.compose.material3.AlertDialog
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CircularProgressIndicator
 import kotlinx.coroutines.withContext
 
 @Composable
@@ -61,6 +63,7 @@ fun AddToPlaylistDialog(
     var duplicateSongsMap by remember { mutableStateOf<Map<String, List<String>>>(emptyMap()) }
     var songIds by remember { mutableStateOf<List<String>?>(null) }
     val (selectedPlaylistIds, setSelectedPlaylistIds) = remember { mutableStateOf(emptySet<String>()) }
+    var isAddingToPlaylist by remember { mutableStateOf(false) }
 
 
     LaunchedEffect(Unit) {
@@ -124,14 +127,16 @@ fun AddToPlaylistDialog(
             },
             confirmButton = {
                 TextButton(
-                    enabled = selectedPlaylistIds.isNotEmpty(),
+                    enabled = selectedPlaylistIds.isNotEmpty() && !isAddingToPlaylist,
                     onClick = {
+                        isAddingToPlaylist = true
                         coroutineScope.launch {
                             val currentSongIds = withContext(Dispatchers.IO) {
                                 songIds ?: if (playlists.isNotEmpty()) onGetSong(playlists.first()) else null
                             }
 
                             if (currentSongIds.isNullOrEmpty()) {
+                                isAddingToPlaylist = false
                                 onDismiss()
                                 return@launch
                             }
@@ -162,6 +167,8 @@ fun AddToPlaylistDialog(
                                 Pair(playlistsWithDups, tempDuplicatesMap)
                             }
 
+                            isAddingToPlaylist = false
+                            
                             if (withDuplicates.isNotEmpty()) {
                                 playlistsWithDuplicates = withDuplicates
                                 duplicateSongsMap = duplicatesMap
@@ -171,7 +178,14 @@ fun AddToPlaylistDialog(
                         }
                     }
                 ) {
-                    Text("Done")
+                    if (isAddingToPlaylist) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Text("Done")
+                    }
                 }
             }
         )

@@ -35,11 +35,26 @@ val ContentLanguageKey = stringPreferencesKey("contentLanguage")
 val ContentCountryKey = stringPreferencesKey("contentCountry")
 val EnableKugouKey = booleanPreferencesKey("enableKugou")
 val EnableLrcLibKey = booleanPreferencesKey("enableLrclib")
+val EnableBetterLyricsKey = booleanPreferencesKey("enableBetterLyrics")
 val HideExplicitKey = booleanPreferencesKey("hideExplicit")
 val ProxyEnabledKey = booleanPreferencesKey("proxyEnabled")
 val ProxyUrlKey = stringPreferencesKey("proxyUrl")
 val ProxyTypeKey = stringPreferencesKey("proxyType")
 val YtmSyncKey = booleanPreferencesKey("ytmSync")
+val SelectedYtmPlaylistsKey = stringPreferencesKey("ytm_selected_playlists")
+    
+    // ListenBrainz scrobbling
+    val ListenBrainzEnabledKey = booleanPreferencesKey("listenbrainz_enabled")
+    val ListenBrainzTokenKey = stringPreferencesKey("listenbrainz_token")
+
+// Last.fm scrobbling
+val LastFMSessionKey = stringPreferencesKey("lastfmSession")
+val LastFMUsernameKey = stringPreferencesKey("lastfmUsername")
+val EnableLastFMScrobblingKey = booleanPreferencesKey("lastfmScrobblingEnable")
+val LastFMUseNowPlaying = booleanPreferencesKey("lastfmUseNowPlaying")
+val ScrobbleDelayPercentKey = floatPreferencesKey("scrobbleDelayPercent")
+val ScrobbleMinSongDurationKey = intPreferencesKey("scrobbleMinSongDuration")
+val ScrobbleDelaySecondsKey = intPreferencesKey("scrobbleDelaySeconds")
 
 val AudioQualityKey = stringPreferencesKey("audioQuality")
 
@@ -54,6 +69,7 @@ enum class AudioQuality {
 val PersistentQueueKey = booleanPreferencesKey("persistentQueue")
 val SkipSilenceKey = booleanPreferencesKey("skipSilence")
 val AudioNormalizationKey = booleanPreferencesKey("audioNormalization")
+val AudioCrossfadeDurationKey = intPreferencesKey("audioCrossfadeDuration")
 val AutoLoadMoreKey = booleanPreferencesKey("autoLoadMore")
 val DisableLoadMoreWhenRepeatAllKey = booleanPreferencesKey("disableLoadMoreWhenRepeatAll")
 val AutoDownloadOnLikeKey = booleanPreferencesKey("autoDownloadOnLike")
@@ -175,7 +191,9 @@ enum class ArtistFilter {
 
 enum class AlbumFilter {
     LIBRARY,
-    LIKED
+    LIKED,
+    DOWNLOADED,
+    DOWNLOADED_FULL
 }
 
 enum class SongSortType {
@@ -291,6 +309,7 @@ enum class QuickPicks {
 enum class PreferredLyricsProvider {
     LRCLIB,
     KUGOU,
+    BETTER_LYRICS,
 }
 
 enum class PlayerButtonsStyle {
@@ -319,9 +338,12 @@ val LyricsAnimationStyleKey = stringPreferencesKey("lyricsAnimationStyle")
 enum class LyricsAnimationStyle {
     NONE,
     FADE,
+    GLOW,
     SLIDE,
-    KARAOKE,
 }
+
+val LyricsTextSizeKey = floatPreferencesKey("lyricsTextSize")
+val LyricsLineSpacingKey = floatPreferencesKey("lyricsLineSpacing")
 
 val TopSize = stringPreferencesKey("topSize")
 val HistoryDuration = floatPreferencesKey("historyDuration")

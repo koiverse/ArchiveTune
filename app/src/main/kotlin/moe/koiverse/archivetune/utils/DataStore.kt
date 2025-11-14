@@ -18,13 +18,16 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.properties.ReadOnlyProperty
 
 val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
 
 operator fun <T> DataStore<Preferences>.get(key: Preferences.Key<T>): T? =
     runBlocking(Dispatchers.IO) {
-        data.first()[key]
+        withTimeoutOrNull(1500) {
+            data.first()[key]
+        }
     }
 
 fun <T> DataStore<Preferences>.get(
@@ -32,7 +35,9 @@ fun <T> DataStore<Preferences>.get(
     defaultValue: T,
 ): T =
     runBlocking(Dispatchers.IO) {
-        data.first()[key] ?: defaultValue
+        withTimeoutOrNull(1500) {
+            data.first()[key]
+        } ?: defaultValue
     }
 
 fun <T> preference(
