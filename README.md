@@ -2,7 +2,7 @@
 
 <img src="https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/icon.png" height="88" alt="ArchiveTune app icon">
 
-Powered Forked [Metrolist](https://github.com/mostafaalagamy/Metrolist) But With Enhanced Features and Improvements Music Streaming Client for Android
+ArchiveTune is a Supercharged of [Metrolist](https://github.com/mostafaalagamy/Metrolist) With More Features & Improvements.
 
 [![Latest release](https://img.shields.io/github/v/release/koiverse/ArchiveTune?style=for-the-badge&include_prereleases)](https://github.com/koiverse/ArchiveTune/releases)
 [![GitHub license](https://img.shields.io/github/license/koiverse/ArchiveTune?style=for-the-badge)](https://github.com/koiverse/ArchiveTune/blob/main/LICENSE)
@@ -28,7 +28,7 @@ Powered Forked [Metrolist](https://github.com/mostafaalagamy/Metrolist) But With
     - Account synchronization
     - Access to your library, playlists, and mixes
     - Search for songs, albums, artists, and playlists
-- Sleek Material3 design
+- Sleek Modern and beautiful Material3 design
 - Multiple queues
 - Synchronized lyrics, and support for word by word/Karaoke lyrics formats (e.g LRC, TTML)
 - Translatable synced lyrics
@@ -36,6 +36,7 @@ Powered Forked [Metrolist](https://github.com/mostafaalagamy/Metrolist) But With
 - Android Auto support
 - Support for Android 8 (Oreo) and higher
 - Customizable Discord Rich Presence
+- Scrobbling support to LastFM & ListenBrainz
 - And many many more!
 
 > [!NOTE]
@@ -83,3 +84,8 @@ Additional acknowledgments:
 This project and its contents are not affiliated with, funded, authorized, endorsed by, or in any way associated with YouTube, Google LLC, ArchiveTune Group LLC or any of its affiliates and subsidiaries.
 
 Any trademark, service mark, trade name, or other intellectual property rights used in this project are owned by the respective owners.
+
+
+<div align="center">
+Made with ❤️ by <strong>Koiverse</strong>
+</div>
