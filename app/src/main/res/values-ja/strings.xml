@@ -369,6 +369,24 @@
     <string name="preview">プレビュー</string>
     <string name="enable_discord_rpc">リッチ プレゼンスを有効にする</string>
 
+        <!-- Last.fm -->
+    <string name="scrobbling">スクロブリング</string>
+    <string name="lastfm_integration">Last.fm 連携</string>
+    <string name="enable_scrobbling">スクロブリングを有効にする</string>
+    <string name="lastfm_now_playing">再生中を更新</string>
+    <string name="scrobbling_configuration">スクロブリング設定</string>
+    <string name="scrobble_min_track_duration">最小トラック時間</string>
+    <string name="scrobble_delay_percent">スクロブリング遅延（％）</string>
+    <string name="scrobble_delay_minutes">スクロブリング遅延（秒）</string>
+    <string name="not_logged_in">未ログイン</string>
+    <string name="action_login">ログイン</string>
+    <string name="action_logout">ログアウト</string>
+    <string name="username">ユーザー名</string>
+    <string name="password">パスワード</string>
+    <string name="login">ログイン</string>
+    <string name="cancel">キャンセル</string>
+
+
     <!-- ListenBrainz -->
     <string name="listenbrainz_scrobbling">ListenBrainz スクロブル</string>
     <string name="listenbrainz_scrobbling_description">再生中および再生完了した楽曲を ListenBrainz に送信する機能を有効にします</string>

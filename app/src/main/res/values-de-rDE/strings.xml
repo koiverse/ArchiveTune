@@ -369,6 +369,24 @@
     <string name="preview">Vorschau</string>
     <string name="enable_discord_rpc">Aktivieren Sie Rich Presence</string>
 
+        <!-- Last.fm -->
+    <string name="scrobbling">Scrobbling</string>
+    <string name="lastfm_integration">Last.fm-Integration</string>
+    <string name="enable_scrobbling">Scrobbling aktivieren</string>
+    <string name="lastfm_now_playing">Aktuellen Titel aktualisieren</string>
+    <string name="scrobbling_configuration">Scrobbling-Konfiguration</string>
+    <string name="scrobble_min_track_duration">Minimale Titel­dauer</string>
+    <string name="scrobble_delay_percent">Scrobble-Verzögerung (Prozent)</string>
+    <string name="scrobble_delay_minutes">Scrobble-Verzögerung (Sekunden)</string>
+    <string name="not_logged_in">Nicht eingeloggt</string>
+    <string name="action_login">Anmelden</string>
+    <string name="action_logout">Abmelden</string>
+    <string name="username">Benutzername</string>
+    <string name="password">Passwort</string>
+    <string name="login">Anmelden</string>
+    <string name="cancel">Abbrechen</string>
+
+
         <!-- ListenBrainz -->
     <string name="listenbrainz_scrobbling">ListenBrainz-Scrobbling</string>
     <string name="listenbrainz_scrobbling_description">Übermitteln von „Jetzt läuft“ und abgeschlossenen Wiedergaben an ListenBrainz aktivieren</string>

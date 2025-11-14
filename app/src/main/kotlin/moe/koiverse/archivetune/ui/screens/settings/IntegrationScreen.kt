@@ -70,6 +70,18 @@ fun IntegrationScreen(
                 navController.navigate("settings/discord")
             },
         )
+
+        PreferenceGroupTitle(
+            title = stringResource(R.string.scrobbling),
+        )
+
+        PreferenceEntry(
+            title = { Text(stringResource(R.string.lastfm_integration)) },
+            icon = { Icon(painterResource(R.drawable.token), null) },
+            onClick = {
+                navController.navigate("settings/lastfm")
+            },
+        )
         SwitchPreference(
             title = { Text(stringResource(R.string.listenbrainz_scrobbling)) },
             description = stringResource(R.string.listenbrainz_scrobbling_description),

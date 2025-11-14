@@ -47,6 +47,15 @@ val SelectedYtmPlaylistsKey = stringPreferencesKey("ytm_selected_playlists")
     val ListenBrainzEnabledKey = booleanPreferencesKey("listenbrainz_enabled")
     val ListenBrainzTokenKey = stringPreferencesKey("listenbrainz_token")
 
+// Last.fm scrobbling
+val LastFMSessionKey = stringPreferencesKey("lastfmSession")
+val LastFMUsernameKey = stringPreferencesKey("lastfmUsername")
+val EnableLastFMScrobblingKey = booleanPreferencesKey("lastfmScrobblingEnable")
+val LastFMUseNowPlaying = booleanPreferencesKey("lastfmUseNowPlaying")
+val ScrobbleDelayPercentKey = floatPreferencesKey("scrobbleDelayPercent")
+val ScrobbleMinSongDurationKey = intPreferencesKey("scrobbleMinSongDuration")
+val ScrobbleDelaySecondsKey = intPreferencesKey("scrobbleDelaySeconds")
+
 val AudioQualityKey = stringPreferencesKey("audioQuality")
 
 val NetworkMeteredKey = booleanPreferencesKey("networkMetered")

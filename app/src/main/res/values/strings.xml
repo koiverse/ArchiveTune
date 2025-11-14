@@ -371,6 +371,23 @@
     <string name="preview">Preview</string>
     <string name="enable_discord_rpc">Enable Rich Presence</string>
 
+    <!-- Last.fm -->
+    <string name="scrobbling">Scrobbling</string>
+    <string name="lastfm_integration">Last.fm Integration</string>
+    <string name="enable_scrobbling">Enable Scrobbling</string>
+    <string name="lastfm_now_playing">Update Now Playing</string>
+    <string name="scrobbling_configuration">Scrobbling Configuration</string>
+    <string name="scrobble_min_track_duration">Minimum Track Duration</string>
+    <string name="scrobble_delay_percent">Scrobble Delay Percent</string>
+    <string name="scrobble_delay_minutes">Scrobble Delay (Seconds)</string>
+    <string name="not_logged_in">Not logged in</string>
+    <string name="action_login">Login</string>
+    <string name="action_logout">Logout</string>
+    <string name="username">Username</string>
+    <string name="password">Password</string>
+    <string name="login">Login</string>
+    <string name="cancel">Cancel</string>
+
     <!-- ListenBrainz -->
     <string name="listenbrainz_scrobbling">ListenBrainz scrobbling</string>
     <string name="listenbrainz_scrobbling_description">Enable submitting now-playing and finished listens to ListenBrainz</string>

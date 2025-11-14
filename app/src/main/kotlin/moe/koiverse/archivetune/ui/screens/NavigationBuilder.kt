@@ -66,6 +66,7 @@ import moe.koiverse.archivetune.ui.screens.settings.DiscordLoginScreen
 import moe.koiverse.archivetune.ui.screens.settings.DiscordSettings
 import moe.koiverse.archivetune.ui.screens.settings.DebugSettings
 import moe.koiverse.archivetune.ui.screens.settings.IntegrationScreen
+import moe.koiverse.archivetune.ui.screens.settings.LastFMSettings
 import moe.koiverse.archivetune.ui.screens.settings.PlayerSettings
 import moe.koiverse.archivetune.ui.screens.settings.PrivacySettings
 import moe.koiverse.archivetune.ui.screens.settings.SettingsScreen
@@ -310,6 +311,9 @@ fun NavGraphBuilder.navigationBuilder(
     }
     composable("settings/integration") {
         IntegrationScreen(navController, scrollBehavior)
+    }
+    composable("settings/lastfm") {
+        LastFMSettings(navController, scrollBehavior)
     }
     composable("settings/discord/experimental") {
         moe.koiverse.archivetune.ui.screens.settings.DiscordExperimental(navController)
