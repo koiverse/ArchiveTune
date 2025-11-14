@@ -21,11 +21,13 @@ fun BigSeekBar(
     modifier: Modifier = Modifier,
     background: Color = MaterialTheme.colorScheme.surfaceTint.copy(alpha = 0.13f),
     color: Color = MaterialTheme.colorScheme.primary,
+    steps: Int = 19,
 ) {
     Slider(
         value = progressProvider(),
         onValueChange = onProgressChange,
         valueRange = 0f..1f,
+        steps = steps,
         colors = SliderDefaults.colors(
             activeTrackColor = color,
             activeTickColor = color,
