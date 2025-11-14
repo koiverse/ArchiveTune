@@ -10,8 +10,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.runtime.remember
-import moe.koiverse.archivetune.utils.rememberPreference
-import moe.koiverse.archivetune.constants.UseNewLibraryDesignKey
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
@@ -168,12 +166,9 @@ fun LibraryPlaylistListItem(
     menuState: MenuState,
     coroutineScope: CoroutineScope,
     playlist: Playlist,
+    useNewDesign: Boolean,
     modifier: Modifier = Modifier
 ) {
-    // keep the MutableState so Compose observes changes and recomposes
-    val useNewDesignState = rememberPreference(UseNewLibraryDesignKey, defaultValue = true)
-    val useNewDesign = useNewDesignState.value
-
     val trailing: @Composable RowScope.() -> Unit = {
         androidx.compose.material3.IconButton(
             onClick = {
@@ -227,15 +222,15 @@ fun LibraryPlaylistListItem(
         .padding(horizontal = 12.dp)
         .padding(bottom = 8.dp)
 
-    val clickableMod = baseMod.clickable {
+    val openPlaylist: () -> Unit = {
         if (
             !playlist.playlist.isEditable &&
             playlist.songCount == 0 &&
             playlist.playlist.remoteSongCount != 0
         ) {
-            navController.navigate("online_playlist/${playlist.playlist.browseId}")
+            navController.navigate("online_playlist/${'$'}{playlist.playlist.browseId}")
         } else {
-            navController.navigate("local_playlist/${playlist.id}")
+            navController.navigate("local_playlist/${'$'}{playlist.id}")
         }
     }
 
@@ -244,23 +239,13 @@ fun LibraryPlaylistListItem(
             playlist = playlist,
             trailingContent = trailing,
             modifier = baseMod,
-            onClick = {
-                if (
-                    !playlist.playlist.isEditable &&
-                    playlist.songCount == 0 &&
-                    playlist.playlist.remoteSongCount != 0
-                ) {
-                    navController.navigate("online_playlist/${playlist.playlist.browseId}")
-                } else {
-                    navController.navigate("local_playlist/${playlist.id}")
-                }
-            }
+            onClick = openPlaylist
         )
     } else {
         PlaylistListItem(
             playlist = playlist,
             trailingContent = trailing,
-            modifier = clickableMod
+            modifier = baseMod.clickable(onClick = openPlaylist)
         )
     }
 }
