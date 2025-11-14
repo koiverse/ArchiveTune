@@ -288,6 +288,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
+        setIntent(intent)
         if (::navController.isInitialized) {
             handleDeepLinkIntent(intent, navController)
         } else {
