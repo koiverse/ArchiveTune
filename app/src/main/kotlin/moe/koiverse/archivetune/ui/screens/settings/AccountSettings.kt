@@ -381,7 +381,7 @@ fun AccountSettings(
         ) {
             PreferenceEntry(
                 title = { Text(stringResource(R.string.integration)) },
-                icon = { Icon(painterResource(R.drawable.discord), null) },
+                icon = { Icon(painterResource(R.drawable.integration), null) },
                 onClick = {
                     onClose()
                     navController.navigate("settings/integration")
