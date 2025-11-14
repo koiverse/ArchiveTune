@@ -77,6 +77,7 @@ import moe.koiverse.archivetune.constants.ShowLikedPlaylistKey
 import moe.koiverse.archivetune.constants.ShowDownloadedPlaylistKey
 import moe.koiverse.archivetune.constants.ShowTopPlaylistKey
 import moe.koiverse.archivetune.constants.ShowCachedPlaylistKey
+import moe.koiverse.archivetune.constants.UseNewLibraryDesignKey
 import moe.koiverse.archivetune.constants.YtmSyncKey
 import moe.koiverse.archivetune.db.entities.Playlist
 import moe.koiverse.archivetune.db.entities.PlaylistEntity
@@ -120,6 +121,7 @@ fun LibraryPlaylistsScreen(
         true
     )
     val gridItemSize by rememberEnumPreference(GridItemsSizeKey, GridItemSize.BIG)
+    val useNewLibraryDesign by rememberPreference(UseNewLibraryDesignKey, true)
 
     val playlists by viewModel.allPlaylists.collectAsState()
 
@@ -224,8 +226,8 @@ fun LibraryPlaylistsScreen(
                 .allowHardware(false)
                 .build()
 
-            val result = runCatching { 
-                context.imageLoader.execute(request)
+            val result = runCatching {
+                withContext(Dispatchers.IO) { context.imageLoader.execute(request) }
             }.getOrNull()
             
             if (result != null) {
@@ -548,6 +550,7 @@ fun LibraryPlaylistsScreen(
                             menuState = menuState,
                             coroutineScope = coroutineScope,
                             playlist = playlist,
+                            useNewDesign = useNewLibraryDesign,
                             modifier = Modifier.animateItem()
                         )
                     }
