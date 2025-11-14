@@ -32,6 +32,7 @@
     <string name="similar_to">Mirip dengan</string>
     <string name="new_release_albums">Rilisan baru album</string>
     <string name="select_playlist_to_sync">Pilih daftar putar untuk sinkronisasi</string>
+    <string name="integration">Integrasi</string>
 
     <!-- History -->
     <string name="today">Hari ini</string>
