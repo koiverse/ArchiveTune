@@ -378,12 +378,8 @@
     <string name="scrobble_min_track_duration">最小トラック時間</string>
     <string name="scrobble_delay_percent">スクロブリング遅延（％）</string>
     <string name="scrobble_delay_minutes">スクロブリング遅延（秒）</string>
-    <string name="action_login">ログイン</string>
-    <string name="action_logout">ログアウト</string>
     <string name="username">ユーザー名</string>
     <string name="password">パスワード</string>
-    <string name="login">ログイン</string>
-    <string name="cancel">キャンセル</string>
 
 
     <!-- ListenBrainz -->

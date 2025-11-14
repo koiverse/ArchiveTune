@@ -379,12 +379,8 @@
     <string name="scrobble_min_track_duration">Durasi Minimum Lagu</string>
     <string name="scrobble_delay_percent">Persen Penundaan Scrobble</string>
     <string name="scrobble_delay_minutes">Penundaan Scrobble (Detik)</string>
-    <string name="action_login">Masuk</string>
-    <string name="action_logout">Keluar</string>
     <string name="username">Nama pengguna</string>
     <string name="password">Kata sandi</string>
-    <string name="login">Masuk</string>
-    <string name="cancel">Batal</string>
 
 
     <!-- ListenBrainz -->

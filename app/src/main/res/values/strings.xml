@@ -380,12 +380,8 @@
     <string name="scrobble_min_track_duration">Minimum Track Duration</string>
     <string name="scrobble_delay_percent">Scrobble Delay Percent</string>
     <string name="scrobble_delay_minutes">Scrobble Delay (Seconds)</string>
-    <string name="action_login">Login</string>
-    <string name="action_logout">Logout</string>
     <string name="username">Username</string>
     <string name="password">Password</string>
-    <string name="login">Login</string>
-    <string name="cancel">Cancel</string>
 
     <!-- ListenBrainz -->
     <string name="listenbrainz_scrobbling">ListenBrainz scrobbling</string>

@@ -378,12 +378,8 @@
     <string name="scrobble_min_track_duration">Minimale Titel­dauer</string>
     <string name="scrobble_delay_percent">Scrobble-Verzögerung (Prozent)</string>
     <string name="scrobble_delay_minutes">Scrobble-Verzögerung (Sekunden)</string>
-    <string name="action_login">Anmelden</string>
-    <string name="action_logout">Abmelden</string>
     <string name="username">Benutzername</string>
     <string name="password">Passwort</string>
-    <string name="login">Anmelden</string>
-    <string name="cancel">Abbrechen</string>
 
 
         <!-- ListenBrainz -->
