@@ -378,7 +378,6 @@
     <string name="scrobble_min_track_duration">Minimale Titel­dauer</string>
     <string name="scrobble_delay_percent">Scrobble-Verzögerung (Prozent)</string>
     <string name="scrobble_delay_minutes">Scrobble-Verzögerung (Sekunden)</string>
-    <string name="not_logged_in">Nicht eingeloggt</string>
     <string name="action_login">Anmelden</string>
     <string name="action_logout">Abmelden</string>
     <string name="username">Benutzername</string>
