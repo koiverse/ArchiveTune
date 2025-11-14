@@ -254,10 +254,17 @@ fun Lyrics(
             !lyrics.isNullOrEmpty() && lyrics.startsWith("[")
         }
 
-    // Use Material 3 expressive accents and keep glow/text colors unified
+    // Use Material 3 expressive accents and keep glow/text colors 
     val expressiveAccent = when (playerBackground) {
         PlayerBackgroundStyle.DEFAULT -> MaterialTheme.colorScheme.primary
-        else -> MaterialTheme.colorScheme.tertiary
+        else -> {
+            val tertiaryColor = MaterialTheme.colorScheme.tertiary
+            if (tertiaryColor.luminance() < 0.5f) {
+                MaterialTheme.colorScheme.onSurface
+            } else {
+                tertiaryColor
+            }
+        }
     }
     val textColor = expressiveAccent
 
