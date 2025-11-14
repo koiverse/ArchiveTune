@@ -125,6 +125,7 @@ import moe.koiverse.archivetune.constants.PlayerCustomContrastKey
 import moe.koiverse.archivetune.constants.PlayerCustomBrightnessKey
 import moe.koiverse.archivetune.constants.PlayerButtonsStyle
 import moe.koiverse.archivetune.constants.PlayerButtonsStyleKey
+import moe.koiverse.archivetune.ui.theme.PlayerBackgroundColorUtils
 import moe.koiverse.archivetune.ui.theme.PlayerColorExtractor
 import moe.koiverse.archivetune.ui.theme.PlayerSliderColors
 import moe.koiverse.archivetune.constants.PlayerHorizontalPadding
@@ -1123,9 +1124,15 @@ fun BottomSheetPlayer(
                                         model = thumbnailUrl,
                                         contentDescription = "Blurred background",
                                         contentScale = ContentScale.FillBounds,
-                                        modifier = Modifier.fillMaxSize().blur(radius = 50.dp)
+                                        modifier = Modifier.fillMaxSize().blur(radius = 60.dp)
                                     )
-                                    Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.5f)))
+                                    val overlayStops = PlayerBackgroundColorUtils.buildBlurOverlayStops(gradientColors)
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .background(Brush.verticalGradient(colorStops = overlayStops))
+                                    )
+                                    Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.3f)))
                                 }
                             }
                         }
@@ -1167,7 +1174,17 @@ fun BottomSheetPlayer(
                             }
                         ) { colors ->
                             if (colors.isNotEmpty()) {
-                                Box(modifier = Modifier.fillMaxSize().background(colors[0]))
+                                val baseColor = PlayerBackgroundColorUtils.ensureComfortableColor(colors.first())
+                                val gradientStops = PlayerBackgroundColorUtils.buildColoringStops(baseColor)
+                                Box(modifier = Modifier.fillMaxSize()) {
+                                    Box(modifier = Modifier.fillMaxSize().background(baseColor))
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .background(Brush.verticalGradient(colorStops = gradientStops))
+                                    )
+                                    Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.25f)))
+                                }
                             }
                         }
                     }
@@ -1184,28 +1201,15 @@ fun BottomSheetPlayer(
                                         model = thumbnailUrl,
                                         contentDescription = "Blurred background",
                                         contentScale = ContentScale.FillBounds,
-                                        modifier = Modifier.fillMaxSize().blur(radius = 50.dp)
+                                        modifier = Modifier.fillMaxSize().blur(radius = 65.dp)
                                     )
-                                    // Make overlay gradients a touch stronger and smoother for blur+gradient mode
-                                    val gradientColorStops = if (gradientColors.size >= 3) {
-                                        arrayOf(
-                                            0.0f to gradientColors[0].copy(alpha = 0.9f),
-                                            0.5f to gradientColors[1].copy(alpha = 0.75f),
-                                            1.0f to gradientColors[2].copy(alpha = 0.65f)
-                                        )
-                                    } else if (gradientColors.isNotEmpty()) {
-                                        arrayOf(
-                                            0.0f to gradientColors[0].copy(alpha = 0.9f),
-                                            0.6f to gradientColors[0].copy(alpha = 0.55f),
-                                            1.0f to Color.Black.copy(alpha = 0.75f)
-                                        )
-                                    } else {
-                                        arrayOf(
-                                            0.0f to Color.Transparent,
-                                            1.0f to Color.Transparent
-                                        )
-                                    }
-                                    Box(modifier = Modifier.fillMaxSize().background(Brush.verticalGradient(colorStops = gradientColorStops)))
+                                    val gradientColorStops = PlayerBackgroundColorUtils.buildBlurGradientStops(gradientColors)
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .background(Brush.verticalGradient(colorStops = gradientColorStops))
+                                    )
+                                    Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.2f)))
                                 }
                             }
                         }
