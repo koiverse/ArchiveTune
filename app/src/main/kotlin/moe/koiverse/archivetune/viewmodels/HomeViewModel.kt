@@ -279,11 +279,13 @@ class HomeViewModel @Inject constructor(
                         reportException(it)
                     }
 
-                    YouTube.library("FEmusic_liked_playlists").completed().onSuccess {
-                        val lists = it.items.filterIsInstance<PlaylistItem>().filterNot { it.id == "SE" }
-                        accountPlaylists.value = lists
-                    }.onFailure {
-                        reportException(it)
+                    viewModelScope.launch(Dispatchers.IO) {
+                        YouTube.library("FEmusic_liked_playlists").completed().onSuccess {
+                            val lists = it.items.filterIsInstance<PlaylistItem>().filterNot { it.id == "SE" }
+                            accountPlaylists.value = lists
+                        }.onFailure {
+                            reportException(it)
+                        }
                     }
                 } else {
                     accountName.value = "Guest"
@@ -358,11 +360,13 @@ class HomeViewModel @Inject constructor(
                                 reportException(it)
                             }
 
-                            YouTube.library("FEmusic_liked_playlists").completed().onSuccess {
-                                val lists = it.items.filterIsInstance<PlaylistItem>().filterNot { it.id == "SE" }
-                                accountPlaylists.value = lists
-                            }.onFailure {
-                                reportException(it)
+                            viewModelScope.launch(Dispatchers.IO) {
+                                YouTube.library("FEmusic_liked_playlists").completed().onSuccess {
+                                    val lists = it.items.filterIsInstance<PlaylistItem>().filterNot { it.id == "SE" }
+                                    accountPlaylists.value = lists
+                                }.onFailure {
+                                    reportException(it)
+                                }
                             }
                         } else {
                             // Reset account data when logged out
