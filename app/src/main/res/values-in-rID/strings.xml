@@ -371,7 +371,6 @@
 
         <!-- Last.fm -->
     <string name="scrobbling">Scrobbling</string>
-    <string name="lastfm">Last.fm</string>
     <string name="lastfm_integration">Integrasi Last.fm</string>
     <string name="enable_scrobbling">Aktifkan Scrobbling</string>
     <string name="lastfm_now_playing">Perbarui Now Playing</string>
