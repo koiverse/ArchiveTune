@@ -50,6 +50,6 @@ fun BigSeekBar(
         },
         modifier = modifier
             .fillMaxWidth()
-            .height(48.dp)
+            .height(50.dp)
     )
 }
