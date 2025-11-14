@@ -23,6 +23,50 @@ object ListenBrainzManager {
     private val _lastSubmitTime = MutableStateFlow<Long?>(null)
     val lastSubmitTimeFlow = _lastSubmitTime.asStateFlow()
 
+    private fun extractArtistName(artist: Any): String {
+        try {
+            val getterNames = listOf("getName", "getArtistName", "name")
+            for (methodName in getterNames) {
+                try {
+                    val method = artist.javaClass.getMethod(methodName)
+                    val result = method.invoke(artist)
+                    if (result is String && result.isNotBlank()) {
+                        return result
+                    }
+                } catch (e: Exception) {
+                }
+            }
+
+            val fieldNames = listOf("name", "artistName")
+            for (fieldName in fieldNames) {
+                try {
+                    val field = artist.javaClass.getDeclaredField(fieldName)
+                    field.isAccessible = true
+                    val result = field.get(artist)
+                    if (result is String && result.isNotBlank()) {
+                        return result
+                    }
+                } catch (e: Exception) {
+                }
+            }
+
+            val str = artist.toString()
+            val namePattern = Regex("""name\s*=\s*([^,)\]]+)""")
+            val match = namePattern.find(str)
+            if (match != null) {
+                val extractedName = match.groupValues[1].trim()
+                if (extractedName.isNotBlank()) {
+                    return extractedName
+                }
+            }
+
+            return str
+        } catch (e: Exception) {
+            Timber.tag(logTag).w(e, "extractArtistName failed, using toString()")
+            return artist.toString()
+        }
+    }
+
     suspend fun submitPlayingNow(context: Context, token: String, song: Song?, positionMs: Long): Boolean {
         if (token.isBlank()) return false
         if (song == null) return false
@@ -31,16 +75,9 @@ object ListenBrainzManager {
                 val listenedAt = System.currentTimeMillis() / 1000L
                 val duration = song.song.duration
                 val durationMs = (duration * 1000).toLong()
-                val artistNames = run {
-                    song.artists.map { artist ->
-                        try {
-                            val method = artist.javaClass.getMethod("getName")
-                            (method.invoke(artist) as? String) ?: artist.toString()
-                        } catch (e: Exception) {
-                            artist.toString()
-                        }
-                    }.joinToString(" & ")
-                }
+                val artistNames = song.artists
+                    .map { artist -> extractArtistName(artist) }
+                    .joinToString(" & ")
                 val releaseName = song.album?.title ?: ""
                 val releasePart = if (releaseName.isBlank()) "" else "\"release_name\":\"${escapeJson(releaseName)}\","
                 val trackMetadata = "{\"track_metadata\":{\"artist_name\":\"${escapeJson(artistNames)}\",\"track_name\":\"${escapeJson(song.title)}\",${releasePart}\"additional_info\":{\"duration_ms\":$durationMs,\"position_ms\":$positionMs,\"submission_client\":\"ArchiveTune\"}}}"
@@ -82,16 +119,9 @@ object ListenBrainzManager {
                 val listenedAt = endMs / 1000L
                 val duration = song.song.duration
                 val durationMs = (duration * 1000).toLong()
-                val artistNames = run {
-                    song.artists.map { artist ->
-                        try {
-                            val method = artist.javaClass.getMethod("getName")
-                            (method.invoke(artist) as? String) ?: artist.toString()
-                        } catch (e: Exception) {
-                            artist.toString()
-                        }
-                    }.joinToString(" & ")
-                }
+                val artistNames = song.artists
+                    .map { artist -> extractArtistName(artist) }
+                    .joinToString(" & ")
                 val releaseName = song.album?.title ?: ""
                 val releasePart = if (releaseName.isBlank()) "" else "\"release_name\":\"${escapeJson(releaseName)}\","
                 var listenedAtStart = (startMs / 1000L)
