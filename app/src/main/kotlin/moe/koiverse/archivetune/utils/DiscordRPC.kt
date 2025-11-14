@@ -226,19 +226,43 @@ class DiscordRPC(
         val smallImageTypePref = context.dataStore[DiscordSmallImageTypeKey] ?: "artist"
         val smallImageCustomPref = context.dataStore[DiscordSmallImageCustomUrlKey] ?: ""
 
-        // If the caller provided already-resolved image URLs, use them directly.
-        // Try saved artwork first (persisted by previous successful resolutions)
         val saved = ArtworkStorage.findBySongId(context, song.song.id)
 
-        val finalLargeImage: RpcImage? = when {
-            (largeImageTypePref.equals("thumbnail", true) && !saved?.thumbnail.isNullOrBlank()) -> RpcImage.ExternalImage(saved!!.thumbnail!!)
+        val finalLargeImage: RpcImage? = when (largeImageTypePref.lowercase()) {
+            "thumbnail", "custom" -> {
+                if (!saved?.thumbnail.isNullOrBlank()) {
+                    RpcImage.ExternalImage(saved.thumbnail!!)
+                } else {
+                    pickImage(largeImageTypePref, largeImageCustomPref, song, false)
+                }
+            }
+            "artist" -> {
+                if (!saved?.artist.isNullOrBlank()) {
+                    RpcImage.ExternalImage(saved.artist!!)
+                } else {
+                    pickImage(largeImageTypePref, largeImageCustomPref, song, false)
+                }
+            }
             else -> pickImage(largeImageTypePref, largeImageCustomPref, song, false)
         }
 
         val finalSmallImage: RpcImage? = when {
-            smallImageTypePref.equals("artist", ignoreCase = true) && !saved?.artist.isNullOrBlank() -> RpcImage.ExternalImage(saved!!.artist!!)
             isPaused -> RpcImage.ExternalImage(PAUSE_IMAGE_URL)
             smallImageTypePref.lowercase() in listOf("none", "dontshow") -> null
+            smallImageTypePref.lowercase() == "artist" -> {
+                if (!saved?.artist.isNullOrBlank()) {
+                    RpcImage.ExternalImage(saved.artist!!)
+                } else {
+                    pickImage(smallImageTypePref, smallImageCustomPref, song, true)
+                }
+            }
+            smallImageTypePref.lowercase() in listOf("thumbnail", "custom") -> {
+                if (!saved?.thumbnail.isNullOrBlank()) {
+                    RpcImage.ExternalImage(saved.thumbnail!!)
+                } else {
+                    pickImage(smallImageTypePref, smallImageCustomPref, song, true)
+                }
+            }
             else -> pickImage(smallImageTypePref, smallImageCustomPref, song, true)
         }
 
