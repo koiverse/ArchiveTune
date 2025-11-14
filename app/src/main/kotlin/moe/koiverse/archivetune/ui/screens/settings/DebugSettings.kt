@@ -11,6 +11,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import android.content.Intent
+import androidx.compose.ui.platform.rememberNestedScrollInteropConnection
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.setValue
 import androidx.compose.material3.Checkbox
@@ -53,9 +55,14 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.text.style.TextOverflow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.isActive
 import androidx.compose.foundation.background
 import androidx.compose.ui.unit.Dp
 import moe.koiverse.archivetune.utils.GlobalLog
+import moe.koiverse.archivetune.LocalPlayerConnection
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
+import kotlin.math.roundToInt
 
 // single GlobalLog import above
 @OptIn(ExperimentalMaterial3Api::class)
@@ -69,6 +76,13 @@ fun DebugSettings(
         key = booleanPreferencesKey("dev_show_discord_debug"),
         defaultValue = false
     )
+    
+    val (showNerdStats, onShowNerdStatsChange) = rememberPreference(
+        key = booleanPreferencesKey("dev_show_nerd_stats"),
+        defaultValue = false
+    )
+    
+    val playerConnection = LocalPlayerConnection.current
 
     Scaffold(
         topBar = {
@@ -82,13 +96,36 @@ fun DebugSettings(
             )
         }
     ) { innerPadding: androidx.compose.foundation.layout.PaddingValues ->
-        Column(Modifier.padding(innerPadding).padding(16.dp)) {
+        Column(Modifier.padding(innerPadding).padding(16.dp).verticalScroll(rememberScrollState())) {
             PreferenceEntry(
                 title = { Text(stringResource(R.string.show_discord_debug_ui)) },
                 description = stringResource(R.string.enable_discord_debug_lines),
                 icon = { Icon(painterResource(R.drawable.info), null) },
                 trailingContent = {
                     Switch(checked = showDevDebug, onCheckedChange = onShowDevDebugChange)
+                }
+            )
+            
+            PreferenceEntry(
+                title = { Text(stringResource(R.string.show_nerd_stats)) },
+                description = stringResource(R.string.description_show_nerd_stats),
+                icon = { Icon(painterResource(R.drawable.info), null) },
+                trailingContent = {
+                    Switch(checked = showNerdStats, onCheckedChange = onShowNerdStatsChange)
+                }
+            )
+            
+            val (showCodecOnPlayer, onShowCodecOnPlayerChange) = rememberPreference(
+                key = booleanPreferencesKey("show_codec_on_player"),
+                defaultValue = false
+            )
+            
+            PreferenceEntry(
+                title = { Text(stringResource(R.string.display_codec_on_player)) },
+                description = stringResource(R.string.description_display_codec_on_player),
+                icon = { Icon(painterResource(R.drawable.info), null) },
+                trailingContent = {
+                    Switch(checked = showCodecOnPlayer, onCheckedChange = onShowCodecOnPlayerChange)
                 }
             )
 
@@ -253,6 +290,7 @@ fun DebugSettings(
                             state = listState,
                             modifier = Modifier
                                 .fillMaxWidth()
+                                .nestedScroll(rememberNestedScrollInteropConnection())
                                 .padding(top = 8.dp)
                         ) {
                             itemsIndexed(filtered) { index, entry ->
@@ -342,6 +380,146 @@ fun DebugSettings(
                     if (filtered.isNotEmpty()) listState.animateScrollToItem(filtered.size - 1)
                 }
             }
+            
+            // Nerd Stats Section
+            if (showNerdStats && playerConnection != null) {
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                val currentFormat by playerConnection.currentFormat.collectAsState(initial = null)
+                val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
+                val player = playerConnection.player
+                
+                // Update stats periodically
+                var bufferPercentage by remember { mutableStateOf(0) }
+                var bufferedPosition by remember { mutableStateOf(0L) }
+                var currentPosition by remember { mutableStateOf(0L) }
+                var playbackSpeed by remember { mutableStateOf(1.0f) }
+                
+                LaunchedEffect(Unit) {
+                    while (isActive) {
+                        bufferPercentage = player.bufferedPercentage
+                        bufferedPosition = player.bufferedPosition
+                        currentPosition = player.currentPosition
+                        playbackSpeed = player.playbackParameters.speed
+                        kotlinx.coroutines.delay(500) // Update every 500ms
+                    }
+                }
+                
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(
+                            color = MaterialTheme.colorScheme.surfaceVariant,
+                            shape = RoundedCornerShape(14.dp)
+                        )
+                        .padding(16.dp)
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            text = stringResource(R.string.nerd_stats),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        
+                        if (mediaMetadata != null) {
+                            // Current Track Info
+                            NerdStatRow(
+                                label = stringResource(R.string.track_label),
+                                value = mediaMetadata?.title ?: stringResource(R.string.no_track_playing)
+                            )
+                            
+                            // Format/Codec Info
+                            if (currentFormat != null) {
+                                NerdStatRow(
+                                    label = stringResource(R.string.codec_label),
+                                    value = currentFormat?.mimeType?.substringAfter("/")?.uppercase() ?: stringResource(R.string.unknown_codec)
+                                )
+                                
+                                val bitrateKbps = currentFormat?.bitrate?.let { it / 1000 } ?: 0
+                                NerdStatRow(
+                                    label = stringResource(R.string.bitrate_label),
+                                    value = if (bitrateKbps > 0) "$bitrateKbps kbps" else stringResource(R.string.unknown_bitrate)
+                                )
+                                
+                                val sampleRateKhz = currentFormat?.sampleRate?.let { (it / 1000.0).roundToInt() } ?: 0
+                                NerdStatRow(
+                                    label = stringResource(R.string.sample_rate_label),
+                                    value = if (sampleRateKhz > 0) "$sampleRateKhz kHz" else stringResource(R.string.unknown_sample_rate)
+                                )
+                                
+                                NerdStatRow(
+                                    label = stringResource(R.string.content_length_label),
+                                    value = currentFormat?.contentLength?.let {
+                                        if (it > 0) "${(it / 1024.0 / 1024.0).roundToInt()} MB" else stringResource(R.string.unknown_content_length)
+                                    } ?: stringResource(R.string.unknown_content_length)
+                                )
+                            } else {
+                                NerdStatRow(label = stringResource(R.string.format_label), value = stringResource(R.string.loading_format))
+                            }
+                            
+                            // Buffer Health
+                            val bufferDuration = ((bufferedPosition - currentPosition) / 1000.0).roundToInt()
+                            NerdStatRow(
+                                label = stringResource(R.string.buffer_health_label),
+                                value = "$bufferPercentage% ($bufferDuration sec ahead)"
+                            )
+                            
+                            // Playback Speed
+                            NerdStatRow(
+                                label = stringResource(R.string.playback_speed_label),
+                                value = "${playbackSpeed}x"
+                            )
+                            
+                            // Playback State
+                            val playbackStateText = when (player.playbackState) {
+                                androidx.media3.common.Player.STATE_IDLE -> "IDLE"
+                                androidx.media3.common.Player.STATE_BUFFERING -> "BUFFERING"
+                                androidx.media3.common.Player.STATE_READY -> "READY"
+                                androidx.media3.common.Player.STATE_ENDED -> "ENDED"
+                                else -> "UNKNOWN"
+                            }
+                            NerdStatRow(
+                                label = stringResource(R.string.state_label),
+                                value = playbackStateText
+                            )
+                            
+                            // Media ID
+                            NerdStatRow(
+                                label = stringResource(R.string.media_id_label),
+                                value = mediaMetadata?.id ?: "N/A"
+                            )
+                        } else {
+                            Text(
+                                text = stringResource(R.string.no_track_playing),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+            }
         }
+    }
+}
+
+@Composable
+private fun NerdStatRow(label: String, value: String) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodySmall,
+            fontWeight = FontWeight.Medium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodySmall,
+            fontFamily = FontFamily.Monospace,
+            color = MaterialTheme.colorScheme.onSurface
+        )
     }
 }

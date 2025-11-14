@@ -49,8 +49,13 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.layout.layout
+import androidx.compose.ui.zIndex
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -350,39 +355,148 @@ fun HomeScreen(
         forgottenFavoritesLazyGridState.scrollToItem(0)
     }
 
-    BoxWithConstraints(
-        modifier = Modifier
-            .fillMaxSize()
-            .pullToRefresh(
-                state = pullRefreshState,
-                isRefreshing = isRefreshing,
-                onRefresh = viewModel::refresh
-            ),
-        contentAlignment = Alignment.TopStart
+    // Capture M3 Expressive colors from theme outside drawBehind
+    val color1 = MaterialTheme.colorScheme.primary
+    val color2 = MaterialTheme.colorScheme.secondary
+    val color3 = MaterialTheme.colorScheme.tertiary
+    val color4 = MaterialTheme.colorScheme.primaryContainer
+    val color5 = MaterialTheme.colorScheme.secondaryContainer
+    val surfaceColor = MaterialTheme.colorScheme.surface
+    
+    Box(
+        modifier = Modifier.fillMaxSize()
     ) {
-        val horizontalLazyGridItemWidthFactor = if (maxWidth * 0.475f >= 320.dp) 0.475f else 0.9f
-        val horizontalLazyGridItemWidth = maxWidth * horizontalLazyGridItemWidthFactor
-        val quickPicksSnapLayoutInfoProvider = remember(quickPicksLazyGridState) {
-            SnapLayoutInfoProvider(
-                lazyGridState = quickPicksLazyGridState,
-                positionInLayout = { layoutSize, itemSize ->
-                    (layoutSize * horizontalLazyGridItemWidthFactor / 2f - itemSize / 2f)
+        // M3E Mesh gradient background layer at the top
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .fillMaxSize(0.7f) // Cover top 70% of screen
+                .align(Alignment.TopCenter)
+                .zIndex(-1f) // Place behind all content
+                .drawBehind {
+                    val width = size.width
+                    val height = size.height
+                    
+                    // Create mesh gradient with 5 color blobs for more variation
+                    // First color blob - top left
+                    drawRect(
+                        brush = Brush.radialGradient(
+                            colors = listOf(
+                                color1.copy(alpha = 0.25f),
+                                color1.copy(alpha = 0.15f),
+                                color1.copy(alpha = 0.05f),
+                                Color.Transparent
+                            ),
+                            center = Offset(width * 0.15f, height * 0.1f),
+                            radius = width * 0.55f
+                        )
+                    )
+                    
+                    // Second color blob - top right
+                    drawRect(
+                        brush = Brush.radialGradient(
+                            colors = listOf(
+                                color2.copy(alpha = 0.22f),
+                                color2.copy(alpha = 0.12f),
+                                color2.copy(alpha = 0.04f),
+                                Color.Transparent
+                            ),
+                            center = Offset(width * 0.85f, height * 0.2f),
+                            radius = width * 0.65f
+                        )
+                    )
+                    
+                    // Third color blob - middle left
+                    drawRect(
+                        brush = Brush.radialGradient(
+                            colors = listOf(
+                                color3.copy(alpha = 0.2f),
+                                color3.copy(alpha = 0.1f),
+                                color3.copy(alpha = 0.03f),
+                                Color.Transparent
+                            ),
+                            center = Offset(width * 0.3f, height * 0.45f),
+                            radius = width * 0.6f
+                        )
+                    )
+                    
+                    // Fourth color blob - middle right
+                    drawRect(
+                        brush = Brush.radialGradient(
+                            colors = listOf(
+                                color4.copy(alpha = 0.18f),
+                                color4.copy(alpha = 0.09f),
+                                color4.copy(alpha = 0.02f),
+                                Color.Transparent
+                            ),
+                            center = Offset(width * 0.7f, height * 0.5f),
+                            radius = width * 0.7f
+                        )
+                    )
+                    
+                    // Fifth color blob - bottom center (helps with smooth fade)
+                    drawRect(
+                        brush = Brush.radialGradient(
+                            colors = listOf(
+                                color5.copy(alpha = 0.15f),
+                                color5.copy(alpha = 0.07f),
+                                color5.copy(alpha = 0.02f),
+                                Color.Transparent
+                            ),
+                            center = Offset(width * 0.5f, height * 0.75f),
+                            radius = width * 0.8f
+                        )
+                    )
+                    
+                    // Add a final vertical gradient overlay to ensure smooth bottom fade
+                    drawRect(
+                        brush = Brush.verticalGradient(
+                            colors = listOf(
+                                Color.Transparent,
+                                Color.Transparent,
+                                surfaceColor.copy(alpha = 0.3f),
+                                surfaceColor.copy(alpha = 0.7f),
+                                surfaceColor
+                            ),
+                            startY = height * 0.4f,
+                            endY = height
+                        )
+                    )
                 }
-            )
-        }
-        val forgottenFavoritesSnapLayoutInfoProvider = remember(forgottenFavoritesLazyGridState) {
-            SnapLayoutInfoProvider(
-                lazyGridState = forgottenFavoritesLazyGridState,
-                positionInLayout = { layoutSize, itemSize ->
-                    (layoutSize * horizontalLazyGridItemWidthFactor / 2f - itemSize / 2f)
-                }
-            )
-        }
-
-        LazyColumn(
-            state = lazylistState,
-            contentPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues()
+        ) {}
+        
+        BoxWithConstraints(
+            modifier = Modifier
+                .fillMaxSize()
+                .pullToRefresh(
+                    state = pullRefreshState,
+                    isRefreshing = isRefreshing,
+                    onRefresh = viewModel::refresh
+                )
         ) {
+            val horizontalLazyGridItemWidthFactor = if (maxWidth * 0.475f >= 320.dp) 0.475f else 0.9f
+            val horizontalLazyGridItemWidth = maxWidth * horizontalLazyGridItemWidthFactor
+            val quickPicksSnapLayoutInfoProvider = remember(quickPicksLazyGridState) {
+                SnapLayoutInfoProvider(
+                    lazyGridState = quickPicksLazyGridState,
+                    positionInLayout = { layoutSize, itemSize ->
+                        (layoutSize * horizontalLazyGridItemWidthFactor / 2f - itemSize / 2f)
+                    }
+                )
+            }
+            val forgottenFavoritesSnapLayoutInfoProvider = remember(forgottenFavoritesLazyGridState) {
+                SnapLayoutInfoProvider(
+                    lazyGridState = forgottenFavoritesLazyGridState,
+                    positionInLayout = { layoutSize, itemSize ->
+                        (layoutSize * horizontalLazyGridItemWidthFactor / 2f - itemSize / 2f)
+                    }
+                )
+            }
+
+            LazyColumn(
+                state = lazylistState,
+                contentPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues()
+            ) {
             item {
                 ChipsRow(
                     chips = homePage?.chips?.map { it to it.title } ?: emptyList(),
@@ -417,15 +531,11 @@ fun HomeScreen(
                         items(
                             items = quickPicks.distinctBy { it.id },
                             key = { it.id }
-                        ) { originalSong ->
-                            // fetch song from database to keep updated
-                            val song by database.song(originalSong.id)
-                                .collectAsState(initial = originalSong)
-
+                        ) { song ->
                             SongListItem(
-                                song = song!!,
+                                song = song,
                                 showInLibraryIcon = true,
-                                isActive = song!!.id == mediaMetadata?.id,
+                                isActive = song.id == mediaMetadata?.id,
                                 isPlaying = isPlaying,
                                 isSwipeable = false,
                                 trailingContent = {
@@ -433,7 +543,7 @@ fun HomeScreen(
                                         onClick = {
                                             menuState.show {
                                                 SongMenu(
-                                                    originalSong = song!!,
+                                                    originalSong = song,
                                                     navController = navController,
                                                     onDismiss = menuState::dismiss
                                                 )
@@ -450,17 +560,17 @@ fun HomeScreen(
                                     .width(horizontalLazyGridItemWidth)
                                     .combinedClickable(
                                         onClick = {
-                                            if (song!!.id == mediaMetadata?.id) {
+                                            if (song.id == mediaMetadata?.id) {
                                                 playerConnection.player.togglePlayPause()
                                             } else {
-                                                playerConnection.playQueue(YouTubeQueue.radio(song!!.toMediaMetadata()))
+                                                playerConnection.playQueue(YouTubeQueue.radio(song.toMediaMetadata()))
                                             }
                                         },
                                         onLongClick = {
                                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                             menuState.show {
                                                 SongMenu(
-                                                    originalSong = song!!,
+                                                    originalSong = song,
                                                     navController = navController,
                                                     onDismiss = menuState::dismiss
                                                 )
@@ -583,14 +693,11 @@ fun HomeScreen(
                         items(
                             items = forgottenFavorites.distinctBy { it.id },
                             key = { it.id }
-                        ) { originalSong ->
-                            val song by database.song(originalSong.id)
-                                .collectAsState(initial = originalSong)
-
+                        ) { song ->
                             SongListItem(
-                                song = song!!,
+                                song = song,
                                 showInLibraryIcon = true,
-                                isActive = song!!.id == mediaMetadata?.id,
+                                isActive = song.id == mediaMetadata?.id,
                                 isPlaying = isPlaying,
                                 isSwipeable = false,
                                 trailingContent = {
@@ -599,7 +706,7 @@ fun HomeScreen(
                                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                             menuState.show {
                                                 SongMenu(
-                                                    originalSong = song!!,
+                                                    originalSong = song,
                                                     navController = navController,
                                                     onDismiss = menuState::dismiss
                                                 )
@@ -616,17 +723,17 @@ fun HomeScreen(
                                     .width(horizontalLazyGridItemWidth)
                                     .combinedClickable(
                                         onClick = {
-                                            if (song!!.id == mediaMetadata?.id) {
+                                            if (song.id == mediaMetadata?.id) {
                                                 playerConnection.player.togglePlayPause()
                                             } else {
-                                                playerConnection.playQueue(YouTubeQueue.radio(song!!.toMediaMetadata()))
+                                                playerConnection.playQueue(YouTubeQueue.radio(song.toMediaMetadata()))
                                             }
                                         },
                                         onLongClick = {
                                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                             menuState.show {
                                                 SongMenu(
-                                                    originalSong = song!!,
+                                                    originalSong = song,
                                                     navController = navController,
                                                     onDismiss = menuState::dismiss
                                                 )
@@ -812,55 +919,56 @@ fun HomeScreen(
                     }
                 }
             }
-        }
+            }
 
-        HideOnScrollFAB(
-            visible = allLocalItems.isNotEmpty() || allYtItems.isNotEmpty(),
-            lazyListState = lazylistState,
-            icon = R.drawable.shuffle,
-            onClick = {
-                val local = when {
-                    allLocalItems.isNotEmpty() && allYtItems.isNotEmpty() -> Random.nextFloat() < 0.5
-                    allLocalItems.isNotEmpty() -> true
-                    else -> false
-                }
-                scope.launch(Dispatchers.Main) {
-                    if (local) {
-                        when (val luckyItem = allLocalItems.random()) {
-                            is Song -> playerConnection.playQueue(YouTubeQueue.radio(luckyItem.toMediaMetadata()))
-                            is Album -> {
-                                val albumWithSongs = withContext(Dispatchers.IO) {
-                                    database.albumWithSongs(luckyItem.id).first()
+            HideOnScrollFAB(
+                visible = allLocalItems.isNotEmpty() || allYtItems.isNotEmpty(),
+                lazyListState = lazylistState,
+                icon = R.drawable.shuffle,
+                onClick = {
+                    val local = when {
+                        allLocalItems.isNotEmpty() && allYtItems.isNotEmpty() -> Random.nextFloat() < 0.5
+                        allLocalItems.isNotEmpty() -> true
+                        else -> false
+                    }
+                    scope.launch(Dispatchers.Main) {
+                        if (local) {
+                            when (val luckyItem = allLocalItems.random()) {
+                                is Song -> playerConnection.playQueue(YouTubeQueue.radio(luckyItem.toMediaMetadata()))
+                                is Album -> {
+                                    val albumWithSongs = withContext(Dispatchers.IO) {
+                                        database.albumWithSongs(luckyItem.id).first()
+                                    }
+                                    albumWithSongs?.let {
+                                        playerConnection.playQueue(LocalAlbumRadio(it))
+                                    }
                                 }
-                                albumWithSongs?.let {
-                                    playerConnection.playQueue(LocalAlbumRadio(it))
+                                is Artist -> {}
+                                is Playlist -> {}
+                            }
+                        } else {
+                            when (val luckyItem = allYtItems.random()) {
+                                is SongItem -> playerConnection.playQueue(YouTubeQueue.radio(luckyItem.toMediaMetadata()))
+                                is AlbumItem -> playerConnection.playQueue(YouTubeAlbumRadio(luckyItem.playlistId))
+                                is ArtistItem -> luckyItem.radioEndpoint?.let {
+                                    playerConnection.playQueue(YouTubeQueue(it))
                                 }
-                            }
-                            is Artist -> {}
-                            is Playlist -> {}
-                        }
-                    } else {
-                        when (val luckyItem = allYtItems.random()) {
-                            is SongItem -> playerConnection.playQueue(YouTubeQueue.radio(luckyItem.toMediaMetadata()))
-                            is AlbumItem -> playerConnection.playQueue(YouTubeAlbumRadio(luckyItem.playlistId))
-                            is ArtistItem -> luckyItem.radioEndpoint?.let {
-                                playerConnection.playQueue(YouTubeQueue(it))
-                            }
-                            is PlaylistItem -> luckyItem.playEndpoint?.let {
-                                playerConnection.playQueue(YouTubeQueue(it))
+                                is PlaylistItem -> luckyItem.playEndpoint?.let {
+                                    playerConnection.playQueue(YouTubeQueue(it))
+                                }
                             }
                         }
                     }
                 }
-            }
-        )
+            )
 
-        Indicator(
-            isRefreshing = isRefreshing,
-            state = pullRefreshState,
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .padding(LocalPlayerAwareWindowInsets.current.asPaddingValues()),
-        )
+            Indicator(
+                isRefreshing = isRefreshing,
+                state = pullRefreshState,
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(LocalPlayerAwareWindowInsets.current.asPaddingValues()),
+            )
+        }
     }
 }

@@ -287,6 +287,10 @@ fun AccountSettings(
                     .clip(RoundedCornerShape(16.dp))
                     .background(MaterialTheme.colorScheme.surface)
             )
+
+            Spacer(Modifier.height(4.dp))
+
+            // Integration settings were moved to a dedicated Integration screen.
         }
 
         Spacer(Modifier.height(4.dp))
@@ -301,6 +305,8 @@ fun AccountSettings(
                 .clip(RoundedCornerShape(16.dp))
                 .background(MaterialTheme.colorScheme.surface)
         )
+
+        // ListenBrainz UI moved to Integration screen.
 
         if (showPlaylistDialog) {
             val coroutineScope = rememberCoroutineScope()
@@ -374,11 +380,11 @@ fun AccountSettings(
                 .background(MaterialTheme.colorScheme.surfaceContainer)
         ) {
             PreferenceEntry(
-                title = { Text(stringResource(R.string.discord_integration)) },
-                icon = { Icon(painterResource(R.drawable.discord), null) },
+                title = { Text(stringResource(R.string.integration)) },
+                icon = { Icon(painterResource(R.drawable.integration), null) },
                 onClick = {
                     onClose()
-                    navController.navigate("settings/discord")
+                    navController.navigate("settings/integration")
                 },
                 modifier = Modifier
                     .fillMaxWidth()

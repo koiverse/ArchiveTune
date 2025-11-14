@@ -25,6 +25,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -33,6 +34,12 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
@@ -42,6 +49,13 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.TextUnitType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
+import androidx.palette.graphics.Palette
+import coil3.imageLoader
+import coil3.request.ImageRequest
+import coil3.request.allowHardware
+import coil3.toBitmap
+import moe.koiverse.archivetune.ui.theme.PlayerColorExtractor
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -63,6 +77,7 @@ import moe.koiverse.archivetune.constants.ShowLikedPlaylistKey
 import moe.koiverse.archivetune.constants.ShowDownloadedPlaylistKey
 import moe.koiverse.archivetune.constants.ShowTopPlaylistKey
 import moe.koiverse.archivetune.constants.ShowCachedPlaylistKey
+import moe.koiverse.archivetune.constants.UseNewLibraryDesignKey
 import moe.koiverse.archivetune.constants.YtmSyncKey
 import moe.koiverse.archivetune.db.entities.Playlist
 import moe.koiverse.archivetune.db.entities.PlaylistEntity
@@ -92,6 +107,7 @@ fun LibraryPlaylistsScreen(
 ) {
     val menuState = LocalMenuState.current
     val haptic = LocalHapticFeedback.current
+    val context = LocalContext.current
 
     val coroutineScope = rememberCoroutineScope()
 
@@ -105,6 +121,7 @@ fun LibraryPlaylistsScreen(
         true
     )
     val gridItemSize by rememberEnumPreference(GridItemsSizeKey, GridItemSize.BIG)
+    val useNewLibraryDesign by rememberPreference(UseNewLibraryDesignKey, true)
 
     val playlists by viewModel.allPlaylists.collectAsState()
 
@@ -193,6 +210,69 @@ fun LibraryPlaylistsScreen(
         }
     }
 
+    // Gradient colors state for playlists page background
+    var gradientColors by remember { mutableStateOf<List<Color>>(emptyList()) }
+    val fallbackColor = MaterialTheme.colorScheme.surface.toArgb()
+    
+    // Extract gradient colors from the first playlist with thumbnails
+    LaunchedEffect(playlists) {
+        val firstPlaylistWithThumbs = playlists.firstOrNull { it.songThumbnails.isNotEmpty() }
+        val thumbnailUrl = firstPlaylistWithThumbs?.songThumbnails?.firstOrNull()
+        
+        if (thumbnailUrl != null) {
+            val request = ImageRequest.Builder(context)
+                .data(thumbnailUrl)
+                .size(PlayerColorExtractor.Config.IMAGE_SIZE, PlayerColorExtractor.Config.IMAGE_SIZE)
+                .allowHardware(false)
+                .build()
+
+            val result = runCatching {
+                withContext(Dispatchers.IO) { context.imageLoader.execute(request) }
+            }.getOrNull()
+            
+            if (result != null) {
+                val bitmap = result.image?.toBitmap()
+                if (bitmap != null) {
+                    val palette = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
+                        Palette.from(bitmap)
+                            .maximumColorCount(PlayerColorExtractor.Config.MAX_COLOR_COUNT)
+                            .resizeBitmapArea(PlayerColorExtractor.Config.BITMAP_AREA)
+                            .generate()
+                    }
+                
+                    val extractedColors = PlayerColorExtractor.extractGradientColors(
+                        palette = palette,
+                        fallbackColor = fallbackColor
+                    )
+                    gradientColors = extractedColors
+                }
+            }
+        } else {
+            gradientColors = emptyList()
+        }
+    }
+    
+    // Calculate gradient opacity based on scroll position for both list and grid
+    val gradientAlpha by remember {
+        derivedStateOf {
+            val firstVisibleIndex = when (viewType) {
+                LibraryViewType.LIST -> lazyListState.firstVisibleItemIndex
+                LibraryViewType.GRID -> lazyGridState.firstVisibleItemIndex
+            }
+            val scrollOffset = when (viewType) {
+                LibraryViewType.LIST -> lazyListState.firstVisibleItemScrollOffset
+                LibraryViewType.GRID -> lazyGridState.firstVisibleItemScrollOffset
+            }
+            
+            if (firstVisibleIndex == 0) {
+                // Fade out over 900dp of scrolling
+                (1f - (scrollOffset / 900f)).coerceIn(0f, 1f)
+            } else {
+                0f
+            }
+        }
+    }
+
     var showCreatePlaylistDialog by rememberSaveable { mutableStateOf(false) }
 
     if (showCreatePlaylistDialog) {
@@ -258,6 +338,107 @@ fun LibraryPlaylistsScreen(
     Box(
         modifier = Modifier.fillMaxSize(),
     ) {
+        // Mesh gradient background layer - behind everything
+        if (gradientColors.isNotEmpty() && gradientAlpha > 0f) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .fillMaxSize(0.7f) // Cover top 70% of screen
+                    .align(Alignment.TopCenter)
+                    .zIndex(-1f) // Place behind all content
+                    .drawBehind {
+                        val width = size.width
+                        val height = size.height
+                        
+                        // Create mesh gradient with 5 color blobs for variation
+                        if (gradientColors.size >= 3) {
+                            // First color blob - top left
+                            drawRect(
+                                brush = Brush.radialGradient(
+                                    colors = listOf(
+                                        gradientColors[0].copy(alpha = gradientAlpha * 0.25f),
+                                        gradientColors[0].copy(alpha = gradientAlpha * 0.15f),
+                                        gradientColors[0].copy(alpha = gradientAlpha * 0.05f),
+                                        Color.Transparent
+                                    ),
+                                    center = Offset(width * 0.15f, height * 0.1f),
+                                    radius = width * 0.55f
+                                )
+                            )
+                            
+                            // Second color blob - top right
+                            drawRect(
+                                brush = Brush.radialGradient(
+                                    colors = listOf(
+                                        gradientColors[1].copy(alpha = gradientAlpha * 0.22f),
+                                        gradientColors[1].copy(alpha = gradientAlpha * 0.12f),
+                                        gradientColors[1].copy(alpha = gradientAlpha * 0.04f),
+                                        Color.Transparent
+                                    ),
+                                    center = Offset(width * 0.85f, height * 0.2f),
+                                    radius = width * 0.65f
+                                )
+                            )
+                            
+                            // Third color blob - middle left
+                            drawRect(
+                                brush = Brush.radialGradient(
+                                    colors = listOf(
+                                        gradientColors[2].copy(alpha = gradientAlpha * 0.2f),
+                                        gradientColors[2].copy(alpha = gradientAlpha * 0.1f),
+                                        gradientColors[2].copy(alpha = gradientAlpha * 0.03f),
+                                        Color.Transparent
+                                    ),
+                                    center = Offset(width * 0.3f, height * 0.45f),
+                                    radius = width * 0.6f
+                                )
+                            )
+                            
+                            // Fourth color blob - middle right
+                            drawRect(
+                                brush = Brush.radialGradient(
+                                    colors = listOf(
+                                        gradientColors[0].copy(alpha = gradientAlpha * 0.18f),
+                                        gradientColors[0].copy(alpha = gradientAlpha * 0.09f),
+                                        gradientColors[0].copy(alpha = gradientAlpha * 0.02f),
+                                        Color.Transparent
+                                    ),
+                                    center = Offset(width * 0.7f, height * 0.5f),
+                                    radius = width * 0.7f
+                                )
+                            )
+                            
+                            // Fifth color blob - bottom center
+                            drawRect(
+                                brush = Brush.radialGradient(
+                                    colors = listOf(
+                                        gradientColors[1].copy(alpha = gradientAlpha * 0.15f),
+                                        gradientColors[1].copy(alpha = gradientAlpha * 0.07f),
+                                        gradientColors[1].copy(alpha = gradientAlpha * 0.02f),
+                                        Color.Transparent
+                                    ),
+                                    center = Offset(width * 0.5f, height * 0.75f),
+                                    radius = width * 0.8f
+                                )
+                            )
+                        } else {
+                            // Fallback: single radial gradient
+                            drawRect(
+                                brush = Brush.radialGradient(
+                                    colors = listOf(
+                                        gradientColors[0].copy(alpha = gradientAlpha * 0.25f),
+                                        gradientColors[0].copy(alpha = gradientAlpha * 0.15f),
+                                        Color.Transparent
+                                    ),
+                                    center = Offset(width * 0.5f, height * 0.3f),
+                                    radius = width * 0.7f
+                                )
+                            )
+                        }
+                    }
+            ) {}
+        }
+        
         when (viewType) {
             LibraryViewType.LIST -> {
                 LazyColumn(
@@ -369,6 +550,7 @@ fun LibraryPlaylistsScreen(
                             menuState = menuState,
                             coroutineScope = coroutineScope,
                             playlist = playlist,
+                            useNewDesign = useNewLibraryDesign,
                             modifier = Modifier.animateItem()
                         )
                     }

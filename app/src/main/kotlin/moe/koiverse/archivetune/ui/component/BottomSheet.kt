@@ -5,7 +5,6 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.AnimationSpec
 import androidx.compose.animation.core.AnimationVector1D
 import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.SpringSpec
 import androidx.compose.animation.core.VectorConverter
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
@@ -45,7 +44,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
-import moe.koiverse.archivetune.constants.NavigationBarAnimationSpec
+import moe.koiverse.archivetune.constants.BottomSheetAnimationSpec
+import moe.koiverse.archivetune.constants.BottomSheetSoftAnimationSpec
 import moe.koiverse.archivetune.utils.rememberPreference
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -179,19 +179,19 @@ class BottomSheetState(
     }
 
     private fun collapse() {
-        collapse(SpringSpec())
+        collapse(BottomSheetAnimationSpec)
     }
 
     private fun expand() {
-        expand(SpringSpec())
+        expand(BottomSheetAnimationSpec)
     }
 
     fun collapseSoft() {
-        collapse(spring(stiffness = Spring.StiffnessMediumLow))
+        collapse(BottomSheetSoftAnimationSpec)
     }
 
     fun expandSoft() {
-        expand(spring(stiffness = Spring.StiffnessMediumLow))
+        expand(BottomSheetSoftAnimationSpec)
     }
 
     fun dismiss() {
@@ -334,7 +334,7 @@ fun rememberBottomSheetState(
 
         animatable.updateBounds(dismissedBound.coerceAtMost(expandedBound), expandedBound)
         coroutineScope.launch {
-            animatable.animateTo(initialValue, NavigationBarAnimationSpec)
+            animatable.animateTo(initialValue, BottomSheetAnimationSpec)
         }
 
         BottomSheetState(

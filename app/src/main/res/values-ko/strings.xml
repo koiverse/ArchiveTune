@@ -32,6 +32,7 @@
     <string name="similar_to">유사함</string>
     <string name="new_release_albums">새 릴리스 앨범</string>
     <string name="select_playlist_to_sync">동기화할 재생 목록 선택</string>
+    <string name="integration">통합</string>
 
     <!-- History -->
     <string name="today">오늘</string>
@@ -302,6 +303,7 @@
     <string name="proxy_type">프록시 활성화</string>
     <string name="proxy_url">프록시 유형</string>
     <string name="restart_to_take_effect">프록시 URL</string>
+    <string name="enable_betterlyrics">적용하려면 다시 시작</string>
 
     <string name="player_and_audio">다시 시작하여 가져오기 효과</string>
     <string name="audio_quality">플레이어 및 오디오</string>
@@ -366,6 +368,27 @@
     <string name="options">해제</string>
     <string name="preview">옵션</string>
     <string name="enable_discord_rpc">미리보기</string>
+
+    <!-- Last.fm -->
+    <string name="scrobbling">스크로블링</string>
+    <string name="lastfm_integration">Last.fm 연동</string>
+    <string name="enable_scrobbling">스크로블링 활성화</string>
+    <string name="lastfm_now_playing">지금 재생 중 업데이트</string>
+    <string name="scrobbling_configuration">스크로블링 설정</string>
+    <string name="scrobble_min_track_duration">최소 트랙 재생 시간</string>
+    <string name="scrobble_delay_percent">스크로블 지연 비율</string>
+    <string name="scrobble_delay_minutes">스크로블 지연 (초)</string>
+    <string name="username">사용자 이름</string>
+    <string name="password">비밀번호</string>
+
+
+
+    <!-- ListenBrainz -->
+    <string name="listenbrainz_scrobbling">ListenBrainz 스크로블링</string>
+    <string name="listenbrainz_scrobbling_description">현재 재생 중 및 재생이 완료된 트랙을 ListenBrainz에 전송하도록 활성화합니다</string>
+    <string name="set_listenbrainz_token">ListenBrainz 토큰 설정</string>
+    <string name="edit_listenbrainz_token">ListenBrainz 토큰 수정</string>
+
 
     <!-- Discord activity customization -->
     <string name="discord_activity_name">리치 프레즌스 활성화</string>
@@ -441,6 +464,28 @@
     <string name="open">열기</string>
     <string name="reset_to_default_levels">기본값으로 재설정</string>
     <string name="no_logs">로그 없음</string>
+    <string name="show_nerd_stats">상세 통계 표시</string>
+    <string name="description_show_nerd_stats">실시간 재생 통계 표시 (코덱, 비트레이트, 버퍼)</string>
+    <string name="display_codec_on_player">플레이어에 코덱 표시</string>
+    <string name="description_display_codec_on_player">현재 오디오 코덱 정보를 플레이어에 표시합니다</string>
+    <string name="nerd_stats">상세 통계</string>
+    <string name="track_label">트랙</string>
+    <string name="no_track_playing">재생 중인 트랙이 없습니다</string>
+    <string name="codec_label">코덱</string>
+    <string name="unknown_codec">알 수 없는 코덱</string>
+    <string name="bitrate_label">비트레이트</string>
+    <string name="unknown_bitrate">알 수 없는 비트레이트</string>
+    <string name="sample_rate_label">샘플 레이트</string>
+    <string name="unknown_sample_rate">알 수 없는 샘플 레이트</string>
+    <string name="content_length_label">콘텐츠 길이</string>
+    <string name="unknown_content_length">알 수 없는 콘텐츠 길이</string>
+    <string name="format_label">형식</string>
+    <string name="loading_format">형식 불러오는 중...</string>
+    <string name="buffer_health_label">버퍼 상태</string>
+    <string name="playback_speed_label">재생 속도</string>
+    <string name="state_label">상태</string>
+    <string name="media_id_label">미디어 ID</string>
+
 
 
 

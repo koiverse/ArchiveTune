@@ -22,6 +22,7 @@ import moe.koiverse.archivetune.utils.reportException
 import moe.koiverse.archivetune.innertube.YouTube
 import moe.koiverse.archivetune.innertube.models.YouTubeLocale
 import moe.koiverse.archivetune.kugou.KuGou
+import moe.koiverse.archivetune.lastfm.LastFM
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
@@ -70,6 +71,12 @@ class App : Application(), SingletonImageLoader.Factory {
         if (languageTag == "zh-TW") {
             KuGou.useTraditionalChinese = true
         }
+
+        // Initialize Last.fm with API credentials
+        LastFM.initialize(
+            apiKey = BuildConfig.LASTFM_API_KEY,
+            secret = BuildConfig.LASTFM_SECRET
+        )
 
         if (dataStore[ProxyEnabledKey] == true) {
             try {

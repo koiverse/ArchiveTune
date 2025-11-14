@@ -62,6 +62,7 @@ fun ContentSettings(
     val (proxyUrl, onProxyUrlChange) = rememberPreference(key = ProxyUrlKey, defaultValue = "host:port")
     val (enableKugou, onEnableKugouChange) = rememberPreference(key = EnableKugouKey, defaultValue = true)
     val (enableLrclib, onEnableLrclibChange) = rememberPreference(key = EnableLrcLibKey, defaultValue = true)
+    val (enableBetterLyrics, onEnableBetterLyricsChange) = rememberPreference(key = EnableBetterLyricsKey, defaultValue = true)
     val (preferredProvider, onPreferredProviderChange) =
         rememberEnumPreference(
             key = PreferredLyricsProviderKey,
@@ -203,15 +204,22 @@ fun ContentSettings(
             checked = enableKugou,
             onCheckedChange = onEnableKugouChange,
         )
+        SwitchPreference(
+            title = { Text(stringResource(R.string.enable_betterlyrics)) },
+            icon = { Icon(painterResource(R.drawable.lyrics), null) },
+            checked = enableBetterLyrics,
+            onCheckedChange = onEnableBetterLyricsChange,
+        )
         ListPreference(
             title = { Text(stringResource(R.string.set_first_lyrics_provider)) },
             icon = { Icon(painterResource(R.drawable.lyrics), null) },
             selectedValue = preferredProvider,
-            values = listOf(PreferredLyricsProvider.LRCLIB, PreferredLyricsProvider.KUGOU),
+            values = listOf(PreferredLyricsProvider.LRCLIB, PreferredLyricsProvider.KUGOU, PreferredLyricsProvider.BETTER_LYRICS),
             valueText = {
                 when (it) {
                     PreferredLyricsProvider.LRCLIB -> "LrcLib"
                     PreferredLyricsProvider.KUGOU -> "KuGou"
+                    PreferredLyricsProvider.BETTER_LYRICS -> "BetterLyrics"
                 }
             },
             onValueSelected = onPreferredProviderChange,
