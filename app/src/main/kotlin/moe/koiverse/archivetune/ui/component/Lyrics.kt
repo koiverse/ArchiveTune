@@ -993,7 +993,7 @@ fun Lyrics(
                             
                             LaunchedEffect(index) {
                                 // Simultaneous slide-up and scale animation
-                                kotlinx.coroutines.launch {
+                                launch {
                                     slideOffset.animateTo(
                                         targetValue = 0f,
                                         animationSpec = tween(
@@ -1003,7 +1003,7 @@ fun Lyrics(
                                     )
                                 }
                                 
-                                kotlinx.coroutines.launch {
+                                launch {
                                     scaleAnim.animateTo(
                                         targetValue = 1.02f,
                                         animationSpec = tween(
@@ -1021,7 +1021,7 @@ fun Lyrics(
                                 }
                                 
                                 // Fill animation starts after entrance
-                                kotlinx.coroutines.delay(100)
+                                delay(100)
                                 fillProgress.animateTo(
                                     targetValue = 1f,
                                     animationSpec = tween(
