@@ -1550,6 +1550,7 @@ class MusicService :
             CoroutineScope(Dispatchers.IO).launch {
                 try {
                     val song = database.song(mediaItem.mediaId).first()
+                        ?: return@launch
                     
                     // ListenBrainz scrobbling
                     val lbEnabled = dataStore.get(ListenBrainzEnabledKey, false)
