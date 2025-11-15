@@ -72,6 +72,7 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
@@ -398,7 +399,8 @@ fun LocalPlaylistScreen(
     }
     val reorderableState = rememberReorderableLazyListState(
         lazyListState = lazyListState,
-        scrollThresholdPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues()
+        scrollThresholdPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues(),
+        scrollThreshold = 0.5f
     ) { from, to ->
         if (to.index >= headerItems && from.index >= headerItems) {
             val currentDragInfo = dragInfo
@@ -647,7 +649,11 @@ fun LocalPlaylistScreen(
                 ) { index, song ->
                     ReorderableItem(
                         state = reorderableState,
-                        key = song.map.id
+                        key = song.map.id,
+                        modifier = Modifier.graphicsLayer {
+                            // Enable hardware acceleration for smoother dragging
+                            compositingStrategy = androidx.compose.ui.graphics.CompositingStrategy.Offscreen
+                        }
                     ) {
                         val currentItem by rememberUpdatedState(song)
 
@@ -722,7 +728,12 @@ fun LocalPlaylistScreen(
                                     if (sortType == PlaylistSongSortType.CUSTOM && !locked && !selection && !isSearching && editable) {
                                         IconButton(
                                             onClick = { },
-                                            modifier = Modifier.draggableHandle(),
+                                            modifier = Modifier
+                                                .draggableHandle()
+                                                .graphicsLayer {
+                                                    // Improve touch response
+                                                    alpha = 0.99f
+                                                },
                                         ) {
                                             Icon(
                                                 painter = painterResource(R.drawable.drag_handle),
@@ -781,6 +792,10 @@ fun LocalPlaylistScreen(
                     ReorderableItem(
                         state = reorderableState,
                         key = songWrapper.item.map.id,
+                        modifier = Modifier.graphicsLayer {
+                            // Enable hardware acceleration for smoother dragging
+                            compositingStrategy = androidx.compose.ui.graphics.CompositingStrategy.Offscreen
+                        }
                     ) {
                         val currentItem by rememberUpdatedState(songWrapper.item)
 
@@ -844,7 +859,12 @@ fun LocalPlaylistScreen(
                                     if (sortType == PlaylistSongSortType.CUSTOM && !locked && !selection && !isSearching && editable) {
                                         IconButton(
                                             onClick = { },
-                                            modifier = Modifier.draggableHandle(),
+                                            modifier = Modifier
+                                                .draggableHandle()
+                                                .graphicsLayer {
+                                                    // Improve touch response
+                                                    alpha = 0.99f
+                                                },
                                         ) {
                                             Icon(
                                                 painter = painterResource(R.drawable.drag_handle),
