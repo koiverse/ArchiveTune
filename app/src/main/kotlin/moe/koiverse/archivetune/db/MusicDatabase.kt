@@ -62,10 +62,6 @@ class MusicDatabase(
             }
         }
 
-    fun checkpoint() {
-        delegate.openHelper.writableDatabase.query("PRAGMA wal_checkpoint(FULL)").use { }
-    }
-
     fun close() = delegate.close()
 }
 
