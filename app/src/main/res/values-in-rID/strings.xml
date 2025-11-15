@@ -284,8 +284,9 @@
     <string name="lyrics_animation_style">Gaya animasi lirik</string>
     <!-- Animation options -->
     <string name="none">Tidak ada</string>
-    <string name="fade">Pudar</string>
-    <string name="slide">Slide</string>
+    <string name="fade">Memudar</string>
+    <string name="glow">Bersinar</string>
+    <string name="slide">Geser</string>
     <string name="karaoke">Karaoke</string>
 
 

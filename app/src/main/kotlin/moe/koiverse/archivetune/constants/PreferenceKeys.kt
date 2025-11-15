@@ -342,6 +342,7 @@ enum class LyricsAnimationStyle {
     FADE,
     GLOW,
     SLIDE,
+    KARAOKE,
 }
 
 val LyricsTextSizeKey = floatPreferencesKey("lyricsTextSize")

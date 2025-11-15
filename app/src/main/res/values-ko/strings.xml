@@ -277,21 +277,22 @@
     <string name="misc">구불구불한 모양</string>
     <string name="default_open_tab">기타</string>
     <string name="grid_cell_size">기본 열린 탭</string>
-    <string name="small">그리드 셀 크기</string>
-    <string name="big">소형</string>
+    <string name="small">소형</string>
+    <string name="big">큰</string>
 
     <!-- Lyrics animation style -->
-    <string name="lyrics_animation_style">큰</string>
+    <string name="lyrics_animation_style">가사 애니메이션 스타일</string>
     <!-- Animation options -->
-    <string name="none">가사 애니메이션 스타일</string>
-    <string name="fade">없음</string>
-    <string name="slide">페이드</string>
-    <string name="karaoke">슬라이드</string>
+    <string name="none">없음</string>
+    <string name="fade">페이드</string>
+    <string name="glow">글로우</string>
+    <string name="slide">슬라이드</string>
+    <string name="karaoke">카라오케</string>
 
 
-    <string name="content">노래방</string>
-    <string name="action_logout">콘텐츠</string>
-    <string name="action_login">로그아웃</string>
+    <string name="content">콘텐츠</string>
+    <string name="action_logout">로그아웃</string>
+    <string name="action_login">로그인</string>
     <string name="login">로그인</string>
     <string name="not_logged_in">로그인</string>
     <string name="login_failed">로그인 안 됨</string>

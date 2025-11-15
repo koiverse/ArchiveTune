@@ -960,6 +960,111 @@ fun Lyrics(
                                 textAlign = alignment,
                                 lineHeight = (lyricsTextSize * lyricsLineSpacing).sp
                             )
+                        } else if (hasWordTimings && item.words != null && lyricsAnimationStyle == LyricsAnimationStyle.KARAOKE) {
+                            // KARAOKE MODE: Word-by-word pop-in with scale bounce effect
+                            
+                            val styledText = buildAnnotatedString {
+                                item.words.forEachIndexed { wordIndex, word ->
+                                    val wordStartMs = (word.startTime * 1000).toLong()
+                                    val wordEndMs = (word.endTime * 1000).toLong()
+                                    val wordDuration = wordEndMs - wordStartMs
+                                    
+                                    val isWordActive = isActiveLine && currentPlaybackPosition >= wordStartMs && currentPlaybackPosition < wordEndMs
+                                    val hasWordPassed = (isActiveLine && currentPlaybackPosition >= wordEndMs) || (!isActiveLine && index < displayedCurrentLineIndex)
+                                    
+                                    if (isWordActive && wordDuration > 0) {
+                                        // Active word: bright with intense glow
+                                        val timeElapsed = currentPlaybackPosition - wordStartMs
+                                        val progress = (timeElapsed.toFloat() / wordDuration.toFloat()).coerceIn(0f, 1f)
+                                        
+                                        // Pulsing glow effect
+                                        val pulseIntensity = 0.85f + (0.15f * kotlin.math.sin(progress * Math.PI.toFloat() * 4f))
+                                        
+                                        withStyle(
+                                            style = SpanStyle(
+                                                color = expressiveAccent,
+                                                fontWeight = FontWeight.Black,
+                                                shadow = Shadow(
+                                                    color = expressiveAccent.copy(alpha = pulseIntensity),
+                                                    offset = Offset(0f, 0f),
+                                                    blurRadius = 35f
+                                                )
+                                            )
+                                        ) {
+                                            append(word.text)
+                                        }
+                                    } else if (hasWordPassed) {
+                                        // Passed words: normal bright
+                                        withStyle(
+                                            style = SpanStyle(
+                                                color = expressiveAccent,
+                                                fontWeight = FontWeight.Bold,
+                                                shadow = Shadow(
+                                                    color = expressiveAccent.copy(alpha = 0.5f),
+                                                    offset = Offset(0f, 0f),
+                                                    blurRadius = 15f
+                                                )
+                                            )
+                                        ) {
+                                            append(word.text)
+                                        }
+                                    } else {
+                                        // Future words: dimmed
+                                        val wordColor = if (!isActiveLine) lineColor else expressiveAccent.copy(alpha = 0.4f)
+                                        
+                                        withStyle(
+                                            style = SpanStyle(
+                                                color = wordColor,
+                                                fontWeight = FontWeight.Normal
+                                            )
+                                        ) {
+                                            append(word.text)
+                                        }
+                                    }
+                                    
+                                    if (wordIndex < item.words.size - 1) {
+                                        append(" ")
+                                    }
+                                }
+                            }
+                            
+                            // Calculate scale for active word
+                            val activeWordIndex = item.words?.indexOfFirst { word ->
+                                val wordStartMs = (word.startTime * 1000).toLong()
+                                val wordEndMs = (word.endTime * 1000).toLong()
+                                isActiveLine && currentPlaybackPosition >= wordStartMs && currentPlaybackPosition < wordEndMs
+                            } ?: -1
+                            
+                            val scaleEffect = if (activeWordIndex >= 0 && item.words != null) {
+                                val word = item.words[activeWordIndex]
+                                val wordStartMs = (word.startTime * 1000).toLong()
+                                val wordEndMs = (word.endTime * 1000).toLong()
+                                val wordDuration = wordEndMs - wordStartMs
+                                val timeElapsed = currentPlaybackPosition - wordStartMs
+                                val progress = (timeElapsed.toFloat() / wordDuration.toFloat()).coerceIn(0f, 1f)
+                                
+                                // Bounce: quick scale up at start, settle at end
+                                if (progress < 0.2f) {
+                                    1f + (0.15f * (progress / 0.2f)) // Scale up to 1.15x
+                                } else if (progress < 0.4f) {
+                                    1.15f - (0.1f * ((progress - 0.2f) / 0.2f)) // Settle to 1.05x
+                                } else {
+                                    1.05f
+                                }
+                            } else {
+                                1f
+                            }
+                            
+                            Text(
+                                text = styledText,
+                                fontSize = lyricsTextSize.sp,
+                                textAlign = alignment,
+                                lineHeight = (lyricsTextSize * lyricsLineSpacing).sp,
+                                modifier = Modifier.graphicsLayer {
+                                    scaleX = scaleEffect
+                                    scaleY = scaleEffect
+                                }
+                            )
                         } else if (isActiveLine && (lyricsAnimationStyle == LyricsAnimationStyle.FADE || lyricsAnimationStyle == LyricsAnimationStyle.GLOW)) {
                             // FADE/GLOW MODE for line-synced lyrics: glow effect with shadow
                             
@@ -1067,6 +1172,84 @@ fun Lyrics(
                                     scaleX = scaleAnim.value
                                     scaleY = scaleAnim.value
                                     translationY = slideOffset.value
+                                }
+                            )
+                        } else if (isActiveLine && lyricsAnimationStyle == LyricsAnimationStyle.KARAOKE) {
+                            // KARAOKE style for line-synced: Pop-in with bounce and pulsing glow
+                            val scaleAnim = remember { Animatable(0.85f) }
+                            val pulseProgress = remember { Animatable(0f) }
+                            
+                            LaunchedEffect(index) {
+                                // Pop-in with bounce
+                                scaleAnim.animateTo(
+                                    targetValue = 1.2f,
+                                    animationSpec = tween(
+                                        durationMillis = 150,
+                                        easing = FastOutSlowInEasing
+                                    )
+                                )
+                                scaleAnim.animateTo(
+                                    targetValue = 0.95f,
+                                    animationSpec = tween(
+                                        durationMillis = 100,
+                                        easing = FastOutSlowInEasing
+                                    )
+                                )
+                                scaleAnim.animateTo(
+                                    targetValue = 1.05f,
+                                    animationSpec = tween(
+                                        durationMillis = 100,
+                                        easing = FastOutSlowInEasing
+                                    )
+                                )
+                                scaleAnim.animateTo(
+                                    targetValue = 1f,
+                                    animationSpec = tween(
+                                        durationMillis = 100,
+                                        easing = FastOutSlowInEasing
+                                    )
+                                )
+                            }
+                            
+                            LaunchedEffect(Unit) {
+                                while (true) {
+                                    pulseProgress.animateTo(
+                                        targetValue = 1f,
+                                        animationSpec = tween(
+                                            durationMillis = 2000,
+                                            easing = LinearEasing
+                                        )
+                                    )
+                                    pulseProgress.snapTo(0f)
+                                }
+                            }
+                            
+                            val pulse = pulseProgress.value
+                            val pulseIntensity = 0.7f + (0.25f * kotlin.math.sin(pulse * Math.PI.toFloat()))
+                            
+                            val styledText = buildAnnotatedString {
+                                withStyle(
+                                    style = SpanStyle(
+                                        shadow = Shadow(
+                                            color = expressiveAccent.copy(alpha = pulseIntensity),
+                                            offset = Offset(0f, 0f),
+                                            blurRadius = 38f
+                                        )
+                                    )
+                                ) {
+                                    append(item.text)
+                                }
+                            }
+                            
+                            Text(
+                                text = styledText,
+                                fontSize = lyricsTextSize.sp,
+                                color = expressiveAccent,
+                                textAlign = alignment,
+                                fontWeight = FontWeight.Black,
+                                modifier = Modifier.graphicsLayer {
+                                    scaleX = scaleAnim.value
+                                    scaleY = scaleAnim.value
                                 }
                             )
                         } else {
@@ -1207,6 +1390,31 @@ fun Lyrics(
                                                             style = SpanStyle(
                                                                 color = expressiveAccent.copy(alpha = romAlpha),
                                                                 fontWeight = if (isWordActive) FontWeight.SemiBold else FontWeight.Normal,
+                                                                shadow = romShadow
+                                                            )
+                                                        ) {
+                                                            append(romWord)
+                                                        }
+                                                    }
+                                                    LyricsAnimationStyle.KARAOKE -> {
+                                                        val romAlpha = when {
+                                                            isWordActive -> 0.9f
+                                                            hasWordPassed -> 0.7f
+                                                            else -> 0.35f
+                                                        }
+                                                        
+                                                        val romShadow = if (isWordActive) {
+                                                            Shadow(
+                                                                color = expressiveAccent.copy(alpha = 0.6f),
+                                                                offset = Offset.Zero,
+                                                                blurRadius = 12f
+                                                            )
+                                                        } else null
+                                                        
+                                                        withStyle(
+                                                            style = SpanStyle(
+                                                                color = expressiveAccent.copy(alpha = romAlpha),
+                                                                fontWeight = if (isWordActive) FontWeight.Bold else FontWeight.Normal,
                                                                 shadow = romShadow
                                                             )
                                                         ) {

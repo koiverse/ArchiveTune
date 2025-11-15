@@ -285,6 +285,7 @@
     <!-- Animation options -->
     <string name="none">なし</string>
     <string name="fade">フェード</string>
+    <string name="glow">グロー</string>
     <string name="slide">スライド</string>
     <string name="karaoke">カラオケ</string>
 
