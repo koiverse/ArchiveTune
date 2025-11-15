@@ -662,7 +662,7 @@ fun Queue(
         val automix by playerConnection.service.automixItems.collectAsState()
         val mutableQueueWindows = remember { mutableStateListOf<Timeline.Window>() }
         val queueLength by remember {
-            derivedStateOf<Long> {
+            derivedStateOf {
                 queueWindows.sumOf { it.mediaItem.metadata!!.duration }
             }
         }
