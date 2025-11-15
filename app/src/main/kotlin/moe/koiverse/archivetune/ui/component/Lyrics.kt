@@ -379,7 +379,7 @@ fun Lyrics(
             return@LaunchedEffect
         }
         while (isActive) {
-            delay(8) // ~120fps update rate for ultra-smooth SLIDE animations
+            delay(8) // ~120fps update rate for ultra-smooth animations
             val sliderPosition = sliderPositionProvider()
             isSeeking = sliderPosition != null
             val position = sliderPosition ?: playerConnection.player.currentPosition
@@ -679,7 +679,12 @@ fun Lyrics(
                             LyricsPosition.RIGHT -> TextAlign.Right
                         }
                         
-                        // Word-synced lyrics rendering - COMPLETELY REWRITTEN FOR ULTRA FLUID ANIMATIONS
+                        // Word-synced lyrics rendering - Animation Style Guide:
+                        // - NONE: Simple word-by-word color changes (no gradients, no effects)
+                        // - FADE: Smooth fade in/out for each word (simple alpha transitions)
+                        // - GLOW: Word-by-word with glow effect and subtle shake animation
+                        // - SLIDE: Smooth line-by-line horizontal gradient fill (entire line animates together)
+                        // - KARAOKE: Word-by-word gradient fill with adaptive pulsing (classic karaoke style)
                         val hasWordTimings = item.words?.isNotEmpty() == true
                         
                         if (hasWordTimings && item.words != null && lyricsAnimationStyle == LyricsAnimationStyle.NONE) {
@@ -877,7 +882,94 @@ fun Lyrics(
                                 lineHeight = (lyricsTextSize * lyricsLineSpacing).sp
                             )
                         } else if (hasWordTimings && item.words != null && lyricsAnimationStyle == LyricsAnimationStyle.SLIDE) {
-                            // SLIDE MODE: Better Lyrics style - sharp karaoke fill with smooth transitions
+                            // SLIDE MODE: Smooth line-by-line slide animation (entire line at once, no word-by-word)
+                            // Uses line timing from first word start to last word end
+                            
+                            val firstWordStartMs = (item.words.firstOrNull()?.startTime?.times(1000))?.toLong() ?: 0L
+                            val lastWordEndMs = (item.words.lastOrNull()?.endTime?.times(1000))?.toLong() ?: 0L
+                            val lineDuration = lastWordEndMs - firstWordStartMs
+                            
+                            val isLineActive = isActiveLine && currentPlaybackPosition >= firstWordStartMs && currentPlaybackPosition <= lastWordEndMs
+                            val hasLinePassed = isActiveLine && currentPlaybackPosition > lastWordEndMs
+                            
+                            if (isLineActive && lineDuration > 0) {
+                                // Calculate smooth fill progress for entire line
+                                val timeElapsed = currentPlaybackPosition - firstWordStartMs
+                                val fillProgress = (timeElapsed.toFloat() / lineDuration.toFloat()).coerceIn(0f, 1f)
+                                
+                                // Smooth pulsing effect for the entire line
+                                val pulseValue = (timeElapsed % 2000) / 2000f
+                                val pulseEffect = (kotlin.math.sin(pulseValue * Math.PI.toFloat() * 2f) * 0.1f).coerceIn(0f, 0.1f)
+                                val glowIntensity = (fillProgress + pulseEffect).coerceIn(0f, 1.2f)
+                                
+                                // Smooth gradient that fills the entire line from left to right
+                                val slideBrush = Brush.horizontalGradient(
+                                    0.0f to expressiveAccent.copy(alpha = 0.3f),
+                                    (fillProgress * 0.8f).coerceIn(0f, 1f) to expressiveAccent.copy(alpha = 0.9f),
+                                    fillProgress to expressiveAccent,
+                                    (fillProgress + 0.15f).coerceIn(0f, 1f) to expressiveAccent.copy(alpha = 0.6f),
+                                    1.0f to expressiveAccent.copy(alpha = if (fillProgress >= 0.95f) 1f else 0.3f)
+                                )
+                                
+                                val styledText = buildAnnotatedString {
+                                    withStyle(
+                                        style = SpanStyle(
+                                            brush = slideBrush,
+                                            fontWeight = FontWeight.ExtraBold,
+                                            shadow = Shadow(
+                                                color = expressiveAccent.copy(alpha = 0.7f * glowIntensity),
+                                                offset = Offset(0f, 0f),
+                                                blurRadius = 24f * (1f + pulseEffect)
+                                            )
+                                        )
+                                    ) {
+                                        append(item.text)
+                                    }
+                                }
+                                
+                                Text(
+                                    text = styledText,
+                                    fontSize = lyricsTextSize.sp,
+                                    textAlign = alignment,
+                                    lineHeight = (lyricsTextSize * lyricsLineSpacing).sp
+                                )
+                            } else if (hasLinePassed) {
+                                // Line has fully passed - show with full color
+                                val styledText = buildAnnotatedString {
+                                    withStyle(
+                                        style = SpanStyle(
+                                            color = expressiveAccent,
+                                            fontWeight = FontWeight.ExtraBold,
+                                            shadow = Shadow(
+                                                color = expressiveAccent.copy(alpha = 0.6f),
+                                                offset = Offset(0f, 0f),
+                                                blurRadius = 20f
+                                            )
+                                        )
+                                    ) {
+                                        append(item.text)
+                                    }
+                                }
+                                
+                                Text(
+                                    text = styledText,
+                                    fontSize = lyricsTextSize.sp,
+                                    textAlign = alignment,
+                                    lineHeight = (lyricsTextSize * lyricsLineSpacing).sp
+                                )
+                            } else {
+                                // Future line - dimmed
+                                Text(
+                                    text = item.text,
+                                    fontSize = lyricsTextSize.sp,
+                                    color = if (!isActiveLine) lineColor else expressiveAccent.copy(alpha = 0.3f),
+                                    textAlign = alignment,
+                                    fontWeight = FontWeight.Bold,
+                                    lineHeight = (lyricsTextSize * lyricsLineSpacing).sp
+                                )
+                            }
+                        } else if (hasWordTimings && item.words != null && lyricsAnimationStyle == LyricsAnimationStyle.KARAOKE) {
+                            // KARAOKE MODE: Word-by-word gradient slide/fill with adaptive pulsing glow
                             
                             val styledText = buildAnnotatedString {
                                 item.words.forEachIndexed { wordIndex, word ->
@@ -886,57 +978,74 @@ fun Lyrics(
                                     val wordDuration = wordEndMs - wordStartMs
                                     
                                     val isWordActive = isActiveLine && currentPlaybackPosition >= wordStartMs && currentPlaybackPosition < wordEndMs
+                                    // Word has passed if: (in active line AND past end time) OR (line itself has passed)
                                     val hasWordPassed = (isActiveLine && currentPlaybackPosition >= wordEndMs) || (!isActiveLine && index < displayedCurrentLineIndex)
                                     
                                     if (isWordActive && wordDuration > 0) {
-                                        // Sharp karaoke-style fill animation
+                                        // Calculate fill progress - INSTANT, NO DELAY
                                         val timeElapsed = currentPlaybackPosition - wordStartMs
                                         val fillProgress = (timeElapsed.toFloat() / wordDuration.toFloat()).coerceIn(0f, 1f)
                                         
-                                        // Create sharp gradient transition (like Better Lyrics)
-                                        val gradientEdge = 0.03f // Very narrow transition zone
-                                        val wordBrush = Brush.horizontalGradient(
-                                            0.0f to expressiveAccent.copy(alpha = 0.35f),
-                                            (fillProgress - gradientEdge).coerceAtLeast(0f) to expressiveAccent.copy(alpha = 0.35f),
-                                            fillProgress to expressiveAccent,
-                                            (fillProgress + gradientEdge).coerceAtMost(1f) to expressiveAccent,
-                                            1.0f to expressiveAccent.copy(alpha = if (fillProgress >= 0.97f) 1f else 0.35f)
-                                        )
+                                        // Adaptive pulse based on word duration
+                                        // Fast words (< 500ms): faster pulse cycle
+                                        // Slow words (> 2000ms): slower pulse cycle
+                                        val pulseCycleDuration = wordDuration.toFloat().coerceIn(300f, 2000f)
+                                        val pulseValue = (timeElapsed % pulseCycleDuration) / pulseCycleDuration
+                                        val pulseEffect = (kotlin.math.sin(pulseValue * Math.PI.toFloat() * 2f) * 0.15f).coerceIn(0f, 0.15f)
                                         
-                                        // Subtle glow during fill
-                                        val glowAlpha = (0.6f + fillProgress * 0.3f).coerceIn(0.6f, 0.9f)
+                                        // Smooth glow gradient with adaptive pulsing effect
+                                        val glowIntensity = (fillProgress + pulseEffect).coerceIn(0f, 1.2f)
+                                        val wordBrush = Brush.horizontalGradient(
+                                            0.0f to expressiveAccent.copy(alpha = 0.3f),
+                                            (fillProgress * 0.7f).coerceIn(0f, 1f) to expressiveAccent.copy(alpha = 0.9f),
+                                            fillProgress to expressiveAccent,
+                                            (fillProgress + 0.1f).coerceIn(0f, 1f) to expressiveAccent.copy(alpha = 0.7f),
+                                            1.0f to expressiveAccent.copy(alpha = if (fillProgress >= 1f) 1f else 0.3f)
+                                        )
                                         
                                         withStyle(
                                             style = SpanStyle(
                                                 brush = wordBrush,
                                                 fontWeight = FontWeight.ExtraBold,
                                                 shadow = Shadow(
-                                                    color = expressiveAccent.copy(alpha = glowAlpha),
+                                                    color = expressiveAccent.copy(alpha = 0.8f * glowIntensity),
                                                     offset = Offset(0f, 0f),
-                                                    blurRadius = 22f
+                                                    blurRadius = 28f * (1f + pulseEffect)
                                                 )
                                             )
                                         ) {
                                             append(word.text)
                                         }
-                                    } else if (hasWordPassed) {
-                                        // Fully filled words
+                                    } else if (hasWordPassed && isActiveLine) {
+                                        // Passed words WITHIN active line: keep the same gradient as line-synced
+                                        // Calculate continuous pulse for passed words
+                                        val timeSinceEnd = currentPlaybackPosition - wordEndMs
+                                        val pulseValue = (timeSinceEnd % 2000) / 2000f // 2-second pulse cycle
+                                        val pulseEffect = (kotlin.math.sin(pulseValue * Math.PI.toFloat() * 2f) * 0.15f).coerceIn(0f, 0.15f)
+                                        val glowIntensity = (1f + pulseEffect).coerceIn(0f, 1.2f)
+                                        
+                                        val passedBrush = Brush.horizontalGradient(
+                                            0.0f to expressiveAccent.copy(alpha = 0.3f),
+                                            0.7f to expressiveAccent.copy(alpha = 0.9f),
+                                            1.0f to expressiveAccent
+                                        )
+                                        
                                         withStyle(
                                             style = SpanStyle(
-                                                color = expressiveAccent,
+                                                brush = passedBrush,
                                                 fontWeight = FontWeight.ExtraBold,
                                                 shadow = Shadow(
-                                                    color = expressiveAccent.copy(alpha = 0.7f),
+                                                    color = expressiveAccent.copy(alpha = 0.8f * glowIntensity),
                                                     offset = Offset(0f, 0f),
-                                                    blurRadius = 20f
+                                                    blurRadius = 28f * (1f + pulseEffect)
                                                 )
                                             )
                                         ) {
                                             append(word.text)
                                         }
                                     } else {
-                                        // Unfilled words (dimmed)
-                                        val wordColor = if (!isActiveLine) lineColor else expressiveAccent.copy(alpha = 0.35f)
+                                        // Future words: dimmed
+                                        val wordColor = if (!isActiveLine) lineColor else expressiveAccent.copy(alpha = 0.3f)
                                         
                                         withStyle(
                                             style = SpanStyle(
@@ -948,80 +1057,7 @@ fun Lyrics(
                                         }
                                     }
                                     
-                                    if (wordIndex < item.words.size - 1) {
-                                        append(" ")
-                                    }
-                                }
-                            }
-                            
-                            Text(
-                                text = styledText,
-                                fontSize = lyricsTextSize.sp,
-                                textAlign = alignment,
-                                lineHeight = (lyricsTextSize * lyricsLineSpacing).sp
-                            )
-                        } else if (hasWordTimings && item.words != null && lyricsAnimationStyle == LyricsAnimationStyle.KARAOKE) {
-                            // KARAOKE MODE: Word-by-word glow emphasis without bounce
-                            
-                            val styledText = buildAnnotatedString {
-                                item.words.forEachIndexed { wordIndex, word ->
-                                    val wordStartMs = (word.startTime * 1000).toLong()
-                                    val wordEndMs = (word.endTime * 1000).toLong()
-                                    val wordDuration = wordEndMs - wordStartMs
-                                    
-                                    val isWordActive = isActiveLine && currentPlaybackPosition >= wordStartMs && currentPlaybackPosition < wordEndMs
-                                    val hasWordPassed = (isActiveLine && currentPlaybackPosition >= wordEndMs) || (!isActiveLine && index < displayedCurrentLineIndex)
-                                    
-                                    if (isWordActive && wordDuration > 0) {
-                                        // Active word: bright with intense glow
-                                        val timeElapsed = currentPlaybackPosition - wordStartMs
-                                        val progress = (timeElapsed.toFloat() / wordDuration.toFloat()).coerceIn(0f, 1f)
-                                        
-                                        // Pulsing glow effect
-                                        val pulseIntensity = 0.85f + (0.15f * kotlin.math.sin(progress * Math.PI.toFloat() * 4f))
-                                        
-                                        withStyle(
-                                            style = SpanStyle(
-                                                color = expressiveAccent,
-                                                fontWeight = FontWeight.Black,
-                                                shadow = Shadow(
-                                                    color = expressiveAccent.copy(alpha = pulseIntensity),
-                                                    offset = Offset(0f, 0f),
-                                                    blurRadius = 35f
-                                                )
-                                            )
-                                        ) {
-                                            append(word.text)
-                                        }
-                                    } else if (hasWordPassed) {
-                                        // Passed words: normal bright
-                                        withStyle(
-                                            style = SpanStyle(
-                                                color = expressiveAccent,
-                                                fontWeight = FontWeight.Bold,
-                                                shadow = Shadow(
-                                                    color = expressiveAccent.copy(alpha = 0.5f),
-                                                    offset = Offset(0f, 0f),
-                                                    blurRadius = 15f
-                                                )
-                                            )
-                                        ) {
-                                            append(word.text)
-                                        }
-                                    } else {
-                                        // Future words: dimmed
-                                        val wordColor = if (!isActiveLine) lineColor else expressiveAccent.copy(alpha = 0.4f)
-                                        
-                                        withStyle(
-                                            style = SpanStyle(
-                                                color = wordColor,
-                                                fontWeight = FontWeight.Normal
-                                            )
-                                        ) {
-                                            append(word.text)
-                                        }
-                                    }
-                                    
+                                    // Add space between words
                                     if (wordIndex < item.words.size - 1) {
                                         append(" ")
                                     }
@@ -1059,77 +1095,80 @@ fun Lyrics(
                                 textAlign = alignment,
                                 fontWeight = FontWeight.ExtraBold
                             )
-                        } else if (isActiveLine && lyricsAnimationStyle == LyricsAnimationStyle.SLIDE) {
-                            // SLIDE style for line-synced: Better Lyrics style entrance and fill
-                            val slideOffset = remember { Animatable(20f) }
-                            val scaleAnim = remember { Animatable(0.92f) }
+                        } else if (isActiveLine && (lyricsAnimationStyle == LyricsAnimationStyle.SLIDE || lyricsAnimationStyle == LyricsAnimationStyle.KARAOKE)) {
+                            // SLIDE/KARAOKE style for line-synced: left-to-right fill animation with pop-in
+                            val popInScale = remember { Animatable(0.95f) }
+                            
                             val fillProgress = remember { Animatable(0f) }
+                            val pulseProgress = remember { Animatable(0f) }
                             
                             LaunchedEffect(index) {
-                                // Simultaneous slide-up and scale animation
-                                launch {
-                                    slideOffset.animateTo(
-                                        targetValue = 0f,
-                                        animationSpec = tween(
-                                            durationMillis = 300,
-                                            easing = FastOutSlowInEasing
-                                        )
+                                // Start pop-in animation
+                                popInScale.snapTo(0.95f)
+                                popInScale.animateTo(
+                                    targetValue = 1f,
+                                    animationSpec = tween(
+                                        durationMillis = 200,
+                                        easing = FastOutSlowInEasing
                                     )
-                                }
+                                )
                                 
-                                launch {
-                                    scaleAnim.animateTo(
-                                        targetValue = 1.02f,
-                                        animationSpec = tween(
-                                            durationMillis = 150,
-                                            easing = FastOutSlowInEasing
-                                        )
-                                    )
-                                    scaleAnim.animateTo(
-                                        targetValue = 1f,
-                                        animationSpec = tween(
-                                            durationMillis = 150,
-                                            easing = FastOutSlowInEasing
-                                        )
-                                    )
-                                }
-                                
-                                // Fill animation starts after entrance
-                                delay(100)
+                                // Then start fill animation
+                                fillProgress.snapTo(0f)
                                 fillProgress.animateTo(
                                     targetValue = 1f,
                                     animationSpec = tween(
-                                        durationMillis = 1000,
-                                        easing = LinearEasing
+                                        durationMillis = 1200,
+                                        easing = FastOutSlowInEasing
                                     )
                                 )
                             }
                             
-                            val fill = fillProgress.value
+                            LaunchedEffect(Unit) {
+                                while (true) {
+                                    pulseProgress.animateTo(
+                                        targetValue = 1f,
+                                        animationSpec = tween(
+                                            durationMillis = 3000,
+                                            easing = LinearEasing
+                                        )
+                                    )
+                                    pulseProgress.snapTo(0f)
+                                }
+                            }
                             
-                            // Sharp karaoke-style gradient
-                            val gradientEdge = 0.04f
+                            val fill = fillProgress.value
+                            val pulse = pulseProgress.value
+                            val pulseEffect = (kotlin.math.sin(pulse * Math.PI.toFloat()) * 0.15f).coerceIn(0f, 0.15f)
+                            val glowIntensity = (fill + pulseEffect).coerceIn(0f, 1.2f)
+                            
                             val glowBrush = Brush.horizontalGradient(
-                                0.0f to expressiveAccent.copy(alpha = 0.35f),
-                                (fill - gradientEdge).coerceAtLeast(0f) to expressiveAccent.copy(alpha = 0.35f),
+                                0.0f to expressiveAccent.copy(alpha = 0.3f),
+                                (fill * 0.7f).coerceIn(0f, 1f) to expressiveAccent.copy(alpha = 0.9f),
                                 fill to expressiveAccent,
-                                (fill + gradientEdge).coerceAtMost(1f) to expressiveAccent,
-                                1.0f to expressiveAccent.copy(alpha = if (fill >= 0.96f) 1f else 0.35f)
+                                (fill + 0.1f).coerceIn(0f, 1f) to expressiveAccent.copy(alpha = 0.7f),
+                                1.0f to expressiveAccent.copy(alpha = if (fill >= 1f) 1f else 0.3f)
                             )
                             
                             val styledText = buildAnnotatedString {
                                 withStyle(
                                     style = SpanStyle(
-                                        brush = glowBrush,
                                         shadow = Shadow(
-                                            color = expressiveAccent.copy(alpha = 0.75f),
+                                            color = expressiveAccent.copy(alpha = 0.8f * glowIntensity),
                                             offset = Offset(0f, 0f),
-                                            blurRadius = 24f
-                                        )
+                                            blurRadius = 28f * (1f + pulseEffect)
+                                        ),
+                                        brush = glowBrush
                                     )
                                 ) {
                                     append(item.text)
                                 }
+                            }
+                            
+                            val bounceScale = if (fill < 0.3f) {
+                                1f + (kotlin.math.sin(fill * 3.33f * Math.PI.toFloat()) * 0.03f)
+                            } else {
+                                1f
                             }
                             
                             Text(
@@ -1138,9 +1177,9 @@ fun Lyrics(
                                 textAlign = alignment,
                                 fontWeight = FontWeight.ExtraBold,
                                 modifier = Modifier.graphicsLayer {
-                                    scaleX = scaleAnim.value
-                                    scaleY = scaleAnim.value
-                                    translationY = slideOffset.value
+                                    val combinedScale = bounceScale * popInScale.value
+                                    scaleX = combinedScale
+                                    scaleY = combinedScale
                                 }
                             )
                         } else {
@@ -1224,14 +1263,12 @@ fun Lyrics(
                                                             val timeElapsed = currentPlaybackPosition - wordStartMs
                                                             val fillProgress = (timeElapsed.toFloat() / wordDuration.toFloat()).coerceIn(0f, 1f)
                                                             
-                                                            // Sharp gradient matching main lyrics
-                                                            val gradientEdge = 0.03f
                                                             val romBrush = Brush.horizontalGradient(
                                                                 0.0f to expressiveAccent.copy(alpha = 0.3f),
-                                                                (fillProgress - gradientEdge).coerceAtLeast(0f) to expressiveAccent.copy(alpha = 0.3f),
-                                                                fillProgress to expressiveAccent.copy(alpha = 0.75f),
-                                                                (fillProgress + gradientEdge).coerceAtMost(1f) to expressiveAccent.copy(alpha = 0.75f),
-                                                                1.0f to expressiveAccent.copy(alpha = if (fillProgress >= 0.97f) 0.75f else 0.3f)
+                                                                (fillProgress * 0.7f).coerceIn(0f, 1f) to expressiveAccent.copy(alpha = 0.7f),
+                                                                fillProgress to expressiveAccent.copy(alpha = 0.8f),
+                                                                (fillProgress + 0.1f).coerceIn(0f, 1f) to expressiveAccent.copy(alpha = 0.6f),
+                                                                1.0f to expressiveAccent.copy(alpha = if (fillProgress >= 1f) 0.8f else 0.3f)
                                                             )
                                                             
                                                             withStyle(
@@ -1244,7 +1281,7 @@ fun Lyrics(
                                                             }
                                                         } else {
                                                             val romColor = when {
-                                                                hasWordPassed -> expressiveAccent.copy(alpha = 0.75f)
+                                                                hasWordPassed -> expressiveAccent.copy(alpha = 0.7f)
                                                                 else -> expressiveAccent.copy(alpha = 0.3f)
                                                             }
                                                             withStyle(
@@ -1281,31 +1318,6 @@ fun Lyrics(
                                                             style = SpanStyle(
                                                                 color = expressiveAccent.copy(alpha = romAlpha),
                                                                 fontWeight = if (isWordActive) FontWeight.SemiBold else FontWeight.Normal,
-                                                                shadow = romShadow
-                                                            )
-                                                        ) {
-                                                            append(romWord)
-                                                        }
-                                                    }
-                                                    LyricsAnimationStyle.KARAOKE -> {
-                                                        val romAlpha = when {
-                                                            isWordActive -> 0.9f
-                                                            hasWordPassed -> 0.7f
-                                                            else -> 0.35f
-                                                        }
-                                                        
-                                                        val romShadow = if (isWordActive) {
-                                                            Shadow(
-                                                                color = expressiveAccent.copy(alpha = 0.6f),
-                                                                offset = Offset.Zero,
-                                                                blurRadius = 12f
-                                                            )
-                                                        } else null
-                                                        
-                                                        withStyle(
-                                                            style = SpanStyle(
-                                                                color = expressiveAccent.copy(alpha = romAlpha),
-                                                                fontWeight = if (isWordActive) FontWeight.Bold else FontWeight.Normal,
                                                                 shadow = romShadow
                                                             )
                                                         ) {
