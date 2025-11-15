@@ -80,6 +80,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalClipboard
@@ -658,10 +659,11 @@ fun Queue(
         val queueWindows by playerConnection.queueWindows.collectAsState()
         val automix by playerConnection.service.automixItems.collectAsState()
         val mutableQueueWindows = remember { mutableStateListOf<Timeline.Window>() }
-        val queueLength =
-            remember(queueWindows) {
+        val queueLength by remember {
+            derivedStateOf {
                 queueWindows.sumOf { it.mediaItem.metadata!!.duration }
             }
+        }
 
         val coroutineScope = rememberCoroutineScope()
 
@@ -676,7 +678,8 @@ fun Queue(
                     top = ListItemHeight,
                     bottom = ListItemHeight
                 )
-            ).asPaddingValues()
+            ).asPaddingValues(),
+            scrollThreshold = 0.5f
         ) { from, to ->
             val currentDragInfo = dragInfo
             dragInfo = if (currentDragInfo == null) {
@@ -757,11 +760,15 @@ fun Queue(
 
                 itemsIndexed(
                     items = mutableQueueWindows,
-                    key = { index, item -> "${item.uid.hashCode()}_$index" },
+                    key = { _, item -> item.uid.hashCode() },
                 ) { index, window ->
                     ReorderableItem(
                         state = reorderableState,
-                        key = "${window.uid.hashCode()}_$index",
+                        key = window.uid.hashCode(),
+                        modifier = Modifier.graphicsLayer {
+                            // Enable hardware acceleration for smoother dragging
+                            compositingStrategy = androidx.compose.ui.graphics.CompositingStrategy.Offscreen
+                        }
                     ) {
                         val currentItem by rememberUpdatedState(window)
                         val dismissBoxState =
@@ -841,7 +848,12 @@ fun Queue(
                                         if (!locked) {
                                             IconButton(
                                                 onClick = { },
-                                                modifier = Modifier.draggableHandle()
+                                                modifier = Modifier
+                                                    .draggableHandle()
+                                                    .graphicsLayer {
+                                                        // Improve touch response
+                                                        alpha = 0.99f
+                                                    }
                                             ) {
                                                 Icon(
                                                     painter = painterResource(R.drawable.drag_handle),
