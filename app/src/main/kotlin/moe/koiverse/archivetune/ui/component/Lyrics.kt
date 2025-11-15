@@ -961,7 +961,7 @@ fun Lyrics(
                                 lineHeight = (lyricsTextSize * lyricsLineSpacing).sp
                             )
                         } else if (hasWordTimings && item.words != null && lyricsAnimationStyle == LyricsAnimationStyle.KARAOKE) {
-                            // KARAOKE MODE: Word-by-word pop-in with scale bounce effect
+                            // KARAOKE MODE: Word-by-word glow emphasis without bounce
                             
                             val styledText = buildAnnotatedString {
                                 item.words.forEachIndexed { wordIndex, word ->
@@ -1028,42 +1028,11 @@ fun Lyrics(
                                 }
                             }
                             
-                            // Calculate scale for active word
-                            val activeWordIndex = item.words?.indexOfFirst { word ->
-                                val wordStartMs = (word.startTime * 1000).toLong()
-                                val wordEndMs = (word.endTime * 1000).toLong()
-                                isActiveLine && currentPlaybackPosition >= wordStartMs && currentPlaybackPosition < wordEndMs
-                            } ?: -1
-                            
-                            val scaleEffect = if (activeWordIndex >= 0 && item.words != null) {
-                                val word = item.words[activeWordIndex]
-                                val wordStartMs = (word.startTime * 1000).toLong()
-                                val wordEndMs = (word.endTime * 1000).toLong()
-                                val wordDuration = wordEndMs - wordStartMs
-                                val timeElapsed = currentPlaybackPosition - wordStartMs
-                                val progress = (timeElapsed.toFloat() / wordDuration.toFloat()).coerceIn(0f, 1f)
-                                
-                                // Bounce: quick scale up at start, settle at end
-                                if (progress < 0.2f) {
-                                    1f + (0.15f * (progress / 0.2f)) // Scale up to 1.15x
-                                } else if (progress < 0.4f) {
-                                    1.15f - (0.1f * ((progress - 0.2f) / 0.2f)) // Settle to 1.05x
-                                } else {
-                                    1.05f
-                                }
-                            } else {
-                                1f
-                            }
-                            
                             Text(
                                 text = styledText,
                                 fontSize = lyricsTextSize.sp,
                                 textAlign = alignment,
-                                lineHeight = (lyricsTextSize * lyricsLineSpacing).sp,
-                                modifier = Modifier.graphicsLayer {
-                                    scaleX = scaleEffect
-                                    scaleY = scaleEffect
-                                }
+                                lineHeight = (lyricsTextSize * lyricsLineSpacing).sp
                             )
                         } else if (isActiveLine && (lyricsAnimationStyle == LyricsAnimationStyle.FADE || lyricsAnimationStyle == LyricsAnimationStyle.GLOW)) {
                             // FADE/GLOW MODE for line-synced lyrics: glow effect with shadow
@@ -1172,84 +1141,6 @@ fun Lyrics(
                                     scaleX = scaleAnim.value
                                     scaleY = scaleAnim.value
                                     translationY = slideOffset.value
-                                }
-                            )
-                        } else if (isActiveLine && lyricsAnimationStyle == LyricsAnimationStyle.KARAOKE) {
-                            // KARAOKE style for line-synced: Pop-in with bounce and pulsing glow
-                            val scaleAnim = remember { Animatable(0.85f) }
-                            val pulseProgress = remember { Animatable(0f) }
-                            
-                            LaunchedEffect(index) {
-                                // Pop-in with bounce
-                                scaleAnim.animateTo(
-                                    targetValue = 1.2f,
-                                    animationSpec = tween(
-                                        durationMillis = 150,
-                                        easing = FastOutSlowInEasing
-                                    )
-                                )
-                                scaleAnim.animateTo(
-                                    targetValue = 0.95f,
-                                    animationSpec = tween(
-                                        durationMillis = 100,
-                                        easing = FastOutSlowInEasing
-                                    )
-                                )
-                                scaleAnim.animateTo(
-                                    targetValue = 1.05f,
-                                    animationSpec = tween(
-                                        durationMillis = 100,
-                                        easing = FastOutSlowInEasing
-                                    )
-                                )
-                                scaleAnim.animateTo(
-                                    targetValue = 1f,
-                                    animationSpec = tween(
-                                        durationMillis = 100,
-                                        easing = FastOutSlowInEasing
-                                    )
-                                )
-                            }
-                            
-                            LaunchedEffect(Unit) {
-                                while (true) {
-                                    pulseProgress.animateTo(
-                                        targetValue = 1f,
-                                        animationSpec = tween(
-                                            durationMillis = 2000,
-                                            easing = LinearEasing
-                                        )
-                                    )
-                                    pulseProgress.snapTo(0f)
-                                }
-                            }
-                            
-                            val pulse = pulseProgress.value
-                            val pulseIntensity = 0.7f + (0.25f * kotlin.math.sin(pulse * Math.PI.toFloat()))
-                            
-                            val styledText = buildAnnotatedString {
-                                withStyle(
-                                    style = SpanStyle(
-                                        shadow = Shadow(
-                                            color = expressiveAccent.copy(alpha = pulseIntensity),
-                                            offset = Offset(0f, 0f),
-                                            blurRadius = 38f
-                                        )
-                                    )
-                                ) {
-                                    append(item.text)
-                                }
-                            }
-                            
-                            Text(
-                                text = styledText,
-                                fontSize = lyricsTextSize.sp,
-                                color = expressiveAccent,
-                                textAlign = alignment,
-                                fontWeight = FontWeight.Black,
-                                modifier = Modifier.graphicsLayer {
-                                    scaleX = scaleAnim.value
-                                    scaleY = scaleAnim.value
                                 }
                             )
                         } else {
