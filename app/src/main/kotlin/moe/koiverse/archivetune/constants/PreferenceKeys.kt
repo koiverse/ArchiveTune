@@ -43,9 +43,9 @@ val ProxyTypeKey = stringPreferencesKey("proxyType")
 val YtmSyncKey = booleanPreferencesKey("ytmSync")
 val SelectedYtmPlaylistsKey = stringPreferencesKey("ytm_selected_playlists")
     
-    // ListenBrainz scrobbling
-    val ListenBrainzEnabledKey = booleanPreferencesKey("listenbrainz_enabled")
-    val ListenBrainzTokenKey = stringPreferencesKey("listenbrainz_token")
+// ListenBrainz scrobbling
+val ListenBrainzEnabledKey = booleanPreferencesKey("listenbrainz_enabled")
+val ListenBrainzTokenKey = stringPreferencesKey("listenbrainz_token")
 
 // Last.fm scrobbling
 val LastFMSessionKey = stringPreferencesKey("lastfmSession")
