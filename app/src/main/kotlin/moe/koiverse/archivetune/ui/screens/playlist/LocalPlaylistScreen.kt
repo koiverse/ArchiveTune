@@ -399,8 +399,7 @@ fun LocalPlaylistScreen(
     }
     val reorderableState = rememberReorderableLazyListState(
         lazyListState = lazyListState,
-        scrollThresholdPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues(),
-        scrollThreshold = 0.5f
+        scrollThresholdPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues()
     ) { from, to ->
         if (to.index >= headerItems && from.index >= headerItems) {
             val currentDragInfo = dragInfo
