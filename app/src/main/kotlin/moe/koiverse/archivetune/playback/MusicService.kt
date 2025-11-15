@@ -132,6 +132,13 @@ import dagger.hilt.android.AndroidEntryPoint
 import moe.koiverse.archivetune.ui.screens.settings.ListenBrainzManager
 import moe.koiverse.archivetune.constants.ListenBrainzEnabledKey
 import moe.koiverse.archivetune.constants.ListenBrainzTokenKey
+import moe.koiverse.archivetune.lastfm.LastFM
+import moe.koiverse.archivetune.constants.EnableLastFMScrobblingKey
+import moe.koiverse.archivetune.constants.LastFMSessionKey
+import moe.koiverse.archivetune.constants.LastFMUseNowPlaying
+import moe.koiverse.archivetune.constants.ScrobbleDelayPercentKey
+import moe.koiverse.archivetune.constants.ScrobbleMinSongDurationKey
+import moe.koiverse.archivetune.constants.ScrobbleDelaySecondsKey
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -1188,6 +1195,25 @@ class MusicService :
                                         }
                                     }
                                 }
+                                
+                                // Last.fm now playing
+                                val lastfmEnabled = dataStore.get(EnableLastFMScrobblingKey, false)
+                                val lastfmUseNowPlaying = dataStore.get(LastFMUseNowPlaying, false)
+                                val lastfmSession = dataStore.get(LastFMSessionKey, "")
+                                if (lastfmEnabled && lastfmUseNowPlaying && !lastfmSession.isNullOrBlank() && finalSong != null) {
+                                    scope.launch(Dispatchers.IO) {
+                                        try {
+                                            LastFM.updateNowPlaying(
+                                                artist = finalSong.artists.firstOrNull()?.name ?: "Unknown Artist",
+                                                track = finalSong.title,
+                                                album = finalSong.album?.title,
+                                                duration = (finalSong.duration / 1000).toInt()
+                                            )
+                                        } catch (ie: Exception) {
+                                            Timber.tag("MusicService").v(ie, "Last.fm now playing update failed on transition")
+                                        }
+                                    }
+                                }
                             } catch (_: Exception) {}
                         }
                     }
@@ -1228,6 +1254,25 @@ class MusicService :
                                             ListenBrainzManager.submitPlayingNow(this@MusicService, lbToken, finalSong, player.currentPosition)
                                         } catch (ie: Exception) {
                                             Timber.tag("MusicService").v(ie, "ListenBrainz playing_now submit failed for isPlaying/mediaTransition")
+                                        }
+                                    }
+                                }
+                                
+                                // Last.fm now playing
+                                val lastfmEnabled = dataStore.get(EnableLastFMScrobblingKey, false)
+                                val lastfmUseNowPlaying = dataStore.get(LastFMUseNowPlaying, false)
+                                val lastfmSession = dataStore.get(LastFMSessionKey, "")
+                                if (lastfmEnabled && lastfmUseNowPlaying && !lastfmSession.isNullOrBlank() && finalSong != null) {
+                                    scope.launch(Dispatchers.IO) {
+                                        try {
+                                            LastFM.updateNowPlaying(
+                                                artist = finalSong.artists.firstOrNull()?.name ?: "Unknown Artist",
+                                                track = finalSong.title,
+                                                album = finalSong.album?.title,
+                                                duration = (finalSong.duration / 1000).toInt()
+                                            )
+                                        } catch (ie: Exception) {
+                                            Timber.tag("MusicService").v(ie, "Last.fm now playing update failed for isPlaying/mediaTransition")
                                         }
                                     }
                                 }
@@ -1504,16 +1549,50 @@ class MusicService :
             }
             CoroutineScope(Dispatchers.IO).launch {
                 try {
+                    val song = database.song(mediaItem.mediaId).first()
+                    
+                    // ListenBrainz scrobbling
                     val lbEnabled = dataStore.get(ListenBrainzEnabledKey, false)
                     val lbToken = dataStore.get(ListenBrainzTokenKey, "")
                     if (lbEnabled && !lbToken.isNullOrBlank()) {
-                        val song = database.song(mediaItem.mediaId).first()
                         val endMs = System.currentTimeMillis()
                         val startMs = endMs - playbackStats.totalPlayTimeMs
                         try {
                             ListenBrainzManager.submitFinished(this@MusicService, lbToken, song, startMs, endMs)
                         } catch (ie: Exception) {
                             Timber.tag("MusicService").v(ie, "ListenBrainz finished submit failed")
+                        }
+                    }
+                    
+                    // Last.fm scrobbling
+                    val lastfmEnabled = dataStore.get(EnableLastFMScrobblingKey, false)
+                    val lastfmSession = dataStore.get(LastFMSessionKey, "")
+                    if (lastfmEnabled && !lastfmSession.isNullOrBlank()) {
+                        val scrobbleDelayPercent = dataStore.get(ScrobbleDelayPercentKey, LastFM.DEFAULT_SCROBBLE_DELAY_PERCENT)
+                        val minTrackDuration = dataStore.get(ScrobbleMinSongDurationKey, LastFM.DEFAULT_SCROBBLE_MIN_SONG_DURATION)
+                        val scrobbleDelaySeconds = dataStore.get(ScrobbleDelaySecondsKey, LastFM.DEFAULT_SCROBBLE_DELAY_SECONDS)
+                        
+                        val trackDurationSeconds = song.duration / 1000
+                        val playedSeconds = playbackStats.totalPlayTimeMs / 1000
+                        
+                        // Scrobble if: track duration >= minimum AND (played >= 50% of track OR played >= 4 minutes)
+                        val shouldScrobble = trackDurationSeconds >= minTrackDuration && 
+                            (playedSeconds >= trackDurationSeconds * scrobbleDelayPercent || playedSeconds >= scrobbleDelaySeconds)
+                        
+                        if (shouldScrobble) {
+                            try {
+                                val timestamp = (System.currentTimeMillis() - playbackStats.totalPlayTimeMs) / 1000
+                                LastFM.scrobble(
+                                    artist = song.artists.firstOrNull()?.name ?: "Unknown Artist",
+                                    track = song.title,
+                                    timestamp = timestamp,
+                                    album = song.album?.title,
+                                    duration = trackDurationSeconds.toInt()
+                                )
+                                Timber.tag("MusicService").d("Last.fm scrobbled: ${song.title} by ${song.artists.firstOrNull()?.name}")
+                            } catch (ie: Exception) {
+                                Timber.tag("MusicService").v(ie, "Last.fm scrobble failed")
+                            }
                         }
                     }
                 } catch (_: Exception) {}
