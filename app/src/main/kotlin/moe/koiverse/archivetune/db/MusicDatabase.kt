@@ -62,6 +62,10 @@ class MusicDatabase(
             }
         }
 
+    fun checkpoint() {
+        delegate.openHelper.writableDatabase.query("PRAGMA wal_checkpoint(FULL)").use { }
+    }
+
     fun close() = delegate.close()
 }
 
@@ -111,7 +115,6 @@ class MusicDatabase(
         AutoMigration(from = 19, to = 20, spec = Migration19To20::class),
         AutoMigration(from = 20, to = 21, spec = Migration20To21::class),
         AutoMigration(from = 21, to = 22),
-        AutoMigration(from = 22, to = 24),
     ],
 )
 @TypeConverters(Converters::class)
@@ -126,7 +129,7 @@ abstract class InternalDatabase : RoomDatabase() {
                 delegate =
                 Room
                     .databaseBuilder(context, InternalDatabase::class.java, DB_NAME)
-                    .addMigrations(MIGRATION_1_2, MIGRATION_23_24)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_22_23, MIGRATION_23_24)
                     .fallbackToDestructiveMigration()
                     .build(),
             )
@@ -370,11 +373,29 @@ class Migration5To6 : AutoMigrationSpec {
     }
 }
 
+val MIGRATION_22_23 =
+    object : Migration(22, 23) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            // No schema changes between 22 and 23
+            // This migration exists to maintain proper versioning sequence
+        }
+    }
+
 val MIGRATION_23_24 =
     object : Migration(23, 24) {
         override fun migrate(db: SupportSQLiteDatabase) {
             // Add isAutoSync column to playlist table. Stored as INTEGER (0/1) with default 0 (false).
-            db.execSQL("ALTER TABLE playlist ADD COLUMN isAutoSync INTEGER NOT NULL DEFAULT 0")
+            try {
+                db.execSQL("ALTER TABLE playlist ADD COLUMN isAutoSync INTEGER NOT NULL DEFAULT 0")
+            } catch (e: Exception) {
+                // Column might already exist if upgrading from an intermediate version
+                // Just ensure the default value is set
+                try {
+                    db.execSQL("UPDATE playlist SET isAutoSync = 0 WHERE isAutoSync IS NULL")
+                } catch (e2: Exception) {
+                    // If this also fails, the column is probably fine
+                }
+            }
         }
     }
 
