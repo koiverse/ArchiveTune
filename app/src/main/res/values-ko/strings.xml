@@ -285,7 +285,6 @@
     <!-- Animation options -->
     <string name="none">없음</string>
     <string name="fade">페이드</string>
-    <string name="glow">글로우</string>
     <string name="slide">슬라이드</string>
     <string name="karaoke">카라오케</string>
 

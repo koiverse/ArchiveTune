@@ -285,7 +285,6 @@
     <!-- Animation options -->
     <string name="none">None</string>
     <string name="fade">Fade</string>
-    <string name="glow">Glow</string>
     <string name="slide">Slide</string>
     <string name="karaoke">Karaoke</string>
     <!-- Lyrics line spacing -->

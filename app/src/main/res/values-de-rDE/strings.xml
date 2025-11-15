@@ -285,7 +285,6 @@
     <!-- Animation options -->
     <string name="none">Keiner</string>
     <string name="fade">Verblassen</string>
-    <string name="glow">Leuchten</string>
     <string name="slide">Gleiten</string>
     <string name="karaoke">Karaoke</string>
 
