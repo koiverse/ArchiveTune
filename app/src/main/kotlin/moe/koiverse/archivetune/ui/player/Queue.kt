@@ -71,6 +71,8 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -660,7 +662,7 @@ fun Queue(
         val automix by playerConnection.service.automixItems.collectAsState()
         val mutableQueueWindows = remember { mutableStateListOf<Timeline.Window>() }
         val queueLength by remember {
-            derivedStateOf {
+            derivedStateOf<Long> {
                 queueWindows.sumOf { it.mediaItem.metadata!!.duration }
             }
         }
@@ -678,8 +680,7 @@ fun Queue(
                     top = ListItemHeight,
                     bottom = ListItemHeight
                 )
-            ).asPaddingValues(),
-            scrollThreshold = 0.5f
+            ).asPaddingValues()
         ) { from, to ->
             val currentDragInfo = dragInfo
             dragInfo = if (currentDragInfo == null) {
