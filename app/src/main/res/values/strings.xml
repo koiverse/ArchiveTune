@@ -311,6 +311,8 @@
     <string name="audio_quality">Audio quality</string>
     <string name="audio_quality_auto">Auto</string>
     <string name="audio_quality_high">High</string>
+    <string name="audio_quality_very_high">Very High</string>
+    <string name="audio_quality_highest">Highest</string>
     <string name="audio_quality_low">Low</string>
     <string name="network_metered_title">Treat network as metered</string>
     <string name="network_metered_description">When enabled, the app will prefer lower-quality streams on metered networks</string>

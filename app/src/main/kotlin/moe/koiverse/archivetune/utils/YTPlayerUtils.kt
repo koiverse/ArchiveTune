@@ -198,12 +198,12 @@ object YTPlayerUtils {
         }
 
         if (format == null) {
-            Timber.tag(logTag).e("Could not find format")
-            throw Exception("Could not find format")
+            Timber.tag(logTag).e("Could not find suitable format for quality: $audioQuality. Available formats from last client: ${streamPlayerResponse.streamingData?.adaptiveFormats?.filter { it.isAudio }?.map { "${it.mimeType} @ ${it.bitrate}bps (itag: ${it.itag})" }}")
+            throw Exception("Could not find format for quality: $audioQuality")
         }
 
         if (streamUrl == null) {
-            Timber.tag(logTag).e("Could not find stream url")
+            Timber.tag(logTag).e("Could not find stream url for format: ${format.mimeType}, itag: ${format.itag}")
             throw Exception("Could not find stream url")
         }
 
@@ -241,18 +241,27 @@ object YTPlayerUtils {
         val isMetered = networkMetered ?: connectivityManager.isActiveNetworkMetered
         Timber.tag(logTag).i("Finding format with audioQuality: $audioQuality, network metered: $isMetered")
 
-        val format = playerResponse.streamingData?.adaptiveFormats
-            ?.filter { it.isAudio }
-            ?.maxByOrNull {
+        val audioFormats = playerResponse.streamingData?.adaptiveFormats?.filter { it.isAudio }
+        if (audioFormats.isNullOrEmpty()) {
+            Timber.tag(logTag).w("No audio formats available")
+            return null
+        }
+
+        // Log available formats for debugging
+        Timber.tag(logTag).v("Available audio formats: ${audioFormats.map { "${it.mimeType} @ ${it.bitrate}bps" }}")
+
+        val format = audioFormats.maxByOrNull {
                 it.bitrate * when (audioQuality) {
                     AudioQuality.AUTO -> if (isMetered) -1 else 1
                     AudioQuality.HIGH -> 1
+                    AudioQuality.VERY_HIGH -> 2
+                    AudioQuality.HIGHEST -> 3
                     AudioQuality.LOW -> -1
                 } + (if (it.mimeType.startsWith("audio/webm")) 10240 else 0) // prefer opus stream
             }
 
         if (format != null) {
-            Timber.tag(logTag).i("Selected format: ${format.mimeType}, bitrate: ${format.bitrate}")
+            Timber.tag(logTag).i("Selected format: ${format.mimeType}, bitrate: ${format.bitrate}bps (itag: ${format.itag})")
         } else {
             Timber.tag(logTag).w("No suitable audio format found")
         }
