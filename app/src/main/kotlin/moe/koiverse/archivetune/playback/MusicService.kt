@@ -1207,7 +1207,7 @@ class MusicService :
                                                 artist = finalSong.artists.firstOrNull()?.name ?: "Unknown Artist",
                                                 track = finalSong.title,
                                                 album = finalSong.album?.title,
-                                                duration = (finalSong.duration / 1000).toInt()
+                                                duration = (finalSong.song.duration * 1000).toInt()
                                             )
                                         } catch (ie: Exception) {
                                             Timber.tag("MusicService").v(ie, "Last.fm now playing update failed on transition")
@@ -1269,7 +1269,7 @@ class MusicService :
                                                 artist = finalSong.artists.firstOrNull()?.name ?: "Unknown Artist",
                                                 track = finalSong.title,
                                                 album = finalSong.album?.title,
-                                                duration = (finalSong.duration / 1000).toInt()
+                                                duration = (finalSong.song.duration * 1000).toInt()
                                             )
                                         } catch (ie: Exception) {
                                             Timber.tag("MusicService").v(ie, "Last.fm now playing update failed for isPlaying/mediaTransition")
@@ -1572,7 +1572,7 @@ class MusicService :
                         val minTrackDuration = dataStore.get(ScrobbleMinSongDurationKey, LastFM.DEFAULT_SCROBBLE_MIN_SONG_DURATION)
                         val scrobbleDelaySeconds = dataStore.get(ScrobbleDelaySecondsKey, LastFM.DEFAULT_SCROBBLE_DELAY_SECONDS)
                         
-                        val trackDurationSeconds = song.duration / 1000
+                        val trackDurationSeconds = song.song.duration
                         val playedSeconds = playbackStats.totalPlayTimeMs / 1000
                         
                         // Scrobble if: track duration >= minimum AND (played >= 50% of track OR played >= 4 minutes)
@@ -1587,7 +1587,7 @@ class MusicService :
                                     track = song.title,
                                     timestamp = timestamp,
                                     album = song.album?.title,
-                                    duration = trackDurationSeconds.toInt()
+                                    duration = trackDurationSeconds
                                 )
                                 Timber.tag("MusicService").d("Last.fm scrobbled: ${song.title} by ${song.artists.firstOrNull()?.name}")
                             } catch (ie: Exception) {
