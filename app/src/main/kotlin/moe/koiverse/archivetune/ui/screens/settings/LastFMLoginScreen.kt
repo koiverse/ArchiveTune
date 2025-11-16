@@ -33,29 +33,46 @@ fun LastFMLoginScreen(navController: NavController) {
     val scope = rememberCoroutineScope()
     var lastfmSession by rememberPreference(LastFMSessionKey, "")
     var lastfmUsername by rememberPreference(LastFMUsernameKey, "")
-    var webView: WebView? = null
+    var webView: WebView? by remember { mutableStateOf<WebView?>(null) }
     var authUrl by remember { mutableStateOf<String?>(null) }
+    var authToken by remember { mutableStateOf<String?>(null) }
     var isLoading by remember { mutableStateOf(true) }
+    var error by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(Unit) {
         // Get token from Last.fm API
-        LastFM.getToken()
-            .onSuccess { tokenResponse ->
-                authUrl = LastFM.getAuthUrl(tokenResponse.token)
-                isLoading = false
-                Log.d("LastFMLogin", "Auth URL: $authUrl")
-            }
-            .onFailure { error ->
-                reportException(error)
-                Log.e("LastFMLogin", "Failed to get token: ${error.message}")
-                isLoading = false
-                navController.navigateUp()
-            }
+        scope.launch(Dispatchers.IO) {
+            LastFM.getToken()
+                .onSuccess { tokenResponse ->
+                    authToken = tokenResponse.token
+                    authUrl = LastFM.getAuthUrl(tokenResponse.token)
+                    isLoading = false
+                    Log.d("LastFMLogin", "Token: ${tokenResponse.token}")
+                    Log.d("LastFMLogin", "Auth URL: $authUrl")
+                }
+                .onFailure { err ->
+                    reportException(err)
+                    Log.e("LastFMLogin", "Failed to get token: ${err.message}")
+                    error = err.message ?: "Failed to get token"
+                    isLoading = false
+                }
+        }
     }
 
     if (isLoading) {
         CircularProgressIndicator()
-    } else if (authUrl != null) {
+    } else if (error != null) {
+        AlertDialog(
+            onDismissRequest = { navController.navigateUp() },
+            title = { Text("Error") },
+            text = { Text(error!!) },
+            confirmButton = {
+                TextButton(onClick = { navController.navigateUp() }) {
+                    Text("OK")
+                }
+            }
+        )
+    } else if (authUrl != null && authToken != null) {
         AndroidView(
             modifier = Modifier
                 .windowInsetsPadding(LocalPlayerAwareWindowInsets.current)
@@ -81,13 +98,12 @@ fun LastFMLoginScreen(navController: NavController) {
                         override fun onPageFinished(view: WebView, url: String?) {
                             Log.d("LastFMLogin", "Page finished: $url")
                             
-                            // Check if user clicked "Yes, allow access" - Last.fm redirects back to itself
-                            if (url?.contains("last.fm") == true && url.contains("token=")) {
-                                val token = url.substringAfter("token=").substringBefore("&")
-                                Log.d("LastFMLogin", "Token found in URL: $token")
+                            if (url?.contains("last.fm/api/auth") == true && url.contains("?token=")) {
+                                val tokenFromUrl = url.substringAfter("?token=").substringBefore("&")
+                                Log.d("LastFMLogin", "Token found in callback URL: $tokenFromUrl")
                                 
                                 scope.launch(Dispatchers.IO) {
-                                    LastFM.getSession(token)
+                                    LastFM.getSession(tokenFromUrl)
                                         .onSuccess { auth ->
                                             lastfmUsername = auth.session.name
                                             lastfmSession = auth.session.key
@@ -100,6 +116,23 @@ fun LastFMLoginScreen(navController: NavController) {
                                             reportException(error)
                                             Log.e("LastFMLogin", "Failed to get session: ${error.message}")
                                         }
+                                }
+                            } else if (url?.contains("last.fm") == true && !url.contains("api/auth")) {
+                                authToken?.let { token ->
+                                    scope.launch(Dispatchers.IO) {
+                                        LastFM.getSession(token)
+                                            .onSuccess { auth ->
+                                                lastfmUsername = auth.session.name
+                                                lastfmSession = auth.session.key
+                                                Log.d("LastFMLogin", "Session obtained: ${auth.session.name}")
+                                                scope.launch(Dispatchers.Main) {
+                                                    navController.navigateUp()
+                                                }
+                                            }
+                                            .onFailure { error ->
+                                                Log.d("LastFMLogin", "Token not yet authorized: ${error.message}")
+                                            }
+                                    }
                                 }
                             }
                         }
