@@ -490,12 +490,11 @@ fun YouTubePlaylistMenu(
                     Switch(
                         checked = checked,
                         onCheckedChange = { newValue ->
-                            coroutineScope.launch {
+                            coroutineScope.launch(Dispatchers.IO) {
                                 val currentDbPlaylist = dbPlaylist
                                 if (currentDbPlaylist?.playlist == null) {
-                                    val fetchedSongs = withContext(Dispatchers.IO) {
-                                        YouTube.playlist(playlist.id).completed().getOrNull()?.songs.orEmpty()
-                                    }.map { it.toMediaMetadata() }
+                                    val fetchedSongs = YouTube.playlist(playlist.id).completed().getOrNull()?.songs.orEmpty()
+                                        .map { it.toMediaMetadata() }
 
                                     database.transaction {
                                         val playlistEntity = PlaylistEntity(
@@ -527,9 +526,7 @@ fun YouTubePlaylistMenu(
                                     
                                     // If enabling auto-sync, trigger an immediate sync
                                     if (newValue) {
-                                        withContext(Dispatchers.IO) {
-                                            syncUtils.syncAutoSyncPlaylists()
-                                        }
+                                        syncUtils.syncAutoSyncPlaylists()
                                     }
                                 }
                             }
