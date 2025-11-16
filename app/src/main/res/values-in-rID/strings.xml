@@ -104,6 +104,7 @@
     <string name="downloading">Mengunduh</string>
     <string name="remove_download">Hapus unduhan</string>
     <string name="import_playlist">Impor daftar putar</string>
+    <string name="import_failed">Impor gagal</string>
     <string name="update_button">Perbarui</string>
     <string name="add_to_playlist">Tambahkan ke playlist</string>
     <string name="view_artist">Lihat artis</string>

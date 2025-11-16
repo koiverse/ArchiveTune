@@ -376,29 +376,6 @@ class Migration5To6 : AutoMigrationSpec {
     }
 }
 
-val MIGRATION_22_23 =
-    object : Migration(22, 23) {
-        override fun migrate(db: SupportSQLiteDatabase) {
-            // Ensure all boolean columns have proper default values (0 for false, 1 for true)
-            // This fixes issues where Room expects consistent default value representations
-            
-            // Fix song table
-            db.execSQL("UPDATE song SET explicit = 0 WHERE explicit IS NULL")
-            db.execSQL("UPDATE song SET isLocal = 0 WHERE isLocal IS NULL")
-            
-            // Fix artist table
-            db.execSQL("UPDATE artist SET isLocal = 0 WHERE isLocal IS NULL")
-            
-            // Fix album table  
-            db.execSQL("UPDATE album SET explicit = 0 WHERE explicit IS NULL")
-            db.execSQL("UPDATE album SET isLocal = 0 WHERE isLocal IS NULL")
-            
-            // Fix playlist table
-            db.execSQL("UPDATE playlist SET isLocal = 0 WHERE isLocal IS NULL")
-            db.execSQL("UPDATE playlist SET isEditable = 1 WHERE isEditable IS NULL")
-        }
-    }
-
 // Migration from version 21 to 22
 // Version 21→22 was supposed to use AutoMigration, but we need manual migration for safety
 val MIGRATION_21_22 =
