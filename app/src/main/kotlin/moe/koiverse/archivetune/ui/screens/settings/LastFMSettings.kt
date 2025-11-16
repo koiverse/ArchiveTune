@@ -32,6 +32,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -97,19 +98,24 @@ fun LastFMSettings(
         defaultValue = LastFM.DEFAULT_SCROBBLE_DELAY_SECONDS
     )
 
+    val uriHandler = LocalUriHandler.current
+    
     var showLoginDialog by rememberSaveable { mutableStateOf(false) }
     var loginError by rememberSaveable { mutableStateOf<String?>(null) }
     var isLoggingIn by rememberSaveable { mutableStateOf(false) }
+    var authToken by rememberSaveable { mutableStateOf<String?>(null) }
+    var authStep by rememberSaveable { mutableStateOf(1) } // 1: get token, 2: authorize, 3: get session
 
     if (showLoginDialog) {
-        var tempUsername by rememberSaveable { mutableStateOf("") }
-        var tempPassword by rememberSaveable { mutableStateOf("") }
+        var tempToken by rememberSaveable { mutableStateOf("") }
 
         AlertDialog(
             onDismissRequest = { 
                 if (!isLoggingIn) {
                     showLoginDialog = false
                     loginError = null
+                    authToken = null
+                    authStep = 1
                 }
             },
             title = { Text(stringResource(R.string.login)) },
@@ -127,31 +133,43 @@ fun LastFMSettings(
                             modifier = Modifier.padding(bottom = 8.dp)
                         )
                     }
-                    OutlinedTextField(
-                        value = tempUsername,
-                        onValueChange = { 
-                            tempUsername = it
-                            loginError = null
-                        },
-                        label = { Text(stringResource(R.string.username)) },
-                        modifier = Modifier.fillMaxWidth(),
-                        enabled = !isLoggingIn
-                    )
-                    Spacer(modifier = Modifier.padding(8.dp))
-                    OutlinedTextField(
-                        value = tempPassword,
-                        onValueChange = { 
-                            tempPassword = it
-                            loginError = null
-                        },
-                        label = { Text(stringResource(R.string.password)) },
-                        modifier = Modifier.fillMaxWidth(),
-                        enabled = !isLoggingIn
-                    )
+                    
+                    when (authStep) {
+                        1 -> {
+                            Text(
+                                text = "Step 1: Click 'Get Token' to start the authentication process.",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
+                        2 -> {
+                            Text(
+                                text = "Step 2: Click 'Open Browser' to authorize ArchiveTune with Last.fm.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier.padding(bottom = 8.dp)
+                            )
+                            Text(
+                                text = "After authorizing in your browser, come back here and click 'Complete Login'.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        3 -> {
+                            Text(
+                                text = "Step 3: Complete the login process.",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
+                    }
+                    
                     if (isLoggingIn) {
                         Spacer(modifier = Modifier.padding(4.dp))
                         Text(
-                            text = "Logging in...",
+                            text = when (authStep) {
+                                1 -> "Getting token..."
+                                2 -> "Waiting for authorization..."
+                                3 -> "Completing login..."
+                                else -> "Processing..."
+                            },
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.primary
                         )
@@ -161,41 +179,77 @@ fun LastFMSettings(
             confirmButton = {
                 TextButton(
                     onClick = {
-                        if (tempUsername.isBlank() || tempPassword.isBlank()) {
-                            loginError = "Username and password are required"
-                            return@TextButton
-                        }
-                        
-                        isLoggingIn = true
-                        loginError = null
-                        
-                        coroutineScope.launch(Dispatchers.IO) {
-                            LastFM.getMobileSession(tempUsername, tempPassword)
-                                .onSuccess {
-                                    lastfmUsername = it.session.name
-                                    lastfmSession = it.session.key
-                                    isLoggingIn = false
-                                    showLoginDialog = false
-                                    loginError = null
+                        when (authStep) {
+                            1 -> {
+                                // Step 1: Get token
+                                isLoggingIn = true
+                                loginError = null
+                                
+                                coroutineScope.launch(Dispatchers.IO) {
+                                    LastFM.getToken()
+                                        .onSuccess { tokenResponse ->
+                                            authToken = tokenResponse.token
+                                            authStep = 2
+                                            isLoggingIn = false
+                                        }
+                                        .onFailure { error ->
+                                            reportException(error)
+                                            isLoggingIn = false
+                                            loginError = "Failed to get token: ${error.message ?: "Unknown error"}"
+                                        }
                                 }
-                                .onFailure { error ->
-                                    reportException(error)
-                                    isLoggingIn = false
-                                    loginError = when {
-                                        error.message?.contains("authentication", ignoreCase = true) == true -> 
-                                            "Invalid username or password"
-                                        error.message?.contains("network", ignoreCase = true) == true ->
-                                            "Network error. Please check your connection"
-                                        error.message?.contains("Invalid API", ignoreCase = true) == true ->
-                                            "API key issue. Please contact the developer"
-                                        else -> "Login failed: ${error.message ?: "Unknown error"}"
+                            }
+                            2 -> {
+                                // Step 2: Open browser for authorization
+                                authToken?.let { token ->
+                                    uriHandler.openUri(LastFM.getAuthorizationUrl(token))
+                                    authStep = 3
+                                }
+                            }
+                            3 -> {
+                                // Step 3: Exchange token for session
+                                isLoggingIn = true
+                                loginError = null
+                                
+                                coroutineScope.launch(Dispatchers.IO) {
+                                    authToken?.let { token ->
+                                        LastFM.getSession(token)
+                                            .onSuccess { auth ->
+                                                lastfmUsername = auth.session.name
+                                                lastfmSession = auth.session.key
+                                                isLoggingIn = false
+                                                showLoginDialog = false
+                                                loginError = null
+                                                authToken = null
+                                                authStep = 1
+                                            }
+                                            .onFailure { error ->
+                                                reportException(error)
+                                                isLoggingIn = false
+                                                loginError = when {
+                                                    error.message?.contains("unauthorized", ignoreCase = true) == true || 
+                                                    error.message?.contains("not authorized", ignoreCase = true) == true -> 
+                                                        "Token not authorized. Please complete authorization in browser first."
+                                                    error.message?.contains("network", ignoreCase = true) == true ->
+                                                        "Network error. Please check your connection"
+                                                    error.message?.contains("Invalid API", ignoreCase = true) == true ->
+                                                        "API key issue. Please contact the developer"
+                                                    else -> "Login failed: ${error.message ?: "Unknown error"}"
+                                                }
+                                            }
                                     }
                                 }
+                            }
                         }
                     },
                     enabled = !isLoggingIn
                 ) {
-                    Text(stringResource(R.string.login))
+                    Text(when (authStep) {
+                        1 -> "Get Token"
+                        2 -> "Open Browser"
+                        3 -> "Complete Login"
+                        else -> "Next"
+                    })
                 }
             },
             dismissButton = {
@@ -204,6 +258,8 @@ fun LastFMSettings(
                         showLoginDialog = false
                         loginError = null
                         isLoggingIn = false
+                        authToken = null
+                        authStep = 1
                     },
                     enabled = !isLoggingIn
                 ) {

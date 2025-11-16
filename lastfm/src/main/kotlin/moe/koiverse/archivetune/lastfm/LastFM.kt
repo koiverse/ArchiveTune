@@ -1,6 +1,7 @@
 package moe.koiverse.archivetune.lastfm
 
 import moe.koiverse.archivetune.lastfm.models.Authentication
+import moe.koiverse.archivetune.lastfm.models.Token
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.engine.okhttp.OkHttp
@@ -63,7 +64,48 @@ object LastFM {
         }))
     }
 
-    // TODO: Change this to OAuth
+    /**
+     * Step 1 of OAuth flow: Get an authentication token
+     */
+    suspend fun getToken() = runCatching {
+        client.post {
+            lastfmParams(
+                method = "auth.getToken",
+                apiKey = API_KEY,
+                secret = SECRET
+            )
+        }.body<Token>()
+    }
+
+    /**
+     * Step 2 of OAuth flow: Generate the authorization URL for the user to approve the token
+     * User needs to visit this URL in a browser to authorize the application
+     */
+    fun getAuthorizationUrl(token: String): String {
+        return "http://www.last.fm/api/auth/?api_key=$API_KEY&token=$token"
+    }
+
+    /**
+     * Step 3 of OAuth flow: Exchange the authorized token for a session key
+     * Call this after the user has authorized the token in their browser
+     */
+    suspend fun getSession(token: String) = runCatching {
+        client.post {
+            lastfmParams(
+                method = "auth.getSession",
+                apiKey = API_KEY,
+                secret = SECRET,
+                extra = mapOf("token" to token)
+            )
+        }.body<Authentication>()
+    }
+
+    /**
+     * Legacy mobile session authentication (deprecated by Last.fm)
+     * Use OAuth flow (getToken -> authorize -> getSession) instead
+     * @deprecated Use OAuth flow methods instead
+     */
+    @Deprecated("Use OAuth flow (getToken, getAuthorizationUrl, getSession) instead")
     suspend fun getMobileSession(username: String, password: String) = runCatching {
         client.post {
             lastfmParams(
