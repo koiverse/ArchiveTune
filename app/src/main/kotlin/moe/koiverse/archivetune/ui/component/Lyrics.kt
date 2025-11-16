@@ -569,7 +569,7 @@ fun Lyrics(
             } else {
                 itemsIndexed(
                     items = lines,
-                    key = { index, item -> "${item.time}-${item.text}" } // Stable key: time + text
+                    key = { index, _ -> index }
                 ) { index, item ->
                     val isSelected = selectedIndices.contains(index)
                     val itemModifier = Modifier
@@ -1093,7 +1093,8 @@ fun Lyrics(
                                 fontSize = lyricsTextSize.sp,
                                 color = expressiveAccent,
                                 textAlign = alignment,
-                                fontWeight = FontWeight.ExtraBold
+                                fontWeight = FontWeight.ExtraBold,
+                                lineHeight = (lyricsTextSize * lyricsLineSpacing).sp
                             )
                         } else if (isActiveLine && (lyricsAnimationStyle == LyricsAnimationStyle.SLIDE || lyricsAnimationStyle == LyricsAnimationStyle.KARAOKE)) {
                             // SLIDE/KARAOKE style for line-synced: left-to-right fill animation with pop-in
@@ -1176,6 +1177,7 @@ fun Lyrics(
                                 fontSize = lyricsTextSize.sp,
                                 textAlign = alignment,
                                 fontWeight = FontWeight.ExtraBold,
+                                lineHeight = (lyricsTextSize * lyricsLineSpacing).sp,
                                 modifier = Modifier.graphicsLayer {
                                     val combinedScale = bounceScale * popInScale.value
                                     scaleX = combinedScale
@@ -1206,6 +1208,7 @@ fun Lyrics(
                                 color = lineColor,
                                 textAlign = alignment,
                                 fontWeight = if (isActiveLine) FontWeight.ExtraBold else FontWeight.Bold,
+                                lineHeight = (lyricsTextSize * lyricsLineSpacing).sp,
                                 modifier = if (isActiveLine) Modifier.graphicsLayer {
                                     scaleX = popInScale.value
                                     scaleY = popInScale.value
