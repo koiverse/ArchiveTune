@@ -320,6 +320,7 @@ class HomeViewModel @Inject constructor(
                     launch { syncUtils.syncSavedPlaylists() }
                     launch { syncUtils.syncLikedAlbums() }
                     launch { syncUtils.syncArtistsSubscriptions() }
+                    launch { syncUtils.syncAutoSyncPlaylists() }
                 }
             }
         }

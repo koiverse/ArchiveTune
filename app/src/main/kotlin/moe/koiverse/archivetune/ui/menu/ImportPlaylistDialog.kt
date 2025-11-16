@@ -67,14 +67,25 @@ fun ImportPlaylistDialog(
                         val ids = onGetSong()
                         songIds = ids
 
+                        if (ids.isEmpty()) {
+                            withContext(Dispatchers.Main) {
+                                snackbarHostState?.showSnackbar(context.getString(R.string.import_failed))
+                                isImporting = false
+                                onDismiss()
+                            }
+                            return@launch
+                        }
+
                         if (browseId != null) {
                             // check for existing playlist with same browseId
                             val existing = database.playlistByBrowseId(browseId).firstOrNull()
                             if (existing != null) {
                                 // show duplicate dialog on main thread
-                                existingPlaylistId = existing.playlist.id
-                                isImporting = false
-                                showDuplicateDialog = true
+                                withContext(Dispatchers.Main) {
+                                    existingPlaylistId = existing.playlist.id
+                                    isImporting = false
+                                    showDuplicateDialog = true
+                                }
                                 return@launch
                             }
                         }
@@ -96,12 +107,15 @@ fun ImportPlaylistDialog(
                             snackbarHostState?.showSnackbar(context.getString(R.string.playlist_synced))
                         }
                     } catch (e: Exception) {
+                        e.printStackTrace()
                         withContext(Dispatchers.Main) {
-                            snackbarHostState?.showSnackbar("Import failed: ${e.message}")
+                            snackbarHostState?.showSnackbar("Import failed: ${e.message ?: "Unknown error"}")
                         }
                     } finally {
-                        isImporting = false
-                        withContext(Dispatchers.Main) { onDismiss() }
+                        withContext(Dispatchers.Main) {
+                            isImporting = false
+                            onDismiss()
+                        }
                     }
                 }
             }
@@ -127,6 +141,14 @@ fun ImportPlaylistDialog(
                     coroutineScope.launch(Dispatchers.IO) {
                         try {
                             val ids = songIds ?: onGetSong()
+                            if (ids.isEmpty()) {
+                                withContext(Dispatchers.Main) {
+                                    snackbarHostState?.showSnackbar(context.getString(R.string.import_failed))
+                                    showDuplicateDialog = false
+                                    onDismiss()
+                                }
+                                return@launch
+                            }
                             val playlist = database.playlist(existingPlaylistId!!).firstOrNull()
                             if (playlist != null) {
                                 database.addSongToPlaylist(playlist, ids)
@@ -137,8 +159,9 @@ fun ImportPlaylistDialog(
                                 onDismiss()
                             }
                         } catch (e: Exception) {
+                            e.printStackTrace()
                             withContext(Dispatchers.Main) {
-                                snackbarHostState?.showSnackbar("Update failed: ${e.message}")
+                                snackbarHostState?.showSnackbar("Update failed: ${e.message ?: "Unknown error"}")
                             }
                         }
                     }
@@ -149,6 +172,14 @@ fun ImportPlaylistDialog(
                     coroutineScope.launch(Dispatchers.IO) {
                         try {
                             val ids = songIds ?: onGetSong()
+                            if (ids.isEmpty()) {
+                                withContext(Dispatchers.Main) {
+                                    snackbarHostState?.showSnackbar(context.getString(R.string.import_failed))
+                                    showDuplicateDialog = false
+                                    onDismiss()
+                                }
+                                return@launch
+                            }
                             val newPlaylist = PlaylistEntity(
                                 name = textFieldValue.text,
                                 browseId = null
@@ -162,8 +193,9 @@ fun ImportPlaylistDialog(
                                 onDismiss()
                             }
                         } catch (e: Exception) {
+                            e.printStackTrace()
                             withContext(Dispatchers.Main) {
-                                snackbarHostState?.let { it.showSnackbar("Import failed: ${e.message}") }
+                                snackbarHostState?.showSnackbar("Import failed: ${e.message ?: "Unknown error"}")
                             }
                         }
                     }

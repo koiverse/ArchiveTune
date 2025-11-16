@@ -204,6 +204,17 @@ class SyncUtils @Inject constructor(
         }
     }
 
+    suspend fun syncAutoSyncPlaylists() = coroutineScope {
+        val autoSyncPlaylists = database.playlistsByNameAsc().first()
+            .filter { it.playlist.isAutoSync && it.playlist.browseId != null }
+
+        autoSyncPlaylists.forEach { playlist ->
+            launch {
+                syncPlaylist(playlist.playlist.browseId!!, playlist.playlist.id)
+            }
+        }
+    }
+
     private suspend fun syncPlaylist(browseId: String, playlistId: String) = coroutineScope {
         YouTube.playlist(browseId).completed().onSuccess { page ->
             val songs = page.songs.map(SongItem::toMediaMetadata)

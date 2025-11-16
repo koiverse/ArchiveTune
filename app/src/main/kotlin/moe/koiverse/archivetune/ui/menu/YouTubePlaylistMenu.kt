@@ -54,6 +54,7 @@ import moe.koiverse.archivetune.innertube.utils.completed
 import moe.koiverse.archivetune.LocalDatabase
 import moe.koiverse.archivetune.LocalDownloadUtil
 import moe.koiverse.archivetune.LocalPlayerConnection
+import moe.koiverse.archivetune.LocalSyncUtils
 import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.constants.ListThumbnailSize
 import moe.koiverse.archivetune.constants.ThumbnailCornerRadius
@@ -92,6 +93,7 @@ fun YouTubePlaylistMenu(
     val database = LocalDatabase.current
     val downloadUtil = LocalDownloadUtil.current
     val playerConnection = LocalPlayerConnection.current ?: return
+    val syncUtils = LocalSyncUtils.current
     val dbPlaylist by database.playlistByBrowseId(playlist.id).collectAsState(initial = null)
 
     var showChoosePlaylistDialog by rememberSaveable { mutableStateOf(false) }
@@ -522,6 +524,13 @@ fun YouTubePlaylistMenu(
                                 } else {
                                     val existing = currentDbPlaylist.playlist
                                     database.update(existing.copy(isAutoSync = newValue))
+                                    
+                                    // If enabling auto-sync, trigger an immediate sync
+                                    if (newValue) {
+                                        withContext(Dispatchers.IO) {
+                                            syncUtils.syncAutoSyncPlaylists()
+                                        }
+                                    }
                                 }
                             }
                         }
