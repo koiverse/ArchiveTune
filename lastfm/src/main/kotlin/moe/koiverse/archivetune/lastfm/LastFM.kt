@@ -37,19 +37,24 @@ object LastFM {
         apiKey: String,
         secret: String,
         sessionKey: String? = null,
-        extra: Map<String, String> = emptyMap()
+        extra: Map<String, String> = emptyMap(),
+        format: String = "json"
     ) {
         contentType(ContentType.Application.FormUrlEncoded)
         userAgent("ArchiveTune (https://github.com/koiverse/ArchiveTune)")
         val params = mutableMapOf(
             "method" to method,
-            "api_key" to apiKey
+            "api_key" to apiKey,
+            "format" to format
         ).apply {
             sessionKey?.let { put("sk", it) }
             putAll(extra)
         }
         params["api_sig"] = params.apiSig(secret)
-        params.forEach { (k, v) -> parameter(k, v) }
+        // Use setBody for POST requests with form data
+        setBody(FormDataContent(Parameters.build {
+            params.forEach { (k, v) -> append(k, v) }
+        }))
     }
 
     // TODO: Change this to OAuth
@@ -61,7 +66,6 @@ object LastFM {
                 secret = SECRET,
                 extra = mapOf("username" to username, "password" to password)
             )
-            parameter("format", "json")
         }.body<Authentication>()
     }
 
@@ -83,7 +87,6 @@ object LastFM {
                     duration?.let { put("duration", it.toString()) }
                 }
             )
-            parameter("format", "json")
         }
     }
 
@@ -106,7 +109,6 @@ object LastFM {
                     duration?.let { put("duration[0]", it.toString()) }
                 }
             )
-            parameter("format", "json")
         }
     }
 

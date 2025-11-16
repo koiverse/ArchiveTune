@@ -98,13 +98,20 @@ fun LastFMSettings(
     )
 
     var showLoginDialog by rememberSaveable { mutableStateOf(false) }
+    var loginError by rememberSaveable { mutableStateOf<String?>(null) }
+    var isLoggingIn by rememberSaveable { mutableStateOf(false) }
 
     if (showLoginDialog) {
         var tempUsername by rememberSaveable { mutableStateOf("") }
         var tempPassword by rememberSaveable { mutableStateOf("") }
 
         AlertDialog(
-            onDismissRequest = { showLoginDialog = false },
+            onDismissRequest = { 
+                if (!isLoggingIn) {
+                    showLoginDialog = false
+                    loginError = null
+                }
+            },
             title = { Text(stringResource(R.string.login)) },
             text = {
                 Column(
@@ -112,44 +119,94 @@ fun LastFMSettings(
                         .fillMaxWidth()
                         .verticalScroll(rememberScrollState())
                 ) {
+                    if (loginError != null) {
+                        Text(
+                            text = loginError!!,
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.padding(bottom = 8.dp)
+                        )
+                    }
                     OutlinedTextField(
                         value = tempUsername,
-                        onValueChange = { tempUsername = it },
+                        onValueChange = { 
+                            tempUsername = it
+                            loginError = null
+                        },
                         label = { Text(stringResource(R.string.username)) },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = !isLoggingIn
                     )
                     Spacer(modifier = Modifier.padding(8.dp))
                     OutlinedTextField(
                         value = tempPassword,
-                        onValueChange = { tempPassword = it },
+                        onValueChange = { 
+                            tempPassword = it
+                            loginError = null
+                        },
                         label = { Text(stringResource(R.string.password)) },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = !isLoggingIn
                     )
+                    if (isLoggingIn) {
+                        Spacer(modifier = Modifier.padding(4.dp))
+                        Text(
+                            text = "Logging in...",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
                 }
             },
             confirmButton = {
                 TextButton(
                     onClick = {
+                        if (tempUsername.isBlank() || tempPassword.isBlank()) {
+                            loginError = "Username and password are required"
+                            return@TextButton
+                        }
+                        
+                        isLoggingIn = true
+                        loginError = null
+                        
                         coroutineScope.launch(Dispatchers.IO) {
                             LastFM.getMobileSession(tempUsername, tempPassword)
                                 .onSuccess {
                                     lastfmUsername = it.session.name
                                     lastfmSession = it.session.key
+                                    isLoggingIn = false
+                                    showLoginDialog = false
+                                    loginError = null
                                 }
-                                .onFailure {
-                                    reportException(it)
+                                .onFailure { error ->
+                                    reportException(error)
+                                    isLoggingIn = false
+                                    loginError = when {
+                                        error.message?.contains("authentication", ignoreCase = true) == true -> 
+                                            "Invalid username or password"
+                                        error.message?.contains("network", ignoreCase = true) == true ->
+                                            "Network error. Please check your connection"
+                                        error.message?.contains("Invalid API", ignoreCase = true) == true ->
+                                            "API key issue. Please contact the developer"
+                                        else -> "Login failed: ${error.message ?: "Unknown error"}"
+                                    }
                                 }
                         }
-                        showLoginDialog = false
-                    }
+                    },
+                    enabled = !isLoggingIn
                 ) {
                     Text(stringResource(R.string.login))
                 }
             },
             dismissButton = {
-                TextButton(onClick = {
-                    showLoginDialog = false
-                }) {
+                TextButton(
+                    onClick = {
+                        showLoginDialog = false
+                        loginError = null
+                        isLoggingIn = false
+                    },
+                    enabled = !isLoggingIn
+                ) {
                     Text(stringResource(R.string.cancel))
                 }
             }
