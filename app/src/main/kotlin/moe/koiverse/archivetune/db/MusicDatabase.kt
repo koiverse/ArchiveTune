@@ -125,7 +125,14 @@ abstract class InternalDatabase : RoomDatabase() {
                 delegate =
                 Room
                     .databaseBuilder(context, InternalDatabase::class.java, DB_NAME)
-                    .addMigrations(MIGRATION_1_2, MIGRATION_22_23, MIGRATION_23_24)
+                    .addMigrations(
+                        MIGRATION_1_2,
+                        MIGRATION_21_22,
+                        MIGRATION_22_23, 
+                        MIGRATION_23_24,
+                        MIGRATION_22_24,  // Direct migration path for users upgrading from v22 to v24
+                        MIGRATION_21_24   // Direct migration path for users upgrading from v21 to v24
+                    )
                     .fallbackToDestructiveMigration()
                     .build(),
             )
@@ -372,8 +379,63 @@ class Migration5To6 : AutoMigrationSpec {
 val MIGRATION_22_23 =
     object : Migration(22, 23) {
         override fun migrate(db: SupportSQLiteDatabase) {
-            // No schema changes between 22 and 23
-            // This migration exists to maintain proper versioning sequence
+            // Ensure all boolean columns have proper default values (0 for false, 1 for true)
+            // This fixes issues where Room expects consistent default value representations
+            
+            // Fix song table
+            db.execSQL("UPDATE song SET explicit = 0 WHERE explicit IS NULL")
+            db.execSQL("UPDATE song SET isLocal = 0 WHERE isLocal IS NULL")
+            
+            // Fix artist table
+            db.execSQL("UPDATE artist SET isLocal = 0 WHERE isLocal IS NULL")
+            
+            // Fix album table  
+            db.execSQL("UPDATE album SET explicit = 0 WHERE explicit IS NULL")
+            db.execSQL("UPDATE album SET isLocal = 0 WHERE isLocal IS NULL")
+            
+            // Fix playlist table
+            db.execSQL("UPDATE playlist SET isLocal = 0 WHERE isLocal IS NULL")
+            db.execSQL("UPDATE playlist SET isEditable = 1 WHERE isEditable IS NULL")
+        }
+    }
+
+// Migration from version 21 to 22
+// Version 21→22 was supposed to use AutoMigration, but we need manual migration for safety
+val MIGRATION_21_22 =
+    object : Migration(21, 22) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            // This was an AutoMigration, so schema should be compatible
+            // Just ensure boolean columns have proper values
+            db.execSQL("UPDATE song SET explicit = 0 WHERE explicit IS NULL")
+            db.execSQL("UPDATE song SET isLocal = 0 WHERE isLocal IS NULL")
+            db.execSQL("UPDATE artist SET isLocal = 0 WHERE isLocal IS NULL")
+            db.execSQL("UPDATE album SET explicit = 0 WHERE explicit IS NULL")
+            db.execSQL("UPDATE album SET isLocal = 0 WHERE isLocal IS NULL")
+            db.execSQL("UPDATE playlist SET isLocal = 0 WHERE isLocal IS NULL")
+            db.execSQL("UPDATE playlist SET isEditable = 1 WHERE isEditable IS NULL")
+        }
+    }
+
+val MIGRATION_22_23 =
+    object : Migration(22, 23) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            // Ensure all boolean columns have proper default values (0 for false, 1 for true)
+            // This fixes issues where Room expects consistent default value representations
+            
+            // Fix song table
+            db.execSQL("UPDATE song SET explicit = 0 WHERE explicit IS NULL")
+            db.execSQL("UPDATE song SET isLocal = 0 WHERE isLocal IS NULL")
+            
+            // Fix artist table
+            db.execSQL("UPDATE artist SET isLocal = 0 WHERE isLocal IS NULL")
+            
+            // Fix album table  
+            db.execSQL("UPDATE album SET explicit = 0 WHERE explicit IS NULL")
+            db.execSQL("UPDATE album SET isLocal = 0 WHERE isLocal IS NULL")
+            
+            // Fix playlist table
+            db.execSQL("UPDATE playlist SET isLocal = 0 WHERE isLocal IS NULL")
+            db.execSQL("UPDATE playlist SET isEditable = 1 WHERE isEditable IS NULL")
         }
     }
 
@@ -381,17 +443,96 @@ val MIGRATION_23_24 =
     object : Migration(23, 24) {
         override fun migrate(db: SupportSQLiteDatabase) {
             // Add isAutoSync column to playlist table. Stored as INTEGER (0/1) with default 0 (false).
-            try {
-                db.execSQL("ALTER TABLE playlist ADD COLUMN isAutoSync INTEGER NOT NULL DEFAULT 0")
-            } catch (e: Exception) {
-                // Column might already exist if upgrading from an intermediate version
-                // Just ensure the default value is set
-                try {
-                    db.execSQL("UPDATE playlist SET isAutoSync = 0 WHERE isAutoSync IS NULL")
-                } catch (e2: Exception) {
-                    // If this also fails, the column is probably fine
+            // Check if column already exists to handle various upgrade paths
+            var columnExists = false
+            db.query("PRAGMA table_info(playlist)").use { cursor ->
+                val nameIndex = cursor.getColumnIndex("name")
+                while (cursor.moveToNext()) {
+                    if (cursor.getString(nameIndex) == "isAutoSync") {
+                        columnExists = true
+                        break
+                    }
                 }
             }
+            
+            if (!columnExists) {
+                // Add the column with default value
+                db.execSQL("ALTER TABLE playlist ADD COLUMN isAutoSync INTEGER NOT NULL DEFAULT 0")
+            }
+            
+            // Ensure all existing rows have the default value set
+            db.execSQL("UPDATE playlist SET isAutoSync = 0 WHERE isAutoSync IS NULL OR isAutoSync NOT IN (0, 1)")
+        }
+    }
+
+// Direct migration from 22 to 24 for users upgrading directly
+// This combines the changes from both 22→23 and 23→24
+val MIGRATION_22_24 =
+    object : Migration(22, 24) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            // Fix all boolean columns to ensure they have proper default values (from 22→23)
+            db.execSQL("UPDATE song SET explicit = 0 WHERE explicit IS NULL")
+            db.execSQL("UPDATE song SET isLocal = 0 WHERE isLocal IS NULL")
+            db.execSQL("UPDATE artist SET isLocal = 0 WHERE isLocal IS NULL")
+            db.execSQL("UPDATE album SET explicit = 0 WHERE explicit IS NULL")
+            db.execSQL("UPDATE album SET isLocal = 0 WHERE isLocal IS NULL")
+            db.execSQL("UPDATE playlist SET isLocal = 0 WHERE isLocal IS NULL")
+            db.execSQL("UPDATE playlist SET isEditable = 1 WHERE isEditable IS NULL")
+            
+            // Add isAutoSync column if it doesn't exist (from 23→24)
+            var columnExists = false
+            db.query("PRAGMA table_info(playlist)").use { cursor ->
+                val nameIndex = cursor.getColumnIndex("name")
+                while (cursor.moveToNext()) {
+                    if (cursor.getString(nameIndex) == "isAutoSync") {
+                        columnExists = true
+                        break
+                    }
+                }
+            }
+            
+            if (!columnExists) {
+                db.execSQL("ALTER TABLE playlist ADD COLUMN isAutoSync INTEGER NOT NULL DEFAULT 0")
+            }
+            
+            // Ensure all rows have proper values
+            db.execSQL("UPDATE playlist SET isAutoSync = 0 WHERE isAutoSync IS NULL OR isAutoSync NOT IN (0, 1)")
+        }
+    }
+
+// Direct migration from 21 to 24 for users who might skip intermediate versions
+val MIGRATION_21_24 =
+    object : Migration(21, 24) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            // Combine all changes from 21→22→23→24
+            
+            // Ensure all boolean columns have proper default values
+            db.execSQL("UPDATE song SET explicit = 0 WHERE explicit IS NULL")
+            db.execSQL("UPDATE song SET isLocal = 0 WHERE isLocal IS NULL")
+            db.execSQL("UPDATE artist SET isLocal = 0 WHERE isLocal IS NULL")
+            db.execSQL("UPDATE album SET explicit = 0 WHERE explicit IS NULL")
+            db.execSQL("UPDATE album SET isLocal = 0 WHERE isLocal IS NULL")
+            db.execSQL("UPDATE playlist SET isLocal = 0 WHERE isLocal IS NULL")
+            db.execSQL("UPDATE playlist SET isEditable = 1 WHERE isEditable IS NULL")
+            
+            // Add isAutoSync column if it doesn't exist
+            var columnExists = false
+            db.query("PRAGMA table_info(playlist)").use { cursor ->
+                val nameIndex = cursor.getColumnIndex("name")
+                while (cursor.moveToNext()) {
+                    if (cursor.getString(nameIndex) == "isAutoSync") {
+                        columnExists = true
+                        break
+                    }
+                }
+            }
+            
+            if (!columnExists) {
+                db.execSQL("ALTER TABLE playlist ADD COLUMN isAutoSync INTEGER NOT NULL DEFAULT 0")
+            }
+            
+            // Ensure all rows have proper values
+            db.execSQL("UPDATE playlist SET isAutoSync = 0 WHERE isAutoSync IS NULL OR isAutoSync NOT IN (0, 1)")
         }
     }
 

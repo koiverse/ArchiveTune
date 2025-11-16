@@ -29,8 +29,7 @@ data class PlaylistEntity(
     val shuffleEndpointParams: String? = null,
     val radioEndpointParams: String? = null,
     @ColumnInfo(name = "isLocal", defaultValue = "0")
-    val isLocal: Boolean = false
-    ,
+    val isLocal: Boolean = false,
     @ColumnInfo(name = "isAutoSync", defaultValue = "0")
     val isAutoSync: Boolean = false
 ) {
