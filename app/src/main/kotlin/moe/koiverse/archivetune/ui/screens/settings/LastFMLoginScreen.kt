@@ -69,7 +69,7 @@ fun LastFMLoginScreen(navController: NavController) {
 
                     settings.javaScriptEnabled = true
                     settings.domStorageEnabled = true
-                    settings.setSupportZoom = true
+                    settings.setSupportZoom(true)
                     settings.builtInZoomControls = true
                     settings.displayZoomControls = false
 
