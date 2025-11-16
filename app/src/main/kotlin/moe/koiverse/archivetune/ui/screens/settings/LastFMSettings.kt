@@ -14,7 +14,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -24,9 +23,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -36,8 +33,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import moe.koiverse.archivetune.LocalPlayerAwareWindowInsets
 import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.constants.EnableLastFMScrobblingKey
@@ -53,7 +48,6 @@ import moe.koiverse.archivetune.ui.component.PreferenceGroupTitle
 import moe.koiverse.archivetune.ui.component.SwitchPreference
 import moe.koiverse.archivetune.ui.utils.backToMain
 import moe.koiverse.archivetune.utils.rememberPreference
-import moe.koiverse.archivetune.utils.reportException
 import moe.koiverse.archivetune.lastfm.LastFM
 import kotlin.math.roundToInt
 
@@ -63,8 +57,6 @@ fun LastFMSettings(
     navController: NavController,
     scrollBehavior: TopAppBarScrollBehavior,
 ) {
-    val coroutineScope = rememberCoroutineScope()
-
     var lastfmUsername by rememberPreference(LastFMUsernameKey, "")
     var lastfmSession by rememberPreference(LastFMSessionKey, "")
 
@@ -96,122 +88,6 @@ fun LastFMSettings(
         ScrobbleDelaySecondsKey,
         defaultValue = LastFM.DEFAULT_SCROBBLE_DELAY_SECONDS
     )
-
-    var showLoginDialog by rememberSaveable { mutableStateOf(false) }
-    var loginError by rememberSaveable { mutableStateOf<String?>(null) }
-    var isLoggingIn by rememberSaveable { mutableStateOf(false) }
-
-    if (showLoginDialog) {
-        var tempUsername by rememberSaveable { mutableStateOf("") }
-        var tempPassword by rememberSaveable { mutableStateOf("") }
-
-        AlertDialog(
-            onDismissRequest = { 
-                if (!isLoggingIn) {
-                    showLoginDialog = false
-                    loginError = null
-                }
-            },
-            title = { Text(stringResource(R.string.login)) },
-            text = {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .verticalScroll(rememberScrollState())
-                ) {
-                    if (loginError != null) {
-                        Text(
-                            text = loginError!!,
-                            color = MaterialTheme.colorScheme.error,
-                            style = MaterialTheme.typography.bodySmall,
-                            modifier = Modifier.padding(bottom = 8.dp)
-                        )
-                    }
-                    OutlinedTextField(
-                        value = tempUsername,
-                        onValueChange = { 
-                            tempUsername = it
-                            loginError = null
-                        },
-                        label = { Text(stringResource(R.string.username)) },
-                        modifier = Modifier.fillMaxWidth(),
-                        enabled = !isLoggingIn
-                    )
-                    Spacer(modifier = Modifier.padding(8.dp))
-                    OutlinedTextField(
-                        value = tempPassword,
-                        onValueChange = { 
-                            tempPassword = it
-                            loginError = null
-                        },
-                        label = { Text(stringResource(R.string.password)) },
-                        modifier = Modifier.fillMaxWidth(),
-                        enabled = !isLoggingIn
-                    )
-                    if (isLoggingIn) {
-                        Spacer(modifier = Modifier.padding(4.dp))
-                        Text(
-                            text = "Logging in...",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    }
-                }
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        if (tempUsername.isBlank() || tempPassword.isBlank()) {
-                            loginError = "Username and password are required"
-                            return@TextButton
-                        }
-                        
-                        isLoggingIn = true
-                        loginError = null
-                        
-                        coroutineScope.launch(Dispatchers.IO) {
-                            LastFM.getMobileSession(tempUsername, tempPassword)
-                                .onSuccess {
-                                    lastfmUsername = it.session.name
-                                    lastfmSession = it.session.key
-                                    isLoggingIn = false
-                                    showLoginDialog = false
-                                    loginError = null
-                                }
-                                .onFailure { error ->
-                                    reportException(error)
-                                    isLoggingIn = false
-                                    loginError = when {
-                                        error.message?.contains("authentication", ignoreCase = true) == true -> 
-                                            "Invalid username or password"
-                                        error.message?.contains("network", ignoreCase = true) == true ->
-                                            "Network error. Please check your connection"
-                                        error.message?.contains("Invalid API", ignoreCase = true) == true ->
-                                            "API key issue. Please contact the developer"
-                                        else -> "Login failed: ${error.message ?: "Unknown error"}"
-                                    }
-                                }
-                        }
-                    },
-                    enabled = !isLoggingIn
-                ) {
-                    Text(stringResource(R.string.login))
-                }
-            },
-            dismissButton = {
-                TextButton(
-                    onClick = {
-                        showLoginDialog = false
-                        loginError = null
-                        isLoggingIn = false
-                    },
-                    enabled = !isLoggingIn
-                ) {
-                    Text(stringResource(R.string.cancel))
-                }
-            }
-        )
-    }
 
     Column(
         Modifier
@@ -249,7 +125,7 @@ fun LastFMSettings(
                     }
                 } else {
                     OutlinedButton(onClick = {
-                        showLoginDialog = true
+                        navController.navigate("lastfm_login")
                     }) {
                         Text(stringResource(R.string.action_login))
                     }

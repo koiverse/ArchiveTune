@@ -1,6 +1,7 @@
 package moe.koiverse.archivetune.lastfm
 
 import moe.koiverse.archivetune.lastfm.models.Authentication
+import moe.koiverse.archivetune.lastfm.models.TokenResponse
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.engine.okhttp.OkHttp
@@ -59,16 +60,30 @@ object LastFM {
         }))
     }
 
-    // TODO: Change this to OAuth
-    suspend fun getMobileSession(username: String, password: String) = runCatching {
+    // OAuth methods
+    suspend fun getToken() = runCatching {
         client.post {
             lastfmParams(
-                method = "auth.getMobileSession",
+                method = "auth.getToken",
+                apiKey = API_KEY,
+                secret = SECRET
+            )
+        }.body<TokenResponse>()
+    }
+
+    suspend fun getSession(token: String) = runCatching {
+        client.post {
+            lastfmParams(
+                method = "auth.getSession",
                 apiKey = API_KEY,
                 secret = SECRET,
-                extra = mapOf("username" to username, "password" to password)
+                extra = mapOf("token" to token)
             )
         }.body<Authentication>()
+    }
+
+    fun getAuthUrl(token: String): String {
+        return "https://www.last.fm/api/auth/?api_key=$API_KEY&token=$token"
     }
 
     suspend fun updateNowPlaying(

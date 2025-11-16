@@ -15,6 +15,11 @@ data class Authentication(
 }
 
 @Serializable
+data class TokenResponse(
+    val token: String
+)
+
+@Serializable
 data class LastFmError(
     val error: Int,
     val message: String
