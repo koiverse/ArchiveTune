@@ -522,7 +522,9 @@ fun YouTubePlaylistMenu(
                                     }
                                 } else {
                                     val existing = currentDbPlaylist.playlist
-                                    database.update(existing.copy(isAutoSync = newValue))
+                                    database.query {
+                                        update(existing.copy(isAutoSync = newValue))
+                                    }
                                     
                                     // If enabling auto-sync, trigger an immediate sync
                                     if (newValue) {
