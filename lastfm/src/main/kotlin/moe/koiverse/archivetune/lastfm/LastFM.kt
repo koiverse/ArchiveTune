@@ -43,17 +43,21 @@ object LastFM {
     ) {
         contentType(ContentType.Application.FormUrlEncoded)
         userAgent("ArchiveTune (https://github.com/koiverse/ArchiveTune)")
+        
         val paramsForSig = mutableMapOf(
-            "method" to method,
-            "api_key" to apiKey
-        ).apply {
-            sessionKey?.let { put("sk", it) }
-            putAll(extra)
-        }
+            "api_key" to apiKey,
+            "method" to method
+        )
+        sessionKey?.let { paramsForSig["sk"] = it }
+        paramsForSig.putAll(extra)
+        
         val apiSig = paramsForSig.apiSig(secret)
         
         setBody(FormDataContent(Parameters.build {
-            paramsForSig.forEach { (k, v) -> append(k, v) }
+            append("method", method)
+            append("api_key", apiKey)
+            sessionKey?.let { append("sk", it) }
+            extra.forEach { (k, v) -> append(k, v) }
             append("api_sig", apiSig)
             append("format", format)
         }))
