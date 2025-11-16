@@ -374,8 +374,9 @@ class MusicService :
 
         combine(playerVolume, normalizeFactor) { playerVolume, normalizeFactor ->
             playerVolume * normalizeFactor
-        }.collectLatest(scope) {
-            player.volume = it
+        }.collectLatest(scope) { finalVolume ->
+            Timber.tag("AudioNormalization").d("Setting player volume: $finalVolume (playerVolume: ${playerVolume.value}, normalizeFactor: ${normalizeFactor.value})")
+            player.volume = finalVolume
         }
 
         playerVolume.debounce(1000).collect(scope) { volume ->
@@ -436,14 +437,33 @@ class MusicService :
         ) { format, normalizeAudio ->
             format to normalizeAudio
         }.collectLatest(scope) { (format, normalizeAudio) ->
+            Timber.tag("AudioNormalization").d("Audio normalization enabled: $normalizeAudio")
+            Timber.tag("AudioNormalization").d("Format loudnessDb: ${format?.loudnessDb}, perceptualLoudnessDb: ${format?.perceptualLoudnessDb}")
+            
             normalizeFactor.value =
-                if (normalizeAudio && format?.loudnessDb != null) {
-                    var factor = 10f.pow(-format.loudnessDb.toFloat() / 20)
-                    if (factor > 1f) {
-                        factor = min(factor, maxSafeGainFactor)
+                if (normalizeAudio) {
+                    // Use loudnessDb if available, otherwise fall back to perceptualLoudnessDb
+                    val loudness = format?.loudnessDb ?: format?.perceptualLoudnessDb
+                    
+                    if (loudness != null) {
+                        val loudnessDb = loudness.toFloat()
+                        var factor = 10f.pow(-loudnessDb / 20)
+                        
+                        Timber.tag("AudioNormalization").d("Calculated raw normalization factor: $factor (from loudness: $loudnessDb)")
+                        
+                        if (factor > 1f) {
+                            factor = min(factor, maxSafeGainFactor)
+                            Timber.tag("AudioNormalization").d("Factor capped at maxSafeGainFactor: $factor")
+                        }
+                        
+                        Timber.tag("AudioNormalization").i("Applying normalization factor: $factor")
+                        factor
+                    } else {
+                        Timber.tag("AudioNormalization").w("Normalization enabled but no loudness data available - no normalization applied")
+                        1f
                     }
-                    factor
                 } else {
+                    Timber.tag("AudioNormalization").d("Normalization disabled - using factor 1.0")
                     1f
                 }
         }
@@ -1458,6 +1478,13 @@ class MusicService :
             }
             run {
                 val format = nonNullPlayback.format
+                val loudnessDb = nonNullPlayback.audioConfig?.loudnessDb
+                val perceptualLoudnessDb = nonNullPlayback.audioConfig?.perceptualLoudnessDb
+                
+                Timber.tag("AudioNormalization").d("Storing format for $mediaId with loudnessDb: $loudnessDb, perceptualLoudnessDb: $perceptualLoudnessDb")
+                if (loudnessDb == null && perceptualLoudnessDb == null) {
+                    Timber.tag("AudioNormalization").w("No loudness data available from YouTube for video: $mediaId")
+                }
 
                 database.query {
                     upsert(
@@ -1469,7 +1496,8 @@ class MusicService :
                             bitrate = format.bitrate,
                             sampleRate = format.audioSampleRate,
                             contentLength = format.contentLength!!,
-                            loudnessDb = nonNullPlayback.audioConfig?.loudnessDb,
+                            loudnessDb = loudnessDb,
+                            perceptualLoudnessDb = perceptualLoudnessDb,
                             playbackUrl = nonNullPlayback.playbackTracking?.videostatsPlaybackUrl?.baseUrl
                         )
                     )
