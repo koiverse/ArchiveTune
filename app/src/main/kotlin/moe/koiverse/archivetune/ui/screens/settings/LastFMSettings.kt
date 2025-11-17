@@ -138,12 +138,13 @@ fun LastFMSettings(
                                 .onSuccess {
                                     lastfmUsername = it.session.name
                                     lastfmSession = it.session.key
+                                    showLoginDialog = false
                                 }
                                 .onFailure {
                                     reportException(it)
+                                    showLoginDialog = false
                                 }
                         }
-                        showLoginDialog = false
                     }
                 ) {
                     Text(stringResource(R.string.login))
