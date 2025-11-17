@@ -65,7 +65,6 @@ import moe.koiverse.archivetune.constants.AudioNormalizationKey
 import moe.koiverse.archivetune.constants.AudioCrossfadeDurationKey
 import moe.koiverse.archivetune.constants.AudioQualityKey
 import moe.koiverse.archivetune.constants.AutoLoadMoreKey
-import moe.koiverse.archivetune.constants.DisableLoadMoreWhenRepeatAllKey
 import moe.koiverse.archivetune.constants.AutoDownloadOnLikeKey
 import moe.koiverse.archivetune.constants.AutoSkipNextOnErrorKey
 import moe.koiverse.archivetune.constants.DiscordTokenKey
@@ -961,8 +960,9 @@ class MusicService :
     }
 
     fun getAutomix(playlistId: String) {
+        // Don't load automix/similar content if repeat mode is enabled
         if (dataStore[SimilarContent] == true && 
-            !(dataStore.get(DisableLoadMoreWhenRepeatAllKey, false) && player.repeatMode == REPEAT_MODE_ALL)) {
+            player.repeatMode == REPEAT_MODE_OFF) {
             scope.launch(SilentHandler) {
                 YouTube
                     .next(WatchEndpoint(playlistId = playlistId))
@@ -1084,11 +1084,13 @@ class MusicService :
     super.onMediaItemTransition(mediaItem, reason)
 
     // Auto load more songs
+    // Don't auto-load if repeat mode is enabled (REPEAT_MODE_ALL or REPEAT_MODE_ONE)
+    // as the user expects the queue to loop, not to add new songs
     if (dataStore.get(AutoLoadMoreKey, true) &&
         reason != Player.MEDIA_ITEM_TRANSITION_REASON_REPEAT &&
         player.mediaItemCount - player.currentMediaItemIndex <= 5 &&
         currentQueue.hasNextPage() &&
-        !(dataStore.get(DisableLoadMoreWhenRepeatAllKey, false) && player.repeatMode == REPEAT_MODE_ALL)
+        player.repeatMode == REPEAT_MODE_OFF
     ) {
         scope.launch(SilentHandler) {
             val mediaItems =
