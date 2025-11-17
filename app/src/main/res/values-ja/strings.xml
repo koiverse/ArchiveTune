@@ -264,6 +264,8 @@
     <string name="discord_activity_type">アクティビティ タイプ</string>
     <string name="dark_theme_follow_system">システムをフォロー</string>
     <string name="pure_black">ピュア ブラック</string>
+    <string name="disable_blur">ぼかし効果を無効にする</string>
+    <string name="disable_blur_desc">アプリ全体（プレーヤー、プレイリスト、ライブラリ、ホーム）でぼかし効果を無効にする</string>
     <string name="customize_navigation_tabs">ナビゲーション タブをカスタマイズ</string>
     <string name="player">プレイヤー</string>
     <string name="player_text_alignment">プレイヤー テキストの配置</string>

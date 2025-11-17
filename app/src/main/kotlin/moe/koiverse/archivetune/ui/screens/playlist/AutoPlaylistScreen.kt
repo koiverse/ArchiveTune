@@ -96,6 +96,7 @@ import moe.koiverse.archivetune.constants.SongSortType
 import moe.koiverse.archivetune.constants.SongSortTypeKey
 import moe.koiverse.archivetune.constants.ThumbnailCornerRadius
 import moe.koiverse.archivetune.constants.YtmSyncKey
+import moe.koiverse.archivetune.constants.DisableBlurKey
 import moe.koiverse.archivetune.db.entities.Song
 import moe.koiverse.archivetune.extensions.toMediaItem
 import moe.koiverse.archivetune.extensions.togglePlayPause
@@ -159,6 +160,7 @@ fun AutoPlaylistScreen(
 
     val (ytmSync) = rememberPreference(YtmSyncKey, true)
     val hideExplicit by rememberPreference(key = HideExplicitKey, defaultValue = false)
+    val (disableBlur) = rememberPreference(DisableBlurKey, false)
 
     val likeLength =
         remember(songs) {
@@ -345,7 +347,7 @@ fun AutoPlaylistScreen(
         modifier = Modifier.fillMaxSize(),
     ) {
         // Mesh gradient background layer - behind everything, extends beyond top bar to play/shuffle buttons
-        if (gradientColors.isNotEmpty() && gradientAlpha > 0f) {
+        if (!disableBlur && gradientColors.isNotEmpty() && gradientAlpha > 0f) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()

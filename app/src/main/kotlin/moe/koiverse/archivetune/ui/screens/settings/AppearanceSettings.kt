@@ -88,6 +88,7 @@ import moe.koiverse.archivetune.constants.SwipeSensitivityKey
 import moe.koiverse.archivetune.constants.SwipeToSongKey
 import moe.koiverse.archivetune.constants.HidePlayerThumbnailKey
 import moe.koiverse.archivetune.constants.ThumbnailCornerRadiusKey
+import moe.koiverse.archivetune.constants.DisableBlurKey
 import moe.koiverse.archivetune.ui.component.DefaultDialog
 import moe.koiverse.archivetune.ui.component.EnumListPreference
 import moe.koiverse.archivetune.ui.component.IconButton
@@ -144,6 +145,7 @@ fun AppearanceSettings(
             defaultValue = PlayerBackgroundStyle.DEFAULT,
         )
     val (pureBlack, onPureBlackChange) = rememberPreference(PureBlackKey, defaultValue = false)
+    val (disableBlur, onDisableBlurChange) = rememberPreference(DisableBlurKey, defaultValue = false)
     val (defaultOpenTab, onDefaultOpenTabChange) = rememberEnumPreference(
         DefaultOpenTabKey,
         defaultValue = NavigationTab.HOME
@@ -402,6 +404,14 @@ fun AppearanceSettings(
                 onCheckedChange = onPureBlackChange,
             )
         }
+
+        SwitchPreference(
+            title = { Text(stringResource(R.string.disable_blur)) },
+            description = stringResource(R.string.disable_blur_desc),
+            icon = { Icon(painterResource(R.drawable.blur_off), null) },
+            checked = disableBlur,
+            onCheckedChange = onDisableBlurChange,
+        )
 
         PreferenceGroupTitle(
             title = stringResource(R.string.player),

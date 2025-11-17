@@ -120,6 +120,7 @@ import moe.koiverse.archivetune.constants.PlaylistSongSortDescendingKey
 import moe.koiverse.archivetune.constants.PlaylistSongSortType
 import moe.koiverse.archivetune.constants.PlaylistSongSortTypeKey
 import moe.koiverse.archivetune.constants.ThumbnailCornerRadius
+import moe.koiverse.archivetune.constants.DisableBlurKey
 import moe.koiverse.archivetune.db.entities.Playlist
 import moe.koiverse.archivetune.db.entities.PlaylistSong
 import moe.koiverse.archivetune.db.entities.PlaylistSongMap
@@ -186,6 +187,7 @@ fun LocalPlaylistScreen(
         true
     )
     var locked by rememberPreference(PlaylistEditLockKey, defaultValue = true)
+    val (disableBlur) = rememberPreference(DisableBlurKey, false)
 
     val coroutineScope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -509,7 +511,7 @@ fun LocalPlaylistScreen(
         modifier = Modifier.fillMaxSize(),
     ) {
         // Mesh gradient background layer - behind everything, extends beyond top bar to play/shuffle buttons
-        if (gradientColors.isNotEmpty() && gradientAlpha > 0f) {
+        if (!disableBlur && gradientColors.isNotEmpty() && gradientAlpha > 0f) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()

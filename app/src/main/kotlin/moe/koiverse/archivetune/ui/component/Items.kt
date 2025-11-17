@@ -669,6 +669,7 @@ fun OverlayPlaylistListItem(
 ) {
     var showPreview by remember { mutableStateOf(false) }
     val backgroundUrl = playlist.thumbnails.getOrNull(0)
+    val (disableBlur) = rememberPreference(DisableBlurKey, false)
 
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -683,7 +684,9 @@ fun OverlayPlaylistListItem(
                     model = backgroundUrl,
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize().blur(8.dp)
+                    modifier = Modifier.fillMaxSize().let { 
+                        if (disableBlur) it else it.blur(8.dp)
+                    }
                 )
                 Box(modifier = Modifier
                     .fillMaxSize()

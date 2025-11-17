@@ -123,6 +123,7 @@ import moe.koiverse.archivetune.ui.theme.PlayerColorExtractor
 import moe.koiverse.archivetune.ui.utils.backToMain
 import moe.koiverse.archivetune.ui.utils.ItemWrapper
 import moe.koiverse.archivetune.utils.rememberPreference
+import moe.koiverse.archivetune.constants.DisableBlurKey
 import moe.koiverse.archivetune.viewmodels.OnlinePlaylistViewModel
 import androidx.compose.ui.platform.LocalContext
 
@@ -151,6 +152,7 @@ fun OnlinePlaylistScreen(
         mutableStateOf(false)
     }
     val hideExplicit by rememberPreference(key = HideExplicitKey, defaultValue = false)
+    val (disableBlur) = rememberPreference(DisableBlurKey, false)
 
     val importLabel = stringResource(R.string.import_playlist)
 
@@ -283,7 +285,7 @@ fun OnlinePlaylistScreen(
         modifier = Modifier.fillMaxSize(),
     ) {
         // Mesh gradient background layer - behind everything, extends beyond top bar to play/shuffle buttons
-        if (gradientColors.isNotEmpty() && gradientAlpha > 0f) {
+        if (!disableBlur && gradientColors.isNotEmpty() && gradientAlpha > 0f) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()

@@ -107,6 +107,7 @@ import moe.koiverse.archivetune.constants.PlayerCustomImageUriKey
 import moe.koiverse.archivetune.constants.PlayerCustomBlurKey
 import moe.koiverse.archivetune.constants.PlayerCustomContrastKey
 import moe.koiverse.archivetune.constants.PlayerCustomBrightnessKey
+import moe.koiverse.archivetune.constants.DisableBlurKey
 import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -176,6 +177,7 @@ fun LyricsScreen(
     var sliderPosition by remember { mutableStateOf<Long?>(null) }
 
     val playerBackground by rememberEnumPreference(PlayerBackgroundStyleKey, PlayerBackgroundStyle.DEFAULT)
+    val (disableBlur) = rememberPreference(DisableBlurKey, false)
 
     val (playerCustomImageUri) = rememberPreference(PlayerCustomImageUriKey, "")
     val (playerCustomBlur) = rememberPreference(PlayerCustomBlurKey, 0f)
@@ -286,7 +288,9 @@ fun LyricsScreen(
                                     model = thumbnailUrl,
                                     contentDescription = "Blurred background",
                                     contentScale = ContentScale.Crop,
-                                    modifier = Modifier.fillMaxSize().blur(radius = 50.dp)
+                                    modifier = Modifier.fillMaxSize().let { 
+                                        if (disableBlur) it else it.blur(radius = 50.dp)
+                                    }
                                 )
                                 Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.4f)))
                             }
@@ -348,7 +352,9 @@ fun LyricsScreen(
                                     model = thumbnailUrl,
                                     contentDescription = "Blurred background",
                                     contentScale = ContentScale.Crop,
-                                    modifier = Modifier.fillMaxSize().blur(radius = 50.dp)
+                                    modifier = Modifier.fillMaxSize().let { 
+                                        if (disableBlur) it else it.blur(radius = 50.dp)
+                                    }
                                 )
                                 val gradientColorStops = if (gradientColors.size >= 3) {
                                     arrayOf(
@@ -505,7 +511,9 @@ fun LyricsScreen(
                                     model = Uri.parse(uri),
                                     contentDescription = "Custom background",
                                     contentScale = ContentScale.Crop,
-                                    modifier = Modifier.fillMaxSize().blur(radius = blurPx.dp),
+                                    modifier = Modifier.fillMaxSize().let { 
+                                        if (disableBlur) it else it.blur(radius = blurPx.dp)
+                                    },
                                     colorFilter = ColorFilter.colorMatrix(cm)
                                 )
                                 Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.4f)))

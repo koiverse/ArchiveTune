@@ -123,6 +123,7 @@ import moe.koiverse.archivetune.constants.PlayerCustomImageUriKey
 import moe.koiverse.archivetune.constants.PlayerCustomBlurKey
 import moe.koiverse.archivetune.constants.PlayerCustomContrastKey
 import moe.koiverse.archivetune.constants.PlayerCustomBrightnessKey
+import moe.koiverse.archivetune.constants.DisableBlurKey
 import moe.koiverse.archivetune.constants.PlayerButtonsStyle
 import moe.koiverse.archivetune.constants.PlayerButtonsStyleKey
 import moe.koiverse.archivetune.ui.theme.PlayerBackgroundColorUtils
@@ -191,6 +192,8 @@ fun BottomSheetPlayer(
     val (playerCustomBlur) = rememberPreference(PlayerCustomBlurKey, 0f)
     val (playerCustomContrast) = rememberPreference(PlayerCustomContrastKey, 1f)
     val (playerCustomBrightness) = rememberPreference(PlayerCustomBrightnessKey, 1f)
+    
+    val (disableBlur) = rememberPreference(DisableBlurKey, false)
 
     val playerButtonsStyle by rememberEnumPreference(
         key = PlayerButtonsStyleKey,
@@ -1124,7 +1127,9 @@ fun BottomSheetPlayer(
                                         model = thumbnailUrl,
                                         contentDescription = "Blurred background",
                                         contentScale = ContentScale.FillBounds,
-                                        modifier = Modifier.fillMaxSize().blur(radius = 60.dp)
+                                        modifier = Modifier.fillMaxSize().let { 
+                                            if (disableBlur) it else it.blur(radius = 60.dp)
+                                        }
                                     )
                                     val overlayStops = PlayerBackgroundColorUtils.buildBlurOverlayStops(gradientColors)
                                     Box(
@@ -1201,7 +1206,9 @@ fun BottomSheetPlayer(
                                         model = thumbnailUrl,
                                         contentDescription = "Blurred background",
                                         contentScale = ContentScale.FillBounds,
-                                        modifier = Modifier.fillMaxSize().blur(radius = 65.dp)
+                                        modifier = Modifier.fillMaxSize().let { 
+                                            if (disableBlur) it else it.blur(radius = 65.dp)
+                                        }
                                     )
                                     val gradientColorStops = PlayerBackgroundColorUtils.buildBlurGradientStops(gradientColors)
                                     Box(
@@ -1241,7 +1248,9 @@ fun BottomSheetPlayer(
                                                 model = Uri.parse(uri),
                                                 contentDescription = "Custom background",
                                                 contentScale = ContentScale.FillBounds,
-                                                modifier = Modifier.fillMaxSize().blur(radius = blurPx.dp),
+                                                modifier = Modifier.fillMaxSize().let { 
+                                                    if (disableBlur) it else it.blur(radius = blurPx.dp)
+                                                },
                                                 colorFilter = ColorFilter.colorMatrix(cm)
                                             )
                                             Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.4f)))

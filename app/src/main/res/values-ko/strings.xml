@@ -264,6 +264,8 @@
     <string name="discord_activity_type">Discord Rich Presence에서 버튼 2의 가시성 전환</string>
     <string name="dark_theme_follow_system">활동 유형</string>
     <string name="pure_black">시스템 팔로우</string>
+    <string name="disable_blur">흐림 효과 비활성화</string>
+    <string name="disable_blur_desc">앱 전체(플레이어, 재생목록, 라이브러리, 홈)에서 흐림 효과 비활성화</string>
     <string name="customize_navigation_tabs">순수한 검정</string>
     <string name="player">탐색 탭 사용자 정의</string>
     <string name="player_text_alignment">플레이어</string>

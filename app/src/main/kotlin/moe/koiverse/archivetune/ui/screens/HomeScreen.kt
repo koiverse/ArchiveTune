@@ -88,6 +88,7 @@ import moe.koiverse.archivetune.constants.InnerTubeCookieKey
 import moe.koiverse.archivetune.constants.ListItemHeight
 import moe.koiverse.archivetune.constants.ListThumbnailSize
 import moe.koiverse.archivetune.constants.ThumbnailCornerRadius
+import moe.koiverse.archivetune.constants.DisableBlurKey
 import moe.koiverse.archivetune.db.entities.Album
 import moe.koiverse.archivetune.db.entities.Artist
 import moe.koiverse.archivetune.db.entities.LocalItem
@@ -171,6 +172,7 @@ fun HomeScreen(
     val accountName by viewModel.accountName.collectAsState()
     val accountImageUrl by viewModel.accountImageUrl.collectAsState()
     val innerTubeCookie by rememberPreference(InnerTubeCookieKey, "")
+    val (disableBlur) = rememberPreference(DisableBlurKey, false)
     val isLoggedIn = remember(innerTubeCookie) {
         "SAPISID" in parseCookieString(innerTubeCookie)
     }
@@ -367,13 +369,14 @@ fun HomeScreen(
         modifier = Modifier.fillMaxSize()
     ) {
         // M3E Mesh gradient background layer at the top
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .fillMaxSize(0.7f) // Cover top 70% of screen
-                .align(Alignment.TopCenter)
-                .zIndex(-1f) // Place behind all content
-                .drawBehind {
+        if (!disableBlur) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .fillMaxSize(0.7f) // Cover top 70% of screen
+                    .align(Alignment.TopCenter)
+                    .zIndex(-1f) // Place behind all content
+                    .drawBehind {
                     val width = size.width
                     val height = size.height
                     
@@ -464,6 +467,7 @@ fun HomeScreen(
                     )
                 }
         ) {}
+        }
         
         BoxWithConstraints(
             modifier = Modifier

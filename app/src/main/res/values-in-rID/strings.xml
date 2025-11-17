@@ -264,6 +264,8 @@
     <string name="discord_activity_type">Jenis aktivitas</string>
     <string name="dark_theme_follow_system">Ikuti sistem</string>
     <string name="pure_black">Hitam murni</string>
+    <string name="disable_blur">Nonaktifkan efek blur</string>
+    <string name="disable_blur_desc">Nonaktifkan efek blur di seluruh aplikasi (pemutar, daftar putar, perpustakaan, beranda)</string>
     <string name="customize_navigation_tabs">Sesuaikan tab navigasi</string>
     <string name="player">Pemutar</string>
     <string name="player_text_alignment">Perataan teks pemutar</string>

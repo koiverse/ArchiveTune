@@ -264,6 +264,8 @@
     <string name="discord_activity_type">Aktivitätstyp</string>
     <string name="dark_theme_follow_system">Folgen Sie dem System</string>
     <string name="pure_black">Reines Schwarz</string>
+    <string name="disable_blur">Unschärfeeffekte deaktivieren</string>
+    <string name="disable_blur_desc">Deaktivieren Sie Unschärfeeffekte in der gesamten App (Player, Playlists, Bibliothek, Startseite)</string>
     <string name="customize_navigation_tabs">Passen Sie Navigationsregisterkarten an</string>
     <string name="player">Spieler</string>
     <string name="player_text_alignment">Ausrichtung des Spielertextes</string>
