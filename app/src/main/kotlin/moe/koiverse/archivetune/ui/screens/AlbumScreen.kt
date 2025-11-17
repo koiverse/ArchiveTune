@@ -34,6 +34,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
@@ -245,6 +246,12 @@ fun AlbumScreen(
             } else {
                 0f
             }
+        }
+    }
+    
+    val showTopBarTitle by remember {
+        derivedStateOf {
+            lazyListState.firstVisibleItemIndex > 0
         }
     }
 
@@ -698,6 +705,10 @@ fun AlbumScreen(
     }
 
     TopAppBar(
+        colors = TopAppBarDefaults.topAppBarColors(
+            containerColor = if (showTopBarTitle) MaterialTheme.colorScheme.surface else Color.Transparent,
+            scrolledContainerColor = MaterialTheme.colorScheme.surface
+        ),
         title = {
             if (selection) {
                 val count = wrappedSongs?.count { it.isSelected } ?: 0
