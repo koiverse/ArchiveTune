@@ -43,7 +43,6 @@ import moe.koiverse.archivetune.constants.AudioQualityKey
 import moe.koiverse.archivetune.constants.NetworkMeteredKey
 import moe.koiverse.archivetune.constants.AutoDownloadOnLikeKey
 import moe.koiverse.archivetune.constants.AutoLoadMoreKey
-import moe.koiverse.archivetune.constants.DisableLoadMoreWhenRepeatAllKey
 import moe.koiverse.archivetune.constants.AutoSkipNextOnErrorKey
 import moe.koiverse.archivetune.constants.PersistentQueueKey
 import moe.koiverse.archivetune.constants.SimilarContent
@@ -96,10 +95,6 @@ fun PlayerSettings(
     val (autoLoadMore, onAutoLoadMoreChange) = rememberPreference(
         AutoLoadMoreKey,
         defaultValue = true
-    )
-    val (disableLoadMoreWhenRepeatAll, onDisableLoadMoreWhenRepeatAllChange) = rememberPreference(
-        DisableLoadMoreWhenRepeatAllKey,
-        defaultValue = false
     )
     val (autoDownloadOnLike, onAutoDownloadOnLikeChange) = rememberPreference(
         AutoDownloadOnLikeKey,
@@ -210,14 +205,6 @@ fun PlayerSettings(
             icon = { Icon(painterResource(R.drawable.playlist_add), null) },
             checked = autoLoadMore,
             onCheckedChange = onAutoLoadMoreChange
-        )
-
-        SwitchPreference(
-            title = { Text(stringResource(R.string.disable_load_more_when_repeat_all)) },
-            description = stringResource(R.string.disable_load_more_when_repeat_all_desc),
-            icon = { Icon(painterResource(R.drawable.repeat), null) },
-            checked = disableLoadMoreWhenRepeatAll,
-            onCheckedChange = onDisableLoadMoreWhenRepeatAllChange
         )
 
         SwitchPreference(
