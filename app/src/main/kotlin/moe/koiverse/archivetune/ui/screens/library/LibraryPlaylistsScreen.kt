@@ -79,6 +79,7 @@ import moe.koiverse.archivetune.constants.ShowTopPlaylistKey
 import moe.koiverse.archivetune.constants.ShowCachedPlaylistKey
 import moe.koiverse.archivetune.constants.UseNewLibraryDesignKey
 import moe.koiverse.archivetune.constants.YtmSyncKey
+import moe.koiverse.archivetune.constants.DisableBlurKey
 import moe.koiverse.archivetune.db.entities.Playlist
 import moe.koiverse.archivetune.db.entities.PlaylistEntity
 import moe.koiverse.archivetune.ui.component.CreatePlaylistDialog
@@ -191,6 +192,7 @@ fun LibraryPlaylistsScreen(
     }
 
     val (ytmSync) = rememberPreference(YtmSyncKey, true)
+    val (disableBlur) = rememberPreference(DisableBlurKey, false)
 
     LaunchedEffect(Unit) {
         if (ytmSync) {
@@ -339,7 +341,7 @@ fun LibraryPlaylistsScreen(
         modifier = Modifier.fillMaxSize(),
     ) {
         // Mesh gradient background layer - behind everything
-        if (gradientColors.isNotEmpty() && gradientAlpha > 0f) {
+        if (!disableBlur && gradientColors.isNotEmpty() && gradientAlpha > 0f) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()

@@ -4,6 +4,8 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -15,6 +17,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -32,6 +36,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -45,6 +50,24 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.palette.graphics.Palette
+import androidx.core.graphics.drawable.toBitmap
+import coil3.imageLoader
+import coil3.request.ImageRequest
+import coil3.request.allowHardware
+import coil3.size.Size
+import coil3.toBitmap
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -75,7 +98,9 @@ import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.constants.AlbumThumbnailSize
 import moe.koiverse.archivetune.constants.HideExplicitKey
 import moe.koiverse.archivetune.constants.ThumbnailCornerRadius
+import moe.koiverse.archivetune.constants.DisableBlurKey
 import moe.koiverse.archivetune.db.entities.Album
+import moe.koiverse.archivetune.ui.theme.PlayerColorExtractor
 import moe.koiverse.archivetune.extensions.togglePlayPause
 import moe.koiverse.archivetune.playback.ExoDownloadService
 import moe.koiverse.archivetune.playback.queues.LocalAlbumRadio
@@ -122,6 +147,47 @@ fun AlbumScreen(
     val albumWithSongs by viewModel.albumWithSongs.collectAsState()
     val otherVersions by viewModel.otherVersions.collectAsState()
     val hideExplicit by rememberPreference(key = HideExplicitKey, defaultValue = false)
+    val (disableBlur) = rememberPreference(DisableBlurKey, false)
+    
+    // Gradient colors state for album cover
+    var gradientColors by remember { mutableStateOf<List<Color>>(emptyList()) }
+    val fallbackColor = MaterialTheme.colorScheme.surface.toArgb()
+    
+    // Extract gradient colors from album cover
+    LaunchedEffect(albumWithSongs?.album?.thumbnailUrl) {
+        val thumbnailUrl = albumWithSongs?.album?.thumbnailUrl
+        if (thumbnailUrl != null) {
+            val request = ImageRequest.Builder(context)
+                .data(thumbnailUrl)
+                .size(Size(PlayerColorExtractor.Config.IMAGE_SIZE, PlayerColorExtractor.Config.IMAGE_SIZE))
+                .allowHardware(false)
+                .build()
+
+            val result = runCatching { 
+                context.imageLoader.execute(request)
+            }.getOrNull()
+            
+            if (result != null) {
+                val bitmap = result.image?.toBitmap()
+                if (bitmap != null) {
+                    val palette = withContext(Dispatchers.Default) {
+                        Palette.from(bitmap)
+                            .maximumColorCount(PlayerColorExtractor.Config.MAX_COLOR_COUNT)
+                            .resizeBitmapArea(PlayerColorExtractor.Config.BITMAP_AREA)
+                            .generate()
+                    }
+                
+                    val extractedColors = PlayerColorExtractor.extractGradientColors(
+                        palette = palette,
+                        fallbackColor = fallbackColor
+                    )
+                    gradientColors = extractedColors
+                }
+            }
+        } else {
+            gradientColors = emptyList()
+        }
+    }
 
     val wrappedSongs = remember(albumWithSongs, hideExplicit) {
         val filteredSongs = if (hideExplicit) {
@@ -165,8 +231,97 @@ fun AlbumScreen(
                 }
         }
     }
+    
+    // State for LazyColumn to track scroll
+    val lazyListState = rememberLazyListState()
+    
+    // Calculate gradient opacity based on scroll position
+    val gradientAlpha by remember {
+        derivedStateOf {
+            if (lazyListState.firstVisibleItemIndex == 0) {
+                val offset = lazyListState.firstVisibleItemScrollOffset
+                // Fade out over 900dp of scrolling
+                (1f - (offset / 900f)).coerceIn(0f, 1f)
+            } else {
+                0f
+            }
+        }
+    }
+
+    Box(
+        modifier = Modifier.fillMaxSize(),
+    ) {
+        // Mesh gradient background layer
+        if (!disableBlur && gradientColors.isNotEmpty() && gradientAlpha > 0f) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .fillMaxSize(0.7f)
+                    .align(Alignment.TopCenter)
+                    .zIndex(-1f)
+                    .drawBehind {
+                        val width = size.width
+                        val height = size.height
+                        
+                        if (gradientColors.size >= 3) {
+                            // First color blob - top left
+                            drawRect(
+                                brush = Brush.radialGradient(
+                                    colors = listOf(
+                                        gradientColors[0].copy(alpha = gradientAlpha * 0.7f),
+                                        gradientColors[0].copy(alpha = gradientAlpha * 0.4f),
+                                        Color.Transparent
+                                    ),
+                                    center = Offset(width * 0.2f, height * 0.15f),
+                                    radius = width * 0.6f
+                                )
+                            )
+                            
+                            // Second color blob - top right
+                            drawRect(
+                                brush = Brush.radialGradient(
+                                    colors = listOf(
+                                        gradientColors[1].copy(alpha = gradientAlpha * 0.6f),
+                                        gradientColors[1].copy(alpha = gradientAlpha * 0.35f),
+                                        Color.Transparent
+                                    ),
+                                    center = Offset(width * 0.8f, height * 0.25f),
+                                    radius = width * 0.7f
+                                )
+                            )
+                            
+                            // Third color blob - middle
+                            drawRect(
+                                brush = Brush.radialGradient(
+                                    colors = listOf(
+                                        gradientColors[2].copy(alpha = gradientAlpha * 0.5f),
+                                        gradientColors[2].copy(alpha = gradientAlpha * 0.25f),
+                                        Color.Transparent
+                                    ),
+                                    center = Offset(width * 0.5f, height * 0.5f),
+                                    radius = width * 0.8f
+                                )
+                            )
+                        } else {
+                            // Fallback: single radial gradient
+                            drawRect(
+                                brush = Brush.radialGradient(
+                                    colors = listOf(
+                                        gradientColors[0].copy(alpha = gradientAlpha * 0.7f),
+                                        gradientColors[0].copy(alpha = gradientAlpha * 0.4f),
+                                        Color.Transparent
+                                    ),
+                                    center = Offset(width * 0.5f, height * 0.3f),
+                                    radius = width * 0.8f
+                                )
+                            )
+                        }
+                    }
+            ) {}
+        }
 
     LazyColumn(
+        state = lazyListState,
         contentPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues(),
     ) {
         val albumWithSongs = albumWithSongs
@@ -622,4 +777,5 @@ fun AlbumScreen(
             }
         }
     )
+    }
 }
