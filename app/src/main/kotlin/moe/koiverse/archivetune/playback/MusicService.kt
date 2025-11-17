@@ -253,6 +253,8 @@ class MusicService :
     private var discordRpc: DiscordRPC? = null
     private var lastDiscordUpdateTime = 0L
 
+    private var scrobbleManager: moe.koiverse.archivetune.utils.ScrobbleManager? = null
+
     val automixItems = MutableStateFlow<List<MediaItem>>(emptyList())
 
     private var consecutivePlaybackErr = 0
@@ -497,6 +499,54 @@ class MusicService :
                         discordRpc = null
                     }
         }
+
+        // Last.fm ScrobbleManager setup
+        dataStore.data
+            .map { it[EnableLastFMScrobblingKey] ?: false }
+            .debounce(300)
+            .distinctUntilChanged()
+            .collect(scope) { enabled ->
+                if (enabled && scrobbleManager == null) {
+                    val delayPercent = dataStore.get(ScrobbleDelayPercentKey, LastFM.DEFAULT_SCROBBLE_DELAY_PERCENT)
+                    val minSongDuration = dataStore.get(ScrobbleMinSongDurationKey, LastFM.DEFAULT_SCROBBLE_MIN_SONG_DURATION)
+                    val delaySeconds = dataStore.get(ScrobbleDelaySecondsKey, LastFM.DEFAULT_SCROBBLE_DELAY_SECONDS)
+                    
+                    scrobbleManager = moe.koiverse.archivetune.utils.ScrobbleManager(
+                        scope,
+                        minSongDuration = minSongDuration,
+                        scrobbleDelayPercent = delayPercent,
+                        scrobbleDelaySeconds = delaySeconds
+                    )
+                    scrobbleManager?.useNowPlaying = dataStore.get(LastFMUseNowPlaying, false)
+                } else if (!enabled && scrobbleManager != null) {
+                    scrobbleManager?.destroy()
+                    scrobbleManager = null
+                }
+            }
+
+        dataStore.data
+            .map { it[LastFMUseNowPlaying] ?: false }
+            .distinctUntilChanged()
+            .collectLatest(scope) {
+                scrobbleManager?.useNowPlaying = it
+            }
+
+        dataStore.data
+            .map { prefs ->
+                Triple(
+                    prefs[ScrobbleDelayPercentKey] ?: LastFM.DEFAULT_SCROBBLE_DELAY_PERCENT,
+                    prefs[ScrobbleMinSongDurationKey] ?: LastFM.DEFAULT_SCROBBLE_MIN_SONG_DURATION,
+                    prefs[ScrobbleDelaySecondsKey] ?: LastFM.DEFAULT_SCROBBLE_DELAY_SECONDS
+                )
+            }
+            .distinctUntilChanged()
+            .collect(scope) { (delayPercent, minSongDuration, delaySeconds) ->
+                scrobbleManager?.let {
+                    it.scrobbleDelayPercent = delayPercent
+                    it.minSongDuration = minSongDuration
+                    it.scrobbleDelaySeconds = delaySeconds
+                }
+            }
 
         if (dataStore.get(PersistentQueueKey, true)) {
             runCatching {
@@ -1083,6 +1133,9 @@ class MusicService :
     override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
     super.onMediaItemTransition(mediaItem, reason)
 
+    // Scrobble: Stop previous song
+    scrobbleManager?.onSongStop()
+
     // Auto load more songs
     // Don't auto-load if repeat mode is enabled (REPEAT_MODE_ALL or REPEAT_MODE_ONE)
     // as the user expects the queue to loop, not to add new songs
@@ -1103,6 +1156,11 @@ class MusicService :
         }
     }
 
+    // Scrobble: Start new song if playing
+    if (player.playWhenReady && player.playbackState == Player.STATE_READY) {
+        scrobbleManager?.onSongStart(player.currentMetadata, duration = player.duration)
+    }
+
     if (dataStore.get(PersistentQueueKey, true)) {
         saveQueueToDisk()
     }
@@ -1115,6 +1173,11 @@ class MusicService :
     if (dataStore.get(PersistentQueueKey, true)) {
         saveQueueToDisk()
     }
+
+    if (playbackState == Player.STATE_IDLE || playbackState == Player.STATE_ENDED) {
+        scrobbleManager?.onSongStop()
+    }
+
     ensurePresenceManager()
     scope.launch {
         try {
@@ -1218,24 +1281,7 @@ class MusicService :
                                     }
                                 }
                                 
-                                // Last.fm now playing
-                                val lastfmEnabled = dataStore.get(EnableLastFMScrobblingKey, false)
-                                val lastfmUseNowPlaying = dataStore.get(LastFMUseNowPlaying, false)
-                                val lastfmSession = dataStore.get(LastFMSessionKey, "")
-                                if (lastfmEnabled && lastfmUseNowPlaying && !lastfmSession.isNullOrBlank() && finalSong != null) {
-                                    scope.launch(Dispatchers.IO) {
-                                        try {
-                                            LastFM.updateNowPlaying(
-                                                artist = finalSong.artists.firstOrNull()?.name ?: "Unknown Artist",
-                                                track = finalSong.title,
-                                                album = finalSong.album?.title,
-                                                duration = (finalSong.song.duration * 1000).toInt()
-                                            )
-                                        } catch (ie: Exception) {
-                                            Timber.tag("MusicService").v(ie, "Last.fm now playing update failed on transition")
-                                        }
-                                    }
-                                }
+                                // Last.fm now playing - handled by ScrobbleManager
                             } catch (_: Exception) {}
                         }
                     }
@@ -1280,24 +1326,8 @@ class MusicService :
                                     }
                                 }
                                 
-                                // Last.fm now playing
-                                val lastfmEnabled = dataStore.get(EnableLastFMScrobblingKey, false)
-                                val lastfmUseNowPlaying = dataStore.get(LastFMUseNowPlaying, false)
-                                val lastfmSession = dataStore.get(LastFMSessionKey, "")
-                                if (lastfmEnabled && lastfmUseNowPlaying && !lastfmSession.isNullOrBlank() && finalSong != null) {
-                                    scope.launch(Dispatchers.IO) {
-                                        try {
-                                            LastFM.updateNowPlaying(
-                                                artist = finalSong.artists.firstOrNull()?.name ?: "Unknown Artist",
-                                                track = finalSong.title,
-                                                album = finalSong.album?.title,
-                                                duration = (finalSong.song.duration * 1000).toInt()
-                                            )
-                                        } catch (ie: Exception) {
-                                            Timber.tag("MusicService").v(ie, "Last.fm now playing update failed for isPlaying/mediaTransition")
-                                        }
-                                    }
-                                }
+                                // Last.fm now playing - handled by ScrobbleManager
+                                // This block can be removed as ScrobbleManager handles it
                             } catch (_: Exception) {}
                         }
                     }
@@ -1309,6 +1339,8 @@ class MusicService :
 
    if (events.containsAny(Player.EVENT_IS_PLAYING_CHANGED)) {
         ensurePresenceManager()
+        // Scrobble: Track play/pause state
+        scrobbleManager?.onPlayerStateChanged(player.isPlaying, player.currentMetadata, duration = player.duration)
     } else if (events.contains(Player.EVENT_MEDIA_ITEM_TRANSITION)) {
         ensurePresenceManager()
     } else {
@@ -1595,37 +1627,9 @@ class MusicService :
                         }
                     }
                     
-                    // Last.fm scrobbling
-                    val lastfmEnabled = dataStore.get(EnableLastFMScrobblingKey, false)
-                    val lastfmSession = dataStore.get(LastFMSessionKey, "")
-                    if (lastfmEnabled && !lastfmSession.isNullOrBlank()) {
-                        val scrobbleDelayPercent = dataStore.get(ScrobbleDelayPercentKey, LastFM.DEFAULT_SCROBBLE_DELAY_PERCENT)
-                        val minTrackDuration = dataStore.get(ScrobbleMinSongDurationKey, LastFM.DEFAULT_SCROBBLE_MIN_SONG_DURATION)
-                        val scrobbleDelaySeconds = dataStore.get(ScrobbleDelaySecondsKey, LastFM.DEFAULT_SCROBBLE_DELAY_SECONDS)
-                        
-                        val trackDurationSeconds = song.song.duration
-                        val playedSeconds = playbackStats.totalPlayTimeMs / 1000
-                        
-                        // Scrobble if: track duration >= minimum AND (played >= 50% of track OR played >= 4 minutes)
-                        val shouldScrobble = trackDurationSeconds >= minTrackDuration && 
-                            (playedSeconds >= trackDurationSeconds * scrobbleDelayPercent || playedSeconds >= scrobbleDelaySeconds)
-                        
-                        if (shouldScrobble) {
-                            try {
-                                val timestamp = (System.currentTimeMillis() - playbackStats.totalPlayTimeMs) / 1000
-                                LastFM.scrobble(
-                                    artist = song.artists.firstOrNull()?.name ?: "Unknown Artist",
-                                    track = song.title,
-                                    timestamp = timestamp,
-                                    album = song.album?.title,
-                                    duration = trackDurationSeconds
-                                )
-                                Timber.tag("MusicService").d("Last.fm scrobbled: ${song.title} by ${song.artists.firstOrNull()?.name}")
-                            } catch (ie: Exception) {
-                                Timber.tag("MusicService").v(ie, "Last.fm scrobble failed")
-                            }
-                        }
-                    }
+                    // Last.fm scrobbling - handled by ScrobbleManager
+                    // The old manual scrobbling logic has been replaced with ScrobbleManager
+                    // which properly tracks play time and scrobbles automatically
                 } catch (_: Exception) {}
             }
         }

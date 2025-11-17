@@ -66,7 +66,6 @@ import moe.koiverse.archivetune.ui.screens.settings.DiscordLoginScreen
 import moe.koiverse.archivetune.ui.screens.settings.DiscordSettings
 import moe.koiverse.archivetune.ui.screens.settings.DebugSettings
 import moe.koiverse.archivetune.ui.screens.settings.IntegrationScreen
-import moe.koiverse.archivetune.ui.screens.settings.LastFMLoginScreen
 import moe.koiverse.archivetune.ui.screens.settings.LastFMSettings
 import moe.koiverse.archivetune.ui.screens.settings.PlayerSettings
 import moe.koiverse.archivetune.ui.screens.settings.PrivacySettings
@@ -324,9 +323,6 @@ fun NavGraphBuilder.navigationBuilder(
     }
     composable("settings/discord/login") {
         DiscordLoginScreen(navController)
-    }
-    composable("lastfm_login") {
-        LastFMLoginScreen(navController)
     }
     composable("settings/about") {
         AboutScreen(navController, scrollBehavior)

@@ -60,7 +60,7 @@ object LastFM {
         }))
     }
 
-    // OAuth methods
+    // OAuth methods (kept for backward compatibility)
     suspend fun getToken() = runCatching {
         client.post {
             lastfmParams(
@@ -84,6 +84,19 @@ object LastFM {
 
     fun getAuthUrl(token: String): String {
         return "https://www.last.fm/api/auth/?api_key=$API_KEY&token=$token"
+    }
+
+    // Mobile session authentication
+    suspend fun getMobileSession(username: String, password: String) = runCatching {
+        client.post {
+            lastfmParams(
+                method = "auth.getMobileSession",
+                apiKey = API_KEY,
+                secret = SECRET,
+                extra = mapOf("username" to username, "password" to password)
+            )
+            parameter("format", "json")
+        }.body<Authentication>()
     }
 
     suspend fun updateNowPlaying(
