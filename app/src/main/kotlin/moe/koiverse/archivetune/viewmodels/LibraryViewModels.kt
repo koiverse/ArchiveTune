@@ -219,7 +219,7 @@ constructor(
                                 .flowOn(Dispatchers.IO)
                                 .map { songs ->
                                     songs
-                                        .filter { song -> downloads[song.id]?.state == Download.STATE_COMPLETED }
+                                        .filter { song -> song.song.inLibrary != null && downloads[song.id]?.state == Download.STATE_COMPLETED }
                                         .mapNotNull { it.song.albumId }
                                         .toSet()
                                 }.flatMapLatest { downloadedAlbumIds ->
@@ -235,12 +235,14 @@ constructor(
                                 database.allSongs()
                                     .flowOn(Dispatchers.IO)
                                     .map { songs ->
-                                        val downloaded = songs
+                                        val librarySongs = songs.filter { it.song.inLibrary != null }
+                                        
+                                        val downloaded = librarySongs
                                             .filter { song -> downloads[song.id]?.state == Download.STATE_COMPLETED }
                                             .groupBy { it.song.albumId }
                                             .mapValues { (_, list) -> list.size }
 
-                                        val totalLocal = songs
+                                        val totalLocal = librarySongs
                                             .groupBy { it.song.albumId }
                                             .mapValues { (_, list) -> list.size }
 
