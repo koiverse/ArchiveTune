@@ -650,5 +650,93 @@ val MIGRATION_24_25 =
                 // Add the column allowing NULL values (since existing rows won't have this data)
                 db.execSQL("ALTER TABLE format ADD COLUMN perceptualLoudnessDb REAL DEFAULT NULL")
             }
+
+            var requiresSongTableRewrite = false
+            db.query("PRAGMA table_info(song)").use { cursor ->
+                val nameIndex = cursor.getColumnIndex("name")
+                val defaultIndex = cursor.getColumnIndex("dflt_value")
+                while (cursor.moveToNext()) {
+                    if (cursor.getString(nameIndex) == "isLocal") {
+                        val defaultValue = cursor.getString(defaultIndex)
+                        if (cursor.isNull(defaultIndex) || defaultValue !in setOf("0", "'0'")) {
+                            requiresSongTableRewrite = true
+                            break
+                        }
+                    }
+                }
+            }
+
+            if (requiresSongTableRewrite) {
+                db.execSQL("PRAGMA foreign_keys=OFF")
+                db.execSQL("ALTER TABLE song RENAME TO song_old")
+                db.execSQL(
+                    """
+                    CREATE TABLE `song` (
+                        `id` TEXT NOT NULL,
+                        `title` TEXT NOT NULL,
+                        `duration` INTEGER NOT NULL,
+                        `thumbnailUrl` TEXT,
+                        `albumId` TEXT,
+                        `albumName` TEXT,
+                        `explicit` INTEGER NOT NULL DEFAULT 0,
+                        `year` INTEGER,
+                        `date` INTEGER,
+                        `dateModified` INTEGER,
+                        `liked` INTEGER NOT NULL,
+                        `likedDate` INTEGER,
+                        `totalPlayTime` INTEGER NOT NULL,
+                        `inLibrary` INTEGER,
+                        `dateDownload` INTEGER,
+                        `isLocal` INTEGER NOT NULL DEFAULT 0,
+                        PRIMARY KEY(`id`)
+                    )
+                    """
+                        .trimIndent()
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_song_albumId` ON `song` (`albumId`)")
+                db.execSQL(
+                    """
+                    INSERT INTO song (
+                        id,
+                        title,
+                        duration,
+                        thumbnailUrl,
+                        albumId,
+                        albumName,
+                        explicit,
+                        year,
+                        date,
+                        dateModified,
+                        liked,
+                        likedDate,
+                        totalPlayTime,
+                        inLibrary,
+                        dateDownload,
+                        isLocal
+                    )
+                    SELECT
+                        id,
+                        title,
+                        duration,
+                        thumbnailUrl,
+                        albumId,
+                        albumName,
+                        explicit,
+                        year,
+                        date,
+                        dateModified,
+                        liked,
+                        likedDate,
+                        totalPlayTime,
+                        inLibrary,
+                        dateDownload,
+                        COALESCE(isLocal, 0)
+                    FROM song_old
+                    """
+                        .trimIndent()
+                )
+                db.execSQL("DROP TABLE song_old")
+                db.execSQL("PRAGMA foreign_keys=ON")
+            }
         }
     }
