@@ -337,6 +337,7 @@ class MusicService :
             toggleStartRadio = ::toggleStartRadio
             toggleLibrary = ::toggleLibrary
         }
+        
         mediaSession =
             MediaLibrarySession
                 .Builder(this, player, mediaLibrarySessionCallback)
@@ -1796,6 +1797,14 @@ class MusicService :
     }
 
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo) = mediaSession
+
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        return super.onStartCommand(intent, flags, startId)
+    }
+
+    override fun onUpdateNotification(session: MediaSession, startInForegroundRequired: Boolean) {
+        super.onUpdateNotification(session, true)
+    }
 
     inner class MusicBinder : Binder() {
         val service: MusicService
