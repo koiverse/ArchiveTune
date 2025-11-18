@@ -255,6 +255,12 @@ fun AlbumScreen(
         }
     }
 
+    val transparentAppBar by remember {
+        derivedStateOf {
+            !disableBlur && !selection && !showTopBarTitle
+        }
+    }
+
     Box(
         modifier = Modifier.fillMaxSize(),
     ) {
@@ -704,11 +710,25 @@ fun AlbumScreen(
         }
     }
 
-    TopAppBar(
-        colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = if (showTopBarTitle) MaterialTheme.colorScheme.surface else Color.Transparent,
+    val topAppBarColors = if (transparentAppBar) {
+        TopAppBarDefaults.topAppBarColors(
+            containerColor = Color.Transparent,
+            scrolledContainerColor = Color.Transparent,
+            navigationIconContentColor = MaterialTheme.colorScheme.onBackground,
+            titleContentColor = MaterialTheme.colorScheme.onBackground,
+            actionIconContentColor = MaterialTheme.colorScheme.onBackground
+        )
+    } else {
+        TopAppBarDefaults.topAppBarColors(
+            containerColor = MaterialTheme.colorScheme.surface,
             scrolledContainerColor = MaterialTheme.colorScheme.surface
-        ),
+        )
+    }
+
+    TopAppBar(
+        modifier = Modifier.align(Alignment.TopCenter),
+        colors = topAppBarColors,
+        scrollBehavior = scrollBehavior,
         title = {
             if (selection) {
                 val count = wrappedSongs?.count { it.isSelected } ?: 0
