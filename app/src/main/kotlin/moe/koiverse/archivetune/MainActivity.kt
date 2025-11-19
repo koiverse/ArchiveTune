@@ -248,7 +248,15 @@ class MainActivity : ComponentActivity() {
         try {
             val startIntent = Intent(this, MusicService::class.java)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                androidx.core.content.ContextCompat.startForegroundService(this, startIntent)
+                try {
+                    androidx.core.content.ContextCompat.startForegroundService(this, startIntent)
+                } catch (e: IllegalStateException) {
+                    reportException(e)
+                    startService(startIntent)
+                } catch (e: SecurityException) {
+                    reportException(e)
+                    startService(startIntent)
+                }
             } else {
                 startService(startIntent)
             }
@@ -1357,7 +1365,16 @@ class MainActivity : ComponentActivity() {
                                     try {
                                         val startIntent = Intent(this@MainActivity, MusicService::class.java)
                                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                                            androidx.core.content.ContextCompat.startForegroundService(this@MainActivity, startIntent)
+                                            try {
+                                                androidx.core.content.ContextCompat.startForegroundService(this@MainActivity, startIntent)
+                                            } catch (e: IllegalStateException) {
+                                                // Android 12+ may throw ForegroundServiceStartNotAllowedException
+                                                reportException(e)
+                                                startService(startIntent)
+                                            } catch (e: SecurityException) {
+                                                reportException(e)
+                                                startService(startIntent)
+                                            }
                                         } else {
                                             startService(startIntent)
                                         }
