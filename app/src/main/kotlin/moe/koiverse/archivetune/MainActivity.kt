@@ -837,7 +837,8 @@ class MainActivity : ComponentActivity() {
                                 if (shouldShowTopBar) {
                                     val isHomeOrLibrary = navBackStackEntry?.destination?.route == Screens.Home.route || 
                                                          navBackStackEntry?.destination?.route == Screens.Library.route
-                                    val scrollOffset = if (isHomeOrLibrary) searchBarScrollBehavior.state.heightOffset else 0f
+                                    val currentScrollBehavior = if (isHomeOrLibrary) searchBarScrollBehavior else topAppBarScrollBehavior
+                                    val scrollOffset = currentScrollBehavior.state.heightOffset
                                     val isScrolled = scrollOffset < 0f
                                     
                                     Box {
@@ -846,6 +847,7 @@ class MainActivity : ComponentActivity() {
                                                 modifier = Modifier
                                                     .fillMaxWidth()
                                                     .height(AppBarHeight + WindowInsets.systemBars.asPaddingValues().calculateTopPadding())
+                                                    .offset { IntOffset(0, scrollOffset.toInt()) }
                                                     .then(
                                                         if (disableBlur) {
                                                             // Gradient shadow when blur is disabled
