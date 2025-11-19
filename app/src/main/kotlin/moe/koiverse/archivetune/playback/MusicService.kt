@@ -264,6 +264,36 @@ class MusicService :
 
     override fun onCreate() {
         super.onCreate()
+
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                val nm = getSystemService(NotificationManager::class.java)
+                nm?.createNotificationChannel(
+                    NotificationChannel(
+                        CHANNEL_ID,
+                        getString(R.string.music_player),
+                        NotificationManager.IMPORTANCE_LOW
+                    )
+                )
+            }
+            val pending = PendingIntent.getActivity(
+                this,
+                0,
+                Intent(this, MainActivity::class.java),
+                PendingIntent.FLAG_IMMUTABLE
+            )
+            val notification: Notification = NotificationCompat.Builder(this, CHANNEL_ID)
+                .setContentTitle(getString(R.string.music_player))
+                .setContentText("")
+                .setSmallIcon(R.drawable.small_icon)
+                .setContentIntent(pending)
+                .setOngoing(true)
+                .build()
+            startForeground(NOTIFICATION_ID, notification)
+        } catch (e: Exception) {
+            reportException(e)
+        }
+        
         ensurePresenceManager()
         setMediaNotificationProvider(
             DefaultMediaNotificationProvider(
@@ -293,41 +323,12 @@ class MusicService :
             .setSeekForwardIncrementMs(5000)
             .build()
 
-                try {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                        val nm = getSystemService(NotificationManager::class.java)
-                        nm?.createNotificationChannel(
-                            NotificationChannel(
-                                CHANNEL_ID,
-                                getString(R.string.music_player),
-                                NotificationManager.IMPORTANCE_LOW
-                            )
-                        )
-                    }
-                    val pending = PendingIntent.getActivity(
-                        this,
-                        0,
-                        Intent(this, MainActivity::class.java),
-                        PendingIntent.FLAG_IMMUTABLE
-                    )
-                    val notification: Notification = NotificationCompat.Builder(this, CHANNEL_ID)
-                        .setContentTitle(getString(R.string.music_player))
-                        .setContentText("")
-                        .setSmallIcon(R.drawable.small_icon)
-                        .setContentIntent(pending)
-                        .setOngoing(true)
-                        .build()
-                    startForeground(NOTIFICATION_ID, notification)
-                } catch (e: Exception) {
-                    reportException(e)
-                }
-
-                player.apply {
-                    addListener(this@MusicService)
-                    sleepTimer = SleepTimer(scope, this)
-                    addListener(sleepTimer)
-                    addAnalyticsListener(PlaybackStatsListener(false, this@MusicService))
-                }
+        player.apply {
+            addListener(this@MusicService)
+            sleepTimer = SleepTimer(scope, this)
+            addListener(sleepTimer)
+            addAnalyticsListener(PlaybackStatsListener(false, this@MusicService))
+        }
 
         audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
         setupAudioFocusRequest()
