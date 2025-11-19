@@ -43,7 +43,7 @@ ArchiveTune is a Supercharged of [Metrolist](https://github.com/mostafaalagamy/M
 > Android 8 (Oreo) and higher is supported. While the app may work on Android 7.x (Nougat), we do not officially support this version
 
 <div align="center">
-<h1>phoneScreenshots</h1>
+<h1>ArchiveTune Screenshots</h1>
 
   <img src="https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/phoneScreenshots/screenshot_1.jpg" width="30%" />
   <img src="https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/phoneScreenshots/screenshot_2.jpg" width="30%" />
@@ -51,7 +51,6 @@ ArchiveTune is a Supercharged of [Metrolist](https://github.com/mostafaalagamy/M
   <img src="https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/phoneScreenshots/screenshot_4.jpg" width="30%" />
   <img src="https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/phoneScreenshots/screenshot_5.jpg" width="30%" />
   <img src="https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/phoneScreenshots/screenshot_6.jpg" width="30%" />
-  <img src="https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/featureGraphicEnlarger.png" width="91%" />
 </p>
 </div>
 
