@@ -28,6 +28,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -129,6 +131,7 @@ import moe.koiverse.archivetune.constants.AppBarHeight
 import moe.koiverse.archivetune.constants.AppLanguageKey
 import moe.koiverse.archivetune.constants.DarkModeKey
 import moe.koiverse.archivetune.constants.DefaultOpenTabKey
+import moe.koiverse.archivetune.constants.DisableBlurKey
 import moe.koiverse.archivetune.constants.DisableScreenshotKey
 import moe.koiverse.archivetune.constants.DynamicThemeKey
 import moe.koiverse.archivetune.constants.MiniPlayerHeight
@@ -504,6 +507,7 @@ class MainActivity : ComponentActivity() {
                     val navigationItems = remember { Screens.MainScreens }
                     val (slimNav) = rememberPreference(SlimNavBarKey, defaultValue = false)
                     val (useNewMiniPlayerDesign) = rememberPreference(UseNewMiniPlayerDesignKey, defaultValue = true)
+                    val (disableBlur) = rememberPreference(DisableBlurKey, defaultValue = false)
                     val defaultOpenTab =
                         remember {
                             dataStore[DefaultOpenTabKey].toEnum(defaultValue = NavigationTab.HOME)
@@ -831,6 +835,47 @@ class MainActivity : ComponentActivity() {
                         Scaffold(
                             topBar = {
                                 if (shouldShowTopBar) {
+                                    val isHomeOrLibrary = navBackStackEntry?.destination?.route == Screens.Home.route || 
+                                                         navBackStackEntry?.destination?.route == Screens.Library.route
+                                    val scrollOffset = if (isHomeOrLibrary) searchBarScrollBehavior.state.heightOffset else 0f
+                                    val isScrolled = scrollOffset < 0f
+                                    
+                                    Box {
+                                        if (isHomeOrLibrary && isScrolled) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .height(AppBarHeight + WindowInsets.systemBars.asPaddingValues().calculateTopPadding())
+                                                    .then(
+                                                        if (disableBlur) {
+                                                            // Gradient shadow when blur is disabled
+                                                            Modifier.background(
+                                                                Brush.verticalGradient(
+                                                                    colors = listOf(
+                                                                        (if (pureBlack) Color.Black else MaterialTheme.colorScheme.surface).copy(alpha = 0.85f),
+                                                                        (if (pureBlack) Color.Black else MaterialTheme.colorScheme.surface).copy(alpha = 0.7f),
+                                                                        Color.Transparent
+                                                                    )
+                                                                )
+                                                            )
+                                                        } else {
+                                                            // Glass effect when blur is enabled
+                                                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                                                                Modifier
+                                                                    .background(
+                                                                        (if (pureBlack) Color.Black else MaterialTheme.colorScheme.surface).copy(alpha = 0.7f)
+                                                                    )
+                                                                    .blur(16.dp)
+                                                            } else {
+                                                                Modifier.background(
+                                                                    (if (pureBlack) Color.Black else MaterialTheme.colorScheme.surface).copy(alpha = 0.85f)
+                                                                )
+                                                            }
+                                                        }
+                                                    )
+                                            )
+                                        }
+                                        
                                     TopAppBar(
                                         title = {
                                             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -901,6 +946,7 @@ class MainActivity : ComponentActivity() {
                                             navigationIconContentColor = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
                                     )
+                                    }
                                 }
                                 AnimatedVisibility(
                                     visible = active || navBackStackEntry?.destination?.route?.startsWith("search/") == true,
