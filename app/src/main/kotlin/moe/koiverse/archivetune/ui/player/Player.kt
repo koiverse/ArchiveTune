@@ -1137,7 +1137,7 @@ fun BottomSheetPlayer(
                                             .fillMaxSize()
                                             .background(Brush.verticalGradient(colorStops = overlayStops))
                                     )
-                                    Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.3f)))
+                                    Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.08f)))
                                 }
                             }
                         }
@@ -1216,7 +1216,7 @@ fun BottomSheetPlayer(
                                             .fillMaxSize()
                                             .background(Brush.verticalGradient(colorStops = gradientColorStops))
                                     )
-                                    Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.2f)))
+                                    Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.05f)))
                                 }
                             }
                         }
