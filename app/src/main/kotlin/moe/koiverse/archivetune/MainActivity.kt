@@ -839,7 +839,7 @@ class MainActivity : ComponentActivity() {
                                                          navBackStackEntry?.destination?.route == Screens.Library.route
                                     val currentScrollBehavior = if (isHomeOrLibrary) searchBarScrollBehavior else topAppBarScrollBehavior
                                     val scrollOffset = currentScrollBehavior.state.heightOffset
-                                    val isScrolled = scrollOffset < 0f
+                                    val isScrolled = scrollOffset <= 0f
                                     
                                     Box {
                                         if (isHomeOrLibrary && isScrolled) {
