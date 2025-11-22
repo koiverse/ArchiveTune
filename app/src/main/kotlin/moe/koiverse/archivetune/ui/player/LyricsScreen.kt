@@ -30,6 +30,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.material3.ripple
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -67,6 +68,7 @@ import androidx.compose.ui.unit.dp
 import android.content.res.Configuration
 import androidx.media3.common.C
 import androidx.media3.common.Player
+import androidx.media3.common.Player.STATE_BUFFERING
 import androidx.media3.common.Player.STATE_READY
 import androidx.palette.graphics.Palette
 import androidx.core.graphics.drawable.toBitmap
@@ -175,6 +177,9 @@ fun LyricsScreen(
     var position by remember { mutableLongStateOf(0L) }
     var duration by remember { mutableLongStateOf(C.TIME_UNSET) }
     var sliderPosition by remember { mutableStateOf<Long?>(null) }
+    
+    // Track loading state: when buffering or when user is seeking
+    val isLoading = playbackState == STATE_BUFFERING || sliderPosition != null
 
     val playerBackground by rememberEnumPreference(PlayerBackgroundStyleKey, PlayerBackgroundStyle.DEFAULT)
     val (disableBlur) = rememberPreference(DisableBlurKey, false)
@@ -802,14 +807,22 @@ fun LyricsScreen(
                                     onClick = { player.togglePlayPause() },
                                     modifier = Modifier.size(56.dp)
                                 ) {
-                                    Icon(
-                                        painter = painterResource(
-                                            if (isPlaying) R.drawable.pause else R.drawable.play
-                                        ),
-                                        contentDescription = if (isPlaying) "Pause" else stringResource(R.string.play),
-                                        tint = textBackgroundColor,
-                                        modifier = Modifier.size(36.dp)
-                                    )
+                                    if (isLoading) {
+                                        CircularProgressIndicator(
+                                            modifier = Modifier.size(36.dp),
+                                            color = textBackgroundColor,
+                                            strokeWidth = 3.dp
+                                        )
+                                    } else {
+                                        Icon(
+                                            painter = painterResource(
+                                                if (isPlaying) R.drawable.pause else R.drawable.play
+                                            ),
+                                            contentDescription = if (isPlaying) "Pause" else stringResource(R.string.play),
+                                            tint = textBackgroundColor,
+                                            modifier = Modifier.size(36.dp)
+                                        )
+                                    }
                                 }
 
                                 // Next button
@@ -1128,14 +1141,22 @@ fun LyricsScreen(
                                 onClick = { player.togglePlayPause() },
                                 modifier = Modifier.size(56.dp) // Slightly smaller but still prominent
                             ) {
-                                Icon(
-                                    painter = painterResource(
-                                        if (isPlaying) R.drawable.pause else R.drawable.play
-                                    ),
-                                    contentDescription = if (isPlaying) "Pause" else stringResource(R.string.play),
-                                    tint = textBackgroundColor,
-                                    modifier = Modifier.size(36.dp)
-                                )
+                                if (isLoading) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(36.dp),
+                                        color = textBackgroundColor,
+                                        strokeWidth = 3.dp
+                                    )
+                                } else {
+                                    Icon(
+                                        painter = painterResource(
+                                            if (isPlaying) R.drawable.pause else R.drawable.play
+                                        ),
+                                        contentDescription = if (isPlaying) "Pause" else stringResource(R.string.play),
+                                        tint = textBackgroundColor,
+                                        modifier = Modifier.size(36.dp)
+                                    )
+                                }
                             }
 
                             // Next button

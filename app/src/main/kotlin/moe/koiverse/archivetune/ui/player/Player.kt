@@ -55,6 +55,7 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -101,6 +102,7 @@ import androidx.core.graphics.ColorUtils
 import androidx.core.graphics.drawable.toBitmap
 import androidx.media3.common.C
 import androidx.media3.common.Player
+import androidx.media3.common.Player.STATE_BUFFERING
 import androidx.media3.common.Player.STATE_ENDED
 import androidx.media3.common.Player.STATE_READY
 import androidx.palette.graphics.Palette
@@ -261,6 +263,9 @@ fun BottomSheetPlayer(
     var sliderPosition by remember {
         mutableStateOf<Long?>(null)
     }
+    
+    // Track loading state: when buffering or when user is seeking
+    val isLoading = playbackState == STATE_BUFFERING || sliderPosition != null
 
     var gradientColors by remember {
         mutableStateOf<List<Color>>(emptyList())
@@ -966,17 +971,25 @@ fun BottomSheetPlayer(
                                 .size(width = playButtonWidth, height = playButtonHeight)
                                 .clip(RoundedCornerShape(32.dp))
                         ) {
-                            Icon(
-                                painter = painterResource(
-                                    when {
-                                        playbackState == STATE_ENDED -> R.drawable.replay
-                                        isPlaying -> R.drawable.pause
-                                        else -> R.drawable.play
-                                    }
-                                ),
-                                contentDescription = null,
-                                modifier = Modifier.size(42.dp)
-                            )
+                            if (isLoading) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(42.dp),
+                                    color = iconButtonColor,
+                                    strokeWidth = 3.dp
+                                )
+                            } else {
+                                Icon(
+                                    painter = painterResource(
+                                        when {
+                                            playbackState == STATE_ENDED -> R.drawable.replay
+                                            isPlaying -> R.drawable.pause
+                                            else -> R.drawable.play
+                                        }
+                                    ),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(42.dp)
+                                )
+                            }
                         }
 
                         Spacer(modifier = Modifier.width(16.dp))
@@ -1057,26 +1070,36 @@ fun BottomSheetPlayer(
                                 }
                             },
                     ) {
-                        Image(
-                            painter =
-                            painterResource(
-                                if (playbackState ==
-                                    STATE_ENDED
-                                ) {
-                                    R.drawable.replay
-                                } else if (isPlaying) {
-                                    R.drawable.pause
-                                } else {
-                                    R.drawable.play
-                                },
-                            ),
-                            contentDescription = null,
-                            colorFilter = ColorFilter.tint(iconButtonColor),
-                            modifier =
-                            Modifier
-                                .align(Alignment.Center)
-                                .size(36.dp),
-                        )
+                        if (isLoading) {
+                            CircularProgressIndicator(
+                                modifier = Modifier
+                                    .align(Alignment.Center)
+                                    .size(36.dp),
+                                color = iconButtonColor,
+                                strokeWidth = 3.dp
+                            )
+                        } else {
+                            Image(
+                                painter =
+                                painterResource(
+                                    if (playbackState ==
+                                        STATE_ENDED
+                                    ) {
+                                        R.drawable.replay
+                                    } else if (isPlaying) {
+                                        R.drawable.pause
+                                    } else {
+                                        R.drawable.play
+                                    },
+                                ),
+                                contentDescription = null,
+                                colorFilter = ColorFilter.tint(iconButtonColor),
+                                modifier =
+                                Modifier
+                                    .align(Alignment.Center)
+                                    .size(36.dp),
+                            )
+                        }
                     }
 
                     Spacer(Modifier.width(8.dp))
