@@ -855,41 +855,69 @@ class MainActivity : ComponentActivity() {
                                         }
                                     ) {
                                         if (shouldShowBlurBackground) {
-                                            Box(
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .height(AppBarHeight + with(LocalDensity.current) {
-                                                        WindowInsets.systemBars.getTop(LocalDensity.current).toDp()
-                                                    })
-                                                    .then(
-                                                        if (disableBlur) {
-                                                            Modifier.background(
+                                            if (disableBlur) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .height(AppBarHeight + with(LocalDensity.current) {
+                                                            WindowInsets.systemBars.getTop(LocalDensity.current).toDp()
+                                                        })
+                                                        .background(
+                                                            Brush.verticalGradient(
+                                                                colors = listOf(
+                                                                    surfaceColor.copy(alpha = 0.95f),
+                                                                    surfaceColor.copy(alpha = 0.85f),
+                                                                    surfaceColor.copy(alpha = 0.6f),
+                                                                    Color.Transparent
+                                                                )
+                                                            )
+                                                        )
+                                                )
+                                            } else {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .height(AppBarHeight + with(LocalDensity.current) {
+                                                            WindowInsets.systemBars.getTop(LocalDensity.current).toDp()
+                                                        })
+                                                ) {
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .fillMaxSize()
+                                                            .background(surfaceColor.copy(alpha = 0.5f))
+                                                            .graphicsLayer(
+                                                                renderEffect = BlurEffect(radiusX = 50f, radiusY = 50f)
+                                                            )
+                                                    )                                                    
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .fillMaxSize()
+                                                            .background(
                                                                 Brush.verticalGradient(
                                                                     colors = listOf(
-                                                                        surfaceColor.copy(alpha = 0.95f),
-                                                                        surfaceColor.copy(alpha = 0.85f),
-                                                                        surfaceColor.copy(alpha = 0.6f),
+                                                                        Color.White.copy(alpha = 0.15f),
+                                                                        Color.White.copy(alpha = 0.05f),
                                                                         Color.Transparent
+                                                                    ),
+                                                                    startY = 0f,
+                                                                    endY = Float.POSITIVE_INFINITY
+                                                                )
+                                                            )
+                                                    )
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .fillMaxSize()
+                                                            .background(
+                                                                Brush.verticalGradient(
+                                                                    colors = listOf(
+                                                                        surfaceColor.copy(alpha = 0.4f),
+                                                                        surfaceColor.copy(alpha = 0.2f)
                                                                     )
                                                                 )
                                                             )
-                                                        } else {
-                                                            Modifier
-                                                                .background(
-                                                                    Brush.verticalGradient(
-                                                                        colors = listOf(
-                                                                            surfaceColor.copy(alpha = 0.75f),
-                                                                            surfaceColor.copy(alpha = 0.65f)
-                                                                        )
-                                                                    )
-                                                                )
-                                                                .graphicsLayer(
-                                                                    renderEffect = BlurEffect(radiusX = 40f, radiusY = 40f),
-                                                                    alpha = 0.95f
-                                                                )
-                                                        }
                                                     )
-                                            )
+                                                }
+                                            }
                                         }
 
                                         TopAppBar(
