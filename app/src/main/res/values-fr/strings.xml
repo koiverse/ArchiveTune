@@ -27,7 +27,7 @@
     <string name="quick_picks">Sélections rapides</string>
     <string name="quick_picks_empty">Écoutez des titres pour générer vos sélections rapides</string>
     <string name="forgotten_favorites">Favoris oubliés</string>
-    <string name="keep_listening">Continuer l'écoute</string>
+    <string name="keep_listening">Continuer l\'écoute</string>
     <string name="your_youtube_playlists">Vos playlists YouTube</string>
     <string name="similar_to">Similaire à</string>
     <string name="new_release_albums">Nouveaux albums</string>
@@ -35,7 +35,7 @@
     <string name="integration">Intégration</string>
 
     <!-- History -->
-    <string name="today">Aujourd'hui</string>
+    <string name="today">Aujourd\'hui</string>
     <string name="yesterday">Hier</string>
     <string name="this_week">Cette semaine</string>
     <string name="last_week">La semaine dernière</string>
@@ -106,12 +106,12 @@
     <string name="import_playlist">Importer une playlist</string>
     <string name="update_button">Mettre à jour</string>
     <string name="add_to_playlist">Ajouter à une playlist</string>
-    <string name="view_artist">Voir l'artiste</string>
-    <string name="view_album">Voir l'album</string>
+    <string name="view_artist">Voir l\'artiste</string>
+    <string name="view_album">Voir l\'album</string>
     <string name="refetch">Rafraîchir</string>
     <string name="share">Partager</string>
     <string name="delete">Supprimer</string>
-    <string name="remove_from_history">Retirer de l'historique</string>
+    <string name="remove_from_history">Retirer de l\'historique</string>
     <string name="remove_from_playlist">Retirer de la playlist</string>
     <string name="remove_from_queue">Retirer de la file</string>
     <string name="search_online">Rechercher en ligne</string>
@@ -313,10 +313,10 @@
     <string name="audio_quality_high">Élevée</string>
     <string name="audio_quality_low">Faible</string>
     <string name="network_metered_title">Traiter le réseau comme limité</string>
-    <string name="network_metered_description">Si activé, l'application privilégiera les flux basse qualité sur les réseaux limités</string>
-    <string name="queue">File d’attente</string>
+    <string name="network_metered_description">Si activé, l\'application privilégiera les flux basse qualité sur les réseaux limités</string>
+    <string name="queue">File d\'attente</string>
     <string name="persistent_queue">File persistante</string>
-    <string name="persistent_queue_desc">Restaurer la dernière file au démarrage de l'application</string>
+    <string name="persistent_queue_desc">Restaurer la dernière file au démarrage de l\'application</string>
     <string name="auto_load_more">Chargement automatique</string>
     <string name="auto_load_more_desc">Ajoute automatiquement des titres supplémentaires lorsqu’on arrive à la fin de la file</string>
     <string name="skip_silence">Ignorer les silences</string>

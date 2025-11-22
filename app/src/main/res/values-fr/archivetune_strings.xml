@@ -9,10 +9,10 @@
     <string name="back_button_desc">Retour</string>
     <string name="no_title">Sans titre</string>
     <string name="unknown_artist">Artiste inconnu</string>
-    <string name="unknown_item_type">Type d’élément inconnu</string>
+    <string name="unknown_item_type">Type d\'élément inconnu</string>
     <string name="loading_charts">Chargement des classements…</string>
     <string name="retry_button">Réessayer</string>
-    <string name="album_cover_desc">Pochette d’album</string>
+    <string name="album_cover_desc">Pochette d\'album</string>
     <string name="top_music_videos">Top clips musicaux</string>
     <string name="trending">Tendances</string>
 
@@ -28,8 +28,8 @@
     <string name="sync_playlist">Synchroniser la playlist</string>
     <string name="sync_disabled">Synchronisation désactivée</string>
     <string name="elements_selected">%1$d éléments sélectionnés</string>
-    <string name="allows_for_sync_witch_youtube">Note : cela permet la synchronisation avec YouTube Music. Ce choix n’est PAS modifiable ensuite.</string>
-    <string name="generating_image">Génération de l’image</string>
+    <string name="allows_for_sync_witch_youtube">Note : cela permet la synchronisation avec YouTube Music. Ce choix n\'est PAS modifiable ensuite.</string>
+    <string name="generating_image">Génération de l\'image</string>
     <string name="please_wait">Veuillez patienter</string>
     <string name="cancel">Annuler</string>
     <string name="share_lyrics">Partager les paroles</string>
@@ -84,7 +84,7 @@
     <string name="login_settings">Paramètres de connexion</string>
     <string name="general_settings">Paramètres généraux</string>
 
-    <string name="player_background_style">Style d’arrière-plan du lecteur</string>
+    <string name="player_background_style">Style d\'arrière-plan du lecteur</string>
     <string name="follow_theme">Suivre le thème</string>
     <string name="gradient">Dégradé</string>
     <string name="new_player_design">Nouveau design du lecteur</string>
@@ -127,28 +127,28 @@
     <string name="default_lib_chips">Modifier l’onglet par défaut</string>
     <string name="set_quick_picks">Définir les sélections rapides</string>
     <string name="last_song_listened">Basé sur le dernier titre écouté</string>
-    <string name="app_language">Langue de l’application</string>
+    <string name="app_language">Langue de l\'application</string>
     <string name="configure_app_language">Configurer la langue</string>
     <string name="intent_app_language_not_found">Impossible de trouver les paramètres de langue</string>
     <string name="open_supported_links">Ouvrir les liens supportés</string>
     <string name="configure_supported_links">Configurer les liens</string>
-    <string name="intent_supported_links_not_found">Impossible d’ouvrir les paramètres des liens supportés</string>
+    <string name="intent_supported_links_not_found">Impossible d\'ouvrir les paramètres des liens supportés</string>
     <string name="set_first_lyrics_provider">Fournisseur de paroles préféré</string>
 
     <string name="audio_quality_max">Max (bêta)</string>
     <string name="enable_similar_content">Activer le contenu similaire</string>
     <string name="similar_content_desc">Ajoute automatiquement des titres similaires à la fin de la file</string>
-    <string name="min_playback_duration_title">Durée minimale d’écoute</string>
+    <string name="min_playback_duration_title">Durée minimale d\'écoute</string>
     <string name="min_playback_duration_description">Durée minimale requise pour compter un titre comme écouté</string>
     <string name="percentage_format">%d%%</string>
-    <string name="minimum_playback_duration">Durée minimale d’écoute</string>
+    <string name="minimum_playback_duration">Durée minimale d\'écoute</string>
 
     <string name="import_online">Importer une playlist « m3u »</string>
     <string name="import_csv">Importer une playlist « csv »</string>
     <string name="playlist_add_local_to_synced_note">Note : ajouter des titres locaux à une playlist synchronisée n’est pas supporté.</string>
 
     <string name="auto_download_on_like">Téléchargement automatique des titres aimés</string>
-    <string name="auto_download_on_like_desc">Télécharge automatiquement un titre lorsque vous l’aimez</string>
+    <string name="auto_download_on_like_desc">Télécharge automatiquement un titre lorsque vous l\'aimez</string>
 
     <string name="swipe_sensitivity">Sensibilité du balayage</string>
     <string name="swipe_sensitivity_desc">Ajuster la sensibilité du geste de changement de titre</string>
@@ -160,11 +160,11 @@
 
     <string name="disable">Désactiver</string>
 
-    <string name="pause_remote_listen_history">Suspendre l’historique envoyé à YouTube Music</string>
+    <string name="pause_remote_listen_history">Suspendre l\'historique envoyé à YouTube Music</string>
     <string name="not_logged_in_youtube">Non connecté à YouTube</string>
 
     <string name="default_links">Ouvrir les liens supportés</string>
-    <string name="open_app_settings_error">Impossible d’ouvrir les paramètres de l’app</string>
+    <string name="open_app_settings_error">Impossible d\'ouvrir les paramètres de l\'app</string>
 
     <string name="release_notes">Notes de version</string>
 
@@ -174,7 +174,7 @@
     <string name="past_month">Mois dernier</string>
     <string name="past_year">Année dernière</string>
     <string name="top_length">Longueur du top</string>
-    <string name="history_duration">Durée de l’historique</string>
+    <string name="history_duration">Durée de l\'historique</string>
     <string name="information">Informations</string>
     <string name="description">Description</string>
     <string name="numbers">Chiffres</string>
@@ -185,7 +185,7 @@
     <string name="subscribe">S’abonner</string>
     <string name="subscribed">Abonné</string>
     <string name="playlist_not_found">Playlist introuvable</string>
-    <string name="playlist_not_found_desc">La playlist demandée n’a pas pu être chargée</string>
+    <string name="playlist_not_found_desc">La playlist demandée n\'a pas pu être chargée</string>
     <string name="empty_playlist">Playlist vide</string>
     <string name="empty_playlist_desc">Cette playlist ne contient aucun titre</string>
     <plurals name="seconds">
@@ -194,8 +194,8 @@
     </plurals>
 
     <!-- Player Settings -->
-    <string name="disable_load_more_when_repeat_all">Désactiver le chargement auto en mode “tout répéter”</string>
-    <string name="disable_load_more_when_repeat_all_desc">N’ajoute pas automatiquement de titres lorsque le mode répétition totale est activé</string>
+    <string name="disable_load_more_when_repeat_all">Désactiver le chargement auto en mode "tout répéter"</string>
+    <string name="disable_load_more_when_repeat_all_desc">N\'ajoute pas automatiquement de titres lorsque le mode répétition totale est activé</string>
 
     <!-- Material 3 Settings Sections -->
     <string name="settings_section_ui">Interface utilisateur</string>
