@@ -49,6 +49,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.graphics.BlurEffect
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.material3.AlertDialogDefaults
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
@@ -129,6 +133,7 @@ import moe.koiverse.archivetune.constants.AppBarHeight
 import moe.koiverse.archivetune.constants.AppLanguageKey
 import moe.koiverse.archivetune.constants.DarkModeKey
 import moe.koiverse.archivetune.constants.DefaultOpenTabKey
+import moe.koiverse.archivetune.constants.DisableBlurKey
 import moe.koiverse.archivetune.constants.DisableScreenshotKey
 import moe.koiverse.archivetune.constants.DynamicThemeKey
 import moe.koiverse.archivetune.constants.MiniPlayerHeight
@@ -815,6 +820,8 @@ class MainActivity : ComponentActivity() {
                         }
                     }
 
+                    val (disableBlur) = rememberPreference(DisableBlurKey, false)
+
                     var showAccountDialog by remember { mutableStateOf(false) }
 
                     CompositionLocalProvider(
@@ -831,7 +838,45 @@ class MainActivity : ComponentActivity() {
                         Scaffold(
                             topBar = {
                                 if (shouldShowTopBar) {
-                                    TopAppBar(
+                                    val shouldShowBlurBackground = remember(navBackStackEntry) {
+                                        navBackStackEntry?.destination?.route == Screens.Home.route || 
+                                        navBackStackEntry?.destination?.route == Screens.Library.route
+                                    }
+
+                                    val surfaceColor = MaterialTheme.colorScheme.surface
+
+                                    Box {
+                                        if (shouldShowBlurBackground) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .height(AppBarHeight + with(LocalDensity.current) {
+                                                        WindowInsets.systemBars.getTop(LocalDensity.current).toDp()
+                                                    })
+                                                    .then(
+                                                        if (disableBlur) {
+                                                            Modifier.background(
+                                                                Brush.verticalGradient(
+                                                                    colors = listOf(
+                                                                        surfaceColor.copy(alpha = 0.95f),
+                                                                        surfaceColor.copy(alpha = 0.85f),
+                                                                        surfaceColor.copy(alpha = 0.6f),
+                                                                        Color.Transparent
+                                                                    )
+                                                                )
+                                                            )
+                                                        } else {
+                                                            Modifier
+                                                                .background(surfaceColor.copy(alpha = 0.7f))
+                                                                .graphicsLayer(
+                                                                    renderEffect = BlurEffect(radiusX = 25f, radiusY = 25f)
+                                                                )
+                                                        }
+                                                    )
+                                            )
+                                        }
+
+                                        TopAppBar(
                                         title = {
                                             Row(verticalAlignment = Alignment.CenterVertically) {
                                                 // app icon
@@ -901,6 +946,7 @@ class MainActivity : ComponentActivity() {
                                             navigationIconContentColor = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
                                     )
+                                  }
                                 }
                                 AnimatedVisibility(
                                     visible = active || navBackStackEntry?.destination?.route?.startsWith("search/") == true,
