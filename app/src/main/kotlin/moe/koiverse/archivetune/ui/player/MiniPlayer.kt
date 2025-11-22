@@ -129,9 +129,6 @@ private fun NewMiniPlayer(
     // Track loading state when buffering
     val isLoading = playbackState == STATE_BUFFERING
     
-    // Track loading state when buffering
-    val isLoading = playbackState == STATE_BUFFERING
-    
     val currentView = LocalView.current
     val layoutDirection = LocalLayoutDirection.current
     val coroutineScope = rememberCoroutineScope()
@@ -531,6 +528,9 @@ private fun LegacyMiniPlayer(
     val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
     val canSkipNext by playerConnection.canSkipNext.collectAsState()
     val canSkipPrevious by playerConnection.canSkipPrevious.collectAsState()
+    
+    // Track loading state when buffering
+    val isLoading = playbackState == STATE_BUFFERING
     
     val currentView = LocalView.current
     val layoutDirection = LocalLayoutDirection.current
