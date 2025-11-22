@@ -844,8 +844,16 @@ class MainActivity : ComponentActivity() {
                                     }
 
                                     val surfaceColor = MaterialTheme.colorScheme.surface
+                                    val currentScrollBehavior = if (navBackStackEntry?.destination?.route == Screens.Home.route || navBackStackEntry?.destination?.route == Screens.Library.route) searchBarScrollBehavior else topAppBarScrollBehavior
 
-                                    Box {
+                                    Box(
+                                        modifier = Modifier.offset {
+                                            IntOffset(
+                                                x = 0,
+                                                y = currentScrollBehavior.state.heightOffset.toInt()
+                                            )
+                                        }
+                                    ) {
                                         if (shouldShowBlurBackground) {
                                             Box(
                                                 modifier = Modifier
@@ -867,9 +875,17 @@ class MainActivity : ComponentActivity() {
                                                             )
                                                         } else {
                                                             Modifier
-                                                                .background(surfaceColor.copy(alpha = 0.7f))
+                                                                .background(
+                                                                    Brush.verticalGradient(
+                                                                        colors = listOf(
+                                                                            surfaceColor.copy(alpha = 0.75f),
+                                                                            surfaceColor.copy(alpha = 0.65f)
+                                                                        )
+                                                                    )
+                                                                )
                                                                 .graphicsLayer(
-                                                                    renderEffect = BlurEffect(radiusX = 25f, radiusY = 25f)
+                                                                    renderEffect = BlurEffect(radiusX = 40f, radiusY = 40f),
+                                                                    alpha = 0.95f
                                                                 )
                                                         }
                                                     )
