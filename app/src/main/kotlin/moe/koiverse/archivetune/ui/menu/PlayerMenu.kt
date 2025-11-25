@@ -223,8 +223,7 @@ fun PlayerMenu(
                 text = stringResource(R.string.start_radio),
                 onClick = {
                     Toast.makeText(context, context.getString(R.string.starting_radio), Toast.LENGTH_SHORT).show()
-                    // Start a radio based on the current media in the menu
-                    playerConnection.playQueue(YouTubeQueue.radio(mediaMetadata))
+                    playerConnection.startRadioSeamlessly()
                     onDismiss()
                 }
             ),
