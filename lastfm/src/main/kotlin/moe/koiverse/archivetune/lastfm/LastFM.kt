@@ -1,6 +1,7 @@
 package moe.koiverse.archivetune.lastfm
 
 import moe.koiverse.archivetune.lastfm.models.Authentication
+import moe.koiverse.archivetune.lastfm.models.LastFmError
 import moe.koiverse.archivetune.lastfm.models.TokenResponse
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
@@ -9,6 +10,7 @@ import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.defaultRequest
 import io.ktor.client.request.*
 import io.ktor.client.request.forms.FormDataContent
+import io.ktor.client.statement.bodyAsText
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
@@ -17,13 +19,18 @@ import java.security.MessageDigest
 object LastFM {
     var sessionKey: String? = null
 
+    private val json = Json { 
+        isLenient = true
+        ignoreUnknownKeys = true 
+    }
+
     private val client by lazy {
         HttpClient(OkHttp) {
             install(ContentNegotiation) {
-                json(Json { isLenient = true; ignoreUnknownKeys = true })
+                json(json)
             }
             defaultRequest { url("https://ws.audioscrobbler.com/2.0/") }
-            expectSuccess = true
+            expectSuccess = false
         }
     }
 
@@ -88,7 +95,7 @@ object LastFM {
 
     // Mobile session authentication
     suspend fun getMobileSession(username: String, password: String) = runCatching {
-        client.post {
+        val response = client.post {
             lastfmParams(
                 method = "auth.getMobileSession",
                 apiKey = API_KEY,
@@ -96,7 +103,18 @@ object LastFM {
                 extra = mapOf("username" to username, "password" to password)
             )
             parameter("format", "json")
-        }.body<Authentication>()
+        }
+        
+        val responseText = response.bodyAsText()
+        if (responseText.contains("\"error\"")) {
+            val error = json.decodeFromString<LastFmError>(responseText)
+            throw LastFmException(error.error, error.message)
+        }
+        json.decodeFromString<Authentication>(responseText)
+    }
+    
+    class LastFmException(val code: Int, override val message: String) : Exception(message) {
+        override fun toString(): String = "LastFmException(code=$code, message=$message)"
     }
 
     suspend fun updateNowPlaying(
@@ -150,6 +168,8 @@ object LastFM {
         API_KEY = apiKey
         SECRET = secret
     }
+
+    fun isInitialized(): Boolean = API_KEY.isNotEmpty() && SECRET.isNotEmpty()
 
     const val DEFAULT_SCROBBLE_DELAY_PERCENT = 0.5f
     const val DEFAULT_SCROBBLE_MIN_SONG_DURATION = 30
