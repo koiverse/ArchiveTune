@@ -47,11 +47,12 @@ import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.matchParentSize
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.graphics.BlurEffect
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.material3.AlertDialogDefaults
 import androidx.compose.material3.Badge
@@ -839,12 +840,19 @@ class MainActivity : ComponentActivity() {
                             topBar = {
                                 if (shouldShowTopBar) {
                                     val shouldShowBlurBackground = remember(navBackStackEntry) {
-                                        navBackStackEntry?.destination?.route == Screens.Home.route || 
-                                        navBackStackEntry?.destination?.route == Screens.Library.route
+                                        navBackStackEntry?.destination?.route == Screens.Home.route ||
+                                                navBackStackEntry?.destination?.route == Screens.Library.route
                                     }
 
                                     val surfaceColor = MaterialTheme.colorScheme.surface
                                     val currentScrollBehavior = if (navBackStackEntry?.destination?.route == Screens.Home.route || navBackStackEntry?.destination?.route == Screens.Library.route) searchBarScrollBehavior else topAppBarScrollBehavior
+                                    val density = LocalDensity.current
+                                    val topInset = remember(density) {
+                                        with(density) {
+                                            WindowInsets.systemBars.getTop(density).toDp()
+                                        }
+                                    }
+                                    val topBarHeight = remember(topInset) { AppBarHeight + topInset }
 
                                     Box(
                                         modifier = Modifier.offset {
@@ -859,44 +867,82 @@ class MainActivity : ComponentActivity() {
                                                 Box(
                                                     modifier = Modifier
                                                         .fillMaxWidth()
-                                                        .height(AppBarHeight + with(LocalDensity.current) {
-                                                            WindowInsets.systemBars.getTop(LocalDensity.current).toDp()
-                                                        })
-                                                        .background(
-                                                            Brush.verticalGradient(
-                                                                colors = listOf(
-                                                                    surfaceColor.copy(alpha = 0.95f),
-                                                                    surfaceColor.copy(alpha = 0.85f),
-                                                                    surfaceColor.copy(alpha = 0.6f),
-                                                                    Color.Transparent
-                                                                )
-                                                            )
-                                                        )
-                                                )
-                                            } else {
-                                                Box(
-                                                    modifier = Modifier
-                                                        .fillMaxWidth()
-                                                        .height(AppBarHeight + with(LocalDensity.current) {
-                                                            WindowInsets.systemBars.getTop(LocalDensity.current).toDp()
-                                                        })
+                                                        .height(topBarHeight)
                                                 ) {
                                                     Box(
                                                         modifier = Modifier
-                                                            .fillMaxSize()
-                                                            .background(surfaceColor.copy(alpha = 0.5f))
-                                                            .graphicsLayer(
-                                                                renderEffect = BlurEffect(radiusX = 50f, radiusY = 50f)
-                                                            )
-                                                    )                                                    
-                                                    Box(
-                                                        modifier = Modifier
-                                                            .fillMaxSize()
+                                                            .matchParentSize()
                                                             .background(
                                                                 Brush.verticalGradient(
                                                                     colors = listOf(
-                                                                        Color.White.copy(alpha = 0.15f),
-                                                                        Color.White.copy(alpha = 0.05f),
+                                                                        surfaceColor.copy(alpha = 0.96f),
+                                                                        surfaceColor.copy(alpha = 0.88f),
+                                                                        surfaceColor.copy(alpha = 0.74f),
+                                                                        surfaceColor.copy(alpha = 0.28f)
+                                                                    )
+                                                                )
+                                                            )
+                                                    )
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .matchParentSize()
+                                                            .background(
+                                                                Brush.verticalGradient(
+                                                                    colors = listOf(
+                                                                        Color.White.copy(alpha = if (useDarkTheme) 0.08f else 0.04f),
+                                                                        Color.Transparent,
+                                                                        surfaceColor.copy(alpha = 0.05f)
+                                                                    )
+                                                                )
+                                                            )
+                                                    )
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .align(Alignment.BottomCenter)
+                                                            .fillMaxWidth()
+                                                            .height(1.dp)
+                                                            .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f))
+                                                    )
+                                                }
+                                            } else {
+                                                val baseTint = if (pureBlack) Color.Black.copy(alpha = 0.55f) else surfaceColor.copy(alpha = 0.55f)
+                                                val depthTint = if (pureBlack) Color.Black.copy(alpha = 0.7f) else surfaceColor.copy(alpha = 0.7f)
+
+                                                Box(
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .height(topBarHeight)
+                                                ) {
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .matchParentSize()
+                                                            .graphicsLayer {
+                                                                compositingStrategy = CompositingStrategy.Offscreen
+                                                                renderEffect = BlurEffect(radiusX = 55f, radiusY = 55f)
+                                                            }
+                                                            .background(baseTint)
+                                                    )
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .matchParentSize()
+                                                            .background(
+                                                                Brush.verticalGradient(
+                                                                    colors = listOf(
+                                                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.22f),
+                                                                        Color.Transparent,
+                                                                        depthTint.copy(alpha = 0.9f)
+                                                                    )
+                                                                )
+                                                            )
+                                                    )
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .matchParentSize()
+                                                            .background(
+                                                                Brush.verticalGradient(
+                                                                    colors = listOf(
+                                                                        Color.White.copy(alpha = if (useDarkTheme) 0.14f else 0.08f),
+                                                                        Color.White.copy(alpha = if (useDarkTheme) 0.06f else 0.02f),
                                                                         Color.Transparent
                                                                     ),
                                                                     startY = 0f,
@@ -906,15 +952,17 @@ class MainActivity : ComponentActivity() {
                                                     )
                                                     Box(
                                                         modifier = Modifier
-                                                            .fillMaxSize()
-                                                            .background(
-                                                                Brush.verticalGradient(
-                                                                    colors = listOf(
-                                                                        surfaceColor.copy(alpha = 0.4f),
-                                                                        surfaceColor.copy(alpha = 0.2f)
-                                                                    )
-                                                                )
-                                                            )
+                                                            .align(Alignment.TopCenter)
+                                                            .fillMaxWidth()
+                                                            .height(1.dp)
+                                                            .background(Color.White.copy(alpha = if (useDarkTheme) 0.16f else 0.12f))
+                                                    )
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .align(Alignment.BottomCenter)
+                                                            .fillMaxWidth()
+                                                            .height(1.dp)
+                                                            .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
                                                     )
                                                 }
                                             }
