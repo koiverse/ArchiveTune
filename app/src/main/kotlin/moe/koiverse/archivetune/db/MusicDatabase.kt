@@ -148,7 +148,8 @@ abstract class InternalDatabase : RoomDatabase() {
                             // Optimize WAL mode
                             db.execSQL("PRAGMA wal_autocheckpoint = 1000")
                             db.execSQL("PRAGMA synchronous = NORMAL")
-                        }\n                    })
+                        }
+                    })
                     .build(),
             )
     }
