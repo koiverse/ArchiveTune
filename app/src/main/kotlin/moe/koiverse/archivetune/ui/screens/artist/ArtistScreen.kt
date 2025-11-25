@@ -407,7 +407,6 @@ fun ArtistScreen(
                 // Hero Header
                 item(key = "header") {
                     val artistName = artistPage?.artist?.title ?: libraryArtist?.artist?.name
-                    val subscriberCount = artistPage?.artist?.subscribers
 
                     Column(
                         modifier = Modifier
@@ -469,14 +468,6 @@ fun ArtistScreen(
                                 .padding(vertical = 16.dp, horizontal = 32.dp),
                             horizontalArrangement = Arrangement.SpaceEvenly
                         ) {
-                            // Subscriber count (for YouTube artists)
-                            if (!showLocal && subscriberCount != null) {
-                                StatItem(
-                                    value = subscriberCount,
-                                    label = stringResource(R.string.subscribers)
-                                )
-                            }
-
                             // Songs count
                             val songCount = if (showLocal) librarySongs.size else artistPage?.sections?.find {
                                 (it.items.firstOrNull() as? SongItem)?.album != null
@@ -666,6 +657,7 @@ fun ArtistScreen(
                                                 )
                                             }
                                         },
+                                        onLongClick = {},
                                     ) {
                                         Icon(
                                             painter = painterResource(R.drawable.more_vert),
@@ -823,6 +815,7 @@ fun ArtistScreen(
                                                     )
                                                 }
                                             },
+                                            onLongClick = {},
                                         ) {
                                             Icon(
                                                 painter = painterResource(R.drawable.more_vert),
@@ -1002,6 +995,7 @@ fun ArtistScreen(
                         Toast.makeText(context, R.string.link_copied, Toast.LENGTH_SHORT).show()
                     }
                 },
+                onLongClick = {},
             ) {
                 Icon(
                     painterResource(R.drawable.link),
@@ -1022,7 +1016,8 @@ fun ArtistScreen(
                         )
                     }
                     context.startActivity(Intent.createChooser(shareIntent, null))
-                }
+                },
+                onLongClick = {},
             ) {
                 Icon(
                     painter = painterResource(R.drawable.share),
