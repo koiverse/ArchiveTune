@@ -135,6 +135,20 @@ abstract class InternalDatabase : RoomDatabase() {
                         MIGRATION_24_25   // Add perceptualLoudnessDb column for audio normalization
                     )
                     .fallbackToDestructiveMigration()
+                    .setJournalMode(androidx.room.RoomDatabase.JournalMode.WRITE_AHEAD_LOGGING)
+                    .setTransactionExecutor(java.util.concurrent.Executors.newFixedThreadPool(4))
+                    .setQueryExecutor(java.util.concurrent.Executors.newFixedThreadPool(4))
+                    .addCallback(object : androidx.room.RoomDatabase.Callback() {
+                        override fun onOpen(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                            super.onOpen(db)
+                            // Set busy timeout to 60 seconds to handle concurrent access during sync
+                            db.execSQL("PRAGMA busy_timeout = 60000")
+                            // Increase cache size for better performance
+                            db.execSQL("PRAGMA cache_size = -16000") // 16MB cache
+                            // Optimize WAL mode
+                            db.execSQL("PRAGMA wal_autocheckpoint = 1000")
+                            db.execSQL("PRAGMA synchronous = NORMAL")
+                        }\n                    })
                     .build(),
             )
     }
