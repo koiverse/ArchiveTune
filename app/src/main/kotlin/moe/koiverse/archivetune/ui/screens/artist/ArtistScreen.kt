@@ -329,7 +329,7 @@ fun ArtistScreen(
                             // Artist image placeholder - circular
                             Box(
                                 modifier = Modifier
-                                    .padding(top = 32.dp)
+                                    .padding(top = 25.dp)
                                     .size(180.dp)
                                     .align(Alignment.CenterHorizontally)
                                     .shimmer()
@@ -417,7 +417,7 @@ fun ArtistScreen(
                         // Artist Image - Circular with shadow
                         Box(
                             modifier = Modifier
-                                .padding(top = 24.dp, bottom = 20.dp)
+                                .padding(top = 20.dp, bottom = 20.dp)
                                 .graphicsLayer {
                                     translationY = headerParallax
                                 }
@@ -468,10 +468,16 @@ fun ArtistScreen(
                                 .padding(vertical = 16.dp, horizontal = 32.dp),
                             horizontalArrangement = Arrangement.SpaceEvenly
                         ) {
-                            // Songs count
-                            val songCount = if (showLocal) librarySongs.size else artistPage?.sections?.find {
-                                (it.items.firstOrNull() as? SongItem)?.album != null
-                            }?.items?.size ?: librarySongs.size
+                            // Songs count - sum all SongItem instances across all sections
+                            val songCount = if (showLocal) {
+                                librarySongs.size
+                            } else {
+                                artistPage?.sections
+                                    ?.flatMap { it.items }
+                                    ?.filterIsInstance<SongItem>()
+                                    ?.distinctBy { it.id }
+                                    ?.size ?: librarySongs.size
+                            }
 
                             if (songCount > 0) {
                                 StatItem(
@@ -480,10 +486,16 @@ fun ArtistScreen(
                                 )
                             }
 
-                            // Albums count
-                            val albumCount = if (showLocal) libraryAlbums.size else artistPage?.sections?.count {
-                                it.items.firstOrNull() is AlbumItem
-                            } ?: libraryAlbums.size
+                            // Albums count - sum all AlbumItem instances across all sections
+                            val albumCount = if (showLocal) {
+                                libraryAlbums.size
+                            } else {
+                                artistPage?.sections
+                                    ?.flatMap { it.items }
+                                    ?.filterIsInstance<AlbumItem>()
+                                    ?.distinctBy { it.id }
+                                    ?.size ?: libraryAlbums.size
+                            }
 
                             if (albumCount > 0) {
                                 StatItem(
@@ -1048,13 +1060,13 @@ private fun StatItem(
     ) {
         Text(
             text = value,
-            style = MaterialTheme.typography.titleMedium,
+            style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onSurface
         )
         Text(
             text = label,
-            style = MaterialTheme.typography.bodySmall,
+            style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
