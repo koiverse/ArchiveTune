@@ -795,6 +795,72 @@ interface DatabaseDao {
     fun album(id: String): Flow<Album?>
 
     @Transaction
+    @SuppressWarnings(RoomWarnings.QUERY_MISMATCH)
+    @Query("SELECT * FROM album WHERE id IN (:ids) ORDER BY rowId")
+    fun albumsByRowId(ids: Collection<String>): Flow<List<Album>>
+
+    @Transaction
+    @SuppressWarnings(RoomWarnings.QUERY_MISMATCH)
+    @Query("SELECT * FROM album WHERE id IN (:ids) ORDER BY title")
+    fun albumsByTitle(ids: Collection<String>): Flow<List<Album>>
+
+    @Transaction
+    @SuppressWarnings(RoomWarnings.QUERY_MISMATCH)
+    @Query("SELECT * FROM album WHERE id IN (:ids) ORDER BY year")
+    fun albumsByYear(ids: Collection<String>): Flow<List<Album>>
+
+    @Transaction
+    @SuppressWarnings(RoomWarnings.QUERY_MISMATCH)
+    @Query("SELECT * FROM album WHERE id IN (:ids) ORDER BY songCount")
+    fun albumsBySongCount(ids: Collection<String>): Flow<List<Album>>
+
+    @Transaction
+    @SuppressWarnings(RoomWarnings.QUERY_MISMATCH)
+    @Query("SELECT * FROM album WHERE id IN (:ids) ORDER BY duration")
+    fun albumsByDuration(ids: Collection<String>): Flow<List<Album>>
+
+    @Transaction
+    @SuppressWarnings(RoomWarnings.QUERY_MISMATCH)
+    @Query(
+        """
+        SELECT album.*
+        FROM album
+        LEFT JOIN song ON song.albumId = album.id
+        WHERE album.id IN (:ids)
+        GROUP BY album.id
+        ORDER BY COALESCE(SUM(song.totalPlayTime), 0)
+        """
+    )
+    fun albumsByPlayTime(ids: Collection<String>): Flow<List<Album>>
+
+    fun albumsByIds(
+        ids: Collection<String>,
+        sortType: AlbumSortType,
+        descending: Boolean,
+    ): Flow<List<Album>> {
+        if (ids.isEmpty()) return kotlinx.coroutines.flow.flowOf(emptyList())
+        return when (sortType) {
+            AlbumSortType.CREATE_DATE -> albumsByRowId(ids)
+            AlbumSortType.NAME ->
+                albumsByTitle(ids).map { albums ->
+                    val collator = Collator.getInstance(java.util.Locale.getDefault())
+                    collator.strength = Collator.PRIMARY
+                    albums.sortedWith(compareBy(collator) { it.album.title })
+                }
+            AlbumSortType.ARTIST ->
+                albumsByRowId(ids).map { albums ->
+                    val collator = Collator.getInstance(java.util.Locale.getDefault())
+                    collator.strength = Collator.PRIMARY
+                    albums.sortedWith(compareBy(collator) { album -> album.artists.joinToString("") { it.name } })
+                }
+            AlbumSortType.YEAR -> albumsByYear(ids)
+            AlbumSortType.SONG_COUNT -> albumsBySongCount(ids)
+            AlbumSortType.LENGTH -> albumsByDuration(ids)
+            AlbumSortType.PLAY_TIME -> albumsByPlayTime(ids)
+        }.map { it.reversed(descending) }
+    }
+
+    @Transaction
     @Query("SELECT * FROM album WHERE id = :albumId")
     fun albumWithSongs(albumId: String): Flow<AlbumWithSongs?>
 
