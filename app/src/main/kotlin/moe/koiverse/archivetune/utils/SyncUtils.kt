@@ -22,6 +22,10 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 import java.time.LocalDateTime
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -32,6 +36,12 @@ class SyncUtils @Inject constructor(
     @ApplicationContext private val context: Context,
 ) {
     private val syncScope = CoroutineScope(Dispatchers.IO)
+    
+    // Mutex to ensure only one sync operation runs at a time
+    private val syncMutex = Mutex()
+    
+    // Semaphore to limit concurrent database writes per sync operation
+    private val dbWriteSemaphore = Semaphore(2)
 
     fun likeSong(s: SongEntity) {
         syncScope.launch {
@@ -51,14 +61,16 @@ class SyncUtils @Inject constructor(
             val now = LocalDateTime.now()
             remoteSongs.forEachIndexed { index, song ->
                 launch {
-                    val dbSong = database.song(song.id).firstOrNull()
-                    val timestamp = LocalDateTime.now().minusSeconds(index.toLong())
-                    database.transaction {
-                        if (dbSong == null) {
-                            // Use proper MediaMetadata insertion to save artist information
-                            insert(song.toMediaMetadata()) { it.copy(liked = true, likedDate = timestamp) }
-                        } else if (!dbSong.song.liked || dbSong.song.likedDate != timestamp) {
-                            update(dbSong.song.copy(liked = true, likedDate = timestamp))
+                    dbWriteSemaphore.withPermit {
+                        val dbSong = database.song(song.id).firstOrNull()
+                        val timestamp = LocalDateTime.now().minusSeconds(index.toLong())
+                        database.transaction {
+                            if (dbSong == null) {
+                                // Use proper MediaMetadata insertion to save artist information
+                                insert(song.toMediaMetadata()) { it.copy(liked = true, likedDate = timestamp) }
+                            } else if (!dbSong.song.liked || dbSong.song.likedDate != timestamp) {
+                                update(dbSong.song.copy(liked = true, likedDate = timestamp))
+                            }
                         }
                     }
                 }
@@ -77,13 +89,15 @@ class SyncUtils @Inject constructor(
 
             remoteSongs.forEach { song ->
                 launch {
-                    val dbSong = database.song(song.id).firstOrNull()
-                    database.transaction {
-                        if (dbSong == null) {
-                            // Use proper MediaMetadata insertion to save artist information
-                            insert(song.toMediaMetadata()) { it.toggleLibrary() }
-                        } else if (dbSong.song.inLibrary == null) {
-                            update(dbSong.song.toggleLibrary())
+                    dbWriteSemaphore.withPermit {
+                        val dbSong = database.song(song.id).firstOrNull()
+                        database.transaction {
+                            if (dbSong == null) {
+                                // Use proper MediaMetadata insertion to save artist information
+                                insert(song.toMediaMetadata()) { it.toggleLibrary() }
+                            } else if (dbSong.song.inLibrary == null) {
+                                update(dbSong.song.toggleLibrary())
+                            }
                         }
                     }
                 }
@@ -102,15 +116,17 @@ class SyncUtils @Inject constructor(
 
             remoteAlbums.forEach { album ->
                 launch {
-                    val dbAlbum = database.album(album.id).firstOrNull()
-                    YouTube.album(album.browseId).onSuccess { albumPage ->
-                        if (dbAlbum == null) {
-                            database.insert(albumPage)
-                            database.album(album.id).firstOrNull()?.let { newDbAlbum ->
-                                database.update(newDbAlbum.album.localToggleLike())
+                    dbWriteSemaphore.withPermit {
+                        val dbAlbum = database.album(album.id).firstOrNull()
+                        YouTube.album(album.browseId).onSuccess { albumPage ->
+                            if (dbAlbum == null) {
+                                database.insert(albumPage)
+                                database.album(album.id).firstOrNull()?.let { newDbAlbum ->
+                                    database.update(newDbAlbum.album.localToggleLike())
+                                }
+                            } else if (dbAlbum.album.bookmarkedAt == null) {
+                                database.update(dbAlbum.album.localToggleLike())
                             }
-                        } else if (dbAlbum.album.bookmarkedAt == null) {
-                            database.update(dbAlbum.album.localToggleLike())
                         }
                     }
                 }
@@ -129,30 +145,32 @@ class SyncUtils @Inject constructor(
 
             remoteArtists.forEach { artist ->
                 launch {
-                    val dbArtist = database.artist(artist.id).firstOrNull()
-                    database.transaction {
-                        if (dbArtist == null) {
-                            // Insert artist metadata but do not mark as bookmarked
-                            insert(
-                                ArtistEntity(
-                                    id = artist.id,
-                                    name = artist.title,
-                                    thumbnailUrl = artist.thumbnail,
-                                    channelId = artist.channelId,
-                                )
-                            )
-                        } else {
-                            // Update existing artist metadata if changed, but keep bookmarkedAt as-is
-                            val existing = dbArtist.artist
-                            if (existing.name != artist.title || existing.thumbnailUrl != artist.thumbnail || existing.channelId != artist.channelId) {
-                                update(
-                                    existing.copy(
+                    dbWriteSemaphore.withPermit {
+                        val dbArtist = database.artist(artist.id).firstOrNull()
+                        database.transaction {
+                            if (dbArtist == null) {
+                                // Insert artist metadata but do not mark as bookmarked
+                                insert(
+                                    ArtistEntity(
+                                        id = artist.id,
                                         name = artist.title,
                                         thumbnailUrl = artist.thumbnail,
                                         channelId = artist.channelId,
-                                        lastUpdateTime = java.time.LocalDateTime.now()
                                     )
                                 )
+                            } else {
+                                // Update existing artist metadata if changed, but keep bookmarkedAt as-is
+                                val existing = dbArtist.artist
+                                if (existing.name != artist.title || existing.thumbnailUrl != artist.thumbnail || existing.channelId != artist.channelId) {
+                                    update(
+                                        existing.copy(
+                                            name = artist.title,
+                                            thumbnailUrl = artist.thumbnail,
+                                            channelId = artist.channelId,
+                                            lastUpdateTime = java.time.LocalDateTime.now()
+                                        )
+                                    )
+                                }
                             }
                         }
                     }
@@ -181,24 +199,26 @@ class SyncUtils @Inject constructor(
 
             playlistsToSync.forEach { playlist ->
                 launch {
-                    var playlistEntity = localPlaylists.find { it.playlist.browseId == playlist.id }?.playlist
-                    if (playlistEntity == null) {
-                        playlistEntity = PlaylistEntity(
-                            name = playlist.title,
-                            browseId = playlist.id,
-                            thumbnailUrl = playlist.thumbnail,
-                            isEditable = playlist.isEditable,
-                            bookmarkedAt = LocalDateTime.now(),
-                            remoteSongCount = playlist.songCountText?.let { Regex("""\\d+""").find(it)?.value?.toIntOrNull() },
-                            playEndpointParams = playlist.playEndpoint?.params,
-                            shuffleEndpointParams = playlist.shuffleEndpoint?.params,
-                            radioEndpointParams = playlist.radioEndpoint?.params
-                        )
-                        database.insert(playlistEntity)
-                    } else {
-                        database.update(playlistEntity, playlist)
+                    dbWriteSemaphore.withPermit {
+                        var playlistEntity = localPlaylists.find { it.playlist.browseId == playlist.id }?.playlist
+                        if (playlistEntity == null) {
+                            playlistEntity = PlaylistEntity(
+                                name = playlist.title,
+                                browseId = playlist.id,
+                                thumbnailUrl = playlist.thumbnail,
+                                isEditable = playlist.isEditable,
+                                bookmarkedAt = LocalDateTime.now(),
+                                remoteSongCount = playlist.songCountText?.let { Regex("""\\d+""").find(it)?.value?.toIntOrNull() },
+                                playEndpointParams = playlist.playEndpoint?.params,
+                                shuffleEndpointParams = playlist.shuffleEndpoint?.params,
+                                radioEndpointParams = playlist.radioEndpoint?.params
+                            )
+                            database.insert(playlistEntity)
+                        } else {
+                            database.update(playlistEntity, playlist)
+                        }
+                        syncPlaylist(playlist.id, playlistEntity.id)
                     }
-                    syncPlaylist(playlist.id, playlistEntity.id)
                 }
             }
         }
@@ -210,7 +230,9 @@ class SyncUtils @Inject constructor(
 
         autoSyncPlaylists.forEach { playlist ->
             launch {
-                syncPlaylist(playlist.playlist.browseId!!, playlist.playlist.id)
+                dbWriteSemaphore.withPermit {
+                    syncPlaylist(playlist.playlist.browseId!!, playlist.playlist.id)
+                }
             }
         }
     }
