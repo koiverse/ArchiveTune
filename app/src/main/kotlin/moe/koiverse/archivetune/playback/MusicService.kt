@@ -970,28 +970,32 @@ class MusicService :
         val currentMediaMetadata = player.currentMetadata ?: return
 
         val currentIndex = player.currentMediaItemIndex
-        val wasPlayWhenReady = player.playWhenReady
+        val currentMediaId = currentMediaMetadata.id
 
         scope.launch(SilentHandler) {
             val radioQueue = YouTubeQueue(
-                endpoint = WatchEndpoint(videoId = currentMediaMetadata.id)
+                endpoint = WatchEndpoint(videoId = currentMediaId)
             )
-            val initialStatus = radioQueue.getInitialStatus().filterExplicit(dataStore.get(HideExplicitKey, false))
+            val initialStatus = withContext(Dispatchers.IO) {
+                radioQueue.getInitialStatus().filterExplicit(dataStore.get(HideExplicitKey, false))
+            }
 
             if (initialStatus.title != null) {
                 queueTitle = initialStatus.title
             }
 
-            val radioItems = initialStatus.items.drop(1)
+            val radioItems = initialStatus.items.filter { item ->
+                item.mediaId != currentMediaId
+            }
             
             if (radioItems.isNotEmpty()) {
                 val itemCount = player.mediaItemCount
+                
                 if (itemCount > currentIndex + 1) {
                     player.removeMediaItems(currentIndex + 1, itemCount)
                 }
                 
                 player.addMediaItems(currentIndex + 1, radioItems)
-                player.playWhenReady = wasPlayWhenReady
             }
 
             currentQueue = radioQueue
