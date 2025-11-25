@@ -810,7 +810,7 @@ fun ArtistScreen(
                             ) {
                                 items(
                                     items = filteredLibraryAlbums,
-                                    key = { "local_album_${it.id}" }
+                                    key = { album -> "local_album_${album.id}_${filteredLibraryAlbums.indexOf(album)}" }
                                 ) { album ->
                                     AlbumGridItem(
                                         album = album,
@@ -923,7 +923,16 @@ fun ArtistScreen(
                                 ) {
                                     items(
                                         items = section.items.distinctBy { it.id },
-                                        key = { "youtube_item_${it.id}" },
+                                        key = {
+                                            val type = when (it) {
+                                                is SongItem -> "song"
+                                                is AlbumItem -> "album"
+                                                is ArtistItem -> "artist"
+                                                is PlaylistItem -> "playlist"
+                                                else -> "item"
+                                            }
+                                            "youtube_${type}_${it.id}"
+                                        },
                                     ) { item ->
                                         YouTubeGridItem(
                                             item = item,
