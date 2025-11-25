@@ -109,6 +109,7 @@
     <string name="add_to_playlist">Add to playlist</string>
     <string name="view_artist">View artist</string>
     <string name="view_album">View album</string>
+    <string name="view_all">View all</string>
     <string name="refetch">Refetch</string>
     <string name="share">Share</string>
     <string name="delete">Delete</string>

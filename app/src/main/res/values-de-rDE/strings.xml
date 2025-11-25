@@ -109,6 +109,7 @@
     <string name="add_to_playlist">Zur Playlist hinzufügen</string>
     <string name="view_artist">Künstler ansehen</string>
     <string name="view_album">Album ansehen</string>
+    <string name="view_all">Alle anzeigen</string>
     <string name="refetch">Erneut abrufen</string>
     <string name="share">Aktie</string>
     <string name="delete">Löschen</string>
