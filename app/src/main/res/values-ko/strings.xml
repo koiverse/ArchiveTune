@@ -110,6 +110,7 @@
     <string name="view_artist">보기 아티스트</string>
     <string name="view_album">앨범 보기</string>
     <string name="view_all">모두 보기</string>
+    <string name="more">더보기</string>
     <string name="refetch">다시 가져오기</string>
     <string name="share">공유</string>
     <string name="delete">삭제</string>

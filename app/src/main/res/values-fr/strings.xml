@@ -109,6 +109,7 @@
     <string name="view_artist">Voir l\'artiste</string>
     <string name="view_album">Voir l\'album</string>
     <string name="view_all">Voir tout</string>
+    <string name="more">plus</string>
     <string name="refetch">Rafraîchir</string>
     <string name="share">Partager</string>
     <string name="delete">Supprimer</string>

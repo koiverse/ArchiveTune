@@ -110,6 +110,7 @@
     <string name="view_artist">Lihat artis</string>
     <string name="view_album">Lihat album</string>
     <string name="view_all">Lihat semua</string>
+    <string name="more">selengkapnya</string>
     <string name="refetch">Ambil ulang</string>
     <string name="share">Bagikan</string>
     <string name="delete">Hapus</string>

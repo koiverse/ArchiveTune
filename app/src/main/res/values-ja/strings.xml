@@ -110,6 +110,7 @@
     <string name="view_artist">アーティストの表示</string>
     <string name="view_album">アルバムの表示</string>
     <string name="view_all">すべて表示</string>
+    <string name="more">もっと見る</string>
     <string name="refetch">再フェッチ</string>
     <string name="share">共有</string>
     <string name="delete">削除</string>

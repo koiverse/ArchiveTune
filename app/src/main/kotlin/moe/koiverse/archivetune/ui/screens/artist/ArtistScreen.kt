@@ -330,7 +330,7 @@ fun ArtistScreen(
                             Box(
                                 modifier = Modifier
                                     .padding(top = 25.dp)
-                                    .size(180.dp)
+                                    .size(190.dp)
                                     .align(Alignment.CenterHorizontally)
                                     .shimmer()
                                     .clip(CircleShape)
@@ -428,7 +428,7 @@ fun ArtistScreen(
                                     contentDescription = null,
                                     contentScale = ContentScale.Crop,
                                     modifier = Modifier
-                                        .size(180.dp)
+                                        .size(190.dp)
                                         .clip(CircleShape)
                                 )
                             } else {
@@ -461,6 +461,47 @@ fun ArtistScreen(
                             modifier = Modifier.padding(horizontal = 24.dp)
                         )
 
+                        // Artist Description (expandable)
+                        val description = artistPage?.description
+                        if (!description.isNullOrBlank()) {
+                            var isExpanded by rememberSaveable { mutableStateOf(false) }
+                            val maxLines = if (isExpanded) Int.MAX_VALUE else 2
+                            
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 24.dp, vertical = 8.dp)
+                                    .combinedClickable(
+                                        onClick = { isExpanded = !isExpanded },
+                                        onLongClick = {}
+                                    ),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text(
+                                    text = if (!isExpanded && description.length > 100) {
+                                        description.take(100).trimEnd() + "…"
+                                    } else {
+                                        description
+                                    },
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    textAlign = TextAlign.Center,
+                                    maxLines = maxLines,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                
+                                if (!isExpanded && description.length > 100) {
+                                    Text(
+                                        text = stringResource(R.string.more),
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        fontWeight = FontWeight.Medium,
+                                        modifier = Modifier.padding(top = 4.dp)
+                                    )
+                                }
+                            }
+                        }
+
                         // Stats Row
                         Row(
                             modifier = Modifier
@@ -469,37 +510,47 @@ fun ArtistScreen(
                             horizontalArrangement = Arrangement.SpaceEvenly
                         ) {
                             // Songs count - sum all SongItem instances across all sections
+                            val songSections = artistPage?.sections?.filter { section ->
+                                section.items.any { it is SongItem }
+                            }
                             val songCount = if (showLocal) {
                                 librarySongs.size
                             } else {
-                                artistPage?.sections
+                                songSections
                                     ?.flatMap { it.items }
                                     ?.filterIsInstance<SongItem>()
                                     ?.distinctBy { it.id }
                                     ?.size ?: librarySongs.size
                             }
+                            // Check if any song section has moreEndpoint (meaning there are more songs)
+                            val hasMoreSongs = !showLocal && songSections?.any { it.moreEndpoint != null } == true
 
                             if (songCount > 0) {
                                 StatItem(
-                                    value = songCount.toString(),
+                                    value = if (hasMoreSongs) "$songCount+" else songCount.toString(),
                                     label = stringResource(R.string.songs)
                                 )
                             }
 
                             // Albums count - sum all AlbumItem instances across all sections
+                            val albumSections = artistPage?.sections?.filter { section ->
+                                section.items.any { it is AlbumItem }
+                            }
                             val albumCount = if (showLocal) {
                                 libraryAlbums.size
                             } else {
-                                artistPage?.sections
+                                albumSections
                                     ?.flatMap { it.items }
                                     ?.filterIsInstance<AlbumItem>()
                                     ?.distinctBy { it.id }
                                     ?.size ?: libraryAlbums.size
                             }
+                            // Check if any album section has moreEndpoint (meaning there are more albums)
+                            val hasMoreAlbums = !showLocal && albumSections?.any { it.moreEndpoint != null } == true
 
                             if (albumCount > 0) {
                                 StatItem(
-                                    value = albumCount.toString(),
+                                    value = if (hasMoreAlbums) "$albumCount+" else albumCount.toString(),
                                     label = stringResource(R.string.albums)
                                 )
                             }
