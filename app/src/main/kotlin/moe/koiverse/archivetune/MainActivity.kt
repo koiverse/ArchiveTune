@@ -47,7 +47,6 @@ import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
-import androidx.compose.ui.layout.matchParentSize
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.graphics.BlurEffect
@@ -327,13 +326,8 @@ class MainActivity : ComponentActivity() {
         
         lifecycleScope.launch {
             dataStore.data
-                .map { it[DisableScreenshotKey] ?: false }
-                .distinctUntilChanged()
-                .collectLatest {
-                    if (it) {
-                        window.setFlags(
-                            WindowManager.LayoutParams.FLAG_SECURE,
-                            WindowManager.LayoutParams.FLAG_SECURE,
+        val topInset = WindowInsets.systemBars.asPaddingValues().calculateTopPadding()
+        val topBarHeight = AppBarHeight + topInset
                         )
                     } else {
                         window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
@@ -779,9 +773,9 @@ class MainActivity : ComponentActivity() {
                             onDismissRequest = { showStarDialog = false },
                             onStar = {
                                 coroutineScope.launch {
-                                    try {
-                                        withContext(Dispatchers.IO) {
-                                            dataStore.edit { prefs ->
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxSize()
                                                 prefs[HasPressedStarKey] = true
                                                 prefs[RemindAfterKey] = Int.MAX_VALUE
                                             }
@@ -795,9 +789,9 @@ class MainActivity : ComponentActivity() {
                             },
                             onLater = {
                                 coroutineScope.launch {
-                                    try {
-                                        val launch = withContext(Dispatchers.IO) { dataStore[LaunchCountKey] ?: 0 }
-                                        withContext(Dispatchers.IO) {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxSize()
                                             dataStore.edit { prefs ->
                                                 prefs[RemindAfterKey] = launch + 10
                                             }
@@ -846,13 +840,8 @@ class MainActivity : ComponentActivity() {
 
                                     val surfaceColor = MaterialTheme.colorScheme.surface
                                     val currentScrollBehavior = if (navBackStackEntry?.destination?.route == Screens.Home.route || navBackStackEntry?.destination?.route == Screens.Library.route) searchBarScrollBehavior else topAppBarScrollBehavior
-                                    val density = LocalDensity.current
-                                    val topInset = remember(density) {
-                                        with(density) {
-                                            WindowInsets.systemBars.getTop(density).toDp()
-                                        }
-                                    }
-                                    val topBarHeight = remember(topInset) { AppBarHeight + topInset }
+                                    val topInset = WindowInsets.systemBars.asPaddingValues().calculateTopPadding()
+                                    val topBarHeight = AppBarHeight + topInset
 
                                     Box(
                                         modifier = Modifier.offset {
@@ -871,7 +860,7 @@ class MainActivity : ComponentActivity() {
                                                 ) {
                                                     Box(
                                                         modifier = Modifier
-                                                            .matchParentSize()
+                                                            .fillMaxSize()
                                                             .background(
                                                                 Brush.verticalGradient(
                                                                     colors = listOf(
@@ -885,7 +874,7 @@ class MainActivity : ComponentActivity() {
                                                     )
                                                     Box(
                                                         modifier = Modifier
-                                                            .matchParentSize()
+                                                            .fillMaxSize()
                                                             .background(
                                                                 Brush.verticalGradient(
                                                                     colors = listOf(
@@ -915,7 +904,7 @@ class MainActivity : ComponentActivity() {
                                                 ) {
                                                     Box(
                                                         modifier = Modifier
-                                                            .matchParentSize()
+                                                            .fillMaxSize()
                                                             .graphicsLayer {
                                                                 compositingStrategy = CompositingStrategy.Offscreen
                                                                 renderEffect = BlurEffect(radiusX = 55f, radiusY = 55f)
@@ -924,7 +913,7 @@ class MainActivity : ComponentActivity() {
                                                     )
                                                     Box(
                                                         modifier = Modifier
-                                                            .matchParentSize()
+                                                            .fillMaxSize()
                                                             .background(
                                                                 Brush.verticalGradient(
                                                                     colors = listOf(
@@ -937,7 +926,7 @@ class MainActivity : ComponentActivity() {
                                                     )
                                                     Box(
                                                         modifier = Modifier
-                                                            .matchParentSize()
+                                                            .fillMaxSize()
                                                             .background(
                                                                 Brush.verticalGradient(
                                                                     colors = listOf(
@@ -1008,9 +997,9 @@ class MainActivity : ComponentActivity() {
                                             IconButton(onClick = { showAccountDialog = true }) {
                                                 BadgedBox(badge = {
                                                     if (latestVersionName != BuildConfig.VERSION_NAME) {
-                                                        Badge()
-                                                    }
-                                                }) {
+                                                        Box(
+                                                            modifier = Modifier
+                                                                .fillMaxSize()
                                                     if (accountImageUrl != null) {
                                                         AsyncImage(
                                                             model = accountImageUrl,
