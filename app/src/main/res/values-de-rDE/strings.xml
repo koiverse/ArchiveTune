@@ -385,9 +385,9 @@
     <string name="scrobble_delay_minutes">Scrobble-Verzögerung (Sekunden)</string>
     <string name="username">Benutzername</string>
     <string name="password">Passwort</string>
+    <string name="logging_in">Anmeldung…</string>
 
-
-        <!-- ListenBrainz -->
+    <!-- ListenBrainz -->
     <string name="listenbrainz_scrobbling">ListenBrainz-Scrobbling</string>
     <string name="listenbrainz_scrobbling_description">Übermitteln von „Jetzt läuft“ und abgeschlossenen Wiedergaben an ListenBrainz aktivieren</string>
     <string name="set_listenbrainz_token">ListenBrainz-Token festlegen</string>

@@ -385,7 +385,7 @@
     <string name="scrobble_delay_minutes">スクロブリング遅延（秒）</string>
     <string name="username">ユーザー名</string>
     <string name="password">パスワード</string>
-
+    <string name="logging_in">ログイン中…</string>
 
     <!-- ListenBrainz -->
     <string name="listenbrainz_scrobbling">ListenBrainz スクロブル</string>

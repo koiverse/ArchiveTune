@@ -380,8 +380,9 @@
     <string name="scrobble_min_track_duration">Durée minimale du titre</string>
     <string name="scrobble_delay_percent">Pourcentage de délai</string>
     <string name="scrobble_delay_minutes">Délai (secondes)</string>
-    <string name="username">Nom d’utilisateur</string>
+    <string name="username">Nom d'utilisateur</string>
     <string name="password">Mot de passe</string>
+    <string name="logging_in">Connexion…</string>
 
     <!-- ListenBrainz -->
     <string name="listenbrainz_scrobbling">Scrobbling ListenBrainz</string>

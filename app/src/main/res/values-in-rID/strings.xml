@@ -385,7 +385,7 @@
     <string name="scrobble_delay_minutes">Penundaan Scrobble (Detik)</string>
     <string name="username">Nama pengguna</string>
     <string name="password">Kata sandi</string>
-
+    <string name="logging_in">Masuk…</string>
 
     <!-- ListenBrainz -->
     <string name="listenbrainz_scrobbling">Scrobbling ListenBrainz</string>
