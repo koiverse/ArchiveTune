@@ -969,31 +969,28 @@ class MusicService :
     fun startRadioSeamlessly() {
         val currentMediaMetadata = player.currentMetadata ?: return
 
-        // Capture current player state so we can restore position/play state
-        val currentSong = player.currentMediaItem ?: return
-        val currentPosition = player.currentPosition
+        val currentIndex = player.currentMediaItemIndex
         val wasPlayWhenReady = player.playWhenReady
 
         scope.launch(SilentHandler) {
             val radioQueue = YouTubeQueue(
                 endpoint = WatchEndpoint(videoId = currentMediaMetadata.id)
             )
-            val initialStatus = radioQueue.getInitialStatus()
+            val initialStatus = radioQueue.getInitialStatus().filterExplicit(dataStore.get(HideExplicitKey, false))
 
             if (initialStatus.title != null) {
                 queueTitle = initialStatus.title
             }
 
-            // Build a new media list: keep current song as first item, then append radio items
             val radioItems = initialStatus.items.drop(1)
-            val newItems = mutableListOf<MediaItem>()
-            newItems.add(currentSong)
-            newItems.addAll(radioItems)
-
-            if (newItems.isNotEmpty()) {
-                // Replace player's playlist with current + radio items and restore position
-                player.setMediaItems(newItems, 0, currentPosition)
-                player.prepare()
+            
+            if (radioItems.isNotEmpty()) {
+                val itemCount = player.mediaItemCount
+                if (itemCount > currentIndex + 1) {
+                    player.removeMediaItems(currentIndex + 1, itemCount)
+                }
+                
+                player.addMediaItems(currentIndex + 1, radioItems)
                 player.playWhenReady = wasPlayWhenReady
             }
 
