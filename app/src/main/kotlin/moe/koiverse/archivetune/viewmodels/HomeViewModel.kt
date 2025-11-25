@@ -314,13 +314,15 @@ class HomeViewModel @Inject constructor(
                 .first()
 
             if (isSyncEnabled) {
-                supervisorScope {
-                    launch { syncUtils.syncLikedSongs() }
-                    launch { syncUtils.syncLibrarySongs() }
-                    launch { syncUtils.syncSavedPlaylists() }
-                    launch { syncUtils.syncLikedAlbums() }
-                    launch { syncUtils.syncArtistsSubscriptions() }
-                    launch { syncUtils.syncAutoSyncPlaylists() }
+                try {
+                    syncUtils.syncLikedSongs()
+                    syncUtils.syncLibrarySongs()
+                    syncUtils.syncSavedPlaylists()
+                    syncUtils.syncLikedAlbums()
+                    syncUtils.syncArtistsSubscriptions()
+                    syncUtils.syncAutoSyncPlaylists()
+                } catch (e: Exception) {
+                    timber.log.Timber.e(e, "Error during sync")
                 }
             }
         }
