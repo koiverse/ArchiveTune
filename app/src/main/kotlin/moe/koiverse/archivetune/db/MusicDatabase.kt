@@ -141,13 +141,14 @@ abstract class InternalDatabase : RoomDatabase() {
                     .addCallback(object : androidx.room.RoomDatabase.Callback() {
                         override fun onOpen(db: androidx.sqlite.db.SupportSQLiteDatabase) {
                             super.onOpen(db)
-                            // Set busy timeout to 60 seconds to handle concurrent access during sync
-                            db.execSQL("PRAGMA busy_timeout = 60000")
-                            // Increase cache size for better performance
-                            db.execSQL("PRAGMA cache_size = -16000") // 16MB cache
-                            // Optimize WAL mode
-                            db.execSQL("PRAGMA wal_autocheckpoint = 1000")
-                            db.execSQL("PRAGMA synchronous = NORMAL")
+                            try {
+                                db.query("PRAGMA busy_timeout = 60000").close()
+                                db.query("PRAGMA cache_size = -16000").close()
+                                db.query("PRAGMA wal_autocheckpoint = 1000").close()
+                                db.query("PRAGMA synchronous = NORMAL").close()
+                            } catch (e: Exception) {
+                                android.util.Log.e("MusicDatabase", "Failed to set PRAGMA settings", e)
+                            }
                         }
                     })
                     .build(),
