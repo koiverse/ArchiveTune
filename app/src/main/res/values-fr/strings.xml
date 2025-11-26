@@ -289,7 +289,7 @@
     <string name="fade">Fondu</string>
     <string name="slide">Glissement</string>
     <string name="karaoke">Karaoké</string>
-    <string name="apple_music">Apple Music</string>
+    <string name="apple_music_style">Apple Music</string>
     <!-- Lyrics line spacing -->
     <string name="lyrics_line_spacing">Interligne des paroles</string>
 
