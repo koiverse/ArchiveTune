@@ -364,39 +364,39 @@ fun AutoPlaylistScreen(
         if (!disableBlur && gradientColors.isNotEmpty() && gradientAlpha > 0f) {
             Box(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .fillMaxSize(0.55f)
-                    .align(Alignment.TopCenter)
-                    .zIndex(-1f)
+                    .fillMaxSize()
                     .drawBehind {
                         val width = size.width
-                        val height = size.height
+                        val height = size.height * 0.55f
 
                         if (gradientColors.size >= 3) {
+                            // Primary color blob - top center
                             drawRect(
                                 brush = Brush.radialGradient(
                                     colors = listOf(
-                                        gradientColors[0].copy(alpha = gradientAlpha * 0.7f),
+                                        gradientColors[0].copy(alpha = gradientAlpha * 0.75f),
                                         gradientColors[0].copy(alpha = gradientAlpha * 0.4f),
                                         Color.Transparent
                                     ),
-                                    center = Offset(width * 0.2f, height * 0.15f),
+                                    center = Offset(width * 0.5f, height * 0.15f),
+                                    radius = width * 0.8f
+                                )
+                            )
+
+                            // Secondary color blob - left side
+                            drawRect(
+                                brush = Brush.radialGradient(
+                                    colors = listOf(
+                                        gradientColors[1].copy(alpha = gradientAlpha * 0.55f),
+                                        gradientColors[1].copy(alpha = gradientAlpha * 0.3f),
+                                        Color.Transparent
+                                    ),
+                                    center = Offset(width * 0.1f, height * 0.4f),
                                     radius = width * 0.6f
                                 )
                             )
 
-                            drawRect(
-                                brush = Brush.radialGradient(
-                                    colors = listOf(
-                                        gradientColors[1].copy(alpha = gradientAlpha * 0.6f),
-                                        gradientColors[1].copy(alpha = gradientAlpha * 0.35f),
-                                        Color.Transparent
-                                    ),
-                                    center = Offset(width * 0.8f, height * 0.25f),
-                                    radius = width * 0.7f
-                                )
-                            )
-
+                            // Third color blob - right side
                             drawRect(
                                 brush = Brush.radialGradient(
                                     colors = listOf(
@@ -404,8 +404,8 @@ fun AutoPlaylistScreen(
                                         gradientColors[2].copy(alpha = gradientAlpha * 0.25f),
                                         Color.Transparent
                                     ),
-                                    center = Offset(width * 0.5f, height * 0.5f),
-                                    radius = width * 0.8f
+                                    center = Offset(width * 0.9f, height * 0.35f),
+                                    radius = width * 0.55f
                                 )
                             )
                         } else if (gradientColors.isNotEmpty()) {
@@ -413,11 +413,11 @@ fun AutoPlaylistScreen(
                                 brush = Brush.radialGradient(
                                     colors = listOf(
                                         gradientColors[0].copy(alpha = gradientAlpha * 0.7f),
-                                        gradientColors[0].copy(alpha = gradientAlpha * 0.4f),
+                                        gradientColors[0].copy(alpha = gradientAlpha * 0.35f),
                                         Color.Transparent
                                     ),
-                                    center = Offset(width * 0.5f, height * 0.3f),
-                                    radius = width * 0.8f
+                                    center = Offset(width * 0.5f, height * 0.25f),
+                                    radius = width * 0.85f
                                 )
                             )
                         }
