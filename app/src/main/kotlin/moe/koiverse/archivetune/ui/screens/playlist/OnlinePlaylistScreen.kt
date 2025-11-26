@@ -637,13 +637,8 @@ fun OnlinePlaylistScreen(
                                         ) {
                                             Icon(
                                                 painter = painterResource(R.drawable.shuffle),
-                                                contentDescription = null,
-                                                modifier = Modifier.size(20.dp)
-                                            )
-                                            Spacer(modifier = Modifier.width(8.dp))
-                                            Text(
-                                                text = stringResource(R.string.shuffle),
-                                                maxLines = 1
+                                                contentDescription = stringResource(R.string.shuffle),
+                                                modifier = Modifier.size(24.dp)
                                             )
                                         }
                                     }
@@ -661,13 +656,8 @@ fun OnlinePlaylistScreen(
                                         ) {
                                             Icon(
                                                 painter = painterResource(R.drawable.radio),
-                                                contentDescription = null,
-                                                modifier = Modifier.size(20.dp)
-                                            )
-                                            Spacer(modifier = Modifier.width(8.dp))
-                                            Text(
-                                                text = stringResource(R.string.radio),
-                                                maxLines = 1
+                                                contentDescription = stringResource(R.string.radio),
+                                                modifier = Modifier.size(24.dp)
                                             )
                                         }
                                     }

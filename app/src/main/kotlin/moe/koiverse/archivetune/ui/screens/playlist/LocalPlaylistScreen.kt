@@ -802,13 +802,8 @@ fun LocalPlaylistScreen(
                                     ) {
                                         Icon(
                                             painter = painterResource(R.drawable.play),
-                                            contentDescription = null,
-                                            modifier = Modifier.size(20.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Text(
-                                            text = stringResource(R.string.play),
-                                            maxLines = 1
+                                            contentDescription = stringResource(R.string.play),
+                                            modifier = Modifier.size(24.dp)
                                         )
                                     }
 
@@ -829,13 +824,8 @@ fun LocalPlaylistScreen(
                                     ) {
                                         Icon(
                                             painter = painterResource(R.drawable.shuffle),
-                                            contentDescription = null,
-                                            modifier = Modifier.size(20.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Text(
-                                            text = stringResource(R.string.shuffle),
-                                            maxLines = 1
+                                            contentDescription = stringResource(R.string.shuffle),
+                                            modifier = Modifier.size(24.dp)
                                         )
                                     }
 
