@@ -621,6 +621,7 @@ fun AppearanceSettings(
                   LyricsAnimationStyle.GLOW -> stringResource(R.string.glow)
                   LyricsAnimationStyle.SLIDE -> stringResource(R.string.slide)
                   LyricsAnimationStyle.KARAOKE -> stringResource(R.string.karaoke)
+                  LyricsAnimationStyle.APPLE -> stringResource(R.string.apple_music_style)
               }
           }
         )
