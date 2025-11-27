@@ -383,12 +383,11 @@ fun AppearanceSettings(
             onCheckedChange = onDynamicThemeChange,
         )
 
-        // Show color palette picker entry when dynamic theme is disabled
         AnimatedVisibility(visible = !dynamicTheme) {
             PreferenceEntry(
                 title = { Text(stringResource(R.string.color_palette)) },
                 description = stringResource(R.string.customize_theme_colors),
-                icon = { Icon(painterResource(R.drawable.palette), null) },
+                icon = { Icon(painterResource(R.drawable.format_paint), null) },
                 onClick = { navController.navigate("settings/appearance/palette_picker") }
             )
         }
