@@ -325,7 +325,7 @@ private fun AccountSettingsHeader(onClose: () -> Unit) {
             ) {
                 // App Icon
                 Image(
-                    painter = painterResource(R.mipmap.ic_launcher),
+                    painter = painterResource(R.drawable.about_appbar),
                     contentDescription = null,
                     modifier = Modifier
                         .size(44.dp)
