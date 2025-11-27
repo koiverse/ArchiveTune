@@ -70,11 +70,15 @@ class DiscordRPC(
     }
 
     private fun pickImage(type: String, custom: String?, song: Song?, preferArtist: Boolean = false): RpcImage? {
-        return when (type) {
+        return when (type.lowercase()) {
             "thumbnail" -> song?.song?.thumbnailUrl.toExternal()
             "artist" -> song?.artists?.firstOrNull()?.thumbnailUrl.toExternal()
-            "appicon" -> RpcImage.DiscordImage("appicon")
-            "custom" -> (custom?.takeIf { it.isNotBlank() } ?: song?.song?.thumbnailUrl).toExternal()
+            "appicon" -> RpcImage.ExternalImage("https://raw.githubusercontent.com/koiverse/ArchiveTune/main/fastlane/metadata/android/en-US/images/icon.png")
+            "custom" -> {
+                val customUrl = custom?.takeIf { it.isNotBlank() }
+                if (customUrl != null) customUrl.toExternal() else song?.song?.thumbnailUrl.toExternal()
+            }
+            "dontshow", "none" -> null
             else -> if (preferArtist) song?.artists?.firstOrNull()?.thumbnailUrl.toExternal()
             else song?.song?.thumbnailUrl.toExternal()
         }
@@ -229,18 +233,24 @@ class DiscordRPC(
         val saved = ArtworkStorage.findBySongId(context, song.song.id)
 
         val finalLargeImage: RpcImage? = when (largeImageTypePref.lowercase()) {
-            "thumbnail", "custom" -> {
-                if (!saved?.thumbnail.isNullOrBlank()) {
-                    RpcImage.ExternalImage(saved.thumbnail!!)
-                } else {
-                    pickImage(largeImageTypePref, largeImageCustomPref, song, false)
-                }
+            "thumbnail" -> {
+                val thumbnailUrl = saved?.thumbnail?.takeIf { it.isNotBlank() }
+                    ?: song?.song?.thumbnailUrl?.takeIf { it.isNotBlank() }
+                thumbnailUrl?.toExternal()
             }
             "artist" -> {
-                if (!saved?.artist.isNullOrBlank()) {
-                    RpcImage.ExternalImage(saved.artist!!)
-                } else {
-                    pickImage(largeImageTypePref, largeImageCustomPref, song, false)
+                val artistUrl = saved?.artist?.takeIf { it.isNotBlank() }
+                    ?: song?.artists?.firstOrNull()?.thumbnailUrl?.takeIf { it.isNotBlank() }
+                artistUrl?.toExternal()
+            }
+            "appicon" -> RpcImage.ExternalImage("https://raw.githubusercontent.com/koiverse/ArchiveTune/main/fastlane/metadata/android/en-US/images/icon.png")
+            "custom" -> {
+                val customUrl = largeImageCustomPref.takeIf { it.isNotBlank() }
+                if (customUrl != null) customUrl.toExternal()
+                else {
+                    val fallbackUrl = saved?.thumbnail?.takeIf { it.isNotBlank() }
+                        ?: song?.song?.thumbnailUrl?.takeIf { it.isNotBlank() }
+                    fallbackUrl?.toExternal()
                 }
             }
             else -> pickImage(largeImageTypePref, largeImageCustomPref, song, false)
@@ -249,18 +259,27 @@ class DiscordRPC(
         val finalSmallImage: RpcImage? = when {
             isPaused -> RpcImage.ExternalImage(PAUSE_IMAGE_URL)
             smallImageTypePref.lowercase() in listOf("none", "dontshow") -> null
+            smallImageTypePref.lowercase() == "appicon" -> RpcImage.ExternalImage("https://raw.githubusercontent.com/koiverse/ArchiveTune/main/fastlane/metadata/android/en-US/images/icon.png")
             smallImageTypePref.lowercase() == "artist" -> {
-                if (!saved?.artist.isNullOrBlank()) {
-                    RpcImage.ExternalImage(saved.artist!!)
-                } else {
-                    pickImage(smallImageTypePref, smallImageCustomPref, song, true)
-                }
+                // First try saved artist image, then direct artist thumbnail, no fallback to song thumbnail
+                val artistUrl = saved?.artist?.takeIf { it.isNotBlank() }
+                    ?: song?.artists?.firstOrNull()?.thumbnailUrl?.takeIf { it.isNotBlank() }
+                artistUrl?.toExternal()
             }
-            smallImageTypePref.lowercase() in listOf("thumbnail", "custom") -> {
-                if (!saved?.thumbnail.isNullOrBlank()) {
-                    RpcImage.ExternalImage(saved.thumbnail!!)
-                } else {
-                    pickImage(smallImageTypePref, smallImageCustomPref, song, true)
+            smallImageTypePref.lowercase() == "thumbnail" -> {
+                // First try saved thumbnail, then direct song thumbnail
+                val thumbnailUrl = saved?.thumbnail?.takeIf { it.isNotBlank() }
+                    ?: song?.song?.thumbnailUrl?.takeIf { it.isNotBlank() }
+                thumbnailUrl?.toExternal()
+            }
+            smallImageTypePref.lowercase() == "custom" -> {
+                val customUrl = smallImageCustomPref.takeIf { it.isNotBlank() }
+                if (customUrl != null) customUrl.toExternal()
+                else {
+                    // Fallback to saved thumbnail or song thumbnail
+                    val fallbackUrl = saved?.thumbnail?.takeIf { it.isNotBlank() }
+                        ?: song?.song?.thumbnailUrl?.takeIf { it.isNotBlank() }
+                    fallbackUrl?.toExternal()
                 }
             }
             else -> pickImage(smallImageTypePref, smallImageCustomPref, song, true)
