@@ -30,7 +30,7 @@ brotli = "0.1.2"
 desugaring = "2.1.5"
 junit = "4.13.2"
 timber = "5.0.1"
-materialKolor = "3.0.1"
+materialKolor = "5.0.0-alpha04"
 kuromojiIpadic = "0.9.0"
 newpipeExtractor = "4240401"
 
