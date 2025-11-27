@@ -49,10 +49,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.ui.draw.blur
-import androidx.compose.ui.graphics.BlurEffect
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.material3.AlertDialogDefaults
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
@@ -133,7 +130,6 @@ import moe.koiverse.archivetune.constants.AppBarHeight
 import moe.koiverse.archivetune.constants.AppLanguageKey
 import moe.koiverse.archivetune.constants.DarkModeKey
 import moe.koiverse.archivetune.constants.DefaultOpenTabKey
-import moe.koiverse.archivetune.constants.DisableBlurKey
 import moe.koiverse.archivetune.constants.DisableScreenshotKey
 import moe.koiverse.archivetune.constants.DynamicThemeKey
 import moe.koiverse.archivetune.constants.CustomThemeColorKey
@@ -837,8 +833,6 @@ class MainActivity : ComponentActivity() {
                         }
                     }
 
-                    val (disableBlur) = rememberPreference(DisableBlurKey, false)
-
                     var showAccountDialog by remember { mutableStateOf(false) }
 
                     CompositionLocalProvider(
@@ -871,81 +865,25 @@ class MainActivity : ComponentActivity() {
                                             )
                                         }
                                     ) {
+                                        // Gradient shadow background
                                         if (shouldShowBlurBackground) {
-                                            val glassHeight = AppBarHeight + with(LocalDensity.current) {
-                                                WindowInsets.systemBars.getTop(LocalDensity.current).toDp()
-                                            }
-                                            
-                                            if (disableBlur) {
-                                                // Vertical gradient shadow when blur is disabled
-                                                Box(
-                                                    modifier = Modifier
-                                                        .fillMaxWidth()
-                                                        .height(glassHeight)
-                                                        .background(
-                                                            Brush.verticalGradient(
-                                                                colors = listOf(
-                                                                    surfaceColor.copy(alpha = 0.95f),
-                                                                    surfaceColor.copy(alpha = 0.85f),
-                                                                    surfaceColor.copy(alpha = 0.6f),
-                                                                    Color.Transparent
-                                                                )
+                                            Box(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .height(AppBarHeight + with(LocalDensity.current) {
+                                                        WindowInsets.systemBars.getTop(LocalDensity.current).toDp()
+                                                    })
+                                                    .background(
+                                                        Brush.verticalGradient(
+                                                            colors = listOf(
+                                                                surfaceColor.copy(alpha = 0.95f),
+                                                                surfaceColor.copy(alpha = 0.85f),
+                                                                surfaceColor.copy(alpha = 0.6f),
+                                                                Color.Transparent
                                                             )
                                                         )
-                                                )
-                                            } else {
-                                                // Glassmorphism blur effect
-                                                Box(
-                                                    modifier = Modifier
-                                                        .fillMaxWidth()
-                                                        .height(glassHeight)
-                                                ) {
-                                                    Box(
-                                                        modifier = Modifier
-                                                            .fillMaxSize()
-                                                            .blur(radius = 20.dp)
-                                                            .background(
-                                                                Brush.verticalGradient(
-                                                                    colors = listOf(
-                                                                        surfaceColor.copy(alpha = 0.85f),
-                                                                        surfaceColor.copy(alpha = 0.7f),
-                                                                        surfaceColor.copy(alpha = 0.5f)
-                                                                    )
-                                                                )
-                                                            )
                                                     )
-                                                    
-                                                    Box(
-                                                        modifier = Modifier
-                                                            .fillMaxSize()
-                                                            .background(
-                                                                Brush.verticalGradient(
-                                                                    colors = listOf(
-                                                                        Color.White.copy(alpha = if (useDarkTheme) 0.08f else 0.25f),
-                                                                        Color.White.copy(alpha = if (useDarkTheme) 0.03f else 0.1f),
-                                                                        Color.Transparent
-                                                                    ),
-                                                                    startY = 0f,
-                                                                    endY = 150f
-                                                                )
-                                                            )
-                                                    )
-                                                    
-                                                    Box(
-                                                        modifier = Modifier
-                                                            .fillMaxSize()
-                                                            .background(
-                                                                Brush.verticalGradient(
-                                                                    colors = listOf(
-                                                                        Color.Transparent,
-                                                                        Color.Transparent,
-                                                                        surfaceColor.copy(alpha = 0.1f)
-                                                                    )
-                                                                )
-                                                            )
-                                                    )
-                                                }
-                                            }
+                                            )
                                         }
 
                                         TopAppBar(
