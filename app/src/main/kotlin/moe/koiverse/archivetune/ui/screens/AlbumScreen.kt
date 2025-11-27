@@ -354,14 +354,14 @@ fun AlbumScreen(
                         // Album Art - Large centered with shadow and rounded corners
                         Box(
                             modifier = Modifier
-                                .padding(top = 16.dp, bottom = 24.dp)
+                                .padding(top = 8.dp, bottom = 20.dp)
                                 .graphicsLayer {
                                     translationY = headerParallax
                                 }
                         ) {
                             Surface(
                                 modifier = Modifier
-                                    .size(220.dp)
+                                    .size(240.dp)
                                     .shadow(
                                         elevation = 24.dp,
                                         shape = RoundedCornerShape(16.dp),
@@ -770,8 +770,8 @@ fun AlbumScreen(
                             // Album art placeholder
                             Box(
                                 modifier = Modifier
-                                    .padding(top = 16.dp, bottom = 24.dp)
-                                    .size(220.dp)
+                                    .padding(top = 8.dp, bottom = 20.dp)
+                                    .size(240.dp)
                                     .shimmer()
                                     .clip(RoundedCornerShape(16.dp))
                                     .background(MaterialTheme.colorScheme.onSurface)

@@ -500,7 +500,7 @@ fun LocalPlaylistScreen(
 
     val transparentAppBar by remember {
         derivedStateOf {
-            !disableBlur && !selection && !showTopBarTitle && !isSearching
+            !disableBlur && !selection && !showTopBarTitle
         }
     }
 
@@ -600,7 +600,7 @@ fun LocalPlaylistScreen(
                                 // Playlist Thumbnail(s) - Large centered with shadow
                                 Box(
                                     modifier = Modifier
-                                        .padding(top = 16.dp, bottom = 24.dp)
+                                        .padding(top = 8.dp, bottom = 20.dp)
                                         .graphicsLayer {
                                             translationY = headerParallax
                                         }
@@ -609,7 +609,7 @@ fun LocalPlaylistScreen(
                                         // Single thumbnail
                                         Surface(
                                             modifier = Modifier
-                                                .size(200.dp)
+                                                .size(240.dp)
                                                 .shadow(
                                                     elevation = 24.dp,
                                                     shape = RoundedCornerShape(16.dp),
@@ -629,7 +629,7 @@ fun LocalPlaylistScreen(
                                         // Grid of 4 thumbnails
                                         Surface(
                                             modifier = Modifier
-                                                .size(200.dp)
+                                                .size(240.dp)
                                                 .shadow(
                                                     elevation = 24.dp,
                                                     shape = RoundedCornerShape(16.dp),
@@ -651,7 +651,7 @@ fun LocalPlaylistScreen(
                                                         contentScale = ContentScale.Crop,
                                                         modifier = Modifier
                                                             .align(alignment)
-                                                            .size(100.dp)
+                                                            .size(120.dp)
                                                     )
                                                 }
                                             }
@@ -660,7 +660,7 @@ fun LocalPlaylistScreen(
                                         // No thumbnail placeholder
                                         Surface(
                                             modifier = Modifier
-                                                .size(200.dp)
+                                                .size(240.dp)
                                                 .shadow(
                                                     elevation = 16.dp,
                                                     shape = RoundedCornerShape(16.dp)

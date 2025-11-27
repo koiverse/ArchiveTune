@@ -329,8 +329,8 @@ fun ArtistScreen(
                             // Artist image placeholder - circular
                             Box(
                                 modifier = Modifier
-                                    .padding(top = 25.dp)
-                                    .size(190.dp)
+                                    .padding(top = 8.dp)
+                                    .size(210.dp)
                                     .align(Alignment.CenterHorizontally)
                                     .shimmer()
                                     .clip(CircleShape)
@@ -417,7 +417,7 @@ fun ArtistScreen(
                         // Artist Image - Circular with shadow
                         Box(
                             modifier = Modifier
-                                .padding(top = 20.dp, bottom = 20.dp)
+                                .padding(top = 8.dp, bottom = 16.dp)
                                 .graphicsLayer {
                                     translationY = headerParallax
                                 }
@@ -428,14 +428,14 @@ fun ArtistScreen(
                                     contentDescription = null,
                                     contentScale = ContentScale.Crop,
                                     modifier = Modifier
-                                        .size(190.dp)
+                                        .size(210.dp)
                                         .clip(CircleShape)
                                 )
                             } else {
                                 // Placeholder when no image
                                 Box(
                                     modifier = Modifier
-                                        .size(180.dp)
+                                        .size(200.dp)
                                         .clip(CircleShape)
                                         .background(MaterialTheme.colorScheme.surfaceVariant),
                                     contentAlignment = Alignment.Center

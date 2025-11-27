@@ -272,7 +272,7 @@ fun OnlinePlaylistScreen(
 
     val transparentAppBar by remember {
         derivedStateOf {
-            !disableBlur && !selection && !showTopBarTitle && !isSearching
+            !disableBlur && !selection && !showTopBarTitle
         }
     }
 
@@ -374,8 +374,8 @@ fun OnlinePlaylistScreen(
                                 // Playlist art placeholder
                                 Box(
                                     modifier = Modifier
-                                        .padding(top = 16.dp, bottom = 24.dp)
-                                        .size(200.dp)
+                                        .padding(top = 8.dp, bottom = 20.dp)
+                                        .size(240.dp)
                                         .shimmer()
                                         .clip(RoundedCornerShape(16.dp))
                                         .background(MaterialTheme.colorScheme.onSurface)
@@ -471,14 +471,14 @@ fun OnlinePlaylistScreen(
                                 // Playlist Thumbnail - Large centered with shadow
                                 Box(
                                     modifier = Modifier
-                                        .padding(top = 16.dp, bottom = 24.dp)
+                                        .padding(top = 8.dp, bottom = 20.dp)
                                         .graphicsLayer {
                                             translationY = headerParallax
                                         }
                                 ) {
                                     Surface(
                                         modifier = Modifier
-                                            .size(200.dp)
+                                            .size(240.dp)
                                             .shadow(
                                                 elevation = 24.dp,
                                                 shape = RoundedCornerShape(16.dp),

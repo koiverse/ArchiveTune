@@ -416,14 +416,14 @@ fun TopPlaylistScreen(
                                     .graphicsLayer {
                                         translationY = headerParallax
                                     }
-                                    .padding(top = systemBarsTopPadding + 64.dp)
+                                    .padding(top = systemBarsTopPadding + 48.dp)
                                     .padding(horizontal = 24.dp)
                                     .padding(bottom = 16.dp)
                             ) {
                                 // Large centered artwork with shadow
                                 Box(
                                     modifier = Modifier
-                                        .size(220.dp)
+                                        .size(240.dp)
                                         .shadow(
                                             elevation = 24.dp,
                                             shape = RoundedCornerShape(16.dp),
