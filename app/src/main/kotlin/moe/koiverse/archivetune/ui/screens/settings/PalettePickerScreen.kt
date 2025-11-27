@@ -832,11 +832,13 @@ fun PalettePickerScreen(
 ) {
     val (customThemeColor, onCustomThemeColorChange) = rememberPreference(
         CustomThemeColorKey,
-        defaultValue = ThemePalettes.Default.primary.toHexString()
+        defaultValue = ThemePalettes.Default.id
     )
     
     val selectedPalette = remember(customThemeColor) {
-        ThemePalettes.findByPrimaryColor(customThemeColor) ?: ThemePalettes.Default
+        ThemePalettes.findById(customThemeColor)
+            ?: ThemePalettes.findByPrimaryColor(customThemeColor)
+            ?: ThemePalettes.Default
     }
     
     val isDarkTheme = isSystemInDarkTheme()
@@ -895,7 +897,7 @@ fun PalettePickerScreen(
                 palettes = ThemePalettes.allPalettes,
                 selectedPalette = selectedPalette,
                 onPaletteSelected = { palette ->
-                    onCustomThemeColorChange(palette.primary.toHexString())
+                    onCustomThemeColorChange(palette.id)
                 },
                 modifier = Modifier.fillMaxWidth()
             )
@@ -1174,7 +1176,7 @@ private fun CarouselDotsIndicator(
     selectedColor: Color,
     modifier: Modifier = Modifier
 ) {
-    val fixedDotContainerSize = 14.dp
+    val fixedDotContainerSize = 10.dp
     
     Row(
         modifier = modifier.height(fixedDotContainerSize),
@@ -1185,7 +1187,7 @@ private fun CarouselDotsIndicator(
             val isSelected = index == currentPage
             
             val dotSize by animateDpAsState(
-                targetValue = if (isSelected) 10.dp else 6.dp,
+                targetValue = if (isSelected) 8.dp else 4.dp,
                 animationSpec = tween(durationMillis = 200, easing = FastOutSlowInEasing),
                 label = "dotSize"
             )
@@ -1198,7 +1200,7 @@ private fun CarouselDotsIndicator(
             
             Box(
                 modifier = Modifier
-                    .padding(horizontal = 4.dp)
+                    .padding(horizontal = 2.dp)
                     .size(fixedDotContainerSize),
                 contentAlignment = Alignment.Center
             ) {
