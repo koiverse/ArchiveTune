@@ -1031,37 +1031,41 @@ fun Lyrics(
                                 )
                             }
                         } else if (hasWordTimings && item.words != null && lyricsAnimationStyle == LyricsAnimationStyle.KARAOKE) {
-
+                            // Enhanced BetterLyrics-style karaoke animation
+                            // Features: smooth gradient fill, word-by-word highlighting, glow effects
                             val styledText = buildAnnotatedString {
                                 item.words.forEachIndexed { wordIndex, word ->
                                     val wordStartMs = (word.startTime * 1000).toLong()
                                     val wordEndMs = (word.endTime * 1000).toLong()
-                                    val wordDuration = wordEndMs - wordStartMs
+                                    val wordDuration = (wordEndMs - wordStartMs).coerceAtLeast(1L)
 
                                     val isWordActive = isActiveLine && currentPlaybackPosition >= wordStartMs && currentPlaybackPosition < wordEndMs
                                     val hasWordPassed = (isActiveLine && currentPlaybackPosition >= wordEndMs) || (!isActiveLine && index < displayedCurrentLineIndex)
+                                    val isUpcoming = isActiveLine && currentPlaybackPosition < wordStartMs
 
                                     if (isWordActive && wordDuration > 0) {
-
+                                        // Calculate smooth fill progress with easing
                                         val timeElapsed = currentPlaybackPosition - wordStartMs
                                         val linearProgress = (timeElapsed.toFloat() / wordDuration.toFloat()).coerceIn(0f, 1f)
-
+                                        
+                                        // Smooth easing for natural feel (ease-in-out)
                                         val fillProgress = linearProgress * linearProgress * (3f - 2f * linearProgress)
+                                        
+                                        // Subtle breathing effect for active word
+                                        val breatheCycleDuration = wordDuration.toFloat().coerceIn(400f, 2000f)
+                                        val breathePhase = (timeElapsed % breatheCycleDuration) / breatheCycleDuration
+                                        val breatheEffect = (sin(breathePhase * Math.PI.toFloat()) * 0.05f).coerceIn(0f, 0.05f)
+                                        
+                                        val glowIntensity = (fillProgress + breatheEffect).coerceIn(0f, 1.0f)
 
-                                        val breatheCycleDuration = wordDuration.toFloat().coerceIn(500f, 2500f)
-                                        val breatheValue = (timeElapsed % breatheCycleDuration) / breatheCycleDuration
-                                        val breatheEffect = (sin(breatheValue * Math.PI.toFloat() * 2f) * 0.08f).coerceIn(0f, 0.08f)
-
-                                        val glowIntensity = (fillProgress + breatheEffect).coerceIn(0f, 1.1f)
-
+                                        // BetterLyrics-style sharp karaoke gradient with smooth edges
                                         val wordBrush = Brush.horizontalGradient(
-                                            0.0f to expressiveAccent.copy(alpha = 0.35f),
-                                            (fillProgress * 0.5f).coerceIn(0f, 1f) to expressiveAccent.copy(alpha = 0.7f),
-                                            (fillProgress * 0.8f).coerceIn(0f, 1f) to expressiveAccent.copy(alpha = 0.95f),
-                                            fillProgress to expressiveAccent,
-                                            (fillProgress + 0.05f).coerceIn(0f, 1f) to expressiveAccent.copy(alpha = 0.8f),
-                                            (fillProgress + 0.15f).coerceIn(0f, 1f) to expressiveAccent.copy(alpha = 0.5f),
-                                            1.0f to expressiveAccent.copy(alpha = if (fillProgress >= 0.9f) 0.95f else 0.35f)
+                                            0.0f to expressiveAccent,
+                                            (fillProgress * 0.85f).coerceIn(0f, 0.99f) to expressiveAccent,
+                                            fillProgress.coerceIn(0.01f, 0.99f) to expressiveAccent.copy(alpha = 0.85f),
+                                            (fillProgress + 0.02f).coerceIn(0.01f, 1f) to expressiveAccent.copy(alpha = 0.45f),
+                                            (fillProgress + 0.08f).coerceIn(0.01f, 1f) to expressiveAccent.copy(alpha = 0.3f),
+                                            1.0f to expressiveAccent.copy(alpha = 0.3f)
                                         )
 
                                         withStyle(
@@ -1069,32 +1073,42 @@ fun Lyrics(
                                                 brush = wordBrush,
                                                 fontWeight = FontWeight.ExtraBold,
                                                 shadow = Shadow(
-                                                    color = expressiveAccent.copy(alpha = 0.5f * glowIntensity),
+                                                    color = expressiveAccent.copy(alpha = 0.4f * glowIntensity),
                                                     offset = Offset(0f, 0f),
-                                                    blurRadius = 16f * (1f + breatheEffect)
+                                                    blurRadius = 12f + (6f * glowIntensity)
                                                 )
                                             )
                                         ) {
                                             append(word.text)
                                         }
-                                    } else if (hasWordPassed && isActiveLine) {
-
+                                    } else if (hasWordPassed) {
+                                        // Fully revealed word with subtle glow
                                         withStyle(
                                             style = SpanStyle(
                                                 color = expressiveAccent,
                                                 fontWeight = FontWeight.Bold,
                                                 shadow = Shadow(
-                                                    color = expressiveAccent.copy(alpha = 0.3f),
+                                                    color = expressiveAccent.copy(alpha = 0.25f),
                                                     offset = Offset(0f, 0f),
-                                                    blurRadius = 10f
+                                                    blurRadius = 8f
                                                 )
                                             )
                                         ) {
                                             append(word.text)
                                         }
+                                    } else if (isUpcoming && isActiveLine) {
+                                        // Upcoming words in current line - slightly dimmed
+                                        withStyle(
+                                            style = SpanStyle(
+                                                color = expressiveAccent.copy(alpha = 0.3f),
+                                                fontWeight = FontWeight.Medium
+                                            )
+                                        ) {
+                                            append(word.text)
+                                        }
                                     } else {
-
-                                        val wordColor = if (!isActiveLine) lineColor else expressiveAccent.copy(alpha = 0.35f)
+                                        // Inactive lines
+                                        val wordColor = if (!isActiveLine) lineColor else expressiveAccent.copy(alpha = 0.3f)
 
                                         withStyle(
                                             style = SpanStyle(
