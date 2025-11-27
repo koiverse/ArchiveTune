@@ -69,6 +69,7 @@ import moe.koiverse.archivetune.LocalDownloadUtil
 import moe.koiverse.archivetune.LocalPlayerConnection
 import moe.koiverse.archivetune.LocalSyncUtils
 import moe.koiverse.archivetune.R
+import moe.koiverse.archivetune.constants.ArtistSeparatorsKey
 import moe.koiverse.archivetune.constants.ListItemHeight
 import moe.koiverse.archivetune.constants.ListThumbnailSize
 import moe.koiverse.archivetune.db.entities.ArtistEntity
@@ -88,6 +89,7 @@ import moe.koiverse.archivetune.ui.component.NewActionGrid
 import moe.koiverse.archivetune.ui.component.SongListItem
 import moe.koiverse.archivetune.ui.component.TextFieldDialog
 import moe.koiverse.archivetune.ui.utils.ShowMediaInfo
+import moe.koiverse.archivetune.utils.rememberPreference
 import moe.koiverse.archivetune.viewmodels.CachePlaylistViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -124,6 +126,9 @@ fun SongMenu(
         label = "",
     )
 
+    // Artist separators for splitting artist names
+    val (artistSeparators) = rememberPreference(ArtistSeparatorsKey, defaultValue = ",;/&")
+
     val orderedArtists by produceState(initialValue = emptyList<ArtistEntity>(), song) {
         withContext(Dispatchers.IO) {
             val artistMaps = database.songArtistMap(song.id).sortedBy { it.position }
@@ -131,6 +136,32 @@ fun SongMenu(
                 song.artists.firstOrNull { it.id == map.artistId }
             }
             value = sorted
+        }
+    }
+
+    // Split artists by configured separators
+    data class SplitArtist(
+        val name: String,
+        val originalArtist: ArtistEntity?
+    )
+
+    val splitArtists = remember(orderedArtists, artistSeparators) {
+        if (artistSeparators.isEmpty()) {
+            orderedArtists.map { SplitArtist(it.name, it) }
+        } else {
+            val separatorRegex = "[${Regex.escape(artistSeparators)}]".toRegex()
+            orderedArtists.flatMap { artist ->
+                val parts = artist.name.split(separatorRegex).map { it.trim() }.filter { it.isNotEmpty() }
+                if (parts.size > 1) {
+                    // If the name contains separators, create split artists
+                    // The first part keeps the original artist reference for navigation
+                    parts.mapIndexed { index, name ->
+                        SplitArtist(name, if (index == 0) artist else null)
+                    }
+                } else {
+                    listOf(SplitArtist(artist.name, artist))
+                }
+            }
         }
     }
 
@@ -251,17 +282,19 @@ fun SongMenu(
             onDismiss = { showSelectArtistDialog = false },
         ) {
             items(
-                items = song.artists.distinctBy { it.id },
-                key = { it.id },
-            ) { artist ->
+                items = splitArtists.distinctBy { it.name },
+                key = { it.name },
+            ) { splitArtist ->
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
                         .height(ListItemHeight)
                         .clickable {
-                            navController.navigate("artist/${artist.id}")
-                            showSelectArtistDialog = false
-                            onDismiss()
+                            splitArtist.originalArtist?.let { artist ->
+                                navController.navigate("artist/${artist.id}")
+                                showSelectArtistDialog = false
+                                onDismiss()
+                            }
                         }
                         .padding(horizontal = 12.dp),
                 ) {
@@ -270,7 +303,7 @@ fun SongMenu(
                         contentAlignment = Alignment.Center,
                     ) {
                         AsyncImage(
-                            model = artist.thumbnailUrl,
+                            model = splitArtist.originalArtist?.thumbnailUrl,
                             contentDescription = null,
                             modifier = Modifier
                                 .size(ListThumbnailSize)
@@ -278,7 +311,7 @@ fun SongMenu(
                         )
                     }
                     Text(
-                        text = artist.name,
+                        text = splitArtist.name,
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
                         maxLines = 1,
@@ -597,8 +630,8 @@ fun SongMenu(
                     )
                 },
                 modifier = Modifier.clickable {
-                    if (song.artists.size == 1) {
-                        navController.navigate("artist/${song.artists[0].id}")
+                    if (splitArtists.size == 1 && splitArtists[0].originalArtist != null) {
+                        navController.navigate("artist/${splitArtists[0].originalArtist!!.id}")
                         onDismiss()
                     } else {
                         showSelectArtistDialog = true

@@ -327,6 +327,10 @@
     <string name="auto_skip_next_on_error">Passer automatiquement au titre suivant en cas d’erreur</string>
     <string name="auto_skip_next_on_error_desc">Garantit une lecture continue</string>
     <string name="stop_music_on_task_clear">Arrêter la musique lors du nettoyage des tâches</string>
+    <string name="artist_separators">Symboles de séparation d'artistes</string>
+    <string name="artist_separators_desc">Symboles utilisés pour séparer les artistes</string>
+    <string name="add_symbol">Ajouter un symbole</string>
+    <string name="enter_symbol">Entrer un symbole</string>
     <string name="equalizer">Égaliseur</string>
 
     <string name="storage">Stockage</string>

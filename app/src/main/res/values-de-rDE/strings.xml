@@ -330,6 +330,10 @@
     <string name="auto_skip_next_on_error">Automatisches Springen zum nächsten Lied, wenn ein Fehler auftritt</string>
     <string name="auto_skip_next_on_error_desc">Sorgen Sie für ein kontinuierliches Wiedergabeerlebnis</string>
     <string name="stop_music_on_task_clear">Stoppen Sie die Musik bei der Aufgabe</string>
+    <string name="artist_separators">Künstler-Trennzeichen</string>
+    <string name="artist_separators_desc">Symbole zum Trennen von Künstlern</string>
+    <string name="add_symbol">Symbol hinzufügen</string>
+    <string name="enter_symbol">Symbol eingeben</string>
     <string name="equalizer">Equalizer</string>
 
     <string name="storage">Lagerung</string>

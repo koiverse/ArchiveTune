@@ -330,6 +330,10 @@
     <string name="auto_skip_next_on_error">오디오 정규화</string>
     <string name="auto_skip_next_on_error_desc">오류 발생 시 다음 노래로 자동 건너뛰기</string>
     <string name="stop_music_on_task_clear">연속 재생 경험</string>
+    <string name="artist_separators">아티스트 구분 기호</string>
+    <string name="artist_separators_desc">여러 아티스트를 분리하는 데 사용되는 기호</string>
+    <string name="add_symbol">기호 추가</string>
+    <string name="enter_symbol">기호 입력</string>
     <string name="equalizer">작업 시 음악 중지 지우기</string>
 
     <string name="storage">이퀄라이저</string>

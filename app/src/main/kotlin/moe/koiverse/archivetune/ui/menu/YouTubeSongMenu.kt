@@ -59,6 +59,7 @@ import moe.koiverse.archivetune.LocalDownloadUtil
 import moe.koiverse.archivetune.LocalPlayerConnection
 import moe.koiverse.archivetune.LocalSyncUtils
 import moe.koiverse.archivetune.R
+import moe.koiverse.archivetune.constants.ArtistSeparatorsKey
 import moe.koiverse.archivetune.constants.ListItemHeight
 import moe.koiverse.archivetune.constants.ListThumbnailSize
 import moe.koiverse.archivetune.constants.ThumbnailCornerRadius
@@ -76,6 +77,7 @@ import moe.koiverse.archivetune.ui.component.NewActionGrid
 import moe.koiverse.archivetune.ui.utils.ShowMediaInfo
 import moe.koiverse.archivetune.utils.joinByBullet
 import moe.koiverse.archivetune.utils.makeTimeString
+import moe.koiverse.archivetune.utils.rememberPreference
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.time.LocalDateTime
@@ -98,6 +100,33 @@ fun YouTubeSongMenu(
         song.artists.mapNotNull {
             it.id?.let { artistId ->
                 MediaMetadata.Artist(id = artistId, name = it.name)
+            }
+        }
+    }
+
+    // Artist separators for splitting artist names
+    val (artistSeparators) = rememberPreference(ArtistSeparatorsKey, defaultValue = ",;/&")
+
+    // Split artists by configured separators
+    data class SplitArtist(
+        val name: String,
+        val originalArtist: MediaMetadata.Artist?
+    )
+
+    val splitArtists = remember(artists, artistSeparators) {
+        if (artistSeparators.isEmpty()) {
+            artists.map { SplitArtist(it.name, it) }
+        } else {
+            val separatorRegex = "[${Regex.escape(artistSeparators)}]".toRegex()
+            artists.flatMap { artist ->
+                val parts = artist.name.split(separatorRegex).map { it.trim() }.filter { it.isNotEmpty() }
+                if (parts.size > 1) {
+                    parts.mapIndexed { index, name ->
+                        SplitArtist(name, if (index == 0) artist else null)
+                    }
+                } else {
+                    listOf(SplitArtist(artist.name, artist))
+                }
             }
         }
     }
@@ -130,16 +159,18 @@ fun YouTubeSongMenu(
         ListDialog(  
             onDismiss = { showSelectArtistDialog = false },  
         ) {  
-            items(artists) { artist ->  
+            items(splitArtists.distinctBy { it.name }) { splitArtist ->  
                 Row(  
                     verticalAlignment = Alignment.CenterVertically,  
                     modifier =  
                     Modifier  
                         .height(ListItemHeight)  
                         .clickable {  
-                            navController.navigate("artist/${artist.id}")  
-                            showSelectArtistDialog = false  
-                            onDismiss()  
+                            splitArtist.originalArtist?.let { artist ->
+                                navController.navigate("artist/${artist.id}")  
+                                showSelectArtistDialog = false  
+                                onDismiss()
+                            }
                         }  
                         .padding(horizontal = 12.dp),  
                 ) {  
@@ -149,15 +180,10 @@ fun YouTubeSongMenu(
                         Modifier  
                             .fillParentMaxWidth()  
                             .height(ListItemHeight)  
-                            .clickable {  
-                                navController.navigate("artist/${artist.id}")  
-                                showSelectArtistDialog = false  
-                                onDismiss()  
-                            }  
                             .padding(horizontal = 24.dp),  
                     ) {  
                         Text(  
-                            text = artist.name,  
+                            text = splitArtist.name,  
                             fontSize = 18.sp,  
                             fontWeight = FontWeight.Bold,  
                             maxLines = 1,  
@@ -429,7 +455,7 @@ fun YouTubeSongMenu(
                 }
             }
         }
-        if (artists.isNotEmpty()) {
+        if (splitArtists.isNotEmpty()) {
             item {
                 ListItem(
                     headlineContent = { Text(text = stringResource(R.string.view_artist)) },
@@ -440,8 +466,8 @@ fun YouTubeSongMenu(
                         )
                     },
                     modifier = Modifier.clickable {
-                        if (artists.size == 1) {
-                            navController.navigate("artist/${artists[0].id}")
+                        if (splitArtists.size == 1 && splitArtists[0].originalArtist != null) {
+                            navController.navigate("artist/${splitArtists[0].originalArtist!!.id}")
                             onDismiss()
                         } else {
                             showSelectArtistDialog = true

@@ -330,6 +330,10 @@
     <string name="auto_skip_next_on_error">エラー発生時は次の曲に自動スキップ</string>
     <string name="auto_skip_next_on_error_desc">連続再生エクスペリエンス</string>
     <string name="stop_music_on_task_clear">タスククリア時に音楽を停止</string>
+    <string name="artist_separators">アーティスト区切り記号</string>
+    <string name="artist_separators_desc">複数のアーティストを分割する記号</string>
+    <string name="add_symbol">記号を追加</string>
+    <string name="enter_symbol">記号を入力</string>
     <string name="equalizer">イコライザー</string>
 
     <string name="storage">ストレージ</string>

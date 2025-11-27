@@ -330,6 +330,10 @@
     <string name="auto_skip_next_on_error">Lanjutkan otomatis ke lagu berikutnya ketika terjadi kesalahan</string>
     <string name="auto_skip_next_on_error_desc">Pastikan Anda pengalaman pemutaran berkelanjutan</string>
     <string name="stop_music_on_task_clear">Hentikan musik pada tugas yang jelas</string>
+    <string name="artist_separators">Simbol pemisah artis</string>
+    <string name="artist_separators_desc">Simbol yang digunakan untuk memisahkan artis</string>
+    <string name="add_symbol">Tambah simbol</string>
+    <string name="enter_symbol">Masukkan simbol</string>
     <string name="equalizer">Equalizer</string>
 
     <string name="storage">Penyimpanan</string>
