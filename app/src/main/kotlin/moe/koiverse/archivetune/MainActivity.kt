@@ -439,7 +439,7 @@ class MainActivity : ComponentActivity() {
                     }
 
             val enableDynamicTheme by rememberPreference(DynamicThemeKey, defaultValue = true)
-            val customThemeColorHex by rememberPreference(CustomThemeColorKey, defaultValue = "#ED5564")
+            val customThemeColorValue by rememberPreference(CustomThemeColorKey, defaultValue = "default")
             val darkTheme by rememberEnumPreference(DarkModeKey, defaultValue = DarkMode.AUTO)
             val isSystemInDarkTheme = isSystemInDarkTheme()
             val useDarkTheme =
@@ -452,13 +452,17 @@ class MainActivity : ComponentActivity() {
             val pureBlackEnabled by rememberPreference(PureBlackKey, defaultValue = false)
             val pureBlack = pureBlackEnabled && useDarkTheme
 
-            // Parse custom theme color from hex string
-            val customThemeColor = remember(customThemeColorHex) {
-                try {
-                    val colorString = customThemeColorHex.removePrefix("#")
-                    Color(android.graphics.Color.parseColor("#$colorString"))
-                } catch (e: Exception) {
-                    DefaultThemeColor
+            val customThemeColor = remember(customThemeColorValue) {
+                if (customThemeColorValue.startsWith("#")) {
+                    try {
+                        val colorString = customThemeColorValue.removePrefix("#")
+                        Color(android.graphics.Color.parseColor("#$colorString"))
+                    } catch (e: Exception) {
+                        DefaultThemeColor
+                    }
+                } else {
+                    moe.koiverse.archivetune.ui.screens.settings.ThemePalettes.findById(customThemeColorValue)?.primary
+                        ?: DefaultThemeColor
                 }
             }
 
