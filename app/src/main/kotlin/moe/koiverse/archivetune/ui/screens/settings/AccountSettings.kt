@@ -8,6 +8,7 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -323,34 +324,20 @@ private fun AccountSettingsHeader(onClose: () -> Unit) {
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 // App Icon
-                Surface(
-                    modifier = Modifier.size(44.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
-                ) {
-                    Icon(
-                        painter = painterResource(R.drawable.music_note),
-                        contentDescription = null,
-                        modifier = Modifier
-                            .padding(10.dp)
-                            .size(24.dp),
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                }
+                Image(
+                    painter = painterResource(R.mipmap.ic_launcher),
+                    contentDescription = null,
+                    modifier = Modifier
+                        .size(44.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                )
 
-                Column {
-                    Text(
-                        text = stringResource(id = R.string.app_name),
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Text(
-                        text = "v${BuildConfig.VERSION_NAME}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+                Text(
+                    text = stringResource(id = R.string.app_name),
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
             }
 
             IconButton(
