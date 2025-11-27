@@ -16,12 +16,13 @@ val SlimNavBarKey = booleanPreferencesKey("slimNavBar")
 val GridItemsSizeKey = stringPreferencesKey("gridItemSize")
 val SliderStyleKey = stringPreferencesKey("sliderStyle")
 val SwipeToSongKey = booleanPreferencesKey("SwipeToSong")
-val UseNewPlayerDesignKey= booleanPreferencesKey("useNewPlayerDesign")
+val PlayerDesignStyleKey = stringPreferencesKey("playerDesignStyle")
 val UseNewLibraryDesignKey = booleanPreferencesKey("useNewLibraryDesign")
 val UseNewMiniPlayerDesignKey = booleanPreferencesKey("useNewMiniPlayerDesign")
 val HidePlayerThumbnailKey = booleanPreferencesKey("hidePlayerThumbnail")
 val ThumbnailCornerRadiusKey = floatPreferencesKey("thumbnailCornerRadius")
 val SeekExtraSeconds = booleanPreferencesKey("seekExtraSeconds")
+val DisableBlurKey = booleanPreferencesKey("disableBlur")
 
 enum class SliderStyle {
     DEFAULT,
@@ -43,9 +44,9 @@ val ProxyTypeKey = stringPreferencesKey("proxyType")
 val YtmSyncKey = booleanPreferencesKey("ytmSync")
 val SelectedYtmPlaylistsKey = stringPreferencesKey("ytm_selected_playlists")
     
-    // ListenBrainz scrobbling
-    val ListenBrainzEnabledKey = booleanPreferencesKey("listenbrainz_enabled")
-    val ListenBrainzTokenKey = stringPreferencesKey("listenbrainz_token")
+// ListenBrainz scrobbling
+val ListenBrainzEnabledKey = booleanPreferencesKey("listenbrainz_enabled")
+val ListenBrainzTokenKey = stringPreferencesKey("listenbrainz_token")
 
 // Last.fm scrobbling
 val LastFMSessionKey = stringPreferencesKey("lastfmSession")
@@ -63,6 +64,8 @@ val NetworkMeteredKey = booleanPreferencesKey("networkMetered")
 enum class AudioQuality {
     AUTO,
     HIGH,
+    VERY_HIGH,
+    HIGHEST,
     LOW,
 }
 
@@ -76,6 +79,7 @@ val AutoDownloadOnLikeKey = booleanPreferencesKey("autoDownloadOnLike")
 val SimilarContent = booleanPreferencesKey("similarContent")
 val AutoSkipNextOnErrorKey = booleanPreferencesKey("autoSkipNextOnError")
 val StopMusicOnTaskClearKey = booleanPreferencesKey("stopMusicOnTaskClear")
+val ArtistSeparatorsKey = stringPreferencesKey("artistSeparators")
 
 val MaxImageCacheSizeKey = intPreferencesKey("maxImageCacheSize")
 val MaxSongCacheSizeKey = intPreferencesKey("maxSongCacheSize")
@@ -317,6 +321,12 @@ enum class PlayerButtonsStyle {
     SECONDARY,
 }
 
+enum class PlayerDesignStyle {
+    V1,
+    V2,
+    V3,
+}
+
 enum class PlayerBackgroundStyle {
     DEFAULT,
     GRADIENT,
@@ -340,6 +350,8 @@ enum class LyricsAnimationStyle {
     FADE,
     GLOW,
     SLIDE,
+    KARAOKE,
+    APPLE,
 }
 
 val LyricsTextSizeKey = floatPreferencesKey("lyricsTextSize")

@@ -19,13 +19,16 @@ import androidx.compose.ui.zIndex
 import androidx.navigation.NavController
 import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.constants.ChipSortTypeKey
+import moe.koiverse.archivetune.constants.DisableBlurKey
 import moe.koiverse.archivetune.constants.LibraryFilter
 import moe.koiverse.archivetune.ui.component.ChipsRow
 import moe.koiverse.archivetune.utils.rememberEnumPreference
+import moe.koiverse.archivetune.utils.rememberPreference
 
 @Composable
 fun LibraryScreen(navController: NavController) {
     var filterType by rememberEnumPreference(ChipSortTypeKey, LibraryFilter.LIBRARY)
+    val (disableBlur) = rememberPreference(DisableBlurKey, false)
 
     val filterContent = @Composable {
         Row {
@@ -63,12 +66,13 @@ fun LibraryScreen(navController: NavController) {
         modifier = Modifier.fillMaxSize()
     ) {
         // M3E Mesh gradient background layer at the top
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .fillMaxSize(0.7f) // Cover top 70% of screen
-                .align(Alignment.TopCenter)
-                .zIndex(-1f) // Place behind all content
+        if (!disableBlur) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .fillMaxSize(0.7f) // Cover top 70% of screen
+                    .align(Alignment.TopCenter)
+                    .zIndex(-1f) // Place behind all content
                 .drawBehind {
                     val width = size.width
                     val height = size.height
@@ -160,6 +164,7 @@ fun LibraryScreen(navController: NavController) {
                     )
                 }
         ) {}
+        }
 
         when (filterType) {
             LibraryFilter.LIBRARY -> LibraryMixScreen(navController, filterContent)

@@ -223,10 +223,8 @@ constructor(
                                         .mapNotNull { it.song.albumId }
                                         .toSet()
                                 }.flatMapLatest { downloadedAlbumIds ->
-                                    database.albums(sortType, descending).map { albums ->
-                                        albums.filter { album -> downloadedAlbumIds.contains(album.album.id) }
-                                            .filterExplicitAlbums(hideExplicit)
-                                    }
+                                    database.albumsByIds(downloadedAlbumIds, sortType, descending)
+                                        .map { albums -> albums.filterExplicitAlbums(hideExplicit) }
                                 }
                         }
                     
@@ -235,24 +233,20 @@ constructor(
                                 database.allSongs()
                                     .flowOn(Dispatchers.IO)
                                     .map { songs ->
-                                        val downloaded = songs
+                                        songs
                                             .filter { song -> downloads[song.id]?.state == Download.STATE_COMPLETED }
-                                            .groupBy { it.song.albumId }
-                                            .mapValues { (_, list) -> list.size }
-
-                                        val totalLocal = songs
-                                            .groupBy { it.song.albumId }
-                                            .mapValues { (_, list) -> list.size }
-
-                                        Pair(downloaded, totalLocal)
-                                    }.flatMapLatest { (downloadedCountByAlbum, totalCountByAlbum) ->
-                                        database.albums(sortType, descending).map { albums ->
-                                            albums.filter { album ->
-                                                val total = totalCountByAlbum[album.album.id] ?: 0
-                                                val downloaded = downloadedCountByAlbum[album.album.id] ?: 0
-                                                total > 0 && downloaded >= total
-                                            }.filterExplicitAlbums(hideExplicit)
-                                        }
+                                            .mapNotNull { song -> song.song.albumId?.let { albumId -> albumId to song } }
+                                            .groupBy({ it.first }, { it.second })
+                                            .mapValues { (_, songList) -> songList.size }
+                                    }.flatMapLatest { downloadedCountByAlbum ->
+                                        database.albumsByIds(downloadedCountByAlbum.keys, sortType, descending)
+                                            .map { albums ->
+                                                albums.filter { album ->
+                                                    val totalSongsInAlbum = album.album.songCount
+                                                    val downloadedSongsCount = downloadedCountByAlbum[album.album.id] ?: 0
+                                                    totalSongsInAlbum > 0 && downloadedSongsCount >= totalSongsInAlbum
+                                                }.filterExplicitAlbums(hideExplicit)
+                                            }
                                     }
                             }
                     AlbumFilter.LIBRARY -> database.albums(sortType, descending).map { it.filterExplicitAlbums(hideExplicit) }
@@ -310,7 +304,10 @@ constructor(
             }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
     fun sync() {
-        viewModelScope.launch(Dispatchers.IO) { syncUtils.syncSavedPlaylists() }
+        viewModelScope.launch(Dispatchers.IO) { 
+            syncUtils.syncSavedPlaylists()
+            syncUtils.syncAutoSyncPlaylists()
+        }
     }
 
     val topValue =
@@ -358,11 +355,16 @@ constructor(
 ) : ViewModel() {
     val syncAllLibrary = {
          viewModelScope.launch(Dispatchers.IO) {
-             syncUtils.syncLikedSongs()
-             syncUtils.syncLibrarySongs()
-             syncUtils.syncArtistsSubscriptions()
-             syncUtils.syncLikedAlbums()
-             syncUtils.syncSavedPlaylists()
+             try {
+                 syncUtils.syncLikedSongs()
+                 syncUtils.syncLibrarySongs()
+                 syncUtils.syncArtistsSubscriptions()
+                 syncUtils.syncLikedAlbums()
+                 syncUtils.syncSavedPlaylists()
+                 syncUtils.syncAutoSyncPlaylists()
+             } catch (e: Exception) {
+                 timber.log.Timber.e(e, "Error during manual sync")
+             }
          }
     }
     val topValue =

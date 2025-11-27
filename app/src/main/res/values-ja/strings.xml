@@ -104,10 +104,13 @@
     <string name="downloading">ダウンロード中</string>
     <string name="remove_download">ダウンロードを削除</string>
     <string name="import_playlist">プレイリストをインポート</string>
+    <string name="import_failed">インポート失敗</string>
     <string name="update_button">更新</string>
     <string name="add_to_playlist">追加 プレイリスト</string>
     <string name="view_artist">アーティストの表示</string>
     <string name="view_album">アルバムの表示</string>
+    <string name="view_all">すべて表示</string>
+    <string name="more">もっと見る</string>
     <string name="refetch">再フェッチ</string>
     <string name="share">共有</string>
     <string name="delete">削除</string>
@@ -263,6 +266,8 @@
     <string name="discord_activity_type">アクティビティ タイプ</string>
     <string name="dark_theme_follow_system">システムをフォロー</string>
     <string name="pure_black">ピュア ブラック</string>
+    <string name="disable_blur">ぼかし効果を無効にする</string>
+    <string name="disable_blur_desc">アプリ全体でぼかし効果を無効にする</string>
     <string name="customize_navigation_tabs">ナビゲーション タブをカスタマイズ</string>
     <string name="player">プレイヤー</string>
     <string name="player_text_alignment">プレイヤー テキストの配置</string>
@@ -287,6 +292,7 @@
     <string name="fade">フェード</string>
     <string name="slide">スライド</string>
     <string name="karaoke">カラオケ</string>
+    <string name="apple_music_style">Apple Music</string>
 
 
     <string name="content">コンテンツ</string>
@@ -310,6 +316,8 @@
     <string name="audio_quality_auto">自動</string>
     <string name="audio_quality_high">高</string>
     <string name="audio_quality_low">低</string>
+    <string name="audio_quality_very_high">非常に高い</string>
+    <string name="audio_quality_highest">最高</string>
     <string name="network_metered_title">ネットワークを従量制として扱う</string>
     <string name="network_metered_description">このオプションが有効になっている場合、アプリは従量制ネットワークで低品質のストリームを優先します</string>
     <string name="queue">キュー</string>
@@ -322,6 +330,10 @@
     <string name="auto_skip_next_on_error">エラー発生時は次の曲に自動スキップ</string>
     <string name="auto_skip_next_on_error_desc">連続再生エクスペリエンス</string>
     <string name="stop_music_on_task_clear">タスククリア時に音楽を停止</string>
+    <string name="artist_separators">アーティスト区切り記号</string>
+    <string name="artist_separators_desc">複数のアーティストを分割する記号</string>
+    <string name="add_symbol">記号を追加</string>
+    <string name="enter_symbol">記号を入力</string>
     <string name="equalizer">イコライザー</string>
 
     <string name="storage">ストレージ</string>
@@ -380,7 +392,7 @@
     <string name="scrobble_delay_minutes">スクロブリング遅延（秒）</string>
     <string name="username">ユーザー名</string>
     <string name="password">パスワード</string>
-
+    <string name="logging_in">ログイン中…</string>
 
     <!-- ListenBrainz -->
     <string name="listenbrainz_scrobbling">ListenBrainz スクロブル</string>

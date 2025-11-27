@@ -69,6 +69,7 @@ import moe.koiverse.archivetune.LocalDatabase
 import moe.koiverse.archivetune.LocalDownloadUtil
 import moe.koiverse.archivetune.LocalPlayerConnection
 import moe.koiverse.archivetune.R
+import moe.koiverse.archivetune.constants.ArtistSeparatorsKey
 import moe.koiverse.archivetune.constants.ListItemHeight
 import moe.koiverse.archivetune.models.MediaMetadata
 import moe.koiverse.archivetune.playback.ExoDownloadService
@@ -78,6 +79,7 @@ import moe.koiverse.archivetune.ui.component.BottomSheetState
 import moe.koiverse.archivetune.ui.component.ListDialog
 import moe.koiverse.archivetune.ui.component.NewAction
 import moe.koiverse.archivetune.ui.component.NewActionGrid
+import moe.koiverse.archivetune.utils.rememberPreference
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlin.math.log2
@@ -111,6 +113,33 @@ fun PlayerMenu(
             mediaMetadata.artists.filter { it.id != null }
         }
 
+    // Artist separators for splitting artist names
+    val (artistSeparators) = rememberPreference(ArtistSeparatorsKey, defaultValue = ",;/&")
+
+    // Split artists by configured separators
+    data class SplitArtist(
+        val name: String,
+        val originalArtist: MediaMetadata.Artist?
+    )
+
+    val splitArtists = remember(artists, artistSeparators) {
+        if (artistSeparators.isEmpty()) {
+            artists.map { SplitArtist(it.name, it) }
+        } else {
+            val separatorRegex = "[${Regex.escape(artistSeparators)}]".toRegex()
+            artists.flatMap { artist ->
+                val parts = artist.name.split(separatorRegex).map { it.trim() }.filter { it.isNotEmpty() }
+                if (parts.size > 1) {
+                    parts.mapIndexed { index, name ->
+                        SplitArtist(name, if (index == 0) artist else null)
+                    }
+                } else {
+                    listOf(SplitArtist(artist.name, artist))
+                }
+            }
+        }
+    }
+
     var showChoosePlaylistDialog by rememberSaveable {
         mutableStateOf(false)
     }
@@ -139,7 +168,7 @@ fun PlayerMenu(
         ListDialog(
             onDismiss = { showSelectArtistDialog = false },
         ) {
-            items(artists) { artist ->
+            items(splitArtists.distinctBy { it.name }) { splitArtist ->
                 Box(
                     contentAlignment = Alignment.CenterStart,
                     modifier =
@@ -147,15 +176,17 @@ fun PlayerMenu(
                         .fillParentMaxWidth()
                         .height(ListItemHeight)
                         .clickable {
-                            navController.navigate("artist/${artist.id}")
-                            showSelectArtistDialog = false
-                            playerBottomSheetState.collapseSoft()
-                            onDismiss()
+                            splitArtist.originalArtist?.let { artist ->
+                                navController.navigate("artist/${artist.id}")
+                                showSelectArtistDialog = false
+                                playerBottomSheetState.collapseSoft()
+                                onDismiss()
+                            }
                         }
                         .padding(horizontal = 24.dp),
                 ) {
                     Text(
-                        text = artist.name,
+                        text = splitArtist.name,
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
                         maxLines = 1,
@@ -223,8 +254,7 @@ fun PlayerMenu(
                 text = stringResource(R.string.start_radio),
                 onClick = {
                     Toast.makeText(context, context.getString(R.string.starting_radio), Toast.LENGTH_SHORT).show()
-                    // Start a radio based on the current media in the menu
-                    playerConnection.playQueue(YouTubeQueue.radio(mediaMetadata))
+                    playerConnection.startRadioSeamlessly()
                     onDismiss()
                 }
             ),
@@ -270,7 +300,7 @@ fun PlayerMenu(
             bottom = 8.dp + WindowInsets.systemBars.asPaddingValues().calculateBottomPadding(),
         ),
     ) {
-        if (artists.isNotEmpty()) {
+        if (splitArtists.isNotEmpty()) {
             item {
                 ListItem(
                     headlineContent = { Text(text = stringResource(R.string.view_artist)) },
@@ -281,8 +311,8 @@ fun PlayerMenu(
                         )
                     },
                     modifier = Modifier.clickable {
-                        if (mediaMetadata.artists.size == 1) {
-                            navController.navigate("artist/${mediaMetadata.artists[0].id}")
+                        if (splitArtists.size == 1 && splitArtists[0].originalArtist != null) {
+                            navController.navigate("artist/${splitArtists[0].originalArtist!!.id}")
                             playerBottomSheetState.collapseSoft()
                             onDismiss()
                         } else {

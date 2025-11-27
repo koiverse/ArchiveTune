@@ -66,6 +66,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
+import androidx.media3.common.Player.STATE_BUFFERING
 import coil3.compose.AsyncImage
 import moe.koiverse.archivetune.LocalDatabase
 import moe.koiverse.archivetune.LocalPlayerConnection
@@ -124,6 +125,9 @@ private fun NewMiniPlayer(
     val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
     val canSkipNext by playerConnection.canSkipNext.collectAsState()
     val canSkipPrevious by playerConnection.canSkipPrevious.collectAsState()
+    
+    // Track loading state when buffering
+    val isLoading = playbackState == STATE_BUFFERING
     
     val currentView = LocalView.current
     val layoutDirection = LocalLayoutDirection.current
@@ -313,23 +317,31 @@ private fun NewMiniPlayer(
                                 )
                         )
                         
-                        androidx.compose.animation.AnimatedVisibility(
-                            visible = playbackState == Player.STATE_ENDED || !isPlaying,
-                            enter = fadeIn(),
-                            exit = fadeOut()
-                        ) {
-                            Icon(
-                                painter = painterResource(
-                                    if (playbackState == Player.STATE_ENDED) {
-                                        R.drawable.replay
-                                    } else {
-                                        R.drawable.play
-                                    }
-                                ),
-                                contentDescription = null,
-                                tint = Color.White,
-                                modifier = Modifier.size(20.dp)
+                        if (isLoading) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                color = Color.White,
+                                strokeWidth = 2.dp
                             )
+                        } else {
+                            androidx.compose.animation.AnimatedVisibility(
+                                visible = playbackState == Player.STATE_ENDED || !isPlaying,
+                                enter = fadeIn(),
+                                exit = fadeOut()
+                            ) {
+                                Icon(
+                                    painter = painterResource(
+                                        if (playbackState == Player.STATE_ENDED) {
+                                            R.drawable.replay
+                                        } else {
+                                            R.drawable.play
+                                        }
+                                    ),
+                                    contentDescription = null,
+                                    tint = Color.White,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
                         }
                     }
                 }
@@ -517,6 +529,9 @@ private fun LegacyMiniPlayer(
     val canSkipNext by playerConnection.canSkipNext.collectAsState()
     val canSkipPrevious by playerConnection.canSkipPrevious.collectAsState()
     
+    // Track loading state when buffering
+    val isLoading = playbackState == STATE_BUFFERING
+    
     val currentView = LocalView.current
     val layoutDirection = LocalLayoutDirection.current
     val coroutineScope = rememberCoroutineScope()
@@ -653,18 +668,26 @@ private fun LegacyMiniPlayer(
                     }
                 },
             ) {
-                Icon(
-                    painter = painterResource(
-                        if (playbackState == Player.STATE_ENDED) {
-                            R.drawable.replay
-                        } else if (isPlaying) {
-                            R.drawable.pause
-                        } else {
-                            R.drawable.play
-                        },
-                    ),
-                    contentDescription = null,
-                )
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        color = MaterialTheme.colorScheme.primary,
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Icon(
+                        painter = painterResource(
+                            if (playbackState == Player.STATE_ENDED) {
+                                R.drawable.replay
+                            } else if (isPlaying) {
+                                R.drawable.pause
+                            } else {
+                                R.drawable.play
+                            },
+                        ),
+                        contentDescription = null,
+                    )
+                }
             }
 
             IconButton(

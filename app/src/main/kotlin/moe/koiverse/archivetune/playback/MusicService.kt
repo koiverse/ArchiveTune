@@ -65,7 +65,6 @@ import moe.koiverse.archivetune.constants.AudioNormalizationKey
 import moe.koiverse.archivetune.constants.AudioCrossfadeDurationKey
 import moe.koiverse.archivetune.constants.AudioQualityKey
 import moe.koiverse.archivetune.constants.AutoLoadMoreKey
-import moe.koiverse.archivetune.constants.DisableLoadMoreWhenRepeatAllKey
 import moe.koiverse.archivetune.constants.AutoDownloadOnLikeKey
 import moe.koiverse.archivetune.constants.AutoSkipNextOnErrorKey
 import moe.koiverse.archivetune.constants.DiscordTokenKey
@@ -132,6 +131,13 @@ import dagger.hilt.android.AndroidEntryPoint
 import moe.koiverse.archivetune.ui.screens.settings.ListenBrainzManager
 import moe.koiverse.archivetune.constants.ListenBrainzEnabledKey
 import moe.koiverse.archivetune.constants.ListenBrainzTokenKey
+import moe.koiverse.archivetune.lastfm.LastFM
+import moe.koiverse.archivetune.constants.EnableLastFMScrobblingKey
+import moe.koiverse.archivetune.constants.LastFMSessionKey
+import moe.koiverse.archivetune.constants.LastFMUseNowPlaying
+import moe.koiverse.archivetune.constants.ScrobbleDelayPercentKey
+import moe.koiverse.archivetune.constants.ScrobbleMinSongDurationKey
+import moe.koiverse.archivetune.constants.ScrobbleDelaySecondsKey
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -247,6 +253,8 @@ class MusicService :
     private var discordRpc: DiscordRPC? = null
     private var lastDiscordUpdateTime = 0L
 
+    private var scrobbleManager: moe.koiverse.archivetune.utils.ScrobbleManager? = null
+
     val automixItems = MutableStateFlow<List<MediaItem>>(emptyList())
 
     private var consecutivePlaybackErr = 0
@@ -256,6 +264,36 @@ class MusicService :
 
     override fun onCreate() {
         super.onCreate()
+
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                val nm = getSystemService(NotificationManager::class.java)
+                nm?.createNotificationChannel(
+                    NotificationChannel(
+                        CHANNEL_ID,
+                        getString(R.string.music_player),
+                        NotificationManager.IMPORTANCE_LOW
+                    )
+                )
+            }
+            val pending = PendingIntent.getActivity(
+                this,
+                0,
+                Intent(this, MainActivity::class.java),
+                PendingIntent.FLAG_IMMUTABLE
+            )
+            val notification: Notification = NotificationCompat.Builder(this, CHANNEL_ID)
+                .setContentTitle(getString(R.string.music_player))
+                .setContentText("")
+                .setSmallIcon(R.drawable.small_icon)
+                .setContentIntent(pending)
+                .setOngoing(true)
+                .build()
+            startForeground(NOTIFICATION_ID, notification)
+        } catch (e: Exception) {
+            reportException(e)
+        }
+        
         ensurePresenceManager()
         setMediaNotificationProvider(
             DefaultMediaNotificationProvider(
@@ -285,41 +323,12 @@ class MusicService :
             .setSeekForwardIncrementMs(5000)
             .build()
 
-                try {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                        val nm = getSystemService(NotificationManager::class.java)
-                        nm?.createNotificationChannel(
-                            NotificationChannel(
-                                CHANNEL_ID,
-                                getString(R.string.music_player),
-                                NotificationManager.IMPORTANCE_LOW
-                            )
-                        )
-                    }
-                    val pending = PendingIntent.getActivity(
-                        this,
-                        0,
-                        Intent(this, MainActivity::class.java),
-                        PendingIntent.FLAG_IMMUTABLE
-                    )
-                    val notification: Notification = NotificationCompat.Builder(this, CHANNEL_ID)
-                        .setContentTitle(getString(R.string.music_player))
-                        .setContentText("")
-                        .setSmallIcon(R.drawable.small_icon)
-                        .setContentIntent(pending)
-                        .setOngoing(true)
-                        .build()
-                    startForeground(NOTIFICATION_ID, notification)
-                } catch (e: Exception) {
-                    reportException(e)
-                }
-
-                player.apply {
-                    addListener(this@MusicService)
-                    sleepTimer = SleepTimer(scope, this)
-                    addListener(sleepTimer)
-                    addAnalyticsListener(PlaybackStatsListener(false, this@MusicService))
-                }
+        player.apply {
+            addListener(this@MusicService)
+            sleepTimer = SleepTimer(scope, this)
+            addListener(sleepTimer)
+            addAnalyticsListener(PlaybackStatsListener(false, this@MusicService))
+        }
 
         audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
         setupAudioFocusRequest()
@@ -329,6 +338,7 @@ class MusicService :
             toggleStartRadio = ::toggleStartRadio
             toggleLibrary = ::toggleLibrary
         }
+        
         mediaSession =
             MediaLibrarySession
                 .Builder(this, player, mediaLibrarySessionCallback)
@@ -367,8 +377,9 @@ class MusicService :
 
         combine(playerVolume, normalizeFactor) { playerVolume, normalizeFactor ->
             playerVolume * normalizeFactor
-        }.collectLatest(scope) {
-            player.volume = it
+        }.collectLatest(scope) { finalVolume ->
+            Timber.tag("AudioNormalization").d("Setting player volume: $finalVolume (playerVolume: ${playerVolume.value}, normalizeFactor: ${normalizeFactor.value})")
+            player.volume = finalVolume
         }
 
         playerVolume.debounce(1000).collect(scope) { volume ->
@@ -429,14 +440,33 @@ class MusicService :
         ) { format, normalizeAudio ->
             format to normalizeAudio
         }.collectLatest(scope) { (format, normalizeAudio) ->
+            Timber.tag("AudioNormalization").d("Audio normalization enabled: $normalizeAudio")
+            Timber.tag("AudioNormalization").d("Format loudnessDb: ${format?.loudnessDb}, perceptualLoudnessDb: ${format?.perceptualLoudnessDb}")
+            
             normalizeFactor.value =
-                if (normalizeAudio && format?.loudnessDb != null) {
-                    var factor = 10f.pow(-format.loudnessDb.toFloat() / 20)
-                    if (factor > 1f) {
-                        factor = min(factor, maxSafeGainFactor)
+                if (normalizeAudio) {
+                    // Use loudnessDb if available, otherwise fall back to perceptualLoudnessDb
+                    val loudness = format?.loudnessDb ?: format?.perceptualLoudnessDb
+                    
+                    if (loudness != null) {
+                        val loudnessDb = loudness.toFloat()
+                        var factor = 10f.pow(-loudnessDb / 20)
+                        
+                        Timber.tag("AudioNormalization").d("Calculated raw normalization factor: $factor (from loudness: $loudnessDb)")
+                        
+                        if (factor > 1f) {
+                            factor = min(factor, maxSafeGainFactor)
+                            Timber.tag("AudioNormalization").d("Factor capped at maxSafeGainFactor: $factor")
+                        }
+                        
+                        Timber.tag("AudioNormalization").i("Applying normalization factor: $factor")
+                        factor
+                    } else {
+                        Timber.tag("AudioNormalization").w("Normalization enabled but no loudness data available - no normalization applied")
+                        1f
                     }
-                    factor
                 } else {
+                    Timber.tag("AudioNormalization").d("Normalization disabled - using factor 1.0")
                     1f
                 }
         }
@@ -471,6 +501,54 @@ class MusicService :
                         discordRpc = null
                     }
         }
+
+        // Last.fm ScrobbleManager setup
+        dataStore.data
+            .map { it[EnableLastFMScrobblingKey] ?: false }
+            .debounce(300)
+            .distinctUntilChanged()
+            .collect(scope) { enabled ->
+                if (enabled && scrobbleManager == null) {
+                    val delayPercent = dataStore.get(ScrobbleDelayPercentKey, LastFM.DEFAULT_SCROBBLE_DELAY_PERCENT)
+                    val minSongDuration = dataStore.get(ScrobbleMinSongDurationKey, LastFM.DEFAULT_SCROBBLE_MIN_SONG_DURATION)
+                    val delaySeconds = dataStore.get(ScrobbleDelaySecondsKey, LastFM.DEFAULT_SCROBBLE_DELAY_SECONDS)
+                    
+                    scrobbleManager = moe.koiverse.archivetune.utils.ScrobbleManager(
+                        scope,
+                        minSongDuration = minSongDuration,
+                        scrobbleDelayPercent = delayPercent,
+                        scrobbleDelaySeconds = delaySeconds
+                    )
+                    scrobbleManager?.useNowPlaying = dataStore.get(LastFMUseNowPlaying, false)
+                } else if (!enabled && scrobbleManager != null) {
+                    scrobbleManager?.destroy()
+                    scrobbleManager = null
+                }
+            }
+
+        dataStore.data
+            .map { it[LastFMUseNowPlaying] ?: false }
+            .distinctUntilChanged()
+            .collectLatest(scope) {
+                scrobbleManager?.useNowPlaying = it
+            }
+
+        dataStore.data
+            .map { prefs ->
+                Triple(
+                    prefs[ScrobbleDelayPercentKey] ?: LastFM.DEFAULT_SCROBBLE_DELAY_PERCENT,
+                    prefs[ScrobbleMinSongDurationKey] ?: LastFM.DEFAULT_SCROBBLE_MIN_SONG_DURATION,
+                    prefs[ScrobbleDelaySecondsKey] ?: LastFM.DEFAULT_SCROBBLE_DELAY_SECONDS
+                )
+            }
+            .distinctUntilChanged()
+            .collect(scope) { (delayPercent, minSongDuration, delaySeconds) ->
+                scrobbleManager?.let {
+                    it.scrobbleDelayPercent = delayPercent
+                    it.minSongDuration = minSongDuration
+                    it.scrobbleDelaySeconds = delaySeconds
+                }
+            }
 
         if (dataStore.get(PersistentQueueKey, true)) {
             runCatching {
@@ -891,32 +969,33 @@ class MusicService :
     fun startRadioSeamlessly() {
         val currentMediaMetadata = player.currentMetadata ?: return
 
-        // Capture current player state so we can restore position/play state
-        val currentSong = player.currentMediaItem ?: return
-        val currentPosition = player.currentPosition
-        val wasPlayWhenReady = player.playWhenReady
+        val currentIndex = player.currentMediaItemIndex
+        val currentMediaId = currentMediaMetadata.id
 
         scope.launch(SilentHandler) {
             val radioQueue = YouTubeQueue(
-                endpoint = WatchEndpoint(videoId = currentMediaMetadata.id)
+                endpoint = WatchEndpoint(videoId = currentMediaId)
             )
-            val initialStatus = radioQueue.getInitialStatus()
+            val initialStatus = withContext(Dispatchers.IO) {
+                radioQueue.getInitialStatus().filterExplicit(dataStore.get(HideExplicitKey, false))
+            }
 
             if (initialStatus.title != null) {
                 queueTitle = initialStatus.title
             }
 
-            // Build a new media list: keep current song as first item, then append radio items
-            val radioItems = initialStatus.items.drop(1)
-            val newItems = mutableListOf<MediaItem>()
-            newItems.add(currentSong)
-            newItems.addAll(radioItems)
-
-            if (newItems.isNotEmpty()) {
-                // Replace player's playlist with current + radio items and restore position
-                player.setMediaItems(newItems, 0, currentPosition)
-                player.prepare()
-                player.playWhenReady = wasPlayWhenReady
+            val radioItems = initialStatus.items.filter { item ->
+                item.mediaId != currentMediaId
+            }
+            
+            if (radioItems.isNotEmpty()) {
+                val itemCount = player.mediaItemCount
+                
+                if (itemCount > currentIndex + 1) {
+                    player.removeMediaItems(currentIndex + 1, itemCount)
+                }
+                
+                player.addMediaItems(currentIndex + 1, radioItems)
             }
 
             currentQueue = radioQueue
@@ -934,8 +1013,9 @@ class MusicService :
     }
 
     fun getAutomix(playlistId: String) {
+        // Don't load automix/similar content if repeat mode is enabled
         if (dataStore[SimilarContent] == true && 
-            !(dataStore.get(DisableLoadMoreWhenRepeatAllKey, false) && player.repeatMode == REPEAT_MODE_ALL)) {
+            player.repeatMode == REPEAT_MODE_OFF) {
             scope.launch(SilentHandler) {
                 YouTube
                     .next(WatchEndpoint(playlistId = playlistId))
@@ -1056,12 +1136,17 @@ class MusicService :
     override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
     super.onMediaItemTransition(mediaItem, reason)
 
+    // Scrobble: Stop previous song
+    scrobbleManager?.onSongStop()
+
     // Auto load more songs
+    // Don't auto-load if repeat mode is enabled (REPEAT_MODE_ALL or REPEAT_MODE_ONE)
+    // as the user expects the queue to loop, not to add new songs
     if (dataStore.get(AutoLoadMoreKey, true) &&
         reason != Player.MEDIA_ITEM_TRANSITION_REASON_REPEAT &&
         player.mediaItemCount - player.currentMediaItemIndex <= 5 &&
         currentQueue.hasNextPage() &&
-        !(dataStore.get(DisableLoadMoreWhenRepeatAllKey, false) && player.repeatMode == REPEAT_MODE_ALL)
+        player.repeatMode == REPEAT_MODE_OFF
     ) {
         scope.launch(SilentHandler) {
             val mediaItems =
@@ -1072,6 +1157,11 @@ class MusicService :
                 scope.launch { discordRpc?.stopActivity() }
             }
         }
+    }
+
+    // Scrobble: Start new song if playing
+    if (player.playWhenReady && player.playbackState == Player.STATE_READY) {
+        scrobbleManager?.onSongStart(player.currentMetadata, duration = player.duration)
     }
 
     if (dataStore.get(PersistentQueueKey, true)) {
@@ -1086,6 +1176,11 @@ class MusicService :
     if (dataStore.get(PersistentQueueKey, true)) {
         saveQueueToDisk()
     }
+
+    if (playbackState == Player.STATE_IDLE || playbackState == Player.STATE_ENDED) {
+        scrobbleManager?.onSongStop()
+    }
+
     ensurePresenceManager()
     scope.launch {
         try {
@@ -1188,6 +1283,8 @@ class MusicService :
                                         }
                                     }
                                 }
+                                
+                                // Last.fm now playing - handled by ScrobbleManager
                             } catch (_: Exception) {}
                         }
                     }
@@ -1231,6 +1328,9 @@ class MusicService :
                                         }
                                     }
                                 }
+                                
+                                // Last.fm now playing - handled by ScrobbleManager
+                                // This block can be removed as ScrobbleManager handles it
                             } catch (_: Exception) {}
                         }
                     }
@@ -1242,6 +1342,8 @@ class MusicService :
 
    if (events.containsAny(Player.EVENT_IS_PLAYING_CHANGED)) {
         ensurePresenceManager()
+        // Scrobble: Track play/pause state
+        scrobbleManager?.onPlayerStateChanged(player.isPlaying, player.currentMetadata, duration = player.duration)
     } else if (events.contains(Player.EVENT_MEDIA_ITEM_TRANSITION)) {
         ensurePresenceManager()
     } else {
@@ -1413,6 +1515,13 @@ class MusicService :
             }
             run {
                 val format = nonNullPlayback.format
+                val loudnessDb = nonNullPlayback.audioConfig?.loudnessDb
+                val perceptualLoudnessDb = nonNullPlayback.audioConfig?.perceptualLoudnessDb
+                
+                Timber.tag("AudioNormalization").d("Storing format for $mediaId with loudnessDb: $loudnessDb, perceptualLoudnessDb: $perceptualLoudnessDb")
+                if (loudnessDb == null && perceptualLoudnessDb == null) {
+                    Timber.tag("AudioNormalization").w("No loudness data available from YouTube for video: $mediaId")
+                }
 
                 database.query {
                     upsert(
@@ -1424,7 +1533,8 @@ class MusicService :
                             bitrate = format.bitrate,
                             sampleRate = format.audioSampleRate,
                             contentLength = format.contentLength!!,
-                            loudnessDb = nonNullPlayback.audioConfig?.loudnessDb,
+                            loudnessDb = loudnessDb,
+                            perceptualLoudnessDb = perceptualLoudnessDb,
                             playbackUrl = nonNullPlayback.playbackTracking?.videostatsPlaybackUrl?.baseUrl
                         )
                     )
@@ -1504,10 +1614,13 @@ class MusicService :
             }
             CoroutineScope(Dispatchers.IO).launch {
                 try {
+                    val song = database.song(mediaItem.mediaId).first()
+                        ?: return@launch
+                    
+                    // ListenBrainz scrobbling
                     val lbEnabled = dataStore.get(ListenBrainzEnabledKey, false)
                     val lbToken = dataStore.get(ListenBrainzTokenKey, "")
                     if (lbEnabled && !lbToken.isNullOrBlank()) {
-                        val song = database.song(mediaItem.mediaId).first()
                         val endMs = System.currentTimeMillis()
                         val startMs = endMs - playbackStats.totalPlayTimeMs
                         try {
@@ -1516,6 +1629,10 @@ class MusicService :
                             Timber.tag("MusicService").v(ie, "ListenBrainz finished submit failed")
                         }
                     }
+                    
+                    // Last.fm scrobbling - handled by ScrobbleManager
+                    // The old manual scrobbling logic has been replaced with ScrobbleManager
+                    // which properly tracks play time and scrobbles automatically
                 } catch (_: Exception) {}
             }
         }
@@ -1682,6 +1799,14 @@ class MusicService :
     }
 
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo) = mediaSession
+
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        return super.onStartCommand(intent, flags, startId)
+    }
+
+    override fun onUpdateNotification(session: MediaSession, startInForegroundRequired: Boolean) {
+        super.onUpdateNotification(session, true)
+    }
 
     inner class MusicBinder : Binder() {
         val service: MusicService

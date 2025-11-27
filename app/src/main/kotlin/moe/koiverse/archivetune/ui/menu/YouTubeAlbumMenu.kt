@@ -55,6 +55,7 @@ import moe.koiverse.archivetune.LocalDatabase
 import moe.koiverse.archivetune.LocalDownloadUtil
 import moe.koiverse.archivetune.LocalPlayerConnection
 import moe.koiverse.archivetune.R
+import moe.koiverse.archivetune.constants.ArtistSeparatorsKey
 import moe.koiverse.archivetune.constants.ListItemHeight
 import moe.koiverse.archivetune.constants.ListThumbnailSize
 import moe.koiverse.archivetune.db.entities.Song
@@ -66,6 +67,7 @@ import moe.koiverse.archivetune.ui.component.NewAction
 import moe.koiverse.archivetune.ui.component.NewActionGrid
 import moe.koiverse.archivetune.ui.component.SongListItem
 import moe.koiverse.archivetune.ui.component.YouTubeListItem
+import moe.koiverse.archivetune.utils.rememberPreference
 import moe.koiverse.archivetune.utils.reportException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -121,6 +123,34 @@ fun YouTubeAlbumMenu(
                 } else {
                     Download.STATE_STOPPED
                 }
+        }
+    }
+
+    // Artist separators for splitting artist names
+    val (artistSeparators) = rememberPreference(ArtistSeparatorsKey, defaultValue = ",;/&")
+
+    // Split artists by configured separators
+    data class SplitArtist(
+        val name: String,
+        val originalArtist: moe.koiverse.archivetune.db.entities.ArtistEntity?
+    )
+
+    val splitArtists = remember(album?.artists, artistSeparators) {
+        val artists = album?.artists ?: emptyList()
+        if (artistSeparators.isEmpty()) {
+            artists.map { SplitArtist(it.name, it) }
+        } else {
+            val separatorRegex = "[${Regex.escape(artistSeparators)}]".toRegex()
+            artists.flatMap { artist ->
+                val parts = artist.name.split(separatorRegex).map { it.trim() }.filter { it.isNotEmpty() }
+                if (parts.size > 1) {
+                    parts.mapIndexed { index, name ->
+                        SplitArtist(name, if (index == 0) artist else null)
+                    }
+                } else {
+                    listOf(SplitArtist(artist.name, artist))
+                }
+            }
         }
     }
 
@@ -188,17 +218,19 @@ fun YouTubeAlbumMenu(
             onDismiss = { showSelectArtistDialog = false },
         ) {
             items(
-                items = album?.artists.orEmpty().distinctBy { it.id },
-                key = { it.id },
-            ) { artist ->
+                items = splitArtists.distinctBy { it.name },
+                key = { it.name },
+            ) { splitArtist ->
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
                         .height(ListItemHeight)
                         .clickable {
-                            navController.navigate("artist/${artist.id}")
-                            showSelectArtistDialog = false
-                            onDismiss()
+                            splitArtist.originalArtist?.let { artist ->
+                                navController.navigate("artist/${artist.id}")
+                                showSelectArtistDialog = false
+                                onDismiss()
+                            }
                         }
                         .padding(horizontal = 12.dp),
                 ) {
@@ -207,15 +239,10 @@ fun YouTubeAlbumMenu(
                         modifier = Modifier
                             .fillParentMaxWidth()
                             .height(ListItemHeight)
-                            .clickable {
-                                showSelectArtistDialog = false
-                                onDismiss()
-                                navController.navigate("artist/${artist.id}")
-                            }
                             .padding(horizontal = 24.dp),
                     ) {
                         Text(
-                            text = artist.name,
+                            text = splitArtist.name,
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Bold,
                             maxLines = 1,
@@ -462,8 +489,8 @@ fun YouTubeAlbumMenu(
                         )
                     },
                     modifier = Modifier.clickable {
-                        if (artists.size == 1) {
-                            navController.navigate("artist/${artists[0].id}")
+                        if (splitArtists.size == 1 && splitArtists[0].originalArtist != null) {
+                            navController.navigate("artist/${splitArtists[0].originalArtist!!.id}")
                             onDismiss()
                         } else {
                             showSelectArtistDialog = true

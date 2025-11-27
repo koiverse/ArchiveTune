@@ -28,10 +28,9 @@ data class PlaylistEntity(
     val thumbnailUrl: String? = null,
     val shuffleEndpointParams: String? = null,
     val radioEndpointParams: String? = null,
-    @ColumnInfo(name = "isLocal", defaultValue = false.toString())
-    val isLocal: Boolean = false
-    ,
-    @ColumnInfo(name = "isAutoSync", defaultValue = false.toString())
+    @ColumnInfo(name = "isLocal", defaultValue = "0")
+    val isLocal: Boolean = false,
+    @ColumnInfo(name = "isAutoSync", defaultValue = "0")
     val isAutoSync: Boolean = false
 ) {
     companion object {

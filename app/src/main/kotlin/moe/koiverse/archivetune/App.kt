@@ -77,6 +77,9 @@ class App : Application(), SingletonImageLoader.Factory {
             apiKey = BuildConfig.LASTFM_API_KEY,
             secret = BuildConfig.LASTFM_SECRET
         )
+        
+        // Load Last.fm session key from preferences
+        LastFM.sessionKey = dataStore[LastFMSessionKey]
 
         if (dataStore[ProxyEnabledKey] == true) {
             try {
@@ -176,6 +179,14 @@ class App : Application(), SingletonImageLoader.Factory {
                         Timber.e("Could not parse cookie. Clearing existing cookie. %s", e.message)
                         forgetAccount(this@App)
                     }
+                }
+        }
+        applicationScope.launch {
+            dataStore.data
+                .map { it[LastFMSessionKey] }
+                .distinctUntilChanged()
+                .collect { sessionKey ->
+                    LastFM.sessionKey = sessionKey
                 }
         }
     }

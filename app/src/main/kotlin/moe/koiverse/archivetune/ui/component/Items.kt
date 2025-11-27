@@ -99,6 +99,7 @@ import moe.koiverse.archivetune.LocalDatabase
 import moe.koiverse.archivetune.LocalDownloadUtil
 import moe.koiverse.archivetune.LocalPlayerConnection
 import moe.koiverse.archivetune.R
+import moe.koiverse.archivetune.constants.DisableBlurKey
 import moe.koiverse.archivetune.constants.HideExplicitKey
 import moe.koiverse.archivetune.constants.ListItemHeight
 import moe.koiverse.archivetune.constants.GridThumbnailHeight
@@ -669,6 +670,7 @@ fun OverlayPlaylistListItem(
 ) {
     var showPreview by remember { mutableStateOf(false) }
     val backgroundUrl = playlist.thumbnails.getOrNull(0)
+    val (disableBlur) = rememberPreference(DisableBlurKey, false)
 
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -683,7 +685,9 @@ fun OverlayPlaylistListItem(
                     model = backgroundUrl,
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize().blur(8.dp)
+                    modifier = Modifier.fillMaxSize().let { 
+                        if (disableBlur) it else it.blur(8.dp)
+                    }
                 )
                 Box(modifier = Modifier
                     .fillMaxSize()

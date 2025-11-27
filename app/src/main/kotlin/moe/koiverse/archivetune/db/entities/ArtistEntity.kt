@@ -21,7 +21,7 @@ data class ArtistEntity(
     val channelId: String? = null,
     val lastUpdateTime: LocalDateTime = LocalDateTime.now(),
     val bookmarkedAt: LocalDateTime? = null,
-    @ColumnInfo(name = "isLocal", defaultValue = false.toString())
+    @ColumnInfo(name = "isLocal", defaultValue = "0")
     val isLocal: Boolean = false
 ) {
     val isYouTubeArtist: Boolean

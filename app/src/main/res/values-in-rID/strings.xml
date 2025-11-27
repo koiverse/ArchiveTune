@@ -104,10 +104,13 @@
     <string name="downloading">Mengunduh</string>
     <string name="remove_download">Hapus unduhan</string>
     <string name="import_playlist">Impor daftar putar</string>
+    <string name="import_failed">Impor gagal</string>
     <string name="update_button">Perbarui</string>
     <string name="add_to_playlist">Tambahkan ke playlist</string>
     <string name="view_artist">Lihat artis</string>
     <string name="view_album">Lihat album</string>
+    <string name="view_all">Lihat semua</string>
+    <string name="more">selengkapnya</string>
     <string name="refetch">Ambil ulang</string>
     <string name="share">Bagikan</string>
     <string name="delete">Hapus</string>
@@ -263,6 +266,8 @@
     <string name="discord_activity_type">Jenis aktivitas</string>
     <string name="dark_theme_follow_system">Ikuti sistem</string>
     <string name="pure_black">Hitam murni</string>
+    <string name="disable_blur">Nonaktifkan efek blur</string>
+    <string name="disable_blur_desc">Nonaktifkan efek blur di seluruh aplikasi</string>
     <string name="customize_navigation_tabs">Sesuaikan tab navigasi</string>
     <string name="player">Pemutar</string>
     <string name="player_text_alignment">Perataan teks pemutar</string>
@@ -284,9 +289,10 @@
     <string name="lyrics_animation_style">Gaya animasi lirik</string>
     <!-- Animation options -->
     <string name="none">Tidak ada</string>
-    <string name="fade">Pudar</string>
-    <string name="slide">Slide</string>
+    <string name="fade">Memudar</string>
+    <string name="slide">Geser</string>
     <string name="karaoke">Karaoke</string>
+    <string name="apple_music_style">Apple Music</string>
 
 
     <string name="content">Konten</string>
@@ -310,6 +316,8 @@
     <string name="audio_quality_auto">Otomatis</string>
     <string name="audio_quality_high">Tinggi</string>
     <string name="audio_quality_low">Rendah</string>
+    <string name="audio_quality_very_high">Sangat Tinggi</string>
+    <string name="audio_quality_highest">Tertinggi</string>
     <string name="network_metered_title">Perlakukan jaringan sebagai terukur</string>
     <string name="network_metered_description">Jika opsi ini diaktifkan, aplikasi akan lebih memilih aliran dengan kualitas lebih rendah di jaringan terukur</string>
     <string name="queue">Antrian</string>
@@ -322,6 +330,10 @@
     <string name="auto_skip_next_on_error">Lanjutkan otomatis ke lagu berikutnya ketika terjadi kesalahan</string>
     <string name="auto_skip_next_on_error_desc">Pastikan Anda pengalaman pemutaran berkelanjutan</string>
     <string name="stop_music_on_task_clear">Hentikan musik pada tugas yang jelas</string>
+    <string name="artist_separators">Simbol pemisah artis</string>
+    <string name="artist_separators_desc">Simbol yang digunakan untuk memisahkan artis</string>
+    <string name="add_symbol">Tambah simbol</string>
+    <string name="enter_symbol">Masukkan simbol</string>
     <string name="equalizer">Equalizer</string>
 
     <string name="storage">Penyimpanan</string>
@@ -380,7 +392,7 @@
     <string name="scrobble_delay_minutes">Penundaan Scrobble (Detik)</string>
     <string name="username">Nama pengguna</string>
     <string name="password">Kata sandi</string>
-
+    <string name="logging_in">Masuk…</string>
 
     <!-- ListenBrainz -->
     <string name="listenbrainz_scrobbling">Scrobbling ListenBrainz</string>

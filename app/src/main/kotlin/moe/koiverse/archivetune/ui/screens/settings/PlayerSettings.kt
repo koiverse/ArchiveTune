@@ -1,49 +1,35 @@
 package moe.koiverse.archivetune.ui.screens.settings
 
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsetsSides
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.only
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import moe.koiverse.archivetune.LocalPlayerAwareWindowInsets
 import moe.koiverse.archivetune.R
+import moe.koiverse.archivetune.constants.ArtistSeparatorsKey
 import moe.koiverse.archivetune.constants.AudioNormalizationKey
 import moe.koiverse.archivetune.constants.AudioQuality
 import moe.koiverse.archivetune.constants.AudioQualityKey
 import moe.koiverse.archivetune.constants.NetworkMeteredKey
 import moe.koiverse.archivetune.constants.AutoDownloadOnLikeKey
 import moe.koiverse.archivetune.constants.AutoLoadMoreKey
-import moe.koiverse.archivetune.constants.DisableLoadMoreWhenRepeatAllKey
 import moe.koiverse.archivetune.constants.AutoSkipNextOnErrorKey
 import moe.koiverse.archivetune.constants.PersistentQueueKey
 import moe.koiverse.archivetune.constants.SimilarContent
@@ -51,15 +37,16 @@ import moe.koiverse.archivetune.constants.SkipSilenceKey
 import moe.koiverse.archivetune.constants.StopMusicOnTaskClearKey
 import moe.koiverse.archivetune.constants.HistoryDuration
 import moe.koiverse.archivetune.constants.SeekExtraSeconds
+import moe.koiverse.archivetune.ui.component.ArtistSeparatorsDialog
 import moe.koiverse.archivetune.ui.component.EnumListPreference
 import moe.koiverse.archivetune.ui.component.IconButton
+import moe.koiverse.archivetune.ui.component.PreferenceEntry
 import moe.koiverse.archivetune.ui.component.PreferenceGroupTitle
 import moe.koiverse.archivetune.ui.component.SliderPreference
 import moe.koiverse.archivetune.ui.component.SwitchPreference
 import moe.koiverse.archivetune.ui.utils.backToMain
 import moe.koiverse.archivetune.utils.rememberEnumPreference
 import moe.koiverse.archivetune.utils.rememberPreference
-import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -97,10 +84,6 @@ fun PlayerSettings(
         AutoLoadMoreKey,
         defaultValue = true
     )
-    val (disableLoadMoreWhenRepeatAll, onDisableLoadMoreWhenRepeatAllChange) = rememberPreference(
-        DisableLoadMoreWhenRepeatAllKey,
-        defaultValue = false
-    )
     val (autoDownloadOnLike, onAutoDownloadOnLikeChange) = rememberPreference(
         AutoDownloadOnLikeKey,
         defaultValue = false
@@ -121,6 +104,24 @@ fun PlayerSettings(
         HistoryDuration,
         defaultValue = 30f
     )
+
+    val (artistSeparators, onArtistSeparatorsChange) = rememberPreference(
+        ArtistSeparatorsKey,
+        defaultValue = ",;/&"
+    )
+
+    var showArtistSeparatorsDialog by remember { mutableStateOf(false) }
+
+    if (showArtistSeparatorsDialog) {
+        ArtistSeparatorsDialog(
+            currentSeparators = artistSeparators,
+            onDismiss = { showArtistSeparatorsDialog = false },
+            onSave = { newSeparators ->
+                onArtistSeparatorsChange(newSeparators)
+                showArtistSeparatorsDialog = false
+            }
+        )
+    }
 
     Column(
         Modifier
@@ -148,6 +149,8 @@ fun PlayerSettings(
                 when (it) {
                     AudioQuality.AUTO -> stringResource(R.string.audio_quality_auto)
                     AudioQuality.HIGH -> stringResource(R.string.audio_quality_high)
+                    AudioQuality.VERY_HIGH -> stringResource(R.string.audio_quality_very_high)
+                    AudioQuality.HIGHEST -> stringResource(R.string.audio_quality_highest)
                     AudioQuality.LOW -> stringResource(R.string.audio_quality_low)
                 }
             }
@@ -211,14 +214,6 @@ fun PlayerSettings(
         )
 
         SwitchPreference(
-            title = { Text(stringResource(R.string.disable_load_more_when_repeat_all)) },
-            description = stringResource(R.string.disable_load_more_when_repeat_all_desc),
-            icon = { Icon(painterResource(R.drawable.repeat), null) },
-            checked = disableLoadMoreWhenRepeatAll,
-            onCheckedChange = onDisableLoadMoreWhenRepeatAllChange
-        )
-
-        SwitchPreference(
             title = { Text(stringResource(R.string.auto_download_on_like)) },
             description = stringResource(R.string.auto_download_on_like_desc),
             icon = { Icon(painterResource(R.drawable.download), null) },
@@ -251,6 +246,13 @@ fun PlayerSettings(
             icon = { Icon(painterResource(R.drawable.clear_all), null) },
             checked = stopMusicOnTaskClear,
             onCheckedChange = onStopMusicOnTaskClearChange
+        )
+
+        PreferenceEntry(
+            title = { Text(stringResource(R.string.artist_separators)) },
+            description = artistSeparators.map { "\"$it\"" }.joinToString("  "),
+            icon = { Icon(painterResource(R.drawable.artist), null) },
+            onClick = { showArtistSeparatorsDialog = true }
         )
     }
 

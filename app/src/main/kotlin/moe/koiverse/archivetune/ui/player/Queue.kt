@@ -71,6 +71,8 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -80,6 +82,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalClipboard
@@ -102,7 +105,8 @@ import androidx.navigation.NavController
 import moe.koiverse.archivetune.LocalPlayerConnection
 import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.constants.ListItemHeight
-import moe.koiverse.archivetune.constants.UseNewPlayerDesignKey
+import moe.koiverse.archivetune.constants.PlayerDesignStyle
+import moe.koiverse.archivetune.constants.PlayerDesignStyleKey
 import moe.koiverse.archivetune.constants.PlayerButtonsStyle
 import moe.koiverse.archivetune.constants.PlayerButtonsStyleKey
 import moe.koiverse.archivetune.constants.QueueEditLockKey
@@ -121,6 +125,7 @@ import moe.koiverse.archivetune.ui.menu.PlayerMenu
 import moe.koiverse.archivetune.ui.menu.SelectionMediaMetadataMenu
 import moe.koiverse.archivetune.ui.utils.ShowMediaInfo
 import moe.koiverse.archivetune.utils.makeTimeString
+import moe.koiverse.archivetune.utils.rememberEnumPreference
 import moe.koiverse.archivetune.utils.rememberPreference
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -175,9 +180,9 @@ fun Queue(
 
     var locked by rememberPreference(QueueEditLockKey, defaultValue = true)
 
-    val (useNewPlayerDesign, onUseNewPlayerDesignChange) = rememberPreference(
-        UseNewPlayerDesignKey,
-        defaultValue = true
+    val playerDesignStyle by rememberEnumPreference(
+        key = PlayerDesignStyleKey,
+        defaultValue = PlayerDesignStyle.V2
     )
 
     val snackbarHostState = remember { SnackbarHostState() }
@@ -216,7 +221,8 @@ fun Queue(
         backgroundColor = Color.Unspecified,
         modifier = modifier,
         collapsedContent = {
-            if (useNewPlayerDesign) {
+            when (playerDesignStyle) {
+                PlayerDesignStyle.V2, PlayerDesignStyle.V3 -> {
                 // Codec Info Display (if enabled)
                 if (showCodecOnPlayer && currentFormat != null) {
                     Row(
@@ -437,7 +443,9 @@ fun Queue(
                         )
                     }
                 }
-            } else {
+                }
+                
+                PlayerDesignStyle.V1 -> {
                 // Codec Info Display (if enabled)
                 if (showCodecOnPlayer && currentFormat != null) {
                     Row(
@@ -589,6 +597,7 @@ fun Queue(
                         }
                     }
                 }
+                }
             }
 
             if (showSleepTimerDialog) {
@@ -658,10 +667,11 @@ fun Queue(
         val queueWindows by playerConnection.queueWindows.collectAsState()
         val automix by playerConnection.service.automixItems.collectAsState()
         val mutableQueueWindows = remember { mutableStateListOf<Timeline.Window>() }
-        val queueLength =
-            remember(queueWindows) {
+        val queueLength by remember {
+            derivedStateOf {
                 queueWindows.sumOf { it.mediaItem.metadata!!.duration }
             }
+        }
 
         val coroutineScope = rememberCoroutineScope()
 
@@ -757,11 +767,15 @@ fun Queue(
 
                 itemsIndexed(
                     items = mutableQueueWindows,
-                    key = { index, item -> "${item.uid.hashCode()}_$index" },
+                    key = { _, item -> item.uid.hashCode() },
                 ) { index, window ->
                     ReorderableItem(
                         state = reorderableState,
-                        key = "${window.uid.hashCode()}_$index",
+                        key = window.uid.hashCode(),
+                        modifier = Modifier.graphicsLayer {
+                            // Enable hardware acceleration for smoother dragging
+                            compositingStrategy = androidx.compose.ui.graphics.CompositingStrategy.Offscreen
+                        }
                     ) {
                         val currentItem by rememberUpdatedState(window)
                         val dismissBoxState =
@@ -841,7 +855,12 @@ fun Queue(
                                         if (!locked) {
                                             IconButton(
                                                 onClick = { },
-                                                modifier = Modifier.draggableHandle()
+                                                modifier = Modifier
+                                                    .draggableHandle()
+                                                    .graphicsLayer {
+                                                        // Improve touch response
+                                                        alpha = 0.99f
+                                                    }
                                             ) {
                                                 Icon(
                                                     painter = painterResource(R.drawable.drag_handle),

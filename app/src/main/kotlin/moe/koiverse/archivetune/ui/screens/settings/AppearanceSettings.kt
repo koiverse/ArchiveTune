@@ -65,7 +65,8 @@ import moe.koiverse.archivetune.constants.LibraryFilter
 import moe.koiverse.archivetune.constants.LyricsClickKey
 import moe.koiverse.archivetune.constants.LyricsScrollKey
 import moe.koiverse.archivetune.constants.LyricsTextPositionKey
-import moe.koiverse.archivetune.constants.UseNewPlayerDesignKey
+import moe.koiverse.archivetune.constants.PlayerDesignStyle
+import moe.koiverse.archivetune.constants.PlayerDesignStyleKey
 import moe.koiverse.archivetune.constants.UseNewMiniPlayerDesignKey
 import moe.koiverse.archivetune.constants.PlayerBackgroundStyle
 import moe.koiverse.archivetune.constants.PlayerBackgroundStyleKey
@@ -88,6 +89,7 @@ import moe.koiverse.archivetune.constants.SwipeSensitivityKey
 import moe.koiverse.archivetune.constants.SwipeToSongKey
 import moe.koiverse.archivetune.constants.HidePlayerThumbnailKey
 import moe.koiverse.archivetune.constants.ThumbnailCornerRadiusKey
+import moe.koiverse.archivetune.constants.DisableBlurKey
 import moe.koiverse.archivetune.ui.component.DefaultDialog
 import moe.koiverse.archivetune.ui.component.EnumListPreference
 import moe.koiverse.archivetune.ui.component.IconButton
@@ -118,9 +120,9 @@ fun AppearanceSettings(
         DarkModeKey,
         defaultValue = DarkMode.AUTO
     )
-    val (useNewPlayerDesign, onUseNewPlayerDesignChange) = rememberPreference(
-        UseNewPlayerDesignKey,
-        defaultValue = true
+    val (playerDesignStyle, onPlayerDesignStyleChange) = rememberEnumPreference(
+        PlayerDesignStyleKey,
+        defaultValue = PlayerDesignStyle.V2
     )
     val (useNewMiniPlayerDesign, onUseNewMiniPlayerDesignChange) = rememberPreference(
         UseNewMiniPlayerDesignKey,
@@ -144,6 +146,7 @@ fun AppearanceSettings(
             defaultValue = PlayerBackgroundStyle.DEFAULT,
         )
     val (pureBlack, onPureBlackChange) = rememberPreference(PureBlackKey, defaultValue = false)
+    val (disableBlur, onDisableBlurChange) = rememberPreference(DisableBlurKey, defaultValue = false)
     val (defaultOpenTab, onDefaultOpenTabChange) = rememberEnumPreference(
         DefaultOpenTabKey,
         defaultValue = NavigationTab.HOME
@@ -154,15 +157,15 @@ fun AppearanceSettings(
     )
     val (lyricsPosition, onLyricsPositionChange) = rememberEnumPreference(
         LyricsTextPositionKey,
-        defaultValue = LyricsPosition.CENTER
+        defaultValue = LyricsPosition.LEFT
     )
     val (lyricsAnimation, onLyricsAnimationChange) = rememberEnumPreference<LyricsAnimationStyle>(
     key = LyricsAnimationStyleKey,
-    defaultValue = LyricsAnimationStyle.NONE
+    defaultValue = LyricsAnimationStyle.APPLE
     )
     val (lyricsClick, onLyricsClickChange) = rememberPreference(LyricsClickKey, defaultValue = true)
     val (lyricsScroll, onLyricsScrollChange) = rememberPreference(LyricsScrollKey, defaultValue = true)
-    val (lyricsTextSize, onLyricsTextSizeChange) = rememberPreference(LyricsTextSizeKey, defaultValue = 24f)
+    val (lyricsTextSize, onLyricsTextSizeChange) = rememberPreference(LyricsTextSizeKey, defaultValue = 26f)
     val (lyricsLineSpacing, onLyricsLineSpacingChange) = rememberPreference(LyricsLineSpacingKey, defaultValue = 1.3f)
 
     val (sliderStyle, onSliderStyleChange) = rememberEnumPreference(
@@ -403,15 +406,30 @@ fun AppearanceSettings(
             )
         }
 
+        SwitchPreference(
+            title = { Text(stringResource(R.string.disable_blur)) },
+            description = stringResource(R.string.disable_blur_desc),
+            icon = { Icon(painterResource(R.drawable.blur_off), null) },
+            checked = disableBlur,
+            onCheckedChange = onDisableBlurChange,
+        )
+
         PreferenceGroupTitle(
             title = stringResource(R.string.player),
         )
 
-        SwitchPreference(
-            title = { Text(stringResource(R.string.new_player_design)) },
+        EnumListPreference(
+            title = { Text(stringResource(R.string.player_design_style)) },
             icon = { Icon(painterResource(R.drawable.palette), null) },
-            checked = useNewPlayerDesign,
-            onCheckedChange = onUseNewPlayerDesignChange,
+            selectedValue = playerDesignStyle,
+            onValueSelected = onPlayerDesignStyleChange,
+            valueText = {
+                when (it) {
+                    PlayerDesignStyle.V1 -> stringResource(R.string.player_design_v1)
+                    PlayerDesignStyle.V2 -> stringResource(R.string.player_design_v2)
+                    PlayerDesignStyle.V3 -> stringResource(R.string.player_design_v3)
+                }
+            },
         )
 
         SwitchPreference(
@@ -610,6 +628,8 @@ fun AppearanceSettings(
                   LyricsAnimationStyle.FADE -> stringResource(R.string.fade)
                   LyricsAnimationStyle.GLOW -> stringResource(R.string.glow)
                   LyricsAnimationStyle.SLIDE -> stringResource(R.string.slide)
+                  LyricsAnimationStyle.KARAOKE -> stringResource(R.string.karaoke)
+                  LyricsAnimationStyle.APPLE -> stringResource(R.string.apple_music_style)
               }
           }
         )

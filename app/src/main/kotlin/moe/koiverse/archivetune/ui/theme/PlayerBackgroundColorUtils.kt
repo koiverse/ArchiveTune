@@ -50,10 +50,10 @@ object PlayerBackgroundColorUtils {
         val second = comfortable.getOrNull(1) ?: first
         val third = comfortable.getOrNull(2) ?: second
         return arrayOf(
-            0f to first.copy(alpha = 0.8f),
-            0.4f to lerp(first, second, 0.5f).copy(alpha = 0.68f),
-            0.75f to lerp(second, third, 0.55f).copy(alpha = 0.63f),
-            1f to third.copy(alpha = 0.85f)
+            0f to first.copy(alpha = 0.45f),
+            0.4f to lerp(first, second, 0.5f).copy(alpha = 0.38f),
+            0.75f to lerp(second, third, 0.55f).copy(alpha = 0.35f),
+            1f to third.copy(alpha = 0.50f)
         )
     }
 
@@ -69,17 +69,17 @@ object PlayerBackgroundColorUtils {
         val second = comfortable.getOrNull(1) ?: first
         val third = comfortable.getOrNull(2) ?: second
         return arrayOf(
-            0f to first.copy(alpha = 0.95f),
-            0.2f to lerp(first, second, 0.3f).copy(alpha = 0.88f),
-            0.5f to second.copy(alpha = 0.78f),
-            0.8f to lerp(second, third, 0.6f).copy(alpha = 0.7f),
-            1f to third.copy(alpha = 0.65f)
+            0f to first.copy(alpha = 0.55f),
+            0.2f to lerp(first, second, 0.3f).copy(alpha = 0.48f),
+            0.5f to second.copy(alpha = 0.42f),
+            0.8f to lerp(second, third, 0.6f).copy(alpha = 0.38f),
+            1f to third.copy(alpha = 0.35f)
         )
     }
 
     private fun defaultBlurOverlayStops(): Array<Pair<Float, Color>> = arrayOf(
-        0f to Color.Black.copy(alpha = 0.65f),
-        1f to Color.Black.copy(alpha = 0.85f)
+        0f to Color.Black.copy(alpha = 0.35f),
+        1f to Color.Black.copy(alpha = 0.45f)
     )
 
     private fun Color.toHsv(): FloatArray {

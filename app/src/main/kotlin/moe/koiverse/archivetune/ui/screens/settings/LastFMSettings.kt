@@ -1,15 +1,20 @@
 package moe.koiverse.archivetune.ui.screens.settings
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -34,10 +39,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import moe.koiverse.archivetune.LocalPlayerAwareWindowInsets
 import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.constants.EnableLastFMScrobblingKey
@@ -55,6 +63,7 @@ import moe.koiverse.archivetune.ui.utils.backToMain
 import moe.koiverse.archivetune.utils.rememberPreference
 import moe.koiverse.archivetune.utils.reportException
 import moe.koiverse.archivetune.lastfm.LastFM
+import timber.log.Timber
 import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -98,58 +107,155 @@ fun LastFMSettings(
     )
 
     var showLoginDialog by rememberSaveable { mutableStateOf(false) }
+    var isLoggingIn by rememberSaveable { mutableStateOf(false) }
+    var loginError by rememberSaveable { mutableStateOf<String?>(null) }
 
     if (showLoginDialog) {
         var tempUsername by rememberSaveable { mutableStateOf("") }
         var tempPassword by rememberSaveable { mutableStateOf("") }
 
         AlertDialog(
-            onDismissRequest = { showLoginDialog = false },
+            onDismissRequest = { 
+                if (!isLoggingIn) {
+                    showLoginDialog = false
+                    loginError = null
+                }
+            },
             title = { Text(stringResource(R.string.login)) },
             text = {
                 Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .verticalScroll(rememberScrollState())
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     OutlinedTextField(
                         value = tempUsername,
-                        onValueChange = { tempUsername = it },
+                        onValueChange = { 
+                            tempUsername = it
+                            loginError = null
+                        },
                         label = { Text(stringResource(R.string.username)) },
+                        singleLine = true,
+                        enabled = !isLoggingIn,
                         modifier = Modifier.fillMaxWidth()
                     )
-                    Spacer(modifier = Modifier.padding(8.dp))
                     OutlinedTextField(
                         value = tempPassword,
-                        onValueChange = { tempPassword = it },
+                        onValueChange = { 
+                            tempPassword = it
+                            loginError = null
+                        },
                         label = { Text(stringResource(R.string.password)) },
+                        singleLine = true,
+                        visualTransformation = PasswordVisualTransformation(),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                        enabled = !isLoggingIn,
                         modifier = Modifier.fillMaxWidth()
                     )
+
+                    loginError?.let { error ->
+                        Text(
+                            text = error,
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.padding(top = 4.dp)
+                        )
+                    }
+
+                    if (isLoggingIn) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 8.dp),
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(24.dp),
+                                strokeWidth = 2.dp
+                            )
+                            Text(
+                                text = stringResource(R.string.logging_in),
+                                style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier.padding(start = 8.dp)
+                            )
+                        }
+                    }
                 }
             },
             confirmButton = {
                 TextButton(
                     onClick = {
+                        if (tempUsername.isBlank() || tempPassword.isBlank()) {
+                            loginError = "Please enter username and password"
+                            return@TextButton
+                        }
+                        
+                        if (!LastFM.isInitialized()) {
+                            loginError = "Last.fm API key not configured"
+                            Timber.e("Last.fm API key not configured")
+                            return@TextButton
+                        }
+                        
+                        isLoggingIn = true
+                        loginError = null
+                        
                         coroutineScope.launch(Dispatchers.IO) {
                             LastFM.getMobileSession(tempUsername, tempPassword)
-                                .onSuccess {
-                                    lastfmUsername = it.session.name
-                                    lastfmSession = it.session.key
+                                .onSuccess { auth ->
+                                    withContext(Dispatchers.Main) {
+                                        lastfmUsername = auth.session.name
+                                        lastfmSession = auth.session.key
+                                        LastFM.sessionKey = auth.session.key
+                                        isLoggingIn = false
+                                        showLoginDialog = false
+                                        loginError = null
+                                        Timber.d("Last.fm login successful for user: ${auth.session.name}")
+                                    }
                                 }
-                                .onFailure {
-                                    reportException(it)
+                                .onFailure { exception ->
+                                    withContext(Dispatchers.Main) {
+                                        isLoggingIn = false
+                                        val errorMessage = when (exception) {
+                                            is LastFM.LastFmException -> {
+                                                // Last.fm API error codes:
+                                                // 4 = Invalid authentication token
+                                                // 10 = Invalid API key
+                                                // 13 = Invalid method signature
+                                                // 26 = API key suspended
+                                                when (exception.code) {
+                                                    4 -> "Invalid username or password"
+                                                    10 -> "Invalid API key. Please contact the developer."
+                                                    13 -> "Authentication error. Please try again."
+                                                    26 -> "API key suspended. Please contact the developer."
+                                                    else -> exception.message
+                                                }
+                                            }
+                                            else -> when {
+                                                exception.message?.contains("network", ignoreCase = true) == true ||
+                                                exception.message?.contains("connect", ignoreCase = true) == true ->
+                                                    "Network error. Check your connection."
+                                                else -> exception.message ?: "Login failed. Please try again."
+                                            }
+                                        }
+                                        loginError = errorMessage
+                                        Timber.e(exception, "Last.fm login failed")
+                                        reportException(exception)
+                                    }
                                 }
                         }
-                        showLoginDialog = false
-                    }
+                    },
+                    enabled = !isLoggingIn && tempUsername.isNotBlank() && tempPassword.isNotBlank()
                 ) {
                     Text(stringResource(R.string.login))
                 }
             },
             dismissButton = {
-                TextButton(onClick = {
-                    showLoginDialog = false
-                }) {
+                TextButton(
+                    onClick = {
+                        showLoginDialog = false
+                        loginError = null
+                    },
+                    enabled = !isLoggingIn
+                ) {
                     Text(stringResource(R.string.cancel))
                 }
             }
@@ -187,6 +293,8 @@ fun LastFMSettings(
                     OutlinedButton(onClick = {
                         lastfmSession = ""
                         lastfmUsername = ""
+                        LastFM.sessionKey = null
+                        Timber.d("Last.fm session cleared")
                     }) {
                         Text(stringResource(R.string.action_logout))
                     }

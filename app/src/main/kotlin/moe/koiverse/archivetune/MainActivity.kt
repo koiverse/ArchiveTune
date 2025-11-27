@@ -49,6 +49,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.graphics.BlurEffect
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.material3.AlertDialogDefaults
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
@@ -129,6 +133,7 @@ import moe.koiverse.archivetune.constants.AppBarHeight
 import moe.koiverse.archivetune.constants.AppLanguageKey
 import moe.koiverse.archivetune.constants.DarkModeKey
 import moe.koiverse.archivetune.constants.DefaultOpenTabKey
+import moe.koiverse.archivetune.constants.DisableBlurKey
 import moe.koiverse.archivetune.constants.DisableScreenshotKey
 import moe.koiverse.archivetune.constants.DynamicThemeKey
 import moe.koiverse.archivetune.constants.MiniPlayerHeight
@@ -248,7 +253,15 @@ class MainActivity : ComponentActivity() {
         try {
             val startIntent = Intent(this, MusicService::class.java)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                androidx.core.content.ContextCompat.startForegroundService(this, startIntent)
+                try {
+                    androidx.core.content.ContextCompat.startForegroundService(this, startIntent)
+                } catch (e: IllegalStateException) {
+                    reportException(e)
+                    startService(startIntent)
+                } catch (e: SecurityException) {
+                    reportException(e)
+                    startService(startIntent)
+                }
             } else {
                 startService(startIntent)
             }
@@ -807,6 +820,8 @@ class MainActivity : ComponentActivity() {
                         }
                     }
 
+                    val (disableBlur) = rememberPreference(DisableBlurKey, false)
+
                     var showAccountDialog by remember { mutableStateOf(false) }
 
                     CompositionLocalProvider(
@@ -823,7 +838,89 @@ class MainActivity : ComponentActivity() {
                         Scaffold(
                             topBar = {
                                 if (shouldShowTopBar) {
-                                    TopAppBar(
+                                    val shouldShowBlurBackground = remember(navBackStackEntry) {
+                                        navBackStackEntry?.destination?.route == Screens.Home.route || 
+                                        navBackStackEntry?.destination?.route == Screens.Library.route
+                                    }
+
+                                    val surfaceColor = MaterialTheme.colorScheme.surface
+                                    val currentScrollBehavior = if (navBackStackEntry?.destination?.route == Screens.Home.route || navBackStackEntry?.destination?.route == Screens.Library.route) searchBarScrollBehavior else topAppBarScrollBehavior
+
+                                    Box(
+                                        modifier = Modifier.offset {
+                                            IntOffset(
+                                                x = 0,
+                                                y = currentScrollBehavior.state.heightOffset.toInt()
+                                            )
+                                        }
+                                    ) {
+                                        if (shouldShowBlurBackground) {
+                                            if (disableBlur) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .height(AppBarHeight + with(LocalDensity.current) {
+                                                            WindowInsets.systemBars.getTop(LocalDensity.current).toDp()
+                                                        })
+                                                        .background(
+                                                            Brush.verticalGradient(
+                                                                colors = listOf(
+                                                                    surfaceColor.copy(alpha = 0.95f),
+                                                                    surfaceColor.copy(alpha = 0.85f),
+                                                                    surfaceColor.copy(alpha = 0.6f),
+                                                                    Color.Transparent
+                                                                )
+                                                            )
+                                                        )
+                                                )
+                                            } else {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .height(AppBarHeight + with(LocalDensity.current) {
+                                                            WindowInsets.systemBars.getTop(LocalDensity.current).toDp()
+                                                        })
+                                                ) {
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .fillMaxSize()
+                                                            .background(surfaceColor.copy(alpha = 0.5f))
+                                                            .graphicsLayer(
+                                                                renderEffect = BlurEffect(radiusX = 50f, radiusY = 50f)
+                                                            )
+                                                    )                                                    
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .fillMaxSize()
+                                                            .background(
+                                                                Brush.verticalGradient(
+                                                                    colors = listOf(
+                                                                        Color.White.copy(alpha = 0.15f),
+                                                                        Color.White.copy(alpha = 0.05f),
+                                                                        Color.Transparent
+                                                                    ),
+                                                                    startY = 0f,
+                                                                    endY = Float.POSITIVE_INFINITY
+                                                                )
+                                                            )
+                                                    )
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .fillMaxSize()
+                                                            .background(
+                                                                Brush.verticalGradient(
+                                                                    colors = listOf(
+                                                                        surfaceColor.copy(alpha = 0.4f),
+                                                                        surfaceColor.copy(alpha = 0.2f)
+                                                                    )
+                                                                )
+                                                            )
+                                                    )
+                                                }
+                                            }
+                                        }
+
+                                        TopAppBar(
                                         title = {
                                             Row(verticalAlignment = Alignment.CenterVertically) {
                                                 // app icon
@@ -893,6 +990,7 @@ class MainActivity : ComponentActivity() {
                                             navigationIconContentColor = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
                                     )
+                                  }
                                 }
                                 AnimatedVisibility(
                                     visible = active || navBackStackEntry?.destination?.route?.startsWith("search/") == true,
@@ -1357,7 +1455,16 @@ class MainActivity : ComponentActivity() {
                                     try {
                                         val startIntent = Intent(this@MainActivity, MusicService::class.java)
                                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                                            androidx.core.content.ContextCompat.startForegroundService(this@MainActivity, startIntent)
+                                            try {
+                                                androidx.core.content.ContextCompat.startForegroundService(this@MainActivity, startIntent)
+                                            } catch (e: IllegalStateException) {
+                                                // Android 12+ may throw ForegroundServiceStartNotAllowedException
+                                                reportException(e)
+                                                startService(startIntent)
+                                            } catch (e: SecurityException) {
+                                                reportException(e)
+                                                startService(startIntent)
+                                            }
                                         } else {
                                             startService(startIntent)
                                         }

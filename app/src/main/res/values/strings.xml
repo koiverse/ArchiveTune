@@ -104,10 +104,13 @@
     <string name="downloading">Downloading</string>
     <string name="remove_download">Remove download</string>
     <string name="import_playlist">Import playlist</string>
+    <string name="import_failed">Import failed</string>
     <string name="update_button">Update</string>
     <string name="add_to_playlist">Add to playlist</string>
     <string name="view_artist">View artist</string>
     <string name="view_album">View album</string>
+    <string name="view_all">View all</string>
+    <string name="more">more</string>
     <string name="refetch">Refetch</string>
     <string name="share">Share</string>
     <string name="delete">Delete</string>
@@ -263,6 +266,8 @@
     <string name="discord_activity_type">Activity type</string>
     <string name="dark_theme_follow_system">Follow system</string>
     <string name="pure_black">Pure black</string>
+    <string name="disable_blur">Disable blur effects</string>
+    <string name="disable_blur_desc">Disable blur effects throughout the app</string>
     <string name="customize_navigation_tabs">Customize navigation tabs</string>
     <string name="player">Player</string>
     <string name="player_text_alignment">Player text alignment</string>
@@ -287,6 +292,7 @@
     <string name="fade">Fade</string>
     <string name="slide">Slide</string>
     <string name="karaoke">Karaoke</string>
+    <string name="apple_music_style">Apple Music</string>
     <!-- Lyrics line spacing -->
     <string name="lyrics_line_spacing">Lyrics line spacing</string>
 
@@ -311,6 +317,8 @@
     <string name="audio_quality">Audio quality</string>
     <string name="audio_quality_auto">Auto</string>
     <string name="audio_quality_high">High</string>
+    <string name="audio_quality_very_high">Very High</string>
+    <string name="audio_quality_highest">Highest</string>
     <string name="audio_quality_low">Low</string>
     <string name="network_metered_title">Treat network as metered</string>
     <string name="network_metered_description">When enabled, the app will prefer lower-quality streams on metered networks</string>
@@ -318,12 +326,16 @@
     <string name="persistent_queue">Persistent queue</string>
     <string name="persistent_queue_desc">Restore your last queue when the app starts</string>
     <string name="auto_load_more">Auto load more songs</string>
-    <string name="auto_load_more_desc">Automatically add more songs when the end of the queue is reached, if possible</string>
+    <string name="auto_load_more_desc">Automatically add more songs when the end of the queue is reached. Disabled when repeat mode is active</string>
     <string name="skip_silence">Skip silence</string>
     <string name="audio_normalization">Audio normalization</string>
     <string name="auto_skip_next_on_error">Auto skip to next song when error occurs</string>
     <string name="auto_skip_next_on_error_desc">Ensure your continuous playback experience</string>
     <string name="stop_music_on_task_clear">Stop music on task clear</string>
+    <string name="artist_separators">Symbols to split artists</string>
+    <string name="artist_separators_desc">Symbols used to split multiple artists</string>
+    <string name="add_symbol">Add symbol</string>
+    <string name="enter_symbol">Enter symbol</string>
     <string name="equalizer">Equalizer</string>
 
     <string name="storage">Storage</string>
@@ -382,6 +394,7 @@
     <string name="scrobble_delay_minutes">Scrobble Delay (Seconds)</string>
     <string name="username">Username</string>
     <string name="password">Password</string>
+    <string name="logging_in">Logging in…</string>
 
     <!-- ListenBrainz -->
     <string name="listenbrainz_scrobbling">ListenBrainz scrobbling</string>

@@ -88,7 +88,7 @@ class MusicDatabase(
         SortedSongAlbumMap::class,
         PlaylistSongMapPreview::class,
     ],
-    version = 24,
+    version = 25,
     exportSchema = true,
     autoMigrations = [
         AutoMigration(from = 2, to = 3),
@@ -111,7 +111,6 @@ class MusicDatabase(
         AutoMigration(from = 19, to = 20, spec = Migration19To20::class),
         AutoMigration(from = 20, to = 21, spec = Migration20To21::class),
         AutoMigration(from = 21, to = 22),
-        AutoMigration(from = 22, to = 24),
     ],
 )
 @TypeConverters(Converters::class)
@@ -126,8 +125,32 @@ abstract class InternalDatabase : RoomDatabase() {
                 delegate =
                 Room
                     .databaseBuilder(context, InternalDatabase::class.java, DB_NAME)
-                    .addMigrations(MIGRATION_1_2, MIGRATION_23_24)
+                    .addMigrations(
+                        MIGRATION_1_2,
+                        MIGRATION_21_22,
+                        MIGRATION_22_23, 
+                        MIGRATION_23_24,
+                        MIGRATION_22_24,  // Direct migration path for users upgrading from v22 to v24
+                        MIGRATION_21_24,  // Direct migration path for users upgrading from v21 to v24
+                        MIGRATION_24_25   // Add perceptualLoudnessDb column for audio normalization
+                    )
                     .fallbackToDestructiveMigration()
+                    .setJournalMode(androidx.room.RoomDatabase.JournalMode.WRITE_AHEAD_LOGGING)
+                    .setTransactionExecutor(java.util.concurrent.Executors.newFixedThreadPool(4))
+                    .setQueryExecutor(java.util.concurrent.Executors.newFixedThreadPool(4))
+                    .addCallback(object : androidx.room.RoomDatabase.Callback() {
+                        override fun onOpen(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                            super.onOpen(db)
+                            try {
+                                db.query("PRAGMA busy_timeout = 60000").close()
+                                db.query("PRAGMA cache_size = -16000").close()
+                                db.query("PRAGMA wal_autocheckpoint = 1000").close()
+                                db.query("PRAGMA synchronous = NORMAL").close()
+                            } catch (e: Exception) {
+                                android.util.Log.e("MusicDatabase", "Failed to set PRAGMA settings", e)
+                            }
+                        }
+                    })
                     .build(),
             )
     }
@@ -370,11 +393,140 @@ class Migration5To6 : AutoMigrationSpec {
     }
 }
 
+// Migration from version 21 to 22
+// Version 21→22 was supposed to use AutoMigration, but we need manual migration for safety
+val MIGRATION_21_22 =
+    object : Migration(21, 22) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            // This was an AutoMigration, so schema should be compatible
+            // Just ensure boolean columns have proper values
+            db.execSQL("UPDATE song SET explicit = 0 WHERE explicit IS NULL")
+            db.execSQL("UPDATE song SET isLocal = 0 WHERE isLocal IS NULL")
+            db.execSQL("UPDATE artist SET isLocal = 0 WHERE isLocal IS NULL")
+            db.execSQL("UPDATE album SET explicit = 0 WHERE explicit IS NULL")
+            db.execSQL("UPDATE album SET isLocal = 0 WHERE isLocal IS NULL")
+            db.execSQL("UPDATE playlist SET isLocal = 0 WHERE isLocal IS NULL")
+            db.execSQL("UPDATE playlist SET isEditable = 1 WHERE isEditable IS NULL")
+        }
+    }
+
+val MIGRATION_22_23 =
+    object : Migration(22, 23) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            // Ensure all boolean columns have proper default values (0 for false, 1 for true)
+            // This fixes issues where Room expects consistent default value representations
+            
+            // Fix song table
+            db.execSQL("UPDATE song SET explicit = 0 WHERE explicit IS NULL")
+            db.execSQL("UPDATE song SET isLocal = 0 WHERE isLocal IS NULL")
+            
+            // Fix artist table
+            db.execSQL("UPDATE artist SET isLocal = 0 WHERE isLocal IS NULL")
+            
+            // Fix album table  
+            db.execSQL("UPDATE album SET explicit = 0 WHERE explicit IS NULL")
+            db.execSQL("UPDATE album SET isLocal = 0 WHERE isLocal IS NULL")
+            
+            // Fix playlist table
+            db.execSQL("UPDATE playlist SET isLocal = 0 WHERE isLocal IS NULL")
+            db.execSQL("UPDATE playlist SET isEditable = 1 WHERE isEditable IS NULL")
+        }
+    }
+
 val MIGRATION_23_24 =
     object : Migration(23, 24) {
         override fun migrate(db: SupportSQLiteDatabase) {
             // Add isAutoSync column to playlist table. Stored as INTEGER (0/1) with default 0 (false).
-            db.execSQL("ALTER TABLE playlist ADD COLUMN isAutoSync INTEGER NOT NULL DEFAULT 0")
+            // Check if column already exists to handle various upgrade paths
+            var columnExists = false
+            db.query("PRAGMA table_info(playlist)").use { cursor ->
+                val nameIndex = cursor.getColumnIndex("name")
+                while (cursor.moveToNext()) {
+                    if (cursor.getString(nameIndex) == "isAutoSync") {
+                        columnExists = true
+                        break
+                    }
+                }
+            }
+            
+            if (!columnExists) {
+                // Add the column with default value
+                db.execSQL("ALTER TABLE playlist ADD COLUMN isAutoSync INTEGER NOT NULL DEFAULT 0")
+            }
+            
+            // Ensure all existing rows have the default value set
+            db.execSQL("UPDATE playlist SET isAutoSync = 0 WHERE isAutoSync IS NULL OR isAutoSync NOT IN (0, 1)")
+        }
+    }
+
+// Direct migration from 22 to 24 for users upgrading directly
+// This combines the changes from both 22→23 and 23→24
+val MIGRATION_22_24 =
+    object : Migration(22, 24) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            // Fix all boolean columns to ensure they have proper default values (from 22→23)
+            db.execSQL("UPDATE song SET explicit = 0 WHERE explicit IS NULL")
+            db.execSQL("UPDATE song SET isLocal = 0 WHERE isLocal IS NULL")
+            db.execSQL("UPDATE artist SET isLocal = 0 WHERE isLocal IS NULL")
+            db.execSQL("UPDATE album SET explicit = 0 WHERE explicit IS NULL")
+            db.execSQL("UPDATE album SET isLocal = 0 WHERE isLocal IS NULL")
+            db.execSQL("UPDATE playlist SET isLocal = 0 WHERE isLocal IS NULL")
+            db.execSQL("UPDATE playlist SET isEditable = 1 WHERE isEditable IS NULL")
+            
+            // Add isAutoSync column if it doesn't exist (from 23→24)
+            var columnExists = false
+            db.query("PRAGMA table_info(playlist)").use { cursor ->
+                val nameIndex = cursor.getColumnIndex("name")
+                while (cursor.moveToNext()) {
+                    if (cursor.getString(nameIndex) == "isAutoSync") {
+                        columnExists = true
+                        break
+                    }
+                }
+            }
+            
+            if (!columnExists) {
+                db.execSQL("ALTER TABLE playlist ADD COLUMN isAutoSync INTEGER NOT NULL DEFAULT 0")
+            }
+            
+            // Ensure all rows have proper values
+            db.execSQL("UPDATE playlist SET isAutoSync = 0 WHERE isAutoSync IS NULL OR isAutoSync NOT IN (0, 1)")
+        }
+    }
+
+// Direct migration from 21 to 24 for users who might skip intermediate versions
+val MIGRATION_21_24 =
+    object : Migration(21, 24) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            // Combine all changes from 21→22→23→24
+            
+            // Ensure all boolean columns have proper default values
+            db.execSQL("UPDATE song SET explicit = 0 WHERE explicit IS NULL")
+            db.execSQL("UPDATE song SET isLocal = 0 WHERE isLocal IS NULL")
+            db.execSQL("UPDATE artist SET isLocal = 0 WHERE isLocal IS NULL")
+            db.execSQL("UPDATE album SET explicit = 0 WHERE explicit IS NULL")
+            db.execSQL("UPDATE album SET isLocal = 0 WHERE isLocal IS NULL")
+            db.execSQL("UPDATE playlist SET isLocal = 0 WHERE isLocal IS NULL")
+            db.execSQL("UPDATE playlist SET isEditable = 1 WHERE isEditable IS NULL")
+            
+            // Add isAutoSync column if it doesn't exist
+            var columnExists = false
+            db.query("PRAGMA table_info(playlist)").use { cursor ->
+                val nameIndex = cursor.getColumnIndex("name")
+                while (cursor.moveToNext()) {
+                    if (cursor.getString(nameIndex) == "isAutoSync") {
+                        columnExists = true
+                        break
+                    }
+                }
+            }
+            
+            if (!columnExists) {
+                db.execSQL("ALTER TABLE playlist ADD COLUMN isAutoSync INTEGER NOT NULL DEFAULT 0")
+            }
+            
+            // Ensure all rows have proper values
+            db.execSQL("UPDATE playlist SET isAutoSync = 0 WHERE isAutoSync IS NULL OR isAutoSync NOT IN (0, 1)")
         }
     }
 
@@ -494,3 +646,113 @@ class Migration19To20 : AutoMigrationSpec {
     )
 )
 class Migration20To21 : AutoMigrationSpec
+
+val MIGRATION_24_25 =
+    object : Migration(24, 25) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            // Add perceptualLoudnessDb column to format table for improved audio normalization
+            var columnExists = false
+            db.query("PRAGMA table_info(format)").use { cursor ->
+                val nameIndex = cursor.getColumnIndex("name")
+                while (cursor.moveToNext()) {
+                    if (cursor.getString(nameIndex) == "perceptualLoudnessDb") {
+                        columnExists = true
+                        break
+                    }
+                }
+            }
+            
+            if (!columnExists) {
+                // Add the column allowing NULL values (since existing rows won't have this data)
+                db.execSQL("ALTER TABLE format ADD COLUMN perceptualLoudnessDb REAL DEFAULT NULL")
+            }
+
+            var requiresSongTableRewrite = false
+            db.query("PRAGMA table_info(song)").use { cursor ->
+                val nameIndex = cursor.getColumnIndex("name")
+                val defaultIndex = cursor.getColumnIndex("dflt_value")
+                while (cursor.moveToNext()) {
+                    if (cursor.getString(nameIndex) == "isLocal") {
+                        val defaultValue = cursor.getString(defaultIndex)
+                        if (cursor.isNull(defaultIndex) || defaultValue !in setOf("0", "'0'")) {
+                            requiresSongTableRewrite = true
+                            break
+                        }
+                    }
+                }
+            }
+
+            if (requiresSongTableRewrite) {
+                db.execSQL("PRAGMA foreign_keys=OFF")
+                db.execSQL("ALTER TABLE song RENAME TO song_old")
+                db.execSQL(
+                    """
+                    CREATE TABLE `song` (
+                        `id` TEXT NOT NULL,
+                        `title` TEXT NOT NULL,
+                        `duration` INTEGER NOT NULL,
+                        `thumbnailUrl` TEXT,
+                        `albumId` TEXT,
+                        `albumName` TEXT,
+                        `explicit` INTEGER NOT NULL DEFAULT 0,
+                        `year` INTEGER,
+                        `date` INTEGER,
+                        `dateModified` INTEGER,
+                        `liked` INTEGER NOT NULL,
+                        `likedDate` INTEGER,
+                        `totalPlayTime` INTEGER NOT NULL,
+                        `inLibrary` INTEGER,
+                        `dateDownload` INTEGER,
+                        `isLocal` INTEGER NOT NULL DEFAULT 0,
+                        PRIMARY KEY(`id`)
+                    )
+                    """
+                        .trimIndent()
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_song_albumId` ON `song` (`albumId`)")
+                db.execSQL(
+                    """
+                    INSERT INTO song (
+                        id,
+                        title,
+                        duration,
+                        thumbnailUrl,
+                        albumId,
+                        albumName,
+                        explicit,
+                        year,
+                        date,
+                        dateModified,
+                        liked,
+                        likedDate,
+                        totalPlayTime,
+                        inLibrary,
+                        dateDownload,
+                        isLocal
+                    )
+                    SELECT
+                        id,
+                        title,
+                        duration,
+                        thumbnailUrl,
+                        albumId,
+                        albumName,
+                        explicit,
+                        year,
+                        date,
+                        dateModified,
+                        liked,
+                        likedDate,
+                        totalPlayTime,
+                        inLibrary,
+                        dateDownload,
+                        COALESCE(isLocal, 0)
+                    FROM song_old
+                    """
+                        .trimIndent()
+                )
+                db.execSQL("DROP TABLE song_old")
+                db.execSQL("PRAGMA foreign_keys=ON")
+            }
+        }
+    }

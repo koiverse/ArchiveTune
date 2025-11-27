@@ -104,10 +104,13 @@
     <string name="downloading">다운로드 중</string>
     <string name="remove_download">다운로드 제거</string>
     <string name="import_playlist">가져오기 재생목록</string>
+    <string name="import_failed">가져오기 실패</string>
     <string name="update_button">업데이트</string>
     <string name="add_to_playlist">재생목록에 추가</string>
     <string name="view_artist">보기 아티스트</string>
     <string name="view_album">앨범 보기</string>
+    <string name="view_all">모두 보기</string>
+    <string name="more">더보기</string>
     <string name="refetch">다시 가져오기</string>
     <string name="share">공유</string>
     <string name="delete">삭제</string>
@@ -263,6 +266,8 @@
     <string name="discord_activity_type">Discord Rich Presence에서 버튼 2의 가시성 전환</string>
     <string name="dark_theme_follow_system">활동 유형</string>
     <string name="pure_black">시스템 팔로우</string>
+    <string name="disable_blur">흐림 효과 비활성화</string>
+    <string name="disable_blur_desc">앱 전체에서 흐림 효과 비활성화</string>
     <string name="customize_navigation_tabs">순수한 검정</string>
     <string name="player">탐색 탭 사용자 정의</string>
     <string name="player_text_alignment">플레이어</string>
@@ -277,21 +282,22 @@
     <string name="misc">구불구불한 모양</string>
     <string name="default_open_tab">기타</string>
     <string name="grid_cell_size">기본 열린 탭</string>
-    <string name="small">그리드 셀 크기</string>
-    <string name="big">소형</string>
+    <string name="small">소형</string>
+    <string name="big">큰</string>
 
     <!-- Lyrics animation style -->
-    <string name="lyrics_animation_style">큰</string>
+    <string name="lyrics_animation_style">가사 애니메이션 스타일</string>
     <!-- Animation options -->
-    <string name="none">가사 애니메이션 스타일</string>
-    <string name="fade">없음</string>
-    <string name="slide">페이드</string>
-    <string name="karaoke">슬라이드</string>
+    <string name="none">없음</string>
+    <string name="fade">페이드</string>
+    <string name="slide">슬라이드</string>
+    <string name="karaoke">카라오케</string>
+    <string name="apple_music_style">Apple Music</string>
 
 
-    <string name="content">노래방</string>
-    <string name="action_logout">콘텐츠</string>
-    <string name="action_login">로그아웃</string>
+    <string name="content">콘텐츠</string>
+    <string name="action_logout">로그아웃</string>
+    <string name="action_login">로그인</string>
     <string name="login">로그인</string>
     <string name="not_logged_in">로그인</string>
     <string name="login_failed">로그인 안 됨</string>
@@ -310,6 +316,8 @@
     <string name="audio_quality_auto">오디오 품질</string>
     <string name="audio_quality_high">자동</string>
     <string name="audio_quality_low">높음</string>
+    <string name="audio_quality_very_high">낮음</string>
+    <string name="audio_quality_highest">매우 높음</string>
     <string name="network_metered_title">네트워크를 측정된 것으로 처리</string>
     <string name="network_metered_description">이 옵션이 활성화된 경우 앱은 측정된 네트워크에서 낮은 품질의 스트림을 선호합니다</string>
     <string name="queue">낮음</string>
@@ -322,6 +330,10 @@
     <string name="auto_skip_next_on_error">오디오 정규화</string>
     <string name="auto_skip_next_on_error_desc">오류 발생 시 다음 노래로 자동 건너뛰기</string>
     <string name="stop_music_on_task_clear">연속 재생 경험</string>
+    <string name="artist_separators">아티스트 구분 기호</string>
+    <string name="artist_separators_desc">여러 아티스트를 분리하는 데 사용되는 기호</string>
+    <string name="add_symbol">기호 추가</string>
+    <string name="enter_symbol">기호 입력</string>
     <string name="equalizer">작업 시 음악 중지 지우기</string>
 
     <string name="storage">이퀄라이저</string>
@@ -380,8 +392,7 @@
     <string name="scrobble_delay_minutes">스크로블 지연 (초)</string>
     <string name="username">사용자 이름</string>
     <string name="password">비밀번호</string>
-
-
+    <string name="logging_in">로그인 중…</string>
 
     <!-- ListenBrainz -->
     <string name="listenbrainz_scrobbling">ListenBrainz 스크로블링</string>

@@ -34,65 +34,152 @@ class BackupRestoreViewModel @Inject constructor(
 ) : ViewModel() {
     fun backup(context: Context, uri: Uri) {
         runCatching {
-            context.applicationContext.contentResolver.openOutputStream(uri)?.use {
-                it.buffered().zipOutputStream().use { outputStream ->
-                    (context.filesDir / "datastore" / SETTINGS_FILENAME).inputStream().buffered()
-                        .use { inputStream ->
-                            outputStream.putNextEntry(ZipEntry(SETTINGS_FILENAME))
-                            inputStream.copyTo(outputStream)
+            context.applicationContext.contentResolver.openOutputStream(uri)?.use { outputStream ->
+                outputStream.buffered().zipOutputStream().use { zipStream ->
+                    // Backup settings file
+                    val settingsFile = context.filesDir / "datastore" / SETTINGS_FILENAME
+                    if (settingsFile.exists()) {
+                        settingsFile.inputStream().buffered().use { inputStream ->
+                            zipStream.putNextEntry(ZipEntry(SETTINGS_FILENAME))
+                            inputStream.copyTo(zipStream)
+                            zipStream.closeEntry()
                         }
+                    }
+                    
+                    // Ensure database is properly checkpointed before backup
                     runBlocking(Dispatchers.IO) {
                         database.checkpoint()
                     }
+                    
+                    // Backup database file
                     FileInputStream(database.openHelper.writableDatabase.path).use { inputStream ->
-                        outputStream.putNextEntry(ZipEntry(InternalDatabase.DB_NAME))
-                        inputStream.copyTo(outputStream)
+                        zipStream.putNextEntry(ZipEntry(InternalDatabase.DB_NAME))
+                        inputStream.copyTo(zipStream)
+                        zipStream.closeEntry()
                     }
                 }
-            }
+            } ?: throw IllegalStateException("Failed to create backup file")
         }.onSuccess {
             Toast.makeText(context, R.string.backup_create_success, Toast.LENGTH_SHORT).show()
-        }.onFailure {
-            reportException(it)
-            Toast.makeText(context, R.string.backup_create_failed, Toast.LENGTH_SHORT).show()
+        }.onFailure { exception ->
+            reportException(exception)
+            
+            val errorMessage = when {
+                exception is IllegalStateException -> exception.message ?: context.getString(R.string.backup_create_failed)
+                exception.message?.contains("FileNotFoundException") == true -> "Database file not found"
+                exception.message?.contains("IOException") == true -> "Failed to write backup file"
+                else -> context.getString(R.string.backup_create_failed)
+            }
+            
+            Toast.makeText(context, errorMessage, Toast.LENGTH_LONG).show()
         }
     }
 
     fun restore(context: Context, uri: Uri) {
         runCatching {
-            context.applicationContext.contentResolver.openInputStream(uri)?.use {
-                it.zipInputStream().use { inputStream ->
-                    var entry = tryOrNull { inputStream.nextEntry } // prevent ZipException
+            // Validate that the file can be opened
+            context.applicationContext.contentResolver.openInputStream(uri)?.use { stream ->
+                // First pass: validate the backup file structure
+                var hasSettings = false
+                var hasDatabase = false
+                
+                stream.zipInputStream().use { inputStream ->
+                    var entry = tryOrNull { inputStream.nextEntry }
+                    while (entry != null) {
+                        when (entry.name) {
+                            SETTINGS_FILENAME -> hasSettings = true
+                            InternalDatabase.DB_NAME -> hasDatabase = true
+                        }
+                        entry = tryOrNull { inputStream.nextEntry }
+                    }
+                }
+                
+                // Validate backup file contains required components
+                if (!hasDatabase) {
+                    throw IllegalStateException("Invalid backup file: missing database")
+                }
+            } ?: throw IllegalStateException("Failed to open backup file")
+            
+            // Second pass: actually restore the data
+            context.applicationContext.contentResolver.openInputStream(uri)?.use { stream ->
+                stream.zipInputStream().use { inputStream ->
+                    var entry = tryOrNull { inputStream.nextEntry }
                     while (entry != null) {
                         when (entry.name) {
                             SETTINGS_FILENAME -> {
-                                (context.filesDir / "datastore" / SETTINGS_FILENAME).outputStream()
-                                    .use { outputStream ->
-                                        inputStream.copyTo(outputStream)
+                                try {
+                                    val settingsDir = context.filesDir / "datastore"
+                                    if (!settingsDir.exists()) {
+                                        settingsDir.mkdirs()
                                     }
+                                    (settingsDir / SETTINGS_FILENAME).outputStream()
+                                        .use { outputStream ->
+                                            inputStream.copyTo(outputStream)
+                                        }
+                                } catch (e: Exception) {
+                                    reportException(e)
+                                    // Continue even if settings restore fails
+                                }
                             }
 
                             InternalDatabase.DB_NAME -> {
-                                runBlocking(Dispatchers.IO) {
-                                    database.checkpoint()
-                                }
-                                database.close()
-                                FileOutputStream(database.openHelper.writableDatabase.path).use { outputStream ->
-                                    inputStream.copyTo(outputStream)
+                                try {
+                                    // Ensure database is properly checkpointed and closed
+                                    runBlocking(Dispatchers.IO) {
+                                        database.checkpoint()
+                                    }
+                                    database.close()
+                                    
+                                    // Restore database file
+                                    val dbPath = database.openHelper.writableDatabase.path
+                                    if (dbPath != null) {
+                                        FileOutputStream(dbPath).use { outputStream ->
+                                            inputStream.copyTo(outputStream)
+                                        }
+                                    } else {
+                                        throw IllegalStateException("Database path is null")
+                                    }
+                                } catch (e: Exception) {
+                                    reportException(e)
+                                    throw IllegalStateException("Failed to restore database: ${e.message}", e)
                                 }
                             }
                         }
-                        entry = tryOrNull { inputStream.nextEntry } // prevent ZipException
+                        entry = tryOrNull { inputStream.nextEntry }
                     }
                 }
+            } ?: throw IllegalStateException("Failed to open backup file")
+            
+            // Clean up and restart
+            try {
+                context.stopService(Intent(context, MusicService::class.java))
+            } catch (e: Exception) {
+                reportException(e)
+                // Continue even if service stop fails
             }
-            context.stopService(Intent(context, MusicService::class.java))
-            context.filesDir.resolve(PERSISTENT_QUEUE_FILE).delete()
+            
+            try {
+                context.filesDir.resolve(PERSISTENT_QUEUE_FILE).delete()
+            } catch (e: Exception) {
+                reportException(e)
+                // Continue even if queue file deletion fails
+            }
+            
             context.startActivity(Intent(context, MainActivity::class.java))
             exitProcess(0)
-        }.onFailure {
-            reportException(it)
-            Toast.makeText(context, R.string.restore_failed, Toast.LENGTH_SHORT).show()
+        }.onFailure { exception ->
+            reportException(exception)
+            
+            // Provide more specific error messages
+            val errorMessage = when {
+                exception is IllegalStateException -> exception.message ?: context.getString(R.string.restore_failed)
+                exception.message?.contains("ZipException") == true -> "Invalid backup file format"
+                exception.message?.contains("FileNotFoundException") == true -> "Backup file not found"
+                exception.message?.contains("database") == true -> "Failed to restore database: ${exception.message}"
+                else -> context.getString(R.string.restore_failed)
+            }
+            
+            Toast.makeText(context, errorMessage, Toast.LENGTH_LONG).show()
         }
     }
 
