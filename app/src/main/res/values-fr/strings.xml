@@ -247,6 +247,8 @@
     <string name="theme_preview">Aperçu du thème</string>
     <string name="select_palette">Sélectionner une palette</string>
     <string name="palette_applied">Palette appliquée</string>
+
+    <!-- Color Palette -->
     <string name="palette_default">Par défaut</string>
     <string name="palette_ocean_blue">Bleu océan</string>
     <string name="palette_emerald_green">Émeraude</string>
@@ -265,6 +267,26 @@
     <string name="palette_arctic_blue">Arctique</string>
     <string name="palette_magenta_pop">Magenta</string>
     <string name="palette_warm_amber">Ambre</string>
+    <string name="palette_coral_reef">Récif de corail</string>
+    <string name="palette_electric_violet">Violet électrique</string>
+    <string name="palette_mint_fresh">Menthe fraîche</string>
+    <string name="palette_peachy_keen">Pêche</string>
+    <string name="palette_slate_gray">Gris ardoise</string>
+    <string name="palette_wine_red">Rouge vin</string>
+    <string name="palette_turquoise">Turquoise</string>
+    <string name="palette_mustard">Moutarde</string>
+    <string name="palette_plum">Prune</string>
+    <string name="palette_sky_blue">Bleu ciel</string>
+    <string name="palette_olive">Olive</string>
+    <string name="palette_neon_pink">Rose néon</string>
+    <string name="palette_deep_sea">Mer profonde</string>
+    <string name="palette_autumn">Automne</string>
+    <string name="palette_cotton_candy">Barbe à papa</string>
+    <string name="palette_mocha">Moka</string>
+    <string name="palette_aquamarine">Aigue-marine</string>
+    <string name="palette_sunset_beach">Plage au coucher</string>
+    <!-- End of Color Palette -->
+
     <string name="dark_theme">Thème sombre</string>
     <string name="dark_theme_on">Activé</string>
     <string name="dark_theme_off">Désactivé</string>

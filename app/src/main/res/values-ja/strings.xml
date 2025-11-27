@@ -248,6 +248,8 @@
     <string name="theme_preview">テーマプレビュー</string>
     <string name="select_palette">カラーパレットを選択</string>
     <string name="palette_applied">パレットが適用されました</string>
+
+    <!-- Color Palette -->
     <string name="palette_default">デフォルト</string>
     <string name="palette_ocean_blue">オーシャンブルー</string>
     <string name="palette_emerald_green">エメラルド</string>
@@ -266,6 +268,26 @@
     <string name="palette_arctic_blue">アークティック</string>
     <string name="palette_magenta_pop">マゼンタ</string>
     <string name="palette_warm_amber">アンバー</string>
+    <string name="palette_coral_reef">コーラルリーフ</string>
+    <string name="palette_electric_violet">エレクトリックバイオレット</string>
+    <string name="palette_mint_fresh">ミントフレッシュ</string>
+    <string name="palette_peachy_keen">ピーチ</string>
+    <string name="palette_slate_gray">スレートグレー</string>
+    <string name="palette_wine_red">ワインレッド</string>
+    <string name="palette_turquoise">ターコイズ</string>
+    <string name="palette_mustard">マスタード</string>
+    <string name="palette_plum">プラム</string>
+    <string name="palette_sky_blue">スカイブルー</string>
+    <string name="palette_olive">オリーブ</string>
+    <string name="palette_neon_pink">ネオンピンク</string>
+    <string name="palette_deep_sea">ディープシー</string>
+    <string name="palette_autumn">オータム</string>
+    <string name="palette_cotton_candy">コットンキャンディ</string>
+    <string name="palette_mocha">モカ</string>
+    <string name="palette_aquamarine">アクアマリン</string>
+    <string name="palette_sunset_beach">サンセットビーチ</string>
+    <!-- End of Color Palette -->
+
     <string name="dark_theme">ダークテーマ</string>
     <string name="dark_theme_on">オン</string>
     <string name="dark_theme_off">オフ</string>

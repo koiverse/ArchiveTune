@@ -248,6 +248,8 @@
     <string name="theme_preview">테마 미리보기</string>
     <string name="select_palette">색상 팔레트 선택</string>
     <string name="palette_applied">팔레트 적용됨</string>
+
+    <!-- Color Palette -->
     <string name="palette_default">기본</string>
     <string name="palette_ocean_blue">오션 블루</string>
     <string name="palette_emerald_green">에메랄드</string>
@@ -266,6 +268,26 @@
     <string name="palette_arctic_blue">아틱</string>
     <string name="palette_magenta_pop">마젠타</string>
     <string name="palette_warm_amber">앰버</string>
+    <string name="palette_coral_reef">코랄 리프</string>
+    <string name="palette_electric_violet">일렉트릭 바이올렛</string>
+    <string name="palette_mint_fresh">민트 프레시</string>
+    <string name="palette_peachy_keen">피치</string>
+    <string name="palette_slate_gray">슬레이트 그레이</string>
+    <string name="palette_wine_red">와인 레드</string>
+    <string name="palette_turquoise">터쿼이즈</string>
+    <string name="palette_mustard">머스타드</string>
+    <string name="palette_plum">플럼</string>
+    <string name="palette_sky_blue">스카이 블루</string>
+    <string name="palette_olive">올리브</string>
+    <string name="palette_neon_pink">네온 핑크</string>
+    <string name="palette_deep_sea">딥 씨</string>
+    <string name="palette_autumn">어텀</string>
+    <string name="palette_cotton_candy">코튼 캔디</string>
+    <string name="palette_mocha">모카</string>
+    <string name="palette_aquamarine">아쿠아마린</string>
+    <string name="palette_sunset_beach">선셋 비치</string>
+    <!-- End of Color Palette -->
+
     <string name="dark_theme">동적 테마 활성화</string>
     <string name="dark_theme_on">어두운 테마</string>
     <string name="dark_theme_off">켜기</string>

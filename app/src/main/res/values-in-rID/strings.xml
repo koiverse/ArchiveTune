@@ -248,6 +248,8 @@
     <string name="theme_preview">Pratinjau Tema</string>
     <string name="select_palette">Pilih palet warna</string>
     <string name="palette_applied">Palet diterapkan</string>
+
+    <!-- Color Palette -->
     <string name="palette_default">Default</string>
     <string name="palette_ocean_blue">Biru Laut</string>
     <string name="palette_emerald_green">Zamrud</string>
@@ -266,6 +268,26 @@
     <string name="palette_arctic_blue">Arktik</string>
     <string name="palette_magenta_pop">Magenta</string>
     <string name="palette_warm_amber">Amber</string>
+    <string name="palette_coral_reef">Terumbu Karang</string>
+    <string name="palette_electric_violet">Violet Elektrik</string>
+    <string name="palette_mint_fresh">Mint Segar</string>
+    <string name="palette_peachy_keen">Persik</string>
+    <string name="palette_slate_gray">Abu-abu Batu Tulis</string>
+    <string name="palette_wine_red">Merah Anggur</string>
+    <string name="palette_turquoise">Pirus</string>
+    <string name="palette_mustard">Mustard</string>
+    <string name="palette_plum">Plum</string>
+    <string name="palette_sky_blue">Biru Langit</string>
+    <string name="palette_olive">Zaitun</string>
+    <string name="palette_neon_pink">Pink Neon</string>
+    <string name="palette_deep_sea">Laut Dalam</string>
+    <string name="palette_autumn">Musim Gugur</string>
+    <string name="palette_cotton_candy">Permen Kapas</string>
+    <string name="palette_mocha">Moka</string>
+    <string name="palette_aquamarine">Aquamarine</string>
+    <string name="palette_sunset_beach">Pantai Senja</string>
+    <!-- End of Color Palette -->
+
     <string name="dark_theme">Tema gelap</string>
     <string name="dark_theme_on">Aktif</string>
     <string name="dark_theme_off">Mati</string>

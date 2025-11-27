@@ -248,6 +248,8 @@
     <string name="theme_preview">Themenvorschau</string>
     <string name="select_palette">Wählen Sie eine Farbpalette</string>
     <string name="palette_applied">Palette angewendet</string>
+
+    <!-- Color Palette -->
     <string name="palette_default">Standard</string>
     <string name="palette_ocean_blue">Ozeanblau</string>
     <string name="palette_emerald_green">Smaragd</string>
@@ -266,6 +268,26 @@
     <string name="palette_arctic_blue">Arktis</string>
     <string name="palette_magenta_pop">Magenta</string>
     <string name="palette_warm_amber">Bernstein</string>
+    <string name="palette_coral_reef">Korallenriff</string>
+    <string name="palette_electric_violet">Elektrisches Violett</string>
+    <string name="palette_mint_fresh">Frische Minze</string>
+    <string name="palette_peachy_keen">Pfirsich</string>
+    <string name="palette_slate_gray">Schiefergrau</string>
+    <string name="palette_wine_red">Weinrot</string>
+    <string name="palette_turquoise">Türkis</string>
+    <string name="palette_mustard">Senf</string>
+    <string name="palette_plum">Pflaume</string>
+    <string name="palette_sky_blue">Himmelblau</string>
+    <string name="palette_olive">Oliv</string>
+    <string name="palette_neon_pink">Neonpink</string>
+    <string name="palette_deep_sea">Tiefsee</string>
+    <string name="palette_autumn">Herbst</string>
+    <string name="palette_cotton_candy">Zuckerwatte</string>
+    <string name="palette_mocha">Mokka</string>
+    <string name="palette_aquamarine">Aquamarin</string>
+    <string name="palette_sunset_beach">Sonnenuntergangsstrand</string>
+    <!-- End of Color Palette -->
+
     <string name="dark_theme">Dunkles Thema</string>
     <string name="dark_theme_on">An</string>
     <string name="dark_theme_off">Aus</string>
