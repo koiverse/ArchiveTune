@@ -105,7 +105,8 @@ import androidx.navigation.NavController
 import moe.koiverse.archivetune.LocalPlayerConnection
 import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.constants.ListItemHeight
-import moe.koiverse.archivetune.constants.UseNewPlayerDesignKey
+import moe.koiverse.archivetune.constants.PlayerDesignStyle
+import moe.koiverse.archivetune.constants.PlayerDesignStyleKey
 import moe.koiverse.archivetune.constants.PlayerButtonsStyle
 import moe.koiverse.archivetune.constants.PlayerButtonsStyleKey
 import moe.koiverse.archivetune.constants.QueueEditLockKey
@@ -124,6 +125,7 @@ import moe.koiverse.archivetune.ui.menu.PlayerMenu
 import moe.koiverse.archivetune.ui.menu.SelectionMediaMetadataMenu
 import moe.koiverse.archivetune.ui.utils.ShowMediaInfo
 import moe.koiverse.archivetune.utils.makeTimeString
+import moe.koiverse.archivetune.utils.rememberEnumPreference
 import moe.koiverse.archivetune.utils.rememberPreference
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -178,9 +180,9 @@ fun Queue(
 
     var locked by rememberPreference(QueueEditLockKey, defaultValue = true)
 
-    val (useNewPlayerDesign, onUseNewPlayerDesignChange) = rememberPreference(
-        UseNewPlayerDesignKey,
-        defaultValue = true
+    val playerDesignStyle by rememberEnumPreference(
+        key = PlayerDesignStyleKey,
+        defaultValue = PlayerDesignStyle.V2
     )
 
     val snackbarHostState = remember { SnackbarHostState() }
@@ -219,7 +221,8 @@ fun Queue(
         backgroundColor = Color.Unspecified,
         modifier = modifier,
         collapsedContent = {
-            if (useNewPlayerDesign) {
+            when (playerDesignStyle) {
+                PlayerDesignStyle.V2, PlayerDesignStyle.V3 -> {
                 // Codec Info Display (if enabled)
                 if (showCodecOnPlayer && currentFormat != null) {
                     Row(
@@ -440,7 +443,9 @@ fun Queue(
                         )
                     }
                 }
-            } else {
+                }
+                
+                PlayerDesignStyle.V1 -> {
                 // Codec Info Display (if enabled)
                 if (showCodecOnPlayer && currentFormat != null) {
                     Row(
@@ -591,6 +596,7 @@ fun Queue(
                             )
                         }
                     }
+                }
                 }
             }
 

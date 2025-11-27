@@ -87,10 +87,13 @@
     <string name="player_background_style">プレーヤーの背景スタイル</string>
     <string name="follow_theme">テーマに従う</string>
     <string name="gradient">勾配</string>
+    <string name="player_design_style">プレーヤーデザインスタイル</string>
+    <string name="player_design_v1">クラシック</string>
+    <string name="player_design_v2">モダン</string>
+    <string name="player_design_v3">エレガント</string>
     <string name="coloring">彩色</string>
     <string name="blur_gradient">ぼかしグラデーション</string>
     <string name="glow">輝き</string>
-    <string name="new_player_design">新しいプレーヤーのデザイン</string>
     <string name="new_mini_player_design">新しいミニプレーヤーのデザイン</string>
     <string name="player_background_blur">ぼかし</string>
     <string name="player_buttons_style">プレーヤーのボタンの色</string>

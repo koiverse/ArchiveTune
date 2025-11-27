@@ -65,7 +65,8 @@ import moe.koiverse.archivetune.constants.LibraryFilter
 import moe.koiverse.archivetune.constants.LyricsClickKey
 import moe.koiverse.archivetune.constants.LyricsScrollKey
 import moe.koiverse.archivetune.constants.LyricsTextPositionKey
-import moe.koiverse.archivetune.constants.UseNewPlayerDesignKey
+import moe.koiverse.archivetune.constants.PlayerDesignStyle
+import moe.koiverse.archivetune.constants.PlayerDesignStyleKey
 import moe.koiverse.archivetune.constants.UseNewMiniPlayerDesignKey
 import moe.koiverse.archivetune.constants.PlayerBackgroundStyle
 import moe.koiverse.archivetune.constants.PlayerBackgroundStyleKey
@@ -119,9 +120,9 @@ fun AppearanceSettings(
         DarkModeKey,
         defaultValue = DarkMode.AUTO
     )
-    val (useNewPlayerDesign, onUseNewPlayerDesignChange) = rememberPreference(
-        UseNewPlayerDesignKey,
-        defaultValue = true
+    val (playerDesignStyle, onPlayerDesignStyleChange) = rememberEnumPreference(
+        PlayerDesignStyleKey,
+        defaultValue = PlayerDesignStyle.V2
     )
     val (useNewMiniPlayerDesign, onUseNewMiniPlayerDesignChange) = rememberPreference(
         UseNewMiniPlayerDesignKey,
@@ -417,11 +418,18 @@ fun AppearanceSettings(
             title = stringResource(R.string.player),
         )
 
-        SwitchPreference(
-            title = { Text(stringResource(R.string.new_player_design)) },
+        EnumListPreference(
+            title = { Text(stringResource(R.string.player_design_style)) },
             icon = { Icon(painterResource(R.drawable.palette), null) },
-            checked = useNewPlayerDesign,
-            onCheckedChange = onUseNewPlayerDesignChange,
+            selectedValue = playerDesignStyle,
+            onValueSelected = onPlayerDesignStyleChange,
+            valueText = {
+                when (it) {
+                    PlayerDesignStyle.V1 -> stringResource(R.string.player_design_v1)
+                    PlayerDesignStyle.V2 -> stringResource(R.string.player_design_v2)
+                    PlayerDesignStyle.V3 -> stringResource(R.string.player_design_v3)
+                }
+            },
         )
 
         SwitchPreference(

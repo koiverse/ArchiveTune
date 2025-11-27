@@ -87,10 +87,13 @@
     <string name="player_background_style">Gaya latar belakang pemain</string>
     <string name="follow_theme">Ikuti tema</string>
     <string name="gradient">Gradien</string>
+    <string name="player_design_style">Gaya desain pemutar</string>
+    <string name="player_design_v1">Klasik</string>
+    <string name="player_design_v2">Modern</string>
+    <string name="player_design_v3">Elegan</string>
     <string name="coloring">Pewarnaan</string>
     <string name="blur_gradient">Gradasi buram</string>
     <string name="glow">Bersinar</string>
-    <string name="new_player_design">Desain pemain baru</string>
     <string name="new_mini_player_design">Desain pemutar mini baru</string>
     <string name="player_background_blur">Mengaburkan</string>
     <string name="player_buttons_style">Warna tombol pemutar</string>

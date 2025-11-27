@@ -87,10 +87,13 @@
     <string name="player_background_style">Hintergrundstil des Spielers</string>
     <string name="follow_theme">Thema folgen</string>
     <string name="gradient">Gradient</string>
+    <string name="player_design_style">Player-Design-Stil</string>
+    <string name="player_design_v1">Klassisch</string>
+    <string name="player_design_v2">Modern</string>
+    <string name="player_design_v3">Elegant</string>
     <string name="coloring">Farbung</string>
     <string name="blur_gradient">Weichzeichnerverlauf</string>
     <string name="glow">Leuchten</string>
-    <string name="new_player_design">Neues Spielerdesign</string>
     <string name="new_mini_player_design">Neues Mini-Player-Design</string>
     <string name="player_background_blur">Verwischen</string>
     <string name="player_buttons_style">Farben der Player-Tasten</string>

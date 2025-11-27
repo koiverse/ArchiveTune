@@ -87,7 +87,10 @@
     <string name="player_background_style">Player background style</string>
     <string name="follow_theme">Follow theme</string>
     <string name="gradient">Gradient</string>
-    <string name="new_player_design">New player design</string>
+    <string name="player_design_style">Player design style</string>
+    <string name="player_design_v1">Classic</string>
+    <string name="player_design_v2">Modern</string>
+    <string name="player_design_v3">Elegant</string>
     <string name="new_mini_player_design">New mini player design</string>
     <string name="player_background_blur">Blur</string>
     <string name="coloring">Coloring</string>

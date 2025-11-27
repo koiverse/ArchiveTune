@@ -87,7 +87,10 @@
     <string name="player_background_style">Style d\'arrière-plan du lecteur</string>
     <string name="follow_theme">Suivre le thème</string>
     <string name="gradient">Dégradé</string>
-    <string name="new_player_design">Nouveau design du lecteur</string>
+    <string name="player_design_style">Style de design du lecteur</string>
+    <string name="player_design_v1">Classique</string>
+    <string name="player_design_v2">Moderne</string>
+    <string name="player_design_v3">Élégant</string>
     <string name="new_mini_player_design">Nouveau mini lecteur</string>
     <string name="player_background_blur">Flou</string>
     <string name="coloring">Coloration</string>
