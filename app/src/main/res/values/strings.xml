@@ -242,6 +242,8 @@
     <string name="appearance">Appearance</string>
     <string name="theme">Theme</string>
     <string name="enable_dynamic_theme">Enable dynamic theme</string>
+    
+    <!-- Color Palette -->
     <string name="color_palette">Color Palette</string>
     <string name="customize_theme_colors">Choose your app theme colors</string>
     <string name="selected_theme_color">Selected Theme Color</string>
@@ -249,7 +251,6 @@
     <string name="select_palette">Select a color palette</string>
     <string name="palette_applied">Palette applied</string>
 
-    <!-- Color Palette -->
     <!-- Palette Names -->
     <string name="palette_default">Default</string>
     <!-- Blues -->
@@ -330,6 +331,19 @@
     <string name="palette_aurora">Aurora</string>
     <string name="palette_candy">Candy</string>
     <string name="palette_rainbow">Rainbow</string>
+    <!-- Additional Palettes -->
+    <string name="palette_aquamarine">Aquamarine</string>
+    <string name="palette_coral_reef">Coral Reef</string>
+    <string name="palette_cotton_candy">Cotton Candy</string>
+    <string name="palette_deep_sea">Deep Sea</string>
+    <string name="palette_electric_violet">Electric Violet</string>
+    <string name="palette_mustard">Mustard</string>
+    <string name="palette_olive">Olive</string>
+    <string name="palette_peachy_keen">Peachy Keen</string>
+    <string name="palette_plum">Plum</string>
+    <string name="palette_slate_gray">Slate Gray</string>
+    <string name="palette_sunset_beach">Sunset Beach</string>
+    <string name="palette_turquoise">Turquoise</string>
     <!-- End of Color Palette -->
 
     <string name="dark_theme">Dark theme</string>
