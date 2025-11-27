@@ -1114,6 +1114,14 @@ private fun ColorPaletteSelector(
     val listState = rememberLazyListState()
     val selectedIndex = palettes.indexOf(selectedPalette)
     
+    // Calculate number of dots (1 dot per 4 palettes)
+    val totalDots = (palettes.size + 3) / 4
+    
+    // Track current visible page based on first visible item
+    val currentPage = remember(listState.firstVisibleItemIndex) {
+        listState.firstVisibleItemIndex / 4
+    }
+    
     LaunchedEffect(selectedIndex) {
         if (selectedIndex >= 0) {
             listState.animateScrollToItem(
@@ -1123,17 +1131,83 @@ private fun ColorPaletteSelector(
         }
     }
     
-    LazyRow(
-        state = listState,
+    Column(
         modifier = modifier,
-        contentPadding = PaddingValues(horizontal = 24.dp),
-        horizontalArrangement = Arrangement.spacedBy(16.dp)
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        items(palettes) { palette ->
-            PaletteCard(
-                palette = palette,
-                isSelected = palette.id == selectedPalette.id,
-                onClick = { onPaletteSelected(palette) }
+        LazyRow(
+            state = listState,
+            modifier = Modifier.fillMaxWidth(),
+            contentPadding = PaddingValues(horizontal = 24.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            items(palettes) { palette ->
+                PaletteCard(
+                    palette = palette,
+                    isSelected = palette.id == selectedPalette.id,
+                    onClick = { onPaletteSelected(palette) }
+                )
+            }
+        }
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        // Carousel dots indicator
+        CarouselDotsIndicator(
+            totalDots = totalDots,
+            currentPage = currentPage,
+            selectedColor = selectedPalette.primary,
+            modifier = Modifier.padding(horizontal = 24.dp)
+        )
+    }
+}
+
+@Composable
+private fun CarouselDotsIndicator(
+    totalDots: Int,
+    currentPage: Int,
+    selectedColor: Color,
+    modifier: Modifier = Modifier
+) {
+    val scrollState = rememberScrollState()
+    
+    // Auto-scroll to keep current dot visible
+    LaunchedEffect(currentPage) {
+        val dotWidth = 20 // approximate width per dot including spacing
+        val targetScroll = (currentPage * dotWidth - 100).coerceAtLeast(0)
+        scrollState.animateScrollTo(targetScroll)
+    }
+    
+    Row(
+        modifier = modifier
+            .horizontalScroll(scrollState),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        repeat(totalDots) { index ->
+            val isSelected = index == currentPage
+            
+            val dotSize by animateDpAsState(
+                targetValue = if (isSelected) 10.dp else 6.dp,
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessMedium
+                ),
+                label = "dotSize"
+            )
+            
+            val dotColor by animateColorAsState(
+                targetValue = if (isSelected) selectedColor else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f),
+                animationSpec = tween(durationMillis = 300),
+                label = "dotColor"
+            )
+            
+            Box(
+                modifier = Modifier
+                    .padding(horizontal = 4.dp)
+                    .size(dotSize)
+                    .clip(CircleShape)
+                    .background(dotColor)
             )
         }
     }
