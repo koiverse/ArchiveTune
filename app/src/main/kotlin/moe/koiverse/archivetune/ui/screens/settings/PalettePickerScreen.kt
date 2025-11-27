@@ -50,6 +50,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -1114,12 +1115,17 @@ private fun ColorPaletteSelector(
     val listState = rememberLazyListState()
     val selectedIndex = palettes.indexOf(selectedPalette)
     
-    // Calculate number of dots (1 dot per 4 palettes)
     val totalDots = (palettes.size + 3) / 4
     
-    // Track current visible page based on first visible item
-    val currentPage = remember(listState.firstVisibleItemIndex) {
-        listState.firstVisibleItemIndex / 4
+    val currentPage by remember {
+        derivedStateOf { listState.firstVisibleItemIndex / 4 }
+    }
+    
+    var stableCurrentPage by rememberSaveable { mutableIntStateOf(0) }
+    
+    LaunchedEffect(currentPage) {
+        kotlinx.coroutines.delay(50)
+        stableCurrentPage = currentPage
     }
     
     LaunchedEffect(selectedIndex) {
@@ -1152,10 +1158,9 @@ private fun ColorPaletteSelector(
         
         Spacer(modifier = Modifier.height(16.dp))
         
-        // Carousel dots indicator
         CarouselDotsIndicator(
             totalDots = totalDots,
-            currentPage = currentPage,
+            currentPage = stableCurrentPage,
             selectedColor = selectedPalette.primary,
             modifier = Modifier.padding(horizontal = 24.dp)
         )
@@ -1169,18 +1174,10 @@ private fun CarouselDotsIndicator(
     selectedColor: Color,
     modifier: Modifier = Modifier
 ) {
-    val scrollState = rememberScrollState()
-    
-    // Auto-scroll to keep current dot visible
-    LaunchedEffect(currentPage) {
-        val dotWidth = 20 // approximate width per dot including spacing
-        val targetScroll = (currentPage * dotWidth - 100).coerceAtLeast(0)
-        scrollState.animateScrollTo(targetScroll)
-    }
+    val fixedDotContainerSize = 14.dp
     
     Row(
-        modifier = modifier
-            .horizontalScroll(scrollState),
+        modifier = modifier.height(fixedDotContainerSize),
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -1189,26 +1186,29 @@ private fun CarouselDotsIndicator(
             
             val dotSize by animateDpAsState(
                 targetValue = if (isSelected) 10.dp else 6.dp,
-                animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioMediumBouncy,
-                    stiffness = Spring.StiffnessMedium
-                ),
+                animationSpec = tween(durationMillis = 200, easing = FastOutSlowInEasing),
                 label = "dotSize"
             )
             
             val dotColor by animateColorAsState(
                 targetValue = if (isSelected) selectedColor else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f),
-                animationSpec = tween(durationMillis = 300),
+                animationSpec = tween(durationMillis = 200),
                 label = "dotColor"
             )
             
             Box(
                 modifier = Modifier
                     .padding(horizontal = 4.dp)
-                    .size(dotSize)
-                    .clip(CircleShape)
-                    .background(dotColor)
-            )
+                    .size(fixedDotContainerSize),
+                contentAlignment = Alignment.Center
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(dotSize)
+                        .clip(CircleShape)
+                        .background(dotColor)
+                )
+            }
         }
     }
 }
