@@ -243,7 +243,11 @@
     <string name="theme">Tema</string>
     <string name="enable_dynamic_theme">Aktifkan tema dinamis</string>
     <string name="color_palette">Palet Warna</string>
+    <string name="customize_theme_colors">Pilih warna tema aplikasi</string>
     <string name="selected_theme_color">Warna Tema Terpilih</string>
+    <string name="theme_preview">Pratinjau Tema</string>
+    <string name="select_palette">Pilih palet warna</string>
+    <string name="palette_applied">Palet diterapkan</string>
     <string name="palette_default">Default</string>
     <string name="palette_ocean_blue">Biru Laut</string>
     <string name="palette_emerald_green">Zamrud</string>

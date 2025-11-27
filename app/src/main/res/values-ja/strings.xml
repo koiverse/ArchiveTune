@@ -243,7 +243,11 @@
     <string name="theme">テーマ</string>
     <string name="enable_dynamic_theme">ダイナミックテーマを有効にする</string>
     <string name="color_palette">カラーパレット</string>
+    <string name="customize_theme_colors">アプリのテーマカラーを選択</string>
     <string name="selected_theme_color">選択されたテーマカラー</string>
+    <string name="theme_preview">テーマプレビュー</string>
+    <string name="select_palette">カラーパレットを選択</string>
+    <string name="palette_applied">パレットが適用されました</string>
     <string name="palette_default">デフォルト</string>
     <string name="palette_ocean_blue">オーシャンブルー</string>
     <string name="palette_emerald_green">エメラルド</string>

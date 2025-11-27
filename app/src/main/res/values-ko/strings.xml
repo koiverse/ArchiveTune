@@ -243,7 +243,11 @@
     <string name="theme">외관</string>
     <string name="enable_dynamic_theme">테마</string>
     <string name="color_palette">색상 팔레트</string>
+    <string name="customize_theme_colors">앱 테마 색상 선택</string>
     <string name="selected_theme_color">선택한 테마 색상</string>
+    <string name="theme_preview">테마 미리보기</string>
+    <string name="select_palette">색상 팔레트 선택</string>
+    <string name="palette_applied">팔레트 적용됨</string>
     <string name="palette_default">기본</string>
     <string name="palette_ocean_blue">오션 블루</string>
     <string name="palette_emerald_green">에메랄드</string>

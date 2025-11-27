@@ -243,7 +243,11 @@
     <string name="theme">Thema</string>
     <string name="enable_dynamic_theme">Aktivieren Sie das dynamische Design</string>
     <string name="color_palette">Farbpalette</string>
+    <string name="customize_theme_colors">Wählen Sie Ihre App-Themenfarben</string>
     <string name="selected_theme_color">Ausgewählte Themenfarbe</string>
+    <string name="theme_preview">Themenvorschau</string>
+    <string name="select_palette">Wählen Sie eine Farbpalette</string>
+    <string name="palette_applied">Palette angewendet</string>
     <string name="palette_default">Standard</string>
     <string name="palette_ocean_blue">Ozeanblau</string>
     <string name="palette_emerald_green">Smaragd</string>

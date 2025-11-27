@@ -242,7 +242,11 @@
     <string name="theme">Thème</string>
     <string name="enable_dynamic_theme">Activer le thème dynamique</string>
     <string name="color_palette">Palette de couleurs</string>
+    <string name="customize_theme_colors">Choisir les couleurs du thème</string>
     <string name="selected_theme_color">Couleur du thème sélectionnée</string>
+    <string name="theme_preview">Aperçu du thème</string>
+    <string name="select_palette">Sélectionner une palette</string>
+    <string name="palette_applied">Palette appliquée</string>
     <string name="palette_default">Par défaut</string>
     <string name="palette_ocean_blue">Bleu océan</string>
     <string name="palette_emerald_green">Émeraude</string>

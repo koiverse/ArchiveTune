@@ -67,6 +67,7 @@ import moe.koiverse.archivetune.ui.screens.settings.DiscordSettings
 import moe.koiverse.archivetune.ui.screens.settings.DebugSettings
 import moe.koiverse.archivetune.ui.screens.settings.IntegrationScreen
 import moe.koiverse.archivetune.ui.screens.settings.LastFMSettings
+import moe.koiverse.archivetune.ui.screens.settings.PalettePickerScreen
 import moe.koiverse.archivetune.ui.screens.settings.PlayerSettings
 import moe.koiverse.archivetune.ui.screens.settings.PrivacySettings
 import moe.koiverse.archivetune.ui.screens.settings.SettingsScreen
@@ -290,6 +291,9 @@ fun NavGraphBuilder.navigationBuilder(
     }
     composable("settings/appearance") {
         AppearanceSettings(navController, scrollBehavior)
+    }
+    composable("settings/appearance/palette_picker") {
+        PalettePickerScreen(navController)
     }
     composable("settings/content") {
         ContentSettings(navController, scrollBehavior)

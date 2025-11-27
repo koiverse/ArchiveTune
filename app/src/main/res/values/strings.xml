@@ -243,7 +243,11 @@
     <string name="theme">Theme</string>
     <string name="enable_dynamic_theme">Enable dynamic theme</string>
     <string name="color_palette">Color Palette</string>
+    <string name="customize_theme_colors">Choose your app theme colors</string>
     <string name="selected_theme_color">Selected Theme Color</string>
+    <string name="theme_preview">Theme Preview</string>
+    <string name="select_palette">Select a color palette</string>
+    <string name="palette_applied">Palette applied</string>
     <string name="palette_default">Default</string>
     <string name="palette_ocean_blue">Ocean Blue</string>
     <string name="palette_emerald_green">Emerald</string>

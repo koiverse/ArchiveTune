@@ -90,9 +90,6 @@ import moe.koiverse.archivetune.constants.SwipeToSongKey
 import moe.koiverse.archivetune.constants.HidePlayerThumbnailKey
 import moe.koiverse.archivetune.constants.ThumbnailCornerRadiusKey
 import moe.koiverse.archivetune.constants.DisableBlurKey
-import moe.koiverse.archivetune.constants.CustomThemeColorKey
-import moe.koiverse.archivetune.ui.component.ColorPalettePicker
-import moe.koiverse.archivetune.ui.component.ColorPalettePresets
 import moe.koiverse.archivetune.ui.component.DefaultDialog
 import moe.koiverse.archivetune.ui.component.EnumListPreference
 import moe.koiverse.archivetune.ui.component.IconButton
@@ -118,12 +115,6 @@ fun AppearanceSettings(
     val (dynamicTheme, onDynamicThemeChange) = rememberPreference(
         DynamicThemeKey,
         defaultValue = true
-    )
-    val (customThemeColor, onCustomThemeColorChange) = rememberPreference(
-        CustomThemeColorKey,
-        defaultValue = ColorPalettePresets.Default.primaryColor.let {
-            String.format("#%02X%02X%02X", (it.red * 255).toInt(), (it.green * 255).toInt(), (it.blue * 255).toInt())
-        }
     )
     val (darkMode, onDarkModeChange) = rememberEnumPreference(
         DarkModeKey,
@@ -392,12 +383,15 @@ fun AppearanceSettings(
             onCheckedChange = onDynamicThemeChange,
         )
 
-        // Show color palette picker when dynamic theme is disabled
-        ColorPalettePicker(
-            selectedColorHex = customThemeColor,
-            onColorSelected = onCustomThemeColorChange,
-            visible = !dynamicTheme
-        )
+        // Show color palette picker entry when dynamic theme is disabled
+        AnimatedVisibility(visible = !dynamicTheme) {
+            PreferenceEntry(
+                title = { Text(stringResource(R.string.color_palette)) },
+                description = stringResource(R.string.customize_theme_colors),
+                icon = { Icon(painterResource(R.drawable.palette), null) },
+                onClick = { navController.navigate("settings/appearance/palette_picker") }
+            )
+        }
 
         EnumListPreference(
             title = { Text(stringResource(R.string.dark_theme)) },
