@@ -90,6 +90,9 @@ import moe.koiverse.archivetune.constants.SwipeToSongKey
 import moe.koiverse.archivetune.constants.HidePlayerThumbnailKey
 import moe.koiverse.archivetune.constants.ThumbnailCornerRadiusKey
 import moe.koiverse.archivetune.constants.DisableBlurKey
+import moe.koiverse.archivetune.constants.CustomThemeColorKey
+import moe.koiverse.archivetune.ui.component.ColorPalettePicker
+import moe.koiverse.archivetune.ui.component.ColorPalettePresets
 import moe.koiverse.archivetune.ui.component.DefaultDialog
 import moe.koiverse.archivetune.ui.component.EnumListPreference
 import moe.koiverse.archivetune.ui.component.IconButton
@@ -115,6 +118,12 @@ fun AppearanceSettings(
     val (dynamicTheme, onDynamicThemeChange) = rememberPreference(
         DynamicThemeKey,
         defaultValue = true
+    )
+    val (customThemeColor, onCustomThemeColorChange) = rememberPreference(
+        CustomThemeColorKey,
+        defaultValue = ColorPalettePresets.Default.primaryColor.let {
+            String.format("#%02X%02X%02X", (it.red * 255).toInt(), (it.green * 255).toInt(), (it.blue * 255).toInt())
+        }
     )
     val (darkMode, onDarkModeChange) = rememberEnumPreference(
         DarkModeKey,
@@ -381,6 +390,13 @@ fun AppearanceSettings(
             icon = { Icon(painterResource(R.drawable.palette), null) },
             checked = dynamicTheme,
             onCheckedChange = onDynamicThemeChange,
+        )
+
+        // Show color palette picker when dynamic theme is disabled
+        ColorPalettePicker(
+            selectedColorHex = customThemeColor,
+            onColorSelected = onCustomThemeColorChange,
+            visible = !dynamicTheme
         )
 
         EnumListPreference(

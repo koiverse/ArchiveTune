@@ -136,6 +136,7 @@ import moe.koiverse.archivetune.constants.DefaultOpenTabKey
 import moe.koiverse.archivetune.constants.DisableBlurKey
 import moe.koiverse.archivetune.constants.DisableScreenshotKey
 import moe.koiverse.archivetune.constants.DynamicThemeKey
+import moe.koiverse.archivetune.constants.CustomThemeColorKey
 import moe.koiverse.archivetune.constants.MiniPlayerHeight
 import moe.koiverse.archivetune.constants.MiniPlayerBottomSpacing
 import moe.koiverse.archivetune.constants.UseNewMiniPlayerDesignKey
@@ -438,6 +439,7 @@ class MainActivity : ComponentActivity() {
                     }
 
             val enableDynamicTheme by rememberPreference(DynamicThemeKey, defaultValue = true)
+            val customThemeColorHex by rememberPreference(CustomThemeColorKey, defaultValue = "#ED5564")
             val darkTheme by rememberEnumPreference(DarkModeKey, defaultValue = DarkMode.AUTO)
             val isSystemInDarkTheme = isSystemInDarkTheme()
             val useDarkTheme =
@@ -450,14 +452,25 @@ class MainActivity : ComponentActivity() {
             val pureBlackEnabled by rememberPreference(PureBlackKey, defaultValue = false)
             val pureBlack = pureBlackEnabled && useDarkTheme
 
+            // Parse custom theme color from hex string
+            val customThemeColor = remember(customThemeColorHex) {
+                try {
+                    val colorString = customThemeColorHex.removePrefix("#")
+                    Color(android.graphics.Color.parseColor("#$colorString"))
+                } catch (e: Exception) {
+                    DefaultThemeColor
+                }
+            }
+
             var themeColor by rememberSaveable(stateSaver = ColorSaver) {
                 mutableStateOf(DefaultThemeColor)
             }
 
-            LaunchedEffect(playerConnection, enableDynamicTheme, isSystemInDarkTheme) {
+            LaunchedEffect(playerConnection, enableDynamicTheme, isSystemInDarkTheme, customThemeColor) {
                 val playerConnection = playerConnection
                 if (!enableDynamicTheme || playerConnection == null) {
-                    themeColor = DefaultThemeColor
+                    // Use custom theme color when dynamic theme is disabled
+                    themeColor = if (!enableDynamicTheme) customThemeColor else DefaultThemeColor
                     return@LaunchedEffect
                 }
                 playerConnection.service.currentMediaMetadata.collectLatest { song ->
