@@ -872,13 +872,16 @@ class MainActivity : ComponentActivity() {
                                         }
                                     ) {
                                         if (shouldShowBlurBackground) {
+                                            val glassHeight = AppBarHeight + with(LocalDensity.current) {
+                                                WindowInsets.systemBars.getTop(LocalDensity.current).toDp()
+                                            }
+                                            
                                             if (disableBlur) {
+                                                // Vertical gradient shadow when blur is disabled
                                                 Box(
                                                     modifier = Modifier
                                                         .fillMaxWidth()
-                                                        .height(AppBarHeight + with(LocalDensity.current) {
-                                                            WindowInsets.systemBars.getTop(LocalDensity.current).toDp()
-                                                        })
+                                                        .height(glassHeight)
                                                         .background(
                                                             Brush.verticalGradient(
                                                                 colors = listOf(
@@ -891,44 +894,52 @@ class MainActivity : ComponentActivity() {
                                                         )
                                                 )
                                             } else {
+                                                // Glassmorphism blur effect
                                                 Box(
                                                     modifier = Modifier
                                                         .fillMaxWidth()
-                                                        .height(AppBarHeight + with(LocalDensity.current) {
-                                                            WindowInsets.systemBars.getTop(LocalDensity.current).toDp()
-                                                        })
+                                                        .height(glassHeight)
                                                 ) {
                                                     Box(
                                                         modifier = Modifier
                                                             .fillMaxSize()
-                                                            .background(surfaceColor.copy(alpha = 0.5f))
-                                                            .graphicsLayer(
-                                                                renderEffect = BlurEffect(radiusX = 50f, radiusY = 50f)
-                                                            )
-                                                    )                                                    
-                                                    Box(
-                                                        modifier = Modifier
-                                                            .fillMaxSize()
+                                                            .blur(radius = 20.dp)
                                                             .background(
                                                                 Brush.verticalGradient(
                                                                     colors = listOf(
-                                                                        Color.White.copy(alpha = 0.15f),
-                                                                        Color.White.copy(alpha = 0.05f),
-                                                                        Color.Transparent
-                                                                    ),
-                                                                    startY = 0f,
-                                                                    endY = Float.POSITIVE_INFINITY
+                                                                        surfaceColor.copy(alpha = 0.85f),
+                                                                        surfaceColor.copy(alpha = 0.7f),
+                                                                        surfaceColor.copy(alpha = 0.5f)
+                                                                    )
                                                                 )
                                                             )
                                                     )
+                                                    
                                                     Box(
                                                         modifier = Modifier
                                                             .fillMaxSize()
                                                             .background(
                                                                 Brush.verticalGradient(
                                                                     colors = listOf(
-                                                                        surfaceColor.copy(alpha = 0.4f),
-                                                                        surfaceColor.copy(alpha = 0.2f)
+                                                                        Color.White.copy(alpha = if (useDarkTheme) 0.08f else 0.25f),
+                                                                        Color.White.copy(alpha = if (useDarkTheme) 0.03f else 0.1f),
+                                                                        Color.Transparent
+                                                                    ),
+                                                                    startY = 0f,
+                                                                    endY = 150f
+                                                                )
+                                                            )
+                                                    )
+                                                    
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .fillMaxSize()
+                                                            .background(
+                                                                Brush.verticalGradient(
+                                                                    colors = listOf(
+                                                                        Color.Transparent,
+                                                                        Color.Transparent,
+                                                                        surfaceColor.copy(alpha = 0.1f)
                                                                     )
                                                                 )
                                                             )
