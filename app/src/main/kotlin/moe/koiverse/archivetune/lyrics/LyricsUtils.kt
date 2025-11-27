@@ -139,16 +139,81 @@ object LyricsUtils {
     private fun parseWordTimestamps(data: String): List<WordTimestamp>? {
         if (data.isBlank()) return null
         return try {
-            data.split("|").mapNotNull { wordData ->
-                val parts = wordData.split(":")
-                if (parts.size == 3) {
-                    WordTimestamp(
-                        text = parts[0],
-                        startTime = parts[1].toDouble(),
-                        endTime = parts[2].toDouble()
-                    )
-                } else null
+            // Parse word timing format: word:startTime:endTime|word2:startTime2:endTime2|...
+            // Handle escaped characters: \| for literal |, \: for literal :
+            val words = mutableListOf<WordTimestamp>()
+            var currentWord = StringBuilder()
+            var currentPart = 0 // 0 = text, 1 = startTime, 2 = endTime
+            var wordText = ""
+            var startTime = 0.0
+            var i = 0
+            
+            while (i < data.length) {
+                val char = data[i]
+                
+                // Handle escape sequences
+                if (char == '\\' && i + 1 < data.length) {
+                    val nextChar = data[i + 1]
+                    if (nextChar == '|' || nextChar == ':') {
+                        currentWord.append(nextChar)
+                        i += 2
+                        continue
+                    }
+                }
+                
+                when (char) {
+                    ':' -> {
+                        when (currentPart) {
+                            0 -> {
+                                wordText = currentWord.toString()
+                                currentWord = StringBuilder()
+                                currentPart = 1
+                            }
+                            1 -> {
+                                startTime = currentWord.toString().toDoubleOrNull() ?: 0.0
+                                currentWord = StringBuilder()
+                                currentPart = 2
+                            }
+                            else -> {
+                                // Unexpected colon, treat as part of text
+                                currentWord.append(char)
+                            }
+                        }
+                    }
+                    '|' -> {
+                        // End of current word entry
+                        if (currentPart == 2 && wordText.isNotEmpty()) {
+                            val endTime = currentWord.toString().toDoubleOrNull() ?: 0.0
+                            words.add(WordTimestamp(
+                                text = wordText,
+                                startTime = startTime,
+                                endTime = endTime
+                            ))
+                        }
+                        // Reset for next word
+                        currentWord = StringBuilder()
+                        currentPart = 0
+                        wordText = ""
+                        startTime = 0.0
+                    }
+                    else -> {
+                        currentWord.append(char)
+                    }
+                }
+                i++
             }
+            
+            // Don't forget the last word entry
+            if (currentPart == 2 && wordText.isNotEmpty()) {
+                val endTime = currentWord.toString().toDoubleOrNull() ?: 0.0
+                words.add(WordTimestamp(
+                    text = wordText,
+                    startTime = startTime,
+                    endTime = endTime
+                ))
+            }
+            
+            words.ifEmpty { null }
         } catch (e: Exception) {
             null
         }
