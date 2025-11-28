@@ -595,6 +595,13 @@ fun Lyrics(
 
                     val targetAlpha = when {
                         !isSynced || (isSelectionModeActive && isSelected) -> 1f
+                        isManualScrolling -> when {
+                            index == displayedCurrentLineIndex -> 1f
+                            distance == 1 -> 0.85f
+                            distance == 2 -> 0.70f
+                            distance == 3 -> 0.55f
+                            else -> 0.45f
+                        }
                         index == displayedCurrentLineIndex -> 1f
                         distance == 1 -> 0.65f
                         distance == 2 -> 0.40f
@@ -613,6 +620,11 @@ fun Lyrics(
 
                     val targetScale = when {
                         !isSynced || index == displayedCurrentLineIndex -> 1f
+                        isManualScrolling -> when {
+                            distance == 1 -> 0.98f
+                            distance == 2 -> 0.96f
+                            else -> 0.95f
+                        }
                         distance == 1 -> 0.97f
                         distance == 2 -> 0.94f
                         else -> 0.92f
@@ -629,6 +641,11 @@ fun Lyrics(
 
                     val targetBlur = when {
                         !isSynced || index == displayedCurrentLineIndex -> 0f
+                        isManualScrolling -> when {
+                            distance == 1 -> 0.15f
+                            distance == 2 -> 0.25f
+                            else -> 0.35f
+                        }
                         distance == 1 -> 0.3f
                         distance == 2 -> 0.6f
                         else -> 1f
