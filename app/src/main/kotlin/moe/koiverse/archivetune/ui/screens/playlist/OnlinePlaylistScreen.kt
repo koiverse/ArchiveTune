@@ -259,17 +259,6 @@ fun OnlinePlaylistScreen(
         }
     }
 
-    // Parallax effect for header
-    val headerParallax by remember {
-        derivedStateOf {
-            if (lazyListState.firstVisibleItemIndex == 0) {
-                lazyListState.firstVisibleItemScrollOffset * 0.4f
-            } else {
-                0f
-            }
-        }
-    }
-
     val transparentAppBar by remember {
         derivedStateOf {
             !disableBlur && !selection && !showTopBarTitle
@@ -464,9 +453,6 @@ fun OnlinePlaylistScreen(
                             Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .graphicsLayer {
-                                        translationY = headerParallax
-                                    }
                                     .padding(top = systemBarsTopPadding + AppBarHeight)
                                     .animateItem(),
                                 horizontalAlignment = Alignment.CenterHorizontally

@@ -243,17 +243,6 @@ fun AlbumScreen(
         }
     }
 
-    // Parallax effect for header
-    val headerParallax by remember {
-        derivedStateOf {
-            if (lazyListState.firstVisibleItemIndex == 0) {
-                lazyListState.firstVisibleItemScrollOffset * 0.4f
-            } else {
-                0f
-            }
-        }
-    }
-
     val showTopBarTitle by remember {
         derivedStateOf {
             lazyListState.firstVisibleItemIndex > 0
@@ -348,9 +337,6 @@ fun AlbumScreen(
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .graphicsLayer {
-                                translationY = headerParallax
-                            }
                             .padding(top = systemBarsTopPadding + AppBarHeight),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
