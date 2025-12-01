@@ -411,6 +411,9 @@ fun ArtistScreen(
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
+                            .graphicsLayer {
+                                translationY = headerParallax
+                            }
                             .padding(top = systemBarsTopPadding + AppBarHeight),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
@@ -418,9 +421,6 @@ fun ArtistScreen(
                         Box(
                             modifier = Modifier
                                 .padding(top = 8.dp, bottom = 16.dp)
-                                .graphicsLayer {
-                                    translationY = headerParallax
-                                }
                         ) {
                             if (thumbnail != null) {
                                 AsyncImage(

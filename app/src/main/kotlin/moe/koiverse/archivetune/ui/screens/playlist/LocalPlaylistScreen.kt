@@ -594,6 +594,9 @@ fun LocalPlaylistScreen(
                             Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
+                                    .graphicsLayer {
+                                        translationY = headerParallax
+                                    }
                                     .padding(top = systemBarsTopPadding + AppBarHeight),
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
@@ -601,9 +604,6 @@ fun LocalPlaylistScreen(
                                 Box(
                                     modifier = Modifier
                                         .padding(top = 8.dp, bottom = 20.dp)
-                                        .graphicsLayer {
-                                            translationY = headerParallax
-                                        }
                                 ) {
                                     if (playlist.thumbnails.size == 1) {
                                         // Single thumbnail

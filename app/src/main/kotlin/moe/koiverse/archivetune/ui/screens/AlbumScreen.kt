@@ -348,6 +348,9 @@ fun AlbumScreen(
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
+                            .graphicsLayer {
+                                translationY = headerParallax
+                            }
                             .padding(top = systemBarsTopPadding + AppBarHeight),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
@@ -355,9 +358,6 @@ fun AlbumScreen(
                         Box(
                             modifier = Modifier
                                 .padding(top = 8.dp, bottom = 20.dp)
-                                .graphicsLayer {
-                                    translationY = headerParallax
-                                }
                         ) {
                             Surface(
                                 modifier = Modifier

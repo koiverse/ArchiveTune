@@ -464,6 +464,9 @@ fun OnlinePlaylistScreen(
                             Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
+                                    .graphicsLayer {
+                                        translationY = headerParallax
+                                    }
                                     .padding(top = systemBarsTopPadding + AppBarHeight)
                                     .animateItem(),
                                 horizontalAlignment = Alignment.CenterHorizontally
@@ -472,9 +475,6 @@ fun OnlinePlaylistScreen(
                                 Box(
                                     modifier = Modifier
                                         .padding(top = 8.dp, bottom = 20.dp)
-                                        .graphicsLayer {
-                                            translationY = headerParallax
-                                        }
                                 ) {
                                     Surface(
                                         modifier = Modifier
