@@ -900,7 +900,9 @@ class MainActivity : ComponentActivity() {
 
                                                 Text(
                                                     text = stringResource(R.string.app_name),
-                                                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
+                                                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis
                                                 )
                                             }
                                         },
