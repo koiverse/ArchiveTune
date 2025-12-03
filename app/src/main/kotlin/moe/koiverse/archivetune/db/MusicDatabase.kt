@@ -149,13 +149,17 @@ abstract class InternalDatabase : RoomDatabase() {
 private class DatabaseCallback : RoomDatabase.Callback() {
     override fun onOpen(db: SupportSQLiteDatabase) {
         super.onOpen(db)
-        try {
-            db.query("PRAGMA busy_timeout = 60000").close()
-            db.query("PRAGMA cache_size = -16000").close()
-            db.query("PRAGMA wal_autocheckpoint = 1000").close()
-            db.query("PRAGMA synchronous = NORMAL").close()
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to set PRAGMA settings", e)
+        java.util.concurrent.Executors.newSingleThreadExecutor().execute {
+            try {
+                db.query("PRAGMA busy_timeout = 60000").close()
+                db.query("PRAGMA cache_size = -16000").close()
+                db.query("PRAGMA wal_autocheckpoint = 1000").close()
+                db.query("PRAGMA synchronous = NORMAL").close()
+                db.query("PRAGMA temp_store = MEMORY").close()
+                db.query("PRAGMA mmap_size = 268435456").close()
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to set PRAGMA settings", e)
+            }
         }
     }
 }
