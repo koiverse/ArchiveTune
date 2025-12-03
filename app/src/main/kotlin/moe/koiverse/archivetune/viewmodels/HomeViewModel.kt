@@ -41,6 +41,7 @@ class HomeViewModel @Inject constructor(
 ) : ViewModel() {
     val isRefreshing = MutableStateFlow(false)
     val isLoading = MutableStateFlow(false)
+    private val isInitialLoadComplete = MutableStateFlow(false)
 
     private val quickPicksEnum = context.dataStore.data.map {
         it[QuickPicksKey].toEnum(QuickPicks.QUICK_PICKS)
@@ -80,32 +81,92 @@ class HomeViewModel @Inject constructor(
     }
 
     private suspend fun load() {
+        if (isLoading.value) return
         isLoading.value = true
+        
+        try {
+            supervisorScope {
+                val hideExplicit = context.dataStore.get(HideExplicitKey, false)
+                val fromTimeStamp = System.currentTimeMillis() - 86400000 * 7 * 2
+
+                launch { getQuickPicks() }
+                launch { forgottenFavorites.value = database.forgottenFavorites().first().shuffled().take(20) }
+                
+                launch {
+                    val keepListeningSongs = database.mostPlayedSongs(fromTimeStamp, limit = 15, offset = 5)
+                        .first().shuffled().take(10)
+                    val keepListeningAlbums = database.mostPlayedAlbums(fromTimeStamp, limit = 8, offset = 2)
+                        .first().filter { it.album.thumbnailUrl != null }.shuffled().take(5)
+                    val keepListeningArtists = database.mostPlayedArtists(fromTimeStamp)
+                        .first().filter { it.artist.isYouTubeArtist && it.artist.thumbnailUrl != null }
+                        .shuffled().take(5)
+                    keepListening.value = (keepListeningSongs + keepListeningAlbums + keepListeningArtists).shuffled()
+                }
+
+                launch {
+                    YouTube.home().onSuccess { page ->
+                        homePage.value = page.copy(
+                            sections = page.sections.map { section ->
+                                section.copy(items = section.items.filterExplicit(hideExplicit))
+                            }
+                        )
+                    }.onFailure { reportException(it) }
+                }
+
+                launch {
+                    YouTube.explore().onSuccess { page ->
+                        val artists: MutableMap<Int, String> = mutableMapOf()
+                        val favouriteArtists: MutableMap<Int, String> = mutableMapOf()
+                        database.allArtistsByPlayTime().first().let { list ->
+                            var favIndex = 0
+                            for ((artistsIndex, artist) in list.withIndex()) {
+                                artists[artistsIndex] = artist.id
+                                if (artist.artist.bookmarkedAt != null) {
+                                    favouriteArtists[favIndex] = artist.id
+                                    favIndex++
+                                }
+                            }
+                        }
+                        explorePage.value = page.copy(
+                            newReleaseAlbums = page.newReleaseAlbums
+                                .sortedBy { album ->
+                                    val artistIds = album.artists.orEmpty().mapNotNull { it.id }
+                                    val firstArtistKey = artistIds.firstNotNullOfOrNull { artistId ->
+                                        if (artistId in favouriteArtists.values) {
+                                            favouriteArtists.entries.firstOrNull { it.value == artistId }?.key
+                                        } else {
+                                            artists.entries.firstOrNull { it.value == artistId }?.key
+                                        }
+                                    } ?: Int.MAX_VALUE
+                                    firstArtistKey
+                                }.filterExplicit(hideExplicit)
+                        )
+                    }.onFailure { reportException(it) }
+                }
+            }
+
+            allLocalItems.value = (quickPicks.value.orEmpty() + forgottenFavorites.value.orEmpty() + keepListening.value.orEmpty())
+                .filter { it is Song || it is Album }
+
+            viewModelScope.launch(Dispatchers.IO) {
+                loadSimilarRecommendations()
+            }
+
+            allYtItems.value = similarRecommendations.value?.flatMap { it.items }.orEmpty() +
+                    homePage.value?.sections?.flatMap { it.items }.orEmpty()
+                    
+            isInitialLoadComplete.value = true
+        } catch (e: Exception) {
+            reportException(e)
+        } finally {
+            isLoading.value = false
+        }
+    }
+
+    private suspend fun loadSimilarRecommendations() {
         val hideExplicit = context.dataStore.get(HideExplicitKey, false)
-
-        getQuickPicks()
-
-        forgottenFavorites.value = database.forgottenFavorites().first().shuffled().take(20)
-
         val fromTimeStamp = System.currentTimeMillis() - 86400000 * 7 * 2
-
-        val keepListeningSongs = database.mostPlayedSongs(fromTimeStamp, limit = 15, offset = 5)
-            .first().shuffled().take(10)
-
-        val keepListeningAlbums = database.mostPlayedAlbums(fromTimeStamp, limit = 8, offset = 2)
-            .first().filter { it.album.thumbnailUrl != null }.shuffled().take(5)
-
-        val keepListeningArtists = database.mostPlayedArtists(fromTimeStamp)
-            .first().filter { it.artist.isYouTubeArtist && it.artist.thumbnailUrl != null }
-            .shuffled().take(5)
-
-        keepListening.value = (keepListeningSongs + keepListeningAlbums + keepListeningArtists).shuffled()
-
-        allLocalItems.value = (quickPicks.value.orEmpty() + forgottenFavorites.value.orEmpty() + keepListening.value.orEmpty())
-            .filter { it is Song || it is Album }
-
-        // Account data is now handled in the init block to avoid duplication
-
+        
         val artistRecommendations = database.mostPlayedArtists(fromTimeStamp, limit = 10).first()
             .filter { it.artist.isYouTubeArtist }
             .shuffled().take(3)
@@ -141,53 +202,9 @@ class HomeViewModel @Inject constructor(
             }
 
         similarRecommendations.value = (artistRecommendations + songRecommendations).shuffled()
-
-        YouTube.home().onSuccess { page ->
-            homePage.value = page.copy(
-                sections = page.sections.map { section ->
-                    section.copy(items = section.items.filterExplicit(hideExplicit))
-                }
-            )
-        }.onFailure {
-            reportException(it)
-        }
-
-        // Explore section with sorting by favorite artist
-        YouTube.explore().onSuccess { page ->
-            val artists: MutableMap<Int, String> = mutableMapOf()
-            val favouriteArtists: MutableMap<Int, String> = mutableMapOf()
-            database.allArtistsByPlayTime().first().let { list ->
-                var favIndex = 0
-                for ((artistsIndex, artist) in list.withIndex()) {
-                    artists[artistsIndex] = artist.id
-                    if (artist.artist.bookmarkedAt != null) {
-                        favouriteArtists[favIndex] = artist.id
-                        favIndex++
-                    }
-                }
-            }
-            explorePage.value = page.copy(
-                newReleaseAlbums = page.newReleaseAlbums
-                    .sortedBy { album ->
-                        val artistIds = album.artists.orEmpty().mapNotNull { it.id }
-                        val firstArtistKey = artistIds.firstNotNullOfOrNull { artistId ->
-                            if (artistId in favouriteArtists.values) {
-                                favouriteArtists.entries.firstOrNull { it.value == artistId }?.key
-                            } else {
-                                artists.entries.firstOrNull { it.value == artistId }?.key
-                            }
-                        } ?: Int.MAX_VALUE
-                        firstArtistKey
-                    }.filterExplicit(hideExplicit)
-            )
-        }.onFailure {
-            reportException(it)
-        }
-
+        
         allYtItems.value = similarRecommendations.value?.flatMap { it.items }.orEmpty() +
                 homePage.value?.sections?.flatMap { it.items }.orEmpty()
-
-        isLoading.value = false
     }
 
     private suspend fun songLoad() {
@@ -265,27 +282,21 @@ class HomeViewModel @Inject constructor(
             try {
                 val cookie = context.dataStore.get(InnerTubeCookieKey, "")
                 if (cookie.isNotEmpty()) {
-                    // Reset account data first to clear old data
-                    accountName.value = "Guest"
-                    accountImageUrl.value = null
-                    accountPlaylists.value = null
-                    
-                    // Update YouTube.cookie manually to ensure it's set
                     YouTube.cookie = cookie
                     
                     YouTube.accountInfo().onSuccess { info ->
                         accountName.value = info.name
                         accountImageUrl.value = info.thumbnailUrl
                     }.onFailure {
-                        reportException(it)
+                        timber.log.Timber.w(it, "Failed to fetch account info")
                     }
 
-                    viewModelScope.launch(Dispatchers.IO) {
+                    launch {
                         YouTube.library("FEmusic_liked_playlists").completed().onSuccess {
                             val lists = it.items.filterIsInstance<PlaylistItem>().filterNot { it.id == "SE" }
                             accountPlaylists.value = lists
                         }.onFailure {
-                            reportException(it)
+                            timber.log.Timber.w(it, "Failed to fetch playlists")
                         }
                     }
                 } else {
@@ -301,13 +312,17 @@ class HomeViewModel @Inject constructor(
 
     init {
         viewModelScope.launch(Dispatchers.IO) {
+            load()
+        }
+
+        viewModelScope.launch(Dispatchers.IO) {
+            kotlinx.coroutines.delay(2000)
+            
             val cookie = context.dataStore.data
                 .map { it[InnerTubeCookieKey] }
                 .distinctUntilChanged()
                 .first()
             
-            load()
-
             val isLoggedIn = cookie?.let { "SAPISID" in parseCookieString(it) } ?: false
             
             if (isLoggedIn) {
@@ -334,15 +349,13 @@ class HomeViewModel @Inject constructor(
             }
         }
         
-        // Listen for cookie changes and reload account data
         viewModelScope.launch(Dispatchers.IO) {
             context.dataStore.data
                 .map { it[InnerTubeCookieKey] }
+                .distinctUntilChanged()
                 .collect { cookie ->
-                    // Avoid processing if already processing
                     if (isProcessingAccountData) return@collect
                     
-                    // Always process cookie changes, even if same value (for logout/login scenarios)
                     lastProcessedCookie = cookie
                     isProcessingAccountData = true
                     
@@ -350,40 +363,27 @@ class HomeViewModel @Inject constructor(
                         val isLoggedIn = cookie?.let { "SAPISID" in parseCookieString(it) } ?: false
                         
                         if (isLoggedIn && cookie != null && cookie.isNotEmpty()) {
-                            accountName.value = "Guest"
-                            accountImageUrl.value = null
-                            accountPlaylists.value = null
-                            
-                            // Wait for YouTube.cookie to be updated
-                            kotlinx.coroutines.delay(300)
-                            
-                            // Update YouTube.cookie manually to ensure it's set
                             try {
                                 YouTube.cookie = cookie
                             } catch (e: Exception) {
                                 timber.log.Timber.e(e, "Failed to set YouTube cookie")
-                                reportException(e)
                                 return@collect
                             }
                             
-                            // Additional delay to ensure cookie is properly set
                             kotlinx.coroutines.delay(100)
                             
-                            // Fetch new account data with proper error handling
                             try {
                                 YouTube.accountInfo().onSuccess { info ->
                                     accountName.value = info.name
                                     accountImageUrl.value = info.thumbnailUrl
                                 }.onFailure { e ->
                                     timber.log.Timber.w(e, "Failed to fetch account info")
-                                    // Don't report as exception - this is expected when cookie is invalid
                                 }
                             } catch (e: Exception) {
                                 timber.log.Timber.e(e, "Exception fetching account info")
-                                reportException(e)
                             }
 
-                            viewModelScope.launch(Dispatchers.IO) {
+                            launch {
                                 try {
                                     YouTube.library("FEmusic_liked_playlists").completed().onSuccess {
                                         val lists = it.items.filterIsInstance<PlaylistItem>().filterNot { it.id == "SE" }
@@ -393,19 +393,15 @@ class HomeViewModel @Inject constructor(
                                     }
                                 } catch (e: Exception) {
                                     timber.log.Timber.e(e, "Exception fetching account playlists")
-                                    reportException(e)
                                 }
                             }
                         } else {
-                            // Reset account data when logged out or cookie is invalid
                             accountName.value = "Guest"
                             accountImageUrl.value = null
                             accountPlaylists.value = null
                         }
                     } catch (e: Exception) {
                         timber.log.Timber.e(e, "Error processing cookie change")
-                        reportException(e)
-                        // Reset to safe state on error
                         accountName.value = "Guest"
                         accountImageUrl.value = null
                         accountPlaylists.value = null
