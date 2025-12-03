@@ -476,7 +476,6 @@ fun YouTubePlaylistMenu(
             )
         }
         item {
-            // Auto-sync toggle: allow users to mark this external playlist to be auto-synced
             ListItem(
                 headlineContent = { Text(text = stringResource(R.string.yt_sync)) },
                 leadingContent = {
@@ -491,44 +490,83 @@ fun YouTubePlaylistMenu(
                         checked = checked,
                         onCheckedChange = { newValue ->
                             coroutineScope.launch(Dispatchers.IO) {
-                                val currentDbPlaylist = dbPlaylist
-                                if (currentDbPlaylist?.playlist == null) {
-                                    val fetchedSongs = YouTube.playlist(playlist.id).completed().getOrNull()?.songs.orEmpty()
-                                        .map { it.toMediaMetadata() }
+                                try {
+                                    val currentDbPlaylist = dbPlaylist
+                                    if (currentDbPlaylist?.playlist == null) {
+                                        val playlistPage = YouTube.playlist(playlist.id).completed().getOrNull()
+                                        val fetchedSongs = playlistPage?.songs.orEmpty().map { it.toMediaMetadata() }
 
-                                    database.transaction {
-                                        val playlistEntity = PlaylistEntity(
-                                            name = playlist.title,
-                                            browseId = playlist.id,
-                                            thumbnailUrl = playlist.thumbnail,
-                                            isEditable = false,
-                                            isAutoSync = newValue,
-                                            remoteSongCount = playlist.songCountText?.let {
-                                                Regex("""\d+""").find(it)?.value?.toIntOrNull()
-                                            },
-                                            playEndpointParams = playlist.playEndpoint?.params,
-                                            shuffleEndpointParams = playlist.shuffleEndpoint?.params,
-                                            radioEndpointParams = playlist.radioEndpoint?.params
-                                        )
-                                        insert(playlistEntity)
-                                        fetchedSongs.forEach(::insert)
-                                        fetchedSongs.mapIndexed { index, song ->
-                                            PlaylistSongMap(
-                                                songId = song.id,
-                                                playlistId = playlistEntity.id,
-                                                position = index
+                                        if (fetchedSongs.isEmpty() && newValue) {
+                                            withContext(Dispatchers.Main) {
+                                                if (snackbarHostState != null) {
+                                                    snackbarHostState.showSnackbar(context.getString(R.string.import_failed))
+                                                } else {
+                                                    android.widget.Toast.makeText(context, context.getString(R.string.import_failed), android.widget.Toast.LENGTH_SHORT).show()
+                                                }
+                                            }
+                                            return@launch
+                                        }
+
+                                        database.transaction {
+                                            val playlistEntity = PlaylistEntity(
+                                                name = playlist.title,
+                                                browseId = playlist.id,
+                                                thumbnailUrl = playlist.thumbnail,
+                                                isEditable = false,
+                                                isAutoSync = newValue,
+                                                remoteSongCount = playlist.songCountText?.let {
+                                                    Regex("""\d+""").find(it)?.value?.toIntOrNull()
+                                                },
+                                                playEndpointParams = playlist.playEndpoint?.params,
+                                                shuffleEndpointParams = playlist.shuffleEndpoint?.params,
+                                                radioEndpointParams = playlist.radioEndpoint?.params
                                             )
-                                        }.forEach(::insert)
+                                            insert(playlistEntity)
+                                            fetchedSongs.forEach(::insert)
+                                            fetchedSongs.mapIndexed { index, song ->
+                                                PlaylistSongMap(
+                                                    songId = song.id,
+                                                    playlistId = playlistEntity.id,
+                                                    position = index
+                                                )
+                                            }.forEach(::insert)
+                                        }
+
+                                        if (newValue) {
+                                            withContext(Dispatchers.Main) {
+                                                if (snackbarHostState != null) {
+                                                    snackbarHostState.showSnackbar(context.getString(R.string.playlist_synced))
+                                                } else {
+                                                    android.widget.Toast.makeText(context, context.getString(R.string.playlist_synced), android.widget.Toast.LENGTH_SHORT).show()
+                                                }
+                                            }
+                                        }
+                                    } else {
+                                        val existing = currentDbPlaylist.playlist
+                                        database.query {
+                                            update(existing.copy(isAutoSync = newValue))
+                                        }
+                                        
+                                        if (newValue) {
+                                            syncUtils.syncAutoSyncPlaylists()
+                                            withContext(Dispatchers.Main) {
+                                                if (snackbarHostState != null) {
+                                                    snackbarHostState.showSnackbar(context.getString(R.string.playlist_synced))
+                                                } else {
+                                                    android.widget.Toast.makeText(context, context.getString(R.string.playlist_synced), android.widget.Toast.LENGTH_SHORT).show()
+                                                }
+                                            }
+                                        }
                                     }
-                                } else {
-                                    val existing = currentDbPlaylist.playlist
-                                    database.query {
-                                        update(existing.copy(isAutoSync = newValue))
-                                    }
-                                    
-                                    // If enabling auto-sync, trigger an immediate sync
-                                    if (newValue) {
-                                        syncUtils.syncAutoSyncPlaylists()
+                                } catch (e: Exception) {
+                                    e.printStackTrace()
+                                    withContext(Dispatchers.Main) {
+                                        val errorMsg = context.getString(R.string.import_failed) + ": ${e.message ?: "Unknown error"}"
+                                        if (snackbarHostState != null) {
+                                            snackbarHostState.showSnackbar(errorMsg)
+                                        } else {
+                                            android.widget.Toast.makeText(context, errorMsg, android.widget.Toast.LENGTH_SHORT).show()
+                                        }
                                     }
                                 }
                             }
