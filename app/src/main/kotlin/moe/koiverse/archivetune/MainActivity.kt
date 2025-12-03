@@ -653,7 +653,23 @@ class MainActivity : ComponentActivity() {
                             },
                         )
 
+                    var previousRoute by rememberSaveable { mutableStateOf<String?>(null) }
+
                     LaunchedEffect(navBackStackEntry) {
+                        val currentRoute = navBackStackEntry?.destination?.route
+                        val wasOnNonTopLevelScreen = previousRoute != null && 
+                            previousRoute !in topLevelScreens && 
+                            previousRoute?.startsWith("search/") != true
+                        val isReturningToHomeOrLibrary = currentRoute == Screens.Home.route || 
+                            currentRoute == Screens.Library.route
+                        
+                        if (wasOnNonTopLevelScreen && isReturningToHomeOrLibrary) {
+                            searchBarScrollBehavior.state.resetHeightOffset()
+                            topAppBarScrollBehavior.state.resetHeightOffset()
+                        }
+                        
+                        previousRoute = currentRoute
+                        
                         if (navBackStackEntry?.destination?.route?.startsWith("search/") == true) {
                             val searchQuery =
                                 withContext(Dispatchers.IO) {
