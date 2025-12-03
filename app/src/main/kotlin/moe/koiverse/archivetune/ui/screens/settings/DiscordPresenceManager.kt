@@ -11,9 +11,9 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.ProcessLifecycleOwner
 import moe.koiverse.archivetune.db.entities.Song
 import moe.koiverse.archivetune.utils.DiscordRPC
+import moe.koiverse.archivetune.utils.DiscordImageResolver
 import timber.log.Timber
 import java.util.concurrent.atomic.AtomicBoolean
-import moe.koiverse.archivetune.utils.resolveAndPersistImages
 
 object DiscordPresenceManager {
     private val started = AtomicBoolean(false)
@@ -99,8 +99,8 @@ object DiscordPresenceManager {
                 }
 
                 try {
-                    withTimeout(5_000L) {
-                        resolveAndPersistImages(context, song, isPaused)
+                    withTimeout(8_000L) {
+                        DiscordImageResolver.resolveImagesForSong(context, song)
                     }
                 } catch (e: Exception) {
                     Timber.tag(logTag).v(e, "image resolution for presence failed or timed out")
@@ -165,8 +165,7 @@ object DiscordPresenceManager {
                 // Try resolving and persisting image URLs before update so DiscordRPC can use saved artwork immediately.
                 try {
                     firstSong?.let { song ->
-                        // resolve images with a short timeout inside resolveAndPersistImages implementation
-                        resolveAndPersistImages(context, song, firstIsPaused)
+                        DiscordImageResolver.resolveImagesForSong(context, song)
                     }
                 } catch (e: Exception) {
                     Timber.tag(logTag).v(e, "initial image resolution failed")
