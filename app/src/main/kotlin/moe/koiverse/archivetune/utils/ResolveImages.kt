@@ -97,7 +97,14 @@ suspend fun resolveAndPersistImages(context: Context, song: Song, isPaused: Bool
         }
 
 
-        val resolvedLargeFromSaved = saved?.thumbnail?.asHttp()?.takeIf { it != PAUSE_IMAGE_URL }
+        // Determine which saved field to use based on what type of source the large image is
+        val largePrefLower = largeImageTypePref.lowercase()
+        val isLargeFromArtist = largePrefLower == "artist"
+        val resolvedLargeFromSaved = when {
+            isLargeFromArtist -> saved?.artist?.asHttp()?.takeIf { it != PAUSE_IMAGE_URL }
+            else -> saved?.thumbnail?.asHttp()?.takeIf { it != PAUSE_IMAGE_URL }
+        }
+        
         val smallPrefLower = smallImageTypePref.lowercase()
         val allowSavedSmall = when {
             smallPrefLower in listOf("none", "dontshow", "appicon", "app") -> false
@@ -106,10 +113,21 @@ suspend fun resolveAndPersistImages(context: Context, song: Song, isPaused: Bool
             else -> true
         }
 
-        val resolvedSmallFromSaved = if (allowSavedSmall) saved?.artist?.asHttp()?.takeIf { it != PAUSE_IMAGE_URL } else null
+        // Determine which saved field to use based on what type of source the small image is
+        val isSmallFromArtist = smallPrefLower == "artist"
+        val resolvedSmallFromSaved = if (allowSavedSmall) {
+            when {
+                isSmallFromArtist -> saved?.artist?.asHttp()?.takeIf { it != PAUSE_IMAGE_URL }
+                else -> saved?.thumbnail?.asHttp()?.takeIf { it != PAUSE_IMAGE_URL }
+            }
+        } else null
 
         var finalLarge: String? = null
         var finalSmall: String? = null
+        
+        // Track current saved values to ensure we don't lose data when saving both images
+        var currentSavedThumbnail = saved?.thumbnail
+        var currentSavedArtist = saved?.artist
 
         if (!resolvedLargeFromSaved.isNullOrBlank()) {
             finalLarge = resolvedLargeFromSaved
@@ -118,8 +136,16 @@ suspend fun resolveAndPersistImages(context: Context, song: Song, isPaused: Bool
             finalLarge = resolveUrlCandidate(candidate)
             if (!finalLarge.isNullOrBlank() && (finalLarge.startsWith("http://") || finalLarge.startsWith("https://")) && finalLarge != PAUSE_IMAGE_URL) {
                 try {
-                    val updated = SavedArtwork(songId = song.song.id, thumbnail = finalLarge, artist = saved?.artist)
-                    ArtworkStorage.saveOrUpdate(context, updated)
+                    // Save to the correct field based on image source type and update tracking variables
+                    if (isLargeFromArtist) {
+                        currentSavedArtist = finalLarge
+                        val updated = SavedArtwork(songId = song.song.id, thumbnail = currentSavedThumbnail, artist = finalLarge)
+                        ArtworkStorage.saveOrUpdate(context, updated)
+                    } else {
+                        currentSavedThumbnail = finalLarge
+                        val updated = SavedArtwork(songId = song.song.id, thumbnail = finalLarge, artist = currentSavedArtist)
+                        ArtworkStorage.saveOrUpdate(context, updated)
+                    }
                     if (!candidate.isNullOrBlank()) repo.putToCache(candidate, finalLarge)
                 } catch (e: Exception) {
                     Timber.tag(TAG).v(e, "failed to persist large image")
@@ -134,8 +160,16 @@ suspend fun resolveAndPersistImages(context: Context, song: Song, isPaused: Bool
             finalSmall = resolveUrlCandidate(candidate)
             if (!finalSmall.isNullOrBlank() && (finalSmall.startsWith("http://") || finalSmall.startsWith("https://")) && finalSmall != PAUSE_IMAGE_URL) {
                 try {
-                    val updated = SavedArtwork(songId = song.song.id, thumbnail = saved?.thumbnail, artist = finalSmall)
-                    ArtworkStorage.saveOrUpdate(context, updated)
+                    // Save to the correct field based on image source type using tracked values
+                    if (isSmallFromArtist) {
+                        currentSavedArtist = finalSmall
+                        val updated = SavedArtwork(songId = song.song.id, thumbnail = currentSavedThumbnail, artist = finalSmall)
+                        ArtworkStorage.saveOrUpdate(context, updated)
+                    } else {
+                        currentSavedThumbnail = finalSmall
+                        val updated = SavedArtwork(songId = song.song.id, thumbnail = finalSmall, artist = currentSavedArtist)
+                        ArtworkStorage.saveOrUpdate(context, updated)
+                    }
                     if (!candidate.isNullOrBlank()) repo.putToCache(candidate, finalSmall)
                 } catch (e: Exception) {
                     Timber.tag(TAG).v(e, "failed to persist small image")
