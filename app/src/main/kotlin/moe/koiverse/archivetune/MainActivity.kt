@@ -247,23 +247,27 @@ class MainActivity : ComponentActivity() {
 
     override fun onStart() {
         super.onStart()
-        try {
-            val startIntent = Intent(this, MusicService::class.java)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                try {
-                    androidx.core.content.ContextCompat.startForegroundService(this, startIntent)
-                } catch (e: IllegalStateException) {
-                    reportException(e)
-                    startService(startIntent)
-                } catch (e: SecurityException) {
-                    reportException(e)
-                    startService(startIntent)
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                val startIntent = Intent(this@MainActivity, MusicService::class.java)
+                withContext(Dispatchers.Main) {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        try {
+                            androidx.core.content.ContextCompat.startForegroundService(this@MainActivity, startIntent)
+                        } catch (e: IllegalStateException) {
+                            reportException(e)
+                            startService(startIntent)
+                        } catch (e: SecurityException) {
+                            reportException(e)
+                            startService(startIntent)
+                        }
+                    } else {
+                        startService(startIntent)
+                    }
                 }
-            } else {
-                startService(startIntent)
+            } catch (e: Exception) {
+                reportException(e)
             }
-        } catch (e: Exception) {
-            reportException(e)
         }
         bindService(
             Intent(this, MusicService::class.java),
@@ -321,18 +325,20 @@ class MainActivity : ComponentActivity() {
             setAppLocale(this, locale)
         }
         
-        lifecycleScope.launch {
+        lifecycleScope.launch(Dispatchers.IO) {
             dataStore.data
                 .map { it[DisableScreenshotKey] ?: false }
                 .distinctUntilChanged()
                 .collectLatest {
-                    if (it) {
-                        window.setFlags(
-                            WindowManager.LayoutParams.FLAG_SECURE,
-                            WindowManager.LayoutParams.FLAG_SECURE,
-                        )
-                    } else {
-                        window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
+                    withContext(Dispatchers.Main) {
+                        if (it) {
+                            window.setFlags(
+                                WindowManager.LayoutParams.FLAG_SECURE,
+                                WindowManager.LayoutParams.FLAG_SECURE,
+                            )
+                        } else {
+                            window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
+                        }
                     }
                 }
         }
@@ -469,28 +475,33 @@ class MainActivity : ComponentActivity() {
             LaunchedEffect(playerConnection, enableDynamicTheme, isSystemInDarkTheme, customThemeColor) {
                 val playerConnection = playerConnection
                 if (!enableDynamicTheme || playerConnection == null) {
-                    // Use custom theme color when dynamic theme is disabled
                     themeColor = if (!enableDynamicTheme) customThemeColor else DefaultThemeColor
                     return@LaunchedEffect
                 }
                 playerConnection.service.currentMediaMetadata.collectLatest { song ->
-                    themeColor =
-                        if (song != null) {
-                            withContext(Dispatchers.IO) {
-                                val result =
-                                    imageLoader.execute(
-                                        ImageRequest
-                                            .Builder(this@MainActivity)
-                                            .data(song.thumbnailUrl)
-                                            .allowHardware(false) // pixel access is not supported on Config#HARDWARE bitmaps
-                                            .build(),
-                                    )
-                                result.image?.toBitmap()?.extractThemeColor()
-                                    ?: DefaultThemeColor
+                    if (song != null) {
+                        withContext(Dispatchers.Default) {
+                            try {
+                                val result = imageLoader.execute(
+                                    ImageRequest
+                                        .Builder(this@MainActivity)
+                                        .data(song.thumbnailUrl)
+                                        .allowHardware(false)
+                                        .build(),
+                                )
+                                val extractedColor = result.image?.toBitmap()?.extractThemeColor()
+                                withContext(Dispatchers.Main) {
+                                    themeColor = extractedColor ?: DefaultThemeColor
+                                }
+                            } catch (e: Exception) {
+                                withContext(Dispatchers.Main) {
+                                    themeColor = DefaultThemeColor
+                                }
                             }
-                        } else {
-                            DefaultThemeColor
                         }
+                    } else {
+                        themeColor = DefaultThemeColor
+                    }
                 }
             }
 
@@ -774,6 +785,8 @@ class MainActivity : ComponentActivity() {
                     var showStarDialog by remember { mutableStateOf(false) }
 
                     LaunchedEffect(Unit) {
+                        kotlinx.coroutines.delay(3000)
+                        
                         withContext(Dispatchers.IO) {
                             val current = dataStore[LaunchCountKey] ?: 0
                             val newCount = current + 1
@@ -789,15 +802,13 @@ class MainActivity : ComponentActivity() {
                         }
 
                         if (shouldShow) {
-                            delay(1000)
                             var waited = 0L
                             val waitStep = 500L
-                            val maxWait = 30_000L // 30 seconds max
+                            val maxWait = 30_000L
                             while (bottomSheetPageState.isVisible && waited < maxWait) {
                                 delay(waitStep)
                                 waited += waitStep
                             }
-
                             showStarDialog = true
                         }
                     }
