@@ -88,3 +88,6 @@ Any trademark, service mark, trade name, or other intellectual property rights u
 <div align="center">
 Made with ❤️ by <strong>Koiverse</strong>
 </div>
+<div align="center">
+Give a ⭐ if you like it, there's no harm in giving a ⭐ as support, right?
+</div>
