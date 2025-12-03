@@ -11,6 +11,7 @@ import moe.koiverse.archivetune.innertube.models.filterExplicit
 import moe.koiverse.archivetune.innertube.pages.ExplorePage
 import moe.koiverse.archivetune.innertube.pages.HomePage
 import moe.koiverse.archivetune.innertube.utils.completed
+import moe.koiverse.archivetune.innertube.utils.parseCookieString
 import moe.koiverse.archivetune.constants.HideExplicitKey
 import moe.koiverse.archivetune.constants.InnerTubeCookieKey
 import moe.koiverse.archivetune.constants.QuickPicks
@@ -300,29 +301,35 @@ class HomeViewModel @Inject constructor(
 
     init {
         viewModelScope.launch(Dispatchers.IO) {
-            // Wait for YouTube.cookie to be initialized (either set or confirmed as null)
-            context.dataStore.data
+            val cookie = context.dataStore.data
                 .map { it[InnerTubeCookieKey] }
                 .distinctUntilChanged()
                 .first()
             
             load()
 
-            val isSyncEnabled = context.dataStore.data
-                .map { it[YtmSyncKey] ?: true }
-                .distinctUntilChanged()
-                .first()
+            val isLoggedIn = cookie?.let { "SAPISID" in parseCookieString(it) } ?: false
+            
+            if (isLoggedIn) {
+                val isSyncEnabled = context.dataStore.data
+                    .map { it[YtmSyncKey] ?: true }
+                    .distinctUntilChanged()
+                    .first()
 
-            if (isSyncEnabled) {
-                try {
-                    syncUtils.syncLikedSongs()
-                    syncUtils.syncLibrarySongs()
-                    syncUtils.syncSavedPlaylists()
-                    syncUtils.syncLikedAlbums()
-                    syncUtils.syncArtistsSubscriptions()
-                    syncUtils.syncAutoSyncPlaylists()
-                } catch (e: Exception) {
-                    timber.log.Timber.e(e, "Error during sync")
+                if (isSyncEnabled) {
+                    try {
+                        supervisorScope {
+                            launch { syncUtils.syncLikedSongs() }
+                            launch { syncUtils.syncLibrarySongs() }
+                            launch { syncUtils.syncSavedPlaylists() }
+                            launch { syncUtils.syncLikedAlbums() }
+                            launch { syncUtils.syncArtistsSubscriptions() }
+                            launch { syncUtils.syncAutoSyncPlaylists() }
+                        }
+                    } catch (e: Exception) {
+                        timber.log.Timber.e(e, "Error during sync")
+                        reportException(e)
+                    }
                 }
             }
         }
@@ -340,8 +347,9 @@ class HomeViewModel @Inject constructor(
                     isProcessingAccountData = true
                     
                     try {
-                        if (cookie != null && cookie.isNotEmpty()) {
-                            // Reset account data first to clear old data immediately
+                        val isLoggedIn = cookie?.let { "SAPISID" in parseCookieString(it) } ?: false
+                        
+                        if (isLoggedIn && cookie != null && cookie.isNotEmpty()) {
                             accountName.value = "Guest"
                             accountImageUrl.value = null
                             accountPlaylists.value = null
@@ -350,33 +358,57 @@ class HomeViewModel @Inject constructor(
                             kotlinx.coroutines.delay(300)
                             
                             // Update YouTube.cookie manually to ensure it's set
-                            YouTube.cookie = cookie
+                            try {
+                                YouTube.cookie = cookie
+                            } catch (e: Exception) {
+                                timber.log.Timber.e(e, "Failed to set YouTube cookie")
+                                reportException(e)
+                                return@collect
+                            }
                             
                             // Additional delay to ensure cookie is properly set
                             kotlinx.coroutines.delay(100)
                             
-                            // Fetch new account data
-                            YouTube.accountInfo().onSuccess { info ->
-                                accountName.value = info.name
-                                accountImageUrl.value = info.thumbnailUrl
-                            }.onFailure {
-                                reportException(it)
+                            // Fetch new account data with proper error handling
+                            try {
+                                YouTube.accountInfo().onSuccess { info ->
+                                    accountName.value = info.name
+                                    accountImageUrl.value = info.thumbnailUrl
+                                }.onFailure { e ->
+                                    timber.log.Timber.w(e, "Failed to fetch account info")
+                                    // Don't report as exception - this is expected when cookie is invalid
+                                }
+                            } catch (e: Exception) {
+                                timber.log.Timber.e(e, "Exception fetching account info")
+                                reportException(e)
                             }
 
                             viewModelScope.launch(Dispatchers.IO) {
-                                YouTube.library("FEmusic_liked_playlists").completed().onSuccess {
-                                    val lists = it.items.filterIsInstance<PlaylistItem>().filterNot { it.id == "SE" }
-                                    accountPlaylists.value = lists
-                                }.onFailure {
-                                    reportException(it)
+                                try {
+                                    YouTube.library("FEmusic_liked_playlists").completed().onSuccess {
+                                        val lists = it.items.filterIsInstance<PlaylistItem>().filterNot { it.id == "SE" }
+                                        accountPlaylists.value = lists
+                                    }.onFailure { e ->
+                                        timber.log.Timber.w(e, "Failed to fetch account playlists")
+                                    }
+                                } catch (e: Exception) {
+                                    timber.log.Timber.e(e, "Exception fetching account playlists")
+                                    reportException(e)
                                 }
                             }
                         } else {
-                            // Reset account data when logged out
+                            // Reset account data when logged out or cookie is invalid
                             accountName.value = "Guest"
                             accountImageUrl.value = null
                             accountPlaylists.value = null
                         }
+                    } catch (e: Exception) {
+                        timber.log.Timber.e(e, "Error processing cookie change")
+                        reportException(e)
+                        // Reset to safe state on error
+                        accountName.value = "Guest"
+                        accountImageUrl.value = null
+                        accountPlaylists.value = null
                     } finally {
                         isProcessingAccountData = false
                     }
