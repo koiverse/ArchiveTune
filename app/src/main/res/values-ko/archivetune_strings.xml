@@ -90,7 +90,8 @@
     <string name="player_design_style">플레이어 디자인 스타일</string>
     <string name="player_design_v1">클래식</string>
     <string name="player_design_v2">모던</string>
-    <string name="player_design_v3">엘레강트</string>
+    <string name="player_design_v3">미니멀</string>
+    <string name="player_design_v4">시네마틱</string>
     <string name="coloring">채색</string>
     <string name="blur_gradient">블러 그라데이션</string>
     <string name="glow">빛나다</string>

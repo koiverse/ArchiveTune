@@ -222,7 +222,7 @@ fun Queue(
         modifier = modifier,
         collapsedContent = {
             when (playerDesignStyle) {
-                PlayerDesignStyle.V2, PlayerDesignStyle.V3 -> {
+                PlayerDesignStyle.V2 -> {
                 // Codec Info Display (if enabled)
                 if (showCodecOnPlayer && currentFormat != null) {
                     Row(
@@ -445,8 +445,352 @@ fun Queue(
                 }
                 }
                 
+                PlayerDesignStyle.V3 -> {
+                    if (showCodecOnPlayer && currentFormat != null) {
+                        Row(
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 30.dp, vertical = 4.dp)
+                        ) {
+                            val codec = currentFormat?.mimeType?.substringAfter("/")?.uppercase() ?: "Unknown"
+                            val bitrate = currentFormat?.bitrate?.let { "${it / 1000} kbps" } ?: "Unknown"
+                            
+                            Text(
+                                text = buildString {
+                                    append(codec)
+                                    if (bitrate != "Unknown") {
+                                        append(" • ")
+                                        append(bitrate)
+                                    }
+                                },
+                                style = MaterialTheme.typography.labelSmall,
+                                fontFamily = FontFamily.Monospace,
+                                color = TextBackgroundColor.copy(alpha = 0.5f),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+                    
+                    Row(
+                        horizontalArrangement = Arrangement.SpaceEvenly,
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 24.dp, vertical = 10.dp)
+                            .windowInsetsPadding(
+                                WindowInsets.systemBars.only(
+                                    WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal
+                                ),
+                            ),
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .clickable { state.expandSoft() }
+                                .padding(horizontal = 12.dp, vertical = 8.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Icon(
+                                    painter = painterResource(id = R.drawable.queue_music),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp),
+                                    tint = TextBackgroundColor.copy(alpha = 0.7f)
+                                )
+                                Text(
+                                    text = stringResource(id = R.string.queue),
+                                    color = TextBackgroundColor.copy(alpha = 0.7f),
+                                    style = MaterialTheme.typography.labelMedium,
+                                    maxLines = 1
+                                )
+                            }
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .clickable {
+                                    if (sleepTimerEnabled) {
+                                        playerConnection.service.sleepTimer.clear()
+                                    } else {
+                                        showSleepTimerDialog = true
+                                    }
+                                }
+                                .padding(horizontal = 12.dp, vertical = 8.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            AnimatedContent(
+                                label = "sleepTimer",
+                                targetState = sleepTimerEnabled,
+                            ) { enabled ->
+                                if (enabled) {
+                                    Text(
+                                        text = makeTimeString(sleepTimerTimeLeft),
+                                        color = TextBackgroundColor.copy(alpha = 0.85f),
+                                        style = MaterialTheme.typography.labelMedium,
+                                        maxLines = 1
+                                    )
+                                } else {
+                                    Icon(
+                                        painter = painterResource(id = R.drawable.bedtime),
+                                        contentDescription = null,
+                                        modifier = Modifier.size(18.dp),
+                                        tint = TextBackgroundColor.copy(alpha = 0.7f)
+                                    )
+                                }
+                            }
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .clickable { onShowLyrics() }
+                                .padding(horizontal = 12.dp, vertical = 8.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Icon(
+                                    painter = painterResource(id = R.drawable.lyrics),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp),
+                                    tint = TextBackgroundColor.copy(alpha = 0.7f)
+                                )
+                                Text(
+                                    text = stringResource(id = R.string.lyrics),
+                                    color = TextBackgroundColor.copy(alpha = 0.7f),
+                                    style = MaterialTheme.typography.labelMedium,
+                                    maxLines = 1
+                                )
+                            }
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .clickable { playerConnection.player.toggleRepeatMode() },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                painter = painterResource(
+                                    id = when (repeatMode) {
+                                        Player.REPEAT_MODE_OFF, Player.REPEAT_MODE_ALL -> R.drawable.repeat
+                                        Player.REPEAT_MODE_ONE -> R.drawable.repeat_one
+                                        else -> R.drawable.repeat
+                                    }
+                                ),
+                                contentDescription = null,
+                                modifier = Modifier
+                                    .size(18.dp)
+                                    .alpha(if (repeatMode == Player.REPEAT_MODE_OFF) 0.5f else 1f),
+                                tint = TextBackgroundColor.copy(alpha = 0.7f)
+                            )
+                        }
+                    }
+                }
+                
+                PlayerDesignStyle.V4 -> {
+                    if (showCodecOnPlayer && currentFormat != null) {
+                        Row(
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 30.dp, vertical = 6.dp)
+                        ) {
+                            val codec = currentFormat?.mimeType?.substringAfter("/")?.uppercase() ?: "Unknown"
+                            val bitrate = currentFormat?.bitrate?.let { "${it / 1000} kbps" } ?: "Unknown"
+                            val fileSize = currentFormat?.contentLength?.let {
+                                if (it > 0) "${(it / 1024.0 / 1024.0).roundToInt()} MB" else ""
+                            } ?: ""
+                            
+                            Text(
+                                text = buildString {
+                                    append(codec)
+                                    if (bitrate != "Unknown") {
+                                        append(" • ")
+                                        append(bitrate)
+                                    }
+                                    if (fileSize.isNotEmpty()) {
+                                        append(" • ")
+                                        append(fileSize)
+                                    }
+                                },
+                                style = MaterialTheme.typography.labelSmall,
+                                fontFamily = FontFamily.Monospace,
+                                color = TextBackgroundColor.copy(alpha = 0.6f),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+                    
+                    Row(
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 20.dp, vertical = 8.dp)
+                            .windowInsetsPadding(
+                                WindowInsets.systemBars.only(
+                                    WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal
+                                ),
+                            ),
+                    ) {
+                        val buttonSize = 48.dp
+                        val iconSize = 22.dp
+
+                        Surface(
+                            onClick = { state.expandSoft() },
+                            shape = RoundedCornerShape(16.dp),
+                            color = TextBackgroundColor.copy(alpha = 0.1f),
+                            modifier = Modifier
+                                .height(buttonSize)
+                                .weight(1f)
+                        ) {
+                            Row(
+                                horizontalArrangement = Arrangement.Center,
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.fillMaxSize()
+                            ) {
+                                Icon(
+                                    painter = painterResource(id = R.drawable.queue_music),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(iconSize),
+                                    tint = TextBackgroundColor
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = stringResource(id = R.string.queue),
+                                    color = TextBackgroundColor,
+                                    style = MaterialTheme.typography.labelLarge,
+                                    maxLines = 1
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.width(10.dp))
+
+                        Surface(
+                            onClick = {
+                                if (sleepTimerEnabled) {
+                                    playerConnection.service.sleepTimer.clear()
+                                } else {
+                                    showSleepTimerDialog = true
+                                }
+                            },
+                            shape = RoundedCornerShape(50),
+                            color = if (sleepTimerEnabled) 
+                                TextBackgroundColor.copy(alpha = 0.2f) 
+                            else TextBackgroundColor.copy(alpha = 0.1f),
+                            modifier = Modifier.size(buttonSize)
+                        ) {
+                            Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                                AnimatedContent(
+                                    label = "sleepTimer",
+                                    targetState = sleepTimerEnabled,
+                                ) { enabled ->
+                                    if (enabled) {
+                                        Text(
+                                            text = makeTimeString(sleepTimerTimeLeft),
+                                            color = TextBackgroundColor,
+                                            style = MaterialTheme.typography.labelSmall,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis,
+                                            textAlign = TextAlign.Center,
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .basicMarquee()
+                                        )
+                                    } else {
+                                        Icon(
+                                            painter = painterResource(id = R.drawable.bedtime),
+                                            contentDescription = null,
+                                            modifier = Modifier.size(iconSize),
+                                            tint = TextBackgroundColor
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.width(10.dp))
+
+                        Surface(
+                            onClick = { onShowLyrics() },
+                            shape = RoundedCornerShape(16.dp),
+                            color = TextBackgroundColor.copy(alpha = 0.1f),
+                            modifier = Modifier
+                                .height(buttonSize)
+                                .weight(1f)
+                        ) {
+                            Row(
+                                horizontalArrangement = Arrangement.Center,
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.fillMaxSize()
+                            ) {
+                                Icon(
+                                    painter = painterResource(id = R.drawable.lyrics),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(iconSize),
+                                    tint = TextBackgroundColor
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = stringResource(id = R.string.lyrics),
+                                    color = TextBackgroundColor,
+                                    style = MaterialTheme.typography.labelLarge,
+                                    maxLines = 1
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.width(10.dp))
+
+                        Surface(
+                            onClick = {
+                                menuState.show {
+                                    PlayerMenu(
+                                        mediaMetadata = mediaMetadata,
+                                        navController = navController,
+                                        playerBottomSheetState = playerBottomSheetState,
+                                        onShowDetailsDialog = {
+                                            mediaMetadata?.id?.let {
+                                                bottomSheetPageState.show {
+                                                    ShowMediaInfo(it)
+                                                }
+                                            }
+                                        },
+                                        onDismiss = menuState::dismiss
+                                    )
+                                }
+                            },
+                            shape = RoundedCornerShape(50),
+                            color = textButtonColor,
+                            modifier = Modifier.size(buttonSize)
+                        ) {
+                            Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                                Icon(
+                                    painter = painterResource(id = R.drawable.more_vert),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(iconSize),
+                                    tint = iconButtonColor
+                                )
+                            }
+                        }
+                    }
+                }
+                
                 PlayerDesignStyle.V1 -> {
-                // Codec Info Display (if enabled)
                 if (showCodecOnPlayer && currentFormat != null) {
                     Row(
                         horizontalArrangement = Arrangement.Center,

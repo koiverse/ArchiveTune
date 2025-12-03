@@ -90,7 +90,8 @@
     <string name="player_design_style">Player-Design-Stil</string>
     <string name="player_design_v1">Klassisch</string>
     <string name="player_design_v2">Modern</string>
-    <string name="player_design_v3">Elegant</string>
+    <string name="player_design_v3">Minimal</string>
+    <string name="player_design_v4">Kinematisch</string>
     <string name="coloring">Farbung</string>
     <string name="blur_gradient">Weichzeichnerverlauf</string>
     <string name="glow">Leuchten</string>

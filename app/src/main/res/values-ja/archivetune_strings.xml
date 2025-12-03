@@ -90,7 +90,8 @@
     <string name="player_design_style">プレーヤーデザインスタイル</string>
     <string name="player_design_v1">クラシック</string>
     <string name="player_design_v2">モダン</string>
-    <string name="player_design_v3">エレガント</string>
+    <string name="player_design_v3">ミニマル</string>
+    <string name="player_design_v4">シネマティック</string>
     <string name="coloring">彩色</string>
     <string name="blur_gradient">ぼかしグラデーション</string>
     <string name="glow">輝き</string>

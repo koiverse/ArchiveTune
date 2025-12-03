@@ -90,7 +90,8 @@
     <string name="player_design_style">Gaya desain pemutar</string>
     <string name="player_design_v1">Klasik</string>
     <string name="player_design_v2">Modern</string>
-    <string name="player_design_v3">Elegan</string>
+    <string name="player_design_v3">Minimal</string>
+    <string name="player_design_v4">Sinematik</string>
     <string name="coloring">Pewarnaan</string>
     <string name="blur_gradient">Gradasi buram</string>
     <string name="glow">Bersinar</string>
