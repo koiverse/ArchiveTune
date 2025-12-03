@@ -1310,12 +1310,10 @@ fun BottomSheetPlayer(
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Row(
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                horizontalArrangement = Arrangement.End,
                                 verticalAlignment = Alignment.CenterVertically,
                                 modifier = Modifier.weight(1f),
                             ) {
-                                Spacer(modifier = Modifier.weight(1f))
-                                
                                 Surface(
                                     onClick = { 
                                         playerConnection.player.shuffleModeEnabled = !playerConnection.player.shuffleModeEnabled 
@@ -1337,6 +1335,8 @@ fun BottomSheetPlayer(
                                         )
                                     }
                                 }
+                                
+                                Spacer(modifier = Modifier.width(8.dp))
                                 
                                 Surface(
                                     onClick = { playerConnection.seekToPrevious() },
@@ -1398,7 +1398,7 @@ fun BottomSheetPlayer(
                             Spacer(modifier = Modifier.width(16.dp))
                             
                             Row(
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                horizontalArrangement = Arrangement.Start,
                                 verticalAlignment = Alignment.CenterVertically,
                                 modifier = Modifier.weight(1f)
                             ) {
@@ -1418,6 +1418,8 @@ fun BottomSheetPlayer(
                                         )
                                     }
                                 }
+                                
+                                Spacer(modifier = Modifier.width(8.dp))
                                 
                                 Surface(
                                     onClick = { playerConnection.player.toggleRepeatMode() },
@@ -1444,8 +1446,6 @@ fun BottomSheetPlayer(
                                         )
                                     }
                                 }
-                                
-                                Spacer(modifier = Modifier.weight(1f))
                             }
                         }
                     }
