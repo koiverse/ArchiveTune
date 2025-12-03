@@ -270,32 +270,50 @@ class SyncUtils @Inject constructor(
         val autoSyncPlaylists = database.playlistsByNameAsc().first()
             .filter { it.playlist.isAutoSync && it.playlist.browseId != null }
 
+        Timber.d("syncAutoSyncPlaylists: Found ${autoSyncPlaylists.size} playlists to sync")
+
         autoSyncPlaylists.forEach { playlist ->
             launch {
-                dbWriteSemaphore.withPermit {
-                    syncPlaylist(playlist.playlist.browseId!!, playlist.playlist.id)
+                try {
+                    dbWriteSemaphore.withPermit {
+                        syncPlaylist(playlist.playlist.browseId!!, playlist.playlist.id)
+                    }
+                } catch (e: Exception) {
+                    Timber.e(e, "Failed to sync playlist ${playlist.playlist.name}")
                 }
             }
         }
     }
 
     private suspend fun syncPlaylist(browseId: String, playlistId: String) = coroutineScope {
+        Timber.d("syncPlaylist: Starting sync for browseId=$browseId, playlistId=$playlistId")
+        
         YouTube.playlist(browseId).completed().onSuccess { page ->
             val songs = page.songs.map(SongItem::toMediaMetadata)
+            Timber.d("syncPlaylist: Fetched ${songs.size} songs from remote")
+
+            if (songs.isEmpty()) {
+                Timber.w("syncPlaylist: Remote playlist is empty, skipping sync")
+                return@onSuccess
+            }
 
             val remoteIds = songs.map { it.id }
             val localIds = database.playlistSongs(playlistId).first()
                 .sortedBy { it.map.position }
                 .map { it.song.id }
 
-            if (remoteIds == localIds) return@onSuccess
+            if (remoteIds == localIds) {
+                Timber.d("syncPlaylist: Local and remote are in sync, no changes needed")
+                return@onSuccess
+            }
+
+            Timber.d("syncPlaylist: Updating local playlist (remote: ${remoteIds.size}, local: ${localIds.size})")
 
             database.transaction {
                 runBlocking {
                     database.clearPlaylist(playlistId)
                     songs.forEachIndexed { idx, song ->
                         if (database.song(song.id).firstOrNull() == null) {
-                            // Use proper MediaMetadata insertion to save artist information
                             database.insert(song)
                         }
                         database.insert(
@@ -309,6 +327,9 @@ class SyncUtils @Inject constructor(
                     }
                 }
             }
+            Timber.d("syncPlaylist: Successfully synced playlist")
+        }.onFailure { e ->
+            Timber.e(e, "syncPlaylist: Failed to fetch playlist from YouTube")
         }
     }
 }
