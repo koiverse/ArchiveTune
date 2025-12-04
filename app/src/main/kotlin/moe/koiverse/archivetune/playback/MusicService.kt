@@ -597,6 +597,9 @@ class MusicService :
                         if (playerState.currentMediaItemIndex < player.mediaItemCount) {
                             player.seekTo(playerState.currentMediaItemIndex, playerState.currentPosition)
                         }
+                        
+                        currentMediaMetadata.value = player.currentMetadata
+                        updateNotification()
                     }
                 }
             }
@@ -1140,12 +1143,10 @@ class MusicService :
     override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
     super.onMediaItemTransition(mediaItem, reason)
 
-    // Scrobble: Stop previous song
+    currentMediaMetadata.value = mediaItem?.metadata ?: player.currentMetadata
+
     scrobbleManager?.onSongStop()
 
-    // Auto load more songs
-    // Don't auto-load if repeat mode is enabled (REPEAT_MODE_ALL or REPEAT_MODE_ONE)
-    // as the user expects the queue to loop, not to add new songs
     if (dataStore.get(AutoLoadMoreKey, true) &&
         reason != Player.MEDIA_ITEM_TRANSITION_REASON_REPEAT &&
         player.mediaItemCount - player.currentMediaItemIndex <= 5 &&
@@ -1163,7 +1164,6 @@ class MusicService :
         }
     }
 
-    // Scrobble: Start new song if playing
     if (player.playWhenReady && player.playbackState == Player.STATE_READY) {
         scrobbleManager?.onSongStart(player.currentMetadata, duration = player.duration)
     }
@@ -1300,6 +1300,9 @@ class MusicService :
 
         // Also handle immediate update for play state and media item transition events explicitly
         if (events.containsAny(Player.EVENT_IS_PLAYING_CHANGED, Player.EVENT_MEDIA_ITEM_TRANSITION)) {
+            if (events.contains(Player.EVENT_MEDIA_ITEM_TRANSITION)) {
+                currentMediaMetadata.value = player.currentMetadata
+            }
             scope.launch {
                 try {
                     val token = dataStore.get(DiscordTokenKey, "")
@@ -1776,7 +1779,17 @@ class MusicService :
         DiscordPresenceManager.stop()
     }
 
-    override fun onBind(intent: Intent?) = super.onBind(intent) ?: binder
+    override fun onBind(intent: Intent?): android.os.IBinder? {
+        val result = super.onBind(intent) ?: binder
+        if (player.mediaItemCount > 0 && player.currentMediaItem != null) {
+            currentMediaMetadata.value = player.currentMetadata
+            scope.launch {
+                delay(50)
+                updateNotification()
+            }
+        }
+        return result
+    }
 
     override fun onTaskRemoved(rootIntent: Intent?) {
         super.onTaskRemoved(rootIntent)
@@ -1807,23 +1820,31 @@ class MusicService :
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                val pending = PendingIntent.getActivity(
-                    this,
-                    0,
-                    Intent(this, MainActivity::class.java),
-                    PendingIntent.FLAG_IMMUTABLE
-                )
-                val notification: Notification = NotificationCompat.Builder(this, CHANNEL_ID)
-                    .setContentTitle(getString(R.string.music_player))
-                    .setContentText("")
-                    .setSmallIcon(R.drawable.small_icon)
-                    .setContentIntent(pending)
-                    .setOngoing(true)
-                    .build()
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    startForeground(NOTIFICATION_ID, notification, android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK)
+                if (player.mediaItemCount == 0 || player.currentMediaItem == null) {
+                    val pending = PendingIntent.getActivity(
+                        this,
+                        0,
+                        Intent(this, MainActivity::class.java),
+                        PendingIntent.FLAG_IMMUTABLE
+                    )
+                    val notification: Notification = NotificationCompat.Builder(this, CHANNEL_ID)
+                        .setContentTitle(getString(R.string.music_player))
+                        .setContentText("")
+                        .setSmallIcon(R.drawable.small_icon)
+                        .setContentIntent(pending)
+                        .setOngoing(true)
+                        .build()
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                        startForeground(NOTIFICATION_ID, notification, android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK)
+                    } else {
+                        startForeground(NOTIFICATION_ID, notification)
+                    }
                 } else {
-                    startForeground(NOTIFICATION_ID, notification)
+                    currentMediaMetadata.value = player.currentMetadata
+                    scope.launch {
+                        delay(100)
+                        updateNotification()
+                    }
                 }
             }
         } catch (e: Exception) {
