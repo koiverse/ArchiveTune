@@ -615,4 +615,21 @@
     <string name="new_version_available">Nouvelle version disponible</string>
     <string name="translation_models">Modèles de traduction</string>
     <string name="clear_translation_models">Effacer les modèles</string>
+
+    <string name="updates">Mises à jour</string>
+    <string name="current_version">Version actuelle</string>
+    <string name="latest_version_format">Dernière: %s</string>
+    <string name="notification_settings">Notification</string>
+    <string name="enable_update_notification">Activer les notifications de mise à jour</string>
+    <string name="enable_update_notification_desc">Recevoir une notification lorsqu\'une nouvelle version stable est disponible</string>
+    <string name="update_channel">Canal de mise à jour</string>
+    <string name="channel_stable">Stable</string>
+    <string name="channel_nightly">Nightly</string>
+    <string name="commit_history">Développement</string>
+    <string name="recent_commits">Commits récents</string>
+    <string name="update_notification_channel_name">Mises à jour de l\'application</string>
+    <string name="update_notification_channel_desc">Notifications pour les nouvelles mises à jour</string>
+    <string name="update_notification_title">Mise à jour disponible</string>
+    <string name="update_notification_text">ArchiveTune %s est maintenant disponible</string>
+    <string name="download">Télécharger</string>
 </resources>

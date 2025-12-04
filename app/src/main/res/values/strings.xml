@@ -609,4 +609,21 @@
     <string name="new_version_available">New version available</string>
     <string name="translation_models">Translation Models</string>
     <string name="clear_translation_models">Clear translation models</string>
+
+    <string name="updates">Updates</string>
+    <string name="current_version">Current Version</string>
+    <string name="latest_version_format">Latest: %s</string>
+    <string name="notification_settings">Notification</string>
+    <string name="enable_update_notification">Enable Update Notification</string>
+    <string name="enable_update_notification_desc">Get notified when a new stable version is released</string>
+    <string name="update_channel">Update Channel</string>
+    <string name="channel_stable">Stable</string>
+    <string name="channel_nightly">Nightly</string>
+    <string name="commit_history">Development</string>
+    <string name="recent_commits">Recent Commits</string>
+    <string name="update_notification_channel_name">App Updates</string>
+    <string name="update_notification_channel_desc">Notifications for new app updates</string>
+    <string name="update_notification_title">Update Available</string>
+    <string name="update_notification_text">ArchiveTune %s is now available</string>
+    <string name="download">Download</string>
 </resources>

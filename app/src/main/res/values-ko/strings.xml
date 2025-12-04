@@ -622,4 +622,21 @@
     <string name="new_version_available">새 버전 사용 가능</string>
     <string name="translation_models">번역 모델</string>
     <string name="clear_translation_models">번역 지우기 모델</string>
+
+    <string name="updates">업데이트</string>
+    <string name="current_version">현재 버전</string>
+    <string name="latest_version_format">최신: %s</string>
+    <string name="notification_settings">알림</string>
+    <string name="enable_update_notification">업데이트 알림 활성화</string>
+    <string name="enable_update_notification_desc">새로운 안정 버전이 출시되면 알림 받기</string>
+    <string name="update_channel">업데이트 채널</string>
+    <string name="channel_stable">안정</string>
+    <string name="channel_nightly">나이틀리</string>
+    <string name="commit_history">개발</string>
+    <string name="recent_commits">최근 커밋</string>
+    <string name="update_notification_channel_name">앱 업데이트</string>
+    <string name="update_notification_channel_desc">새로운 앱 업데이트 알림</string>
+    <string name="update_notification_title">업데이트 가능</string>
+    <string name="update_notification_text">ArchiveTune %s이(가) 출시되었습니다</string>
+    <string name="download">다운로드</string>
 </resources>

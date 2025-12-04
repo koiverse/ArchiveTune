@@ -378,6 +378,7 @@ class MainActivity : ComponentActivity() {
                         latestVersionName = it
                     }
                 }
+                moe.koiverse.archivetune.utils.UpdateNotificationManager.checkForUpdates(this@MainActivity)
             }
 
                     // Use remembered instances so the same state object is used everywhere

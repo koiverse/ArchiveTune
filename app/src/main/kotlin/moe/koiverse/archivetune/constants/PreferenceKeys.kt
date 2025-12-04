@@ -417,3 +417,14 @@ val CountryCodeToName =
 val LaunchCountKey = intPreferencesKey("launch_count")
 val HasPressedStarKey = booleanPreferencesKey("has_pressed_star")
 val RemindAfterKey = intPreferencesKey("remind_after")
+
+// Update settings
+val EnableUpdateNotificationKey = booleanPreferencesKey("enableUpdateNotification")
+val UpdateChannelKey = stringPreferencesKey("updateChannel")
+val LastUpdateCheckKey = longPreferencesKey("lastUpdateCheck")
+val LastNotifiedVersionKey = stringPreferencesKey("lastNotifiedVersion")
+
+enum class UpdateChannel {
+    STABLE,
+    NIGHTLY,
+}

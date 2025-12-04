@@ -619,4 +619,21 @@
     <string name="new_version_available">利用可能な新バージョン</string>
     <string name="translation_models">翻訳モデル</string>
     <string name="clear_translation_models">翻訳をクリアモデル</string>
+
+    <string name="updates">アップデート</string>
+    <string name="current_version">現在のバージョン</string>
+    <string name="latest_version_format">最新: %s</string>
+    <string name="notification_settings">通知</string>
+    <string name="enable_update_notification">アップデート通知を有効化</string>
+    <string name="enable_update_notification_desc">新しい安定版がリリースされたら通知を受け取る</string>
+    <string name="update_channel">アップデートチャンネル</string>
+    <string name="channel_stable">安定版</string>
+    <string name="channel_nightly">ナイトリー</string>
+    <string name="commit_history">開発</string>
+    <string name="recent_commits">最近のコミット</string>
+    <string name="update_notification_channel_name">アプリの更新</string>
+    <string name="update_notification_channel_desc">新しいアプリ更新の通知</string>
+    <string name="update_notification_title">アップデート可能</string>
+    <string name="update_notification_text">ArchiveTune %s が利用可能です</string>
+    <string name="download">ダウンロード</string>
 </resources>

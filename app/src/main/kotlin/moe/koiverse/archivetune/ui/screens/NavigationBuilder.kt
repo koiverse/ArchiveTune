@@ -72,6 +72,7 @@ import moe.koiverse.archivetune.ui.screens.settings.PlayerSettings
 import moe.koiverse.archivetune.ui.screens.settings.PrivacySettings
 import moe.koiverse.archivetune.ui.screens.settings.SettingsScreen
 import moe.koiverse.archivetune.ui.screens.settings.StorageSettings
+import moe.koiverse.archivetune.ui.screens.settings.UpdateScreen
 import moe.koiverse.archivetune.ui.utils.ShowMediaInfo
 import moe.koiverse.archivetune.utils.rememberEnumPreference
 import moe.koiverse.archivetune.utils.rememberPreference
@@ -324,6 +325,9 @@ fun NavGraphBuilder.navigationBuilder(
     }
     composable("settings/misc") {
         DebugSettings(navController)
+    }
+    composable("settings/update") {
+        UpdateScreen(navController, scrollBehavior)
     }
     composable("settings/discord/login") {
         DiscordLoginScreen(navController)
