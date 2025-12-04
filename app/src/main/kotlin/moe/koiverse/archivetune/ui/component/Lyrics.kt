@@ -750,6 +750,8 @@ fun Lyrics(
                         }
 
                         val hasWordTimings = item.words?.isNotEmpty() == true
+                        val romanizedText by item.romanizedTextFlow.collectAsState()
+                        val hasRomanization = romanizedText != null
 
                         if (hasWordTimings && item.words != null && lyricsAnimationStyle == LyricsAnimationStyle.NONE) {
 
@@ -784,17 +786,30 @@ fun Lyrics(
 
                                     val wordColor = expressiveAccent.copy(alpha = wordAlpha)
 
-                                    val wordWeight = when {
-                                        !isActiveLine -> FontWeight.Bold
-                                        hasWordPassed -> FontWeight.Bold
-                                        isWordActive -> FontWeight.ExtraBold
-                                        else -> FontWeight.Medium
+                                    val wordWeight = if (hasRomanization) {
+                                        FontWeight.Bold
+                                    } else {
+                                        when {
+                                            !isActiveLine -> FontWeight.Bold
+                                            hasWordPassed -> FontWeight.Bold
+                                            isWordActive -> FontWeight.ExtraBold
+                                            else -> FontWeight.Medium
+                                        }
                                     }
+
+                                    val wordShadow = if (hasRomanization && (isWordActive || hasWordPassed) && isActiveLine) {
+                                        Shadow(
+                                            color = expressiveAccent.copy(alpha = 0.4f * transitionProgress),
+                                            offset = Offset.Zero,
+                                            blurRadius = 10f * transitionProgress
+                                        )
+                                    } else null
 
                                     withStyle(
                                         style = SpanStyle(
                                             color = wordColor,
-                                            fontWeight = wordWeight
+                                            fontWeight = wordWeight,
+                                            shadow = wordShadow
                                         )
                                     ) {
                                         append(word.text)
@@ -842,18 +857,28 @@ fun Lyrics(
 
                                     val wordColor = expressiveAccent.copy(alpha = wordAlpha)
 
-                                    val wordWeight = when {
-                                        !isActiveLine -> FontWeight.Bold
-                                        hasWordPassed -> FontWeight.Bold
-                                        isWordActive -> FontWeight.ExtraBold
-                                        else -> FontWeight.Medium
+                                    val wordWeight = if (hasRomanization) {
+                                        FontWeight.Bold
+                                    } else {
+                                        when {
+                                            !isActiveLine -> FontWeight.Bold
+                                            hasWordPassed -> FontWeight.Bold
+                                            isWordActive -> FontWeight.ExtraBold
+                                            else -> FontWeight.Medium
+                                        }
                                     }
 
                                     val wordShadow = if (isWordActive && fadeProgress > 0.3f) {
                                         Shadow(
-                                            color = expressiveAccent.copy(alpha = 0.3f * fadeProgress),
+                                            color = expressiveAccent.copy(alpha = if (hasRomanization) 0.5f * fadeProgress else 0.3f * fadeProgress),
                                             offset = Offset.Zero,
-                                            blurRadius = 8f * fadeProgress
+                                            blurRadius = if (hasRomanization) 12f * fadeProgress else 8f * fadeProgress
+                                        )
+                                    } else if (hasRomanization && hasWordPassed && isActiveLine) {
+                                        Shadow(
+                                            color = expressiveAccent.copy(alpha = 0.3f),
+                                            offset = Offset.Zero,
+                                            blurRadius = 8f
                                         )
                                     } else null
 
@@ -909,11 +934,15 @@ fun Lyrics(
                                         else -> expressiveAccent.copy(alpha = 0.35f)
                                     }
 
-                                    val wordWeight = when {
-                                        !isActiveLine -> FontWeight.Bold
-                                        isWordActive -> FontWeight.ExtraBold
-                                        hasWordPassed -> FontWeight.Bold
-                                        else -> FontWeight.Medium
+                                    val wordWeight = if (hasRomanization) {
+                                        FontWeight.Bold
+                                    } else {
+                                        when {
+                                            !isActiveLine -> FontWeight.Bold
+                                            isWordActive -> FontWeight.ExtraBold
+                                            hasWordPassed -> FontWeight.Bold
+                                            else -> FontWeight.Medium
+                                        }
                                     }
 
                                     val floatOffset = if (isWordActive && fillProgress > 0.1f) {
@@ -926,16 +955,15 @@ fun Lyrics(
 
                                     val wordShadow = if (isWordActive && glowIntensity > 0.05f) {
                                         Shadow(
-                                            color = expressiveAccent.copy(alpha = 0.5f + (0.3f * glowIntensity)),
+                                            color = expressiveAccent.copy(alpha = if (hasRomanization) 0.6f + (0.3f * glowIntensity) else 0.5f + (0.3f * glowIntensity)),
                                             offset = floatOffset,
-                                            blurRadius = 16f + (12f * glowIntensity)
+                                            blurRadius = if (hasRomanization) 20f + (12f * glowIntensity) else 16f + (12f * glowIntensity)
                                         )
                                     } else if (hasWordPassed) {
-
                                         Shadow(
-                                            color = expressiveAccent.copy(alpha = 0.25f),
+                                            color = expressiveAccent.copy(alpha = if (hasRomanization) 0.35f else 0.25f),
                                             offset = Offset.Zero,
-                                            blurRadius = 8f
+                                            blurRadius = if (hasRomanization) 12f else 8f
                                         )
                                     } else null
 
@@ -994,11 +1022,11 @@ fun Lyrics(
                                     withStyle(
                                         style = SpanStyle(
                                             brush = slideBrush,
-                                            fontWeight = FontWeight.ExtraBold,
+                                            fontWeight = if (hasRomanization) FontWeight.Bold else FontWeight.ExtraBold,
                                             shadow = Shadow(
-                                                color = expressiveAccent.copy(alpha = 0.4f * glowIntensity),
+                                                color = expressiveAccent.copy(alpha = if (hasRomanization) 0.5f * glowIntensity else 0.4f * glowIntensity),
                                                 offset = Offset(0f, 0f),
-                                                blurRadius = 14f + (4f * fillProgress)
+                                                blurRadius = if (hasRomanization) 18f + (6f * fillProgress) else 14f + (4f * fillProgress)
                                             )
                                         )
                                     ) {
@@ -1020,9 +1048,9 @@ fun Lyrics(
                                             color = expressiveAccent,
                                             fontWeight = FontWeight.Bold,
                                             shadow = Shadow(
-                                                color = expressiveAccent.copy(alpha = 0.4f),
+                                                color = expressiveAccent.copy(alpha = if (hasRomanization) 0.5f else 0.4f),
                                                 offset = Offset(0f, 0f),
-                                                blurRadius = 12f
+                                                blurRadius = if (hasRomanization) 14f else 12f
                                             )
                                         )
                                     ) {
@@ -1043,13 +1071,11 @@ fun Lyrics(
                                     fontSize = lyricsTextSize.sp,
                                     color = if (!isActiveLine) lineColor else expressiveAccent.copy(alpha = 0.35f),
                                     textAlign = alignment,
-                                    fontWeight = FontWeight.Medium,
+                                    fontWeight = if (hasRomanization) FontWeight.Bold else FontWeight.Medium,
                                     lineHeight = (lyricsTextSize * lyricsLineSpacing).sp
                                 )
                             }
                         } else if (hasWordTimings && item.words != null && lyricsAnimationStyle == LyricsAnimationStyle.KARAOKE) {
-                            // Enhanced BetterLyrics-style karaoke animation
-                            // Features: smooth gradient fill, word-by-word highlighting, glow effects
                             val styledText = buildAnnotatedString {
                                 item.words.forEachIndexed { wordIndex, word ->
                                     val wordStartMs = (word.startTime * 1000).toLong()
@@ -1061,21 +1087,17 @@ fun Lyrics(
                                     val isUpcoming = isActiveLine && currentPlaybackPosition < wordStartMs
 
                                     if (isWordActive && wordDuration > 0) {
-                                        // Calculate smooth fill progress with easing
                                         val timeElapsed = currentPlaybackPosition - wordStartMs
                                         val linearProgress = (timeElapsed.toFloat() / wordDuration.toFloat()).coerceIn(0f, 1f)
                                         
-                                        // Smooth easing for natural feel (ease-in-out)
                                         val fillProgress = linearProgress * linearProgress * (3f - 2f * linearProgress)
                                         
-                                        // Subtle breathing effect for active word
                                         val breatheCycleDuration = wordDuration.toFloat().coerceIn(400f, 2000f)
                                         val breathePhase = (timeElapsed % breatheCycleDuration) / breatheCycleDuration
                                         val breatheEffect = (sin(breathePhase * Math.PI.toFloat()) * 0.05f).coerceIn(0f, 0.05f)
                                         
                                         val glowIntensity = (fillProgress + breatheEffect).coerceIn(0f, 1.0f)
 
-                                        // BetterLyrics-style sharp karaoke gradient with smooth edges
                                         val wordBrush = Brush.horizontalGradient(
                                             0.0f to expressiveAccent,
                                             (fillProgress * 0.85f).coerceIn(0f, 0.99f) to expressiveAccent,
@@ -1088,49 +1110,46 @@ fun Lyrics(
                                         withStyle(
                                             style = SpanStyle(
                                                 brush = wordBrush,
-                                                fontWeight = FontWeight.ExtraBold,
+                                                fontWeight = if (hasRomanization) FontWeight.Bold else FontWeight.ExtraBold,
                                                 shadow = Shadow(
-                                                    color = expressiveAccent.copy(alpha = 0.4f * glowIntensity),
+                                                    color = expressiveAccent.copy(alpha = if (hasRomanization) 0.5f * glowIntensity else 0.4f * glowIntensity),
                                                     offset = Offset(0f, 0f),
-                                                    blurRadius = 12f + (6f * glowIntensity)
+                                                    blurRadius = if (hasRomanization) 16f + (8f * glowIntensity) else 12f + (6f * glowIntensity)
                                                 )
                                             )
                                         ) {
                                             append(word.text)
                                         }
                                     } else if (hasWordPassed) {
-                                        // Fully revealed word with subtle glow
                                         withStyle(
                                             style = SpanStyle(
                                                 color = expressiveAccent,
                                                 fontWeight = FontWeight.Bold,
                                                 shadow = Shadow(
-                                                    color = expressiveAccent.copy(alpha = 0.25f),
+                                                    color = expressiveAccent.copy(alpha = if (hasRomanization) 0.35f else 0.25f),
                                                     offset = Offset(0f, 0f),
-                                                    blurRadius = 8f
+                                                    blurRadius = if (hasRomanization) 12f else 8f
                                                 )
                                             )
                                         ) {
                                             append(word.text)
                                         }
                                     } else if (isUpcoming && isActiveLine) {
-                                        // Upcoming words in current line - slightly dimmed
                                         withStyle(
                                             style = SpanStyle(
                                                 color = expressiveAccent.copy(alpha = 0.3f),
-                                                fontWeight = FontWeight.Medium
+                                                fontWeight = if (hasRomanization) FontWeight.Bold else FontWeight.Medium
                                             )
                                         ) {
                                             append(word.text)
                                         }
                                     } else {
-                                        // Inactive lines
                                         val wordColor = if (!isActiveLine) lineColor else expressiveAccent.copy(alpha = 0.3f)
 
                                         withStyle(
                                             style = SpanStyle(
                                                 color = wordColor,
-                                                fontWeight = FontWeight.Medium
+                                                fontWeight = if (hasRomanization) FontWeight.Bold else FontWeight.Medium
                                             )
                                         ) {
                                             append(word.text)
@@ -1180,23 +1199,27 @@ fun Lyrics(
 
                                     val wordColor = expressiveAccent.copy(alpha = wordAlpha)
 
-                                    val wordWeight = when {
-                                        !isActiveLine -> FontWeight.SemiBold
-                                        hasWordPassed -> FontWeight.Bold
-                                        isWordActive -> FontWeight.ExtraBold
-                                        else -> FontWeight.Normal
+                                    val wordWeight = if (hasRomanization) {
+                                        FontWeight.Bold
+                                    } else {
+                                        when {
+                                            !isActiveLine -> FontWeight.SemiBold
+                                            hasWordPassed -> FontWeight.Bold
+                                            isWordActive -> FontWeight.ExtraBold
+                                            else -> FontWeight.Normal
+                                        }
                                     }
 
                                     val wordShadow = when {
                                         isWordActive -> Shadow(
-                                            color = expressiveAccent.copy(alpha = 0.15f + (0.35f * smoothProgress)),
+                                            color = expressiveAccent.copy(alpha = if (hasRomanization) 0.25f + (0.45f * smoothProgress) else 0.15f + (0.35f * smoothProgress)),
                                             offset = Offset(0f, 0f),
-                                            blurRadius = 8f + (10f * smoothProgress)
+                                            blurRadius = if (hasRomanization) 12f + (12f * smoothProgress) else 8f + (10f * smoothProgress)
                                         )
                                         hasWordPassed && isActiveLine -> Shadow(
-                                            color = expressiveAccent.copy(alpha = 0.25f),
+                                            color = expressiveAccent.copy(alpha = if (hasRomanization) 0.35f else 0.25f),
                                             offset = Offset(0f, 0f),
-                                            blurRadius = 10f
+                                            blurRadius = if (hasRomanization) 14f else 10f
                                         )
                                         else -> null
                                     }
@@ -1229,9 +1252,9 @@ fun Lyrics(
                                 withStyle(
                                     style = SpanStyle(
                                         shadow = Shadow(
-                                            color = expressiveAccent.copy(alpha = 0.8f),
+                                            color = expressiveAccent.copy(alpha = if (hasRomanization) 0.9f else 0.8f),
                                             offset = Offset(0f, 0f),
-                                            blurRadius = 30f 
+                                            blurRadius = if (hasRomanization) 36f else 30f
                                         )
                                     )
                                 ) {
@@ -1244,7 +1267,7 @@ fun Lyrics(
                                 fontSize = lyricsTextSize.sp,
                                 color = expressiveAccent,
                                 textAlign = alignment,
-                                fontWeight = FontWeight.ExtraBold,
+                                fontWeight = if (hasRomanization) FontWeight.Bold else FontWeight.ExtraBold,
                                 lineHeight = (lyricsTextSize * lyricsLineSpacing).sp
                             )
                         } else if (isActiveLine && (lyricsAnimationStyle == LyricsAnimationStyle.SLIDE || lyricsAnimationStyle == LyricsAnimationStyle.KARAOKE)) {
@@ -1305,9 +1328,9 @@ fun Lyrics(
                                 withStyle(
                                     style = SpanStyle(
                                         shadow = Shadow(
-                                            color = expressiveAccent.copy(alpha = 0.8f * glowIntensity),
+                                            color = expressiveAccent.copy(alpha = if (hasRomanization) 0.9f * glowIntensity else 0.8f * glowIntensity),
                                             offset = Offset(0f, 0f),
-                                            blurRadius = 28f * (1f + pulseEffect)
+                                            blurRadius = if (hasRomanization) 32f * (1f + pulseEffect) else 28f * (1f + pulseEffect)
                                         ),
                                         brush = glowBrush
                                     )
@@ -1326,7 +1349,7 @@ fun Lyrics(
                                 text = styledText,
                                 fontSize = lyricsTextSize.sp,
                                 textAlign = alignment,
-                                fontWeight = FontWeight.ExtraBold,
+                                fontWeight = if (hasRomanization) FontWeight.Bold else FontWeight.ExtraBold,
                                 lineHeight = (lyricsTextSize * lyricsLineSpacing).sp,
                                 modifier = Modifier.graphicsLayer {
                                     val combinedScale = bounceScale * popInScale.value
@@ -1355,7 +1378,7 @@ fun Lyrics(
 
                                 glowAlpha.snapTo(0f)
                                 glowAlpha.animateTo(
-                                    targetValue = 0.35f,
+                                    targetValue = if (hasRomanization) 0.45f else 0.35f,
                                     animationSpec = tween(
                                         durationMillis = 400,
                                         easing = SmoothDecelerateEasing
@@ -1369,7 +1392,7 @@ fun Lyrics(
                                         shadow = Shadow(
                                             color = expressiveAccent.copy(alpha = glowAlpha.value),
                                             offset = Offset(0f, 0f),
-                                            blurRadius = 14f
+                                            blurRadius = if (hasRomanization) 18f else 14f
                                         )
                                     )
                                 ) {
@@ -1411,7 +1434,7 @@ fun Lyrics(
                                 fontSize = lyricsTextSize.sp,
                                 color = lineColor,
                                 textAlign = alignment,
-                                fontWeight = if (isActiveLine) FontWeight.ExtraBold else FontWeight.Bold,
+                                fontWeight = if (hasRomanization) FontWeight.Bold else if (isActiveLine) FontWeight.ExtraBold else FontWeight.Bold,
                                 lineHeight = (lyricsTextSize * lyricsLineSpacing).sp,
                                 modifier = if (isActiveLine) Modifier.graphicsLayer {
                                     scaleX = popInScale.value
@@ -1421,7 +1444,6 @@ fun Lyrics(
                         }
                         if (romanizeJapaneseLyrics || romanizeKoreanLyrics) {
 
-                            val romanizedText by item.romanizedTextFlow.collectAsState()
                             val romanizedFontSize = 16.sp
                             romanizedText?.let { romanized ->
 
