@@ -223,61 +223,63 @@ fun Queue(
         collapsedContent = {
             when (playerDesignStyle) {
                 PlayerDesignStyle.V2 -> {
-                if (showCodecOnPlayer && currentFormat != null) {
+                Column(
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    if (showCodecOnPlayer && currentFormat != null) {
+                        Row(
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(start = 30.dp, end = 30.dp, top = 8.dp, bottom = 0.dp)
+                        ) {
+                            val codec = currentFormat?.mimeType?.substringAfter("/")?.uppercase() ?: "Unknown"
+                            val bitrate = currentFormat?.bitrate?.let { "${it / 1000} kbps" } ?: "Unknown"
+                            val fileSize = currentFormat?.contentLength?.let {
+                                if (it > 0) "${(it / 1024.0 / 1024.0).roundToInt()} MB" else ""
+                            } ?: ""
+                            
+                            Text(
+                                text = buildString {
+                                    append(codec)
+                                    if (bitrate != "Unknown") {
+                                        append(" • ")
+                                        append(bitrate)
+                                    }
+                                    if (fileSize.isNotEmpty()) {
+                                        append(" • ")
+                                        append(fileSize)
+                                    }
+                                },
+                                style = MaterialTheme.typography.labelSmall,
+                                fontFamily = FontFamily.Monospace,
+                                color = TextBackgroundColor.copy(alpha = 0.7f),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+                
                     Row(
-                        horizontalArrangement = Arrangement.Center,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(start = 30.dp, end = 30.dp, top = 8.dp, bottom = 0.dp)
-                    ) {
-                        val codec = currentFormat?.mimeType?.substringAfter("/")?.uppercase() ?: "Unknown"
-                        val bitrate = currentFormat?.bitrate?.let { "${it / 1000} kbps" } ?: "Unknown"
-                        val fileSize = currentFormat?.contentLength?.let {
-                            if (it > 0) "${(it / 1024.0 / 1024.0).roundToInt()} MB" else ""
-                        } ?: ""
-                        
-                        Text(
-                            text = buildString {
-                                append(codec)
-                                if (bitrate != "Unknown") {
-                                    append(" • ")
-                                    append(bitrate)
-                                }
-                                if (fileSize.isNotEmpty()) {
-                                    append(" • ")
-                                    append(fileSize)
-                                }
-                            },
-                            style = MaterialTheme.typography.labelSmall,
-                            fontFamily = FontFamily.Monospace,
-                            color = TextBackgroundColor.copy(alpha = 0.7f),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-                }
-                
-                // New design
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 30.dp, vertical = 12.dp)
-                        .windowInsetsPadding(
-                            WindowInsets.systemBars.only(
-                                WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal
+                            .padding(horizontal = 30.dp, vertical = 12.dp)
+                            .windowInsetsPadding(
+                                WindowInsets.systemBars.only(
+                                    WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal
+                                ),
                             ),
-                        ),
-                ) {
-                    val buttonSize = 42.dp
-                    val iconSize = 24.dp
-                    val borderColor = TextBackgroundColor.copy(alpha = 0.35f)
+                    ) {
+                        val buttonSize = 42.dp
+                        val iconSize = 24.dp
+                        val borderColor = TextBackgroundColor.copy(alpha = 0.35f)
 
-                    Box(
-                        modifier = Modifier
-                            .size(buttonSize)
+                        Box(
+                            modifier = Modifier
+                                .size(buttonSize)
                             .clip(
                                 RoundedCornerShape(
                                     topStart = 50.dp,
@@ -441,39 +443,43 @@ fun Queue(
                             tint = iconButtonColor
                         )
                     }
+                    }
                 }
                 }
                 
                 PlayerDesignStyle.V3 -> {
-                    if (showCodecOnPlayer && currentFormat != null) {
-                        Row(
-                            horizontalArrangement = Arrangement.Center,
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(start = 30.dp, end = 30.dp, top = 8.dp, bottom = 0.dp)
-                        ) {
-                            val codec = currentFormat?.mimeType?.substringAfter("/")?.uppercase() ?: "Unknown"
-                            val bitrate = currentFormat?.bitrate?.let { "${it / 1000} kbps" } ?: "Unknown"
+                    Column(
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        if (showCodecOnPlayer && currentFormat != null) {
+                            Row(
+                                horizontalArrangement = Arrangement.Center,
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(start = 30.dp, end = 30.dp, top = 8.dp, bottom = 0.dp)
+                            ) {
+                                val codec = currentFormat?.mimeType?.substringAfter("/")?.uppercase() ?: "Unknown"
+                                val bitrate = currentFormat?.bitrate?.let { "${it / 1000} kbps" } ?: "Unknown"
                             
-                            Text(
-                                text = buildString {
-                                    append(codec)
-                                    if (bitrate != "Unknown") {
-                                        append(" • ")
-                                        append(bitrate)
-                                    }
-                                },
-                                style = MaterialTheme.typography.labelSmall,
-                                fontFamily = FontFamily.Monospace,
-                                color = TextBackgroundColor.copy(alpha = 0.5f),
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
+                                Text(
+                                    text = buildString {
+                                        append(codec)
+                                        if (bitrate != "Unknown") {
+                                            append(" • ")
+                                            append(bitrate)
+                                        }
+                                    },
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontFamily = FontFamily.Monospace,
+                                    color = TextBackgroundColor.copy(alpha = 0.5f),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
                         }
-                    }
                     
-                    Row(
+                        Row(
                         horizontalArrangement = Arrangement.SpaceEvenly,
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
@@ -595,79 +601,83 @@ fun Queue(
                             )
                         }
                     }
+                    }
                 }
                 
                 PlayerDesignStyle.V4 -> {
-                    if (showCodecOnPlayer && currentFormat != null) {
-                        Row(
-                            horizontalArrangement = Arrangement.Center,
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(start = 30.dp, end = 30.dp, top = 8.dp, bottom = 0.dp)
-                        ) {
-                            val codec = currentFormat?.mimeType?.substringAfter("/")?.uppercase() ?: "Unknown"
-                            val bitrate = currentFormat?.bitrate?.let { "${it / 1000} kbps" } ?: "Unknown"
-                            val fileSize = currentFormat?.contentLength?.let {
-                                if (it > 0) "${(it / 1024.0 / 1024.0).roundToInt()} MB" else ""
-                            } ?: ""
-                            
-                            Text(
-                                text = buildString {
-                                    append(codec)
-                                    if (bitrate != "Unknown") {
-                                        append(" • ")
-                                        append(bitrate)
-                                    }
-                                    if (fileSize.isNotEmpty()) {
-                                        append(" • ")
-                                        append(fileSize)
-                                    }
-                                },
-                                style = MaterialTheme.typography.labelSmall,
-                                fontFamily = FontFamily.Monospace,
-                                color = TextBackgroundColor.copy(alpha = 0.6f),
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
-                    }
-                    
-                    Row(
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 20.dp, vertical = 8.dp)
-                            .windowInsetsPadding(
-                                WindowInsets.systemBars.only(
-                                    WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal
-                                ),
-                            ),
+                    Column(
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        val buttonSize = 48.dp
-                        val iconSize = 22.dp
-
-                        Box(
-                            modifier = Modifier
-                                .height(buttonSize)
-                                .weight(1f)
-                                .clip(RoundedCornerShape(16.dp))
-                                .background(TextBackgroundColor.copy(alpha = 0.1f))
-                                .clickable { state.expandSoft() },
-                            contentAlignment = Alignment.Center
-                        ) {
+                        if (showCodecOnPlayer && currentFormat != null) {
                             Row(
                                 horizontalArrangement = Arrangement.Center,
                                 verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.fillMaxSize()
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(start = 30.dp, end = 30.dp, top = 8.dp, bottom = 0.dp)
                             ) {
-                                Icon(
-                                    painter = painterResource(id = R.drawable.queue_music),
-                                    contentDescription = null,
-                                    modifier = Modifier.size(iconSize),
-                                    tint = TextBackgroundColor
+                                val codec = currentFormat?.mimeType?.substringAfter("/")?.uppercase() ?: "Unknown"
+                                val bitrate = currentFormat?.bitrate?.let { "${it / 1000} kbps" } ?: "Unknown"
+                                val fileSize = currentFormat?.contentLength?.let {
+                                    if (it > 0) "${(it / 1024.0 / 1024.0).roundToInt()} MB" else ""
+                                } ?: ""
+                            
+                                Text(
+                                    text = buildString {
+                                        append(codec)
+                                        if (bitrate != "Unknown") {
+                                            append(" • ")
+                                            append(bitrate)
+                                        }
+                                        if (fileSize.isNotEmpty()) {
+                                            append(" • ")
+                                            append(fileSize)
+                                        }
+                                    },
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontFamily = FontFamily.Monospace,
+                                    color = TextBackgroundColor.copy(alpha = 0.6f),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
                                 )
+                            }
+                        }
+                    
+                        Row(
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 20.dp, vertical = 8.dp)
+                                .windowInsetsPadding(
+                                    WindowInsets.systemBars.only(
+                                        WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal
+                                    ),
+                                ),
+                        ) {
+                            val buttonSize = 48.dp
+                            val iconSize = 22.dp
+
+                            Box(
+                                modifier = Modifier
+                                    .height(buttonSize)
+                                    .weight(1f)
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .background(TextBackgroundColor.copy(alpha = 0.1f))
+                                    .clickable { state.expandSoft() },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Row(
+                                    horizontalArrangement = Arrangement.Center,
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.fillMaxSize()
+                                ) {
+                                    Icon(
+                                        painter = painterResource(id = R.drawable.queue_music),
+                                        contentDescription = null,
+                                        modifier = Modifier.size(iconSize),
+                                        tint = TextBackgroundColor
+                                    )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(
                                     text = stringResource(id = R.string.queue),
@@ -789,101 +799,104 @@ fun Queue(
                                 tint = iconButtonColor
                             )
                         }
+                        }
                     }
                 }
                 
                 PlayerDesignStyle.V1 -> {
-                if (showCodecOnPlayer && currentFormat != null) {
-                    Row(
-                        horizontalArrangement = Arrangement.Center,
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(start = 30.dp, end = 30.dp, top = 8.dp, bottom = 0.dp)
-                    ) {
-                        val codec = currentFormat?.mimeType?.substringAfter("/")?.uppercase() ?: "Unknown"
-                        val bitrate = currentFormat?.bitrate?.let { "${it / 1000} kbps" } ?: "Unknown"
-                        val fileSize = currentFormat?.contentLength?.let {
-                            if (it > 0) "${(it / 1024.0 / 1024.0).roundToInt()} MB" else ""
-                        } ?: ""
-                        
-                        Text(
-                            text = buildString {
-                                append(codec)
-                                if (bitrate != "Unknown") {
-                                    append(" • ")
-                                    append(bitrate)
-                                }
-                                if (fileSize.isNotEmpty()) {
-                                    append(" • ")
-                                    append(fileSize)
-                                }
-                            },
-                            style = MaterialTheme.typography.labelSmall,
-                            fontFamily = FontFamily.Monospace,
-                            color = TextBackgroundColor.copy(alpha = 0.7f),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-                }
-                
-                // Old design
-                Row(
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 30.dp, vertical = 12.dp)
-                        .windowInsetsPadding(
-                            WindowInsets.systemBars
-                                .only(WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal),
-                        ),
+                Column(
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    TextButton(
-                        onClick = { state.expandSoft() },
-                        modifier = Modifier.weight(1f)
-                    ) {
+                    if (showCodecOnPlayer && currentFormat != null) {
                         Row(
-                            verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.Center,
-                            modifier = Modifier.fillMaxWidth()
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(start = 30.dp, end = 30.dp, top = 8.dp, bottom = 0.dp)
                         ) {
-                            Icon(
-                                painter = painterResource(id = R.drawable.queue_music),
-                                contentDescription = null,
-                                modifier = Modifier.size(20.dp),
-                                tint = TextBackgroundColor
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
+                            val codec = currentFormat?.mimeType?.substringAfter("/")?.uppercase() ?: "Unknown"
+                            val bitrate = currentFormat?.bitrate?.let { "${it / 1000} kbps" } ?: "Unknown"
+                            val fileSize = currentFormat?.contentLength?.let {
+                                if (it > 0) "${(it / 1024.0 / 1024.0).roundToInt()} MB" else ""
+                            } ?: ""
+                        
                             Text(
-                                text = stringResource(id = R.string.queue),
-                                color = TextBackgroundColor,
+                                text = buildString {
+                                    append(codec)
+                                    if (bitrate != "Unknown") {
+                                        append(" • ")
+                                        append(bitrate)
+                                    }
+                                    if (fileSize.isNotEmpty()) {
+                                        append(" • ")
+                                        append(fileSize)
+                                    }
+                                },
+                                style = MaterialTheme.typography.labelSmall,
+                                fontFamily = FontFamily.Monospace,
+                                color = TextBackgroundColor.copy(alpha = 0.7f),
                                 maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                textAlign = TextAlign.Center,
-                                modifier = Modifier.basicMarquee()
+                                overflow = TextOverflow.Ellipsis
                             )
                         }
                     }
-
-                    TextButton(
-                        onClick = {
-                            if (sleepTimerEnabled) {
-                                playerConnection.service.sleepTimer.clear()
-                            } else {
-                                showSleepTimerDialog = true
-                            }
-                        },
-                        modifier = Modifier.weight(1.2f)
+                
+                    Row(
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 30.dp, vertical = 12.dp)
+                            .windowInsetsPadding(
+                                WindowInsets.systemBars
+                                    .only(WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal),
+                            ),
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.Center,
-                            modifier = Modifier.fillMaxWidth()
+                        TextButton(
+                            onClick = { state.expandSoft() },
+                            modifier = Modifier.weight(1f)
                         ) {
-                            Icon(
-                                painter = painterResource(id = R.drawable.bedtime),
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Center,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Icon(
+                                    painter = painterResource(id = R.drawable.queue_music),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(20.dp),
+                                    tint = TextBackgroundColor
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = stringResource(id = R.string.queue),
+                                    color = TextBackgroundColor,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    textAlign = TextAlign.Center,
+                                    modifier = Modifier.basicMarquee()
+                                )
+                            }
+                        }
+
+                        TextButton(
+                            onClick = {
+                                if (sleepTimerEnabled) {
+                                    playerConnection.service.sleepTimer.clear()
+                                } else {
+                                    showSleepTimerDialog = true
+                                }
+                            },
+                            modifier = Modifier.weight(1.2f)
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Center,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Icon(
+                                    painter = painterResource(id = R.drawable.bedtime),
                                 contentDescription = null,
                                 modifier = Modifier.size(20.dp),
                                 tint = TextBackgroundColor
@@ -941,6 +954,7 @@ fun Queue(
                                 modifier = Modifier.basicMarquee()
                             )
                         }
+                    }
                     }
                 }
                 }
