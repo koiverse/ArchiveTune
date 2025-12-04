@@ -54,6 +54,16 @@ class DiscordRPC(
         return "https://$trimmed"
     }
 
+    private fun createRpcImage(imageId: String?): RpcImage? {
+        if (imageId.isNullOrBlank()) return null
+        return when {
+            imageId.startsWith("mp:") -> RpcImage.DiscordImage(imageId.removePrefix("mp:"))
+            imageId.startsWith("external/") -> RpcImage.DiscordImage(imageId)
+            imageId.startsWith("attachments/") -> RpcImage.DiscordImage(imageId)
+            imageId.startsWith("http://", ignoreCase = true) || imageId.startsWith("https://", ignoreCase = true) -> RpcImage.ExternalImage(imageId)
+            else -> RpcImage.DiscordImage(imageId)
+        }
+    }
 
     suspend fun updateSong(
         song: Song,
@@ -208,13 +218,13 @@ class DiscordRPC(
 
         val finalLargeImage: RpcImage? = when (largeImageTypePref.lowercase()) {
             "thumbnail", "song", "album" -> {
-                resolvedImages.thumbnailResolvedId?.let { RpcImage.ExternalImage(it) }
-                    ?: resolvedImages.thumbnailOriginalUrl?.let { RpcImage.ExternalImage(it) }
+                createRpcImage(resolvedImages.thumbnailResolvedId)
+                    ?: createRpcImage(resolvedImages.thumbnailOriginalUrl)
                     ?: song.song.thumbnailUrl?.takeIf { it.isNotBlank() }?.let { RpcImage.ExternalImage(it) }
             }
             "artist" -> {
-                resolvedImages.artistResolvedId?.let { RpcImage.ExternalImage(it) }
-                    ?: resolvedImages.artistOriginalUrl?.let { RpcImage.ExternalImage(it) }
+                createRpcImage(resolvedImages.artistResolvedId)
+                    ?: createRpcImage(resolvedImages.artistOriginalUrl)
                     ?: song.artists.firstOrNull()?.thumbnailUrl?.takeIf { it.isNotBlank() }?.let { RpcImage.ExternalImage(it) }
             }
             "appicon" -> RpcImage.ExternalImage(APP_ICON_URL)
@@ -223,14 +233,15 @@ class DiscordRPC(
                 if (customUrl != null) {
                     RpcImage.ExternalImage(customUrl)
                 } else {
-                    resolvedImages.thumbnailResolvedId?.let { RpcImage.ExternalImage(it) }
-                        ?: resolvedImages.thumbnailOriginalUrl?.let { RpcImage.ExternalImage(it) }
+                    createRpcImage(resolvedImages.thumbnailResolvedId)
+                        ?: createRpcImage(resolvedImages.thumbnailOriginalUrl)
                         ?: song.song.thumbnailUrl?.takeIf { it.isNotBlank() }?.let { RpcImage.ExternalImage(it) }
                 }
             }
+            "none", "dontshow" -> null
             else -> {
-                resolvedImages.thumbnailResolvedId?.let { RpcImage.ExternalImage(it) }
-                    ?: resolvedImages.thumbnailOriginalUrl?.let { RpcImage.ExternalImage(it) }
+                createRpcImage(resolvedImages.thumbnailResolvedId)
+                    ?: createRpcImage(resolvedImages.thumbnailOriginalUrl)
             }
         }
 
@@ -239,13 +250,13 @@ class DiscordRPC(
             smallImageTypePref.lowercase() in listOf("none", "dontshow") -> null
             smallImageTypePref.lowercase() == "appicon" -> RpcImage.ExternalImage(APP_ICON_URL)
             smallImageTypePref.lowercase() == "artist" -> {
-                resolvedImages.artistResolvedId?.let { RpcImage.ExternalImage(it) }
-                    ?: resolvedImages.artistOriginalUrl?.let { RpcImage.ExternalImage(it) }
+                createRpcImage(resolvedImages.artistResolvedId)
+                    ?: createRpcImage(resolvedImages.artistOriginalUrl)
                     ?: song.artists.firstOrNull()?.thumbnailUrl?.takeIf { it.isNotBlank() }?.let { RpcImage.ExternalImage(it) }
             }
             smallImageTypePref.lowercase() in listOf("thumbnail", "song", "album") -> {
-                resolvedImages.thumbnailResolvedId?.let { RpcImage.ExternalImage(it) }
-                    ?: resolvedImages.thumbnailOriginalUrl?.let { RpcImage.ExternalImage(it) }
+                createRpcImage(resolvedImages.thumbnailResolvedId)
+                    ?: createRpcImage(resolvedImages.thumbnailOriginalUrl)
                     ?: song.song.thumbnailUrl?.takeIf { it.isNotBlank() }?.let { RpcImage.ExternalImage(it) }
             }
             smallImageTypePref.lowercase() == "custom" -> {
@@ -253,22 +264,28 @@ class DiscordRPC(
                 if (customUrl != null) {
                     RpcImage.ExternalImage(customUrl)
                 } else {
-                    resolvedImages.artistResolvedId?.let { RpcImage.ExternalImage(it) }
-                        ?: resolvedImages.artistOriginalUrl?.let { RpcImage.ExternalImage(it) }
+                    createRpcImage(resolvedImages.artistResolvedId)
+                        ?: createRpcImage(resolvedImages.artistOriginalUrl)
                         ?: song.artists.firstOrNull()?.thumbnailUrl?.takeIf { it.isNotBlank() }?.let { RpcImage.ExternalImage(it) }
                 }
             }
             else -> {
-                resolvedImages.artistResolvedId?.let { RpcImage.ExternalImage(it) }
-                    ?: resolvedImages.artistOriginalUrl?.let { RpcImage.ExternalImage(it) }
+                createRpcImage(resolvedImages.artistResolvedId)
+                    ?: createRpcImage(resolvedImages.artistOriginalUrl)
             }
         }
         
-        Timber.tag(logtag).d(
-            "Final images - large: %s, small: %s",
-            (finalLargeImage as? RpcImage.ExternalImage)?.image?.take(40) ?: "null",
-            (finalSmallImage as? RpcImage.ExternalImage)?.image?.take(40) ?: "null"
-        )
+        val largeImageStr = when (finalLargeImage) {
+            is RpcImage.DiscordImage -> "discord:${finalLargeImage.image.take(30)}"
+            is RpcImage.ExternalImage -> "external:${finalLargeImage.image.take(30)}"
+            null -> "null"
+        }
+        val smallImageStr = when (finalSmallImage) {
+            is RpcImage.DiscordImage -> "discord:${finalSmallImage.image.take(30)}"
+            is RpcImage.ExternalImage -> "external:${finalSmallImage.image.take(30)}"
+            null -> "null"
+        }
+        Timber.tag(logtag).d("Final images - large: %s, small: %s", largeImageStr, smallImageStr)
 
         val largeTextSource = (context.dataStore[DiscordLargeTextSourceKey] ?: "album").lowercase()
         val resolvedLargeText = when (largeTextSource) {
