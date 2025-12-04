@@ -161,12 +161,12 @@ object DiscordImageResolver {
     ): RpcImage? {
         return when (imageType.lowercase()) {
             "thumbnail", "song", "album" -> {
-                resolvedImages.thumbnailResolvedId?.let { RpcImage.ExternalImage(it) }
+                resolvedImages.thumbnailResolvedId?.let { createRpcImageFromId(it) }
                     ?: resolvedImages.thumbnailOriginalUrl?.let { RpcImage.ExternalImage(it) }
                     ?: song.song.thumbnailUrl?.takeIf { it.isValidHttpUrl() }?.let { RpcImage.ExternalImage(it) }
             }
             "artist" -> {
-                resolvedImages.artistResolvedId?.let { RpcImage.ExternalImage(it) }
+                resolvedImages.artistResolvedId?.let { createRpcImageFromId(it) }
                     ?: resolvedImages.artistOriginalUrl?.let { RpcImage.ExternalImage(it) }
                     ?: song.artists.firstOrNull()?.thumbnailUrl?.takeIf { it.isValidHttpUrl() }?.let { RpcImage.ExternalImage(it) }
             }
@@ -181,9 +181,20 @@ object DiscordImageResolver {
             }
             "dontshow", "none" -> null
             else -> {
-                resolvedImages.thumbnailResolvedId?.let { RpcImage.ExternalImage(it) }
+                resolvedImages.thumbnailResolvedId?.let { createRpcImageFromId(it) }
                     ?: resolvedImages.thumbnailOriginalUrl?.let { RpcImage.ExternalImage(it) }
             }
+        }
+    }
+    
+    private fun createRpcImageFromId(id: String): RpcImage? {
+        if (id.isBlank()) return null
+        return when {
+            id.startsWith("mp:") -> RpcImage.DiscordImage(id.removePrefix("mp:"))
+            id.startsWith("external/") -> RpcImage.DiscordImage(id)
+            id.startsWith("attachments/") -> RpcImage.DiscordImage(id)
+            id.startsWith("http") -> RpcImage.ExternalImage(id)
+            else -> RpcImage.DiscordImage(id)
         }
     }
 
