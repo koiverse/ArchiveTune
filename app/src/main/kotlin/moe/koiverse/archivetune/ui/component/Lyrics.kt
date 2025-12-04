@@ -753,7 +753,13 @@ fun Lyrics(
                         val romanizedText by item.romanizedTextFlow.collectAsState()
                         val hasRomanization = romanizedText != null
 
-                        if (hasWordTimings && item.words != null && lyricsAnimationStyle == LyricsAnimationStyle.NONE) {
+                        val effectiveAnimationStyle = if (lyricsAnimationStyle == LyricsAnimationStyle.KARAOKE && !hasWordTimings) {
+                            LyricsAnimationStyle.APPLE
+                        } else {
+                            lyricsAnimationStyle
+                        }
+
+                        if (hasWordTimings && item.words != null && effectiveAnimationStyle == LyricsAnimationStyle.NONE) {
 
                             val styledText = buildAnnotatedString {
                                 item.words.forEachIndexed { wordIndex, word ->
@@ -827,7 +833,7 @@ fun Lyrics(
                                 textAlign = alignment,
                                 lineHeight = (lyricsTextSize * lyricsLineSpacing).sp
                             )
-                        } else if (hasWordTimings && item.words != null && lyricsAnimationStyle == LyricsAnimationStyle.FADE) {
+                        } else if (hasWordTimings && item.words != null && effectiveAnimationStyle == LyricsAnimationStyle.FADE) {
 
                             val styledText = buildAnnotatedString {
                                 item.words.forEachIndexed { wordIndex, word ->
@@ -904,7 +910,7 @@ fun Lyrics(
                                 textAlign = alignment,
                                 lineHeight = (lyricsTextSize * lyricsLineSpacing).sp
                             )
-                        } else if (hasWordTimings && item.words != null && lyricsAnimationStyle == LyricsAnimationStyle.GLOW) {
+                        } else if (hasWordTimings && item.words != null && effectiveAnimationStyle == LyricsAnimationStyle.GLOW) {
 
                             val styledText = buildAnnotatedString {
                                 item.words.forEachIndexed { wordIndex, word ->
@@ -989,7 +995,7 @@ fun Lyrics(
                                 textAlign = alignment,
                                 lineHeight = (lyricsTextSize * lyricsLineSpacing).sp
                             )
-                        } else if (hasWordTimings && item.words != null && lyricsAnimationStyle == LyricsAnimationStyle.SLIDE) {
+                        } else if (hasWordTimings && item.words != null && effectiveAnimationStyle == LyricsAnimationStyle.SLIDE) {
 
                             val firstWordStartMs = (item.words.firstOrNull()?.startTime?.times(1000))?.toLong() ?: 0L
                             val lastWordEndMs = (item.words.lastOrNull()?.endTime?.times(1000))?.toLong() ?: 0L
@@ -1075,7 +1081,7 @@ fun Lyrics(
                                     lineHeight = (lyricsTextSize * lyricsLineSpacing).sp
                                 )
                             }
-                        } else if (hasWordTimings && item.words != null && lyricsAnimationStyle == LyricsAnimationStyle.KARAOKE) {
+                        } else if (hasWordTimings && item.words != null && effectiveAnimationStyle == LyricsAnimationStyle.KARAOKE) {
                             val styledText = buildAnnotatedString {
                                 item.words.forEachIndexed { wordIndex, word ->
                                     val wordStartMs = (word.startTime * 1000).toLong()
@@ -1168,7 +1174,7 @@ fun Lyrics(
                                 textAlign = alignment,
                                 lineHeight = (lyricsTextSize * lyricsLineSpacing).sp
                             )
-                        } else if (hasWordTimings && item.words != null && lyricsAnimationStyle == LyricsAnimationStyle.APPLE) {
+                        } else if (hasWordTimings && item.words != null && effectiveAnimationStyle == LyricsAnimationStyle.APPLE) {
 
                             val styledText = buildAnnotatedString {
                                 item.words.forEachIndexed { wordIndex, word ->
@@ -1246,7 +1252,7 @@ fun Lyrics(
                                 textAlign = alignment,
                                 lineHeight = (lyricsTextSize * lyricsLineSpacing).sp
                             )
-                        } else if (isActiveLine && (lyricsAnimationStyle == LyricsAnimationStyle.FADE || lyricsAnimationStyle == LyricsAnimationStyle.GLOW)) {
+                        } else if (isActiveLine && (effectiveAnimationStyle == LyricsAnimationStyle.FADE || effectiveAnimationStyle == LyricsAnimationStyle.GLOW)) {
 
                             val styledText = buildAnnotatedString {
                                 withStyle(
@@ -1270,7 +1276,7 @@ fun Lyrics(
                                 fontWeight = if (hasRomanization) FontWeight.Bold else FontWeight.ExtraBold,
                                 lineHeight = (lyricsTextSize * lyricsLineSpacing).sp
                             )
-                        } else if (isActiveLine && (lyricsAnimationStyle == LyricsAnimationStyle.SLIDE || lyricsAnimationStyle == LyricsAnimationStyle.KARAOKE)) {
+                        } else if (isActiveLine && (effectiveAnimationStyle == LyricsAnimationStyle.SLIDE || effectiveAnimationStyle == LyricsAnimationStyle.KARAOKE)) {
 
                             val popInScale = remember { Animatable(0.95f) }
 
@@ -1357,7 +1363,7 @@ fun Lyrics(
                                     scaleY = combinedScale
                                 }
                             )
-                        } else if (isActiveLine && lyricsAnimationStyle == LyricsAnimationStyle.APPLE) {
+                        } else if (isActiveLine && effectiveAnimationStyle == LyricsAnimationStyle.APPLE) {
 
                             val popInScale = remember { Animatable(0.96f) }
                             val glowAlpha = remember { Animatable(0f) }
@@ -1447,7 +1453,7 @@ fun Lyrics(
                             val romanizedFontSize = 16.sp
                             romanizedText?.let { romanized ->
 
-                                if (hasWordTimings && item.words != null && isActiveLine && lyricsAnimationStyle != LyricsAnimationStyle.NONE) {
+                                if (hasWordTimings && item.words != null && isActiveLine && effectiveAnimationStyle != LyricsAnimationStyle.NONE) {
 
                                     val romanizedWords = romanized.split(" ")
                                     val mainWords = item.words
@@ -1465,7 +1471,7 @@ fun Lyrics(
                                                 val isWordActive = currentPlaybackPosition in wordStartMs..wordEndMs
                                                 val hasWordPassed = currentPlaybackPosition > wordEndMs
 
-                                                when (lyricsAnimationStyle) {
+                                                when (effectiveAnimationStyle) {
                                                     LyricsAnimationStyle.APPLE -> {
                                                         val rawProgress = if (isWordActive && wordDuration > 0) {
                                                             val elapsed = currentPlaybackPosition - wordStartMs
