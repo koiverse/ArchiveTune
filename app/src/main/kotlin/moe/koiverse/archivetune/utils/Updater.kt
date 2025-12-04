@@ -65,10 +65,10 @@ object Updater {
             )
         }
 
-    suspend fun getCommitHistory(count: Int = 20): Result<List<GitCommit>> =
+    suspend fun getCommitHistory(count: Int = 20, branch: String = "dev"): Result<List<GitCommit>> =
         runCatching {
             val response =
-                client.get("https://api.github.com/repos/koiverse/ArchiveTune/commits?per_page=$count")
+                client.get("https://api.github.com/repos/koiverse/ArchiveTune/commits?sha=$branch&per_page=$count")
                     .bodyAsText()
             val jsonArray = JSONArray(response)
             val commits = mutableListOf<GitCommit>()

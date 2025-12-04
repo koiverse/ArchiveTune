@@ -73,6 +73,7 @@ import moe.koiverse.archivetune.ui.component.PreferenceGroupTitle
 import moe.koiverse.archivetune.ui.component.SwitchPreference
 import moe.koiverse.archivetune.ui.utils.backToMain
 import moe.koiverse.archivetune.utils.GitCommit
+import moe.koiverse.archivetune.utils.UpdateNotificationManager
 import moe.koiverse.archivetune.utils.Updater
 import moe.koiverse.archivetune.utils.rememberEnumPreference
 import moe.koiverse.archivetune.utils.rememberPreference
@@ -122,6 +123,7 @@ fun UpdateScreen(
         hasNotificationPermission = isGranted
         if (isGranted) {
             onEnableUpdateNotificationChange(true)
+            UpdateNotificationManager.schedulePeriodicUpdateCheck(context)
         }
     }
 
@@ -251,9 +253,11 @@ fun UpdateScreen(
                                 permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
                             } else {
                                 onEnableUpdateNotificationChange(true)
+                                UpdateNotificationManager.schedulePeriodicUpdateCheck(context)
                             }
                         } else {
                             onEnableUpdateNotificationChange(false)
+                            UpdateNotificationManager.cancelPeriodicUpdateCheck(context)
                         }
                     }
                 )
