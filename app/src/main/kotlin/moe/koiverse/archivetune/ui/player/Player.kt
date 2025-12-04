@@ -152,6 +152,7 @@ import moe.koiverse.archivetune.ui.utils.ShowMediaInfo
 import moe.koiverse.archivetune.utils.makeTimeString
 import moe.koiverse.archivetune.utils.rememberEnumPreference
 import moe.koiverse.archivetune.utils.rememberPreference
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -197,6 +198,7 @@ fun BottomSheetPlayer(
     val (playerCustomBrightness) = rememberPreference(PlayerCustomBrightnessKey, 1f)
     
     val (disableBlur) = rememberPreference(DisableBlurKey, false)
+    val (showCodecOnPlayer) = rememberPreference(booleanPreferencesKey("show_codec_on_player"), false)
 
     val playerButtonsStyle by rememberEnumPreference(
         key = PlayerButtonsStyleKey,
@@ -490,8 +492,9 @@ fun BottomSheetPlayer(
         }
     }
 
+    val dynamicQueuePeekHeight = if (showCodecOnPlayer) 88.dp else QueuePeekHeight
 
-    val dismissedBound = QueuePeekHeight + WindowInsets.systemBars.asPaddingValues().calculateBottomPadding()
+    val dismissedBound = dynamicQueuePeekHeight + WindowInsets.systemBars.asPaddingValues().calculateBottomPadding()
 
     val queueSheetState = rememberBottomSheetState(
         dismissedBound = dismissedBound,
