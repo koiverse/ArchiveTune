@@ -78,6 +78,12 @@ import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.ClipOp
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -1525,12 +1531,23 @@ fun Lyrics(
             }
         }
 
-        if (isManualScrolling && scrollLyrics && !isSelectionModeActive) {
-            Box(
+            AnimatedVisibility(
+                visible = isManualScrolling && scrollLyrics && !isSelectionModeActive,
+                enter = slideInVertically(
+                    animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing),
+                    initialOffsetY = { it * 2 }
+                ) + fadeIn(
+                    animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing)
+                ),
+                exit = slideOutVertically(
+                    animationSpec = tween(durationMillis = 200, easing = FastOutSlowInEasing),
+                    targetOffsetY = { it * 2 }
+                ) + fadeOut(
+                    animationSpec = tween(durationMillis = 200, easing = FastOutSlowInEasing)
+                ),
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .padding(bottom = 16.dp),
-                contentAlignment = Alignment.Center
+                    .padding(bottom = 16.dp)
             ) {
                 Row(
                     modifier = Modifier
@@ -1541,6 +1558,16 @@ fun Lyrics(
                         .clickable {
                             isManualScrolling = false
                             lastPreviewTime = 0L
+
+                            // Automatic scroll to current lyric
+                            if (currentLineIndex >= 0) {
+                                scope.launch {
+                                    lazyListState.animateScrollToItem(
+                                        index = currentLineIndex,
+                                        scrollOffset = 0
+                                    )
+                                }
+                            }
                         }
                         .padding(horizontal = 20.dp, vertical = 10.dp),
                     verticalAlignment = Alignment.CenterVertically,
@@ -1560,7 +1587,6 @@ fun Lyrics(
                     )
                 }
             }
-        }
 
         if (isSelectionModeActive) {
             mediaMetadata?.let { metadata ->
