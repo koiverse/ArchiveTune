@@ -1132,10 +1132,6 @@ fun Queue(
                     ReorderableItem(
                         state = reorderableState,
                         key = window.uid.hashCode(),
-                        modifier = Modifier.graphicsLayer {
-                            // Enable hardware acceleration for smoother dragging
-                            compositingStrategy = androidx.compose.ui.graphics.CompositingStrategy.Offscreen
-                        }
                     ) {
                         val currentItem by rememberUpdatedState(window)
                         val dismissBoxState =
@@ -1180,6 +1176,10 @@ fun Queue(
                         val content: @Composable () -> Unit = {
                             Row(
                                 horizontalArrangement = Arrangement.Center,
+                                modifier = Modifier.graphicsLayer {
+                                    // Enable hardware acceleration for smoother dragging
+                                    compositingStrategy = androidx.compose.ui.graphics.CompositingStrategy.Offscreen
+                                }
                             ) {
                                 MediaMetadataListItem(
                                     mediaMetadata = window.mediaItem.metadata!!,
