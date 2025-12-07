@@ -1039,6 +1039,9 @@ fun Queue(
         val lazyListState = rememberLazyListState()
         var dragInfo by remember { mutableStateOf<Pair<Int, Int>?>(null) }
 
+        var shouldScrollToCurrent by remember { mutableStateOf(false) }
+        var lastScrolledUid by remember { mutableStateOf<Long?>(null) }
+
         val currentPlayingUid = remember(currentWindowIndex, queueWindows) {
             if (currentWindowIndex in queueWindows.indices) {
                 queueWindows[currentWindowIndex].uid
@@ -1086,6 +1089,21 @@ fun Queue(
             }
         }
 
+        LaunchedEffect(mutableQueueWindows) {
+            if (mutableQueueWindows.isNotEmpty() && !shouldScrollToCurrent) {
+                shouldScrollToCurrent = true
+            }
+        }
+
+        LaunchedEffect(currentPlayingUid, shouldScrollToCurrent) {
+            if (currentPlayingUid != null && shouldScrollToCurrent) {
+                val indexInMutableList = mutableQueueWindows.indexOfFirst { it.uid == currentPlayingUid }
+                if (indexInMutableList != -1) {
+                    lazyListState.scrollToItem(indexInMutableList + headerItems)
+                }
+            }
+        }
+
         LaunchedEffect(reorderableState.isAnyItemDragging) {
             if (!reorderableState.isAnyItemDragging) {
                 dragInfo?.let { (from, to) ->
@@ -1117,7 +1135,7 @@ fun Queue(
             }
         }
 
-        LaunchedEffect(mutableQueueWindows, currentPlayingUid) {
+        LaunchedEffect(Unit) {
             if (currentPlayingUid != null) {
                 val indexInMutableList = mutableQueueWindows.indexOfFirst { it.uid == currentPlayingUid }
                 if (indexInMutableList != -1) {
@@ -1125,7 +1143,6 @@ fun Queue(
                 }
             }
         }
-
         Box(
             modifier =
             Modifier
@@ -1280,6 +1297,7 @@ fun Queue(
                                                             window.firstPeriodIndex,
                                                         )
                                                         playerConnection.player.playWhenReady = true
+                                                        shouldScrollToCurrent = false
                                                     }
                                                 }
                                             },
