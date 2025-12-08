@@ -1039,6 +1039,15 @@ fun Queue(
         val lazyListState = rememberLazyListState()
         var dragInfo by remember { mutableStateOf<Pair<Int, Int>?>(null) }
 
+        var shouldScrollToCurrent by remember { mutableStateOf(false) }
+        var lastScrolledUid by remember { mutableStateOf<Long?>(null) }
+
+        val currentPlayingUid = remember(currentWindowIndex, queueWindows) {
+            if (currentWindowIndex in queueWindows.indices) {
+                queueWindows[currentWindowIndex].uid
+            } else null
+        }
+
         val reorderableState = rememberReorderableLazyListState(
             lazyListState = lazyListState,
             scrollThresholdPadding = WindowInsets.systemBars.add(
@@ -1059,6 +1068,40 @@ fun Queue(
             val safeTo = (to.index - headerItems).coerceIn(0, mutableQueueWindows.lastIndex)
 
             mutableQueueWindows.move(safeFrom, safeTo)
+
+            if (selection && currentWindowIndex in mutableQueueWindows.indices) {
+                val draggedItemUid = mutableQueueWindows[if (to.index > from.index) safeTo else safeFrom].uid
+                val currentItem = queueWindows.getOrNull(currentWindowIndex)
+
+                if (currentItem?.uid == draggedItemUid) {
+                    val newIndex = mutableQueueWindows.indexOfFirst { it.uid == draggedItemUid }
+                    if (newIndex != -1) {
+                        selectedSongs.clear()
+                        selectedItems.clear()
+                        mutableQueueWindows.getOrNull(newIndex)?.let { window ->
+                            window.mediaItem.metadata?.let { metadata ->
+                                selectedSongs.add(metadata)
+                                selectedItems.add(window)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        LaunchedEffect(mutableQueueWindows) {
+            if (mutableQueueWindows.isNotEmpty() && !shouldScrollToCurrent) {
+                shouldScrollToCurrent = true
+            }
+        }
+
+        LaunchedEffect(currentPlayingUid, shouldScrollToCurrent) {
+            if (currentPlayingUid != null && shouldScrollToCurrent) {
+                val indexInMutableList = mutableQueueWindows.indexOfFirst { it.uid == currentPlayingUid }
+                if (indexInMutableList != -1) {
+                    lazyListState.scrollToItem(indexInMutableList + headerItems)
+                }
+            }
         }
 
         LaunchedEffect(reorderableState.isAnyItemDragging) {
@@ -1092,12 +1135,14 @@ fun Queue(
             }
         }
 
-        LaunchedEffect(mutableQueueWindows) {
-            if (currentWindowIndex != -1) {
-                lazyListState.scrollToItem(currentWindowIndex)
+        LaunchedEffect(Unit) {
+            if (currentPlayingUid != null) {
+                val indexInMutableList = mutableQueueWindows.indexOfFirst { it.uid == currentPlayingUid }
+                if (indexInMutableList != -1) {
+                    lazyListState.scrollToItem(indexInMutableList + headerItems)
+                }
             }
         }
-
         Box(
             modifier =
             Modifier
@@ -1132,12 +1177,9 @@ fun Queue(
                     ReorderableItem(
                         state = reorderableState,
                         key = window.uid.hashCode(),
-                        modifier = Modifier.graphicsLayer {
-                            // Enable hardware acceleration for smoother dragging
-                            compositingStrategy = androidx.compose.ui.graphics.CompositingStrategy.Offscreen
-                        }
                     ) {
                         val currentItem by rememberUpdatedState(window)
+                        val isActive = window.uid == currentPlayingUid
                         val dismissBoxState =
                             rememberSwipeToDismissBoxState(
                                 positionalThreshold = { totalDistance -> totalDistance }
@@ -1180,12 +1222,16 @@ fun Queue(
                         val content: @Composable () -> Unit = {
                             Row(
                                 horizontalArrangement = Arrangement.Center,
+                                modifier = Modifier.graphicsLayer {
+                                    // Enable hardware acceleration for smoother dragging
+                                    compositingStrategy = androidx.compose.ui.graphics.CompositingStrategy.Offscreen
+                                }
                             ) {
                                 MediaMetadataListItem(
                                     mediaMetadata = window.mediaItem.metadata!!,
                                     isSelected = selection && window.mediaItem.metadata!! in selectedSongs,
-                                    isActive = index == currentWindowIndex,
-                                    isPlaying = isPlaying,
+                                    isActive = isActive,
+                                    isPlaying = isPlaying && isActive,
                                     trailingContent = {
                                         IconButton(
                                             onClick = {
@@ -1251,6 +1297,7 @@ fun Queue(
                                                             window.firstPeriodIndex,
                                                         )
                                                         playerConnection.player.playWhenReady = true
+                                                        shouldScrollToCurrent = false
                                                     }
                                                 }
                                             },
