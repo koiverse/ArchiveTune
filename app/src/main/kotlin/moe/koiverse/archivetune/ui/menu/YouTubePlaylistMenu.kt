@@ -10,8 +10,12 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
+import androidx.compose.ui.platform.LocalConfiguration
+import android.content.res.Configuration
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -184,6 +188,9 @@ fun YouTubePlaylistMenu(
     )
     HorizontalDivider()
 
+    val configuration = LocalConfiguration.current
+    val isPortrait = configuration.orientation == Configuration.ORIENTATION_PORTRAIT
+
     var downloadState by remember {
         mutableStateOf(Download.STATE_STOPPED)
     }
@@ -316,71 +323,8 @@ fun YouTubePlaylistMenu(
         }
     }
 
-    // Enhanced Action Grid using NewMenuComponents
-    NewActionGrid(
-        actions = buildList {
-            playlist.playEndpoint?.let { playEndpoint ->
-                add(
-                    NewAction(
-                        icon = {
-                            Icon(
-                                painter = painterResource(R.drawable.play),
-                                contentDescription = null,
-                                modifier = Modifier.size(28.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        },
-                        text = stringResource(R.string.play),
-                        onClick = {
-                            playerConnection.playQueue(YouTubeQueue(playEndpoint))
-                            onDismiss()
-                        }
-                    )
-                )
-            }
-            playlist.shuffleEndpoint?.let { shuffleEndpoint ->
-                add(
-                    NewAction(
-                        icon = {
-                            Icon(
-                                painter = painterResource(R.drawable.shuffle),
-                                contentDescription = null,
-                                modifier = Modifier.size(28.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        },
-                        text = stringResource(R.string.shuffle),
-                        onClick = {
-                            playerConnection.playQueue(YouTubeQueue(shuffleEndpoint))
-                            onDismiss()
-                        }
-                    )
-                )
-            }
-            playlist.radioEndpoint?.let { radioEndpoint ->
-                add(
-                    NewAction(
-                        icon = {
-                            Icon(
-                                painter = painterResource(R.drawable.radio),
-                                contentDescription = null,
-                                modifier = Modifier.size(28.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        },
-                        text = stringResource(R.string.start_radio),
-                        onClick = {
-                            playerConnection.playQueue(YouTubeQueue(radioEndpoint))
-                            onDismiss()
-                        }
-                    )
-                )
-            }
-        },
-        modifier = Modifier.padding(horizontal = 4.dp, vertical = 16.dp)
-    )
-
     LazyColumn(
+        userScrollEnabled = !isPortrait,
         contentPadding = PaddingValues(
             start = 0.dp,
             top = 0.dp,
@@ -388,6 +332,76 @@ fun YouTubePlaylistMenu(
             bottom = 8.dp + WindowInsets.systemBars.asPaddingValues().calculateBottomPadding(),
         ),
     ) {
+
+        item {
+            Spacer(modifier = Modifier.height(12.dp))
+        }
+
+        item {
+            // Enhanced Action Grid using NewMenuComponents
+            NewActionGrid(
+                actions = buildList {
+                    playlist.playEndpoint?.let { playEndpoint ->
+                        add(
+                            NewAction(
+                                icon = {
+                                    Icon(
+                                        painter = painterResource(R.drawable.play),
+                                        contentDescription = null,
+                                        modifier = Modifier.size(28.dp),
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                },
+                                text = stringResource(R.string.play),
+                                onClick = {
+                                    playerConnection.playQueue(YouTubeQueue(playEndpoint))
+                                    onDismiss()
+                                }
+                            )
+                        )
+                    }
+                    playlist.shuffleEndpoint?.let { shuffleEndpoint ->
+                        add(
+                            NewAction(
+                                icon = {
+                                    Icon(
+                                        painter = painterResource(R.drawable.shuffle),
+                                        contentDescription = null,
+                                        modifier = Modifier.size(28.dp),
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                },
+                                text = stringResource(R.string.shuffle),
+                                onClick = {
+                                    playerConnection.playQueue(YouTubeQueue(shuffleEndpoint))
+                                    onDismiss()
+                                }
+                            )
+                        )
+                    }
+                    playlist.radioEndpoint?.let { radioEndpoint ->
+                        add(
+                            NewAction(
+                                icon = {
+                                    Icon(
+                                        painter = painterResource(R.drawable.radio),
+                                        contentDescription = null,
+                                        modifier = Modifier.size(28.dp),
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                },
+                                text = stringResource(R.string.start_radio),
+                                onClick = {
+                                    playerConnection.playQueue(YouTubeQueue(radioEndpoint))
+                                    onDismiss()
+                                }
+                            )
+                        )
+                    }
+                },
+                modifier = Modifier.padding(horizontal = 4.dp, vertical = 16.dp)
+            )
+        }
 
         item {
             ListItem(
