@@ -187,22 +187,61 @@ private fun KaraokeWord(
     currentTimeProvider: () -> Long,
     fontSize: TextUnit,
     textColor: Color,
-    inactiveAlpha: Float = 0.3f,
+    inactiveAlpha: Float,
     fontWeight: FontWeight = FontWeight.ExtraBold,
     modifier: Modifier = Modifier
 ) {
     val duration = endTime - startTime
-    
-    Box(modifier = modifier) {
-        // Inactive (unfilled) layer
+
+    Box(
+        modifier = modifier.graphicsLayer {
+            val currentTime = currentTimeProvider()
+            val progress = if (duration > 0) {
+                val elapsed = currentTime - startTime
+                (elapsed.toFloat() / duration.toFloat()).coerceIn(0f, 1f)
+            } else if (currentTime >= endTime) {
+                1f
+            } else {
+                0f
+            }
+
+            // Bounce effect: sin wave on translationY when active
+            if (progress > 0f && progress < 1f) {
+                // Smooth bounce up and down.
+                // sin(0..1 * PI) goes 0 -> 1 -> 0
+                val bounce = kotlin.math.sin(progress * Math.PI).toFloat() * -12f // Bounce up 12px
+                translationY = bounce
+            } else {
+                translationY = 0f
+            }
+        }
+    ) {
+        // 1. Inactive (unfilled) layer - Always visible foundation
         Text(
             text = text,
             fontSize = fontSize,
             color = textColor.copy(alpha = inactiveAlpha),
             fontWeight = fontWeight
         )
-        
-        // Active (filled) layer with draw-time clipping and glow
+
+        // 2. Completed (filled) layer - NO GLOW
+        // Only drawn when progress is fully complete (1f)
+        Text(
+            text = text,
+            fontSize = fontSize,
+            color = textColor,
+            fontWeight = fontWeight,
+            modifier = Modifier.drawWithContent {
+                val currentTime = currentTimeProvider()
+                val isDone = currentTime >= endTime
+                if (isDone) {
+                    drawContent()
+                }
+            }
+        )
+
+        // 3. Active (filling) layer - WITH GLOW
+        // Only drawn when filling (0 < progress < 1)
         Text(
             text = text,
             fontSize = fontSize,
@@ -211,25 +250,22 @@ private fun KaraokeWord(
             style = LocalTextStyle.current.copy(
                 shadow = Shadow(
                     color = textColor,
-                    blurRadius = 15f
+                    blurRadius = 25f // Stronger glow for the active word
                 )
             ),
             modifier = Modifier.drawWithContent {
                 val currentTime = currentTimeProvider()
-                
-                // Calculate progress in draw phase
                 val progress = if (duration > 0) {
-                     val elapsed = currentTime - startTime
-                     (elapsed.toFloat() / duration.toFloat()).coerceIn(0f, 1f)
+                    val elapsed = currentTime - startTime
+                    (elapsed.toFloat() / duration.toFloat()).coerceIn(0f, 1f)
                 } else if (currentTime >= endTime) {
                     1f
                 } else {
                     0f
                 }
 
-                if (progress > 0f) {
+                if (progress > 0f && progress < 1f) {
                     val fillWidth = size.width * progress
-                    
                     clipRect(
                         left = 0f,
                         top = 0f,
@@ -241,7 +277,6 @@ private fun KaraokeWord(
                 }
             }
         )
-
     }
 }
 
