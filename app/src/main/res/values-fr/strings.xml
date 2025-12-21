@@ -35,7 +35,7 @@
     <string name="integration">Intégration</string>
 
     <!-- History -->
-    <string name="today">Aujourd'hui</string>
+    <string name="today">Aujourd\'hui</string>
     <string name="yesterday">Hier</string>
     <string name="this_week">Cette semaine</string>
     <string name="last_week">La semaine dernière</string>
@@ -107,23 +107,23 @@
     <string name="import_failed">Échec de l'importation</string>
     <string name="update_button">Mise à jour</string>
     <string name="add_to_playlist">Ajouter à la playlist</string>
-    <string name="view_artist">Voir l'artiste</string>
-    <string name="view_album">Voir l'album</string>
+    <string name="view_artist">Voir l\'artiste</string>
+    <string name="view_album">Voir l\'album</string>
     <string name="view_all">Afficher tout</string>
     <string name="more">Plus</string>
     <string name="refetch">Récupérer</string>
     <string name="share">Partager</string>
     <string name="delete">Supprimer</string>
     <string name="remove_from_history">Remove from history</string>
-    <string name="remove_from_playlist">Supprimer de l'historique</string>
-    <string name="remove_from_queue">Retirer de la file d'attente</string>
+    <string name="remove_from_playlist">Supprimer de l\'historique</string>
+    <string name="remove_from_queue">Retirer de la file d\'attente</string>
     <string name="search_online">Recherche en ligne</string>
     <string name="action_sync">Synchronisation</string>
     <string name="advanced">Avancé</string>
     <string name="tempo_and_pitch">Tempo et Hauteur</string>
 
     <!-- Sort menu -->
-    <string name="sort_by_create_date">Date d'ajout</string>
+    <string name="sort_by_create_date">Date d\'ajout</string>
     <string name="sort_by_name">Nom</string>
     <string name="sort_by_artist">Artiste</string>
     <string name="sort_by_year">Année</string>
@@ -436,15 +436,15 @@
     <string name="audio_quality_highest">La plus haute</string>
     <string name="audio_quality_low">Basse</string>
     <string name="network_metered_title">Considérer le réseau comme un réseau mesuré</string>
-    <string name="network_metered_description">Une fois activée, l'application privilégiera les flux de qualité inférieure sur les réseaux limités.</string>
-    <string name="queue">File d'attente</string>
-    <string name="persistent_queue">File d'attente persistante</string>
-    <string name="persistent_queue_desc">Restaurez votre dernière file d'attente au démarrage de l'application.</string>
+    <string name="network_metered_description">Une fois activée, l\'application privilégiera les flux de qualité inférieure sur les réseaux limités.</string>
+    <string name="queue">File d\'attente</string>
+    <string name="persistent_queue">File d\'attente persistante</string>
+    <string name="persistent_queue_desc">Restaurez votre dernière file d\'attente au démarrage de l\'application.</string>
     <string name="auto_load_more">Charger automatiquement plus de titres</string>
     <string name="auto_load_more_desc">Ajout automatique de titres supplémentaires lorsque la fin de la file d\'attente est atteinte. Désactivé lorsque le mode répétition est activé.</string>
     <string name="skip_silence">Passer le silence</string>
     <string name="audio_normalization">Normalisation audio</string>
-    <string name="auto_skip_next_on_error">Passage automatique au titre suivant en cas d'erreur</string>
+    <string name="auto_skip_next_on_error">Passage automatique au titre suivant en cas d\'erreur</string>
     <string name="auto_skip_next_on_error_desc">Assurez votre expérience de lecture continue</string>
     <string name="stop_music_on_task_clear">Arrêter la musique sur la tâche terminée</string>
     <string name="artist_separators">Symboles pour séparer les artistes</string>
@@ -455,26 +455,26 @@
 
     <string name="storage">Stockage</string>
     <string name="cache">Cache</string>
-    <string name="image_cache">Cache d'images</string>
+    <string name="image_cache">Cache d\'images</string>
     <string name="song_cache">Cache de titres</string>
     <string name="max_cache_size">Taille maximale du cache</string>
     <string name="unlimited">Illimitée</string>
     <string name="clear_all_downloads">Effacer tous les téléchargements</string>
-    <string name="max_image_cache_size">Taille maximale du cache d'images</string>
-    <string name="clear_image_cache">Vider le cache d'images</string>
+    <string name="max_image_cache_size">Taille maximale du cache d\'images</string>
+    <string name="clear_image_cache">Vider le cache d\'images</string>
     <string name="max_song_cache_size">Taille maximale du cache des titres</string>
     <string name="clear_song_cache">Vider le cache des titres</string>
     <string name="size_used">%s utilisée</string>
 
     <string name="privacy">Confidentialité</string>
-    <string name="listen_history">Historique d'écoute</string>
-    <string name="pause_listen_history">Mettre en pause l'historique d'écoute</string>
-    <string name="clear_listen_history">Effacer l'historique d'écoute</string>
-    <string name="clear_listen_history_confirm">Êtes-vous sûr de vouloir effacer tout l'historique d'écoute ?</string>
+    <string name="listen_history">Historique d\'écoute</string>
+    <string name="pause_listen_history">Mettre en pause l\'historique d\'écoute</string>
+    <string name="clear_listen_history">Effacer l\'historique d\'écoute</string>
+    <string name="clear_listen_history_confirm">Êtes-vous sûr de vouloir effacer tout l\'historique d\'écoute ?</string>
     <string name="search_history">Historique de recherche</string>
-    <string name="pause_search_history">Mettre en pause l'historique de recherche</string>
-    <string name="clear_search_history">Effacer l'historique de recherche</string>
-    <string name="clear_search_history_confirm">Êtes-vous sûr de vouloir effacer tout l'historique de recherche ?</string>
+    <string name="pause_search_history">Mettre en pause l\'historique de recherche</string>
+    <string name="clear_search_history">Effacer l\'historique de recherche</string>
+    <string name="clear_search_history_confirm">Êtes-vous sûr de vouloir effacer tout l\'historique de recherche ?</string>
     <string name="use_login_for_browse">Utilisez un identifiant pour consulter le contenu</string>
     <string name="use_login_for_browse_desc">Cela peut influencer le contenu que vous voyez et, par exemple, afficher des albums réservés aux abonnés si vous êtes connecté avec un compte Premium.</string>
     <string name="disable_screenshot">Désactiver la capture d\'écran</string>
@@ -492,7 +492,7 @@
     <string name="restore_failed">Échec de la restauration de la sauvegarde</string>
 
     <string name="discord_integration">Intégration Discord</string>
-    <string name="discord_information">ArchiveTune utilise la bibliothèque KizzyRPC pour définir le statut de votre compte Discord. Cela implique l'utilisation de la passerelle Discord, ce qui peut être considéré comme une violation des conditions d'utilisation de Discord. Cependant, aucun cas de suspension de compte utilisateur pour cette raison n'a été recensé. Utilisez ce service à vos risques et périls. ArchiveTune extrait uniquement votre jeton ; toutes les autres données sont stockées localement.</string>
+    <string name="discord_information">ArchiveTune utilise la bibliothèque KizzyRPC pour définir le statut de votre compte Discord. Cela implique l\'utilisation de la passerelle Discord, ce qui peut être considéré comme une violation des conditions d\'utilisation de Discord. Cependant, aucun cas de suspension de compte utilisateur pour cette raison n\'a été recensé. Utilisez ce service à vos risques et périls. ArchiveTune extrait uniquement votre jeton ; toutes les autres données sont stockées localement.</string>
     <string name="dismiss">Rejeter</string>
     <string name="options">Options</string>
     <string name="preview">Aperçu</string>
@@ -513,7 +513,7 @@
 
     <!-- ListenBrainz -->
     <string name="listenbrainz_scrobbling">Scrobbling ListenBrainz</string>
-    <string name="listenbrainz_scrobbling_description">Activez l'envoi des titres en cours d'écoute et des titres terminés à ListenBrainz</string>
+    <string name="listenbrainz_scrobbling_description">Activez l\'envoi des titres en cours d\'écoute et des titres terminés à ListenBrainz</string>
     <string name="set_listenbrainz_token">Définir le jeton ListenBrainz</string>
     <string name="edit_listenbrainz_token">Modifier le jeton ListenBrainz</string>
 
@@ -540,9 +540,9 @@
     <!--Discord Tranalstor Settings-->
     <string name="translator_options">Options du traducteur</string>
     <string name="enable_translator">Activer le traducteur</string>
-    <string name="enable_translator_desc">Traduire les champs sélectionnés avant l'envoi à Discord RPC</string>
+    <string name="enable_translator_desc">Traduire les champs sélectionnés avant l\'envoi à Discord RPC</string>
     <string name="context_info">Contextes (séparés par des virgules)</string>
-    <string name="translator_info_usage">Exemple d'utilisation : {song}, {artist}, {album}</string>
+    <string name="translator_info_usage">Exemple d\'utilisation : {song}, {artist}, {album}</string>
     <string name="target_language">Langue cible</string>
     <string name="select_language">Sélectionner la langue</string>
     <string name="close_dialog">Fermer</string>
@@ -563,14 +563,14 @@
 
     <!-- Discord settings additions -->
     <string name="discord_button_options">Options des boutons</string>
-    <string name="discord_image_options">Options d'image</string>
+    <string name="discord_image_options">Options d\'image</string>
     <string name="refresh">Rafraîchir</string>
     <string name="description_refresh">Actualiser manuellement Discord Rich Presence</string>
     <string name="discord_show_when_paused">Afficher RPC en pause</string>
     <string name="discord_show_when_paused_desc">Si cette option est activée, Rich Presence restera visible pendant la pause, avec une icône de pause. Si elle est désactivée, RPC disparaîtra pendant la pause.</string>
     <string name="discord_paused">En pause</string>
     <string name="show_small_image">Afficher une petite image</string>
-    <string name="description_show_small_image">Lorsqu'elle est activée, une petite image circulaire s'affiche dans l'aperçu Rich Presence et est envoyée à Discord si disponible.</string>
+    <string name="description_show_small_image">Lorsqu\'elle est activée, une petite image circulaire s\'affiche dans l\'aperçu Rich Presence et est envoyée à Discord si disponible.</string>
     <string name="logout_confirm_title">Confirmer la déconnexion</string>
     <string name="logout_confirm_message">Êtes-vous sûr de vouloir vous déconnecter de Discord ?</string>
     <string name="logout_confirm_yes">Déconnexion</string>
@@ -578,9 +578,9 @@
 
     <!--Misc settings additions-->
     <string name="experiment_settings">Paramètres avancés</string>
-    <string name="show_discord_debug_ui">Afficher l'interface utilisateur de débogage</string>
+    <string name="show_discord_debug_ui">Afficher l\'interface utilisateur de débogage</string>
     <string name="enable_discord_debug_lines">Activer les lignes de paramètres de débogage</string>
-    <string name="presence_manager_running">Gestionnaire de présence : en cours d'exécution</string>
+    <string name="presence_manager_running">Gestionnaire de présence : en cours d\'exécution</string>
     <string name="presence_manager_stopped">Gestionnaire de présence : arrêté</string>
     <string name="debug_last_rpc_times">Dernière RPC début : %1$s fin : %2$s</string>
     <string name="filter_levels">Niveaux de filtre</string>

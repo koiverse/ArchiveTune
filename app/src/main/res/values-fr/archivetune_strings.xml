@@ -184,11 +184,11 @@
     <string name="subscribers">Abonnés</string>
     <string name="views">Vues</string>
     <string name="likes">J\'aimes</string>
-    <string name="dislikes">Je n'aime pas</string>
+    <string name="dislikes">Je n\'aime pas</string>
     <string name="subscribe">S'abonner</string>
     <string name="subscribed">Abonné</string>
     <string name="playlist_not_found">Playlist introuvable</string>
-    <string name="playlist_not_found_desc">La playlist demandée n'a pas pu être chargée.</string>
+    <string name="playlist_not_found_desc">La playlist demandée n\'a pas pu être chargée.</string>
     <string name="empty_playlist">Playlist vide</string>
     <string name="empty_playlist_desc">Cette playlist ne contient aucun titre.</string>
     <plurals name="seconds">
