@@ -191,6 +191,7 @@ private fun KaraokeWord(
     textColor: Color,
     inactiveAlpha: Float,
     fontWeight: FontWeight = FontWeight.ExtraBold,
+    glowBlurRadius: Float = 30f,
     modifier: Modifier = Modifier
 ) {
     val duration = endTime - startTime
@@ -206,7 +207,6 @@ private fun KaraokeWord(
             } else {
                 0f
             }
-
 
             // Nudge Animation: Decoupled from word duration.
             // Fixed duration impulse (e.g., 500ms) to avoid "wobble" on long words.
@@ -262,12 +262,24 @@ private fun KaraokeWord(
             style = LocalTextStyle.current.copy(
                 shadow = Shadow(
                     color = textColor,
-                    blurRadius = 30f // Strong glow
+                    blurRadius = glowBlurRadius // Strong glow
                 )
             ),
             modifier = Modifier
                 .graphicsLayer {
                     compositingStrategy = CompositingStrategy.Offscreen
+                    
+                    // Fade out logic when word is done
+                    val currentTime = currentTimeProvider()
+                    val fadeDuration = 400L // Fade out glow over 400ms
+                    
+                    if (currentTime >= endTime) {
+                        val timeSinceEnd = currentTime - endTime
+                        val fadeProgress = (timeSinceEnd.toFloat() / fadeDuration.toFloat()).coerceIn(0f, 1f)
+                        alpha = 1f - fadeProgress
+                    } else {
+                        alpha = 1f
+                    }
                 }
                 .drawWithContent {
                     val currentTime = currentTimeProvider()
@@ -280,12 +292,17 @@ private fun KaraokeWord(
                         0f
                     }
 
-                    if (progress > 0f && progress < 1f) {
+                    // Draw if filling OR fading out (alpha > 0)
+                    // We check alpha implicitly via time check or if progress is active
+                    val fadeDuration = 400L
+                    val isFading = currentTime >= endTime && currentTime < (endTime + fadeDuration)
+                    
+                    if ((progress > 0f && progress < 1f) || isFading) {
                         drawContent()
                         
                         // Soft Mask Gradient
+                        // If fully filled (fading out), fillWidth is full width
                         val fillWidth = size.width * progress
-                        // Fade width in pixels (e.g., 40px soft edge)
                         val fadeWidth = 40f 
                         
                         val softFillBrush = Brush.horizontalGradient(
@@ -1546,7 +1563,51 @@ fun Lyrics(
                                     val romanizedWords = romanized.split(" ")
                                     val mainWords = item.words
 
-                                    val romanizedStyledText = buildAnnotatedString {
+                                    if (effectiveAnimationStyle == LyricsAnimationStyle.KARAOKE) {
+                                        val currentTimeProvider: () -> Long = { sliderPositionProvider() ?: 0L }
+
+                                        FlowRow(
+                                            modifier = Modifier.padding(top = 2.dp).fillMaxWidth(),
+                                            horizontalArrangement = when (lyricsTextPosition) {
+                                                LyricsPosition.LEFT -> Arrangement.Start
+                                                LyricsPosition.CENTER -> Arrangement.Center
+                                                LyricsPosition.RIGHT -> Arrangement.End
+                                            },
+                                            verticalArrangement = Arrangement.Center
+                                        ) {
+                                            romanizedWords.forEachIndexed { romIndex, romWord ->
+                                                val wordIndex = (romIndex.toFloat() / romanizedWords.size * mainWords.size).toInt().coerceIn(0, mainWords.size - 1)
+                                                val word = mainWords.getOrNull(wordIndex)
+                                                
+                                                if (word != null) {
+                                                    val wordStartMs = (word.startTime * 1000).toLong()
+                                                    val wordEndMs = (word.endTime * 1000).toLong()
+
+                                                    KaraokeWord(
+                                                        text = romWord,
+                                                        startTime = wordStartMs,
+                                                        endTime = wordEndMs,
+                                                        currentTimeProvider = currentTimeProvider,
+                                                        fontSize = romanizedFontSize,
+                                                        textColor = lyricsBaseColor,
+                                                        inactiveAlpha = 0.5f,
+                                                        glowBlurRadius = 15f,
+                                                        fontWeight = FontWeight.Medium,
+                                                        modifier = Modifier.padding(horizontal = 2.dp)
+                                                    )
+                                                } else {
+                                                     Text(
+                                                        text = romWord,
+                                                        fontSize = romanizedFontSize,
+                                                        color = lyricsBaseColor.copy(alpha = 0.5f),
+                                                        fontWeight = FontWeight.Medium,
+                                                        modifier = Modifier.padding(horizontal = 2.dp)
+                                                     )
+                                                }
+                                            }
+                                        }
+                                    } else {
+                                        val romanizedStyledText = buildAnnotatedString {
                                         romanizedWords.forEachIndexed { romIndex, romWord ->
 
                                             val wordIndex = (romIndex.toFloat() / romanizedWords.size * mainWords.size).toInt().coerceIn(0, mainWords.size - 1)
@@ -1642,6 +1703,7 @@ fun Lyrics(
                                                             }
                                                         }
                                                     }
+
                                                     LyricsAnimationStyle.GLOW -> {
                                                         val fillProgress = if (isWordActive && wordDuration > 0) {
                                                             val timeElapsed = currentPlaybackPosition - wordStartMs
@@ -1717,6 +1779,7 @@ fun Lyrics(
                                         },
                                         modifier = Modifier.padding(top = 2.dp)
                                     )
+                                    }
                                 } else {
 
                                     Text(
