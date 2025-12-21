@@ -40,6 +40,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -51,6 +53,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -166,11 +169,83 @@ import kotlin.math.abs
 import kotlin.math.exp
 import kotlin.time.Duration.Companion.seconds
 
+
 private val AppleMusicEasing = CubicBezierEasing(0.25f, 0.1f, 0.25f, 1.0f)
 private val SmoothDecelerateEasing = CubicBezierEasing(0.0f, 0.0f, 0.2f, 1.0f)
 
+/**
+ * Renders a single word with karaoke fill animation.
+ * Optimized to perform animation in the draw phase to avoid recomposition.
+ */
+@Composable
+private fun KaraokeWord(
+    text: String,
+    startTime: Long,
+    endTime: Long,
+    currentTimeProvider: () -> Long,
+    fontSize: TextUnit,
+    textColor: Color,
+    inactiveAlpha: Float = 0.3f,
+    fontWeight: FontWeight = FontWeight.ExtraBold,
+    modifier: Modifier = Modifier
+) {
+    val duration = endTime - startTime
+    
+    Box(modifier = modifier) {
+        // Inactive (unfilled) layer
+        Text(
+            text = text,
+            fontSize = fontSize,
+            color = textColor.copy(alpha = inactiveAlpha),
+            fontWeight = fontWeight
+        )
+        
+        // Active (filled) layer with draw-time clipping and glow
+        Text(
+            text = text,
+            fontSize = fontSize,
+            color = textColor,
+            fontWeight = fontWeight,
+            style = LocalTextStyle.current.copy(
+                shadow = Shadow(
+                    color = textColor,
+                    blurRadius = 15f
+                )
+            ),
+            modifier = Modifier.drawWithContent {
+                val currentTime = currentTimeProvider()
+                
+                // Calculate progress in draw phase
+                val progress = if (duration > 0) {
+                     val elapsed = currentTime - startTime
+                     (elapsed.toFloat() / duration.toFloat()).coerceIn(0f, 1f)
+                } else if (currentTime >= endTime) {
+                    1f
+                } else {
+                    0f
+                }
+
+                if (progress > 0f) {
+                    val fillWidth = size.width * progress
+                    
+                    clipRect(
+                        left = 0f,
+                        top = 0f,
+                        right = fillWidth,
+                        bottom = size.height
+                    ) {
+                        this@drawWithContent.drawContent()
+                    }
+                }
+            }
+        )
+
+    }
+}
+
+
 @RequiresApi(Build.VERSION_CODES.M)
-@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @SuppressLint("UnusedBoxWithConstraintsScope", "StringFormatInvalid")
 @Composable
 fun Lyrics(
@@ -756,7 +831,39 @@ fun Lyrics(
                             lyricsAnimationStyle
                         }
 
-                        if (hasWordTimings && item.words != null && effectiveAnimationStyle == LyricsAnimationStyle.NONE) {
+                        if (hasWordTimings && item.words != null && effectiveAnimationStyle == LyricsAnimationStyle.KARAOKE) {
+                            FlowRow(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = when (lyricsTextPosition) {
+                                    LyricsPosition.LEFT -> Arrangement.Start
+                                    LyricsPosition.CENTER -> Arrangement.Center
+                                    LyricsPosition.RIGHT -> Arrangement.End
+                                },
+                                verticalArrangement = Arrangement.spacedBy(4.dp),
+                            ) {
+                                item.words.forEachIndexed { wordIndex, word ->
+                                    val wordStartMs = (word.startTime * 1000).toLong()
+                                    val wordEndMs = (word.endTime * 1000).toLong()
+                                    
+                                    val isUpcoming = isActiveLine && currentPlaybackPosition < wordStartMs
+                                    
+                                    KaraokeWord(
+                                        text = word.text,
+                                        startTime = wordStartMs,
+                                        endTime = wordEndMs,
+                                        currentTimeProvider = { currentPlaybackPosition },
+                                        fontSize = lyricsTextSize.sp,
+                                        textColor = lyricsBaseColor,
+                                        inactiveAlpha = if (isUpcoming && isActiveLine) 0.3f else if (!isActiveLine) 0.5f else 0.3f,
+                                        fontWeight = if (hasRomanization) FontWeight.Bold else FontWeight.ExtraBold
+                                    )
+                                    
+                                    if (wordIndex < item.words.size - 1) {
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                    }
+                                }
+                            }
+                        } else if (hasWordTimings && item.words != null && effectiveAnimationStyle == LyricsAnimationStyle.APPLE) {
 
                             val styledText = buildAnnotatedString {
                                 item.words.forEachIndexed { wordIndex, word ->
