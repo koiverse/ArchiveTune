@@ -428,7 +428,7 @@
     <string name="restart_to_take_effect">Redémarrez pour que cela prenne effet</string>
     <string name="enable_betterlyrics">Activer BetterLyrics</string>
 
-    <string name="player_and_audio">Lecteur & Audio</string>
+    <string name="player_and_audio">Lecteur &amp; Audio</string>
     <string name="audio_quality">Qualité audio</string>
     <string name="audio_quality_auto">Auto</string>
     <string name="audio_quality_high">Haute</string>
