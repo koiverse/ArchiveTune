@@ -9,6 +9,7 @@ import java.time.LocalDateTime
 import java.time.ZoneOffset
 
 val DynamicThemeKey = booleanPreferencesKey("dynamicTheme")
+val CustomThemeColorKey = stringPreferencesKey("customThemeColor")
 val DarkModeKey = stringPreferencesKey("darkMode")
 val PureBlackKey = booleanPreferencesKey("pureBlack")
 val DefaultOpenTabKey = stringPreferencesKey("defaultOpenTab")
@@ -325,6 +326,7 @@ enum class PlayerDesignStyle {
     V1,
     V2,
     V3,
+    V4,
 }
 
 enum class PlayerBackgroundStyle {
@@ -415,3 +417,14 @@ val CountryCodeToName =
 val LaunchCountKey = intPreferencesKey("launch_count")
 val HasPressedStarKey = booleanPreferencesKey("has_pressed_star")
 val RemindAfterKey = intPreferencesKey("remind_after")
+
+// Update settings
+val EnableUpdateNotificationKey = booleanPreferencesKey("enableUpdateNotification")
+val UpdateChannelKey = stringPreferencesKey("updateChannel")
+val LastUpdateCheckKey = longPreferencesKey("lastUpdateCheck")
+val LastNotifiedVersionKey = stringPreferencesKey("lastNotifiedVersion")
+
+enum class UpdateChannel {
+    STABLE,
+    NIGHTLY,
+}

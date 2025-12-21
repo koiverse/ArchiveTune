@@ -218,6 +218,22 @@ open class DiscordWebSocket(
         return websocket?.incoming != null && websocket?.outgoing?.isClosedForSend == false
     }
 
+    fun isFullyConnected(): Boolean {
+        return isSocketConnectedToAccount()
+    }
+
+    suspend fun waitForConnection(timeoutMs: Long = 15000L): Boolean {
+        val startTime = System.currentTimeMillis()
+        while (!isSocketConnectedToAccount()) {
+            if (System.currentTimeMillis() - startTime > timeoutMs) {
+                Logger.getLogger("Kizzy").log(INFO, "Gateway: Connection timeout after ${timeoutMs}ms")
+                return false
+            }
+            delay(50.milliseconds)
+        }
+        return true
+    }
+
     private suspend inline fun <reified T> send(op: OpCode, d: T?) {
         if (websocket?.isActive == true) {
             val payload = json.encodeToString(
@@ -243,16 +259,22 @@ open class DiscordWebSocket(
         }
     }
 
-    suspend fun sendActivity(presence: Presence) {
-        // TODO : Figure out a better way to wait for socket to be connected to account
+    suspend fun sendActivity(presence: Presence): Boolean {
+        val startTime = System.currentTimeMillis()
+        val timeout = 15000L
         while (!isSocketConnectedToAccount()) {
-            delay(10.milliseconds)
+            if (System.currentTimeMillis() - startTime > timeout) {
+                Logger.getLogger("Kizzy").log(INFO, "Gateway: sendActivity timeout - not connected to account")
+                return false
+            }
+            delay(50.milliseconds)
         }
         Logger.getLogger("Kizzy").log(INFO, "Gateway: Sending $PRESENCE_UPDATE")
         send(
             op = PRESENCE_UPDATE,
             d = presence
         )
+        return true
     }
 
 }

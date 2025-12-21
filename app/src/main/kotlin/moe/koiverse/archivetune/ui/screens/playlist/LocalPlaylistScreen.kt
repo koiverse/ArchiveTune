@@ -487,17 +487,6 @@ fun LocalPlaylistScreen(
         }
     }
 
-    // Parallax effect for header
-    val headerParallax by remember {
-        derivedStateOf {
-            if (lazyListState.firstVisibleItemIndex == 0) {
-                lazyListState.firstVisibleItemScrollOffset * 0.4f
-            } else {
-                0f
-            }
-        }
-    }
-
     val transparentAppBar by remember {
         derivedStateOf {
             !disableBlur && !selection && !showTopBarTitle
@@ -601,9 +590,6 @@ fun LocalPlaylistScreen(
                                 Box(
                                     modifier = Modifier
                                         .padding(top = 8.dp, bottom = 20.dp)
-                                        .graphicsLayer {
-                                            translationY = headerParallax
-                                        }
                                 ) {
                                     if (playlist.thumbnails.size == 1) {
                                         // Single thumbnail

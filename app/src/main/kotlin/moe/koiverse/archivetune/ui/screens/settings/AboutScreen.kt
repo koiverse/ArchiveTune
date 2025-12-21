@@ -119,7 +119,7 @@ fun AboutScreen(
             position = "always on mode UwU",
             profileUrl = "https://github.com/koiverse",
             github = "https://github.com/koiverse",
-            website = "https://prplmoe.me", // If blank, hide OutlinedIconChip for website
+            website = "https://koiiverse.cloud", // If blank, hide OutlinedIconChip for website
             discord = "https://discord.com/users/886971572668219392"
         ),
         TeamMember(
@@ -134,7 +134,7 @@ fun AboutScreen(
         TeamMember(
             avatarUrl = "https://avatars.githubusercontent.com/u/80542861?v=4",
             name = "MO AGAMY",
-            position = "Original Developer",
+            position = "Metrolist Dev",
             profileUrl = "https://github.com/mostafaalagamy",
             github = "https://github.com/mostafaalagamy",
             website = null,
@@ -282,7 +282,7 @@ fun AboutScreen(
                 Spacer(Modifier.width(8.dp))
 
                 IconButton(
-                    onClick = { uriHandler.openUri("https://archivetune.prplmoe.me") },
+                    onClick = { uriHandler.openUri("https://archivetune.koiiverse.cloud") },
                 ) {
                     Icon(
                         painter = painterResource(R.drawable.website),

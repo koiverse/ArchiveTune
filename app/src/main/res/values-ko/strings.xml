@@ -242,6 +242,122 @@
     <string name="appearance">설정</string>
     <string name="theme">외관</string>
     <string name="enable_dynamic_theme">테마</string>
+    <!-- Color Palette -->
+    <string name="color_palette">색상 팔레트</string>
+    <string name="customize_theme_colors">앱 테마 색상을 선택하세요</string>
+    <string name="selected_theme_color">선택된 테마 색상</string>
+    <string name="theme_preview">테마 미리보기</string>
+    <string name="select_palette">색상 팔레트를 선택하세요</string>
+    <string name="palette_applied">팔레트가 적용되었습니다</string>
+
+    <!-- Palette Names -->
+    <string name="palette_default">기본값</string>
+
+    <!-- Blues -->
+    <string name="palette_ocean_blue">오션 블루</string>
+    <string name="palette_arctic_blue">아크틱</string>
+    <string name="palette_midnight_navy">미드나이트</string>
+    <string name="palette_sky_blue">스카이 블루</string>
+    <string name="palette_cobalt_blue">코발트</string>
+    <string name="palette_electric_blue">일렉트릭 블루</string>
+
+    <!-- Greens -->
+    <string name="palette_emerald_green">에메랄드</string>
+    <string name="palette_teal_wave">틸 웨이브</string>
+    <string name="palette_forest_green">포레스트</string>
+    <string name="palette_spotify_green">스포티파이</string>
+    <string name="palette_mint_fresh">민트</string>
+    <string name="palette_olive_garden">올리브</string>
+    <string name="palette_sage_green">세이지</string>
+
+    <!-- Oranges & Yellows -->
+    <string name="palette_sunset_orange">선셋</string>
+    <string name="palette_golden_hour">골든</string>
+    <string name="palette_warm_amber">앰버</string>
+    <string name="palette_tangerine_blast">탱저린</string>
+    <string name="palette_peach">피치</string>
+    <string name="palette_mango">망고</string>
+
+    <!-- Purples -->
+    <string name="palette_royal_purple">로열 퍼플</string>
+    <string name="palette_lavender_dream">라벤더</string>
+    <string name="palette_grape_purple">그레이프</string>
+    <string name="palette_violet">바이올렛</string>
+    <string name="palette_amethyst">애메시스트</string>
+    <string name="palette_ultra_violet">울트라 바이올렛</string>
+
+    <!-- Pinks -->
+    <string name="palette_cherry_blossom">사쿠라</string>
+    <string name="palette_rose_quartz">로즈 쿼츠</string>
+    <string name="palette_magenta_pop">마젠타</string>
+    <string name="palette_hot_pink">핫 핑크</string>
+    <string name="palette_blush">블러시</string>
+    <string name="palette_coral">코랄</string>
+    <string name="palette_bubblegum">버블검</string>
+
+    <!-- Reds -->
+    <string name="palette_crimson_red">크림슨</string>
+    <string name="palette_youtube_red">유튜브</string>
+    <string name="palette_wine_red">와인</string>
+    <string name="palette_ruby_red">루비</string>
+    <string name="palette_scarlet">스칼렛</string>
+
+    <!-- Neutrals -->
+    <string name="palette_charcoal">차콜</string>
+    <string name="palette_silver">실버</string>
+    <string name="palette_slate">슬레이트</string>
+    <string name="palette_graphite">그래파이트</string>
+
+    <!-- Earth Tones -->
+    <string name="palette_terracotta">테라코타</string>
+    <string name="palette_coffee">커피</string>
+    <string name="palette_mocha">모카</string>
+    <string name="palette_sand">샌드</string>
+    <string name="palette_clay">클레이</string>
+
+    <!-- Pastels -->
+    <string name="palette_pastel_pink">파스텔 핑크</string>
+    <string name="palette_pastel_blue">파스텔 블루</string>
+    <string name="palette_pastel_green">파스텔 그린</string>
+    <string name="palette_pastel_yellow">파스텔 옐로우</string>
+    <string name="palette_pastel_purple">파스텔 퍼플</string>
+
+    <!-- Neon & Vibrant -->
+    <string name="palette_neon_green">네온 그린</string>
+    <string name="palette_neon_pink">네온 핑크</string>
+    <string name="palette_neon_blue">네온 블루</string>
+    <string name="palette_neon_orange">네온 오렌지</string>
+    <string name="palette_cyberpunk">사이버펑크</string>
+    <string name="palette_synthwave">신스웨이브</string>
+
+    <!-- Special & Themed -->
+    <string name="palette_ocean">오션</string>
+    <string name="palette_forest">딥 포레스트</string>
+    <string name="palette_autumn">가을</string>
+    <string name="palette_winter">겨울</string>
+    <string name="palette_spring">봄</string>
+    <string name="palette_summer">여름</string>
+    <string name="palette_twilight">트와일라이트</string>
+    <string name="palette_aurora">오로라</string>
+    <string name="palette_candy">캔디</string>
+    <string name="palette_rainbow">레인보우</string>
+
+    <!-- Additional Palettes -->
+    <string name="palette_aquamarine">아쿠아마린</string>
+    <string name="palette_coral_reef">코랄 리프</string>
+    <string name="palette_cotton_candy">코튼 캔디</string>
+    <string name="palette_deep_sea">딥 시</string>
+    <string name="palette_electric_violet">일렉트릭 바이올렛</string>
+    <string name="palette_mustard">머스타드</string>
+    <string name="palette_olive">올리브</string>
+    <string name="palette_peachy_keen">피치 키ーン</string>
+    <string name="palette_plum">플럼</string>
+    <string name="palette_slate_gray">슬레이트 그레이</string>
+    <string name="palette_sunset_beach">선셋 비치</string>
+    <string name="palette_turquoise">터쿼이즈</string>
+    <!-- End of Color Palette -->
+
+
     <string name="dark_theme">동적 테마 활성화</string>
     <string name="dark_theme_on">어두운 테마</string>
     <string name="dark_theme_off">켜기</string>
@@ -506,4 +622,21 @@
     <string name="new_version_available">새 버전 사용 가능</string>
     <string name="translation_models">번역 모델</string>
     <string name="clear_translation_models">번역 지우기 모델</string>
+
+    <string name="updates">업데이트</string>
+    <string name="current_version">현재 버전</string>
+    <string name="latest_version_format">최신: %s</string>
+    <string name="notification_settings">알림</string>
+    <string name="enable_update_notification">업데이트 알림 활성화</string>
+    <string name="enable_update_notification_desc">새로운 안정 버전이 출시되면 알림 받기</string>
+    <string name="update_channel">업데이트 채널</string>
+    <string name="channel_stable">안정</string>
+    <string name="channel_nightly">나이틀리</string>
+    <string name="commit_history">개발</string>
+    <string name="recent_commits">최근 커밋</string>
+    <string name="update_notification_channel_name">앱 업데이트</string>
+    <string name="update_notification_channel_desc">새로운 앱 업데이트 알림</string>
+    <string name="update_notification_title">업데이트 가능</string>
+    <string name="update_notification_text">ArchiveTune %s이(가) 출시되었습니다</string>
+    <string name="download">다운로드</string>
 </resources>

@@ -56,6 +56,23 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.io.File
+
+/**
+ * Calculate the total size of a directory recursively.
+ * This is used as a fallback when cache.cacheSpace returns 0.
+ */
+private fun calculateDirectorySize(directory: File): Long {
+    if (!directory.exists()) return 0L
+    var size = 0L
+    directory.walkTopDown().forEach { file ->
+        if (file.isFile) {
+            size += file.length()
+        }
+    }
+    return size
+}
 
 @OptIn(ExperimentalCoilApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -67,6 +84,9 @@ fun StorageSettings(
     val imageDiskCache = context.imageLoader.diskCache ?: return
     val playerCache = LocalPlayerConnection.current?.service?.playerCache ?: return
     val downloadCache = LocalPlayerConnection.current?.service?.downloadCache ?: return
+    
+    val downloadCacheDir = remember { context.filesDir.resolve("download") }
+    val playerCacheDir = remember { context.filesDir.resolve("exoplayer") }
 
     val coroutineScope = rememberCoroutineScope()
     val (maxImageCacheSize, onMaxImageCacheSizeChange) = rememberPreference(
@@ -85,20 +105,22 @@ fun StorageSettings(
         mutableStateOf(imageDiskCache.size)
     }
     var playerCacheSize by remember {
-        mutableStateOf(tryOrNull { playerCache.cacheSpace } ?: 0)
+        mutableStateOf(tryOrNull { playerCache.cacheSpace } ?: 0L)
     }
     var downloadCacheSize by remember {
-        mutableStateOf(tryOrNull { downloadCache.cacheSpace } ?: 0)
+        mutableStateOf(tryOrNull { downloadCache.cacheSpace } ?: 0L)
     }
     val imageCacheProgress by animateFloatAsState(
-        targetValue = (imageCacheSize.toFloat() / imageDiskCache.maxSize).coerceIn(0f, 1f),
+        targetValue = if (imageDiskCache.maxSize > 0) {
+            (imageCacheSize.toFloat() / imageDiskCache.maxSize).coerceIn(0f, 1f)
+        } else 0f,
         label = "imageCacheProgress",
     )
+    val maxSongCacheSizeBytes = if (maxSongCacheSize > 0) maxSongCacheSize * 1024 * 1024L else 0L
     val playerCacheProgress by animateFloatAsState(
-        targetValue = (playerCacheSize.toFloat() / (maxSongCacheSize * 1024 * 1024L)).coerceIn(
-            0f,
-            1f
-        ),
+        targetValue = if (maxSongCacheSizeBytes > 0) {
+            (playerCacheSize.toFloat() / maxSongCacheSizeBytes).coerceIn(0f, 1f)
+        } else 0f,
         label = "playerCacheProgress",
     )
 
@@ -126,16 +148,30 @@ fun StorageSettings(
             imageCacheSize = imageDiskCache.size
         }
     }
-    LaunchedEffect(playerCache) {
+    LaunchedEffect(playerCache, playerCacheDir) {
         while (isActive) {
             delay(500)
-            playerCacheSize = tryOrNull { playerCache.cacheSpace } ?: 0
+            val cacheSpace = tryOrNull { playerCache.cacheSpace } ?: 0L
+            playerCacheSize = if (cacheSpace == 0L) {
+                withContext(Dispatchers.IO) {
+                    calculateDirectorySize(playerCacheDir)
+                }
+            } else {
+                cacheSpace
+            }
         }
     }
-    LaunchedEffect(downloadCache) {
+    LaunchedEffect(downloadCache, downloadCacheDir) {
         while (isActive) {
             delay(500)
-            downloadCacheSize = tryOrNull { downloadCache.cacheSpace } ?: 0
+            val cacheSpace = tryOrNull { downloadCache.cacheSpace } ?: 0L
+            downloadCacheSize = if (cacheSpace == 0L) {
+                withContext(Dispatchers.IO) {
+                    calculateDirectorySize(downloadCacheDir)
+                }
+            } else {
+                cacheSpace
+            }
         }
     }
 

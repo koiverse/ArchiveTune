@@ -226,17 +226,6 @@ fun ArtistScreen(
         }
     }
 
-    // Parallax effect for header
-    val headerParallax by remember {
-        derivedStateOf {
-            if (lazyListState.firstVisibleItemIndex == 0) {
-                lazyListState.firstVisibleItemScrollOffset * 0.5f
-            } else {
-                0f
-            }
-        }
-    }
-
     LaunchedEffect(libraryArtist) {
         showLocal = libraryArtist?.artist?.isLocal == true
     }
@@ -418,9 +407,6 @@ fun ArtistScreen(
                         Box(
                             modifier = Modifier
                                 .padding(top = 8.dp, bottom = 16.dp)
-                                .graphicsLayer {
-                                    translationY = headerParallax
-                                }
                         ) {
                             if (thumbnail != null) {
                                 AsyncImage(
