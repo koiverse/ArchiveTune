@@ -3,14 +3,14 @@
     <string name="explore">Erkunden</string>
 
     <string name="local_history">Lokal</string>
-    <string name="remote_history">Fernbedienung</string>
+    <string name="remote_history">Online</string>
 
-    <string name="charts">Diagramme</string>
+    <string name="charts">Charts</string>
     <string name="back_button_desc">Zurück</string>
     <string name="no_title">Kein Titel</string>
     <string name="unknown_artist">Unbekannter Künstler</string>
     <string name="unknown_item_type">Unbekannter Artikeltyp</string>
-    <string name="loading_charts">Diagramme werden geladen...</string>
+    <string name="loading_charts">Charts werden geladen...</string>
     <string name="retry_button">Wiederholen</string>
     <string name="album_cover_desc">Albumcover</string>
     <string name="top_music_videos">Top-Musikvideos</string>
@@ -23,8 +23,8 @@
 
     <string name="liked">Gefallen</string>
     <string name="offline">Heruntergeladen</string>
-    <string name="my_top">Mein Oberteil</string>
-    <string name="cached_playlist">Zwischengespeichert</string>
+    <string name="my_top">Meine Top</string>
+    <string name="cached_playlist">Cache</string>
     <string name="sync_playlist">Playlist synchronisieren</string>
     <string name="sync_disabled">Synchronisierung deaktiviert</string>
     <string name="elements_selected">%1$d Elemente ausgewählt</string>
@@ -162,7 +162,7 @@
 
     <string name="disable">Deaktivieren</string>
 
-    <string name="pause_remote_listen_history">Unterbrechen Sie die Freigabe des Hörverlaufs mit YouTube Music</string>
+    <string name="pause_remote_listen_history">Pausieren des Hörverlaufs mit YouTube Music</string>
     <string name="not_logged_in_youtube">Nicht bei YouTube angemeldet</string>
 
     <string name="default_links">Unterstützte Links öffnen</string>
@@ -185,7 +185,7 @@
     <string name="likes">Gefällt mir</string>
     <string name="dislikes">Abneigungen</string>
     <string name="subscribe">Abonnieren</string>
-    <string name="subscribed">Gezeichnet</string>
+    <string name="subscribed">Abonniert</string>
     <string name="playlist_not_found">Playlist nicht gefunden</string>
     <string name="playlist_not_found_desc">Die angeforderte Playlist konnte nicht geladen werden</string>
     <string name="empty_playlist">Leere Playlist</string>
