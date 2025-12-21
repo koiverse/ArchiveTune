@@ -205,14 +205,14 @@ private fun KaraokeWord(
                 0f
             }
 
-            // Bounce effect: sin wave on translationY when active
+            // Bounce effect: sin wave on translationX when active (nudge right)
             if (progress > 0f && progress < 1f) {
-                // Smooth bounce up and down.
+                // Smooth nudge to right and back.
                 // sin(0..1 * PI) goes 0 -> 1 -> 0
-                val bounce = kotlin.math.sin(progress * Math.PI).toFloat() * -12f // Bounce up 12px
-                translationY = bounce
+                val nudge = kotlin.math.sin(progress * Math.PI).toFloat() * 10f // Nudge right 10px
+                translationX = nudge
             } else {
-                translationY = 0f
+                translationX = 0f
             }
         }
     ) {
