@@ -98,6 +98,8 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.Placeholder
+import androidx.compose.ui.unit.TextUnit
+import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.text.PlaceholderVerticalAlign
 import androidx.compose.foundation.text.InlineTextContent
 import kotlin.math.sin
