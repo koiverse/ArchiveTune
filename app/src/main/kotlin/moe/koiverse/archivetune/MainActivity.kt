@@ -1,6 +1,8 @@
 package moe.koiverse.archivetune
 
 import android.annotation.SuppressLint
+import android.app.ActivityManager
+import android.app.ForegroundServiceStartNotAllowedException
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
@@ -49,10 +51,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.ui.draw.blur
-import androidx.compose.ui.graphics.BlurEffect
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.material3.AlertDialogDefaults
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
@@ -133,9 +132,9 @@ import moe.koiverse.archivetune.constants.AppBarHeight
 import moe.koiverse.archivetune.constants.AppLanguageKey
 import moe.koiverse.archivetune.constants.DarkModeKey
 import moe.koiverse.archivetune.constants.DefaultOpenTabKey
-import moe.koiverse.archivetune.constants.DisableBlurKey
 import moe.koiverse.archivetune.constants.DisableScreenshotKey
 import moe.koiverse.archivetune.constants.DynamicThemeKey
+import moe.koiverse.archivetune.constants.CustomThemeColorKey
 import moe.koiverse.archivetune.constants.MiniPlayerHeight
 import moe.koiverse.archivetune.constants.MiniPlayerBottomSpacing
 import moe.koiverse.archivetune.constants.UseNewMiniPlayerDesignKey
@@ -250,29 +249,59 @@ class MainActivity : ComponentActivity() {
 
     override fun onStart() {
         super.onStart()
-        try {
-            val startIntent = Intent(this, MusicService::class.java)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                try {
-                    androidx.core.content.ContextCompat.startForegroundService(this, startIntent)
-                } catch (e: IllegalStateException) {
-                    reportException(e)
-                    startService(startIntent)
-                } catch (e: SecurityException) {
-                    reportException(e)
-                    startService(startIntent)
-                }
-            } else {
-                startService(startIntent)
-            }
-        } catch (e: Exception) {
-            reportException(e)
-        }
+        startMusicServiceSafely()
         bindService(
             Intent(this, MusicService::class.java),
             serviceConnection,
             Context.BIND_AUTO_CREATE
         )
+    }
+
+    private fun isAppInForeground(): Boolean {
+        val activityManager = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+        val appProcesses = activityManager.runningAppProcesses ?: return false
+        val packageName = packageName
+        return appProcesses.any { processInfo ->
+            processInfo.importance == ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND &&
+                processInfo.processName == packageName
+        }
+    }
+
+    private fun startMusicServiceSafely() {
+        val startIntent = Intent(this, MusicService::class.java)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            try {
+                if (isAppInForeground()) {
+                    androidx.core.content.ContextCompat.startForegroundService(this, startIntent)
+                }
+            } catch (e: ForegroundServiceStartNotAllowedException) {
+                reportException(e)
+            } catch (e: IllegalStateException) {
+                reportException(e)
+            } catch (e: SecurityException) {
+                reportException(e)
+            } catch (e: Exception) {
+                reportException(e)
+            }
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            try {
+                androidx.core.content.ContextCompat.startForegroundService(this, startIntent)
+            } catch (e: IllegalStateException) {
+                reportException(e)
+                try { startService(startIntent) } catch (_: Exception) {}
+            } catch (e: SecurityException) {
+                reportException(e)
+                try { startService(startIntent) } catch (_: Exception) {}
+            } catch (e: Exception) {
+                reportException(e)
+            }
+        } else {
+            try {
+                startService(startIntent)
+            } catch (e: Exception) {
+                reportException(e)
+            }
+        }
     }
 
     override fun onStop() {
@@ -324,18 +353,20 @@ class MainActivity : ComponentActivity() {
             setAppLocale(this, locale)
         }
         
-        lifecycleScope.launch {
+        lifecycleScope.launch(Dispatchers.IO) {
             dataStore.data
                 .map { it[DisableScreenshotKey] ?: false }
                 .distinctUntilChanged()
                 .collectLatest {
-                    if (it) {
-                        window.setFlags(
-                            WindowManager.LayoutParams.FLAG_SECURE,
-                            WindowManager.LayoutParams.FLAG_SECURE,
-                        )
-                    } else {
-                        window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
+                    withContext(Dispatchers.Main) {
+                        if (it) {
+                            window.setFlags(
+                                WindowManager.LayoutParams.FLAG_SECURE,
+                                WindowManager.LayoutParams.FLAG_SECURE,
+                            )
+                        } else {
+                            window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
+                        }
                     }
                 }
         }
@@ -347,6 +378,7 @@ class MainActivity : ComponentActivity() {
                         latestVersionName = it
                     }
                 }
+                moe.koiverse.archivetune.utils.UpdateNotificationManager.checkForUpdates(this@MainActivity)
             }
 
                     // Use remembered instances so the same state object is used everywhere
@@ -438,6 +470,7 @@ class MainActivity : ComponentActivity() {
                     }
 
             val enableDynamicTheme by rememberPreference(DynamicThemeKey, defaultValue = true)
+            val customThemeColorValue by rememberPreference(CustomThemeColorKey, defaultValue = "default")
             val darkTheme by rememberEnumPreference(DarkModeKey, defaultValue = DarkMode.AUTO)
             val isSystemInDarkTheme = isSystemInDarkTheme()
             val useDarkTheme =
@@ -450,34 +483,54 @@ class MainActivity : ComponentActivity() {
             val pureBlackEnabled by rememberPreference(PureBlackKey, defaultValue = false)
             val pureBlack = pureBlackEnabled && useDarkTheme
 
+            val customThemeColor = remember(customThemeColorValue) {
+                if (customThemeColorValue.startsWith("#")) {
+                    try {
+                        val colorString = customThemeColorValue.removePrefix("#")
+                        Color(android.graphics.Color.parseColor("#$colorString"))
+                    } catch (e: Exception) {
+                        DefaultThemeColor
+                    }
+                } else {
+                    moe.koiverse.archivetune.ui.screens.settings.ThemePalettes.findById(customThemeColorValue)?.primary
+                        ?: DefaultThemeColor
+                }
+            }
+
             var themeColor by rememberSaveable(stateSaver = ColorSaver) {
                 mutableStateOf(DefaultThemeColor)
             }
 
-            LaunchedEffect(playerConnection, enableDynamicTheme, isSystemInDarkTheme) {
+            LaunchedEffect(playerConnection, enableDynamicTheme, isSystemInDarkTheme, customThemeColor) {
                 val playerConnection = playerConnection
                 if (!enableDynamicTheme || playerConnection == null) {
-                    themeColor = DefaultThemeColor
+                    themeColor = if (!enableDynamicTheme) customThemeColor else DefaultThemeColor
                     return@LaunchedEffect
                 }
                 playerConnection.service.currentMediaMetadata.collectLatest { song ->
-                    themeColor =
-                        if (song != null) {
-                            withContext(Dispatchers.IO) {
-                                val result =
-                                    imageLoader.execute(
-                                        ImageRequest
-                                            .Builder(this@MainActivity)
-                                            .data(song.thumbnailUrl)
-                                            .allowHardware(false) // pixel access is not supported on Config#HARDWARE bitmaps
-                                            .build(),
-                                    )
-                                result.image?.toBitmap()?.extractThemeColor()
-                                    ?: DefaultThemeColor
+                    if (song != null) {
+                        withContext(Dispatchers.Default) {
+                            try {
+                                val result = imageLoader.execute(
+                                    ImageRequest
+                                        .Builder(this@MainActivity)
+                                        .data(song.thumbnailUrl)
+                                        .allowHardware(false)
+                                        .build(),
+                                )
+                                val extractedColor = result.image?.toBitmap()?.extractThemeColor()
+                                withContext(Dispatchers.Main) {
+                                    themeColor = extractedColor ?: DefaultThemeColor
+                                }
+                            } catch (e: Exception) {
+                                withContext(Dispatchers.Main) {
+                                    themeColor = DefaultThemeColor
+                                }
                             }
-                        } else {
-                            DefaultThemeColor
                         }
+                    } else {
+                        themeColor = DefaultThemeColor
+                    }
                 }
             }
 
@@ -640,7 +693,23 @@ class MainActivity : ComponentActivity() {
                             },
                         )
 
+                    var previousRoute by rememberSaveable { mutableStateOf<String?>(null) }
+
                     LaunchedEffect(navBackStackEntry) {
+                        val currentRoute = navBackStackEntry?.destination?.route
+                        val wasOnNonTopLevelScreen = previousRoute != null && 
+                            previousRoute !in topLevelScreens && 
+                            previousRoute?.startsWith("search/") != true
+                        val isReturningToHomeOrLibrary = currentRoute == Screens.Home.route || 
+                            currentRoute == Screens.Library.route
+                        
+                        if (wasOnNonTopLevelScreen && isReturningToHomeOrLibrary) {
+                            searchBarScrollBehavior.state.resetHeightOffset()
+                            topAppBarScrollBehavior.state.resetHeightOffset()
+                        }
+                        
+                        previousRoute = currentRoute
+                        
                         if (navBackStackEntry?.destination?.route?.startsWith("search/") == true) {
                             val searchQuery =
                                 withContext(Dispatchers.IO) {
@@ -745,6 +814,8 @@ class MainActivity : ComponentActivity() {
                     var showStarDialog by remember { mutableStateOf(false) }
 
                     LaunchedEffect(Unit) {
+                        kotlinx.coroutines.delay(3000)
+                        
                         withContext(Dispatchers.IO) {
                             val current = dataStore[LaunchCountKey] ?: 0
                             val newCount = current + 1
@@ -760,15 +831,13 @@ class MainActivity : ComponentActivity() {
                         }
 
                         if (shouldShow) {
-                            delay(1000)
                             var waited = 0L
                             val waitStep = 500L
-                            val maxWait = 30_000L // 30 seconds max
+                            val maxWait = 30_000L
                             while (bottomSheetPageState.isVisible && waited < maxWait) {
                                 delay(waitStep)
                                 waited += waitStep
                             }
-
                             showStarDialog = true
                         }
                     }
@@ -820,8 +889,6 @@ class MainActivity : ComponentActivity() {
                         }
                     }
 
-                    val (disableBlur) = rememberPreference(DisableBlurKey, false)
-
                     var showAccountDialog by remember { mutableStateOf(false) }
 
                     CompositionLocalProvider(
@@ -854,70 +921,25 @@ class MainActivity : ComponentActivity() {
                                             )
                                         }
                                     ) {
+                                        // Gradient shadow background
                                         if (shouldShowBlurBackground) {
-                                            if (disableBlur) {
-                                                Box(
-                                                    modifier = Modifier
-                                                        .fillMaxWidth()
-                                                        .height(AppBarHeight + with(LocalDensity.current) {
-                                                            WindowInsets.systemBars.getTop(LocalDensity.current).toDp()
-                                                        })
-                                                        .background(
-                                                            Brush.verticalGradient(
-                                                                colors = listOf(
-                                                                    surfaceColor.copy(alpha = 0.95f),
-                                                                    surfaceColor.copy(alpha = 0.85f),
-                                                                    surfaceColor.copy(alpha = 0.6f),
-                                                                    Color.Transparent
-                                                                )
+                                            Box(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .height(AppBarHeight + with(LocalDensity.current) {
+                                                        WindowInsets.systemBars.getTop(LocalDensity.current).toDp()
+                                                    })
+                                                    .background(
+                                                        Brush.verticalGradient(
+                                                            colors = listOf(
+                                                                surfaceColor.copy(alpha = 0.95f),
+                                                                surfaceColor.copy(alpha = 0.85f),
+                                                                surfaceColor.copy(alpha = 0.6f),
+                                                                Color.Transparent
                                                             )
                                                         )
-                                                )
-                                            } else {
-                                                Box(
-                                                    modifier = Modifier
-                                                        .fillMaxWidth()
-                                                        .height(AppBarHeight + with(LocalDensity.current) {
-                                                            WindowInsets.systemBars.getTop(LocalDensity.current).toDp()
-                                                        })
-                                                ) {
-                                                    Box(
-                                                        modifier = Modifier
-                                                            .fillMaxSize()
-                                                            .background(surfaceColor.copy(alpha = 0.5f))
-                                                            .graphicsLayer(
-                                                                renderEffect = BlurEffect(radiusX = 50f, radiusY = 50f)
-                                                            )
-                                                    )                                                    
-                                                    Box(
-                                                        modifier = Modifier
-                                                            .fillMaxSize()
-                                                            .background(
-                                                                Brush.verticalGradient(
-                                                                    colors = listOf(
-                                                                        Color.White.copy(alpha = 0.15f),
-                                                                        Color.White.copy(alpha = 0.05f),
-                                                                        Color.Transparent
-                                                                    ),
-                                                                    startY = 0f,
-                                                                    endY = Float.POSITIVE_INFINITY
-                                                                )
-                                                            )
                                                     )
-                                                    Box(
-                                                        modifier = Modifier
-                                                            .fillMaxSize()
-                                                            .background(
-                                                                Brush.verticalGradient(
-                                                                    colors = listOf(
-                                                                        surfaceColor.copy(alpha = 0.4f),
-                                                                        surfaceColor.copy(alpha = 0.2f)
-                                                                    )
-                                                                )
-                                                            )
-                                                    )
-                                                }
-                                            }
+                                            )
                                         }
 
                                         TopAppBar(
@@ -934,7 +956,9 @@ class MainActivity : ComponentActivity() {
 
                                                 Text(
                                                     text = stringResource(R.string.app_name),
-                                                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
+                                                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis
                                                 )
                                             }
                                         },
@@ -1452,25 +1476,7 @@ class MainActivity : ComponentActivity() {
                                         )
                                     )
                                 } else {
-                                    try {
-                                        val startIntent = Intent(this@MainActivity, MusicService::class.java)
-                                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                                            try {
-                                                androidx.core.content.ContextCompat.startForegroundService(this@MainActivity, startIntent)
-                                            } catch (e: IllegalStateException) {
-                                                // Android 12+ may throw ForegroundServiceStartNotAllowedException
-                                                reportException(e)
-                                                startService(startIntent)
-                                            } catch (e: SecurityException) {
-                                                reportException(e)
-                                                startService(startIntent)
-                                            }
-                                        } else {
-                                            startService(startIntent)
-                                        }
-                                    } catch (e: Exception) {
-                                        reportException(e)
-                                    }
+                                    startMusicServiceSafely()
                                 }
                             }
                         }.onFailure {

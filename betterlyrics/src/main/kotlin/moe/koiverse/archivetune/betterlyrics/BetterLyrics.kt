@@ -9,10 +9,14 @@ import io.ktor.client.plugins.defaultRequest
 import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.request.get
 import io.ktor.client.request.parameter
+import io.ktor.client.statement.HttpResponse
+import io.ktor.http.isSuccess
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
 
 object BetterLyrics {
+    private const val API_BASE_URL = "https://lyrics-api-go-better-lyrics-api-pr-12.up.railway.app"
+    
     private val client by lazy {
         HttpClient(CIO) {
             install(ContentNegotiation) {
@@ -25,16 +29,17 @@ object BetterLyrics {
             }
 
             install(HttpTimeout) {
-                requestTimeoutMillis = 15000
-                connectTimeoutMillis = 10000
-                socketTimeoutMillis = 15000
+                requestTimeoutMillis = 20000
+                connectTimeoutMillis = 15000
+                socketTimeoutMillis = 20000
             }
 
             defaultRequest {
-                url("https://lyrics-api-go-better-lyrics-api-pr-12.up.railway.app")
+                url(API_BASE_URL)
             }
-
-            expectSuccess = true
+            
+            // Don't throw on non-2xx responses, handle them gracefully
+            expectSuccess = false
         }
     }
 
@@ -43,14 +48,20 @@ object BetterLyrics {
         title: String,
         duration: Int = -1,
     ): String? = runCatching {
-        val response = client.get("/getLyrics") {
+        val response: HttpResponse = client.get("/getLyrics") {
             parameter("s", title)
             parameter("a", artist)
             if (duration != -1) {
                 parameter("d", duration)
             }
-        }.body<TTMLResponse>()
-        response.ttml
+        }
+        
+        if (!response.status.isSuccess()) {
+            return@runCatching null
+        }
+        
+        val ttmlResponse = response.body<TTMLResponse>()
+        ttmlResponse.ttml.takeIf { it.isNotBlank() }
     }.getOrNull()
 
     suspend fun getLyrics(
@@ -78,9 +89,9 @@ object BetterLyrics {
         callback: (String) -> Unit,
     ) {
         // The new API returns a single TTML result, not multiple options
-        getLyrics(title, artist, duration)
-            .onSuccess { lrcString ->
-                callback(lrcString)
-            }
+        val result = getLyrics(title, artist, duration)
+        result.onSuccess { lrcString ->
+            callback(lrcString)
+        }
     }
 }

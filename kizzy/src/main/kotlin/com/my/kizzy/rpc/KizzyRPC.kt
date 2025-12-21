@@ -32,15 +32,15 @@ open class KizzyRPC(private val token: String, private val injectedLogger: Kizzy
     fun isRpcRunning(): Boolean = discordWebSocket.isWebSocketConnected()
 
     suspend fun stopActivity() {
-        if (!isRpcRunning()) discordWebSocket.connect()
+        if (!isRpcRunning()) {
+            discordWebSocket.connect()
+            val connected = discordWebSocket.waitForConnection(10000L)
+            if (!connected) {
+                logger.warning("stopActivity: connection timeout, skipping")
+                return
+            }
+        }
         discordWebSocket.sendActivity(Presence(activities = emptyList()))
-    }
-
-    private suspend fun flushPreviousPresence() {
-        if (!isRpcRunning()) return
-        // Send an empty activities list to clear the current activity, wait briefly to allow Discord to process
-        discordWebSocket.sendActivity(Presence(activities = emptyList()))
-        // small delay is optional; avoid long sleeps here to keep responsiveness
     }
 
     fun setPlatform(platform: String? = null) = apply { this.platform = platform }
@@ -141,18 +141,19 @@ open class KizzyRPC(private val token: String, private val injectedLogger: Kizzy
             logger.fine("trying to connect WebSocket with token=$shortToken")
             try {
                 discordWebSocket.connect()
+                val connected = discordWebSocket.waitForConnection(15000L)
+                if (!connected) {
+                    logger.severe("WebSocket connection timeout")
+                    throw Exception("WebSocket connection timeout")
+                }
             } catch (ex: Exception) {
                 val msg = ex.message ?: ex.toString()
-                logger.severe("failed to connect WebSocket: $msg\n${ex.stackTraceToString()}")
+                logger.severe("failed to connect WebSocket: $msg")
                 throw ex
             }
         }
-        // Clear any previous presence briefly to avoid Discord reverting to an older presence
-        try {
-            flushPreviousPresence()
-        } catch (_: Exception) {}
 
-        discordWebSocket.sendActivity(
+        val success = discordWebSocket.sendActivity(
             makePresence(
                 name, state, stateUrl, details, detailsUrl,
                 largeImage, smallImage, largeText, smallText,
@@ -160,6 +161,9 @@ open class KizzyRPC(private val token: String, private val injectedLogger: Kizzy
                 streamUrl, applicationId, status, since
             )
         )
+        if (!success) {
+            logger.warning("sendActivity returned false - presence may not have been sent")
+        }
     }
 
     suspend fun updateActivity(
@@ -181,9 +185,12 @@ open class KizzyRPC(private val token: String, private val injectedLogger: Kizzy
         applicationId: String? = null,
         status: String? = "online",
         since: Long? = null,
-    ) {
-        if (!discordWebSocket.isWebSocketConnected()) return
-        discordWebSocket.sendActivity(
+    ): Boolean {
+        if (!discordWebSocket.isFullyConnected()) {
+            logger.warning("updateActivity skipped - WebSocket not fully connected")
+            return false
+        }
+        return discordWebSocket.sendActivity(
             makePresence(
                 name, state, stateUrl, details, detailsUrl,
                 largeImage, smallImage, largeText, smallText,
@@ -194,43 +201,50 @@ open class KizzyRPC(private val token: String, private val injectedLogger: Kizzy
     }
 
     suspend fun refreshRPC(
-    name: String,
-    state: String?,
-    stateUrl: String? = null,
-    details: String?,
-    detailsUrl: String? = null,
-    largeImage: RpcImage?,
-    smallImage: RpcImage?,
-    largeText: String? = null,
-    smallText: String? = null,
-    buttons: List<Pair<String, String>>? = null,
-    startTime: Long? = null,
-    endTime: Long? = null,
-    type: Type = Type.LISTENING,
-    statusDisplayType: StatusDisplayType = StatusDisplayType.NAME,
-    streamUrl: String? = null,
-    applicationId: String? = null,
-    status: String? = "online",
-    since: Long? = null,
-) {
-    if (isRpcRunning()) {
-        // already connected, just update
-        updateActivity(
-            name, state, stateUrl, details, detailsUrl,
-            largeImage, smallImage, largeText, smallText,
-            buttons, startTime, endTime, type, statusDisplayType,
-            streamUrl, applicationId, status, since
-        )
-    } else {
-        // not connected yet, build first
-        buildActivity(
-            name, state, stateUrl, details, detailsUrl,
-            largeImage, smallImage, largeText, smallText,
-            buttons, startTime, endTime, type, statusDisplayType,
-            streamUrl, applicationId, status, since
-        )
+        name: String,
+        state: String?,
+        stateUrl: String? = null,
+        details: String?,
+        detailsUrl: String? = null,
+        largeImage: RpcImage?,
+        smallImage: RpcImage?,
+        largeText: String? = null,
+        smallText: String? = null,
+        buttons: List<Pair<String, String>>? = null,
+        startTime: Long? = null,
+        endTime: Long? = null,
+        type: Type = Type.LISTENING,
+        statusDisplayType: StatusDisplayType = StatusDisplayType.NAME,
+        streamUrl: String? = null,
+        applicationId: String? = null,
+        status: String? = "online",
+        since: Long? = null,
+    ) {
+        if (discordWebSocket.isFullyConnected()) {
+            val success = updateActivity(
+                name, state, stateUrl, details, detailsUrl,
+                largeImage, smallImage, largeText, smallText,
+                buttons, startTime, endTime, type, statusDisplayType,
+                streamUrl, applicationId, status, since
+            )
+            if (!success) {
+                logger.warning("refreshRPC: updateActivity failed, trying buildActivity")
+                buildActivity(
+                    name, state, stateUrl, details, detailsUrl,
+                    largeImage, smallImage, largeText, smallText,
+                    buttons, startTime, endTime, type, statusDisplayType,
+                    streamUrl, applicationId, status, since
+                )
+            }
+        } else {
+            buildActivity(
+                name, state, stateUrl, details, detailsUrl,
+                largeImage, smallImage, largeText, smallText,
+                buttons, startTime, endTime, type, statusDisplayType,
+                streamUrl, applicationId, status, since
+            )
+        }
     }
-}
 
 
     enum class Type(val value: Int) {

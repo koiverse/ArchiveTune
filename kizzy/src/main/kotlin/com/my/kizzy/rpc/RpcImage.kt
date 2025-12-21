@@ -22,12 +22,15 @@ sealed class RpcImage {
 
     class DiscordImage(val image: String) : RpcImage() {
         override suspend fun resolveImage(repository: KizzyRepository): String {
-            return "mp:${image}"
+            return if (image.startsWith("mp:")) image else "mp:$image"
         }
     }
 
     class ExternalImage(val image: String) : RpcImage() {
         override suspend fun resolveImage(repository: KizzyRepository): String? {
+            if (image.startsWith("mp:") || image.startsWith("external/") || image.startsWith("attachments/")) {
+                return if (image.startsWith("mp:")) image else "mp:$image"
+            }
             return repository.getImage(image)
         }
     }

@@ -242,6 +242,121 @@
     <string name="appearance">Apparence</string>
     <string name="theme">Thème</string>
     <string name="enable_dynamic_theme">Activer le thème dynamique</string>
+    <!-- Color Palette -->
+    <string name="color_palette">Palette de couleurs</string>
+    <string name="customize_theme_colors">Choisissez les couleurs du thème de l’application</string>
+    <string name="selected_theme_color">Couleur de thème sélectionnée</string>
+    <string name="theme_preview">Aperçu du thème</string>
+    <string name="select_palette">Sélectionner une palette</string>
+    <string name="palette_applied">Palette appliquée</string>
+
+    <!-- Palette Names -->
+    <string name="palette_default">Par défaut</string>
+
+    <!-- Blues -->
+    <string name="palette_ocean_blue">Bleu océan</string>
+    <string name="palette_arctic_blue">Arctique</string>
+    <string name="palette_midnight_navy">Minuit</string>
+    <string name="palette_sky_blue">Bleu ciel</string>
+    <string name="palette_cobalt_blue">Bleu cobalt</string>
+    <string name="palette_electric_blue">Bleu électrique</string>
+
+    <!-- Greens -->
+    <string name="palette_emerald_green">Émeraude</string>
+    <string name="palette_teal_wave">Vague sarcelle</string>
+    <string name="palette_forest_green">Vert forêt</string>
+    <string name="palette_spotify_green">Spotify</string>
+    <string name="palette_mint_fresh">Menthe</string>
+    <string name="palette_olive_garden">Olive</string>
+    <string name="palette_sage_green">Sauge</string>
+
+    <!-- Oranges & Yellows -->
+    <string name="palette_sunset_orange">Coucher de soleil</string>
+    <string name="palette_golden_hour">Heure dorée</string>
+    <string name="palette_warm_amber">Ambre</string>
+    <string name="palette_tangerine_blast">Mandarine</string>
+    <string name="palette_peach">Pêche</string>
+    <string name="palette_mango">Mangue</string>
+
+    <!-- Purples -->
+    <string name="palette_royal_purple">Violet royal</string>
+    <string name="palette_lavender_dream">Lavande</string>
+    <string name="palette_grape_purple">Raisin</string>
+    <string name="palette_violet">Violet</string>
+    <string name="palette_amethyst">Améthyste</string>
+    <string name="palette_ultra_violet">Ultraviolet</string>
+
+    <!-- Pinks -->
+    <string name="palette_cherry_blossom">Sakura</string>
+    <string name="palette_rose_quartz">Quartz rose</string>
+    <string name="palette_magenta_pop">Magenta</string>
+    <string name="palette_hot_pink">Rose vif</string>
+    <string name="palette_blush">Blush</string>
+    <string name="palette_coral">Corail</string>
+    <string name="palette_bubblegum">Bubblegum</string>
+
+    <!-- Reds -->
+    <string name="palette_crimson_red">Cramoisi</string>
+    <string name="palette_youtube_red">YouTube</string>
+    <string name="palette_wine_red">Bordeaux</string>
+    <string name="palette_ruby_red">Rouge rubis</string>
+    <string name="palette_scarlet">Écarlate</string>
+
+    <!-- Neutrals -->
+    <string name="palette_charcoal">Charbon</string>
+    <string name="palette_silver">Argent</string>
+    <string name="palette_slate">Ardoise</string>
+    <string name="palette_graphite">Graphite</string>
+
+    <!-- Earth Tones -->
+    <string name="palette_terracotta">Terre cuite</string>
+    <string name="palette_coffee">Café</string>
+    <string name="palette_mocha">Moka</string>
+    <string name="palette_sand">Sable</string>
+    <string name="palette_clay">Argile</string>
+
+    <!-- Pastels -->
+    <string name="palette_pastel_pink">Rose pastel</string>
+    <string name="palette_pastel_blue">Bleu pastel</string>
+    <string name="palette_pastel_green">Vert pastel</string>
+    <string name="palette_pastel_yellow">Jaune pastel</string>
+    <string name="palette_pastel_purple">Violet pastel</string>
+
+    <!-- Neon & Vibrant -->
+    <string name="palette_neon_green">Vert néon</string>
+    <string name="palette_neon_pink">Rose néon</string>
+    <string name="palette_neon_blue">Bleu néon</string>
+    <string name="palette_neon_orange">Orange néon</string>
+    <string name="palette_cyberpunk">Cyberpunk</string>
+    <string name="palette_synthwave">Synthwave</string>
+
+    <!-- Special & Themed -->
+    <string name="palette_ocean">Océan</string>
+    <string name="palette_forest">Forêt profonde</string>
+    <string name="palette_autumn">Automne</string>
+    <string name="palette_winter">Hiver</string>
+    <string name="palette_spring">Printemps</string>
+    <string name="palette_summer">Été</string>
+    <string name="palette_twilight">Crépuscule</string>
+    <string name="palette_aurora">Aurore</string>
+    <string name="palette_candy">Bonbon</string>
+    <string name="palette_rainbow">Arc-en-ciel</string>
+
+    <!-- Additional Palettes -->
+    <string name="palette_aquamarine">Aigue-marine</string>
+    <string name="palette_coral_reef">Récif corallien</string>
+    <string name="palette_cotton_candy">Barbe à papa</string>
+    <string name="palette_deep_sea">Mer profonde</string>
+    <string name="palette_electric_violet">Violet électrique</string>
+    <string name="palette_mustard">Moutarde</string>
+    <string name="palette_olive">Olive</string>
+    <string name="palette_peachy_keen">Rêve de pêche</string>
+    <string name="palette_plum">Prune</string>
+    <string name="palette_slate_gray">Gris ardoise</string>
+    <string name="palette_sunset_beach">Plage au coucher du soleil</string>
+    <string name="palette_turquoise">Turquoise</string>
+    <!-- End of Color Palette -->
+
     <string name="dark_theme">Thème sombre</string>
     <string name="dark_theme_on">Activé</string>
     <string name="dark_theme_off">Désactivé</string>

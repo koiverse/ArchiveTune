@@ -1,5 +1,8 @@
 package moe.koiverse.archivetune.ui.menu
 
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -12,23 +15,28 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.unit.dp
 import moe.koiverse.archivetune.LocalDatabase
 import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.db.entities.PlaylistEntity
+import moe.koiverse.archivetune.db.entities.PlaylistSongMap
 import moe.koiverse.archivetune.ui.component.TextFieldDialog
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import android.widget.Toast
 
 @Composable
 fun ImportPlaylistDialog(
     isVisible: Boolean,
-    onGetSong: suspend () -> List<String>, // list of song ids. Songs should be inserted to database in this function.
+    onGetSong: suspend () -> List<String>,
     playlistTitle: String,
     browseId: String? = null,
     snackbarHostState: SnackbarHostState? = null,
@@ -38,28 +46,50 @@ fun ImportPlaylistDialog(
     val coroutineScope = rememberCoroutineScope()
     val context = LocalContext.current
 
-    val textFieldValue by remember { mutableStateOf(TextFieldValue(text = playlistTitle)) }
-    var songIds by remember {
-        mutableStateOf<List<String>?>(null) // list is not saveable
-    }
+    var currentPlaylistName by remember(playlistTitle) { mutableStateOf(playlistTitle) }
+    var songIds by remember { mutableStateOf<List<String>?>(null) }
     var isImporting by remember { mutableStateOf(false) }
     var showDuplicateDialog by remember { mutableStateOf(false) }
     var existingPlaylistId by remember { mutableStateOf<String?>(null) }
+    var isProcessingDuplicate by remember { mutableStateOf(false) }
+
+    fun showMessage(message: String) {
+        coroutineScope.launch {
+            if (snackbarHostState != null) {
+                snackbarHostState.showSnackbar(message)
+            } else {
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+    }
+
+    fun resetState() {
+        songIds = null
+        isImporting = false
+        showDuplicateDialog = false
+        existingPlaylistId = null
+        isProcessingDuplicate = false
+    }
 
     if (isVisible) {
         TextFieldDialog(
             icon = { Icon(painter = painterResource(R.drawable.add), contentDescription = null) },
             title = { Text(text = stringResource(R.string.import_playlist)) },
-            initialTextFieldValue = textFieldValue,
+            initialTextFieldValue = TextFieldValue(text = playlistTitle),
             autoFocus = false,
-            onDismiss = onDismiss,
+            onDismiss = {
+                resetState()
+                onDismiss()
+            },
             extraContent = {
                 if (isImporting) {
                     CircularProgressIndicator()
                 }
             },
             onDone = { finalName ->
-                // Start import
+                currentPlaylistName = finalName
                 isImporting = true
 
                 coroutineScope.launch(Dispatchers.IO) {
@@ -68,19 +98,17 @@ fun ImportPlaylistDialog(
                         songIds = ids
 
                         if (ids.isEmpty()) {
+                            showMessage(context.getString(R.string.import_failed))
                             withContext(Dispatchers.Main) {
-                                snackbarHostState?.showSnackbar(context.getString(R.string.import_failed))
-                                isImporting = false
+                                resetState()
                                 onDismiss()
                             }
                             return@launch
                         }
 
                         if (browseId != null) {
-                            // check for existing playlist with same browseId
                             val existing = database.playlistByBrowseId(browseId).firstOrNull()
                             if (existing != null) {
-                                // show duplicate dialog on main thread
                                 withContext(Dispatchers.Main) {
                                     existingPlaylistId = existing.playlist.id
                                     isImporting = false
@@ -90,7 +118,6 @@ fun ImportPlaylistDialog(
                             }
                         }
 
-                        // create new playlist and insert
                         val newPlaylist = PlaylistEntity(
                             name = finalName,
                             browseId = browseId,
@@ -99,21 +126,19 @@ fun ImportPlaylistDialog(
 
                         val playlist = database.playlist(newPlaylist.id).firstOrNull()
                         if (playlist != null) {
-                            database.addSongToPlaylist(playlist, songIds!!)
+                            database.addSongToPlaylist(playlist, ids)
                         }
 
-                        // success snackbar
+                        showMessage(context.getString(R.string.playlist_synced))
                         withContext(Dispatchers.Main) {
-                            snackbarHostState?.showSnackbar(context.getString(R.string.playlist_synced))
+                            resetState()
+                            onDismiss()
                         }
                     } catch (e: Exception) {
                         e.printStackTrace()
+                        showMessage(context.getString(R.string.import_failed) + ": ${e.message ?: "Unknown error"}")
                         withContext(Dispatchers.Main) {
-                            snackbarHostState?.showSnackbar("Import failed: ${e.message ?: "Unknown error"}")
-                        }
-                    } finally {
-                        withContext(Dispatchers.Main) {
-                            isImporting = false
+                            resetState()
                             onDismiss()
                         }
                     }
@@ -124,82 +149,134 @@ fun ImportPlaylistDialog(
 
     if (showDuplicateDialog && existingPlaylistId != null) {
         DefaultDialog(
-            onDismiss = { showDuplicateDialog = false },
+            onDismiss = {
+                if (!isProcessingDuplicate) {
+                    resetState()
+                }
+            },
             title = { Text(text = stringResource(R.string.import_playlist)) },
             content = {
-                Text(text = stringResource(R.string.already_in_playlist))
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(text = stringResource(R.string.already_in_playlist))
+                    if (isProcessingDuplicate) {
+                        Spacer(modifier = Modifier.height(16.dp))
+                        CircularProgressIndicator()
+                    }
+                }
             },
             buttons = {
-                TextButton(onClick = {
-                    // Skip
-                    showDuplicateDialog = false
-                    onDismiss()
-                }) { Text(text = stringResource(android.R.string.cancel)) }
+                TextButton(
+                    enabled = !isProcessingDuplicate,
+                    onClick = {
+                        resetState()
+                        onDismiss()
+                    }
+                ) { Text(text = stringResource(android.R.string.cancel)) }
 
-                TextButton(onClick = {
-                    // Update existing: add songs
-                    coroutineScope.launch(Dispatchers.IO) {
-                        try {
-                            val ids = songIds ?: onGetSong()
-                            if (ids.isEmpty()) {
+                TextButton(
+                    enabled = !isProcessingDuplicate,
+                    onClick = {
+                        isProcessingDuplicate = true
+                        coroutineScope.launch(Dispatchers.IO) {
+                            try {
+                                val ids = songIds ?: onGetSong()
+                                if (ids.isEmpty()) {
+                                    showMessage(context.getString(R.string.import_failed))
+                                    withContext(Dispatchers.Main) {
+                                        resetState()
+                                        onDismiss()
+                                    }
+                                    return@launch
+                                }
+
+                                val playlist = database.playlist(existingPlaylistId!!).firstOrNull()
+                                if (playlist != null) {
+                                    val existingSongIds = database.playlistSongs(playlist.id).firstOrNull()
+                                        ?.map { it.song.id }?.toSet() ?: emptySet()
+                                    val newSongIds = ids.filterNot { it in existingSongIds }
+
+                                    if (newSongIds.isEmpty()) {
+                                        showMessage(context.getString(R.string.playlist_synced))
+                                    } else {
+                                        database.transaction {
+                                            var position = playlist.songCount
+                                            newSongIds.forEach { songId ->
+                                                insert(
+                                                    PlaylistSongMap(
+                                                        songId = songId,
+                                                        playlistId = playlist.id,
+                                                        position = position++
+                                                    )
+                                                )
+                                            }
+                                        }
+                                        showMessage(context.getString(R.string.playlist_synced))
+                                    }
+                                } else {
+                                    showMessage(context.getString(R.string.import_failed))
+                                }
+
                                 withContext(Dispatchers.Main) {
-                                    snackbarHostState?.showSnackbar(context.getString(R.string.import_failed))
-                                    showDuplicateDialog = false
+                                    resetState()
                                     onDismiss()
                                 }
-                                return@launch
-                            }
-                            val playlist = database.playlist(existingPlaylistId!!).firstOrNull()
-                            if (playlist != null) {
-                                database.addSongToPlaylist(playlist, ids)
-                            }
-                            withContext(Dispatchers.Main) {
-                                snackbarHostState?.showSnackbar(context.getString(R.string.playlist_synced))
-                                showDuplicateDialog = false
-                                onDismiss()
-                            }
-                        } catch (e: Exception) {
-                            e.printStackTrace()
-                            withContext(Dispatchers.Main) {
-                                snackbarHostState?.showSnackbar("Update failed: ${e.message ?: "Unknown error"}")
+                            } catch (e: Exception) {
+                                e.printStackTrace()
+                                showMessage(context.getString(R.string.import_failed) + ": ${e.message ?: "Unknown error"}")
+                                withContext(Dispatchers.Main) {
+                                    resetState()
+                                    onDismiss()
+                                }
                             }
                         }
                     }
-                }) { Text(text = stringResource(R.string.update_button)) }
+                ) { Text(text = stringResource(R.string.update_button)) }
 
-                TextButton(onClick = {
-                    // Import as new playlist (create copy)
-                    coroutineScope.launch(Dispatchers.IO) {
-                        try {
-                            val ids = songIds ?: onGetSong()
-                            if (ids.isEmpty()) {
+                TextButton(
+                    enabled = !isProcessingDuplicate,
+                    onClick = {
+                        isProcessingDuplicate = true
+                        coroutineScope.launch(Dispatchers.IO) {
+                            try {
+                                val ids = songIds ?: onGetSong()
+                                if (ids.isEmpty()) {
+                                    showMessage(context.getString(R.string.import_failed))
+                                    withContext(Dispatchers.Main) {
+                                        resetState()
+                                        onDismiss()
+                                    }
+                                    return@launch
+                                }
+
+                                val newPlaylist = PlaylistEntity(
+                                    name = currentPlaylistName,
+                                    browseId = null
+                                )
+                                database.query { insert(newPlaylist) }
+
+                                val playlist = database.playlist(newPlaylist.id).firstOrNull()
+                                if (playlist != null) {
+                                    database.addSongToPlaylist(playlist, ids)
+                                    showMessage(context.getString(R.string.playlist_synced))
+                                } else {
+                                    showMessage(context.getString(R.string.import_failed))
+                                }
+
                                 withContext(Dispatchers.Main) {
-                                    snackbarHostState?.showSnackbar(context.getString(R.string.import_failed))
-                                    showDuplicateDialog = false
+                                    resetState()
                                     onDismiss()
                                 }
-                                return@launch
-                            }
-                            val newPlaylist = PlaylistEntity(
-                                name = textFieldValue.text,
-                                browseId = null
-                            )
-                            database.query { insert(newPlaylist) }
-                            val playlist = database.playlist(newPlaylist.id).firstOrNull()
-                            if (playlist != null) database.addSongToPlaylist(playlist, ids)
-                            withContext(Dispatchers.Main) {
-                                snackbarHostState?.showSnackbar(context.getString(R.string.playlist_synced))
-                                showDuplicateDialog = false
-                                onDismiss()
-                            }
-                        } catch (e: Exception) {
-                            e.printStackTrace()
-                            withContext(Dispatchers.Main) {
-                                snackbarHostState?.showSnackbar("Import failed: ${e.message ?: "Unknown error"}")
+                            } catch (e: Exception) {
+                                e.printStackTrace()
+                                showMessage(context.getString(R.string.import_failed) + ": ${e.message ?: "Unknown error"}")
+                                withContext(Dispatchers.Main) {
+                                    resetState()
+                                    onDismiss()
+                                }
                             }
                         }
                     }
-                }) { Text(text = stringResource(R.string.import_playlist)) }
+                ) { Text(text = stringResource(R.string.import_playlist)) }
             }
         )
     }

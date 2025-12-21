@@ -8,9 +8,9 @@ data class Presence(
     @SerialName("activities")
     val activities: List<Activity?>?,
     @SerialName("afk")
-    val afk: Boolean? = true,
+    val afk: Boolean? = false,
     @SerialName("since")
-    val since: Long? = 0L,
+    val since: Long? = null,
     @SerialName("status")
     val status: String? = "online",
 )

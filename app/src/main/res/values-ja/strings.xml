@@ -242,6 +242,121 @@
     <string name="appearance">外観</string>
     <string name="theme">テーマ</string>
     <string name="enable_dynamic_theme">ダイナミックテーマを有効にする</string>
+    <!-- Color Palette -->
+    <string name="color_palette">カラーパレット</string>
+    <string name="customize_theme_colors">アプリのテーマカラーを選択</string>
+    <string name="selected_theme_color">選択したテーマカラー</string>
+    <string name="theme_preview">テーマプレビュー</string>
+    <string name="select_palette">パレットを選ぶ</string>
+    <string name="palette_applied">パレットを適用しました</string>
+
+    <!-- Palette Names -->
+    <string name="palette_default">デフォルト</string>
+
+    <!-- Blues -->
+    <string name="palette_ocean_blue">オーシャンブルー</string>
+    <string name="palette_arctic_blue">アークティック</string>
+    <string name="palette_midnight_navy">ミッドナイト</string>
+    <string name="palette_sky_blue">スカイブルー</string>
+    <string name="palette_cobalt_blue">コバルト</string>
+    <string name="palette_electric_blue">エレクトリックブルー</string>
+
+    <!-- Greens -->
+    <string name="palette_emerald_green">エメラルド</string>
+    <string name="palette_teal_wave">ティールウェーブ</string>
+    <string name="palette_forest_green">フォレスト</string>
+    <string name="palette_spotify_green">Spotify</string>
+    <string name="palette_mint_fresh">ミント</string>
+    <string name="palette_olive_garden">オリーブ</string>
+    <string name="palette_sage_green">セージ</string>
+
+    <!-- Oranges & Yellows -->
+    <string name="palette_sunset_orange">サンセット</string>
+    <string name="palette_golden_hour">ゴールデンアワー</string>
+    <string name="palette_warm_amber">アンバー</string>
+    <string name="palette_tangerine_blast">タンジェリン</string>
+    <string name="palette_peach">ピーチ</string>
+    <string name="palette_mango">マンゴー</string>
+
+    <!-- Purples -->
+    <string name="palette_royal_purple">ロイヤルパープル</string>
+    <string name="palette_lavender_dream">ラベンダー</string>
+    <string name="palette_grape_purple">グレープ</string>
+    <string name="palette_violet">バイオレット</string>
+    <string name="palette_amethyst">アメジスト</string>
+    <string name="palette_ultra_violet">ウルトラバイオレット</string>
+
+    <!-- Pinks -->
+    <string name="palette_cherry_blossom">サクラ</string>
+    <string name="palette_rose_quartz">ローズクォーツ</string>
+    <string name="palette_magenta_pop">マゼンタ</string>
+    <string name="palette_hot_pink">ホットピンク</string>
+    <string name="palette_blush">ブラッシュ</string>
+    <string name="palette_coral">コーラル</string>
+    <string name="palette_bubblegum">バブルガム</string>
+
+    <!-- Reds -->
+    <string name="palette_crimson_red">クリムゾン</string>
+    <string name="palette_youtube_red">YouTube</string>
+    <string name="palette_wine_red">ワイン</string>
+    <string name="palette_ruby_red">ルビー</string>
+    <string name="palette_scarlet">スカーレット</string>
+
+    <!-- Neutrals -->
+    <string name="palette_charcoal">チャコール</string>
+    <string name="palette_silver">シルバー</string>
+    <string name="palette_slate">スレート</string>
+    <string name="palette_graphite">グラファイト</string>
+
+    <!-- Earth Tones -->
+    <string name="palette_terracotta">テラコッタ</string>
+    <string name="palette_coffee">コーヒー</string>
+    <string name="palette_mocha">モカ</string>
+    <string name="palette_sand">サンド</string>
+    <string name="palette_clay">クレイ</string>
+
+    <!-- Pastels -->
+    <string name="palette_pastel_pink">パステルピンク</string>
+    <string name="palette_pastel_blue">パステルブルー</string>
+    <string name="palette_pastel_green">パステルグリーン</string>
+    <string name="palette_pastel_yellow">パステルイエロー</string>
+    <string name="palette_pastel_purple">パステルパープル</string>
+
+    <!-- Neon & Vibrant -->
+    <string name="palette_neon_green">ネオングリーン</string>
+    <string name="palette_neon_pink">ネオンピンク</string>
+    <string name="palette_neon_blue">ネオンブルー</string>
+    <string name="palette_neon_orange">ネオンオレンジ</string>
+    <string name="palette_cyberpunk">サイバーパンク</string>
+    <string name="palette_synthwave">シンセウェーブ</string>
+
+    <!-- Special & Themed -->
+    <string name="palette_ocean">オーシャン</string>
+    <string name="palette_forest">ディープフォレスト</string>
+    <string name="palette_autumn">オータム</string>
+    <string name="palette_winter">ウィンター</string>
+    <string name="palette_spring">スプリング</string>
+    <string name="palette_summer">サマー</string>
+    <string name="palette_twilight">トワイライト</string>
+    <string name="palette_aurora">オーロラ</string>
+    <string name="palette_candy">キャンディ</string>
+    <string name="palette_rainbow">レインボー</string>
+
+    <!-- Additional Palettes -->
+    <string name="palette_aquamarine">アクアマリン</string>
+    <string name="palette_coral_reef">コーラルリーフ</string>
+    <string name="palette_cotton_candy">コットンキャンディ</string>
+    <string name="palette_deep_sea">ディープシー</string>
+    <string name="palette_electric_violet">エレクトリックバイオレット</string>
+    <string name="palette_mustard">マスタード</string>
+    <string name="palette_olive">オリーブ</string>
+    <string name="palette_peachy_keen">ピーチーキーン</string>
+    <string name="palette_plum">プラム</string>
+    <string name="palette_slate_gray">スレートグレー</string>
+    <string name="palette_sunset_beach">サンセットビーチ</string>
+    <string name="palette_turquoise">ターコイズ</string>
+    <!-- End of Color Palette -->
+
     <string name="dark_theme">ダークテーマ</string>
     <string name="dark_theme_on">オン</string>
     <string name="dark_theme_off">オフ</string>
@@ -504,4 +619,21 @@
     <string name="new_version_available">利用可能な新バージョン</string>
     <string name="translation_models">翻訳モデル</string>
     <string name="clear_translation_models">翻訳をクリアモデル</string>
+
+    <string name="updates">アップデート</string>
+    <string name="current_version">現在のバージョン</string>
+    <string name="latest_version_format">最新: %s</string>
+    <string name="notification_settings">通知</string>
+    <string name="enable_update_notification">アップデート通知を有効化</string>
+    <string name="enable_update_notification_desc">新しい安定版がリリースされたら通知を受け取る</string>
+    <string name="update_channel">アップデートチャンネル</string>
+    <string name="channel_stable">安定版</string>
+    <string name="channel_nightly">ナイトリー</string>
+    <string name="commit_history">開発</string>
+    <string name="recent_commits">最近のコミット</string>
+    <string name="update_notification_channel_name">アプリの更新</string>
+    <string name="update_notification_channel_desc">新しいアプリ更新の通知</string>
+    <string name="update_notification_title">アップデート可能</string>
+    <string name="update_notification_text">ArchiveTune %s が利用可能です</string>
+    <string name="download">ダウンロード</string>
 </resources>

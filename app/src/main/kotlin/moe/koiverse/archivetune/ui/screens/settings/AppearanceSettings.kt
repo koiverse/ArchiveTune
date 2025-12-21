@@ -383,6 +383,15 @@ fun AppearanceSettings(
             onCheckedChange = onDynamicThemeChange,
         )
 
+        AnimatedVisibility(visible = !dynamicTheme) {
+            PreferenceEntry(
+                title = { Text(stringResource(R.string.color_palette)) },
+                description = stringResource(R.string.customize_theme_colors),
+                icon = { Icon(painterResource(R.drawable.format_paint), null) },
+                onClick = { navController.navigate("settings/appearance/palette_picker") }
+            )
+        }
+
         EnumListPreference(
             title = { Text(stringResource(R.string.dark_theme)) },
             icon = { Icon(painterResource(R.drawable.dark_mode), null) },
@@ -428,6 +437,7 @@ fun AppearanceSettings(
                     PlayerDesignStyle.V1 -> stringResource(R.string.player_design_v1)
                     PlayerDesignStyle.V2 -> stringResource(R.string.player_design_v2)
                     PlayerDesignStyle.V3 -> stringResource(R.string.player_design_v3)
+                    PlayerDesignStyle.V4 -> stringResource(R.string.player_design_v4)
                 }
             },
         )

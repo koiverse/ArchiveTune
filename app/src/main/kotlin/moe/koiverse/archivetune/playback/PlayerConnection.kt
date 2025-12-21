@@ -78,13 +78,21 @@ class PlayerConnection(
 
         playbackState.value = player.playbackState
         playWhenReady.value = player.playWhenReady
-        mediaMetadata.value = player.currentMetadata
+        val currentMeta = player.currentMetadata ?: service.currentMediaMetadata.value
+        mediaMetadata.value = currentMeta
         queueTitle.value = service.queueTitle
         queueWindows.value = player.getQueueWindows()
         currentWindowIndex.value = player.getCurrentQueueIndex()
         currentMediaItemIndex.value = player.currentMediaItemIndex
         shuffleModeEnabled.value = player.shuffleModeEnabled
         repeatMode.value = player.repeatMode
+        
+        if (currentMeta == null && player.mediaItemCount > 0) {
+            val mediaItem = player.currentMediaItem
+            if (mediaItem != null) {
+                mediaMetadata.value = mediaItem.metadata
+            }
+        }
     }
 
     fun playQueue(queue: Queue) {
@@ -149,7 +157,8 @@ class PlayerConnection(
         mediaItem: MediaItem?,
         reason: Int,
     ) {
-        mediaMetadata.value = mediaItem?.metadata
+        val meta = mediaItem?.metadata ?: service.currentMediaMetadata.value
+        mediaMetadata.value = meta
         currentMediaItemIndex.value = player.currentMediaItemIndex
         currentWindowIndex.value = player.getCurrentQueueIndex()
         updateCanSkipPreviousAndNext()
