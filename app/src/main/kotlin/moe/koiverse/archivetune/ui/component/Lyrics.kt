@@ -100,6 +100,8 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.Placeholder
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.graphics.drawscope.clipRect
+import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.text.PlaceholderVerticalAlign
 import androidx.compose.foundation.text.InlineTextContent
 import kotlin.math.sin
@@ -205,11 +207,21 @@ private fun KaraokeWord(
                 0f
             }
 
-            // Bounce effect: Custom cubic impulse for a quick nudge and soft landing
-            // Curve: t * (1-t)^2. Peaks at t=0.33, lands with 0 velocity at t=1.
-            if (progress > 0f && progress < 1f) {
-                // Scale factor 40f results in a peak amplitude of approx 6px (0.148 * 40)
-                val nudge = (progress * (1f - progress) * (1f - progress)) * 40f
+
+            // Nudge Animation: Decoupled from word duration.
+            // Fixed duration impulse (e.g., 500ms) to avoid "wobble" on long words.
+            val nudgeDuration = 500L
+            val elapsed = currentTime - startTime
+            val isNudging = elapsed in 0..nudgeDuration
+
+            if (isNudging) {
+                // Progress 0..1 over 500ms
+                val t = elapsed.toFloat() / nudgeDuration.toFloat()
+                // Curve: Cubic impulse for quick push and slow return.
+                // t * (1-t)^2 peaks at t=0.33
+                // Scaled to ~4dp (approx 12px) peak
+                val amplitude = 12f * 3f 
+                val nudge = (t * (1f - t) * (1f - t)) * amplitude
                 translationX = nudge
             } else {
                 translationX = 0f
@@ -240,8 +252,8 @@ private fun KaraokeWord(
             }
         )
 
-        // 3. Active (filling) layer - WITH GLOW
-        // Only drawn when filling (0 < progress < 1)
+        // 3. Active (filling) layer - GLOW + SOFT MASK
+        // Uses offscreen compositing to apply the alpha mask properly
         Text(
             text = text,
             fontSize = fontSize,
@@ -250,32 +262,44 @@ private fun KaraokeWord(
             style = LocalTextStyle.current.copy(
                 shadow = Shadow(
                     color = textColor,
-                    blurRadius = 25f // Stronger glow for the active word
+                    blurRadius = 30f // Strong glow
                 )
             ),
-            modifier = Modifier.drawWithContent {
-                val currentTime = currentTimeProvider()
-                val progress = if (duration > 0) {
-                    val elapsed = currentTime - startTime
-                    (elapsed.toFloat() / duration.toFloat()).coerceIn(0f, 1f)
-                } else if (currentTime >= endTime) {
-                    1f
-                } else {
-                    0f
+            modifier = Modifier
+                .graphicsLayer {
+                    compositingStrategy = CompositingStrategy.Offscreen
                 }
+                .drawWithContent {
+                    val currentTime = currentTimeProvider()
+                    val progress = if (duration > 0) {
+                        val elapsed = currentTime - startTime
+                        (elapsed.toFloat() / duration.toFloat()).coerceIn(0f, 1f)
+                    } else if (currentTime >= endTime) {
+                        1f
+                    } else {
+                        0f
+                    }
 
-                if (progress > 0f && progress < 1f) {
-                    val fillWidth = size.width * progress
-                    clipRect(
-                        left = 0f,
-                        top = 0f,
-                        right = fillWidth,
-                        bottom = size.height
-                    ) {
-                        this@drawWithContent.drawContent()
+                    if (progress > 0f && progress < 1f) {
+                        drawContent()
+                        
+                        // Soft Mask Gradient
+                        val fillWidth = size.width * progress
+                        // Fade width in pixels (e.g., 40px soft edge)
+                        val fadeWidth = 40f 
+                        
+                        val softFillBrush = Brush.horizontalGradient(
+                            0f to Color.Black,
+                            ((fillWidth) / size.width).coerceAtLeast(0f) to Color.Black,
+                             ((fillWidth + fadeWidth) / size.width).coerceAtMost(1f) to Color.Transparent
+                        )
+                        
+                        drawRect(
+                            brush = softFillBrush,
+                            blendMode = BlendMode.DstIn
+                        )
                     }
                 }
-            }
         )
     }
 }
