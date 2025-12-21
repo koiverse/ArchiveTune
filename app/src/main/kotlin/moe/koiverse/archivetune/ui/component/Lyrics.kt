@@ -1560,7 +1560,7 @@ fun Lyrics(
 
                                 if (hasWordTimings && item.words != null && isActiveLine && effectiveAnimationStyle != LyricsAnimationStyle.NONE) {
 
-                                    val romanizedWords = romanized.split(" ")
+                                    val romanizedWords = romanized.trim().split(Regex("\\s+"))
                                     val mainWords = item.words
 
                                     if (effectiveAnimationStyle == LyricsAnimationStyle.KARAOKE) {
