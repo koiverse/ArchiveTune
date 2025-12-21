@@ -1349,7 +1349,7 @@ fun Lyrics(
                                 fontWeight = if (hasRomanization) FontWeight.Bold else FontWeight.ExtraBold,
                                 lineHeight = (lyricsTextSize * lyricsLineSpacing).sp
                             )
-                        } else if (isActiveLine && (effectiveAnimationStyle == LyricsAnimationStyle.SLIDE || effectiveAnimationStyle == LyricsAnimationStyle.KARAOKE)) {
+                        } else if (isActiveLine && effectiveAnimationStyle == LyricsAnimationStyle.SLIDE) {
 
                             val popInScale = remember { Animatable(0.95f) }
 
@@ -1414,6 +1414,46 @@ fun Lyrics(
                                     scaleY = combinedScale
                                 }
                             )
+                        } else if (isActiveLine && effectiveAnimationStyle == LyricsAnimationStyle.KARAOKE) {
+                             if (hasWordTimings && item.words != null) {
+                                  val currentTimeProvider: () -> Long = { sliderPositionProvider() ?: 0L }
+                                  
+                                  FlowRow(
+                                      modifier = Modifier.padding(top = 2.dp).fillMaxWidth(),
+                                      horizontalArrangement = when (lyricsTextPosition) {
+                                          LyricsPosition.LEFT -> Arrangement.Start
+                                          LyricsPosition.CENTER -> Arrangement.Center
+                                          LyricsPosition.RIGHT -> Arrangement.End
+                                      },
+                                      verticalArrangement = Arrangement.Center
+                                  ) {
+                                      item.words.forEachIndexed { idx, word ->
+                                           val wordStartMs = (word.startTime * 1000).toLong()
+                                           val wordEndMs = (word.endTime * 1000).toLong()
+                                           
+                                           KaraokeWord(
+                                              text = word.text,
+                                              startTime = wordStartMs,
+                                              endTime = wordEndMs,
+                                              currentTimeProvider = currentTimeProvider,
+                                              fontSize = lyricsTextSize.sp,
+                                              textColor = lyricsBaseColor,
+                                              inactiveAlpha = 0.3f,
+                                              modifier = Modifier.padding(horizontal = 2.dp)
+                                           )
+                                      }
+                                  }
+                             } else {
+                                  // Fallback to standard text if timings are missing
+                                  Text(
+                                      text = item.text,
+                                      fontSize = lyricsTextSize.sp,
+                                      color = lyricsBaseColor,
+                                      textAlign = alignment,
+                                      fontWeight = FontWeight.ExtraBold,
+                                      lineHeight = (lyricsTextSize * lyricsLineSpacing).sp
+                                  )
+                             }
                         } else if (isActiveLine && effectiveAnimationStyle == LyricsAnimationStyle.APPLE) {
 
                             val popInScale = remember { Animatable(0.96f) }
