@@ -205,11 +205,11 @@ private fun KaraokeWord(
                 0f
             }
 
-            // Bounce effect: sin wave on translationX when active (nudge right)
+            // Bounce effect: Custom cubic impulse for a quick nudge and soft landing
+            // Curve: t * (1-t)^2. Peaks at t=0.33, lands with 0 velocity at t=1.
             if (progress > 0f && progress < 1f) {
-                // Smooth nudge to right and back.
-                // sin(0..1 * PI) goes 0 -> 1 -> 0
-                val nudge = kotlin.math.sin(progress * Math.PI).toFloat() * 10f // Nudge right 10px
+                // Scale factor 40f results in a peak amplitude of approx 6px (0.148 * 40)
+                val nudge = (progress * (1f - progress) * (1f - progress)) * 40f
                 translationX = nudge
             } else {
                 translationX = 0f
