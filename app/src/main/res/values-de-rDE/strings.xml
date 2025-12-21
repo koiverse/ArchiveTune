@@ -6,7 +6,7 @@
 <!-- Translators: Do not modify this file for translations, use InnerTune's Weblate instead. -->
 <resources>
     <!-- Bottom navigation -->
-    <string name="home">Startseite</string>
+    <string name="home">Heim</string>
     <string name="songs">Lieder</string>
     <string name="artists">Künstler</string>
     <string name="albums">Alben</string>
@@ -17,7 +17,7 @@
         <item quantity="other">%d selected</item>
     </plurals>
     <!-- Home -->
-    <string name="history">Hörverlauf</string>
+    <string name="history">Geschichte</string>
     <string name="stats">Statistiken</string>
     <string name="mood_and_genres">Stimmung und Genres</string>
     <string name="account">Konto</string>
@@ -78,7 +78,7 @@
     <string name="shuffle">Shuffle</string>
     <string name="reset">Zurücksetzen</string>
     <!-- Menu -->
-    <string name="details">Details</string>
+    <string name="details">Einzelheiten</string>
     <string name="edit">Bearbeiten</string>
     <string name="start_radio">Radio starten</string>
     <string name="play">Spielen</string>
@@ -100,7 +100,7 @@
     <string name="view_all">Alle anzeigen</string>
     <string name="more">mehr</string>
     <string name="refetch">Erneut abrufen</string>
-    <string name="share">Teilen</string>
+    <string name="share">Aktie</string>
     <string name="delete">Löschen</string>
     <string name="remove_from_history">Aus dem Verlauf entfernen</string>
     <string name="remove_from_playlist">Aus Playlist entfernen</string>
@@ -116,8 +116,8 @@
     <string name="sort_by_year">Jahr</string>
     <string name="sort_by_song_count">Songanzahl</string>
     <string name="sort_by_length">Länge</string>
-    <string name="sort_by_play_time">Wiedergabezeit</string>
-    <string name="sort_by_custom">Benutzerdefiniert</string>
+    <string name="sort_by_play_time">Spielzeit</string>
+    <string name="sort_by_custom">Sonderanfertigung</string>
     <!-- Dialog -->
     <string name="media_id">Medien-ID</string>
     <string name="mime_type">MIME-Typ</string>
@@ -129,7 +129,7 @@
     <string name="file_size">Dateigröße</string>
     <string name="unknown">Unbekannt</string>
     <string name="copied">In die Zwischenablage kopiert</string>
-    <string name="edit_lyrics">Songtext bearbeiten</string>
+    <string name="edit_lyrics">Liedtext bearbeiten</string>
     <string name="search_lyrics">Songtexte suchen</string>
     <string name="edit_song">Lied bearbeiten</string>
     <string name="song_title">Songtitel</string>
@@ -185,7 +185,7 @@
     <string name="playlist_synced">Playlist synchronisiert</string>
     <string name="undo">Rückgängig machen</string>
     <!-- Player -->
-    <string name="lyrics_not_found">Songtext nicht gefunden</string>
+    <string name="lyrics_not_found">Liedtext nicht gefunden</string>
     <string name="sleep_timer">Sleep-Timer</string>
     <string name="end_of_song">Ende des Liedes</string>
     <plurals name="minute">
@@ -407,7 +407,7 @@
     <string name="add_symbol">Symbol hinzufügen</string>
     <string name="enter_symbol">Symbol eingeben</string>
     <string name="equalizer">Equalizer</string>
-    <string name="storage">Speicher</string>
+    <string name="storage">Lagerung</string>
     <string name="cache">Cache</string>
     <string name="image_cache">Bildcache</string>
     <string name="song_cache">Song-Cache</string>
@@ -420,9 +420,9 @@
     <string name="clear_song_cache">Song-Cache löschen</string>
     <string name="size_used">%s verwendet</string>
     <string name="privacy">Privatsphäre</string>
-    <string name="listen_history">Hörverlauf</string>
+    <string name="listen_history">Hören Sie Geschichte</string>
     <string name="pause_listen_history">Hörverlauf pausieren</string>
-    <string name="clear_listen_history">Hörverlauf löschen</string>
+    <string name="clear_listen_history">Klarer Hörverlauf</string>
     <string name="clear_listen_history_confirm">Sind Sie sicher, dass Sie den gesamten Hörverlauf löschen möchten?</string>
     <string name="search_history">Suchverlauf</string>
     <string name="pause_search_history">Suchverlauf pausieren</string>
@@ -439,7 +439,7 @@
     <string name="action_backup">Sicherung</string>
     <string name="action_restore">Wiederherstellen</string>
     <string name="imported_playlist">Importierte Playlist</string>
-    <string name="backup_create_success">Sicherung erfolgreich erstellt</string>
+    <string name="backup_create_success">Backup erfolgreich erstellt</string>
     <string name="backup_create_failed">Es konnte kein Backup erstellt werden</string>
     <string name="restore_failed">Sicherung konnte nicht wiederhergestellt werden</string>
     <string name="discord_integration">Discord-Integration</string>
@@ -554,25 +554,25 @@
     <string name="playback_speed_label">Wiedergabegeschwindigkeit</string>
     <string name="state_label">Status</string>
     <string name="media_id_label">Medien-ID</string>
-    <string name="about">Über</string>
+    <string name="about">Um</string>
     <string name="app_version">App-Version</string>
     <string name="new_version_available">Neue Version verfügbar</string>
     <string name="translation_models">Übersetzungsmodelle</string>
     <string name="clear_translation_models">Klare Übersetzungsmodelle</string>
-    <string name="updates">Updates</string>
-    <string name="current_version">Current Version</string>
-    <string name="latest_version_format">Latest: %s</string>
-    <string name="notification_settings">Notification</string>
-    <string name="enable_update_notification">Enable Update Notification</string>
-    <string name="enable_update_notification_desc">Get notified when a new stable version is released</string>
-    <string name="update_channel">Update Channel</string>
-    <string name="channel_stable">Stable</string>
+    <string name="updates">Aktualisierungen</string>
+    <string name="current_version">Aktuelle Version</string>
+    <string name="latest_version_format">Neueste: %s</string>
+    <string name="notification_settings">Benachrichtigung</string>
+    <string name="enable_update_notification">Update-Benachrichtigung aktivieren</string>
+    <string name="enable_update_notification_desc">Benachrichtigung erhalten, wenn eine neue stabile Version veröffentlicht wird</string>
+    <string name="update_channel">Update-Kanal</string>
+    <string name="channel_stable">Stabil</string>
     <string name="channel_nightly">Nightly</string>
-    <string name="commit_history">Development</string>
-    <string name="recent_commits">Recent Commits</string>
-    <string name="update_notification_channel_name">App Updates</string>
-    <string name="update_notification_channel_desc">Notifications for new app updates</string>
-    <string name="update_notification_title">Update Available</string>
-    <string name="update_notification_text">ArchiveTune %s is now available</string>
-    <string name="download">Download</string>
+    <string name="commit_history">Entwicklung</string>
+    <string name="recent_commits">Neueste Commits</string>
+    <string name="update_notification_channel_name">App-Updates</string>
+    <string name="update_notification_channel_desc">Benachrichtigungen für neue App-Updates</string>
+    <string name="update_notification_title">Update verfügbar</string>
+    <string name="update_notification_text">ArchiveTune %s ist jetzt verfügbar</string>
+    <string name="download">Herunterladen</string>
 </resources>
