@@ -1,10 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="explore">Erkunden</string>
-
     <string name="local_history">Lokal</string>
     <string name="remote_history">Online</string>
-
     <string name="charts">Charts</string>
     <string name="back_button_desc">Zurück</string>
     <string name="no_title">Kein Titel</string>
@@ -15,12 +13,10 @@
     <string name="album_cover_desc">Albumcover</string>
     <string name="top_music_videos">Top-Musikvideos</string>
     <string name="trending">Im Trend</string>
-
     <string name="weeks">Wochen</string>
     <string name="months">Monate</string>
     <string name="years">Jahre</string>
     <string name="continuous">Kontinuierlich</string>
-
     <string name="liked">Gefallen</string>
     <string name="offline">Heruntergeladen</string>
     <string name="my_top">Meine Top</string>
@@ -42,7 +38,6 @@
     <string name="text_color">Textfarbe</string>
     <string name="secondary_text_color">Sekundäre Textfarbe</string>
     <string name="background_color">Hintergrundfarbe</string>
-
     <string name="added_to_play_next">Zum nächsten Abspielen hinzugefügt</string>
     <string name="added_to_queue">Zur Warteschlange hinzugefügt</string>
     <string name="remove_from_cache">Aus Cache entfernen</string>
@@ -54,15 +49,12 @@
     <string name="link_copied">Link in die Zwischenablage kopiert</string>
     <string name="starting_radio">Radio starten</string>
     <string name="now_playing">Jetzt gespielt</string>
-
     <string name="close">Schließen</string>
     <string name="minimum_volume">Mindestlautstärke</string>
     <string name="maximum_volume">Maximale Lautstärke</string>
     <string name="hide_player_thumbnail">Spieler-Miniaturansicht ausblenden</string>
     <string name="hide_player_thumbnail_desc">Ersetzen Sie das Albumcover durch das App-Logo im Player</string>
-
     <string name="already_in_playlist">Bereits in der Playlist:</string>
-
     <plurals name="n_element">
         <item quantity="one">%d-Element</item>
         <item quantity="other">%d Elemente</item>
@@ -71,19 +63,15 @@
         <item quantity="one">%d Mal</item>
         <item quantity="other">%d Mal</item>
     </plurals>
-
     <string name="seek_backward">5 Sekunden zurück</string>
     <string name="seek_forward">5 Sekunden vorwärts</string>
     <string name="seek_forward_dynamic">+%1$d Sekunden vorwärts</string>
     <string name="seek_backward_dynamic">-%1$d Sekunden zurück</string>
     <string name="seek_seconds_addup">Progressive Suche</string>
     <string name="seek_seconds_addup_description">Wenn diese Option aktiviert ist, werden bei jedem Suchsprung schrittweise 5 zusätzliche Sekunden addiert</string>
-
     <string name="similar_content">Ähnlicher Inhalt</string>
-
     <string name="login_settings">Anmeldeeinstellungen</string>
     <string name="general_settings">Allgemeine Einstellungen</string>
-
     <string name="player_background_style">Hintergrundstil des Spielers</string>
     <string name="follow_theme">Thema folgen</string>
     <string name="gradient">Gradient</string>
@@ -92,11 +80,11 @@
     <string name="player_design_v2">Modern</string>
     <string name="player_design_v3">Minimal</string>
     <string name="player_design_v4">Kinematisch</string>
+    <string name="new_mini_player_design">Neues Mini-Player-Design</string>
+    <string name="player_background_blur">Verwischen</string>
     <string name="coloring">Farbung</string>
     <string name="blur_gradient">Weichzeichnerverlauf</string>
     <string name="glow">Leuchten</string>
-    <string name="new_mini_player_design">Neues Mini-Player-Design</string>
-    <string name="player_background_blur">Verwischen</string>
     <string name="player_buttons_style">Farben der Player-Tasten</string>
     <string name="default_style">Standard</string>
     <string name="secondary_color_style">Sekundär</string>
@@ -105,6 +93,8 @@
     <string name="swipe_song_to_add">Wischen Sie den Song nach links, um ihn zur Warteschlange hinzuzufügen, oder nach rechts, um ihn als nächstes abzuspielen</string>
     <string name="lyrics_click_change">Liedtext per Klick ändern</string>
     <string name="lyrics_auto_scroll">Songtexte automatisch scrollen</string>
+    <string name="lyrics_text_size">Lyrics text size</string>
+    <string name="resume_autoscroll">Resume Autoscroll</string>
     <string name="lyrics_romanize_japanese">Japanische Texte romanisieren</string>
     <string name="lyrics_romanize_korean">Romanisieren Sie koreanische Texte</string>
     <string name="slim">Schlank</string>
@@ -114,7 +104,6 @@
     <string name="show_downloaded_playlist">Wiedergabeliste „Heruntergeladen“ anzeigen</string>
     <string name="show_top_playlist">„Top“-Playlist anzeigen</string>
     <string name="show_cached_playlist">Playlist „im Cache“ anzeigen</string>
-
     <string name="google">Google</string>
     <string name="discord">Zwietracht</string>
     <string name="advanced_login">Mit Token anmelden</string>
@@ -136,7 +125,6 @@
     <string name="configure_supported_links">Konfigurieren Sie unterstützte Links</string>
     <string name="intent_supported_links_not_found">Es konnten keine unterstützten Linkeinstellungen gefunden werden. Bitte konfigurieren Sie sie manuell</string>
     <string name="set_first_lyrics_provider">Bevorzugter Textanbieter</string>
-
     <string name="audio_quality_max">Max (Beta)</string>
     <string name="enable_similar_content">Aktivieren Sie ähnliche Inhalte</string>
     <string name="similar_content_desc">Fügen Sie automatisch weitere ähnliche Songs hinzu, wenn das Ende der Warteschlange erreicht ist</string>
@@ -144,32 +132,23 @@
     <string name="min_playback_duration_description">Die Mindestlänge eines Songs, die gespielt werden muss, bevor er als „gespielt“ gilt.</string>
     <string name="percentage_format">%d%%</string>
     <string name="minimum_playback_duration">Mindestwiedergabedauer</string>
-
     <string name="import_online">Importieren Sie eine „m3u“-Wiedergabeliste</string>
     <string name="import_csv">Importieren Sie eine „CSV“-Wiedergabeliste</string>
     <string name="playlist_add_local_to_synced_note">Hinweis: Das Hinzufügen lokaler Songs zu synchronisierten/Remote-Playlists wird nicht unterstützt. Jede andere Kombination ist gültig</string>
-
     <string name="auto_download_on_like">Automatischer Download bei Like</string>
     <string name="auto_download_on_like_desc">Laden Sie Songs automatisch herunter, wenn sie Ihnen gefallen</string>
-
     <string name="swipe_sensitivity">Wischempfindlichkeit des Mini-Players</string>
     <string name="swipe_sensitivity_desc">Passen Sie an, wie empfindlich Wischgesten beim Wechseln von Songs sind</string>
     <string name="sensitivity_percentage">%1$d%%</string>
-
     <string name="clear_song_cache_dialog">  Sind Sie sicher, dass Sie alle zwischengespeicherten Songs löschen möchten?</string>
     <string name="clear_image_cache_dialog">  Sind Sie sicher, dass Sie alle zwischengespeicherten Bilder löschen möchten?</string>
     <string name="clear_downloads_dialog">  Sind Sie sicher, dass Sie alle Downloads löschen möchten?</string>
-
     <string name="disable">Deaktivieren</string>
-
     <string name="pause_remote_listen_history">Pausieren des Hörverlaufs mit YouTube Music</string>
     <string name="not_logged_in_youtube">Nicht bei YouTube angemeldet</string>
-
     <string name="default_links">Unterstützte Links öffnen</string>
     <string name="open_app_settings_error">Die App-Einstellungen konnten nicht geöffnet werden</string>
-
     <string name="release_notes">Versionshinweise</string>
-
     <string name="all_time">Alle Zeiten</string>
     <string name="past_24_hours">Letzte 24 Stunden</string>
     <string name="past_week">Letzte Woche</string>
@@ -194,11 +173,9 @@
         <item quantity="one">1 second</item>
         <item quantity="other">%d Sekunden</item>
     </plurals>
-
     <!-- Player Settings -->
     <string name="disable_load_more_when_repeat_all">Deaktivieren Sie „Mehr laden, wenn alles wiederholt wird“.</string>
     <string name="disable_load_more_when_repeat_all_desc">Wenn der Modus „Alle wiederholen“ aktiviert ist, werden nicht automatisch weitere Songs und ähnliche Inhalte geladen</string>
-    
     <!-- Material 3 Settings Sections -->
     <string name="settings_section_ui">Benutzeroberfläche</string>
     <string name="settings_section_privacy">Datenschutz &amp; Sicherheit</string>
