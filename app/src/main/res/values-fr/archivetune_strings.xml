@@ -202,9 +202,9 @@
     
     <!-- Material 3 Settings Sections -->
     <string name="settings_section_ui">Interface</string>
-    <string name="settings_section_privacy">Confidentialité & Sécurité</string>
-    <string name="settings_section_player">Lecteur & Médias</string>
-    <string name="settings_section_player_content">Lecteur & Contenu</string>
-    <string name="settings_section_storage">Stockage & Données</string>
-    <string name="settings_section_system">Système & À propos</string>
+    <string name="settings_section_privacy">Confidentialité &amp; Sécurité</string>
+    <string name="settings_section_player">Lecteur &amp; Médias</string>
+    <string name="settings_section_player_content">Lecteur &amp; Contenu</string>
+    <string name="settings_section_storage">Stockage &amp; Données</string>
+    <string name="settings_section_system">Système &amp; À propos</string>
 </resources>
