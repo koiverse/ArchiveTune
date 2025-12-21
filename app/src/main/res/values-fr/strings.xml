@@ -104,7 +104,7 @@
     <string name="downloading">Téléchargement</string>
     <string name="remove_download">Supprimer le téléchargement</string>
     <string name="import_playlist">Importer la playlist</string>
-    <string name="import_failed">Échec de l'importation</string>
+    <string name="import_failed">Échec de l\'importation</string>
     <string name="update_button">Mise à jour</string>
     <string name="add_to_playlist">Ajouter à la playlist</string>
     <string name="view_artist">Voir l\'artiste</string>
@@ -361,14 +361,14 @@
     <string name="dark_theme_on">Activé</string>
     <string name="dark_theme_off">Désactivé</string>
     <string name="show_button">Afficher le bouton</string>
-    <string name="corner_radius">Rayon d'angle : %1$d</string>
+    <string name="corner_radius">Rayon d\'angle : %1$d</string>
     <string name="adjust_radius">Ajuster le rayon des coins</string>
     <string name="cancel_button">Annuler</string>
     <string name="ok_button">OK</string>
     <string name="custom_radius">Personnaliser le rayon des coins des vignettes</string>
     <string name="custom">Personnalisation</string>
     <string name="customized_background">Arrière-plan personnalisé</string>
-    <string name="customize_background_title">Personnaliser l'arrière-plan</string>
+    <string name="customize_background_title">Personnaliser l\'arrière-plan</string>
     <string name="add_image">Ajouter une image</string>
     <string name="blur">Floue</string>
     <string name="contrast">Contraste</string>
@@ -401,7 +401,7 @@
     <string name="big">Grande</string>
 
     <!-- Lyrics animation style -->
-    <string name="lyrics_animation_style">Style d'animation des paroles</string>
+    <string name="lyrics_animation_style">Style d\'animation des paroles</string>
     <!-- Animation options -->
     <string name="none">Aucune</string>
     <string name="fade">Disparition</string>
@@ -507,7 +507,7 @@
     <string name="scrobble_min_track_duration">Durée minimale du morceau</string>
     <string name="scrobble_delay_percent">Pourcentage de délai de scrobble</string>
     <string name="scrobble_delay_minutes">Délai de scrobble (secondes)</string>
-    <string name="username">Nom d'utilisateur</string>
+    <string name="username">Nom d\'utilisateur</string>
     <string name="password">Mot de passe</string>
     <string name="logging_in">Connexion…</string>
 
@@ -617,3 +617,4 @@
     <string name="translation_models">Modèles de traduction</string>
     <string name="clear_translation_models">Effacer les modèles de traduction</string>
 </resources>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                
