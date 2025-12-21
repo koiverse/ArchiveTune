@@ -9,10 +9,10 @@
     <string name="back_button_desc">Retour</string>
     <string name="no_title">Aucun titre</string>
     <string name="unknown_artist">Artiste inconnu</string>
-    <string name="unknown_item_type">Type d'élément inconnu</string>
+    <string name="unknown_item_type">Type d\'élément inconnu</string>
     <string name="loading_charts">Chargement des graphiques...</string>
     <string name="retry_button">Réessayer</string>
-    <string name="album_cover_desc">Pochette d'album</string>
+    <string name="album_cover_desc">Pochette d\'album</string>
     <string name="top_music_videos">Meilleurs Clips Musicaux</string>
     <string name="trending">Tendance</string>
 
@@ -29,7 +29,7 @@
     <string name="sync_disabled">Synchronisation désactivée</string>
     <string name="elements_selected">%1$d éléments sélectionnés</string>
     <string name="allows_for_sync_witch_youtube">Remarque : Ceci permet la synchronisation avec YouTube Music. Ce paramètre ne peut pas être modifié ultérieurement.</string>
-    <string name="generating_image">Génération de l'image</string>
+    <string name="generating_image">Génération de l\'image</string>
     <string name="please_wait">Veuillez patienter</string>
     <string name="cancel">Annuler</string>
     <string name="share_lyrics">Partager les paroles</string>
@@ -38,13 +38,13 @@
     <string name="max_selection_limit">Limite maximale de sélection</string>
     <string name="share_selected">Partager la sélection</string>
     <string name="customize_colors">Personnaliser les couleurs</string>
-    <string name="more_options">Plus d'options</string>
+    <string name="more_options">Plus d\'options</string>
     <string name="text_color">Couleur du texte</string>
     <string name="secondary_text_color">Couleur secondaire du texte</string>
-    <string name="background_color">Couleur d'arrière-plan</string>
+    <string name="background_color">Couleur d\'arrière-plan</string>
 
     <string name="added_to_play_next">Ajouté à la playlist</string>
-    <string name="added_to_queue">Ajouté à la file d'attente</string>
+    <string name="added_to_queue">Ajouté à la file d\'attente</string>
     <string name="remove_from_cache">Retirer du cache</string>
     <string name="copy_link">Copier le lien</string>
     <string name="select">Tout sélectionner</string>
@@ -59,7 +59,7 @@
     <string name="minimum_volume">Volume Minimum</string>
     <string name="maximum_volume">Volume Maximum</string>
     <string name="hide_player_thumbnail">Masquer la miniature du lecteur</string>
-    <string name="hide_player_thumbnail_desc">Remplacer la pochette de l'album par le logo de l'application dans le lecteur</string>
+    <string name="hide_player_thumbnail_desc">Remplacer la pochette de l\'album par le logo de l\'application dans le lecteur</string>
 
     <string name="already_in_playlist">Déjà dans la playlist :</string>
 
@@ -84,7 +84,7 @@
     <string name="login_settings">Paramètres de connexion</string>
     <string name="general_settings">Paramètres généraux</string>
 
-    <string name="player_background_style">Style de l'arrière plan du lecteur</string>
+    <string name="player_background_style">Style de l\'arrière plan du lecteur</string>
     <string name="follow_theme">Suivre le thème</string>
     <string name="gradient">Dégradé</string>
     <string name="player_design_style">Style de conception du lecteur</string>
@@ -101,7 +101,7 @@
     <string name="secondary_color_style">Secondaire</string>
     <string name="enable_squiggly_slider">Activer le curseur ondulé</string>
     <string name="enable_swipe_thumbnail">Activer le glissement pour changer de titre</string>
-    <string name="swipe_song_to_add">Faites glisser le titre vers la gauche pour l'ajouter à la file d'attente ou vers la droite pour le lire ensuite.</string>
+    <string name="swipe_song_to_add">Faites glisser le titre vers la gauche pour l\'ajouter à la file d\'attente ou vers la droite pour le lire ensuite.</string>
     <string name="lyrics_click_change">Changer les paroles avec un clic</string>
     <string name="lyrics_auto_scroll">Défilement automatique des paroles</string>
     <string name="lyrics_text_size">Taille du texte des paroles</string>
@@ -121,7 +121,7 @@
     <string name="advanced_login">Connexion avec un jeton</string>
     <string name="token_hidden">Cliquer pour afficher le jeton</string>
     <string name="token_shown">Cliquer encore pour copier ou éditer</string>
-    <string name="token_adv_login_description">Il s'agit d'une méthode de connexion avancée. En alternative au portail web, vous pouvez saisir ou mettre à jour directement votre jeton de connexion ici. Cela peut, par exemple, accélérer la connexion sur plusieurs appareils. Veuillez noter que tout jeton invalide que l'application ne parvient pas à analyser sera refusé.</string>
+    <string name="token_adv_login_description">Il s\'agit d\'une méthode de connexion avancée. En alternative au portail web, vous pouvez saisir ou mettre à jour directement votre jeton de connexion ici. Cela peut, par exemple, accélérer la connexion sur plusieurs appareils. Veuillez noter que tout jeton invalide que l\'application ne parvient pas à analyser sera refusé.</string>
     <string name="ytm_sync">Synchronise automatiquement avec votre compte YouTube Music</string>
     <string name="yt_sync">Synchronisation automatique avec le compte</string>
     <string name="more_content">Plus de contenu</string>
@@ -130,9 +130,9 @@
     <string name="default_lib_chips">Choix de la bibliothèque par défaut</string>
     <string name="set_quick_picks">Choix des sélections rapides</string>
     <string name="last_song_listened">Basé sur le dernier titre écouté</string>
-    <string name="app_language">Langue de l'application</string>
-    <string name="configure_app_language">Configurer les langues de l'application</string>
-    <string name="intent_app_language_not_found">Impossible de trouver les paramètres de langue de l'application. Veuillez les configurer manuellement.</string>
+    <string name="app_language">Langue de l\'application</string>
+    <string name="configure_app_language">Configurer les langues de l\'application</string>
+    <string name="intent_app_language_not_found">Impossible de trouver les paramètres de langue de l\'application. Veuillez les configurer manuellement.</string>
     <string name="open_supported_links">Ouvrir les liens supportés par défaut</string>
     <string name="configure_supported_links">Configurer les liens supportés</string>
     <string name="intent_supported_links_not_found">Impossible de trouver les paramètres des liens pris en charge. Veuillez les configurer manuellement.</string>
@@ -140,15 +140,15 @@
 
     <string name="audio_quality_max">Max (bêta)</string>
     <string name="enable_similar_content">Activer le contenu similaire</string>
-    <string name="similar_content_desc">Ajoutez automatiquement d'autres titres similaires lorsque la fin de la file d'attente est atteinte</string>
+    <string name="similar_content_desc">Ajoutez automatiquement d\'autres titres similaires lorsque la fin de la file d\'attente est atteinte</string>
     <string name="min_playback_duration_title">Durée minimum de lecture</string>
-    <string name="min_playback_duration_description">La durée minimale d'un titre qui doit être lu avant qu'il soit considéré comme « lu ».</string>
+    <string name="min_playback_duration_description">La durée minimale d\'un titre qui doit être lu avant qu\'il soit considéré comme « lu ».</string>
     <string name="percentage_format">%d%%</string>
     <string name="minimum_playback_duration">Durée minimum de lecture</string>
 
     <string name="import_online">Importer une playlist « m3u »</string>
     <string name="import_csv">Importer une playlist « csv »</string>
-    <string name="playlist_add_local_to_synced_note">Remarque : L'ajout de titres locaux aux playlists synchronisées/distantes n'est pas pris en charge. Toute autre combinaison est valide.</string>
+    <string name="playlist_add_local_to_synced_note">Remarque : L\'ajout de titres locaux aux playlists synchronisées/distantes n\'est pas pris en charge. Toute autre combinaison est valide.</string>
 
     <string name="auto_download_on_like">Télécharger automatiquement quand on aime</string>
     <string name="auto_download_on_like_desc">Téléchargez automatiquement les titres quand vous les aimez</string>
@@ -163,11 +163,11 @@
 
     <string name="disable">Désactiver</string>
 
-    <string name="pause_remote_listen_history">Mettre en pause et partager l'historique d'écoute avec YouTube Music</string>
+    <string name="pause_remote_listen_history">Mettre en pause et partager l\'historique d\'écoute avec YouTube Music</string>
     <string name="not_logged_in_youtube">Non connecté à YouTube</string>
 
     <string name="default_links">Ouvrir les liens supportés</string>
-    <string name="open_app_settings_error">Impossible d'ouvrir les paramètres de l'application</string>
+    <string name="open_app_settings_error">Impossible d\'ouvrir les paramètres de l\'application</string>
 
     <string name="release_notes">Notes de version</string>
 
@@ -177,13 +177,13 @@
     <string name="past_month">Mois dernier</string>
     <string name="past_year">Année dernière</string>
     <string name="top_length">Longueur de la liste Mon Top</string>
-    <string name="history_duration">Durée de l'historique</string>
+    <string name="history_duration">Durée de l\'historique</string>
     <string name="information">Information</string>
     <string name="description">Description</string>
     <string name="numbers">Nombres</string>
     <string name="subscribers">Abonnés</string>
     <string name="views">Vues</string>
-    <string name="likes">J'aimes</string>
+    <string name="likes">J\'aimes</string>
     <string name="dislikes">Je n'aime pas</string>
     <string name="subscribe">S'abonner</string>
     <string name="subscribed">Abonné</string>
