@@ -18,7 +18,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
+ 
 import javax.inject.Inject
 
 @HiltViewModel
@@ -80,10 +80,13 @@ constructor(
         mediaMetadata: MediaMetadata,
         lyricsEntity: LyricsEntity?,
     ) {
+        val lyrics = withContext(Dispatchers.IO) {
+            lyricsHelper.getLyrics(mediaMetadata)
+        }
+
         withContext(Dispatchers.IO) {
             database.query {
                 lyricsEntity?.let(::delete)
-                val lyrics = lyricsHelper.getLyrics(mediaMetadata)
                 upsert(LyricsEntity(mediaMetadata.id, lyrics))
             }
         }
