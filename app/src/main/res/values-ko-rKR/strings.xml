@@ -426,6 +426,7 @@
     <string name="enable_lrclib">이 옵션이 켜져 있으면 스크린샷과 앱의 최근 항목 보기가 비활성화되었습니다.</string>
     <string name="enable_kugou">LrcLib 가사 공급자 활성화</string>
     <string name="hide_explicit">KuGou 가사 공급자 활성화</string>
+    <string name="hide_video">Hide music videos</string>
     <string name="backup_restore">노골적인 콘텐츠 숨기기</string>
     <string name="action_backup">백업 및 복원</string>
     <string name="action_restore">백업</string>
