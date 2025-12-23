@@ -435,6 +435,7 @@
     <string name="enable_lrclib">Activer la source LrcLib</string>
     <string name="enable_kugou">Activer la source KuGou</string>
     <string name="hide_explicit">Masquer le contenu explicite</string>
+    <string name="hide_video">Hide music videos</string>
     <string name="backup_restore">Sauvegarde et restauration</string>
     <string name="action_backup">Sauvegarder</string>
     <string name="action_restore">Restaurer</string>
