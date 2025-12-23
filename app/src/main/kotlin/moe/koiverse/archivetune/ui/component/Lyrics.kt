@@ -381,14 +381,22 @@ fun Lyrics(
                 if (romanizeJapaneseLyrics) {
                     if (isJapanese(entry.text) && !isChinese(entry.text)) {
                         scope.launch {
-                            newEntry.romanizedTextFlow.value = romanizeJapanese(entry.text)
+                            try {
+                                newEntry.romanizedTextFlow.value = romanizeJapanese(entry.text)
+                            } catch (e: Exception) {
+                                moe.koiverse.archivetune.utils.reportException(e)
+                            }
                         }
                     }
                 }
                 if (romanizeKoreanLyrics) {
                     if (isKorean(entry.text)) {
                         scope.launch {
-                            newEntry.romanizedTextFlow.value = romanizeKorean(entry.text)
+                            try {
+                                newEntry.romanizedTextFlow.value = romanizeKorean(entry.text)
+                            } catch (e: Exception) {
+                                moe.koiverse.archivetune.utils.reportException(e)
+                            }
                         }
                     }
                 }
@@ -402,14 +410,22 @@ fun Lyrics(
                 if (romanizeJapaneseLyrics) {
                     if (isJapanese(line) && !isChinese(line)) {
                         scope.launch {
-                            newEntry.romanizedTextFlow.value = romanizeJapanese(line)
+                            try {
+                                newEntry.romanizedTextFlow.value = romanizeJapanese(line)
+                            } catch (e: Exception) {
+                                moe.koiverse.archivetune.utils.reportException(e)
+                            }
                         }
                     }
                 }
                 if (romanizeKoreanLyrics) {
                     if (isKorean(line)) {
                         scope.launch {
-                            newEntry.romanizedTextFlow.value = romanizeKorean(line)
+                            try {
+                                newEntry.romanizedTextFlow.value = romanizeKorean(line)
+                            } catch (e: Exception) {
+                                moe.koiverse.archivetune.utils.reportException(e)
+                            }
                         }
                     }
                 }
