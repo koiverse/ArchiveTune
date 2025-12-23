@@ -426,6 +426,7 @@
     <string name="enable_lrclib">Aktifkan penyedia lirik LrcLib</string>
     <string name="enable_kugou">Aktifkan penyedia lirik KuGou</string>
     <string name="hide_explicit">Sembunyikan konten eksplisit</string>
+    <string name="hide_video">Hide music videos</string>
     <string name="backup_restore">Cadangkan dan pulihkan</string>
     <string name="action_backup">Cadangan</string>
     <string name="action_restore">Pulihkan</string>
