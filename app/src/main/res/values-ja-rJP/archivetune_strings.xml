@@ -173,6 +173,7 @@
     <!-- Player Settings -->
     <string name="disable_load_more_when_repeat_all">すべて繰り返すときにさらに読み込みを無効にする</string>
     <string name="disable_load_more_when_repeat_all_desc">全リピートモードが有効になっている場合、さらに曲や類似のコンテンツを自動ロードしないでください。</string>
+    <string name="hide_video_songs">Hide video songs</string>
     <!-- Material 3 Settings Sections -->
     <string name="settings_section_ui">ユーザーインターフェース</string>
     <string name="settings_section_privacy">プライバシー &amp; セキュリティ</string>
