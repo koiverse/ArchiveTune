@@ -176,6 +176,7 @@
     <!-- Player Settings -->
     <string name="disable_load_more_when_repeat_all">Désactiver le chargement auto en mode \"tout répéter\"</string>
     <string name="disable_load_more_when_repeat_all_desc">N\'ajoute pas automatiquement de titres lorsque le mode répétition totale est activé</string>
+    <string name="hide_video_songs">Hide video songs</string>
     <!-- Material 3 Settings Sections -->
     <string name="settings_section_ui">Interface utilisateur</string>
     <string name="settings_section_privacy">Confidentialité &amp; Sécurité</string>
