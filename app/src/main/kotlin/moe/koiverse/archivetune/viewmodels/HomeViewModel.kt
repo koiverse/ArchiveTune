@@ -8,11 +8,13 @@ import moe.koiverse.archivetune.innertube.models.PlaylistItem
 import moe.koiverse.archivetune.innertube.models.WatchEndpoint
 import moe.koiverse.archivetune.innertube.models.YTItem
 import moe.koiverse.archivetune.innertube.models.filterExplicit
+import moe.koiverse.archivetune.innertube.models.filterVideo
 import moe.koiverse.archivetune.innertube.pages.ExplorePage
 import moe.koiverse.archivetune.innertube.pages.HomePage
 import moe.koiverse.archivetune.innertube.utils.completed
 import moe.koiverse.archivetune.innertube.utils.parseCookieString
 import moe.koiverse.archivetune.constants.HideExplicitKey
+import moe.koiverse.archivetune.constants.HideVideoKey
 import moe.koiverse.archivetune.constants.InnerTubeCookieKey
 import moe.koiverse.archivetune.constants.QuickPicks
 import moe.koiverse.archivetune.constants.QuickPicksKey
@@ -87,6 +89,7 @@ class HomeViewModel @Inject constructor(
         try {
             supervisorScope {
                 val hideExplicit = context.dataStore.get(HideExplicitKey, false)
+                val hideVideo = context.dataStore.get(HideVideoKey, false)
                 val fromTimeStamp = System.currentTimeMillis() - 86400000 * 7 * 2
 
                 launch { getQuickPicks() }
@@ -104,10 +107,10 @@ class HomeViewModel @Inject constructor(
                 }
 
                 launch {
-                    YouTube.home().onSuccess { page ->
+                        YouTube.home().onSuccess { page ->
                         homePage.value = page.copy(
                             sections = page.sections.map { section ->
-                                section.copy(items = section.items.filterExplicit(hideExplicit))
+                                section.copy(items = section.items.filterExplicit(hideExplicit).filterVideo(hideVideo))
                             }
                         )
                     }.onFailure { reportException(it) }
@@ -165,6 +168,7 @@ class HomeViewModel @Inject constructor(
 
     private suspend fun loadSimilarRecommendations() {
         val hideExplicit = context.dataStore.get(HideExplicitKey, false)
+        val hideVideo = context.dataStore.get(HideVideoKey, false)
         val fromTimeStamp = System.currentTimeMillis() - 86400000 * 7 * 2
         
         val artistRecommendations = database.mostPlayedArtists(fromTimeStamp, limit = 10).first()
@@ -178,7 +182,7 @@ class HomeViewModel @Inject constructor(
                 }
                 SimilarRecommendation(
                     title = it,
-                    items = items.filterExplicit(hideExplicit).shuffled().ifEmpty { return@mapNotNull null }
+                    items = items.filterExplicit(hideExplicit).filterVideo(hideVideo).shuffled().ifEmpty { return@mapNotNull null }
                 )
             }
 
@@ -195,7 +199,7 @@ class HomeViewModel @Inject constructor(
                             page.albums.shuffled().take(4) +
                             page.artists.shuffled().take(4) +
                             page.playlists.shuffled().take(4))
-                        .filterExplicit(hideExplicit)
+                        .filterExplicit(hideExplicit).filterVideo(hideVideo)
                         .shuffled()
                         .ifEmpty { return@mapNotNull null }
                 )
