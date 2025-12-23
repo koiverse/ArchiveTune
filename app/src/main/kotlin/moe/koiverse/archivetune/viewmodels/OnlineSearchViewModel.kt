@@ -10,8 +10,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import moe.koiverse.archivetune.innertube.YouTube
 import moe.koiverse.archivetune.innertube.models.filterExplicit
+import moe.koiverse.archivetune.innertube.models.filterVideo
 import moe.koiverse.archivetune.innertube.pages.SearchSummaryPage
 import moe.koiverse.archivetune.constants.HideExplicitKey
+import moe.koiverse.archivetune.constants.HideVideoKey
 import moe.koiverse.archivetune.models.ItemsPage
 import moe.koiverse.archivetune.utils.dataStore
 import moe.koiverse.archivetune.utils.get
@@ -42,13 +44,7 @@ constructor(
                         YouTube
                             .searchSummary(query)
                             .onSuccess {
-                                summaryPage =
-                                    it.filterExplicit(
-                                        context.dataStore.get(
-                                            HideExplicitKey,
-                                            false,
-                                        ),
-                                    )
+                                summaryPage = it.filterExplicit(context.dataStore.get(HideExplicitKey, false)).filterVideo(context.dataStore.get(HideVideoKey, false))
                             }.onFailure {
                                 reportException(it)
                             }
@@ -67,7 +63,7 @@ constructor(
                                                     HideExplicitKey,
                                                     false
                                                 )
-                                            ),
+                                            ).filterVideo(context.dataStore.get(HideVideoKey, false)),
                                         result.continuation,
                                     )
                             }.onFailure {
