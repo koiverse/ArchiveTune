@@ -70,6 +70,7 @@ import moe.koiverse.archivetune.constants.AutoSkipNextOnErrorKey
 import moe.koiverse.archivetune.constants.DiscordTokenKey
 import moe.koiverse.archivetune.constants.EnableDiscordRPCKey
 import moe.koiverse.archivetune.constants.HideExplicitKey
+import moe.koiverse.archivetune.constants.HideVideoKey
 import moe.koiverse.archivetune.constants.HistoryDuration
 import moe.koiverse.archivetune.constants.MediaSessionConstants.CommandToggleLike
 import moe.koiverse.archivetune.constants.MediaSessionConstants.CommandToggleStartRadio
@@ -115,6 +116,7 @@ import moe.koiverse.archivetune.playback.queues.ListQueue
 import moe.koiverse.archivetune.playback.queues.Queue
 import moe.koiverse.archivetune.playback.queues.YouTubeQueue
 import moe.koiverse.archivetune.playback.queues.filterExplicit
+import moe.koiverse.archivetune.playback.queues.filterVideo
 import moe.koiverse.archivetune.utils.CoilBitmapLoader
 import moe.koiverse.archivetune.utils.DiscordRPC
 import moe.koiverse.archivetune.ui.screens.settings.DiscordPresenceManager
@@ -938,7 +940,7 @@ class MusicService :
         scope.launch(SilentHandler) {
             val initialStatus =
                 withContext(Dispatchers.IO) {
-                    queue.getInitialStatus().filterExplicit(dataStore.get(HideExplicitKey, false))
+                    queue.getInitialStatus().filterExplicit(dataStore.get(HideExplicitKey, false)).filterVideo(dataStore.get(HideVideoKey, false))
                 }
             if (initialStatus.title != null) {
                 queueTitle = initialStatus.title
@@ -984,7 +986,7 @@ class MusicService :
                 endpoint = WatchEndpoint(videoId = currentMediaId)
             )
             val initialStatus = withContext(Dispatchers.IO) {
-                radioQueue.getInitialStatus().filterExplicit(dataStore.get(HideExplicitKey, false))
+                radioQueue.getInitialStatus().filterExplicit(dataStore.get(HideExplicitKey, false)).filterVideo(dataStore.get(HideVideoKey, false))
             }
 
             if (initialStatus.title != null) {
@@ -1155,7 +1157,7 @@ class MusicService :
     ) {
         scope.launch(SilentHandler) {
             val mediaItems =
-                currentQueue.nextPage().filterExplicit(dataStore.get(HideExplicitKey, false))
+                currentQueue.nextPage().filterExplicit(dataStore.get(HideExplicitKey, false)).filterVideo(dataStore.get(HideVideoKey, false))
             if (player.playbackState != STATE_IDLE) {
                 player.addMediaItems(mediaItems.drop(1))
             } else {
