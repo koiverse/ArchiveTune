@@ -422,8 +422,8 @@ fun Lyrics(
             !lyrics.isNullOrEmpty() && lyrics.startsWith("[")
         }
 
-    val lyricsBaseColor = Color.White
-    val lyricsGlowColor = Color.White
+    val lyricsBaseColor = if (useDarkTheme) Color.White else Color.Black
+    val lyricsGlowColor = if (useDarkTheme) Color.White else Color.Black
     val textColor = lyricsBaseColor
 
     var currentLineIndex by remember {
