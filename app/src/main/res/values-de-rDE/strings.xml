@@ -435,6 +435,7 @@
     <string name="enable_lrclib">Aktivieren Sie den Textanbieter LrcLib</string>
     <string name="enable_kugou">Aktivieren Sie den KuGou-Textanbieter</string>
     <string name="hide_explicit">Anstößige Inhalte ausblenden</string>
+    <string name="hide_video">Hide music videos</string>
     <string name="backup_restore">Sichern und Wiederherstellen</string>
     <string name="action_backup">Sicherung</string>
     <string name="action_restore">Wiederherstellen</string>
