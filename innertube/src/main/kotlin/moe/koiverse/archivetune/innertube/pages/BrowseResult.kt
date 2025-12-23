@@ -2,6 +2,7 @@ package moe.koiverse.archivetune.innertube.pages
 
 import moe.koiverse.archivetune.innertube.models.YTItem
 import moe.koiverse.archivetune.innertube.models.filterExplicit
+import moe.koiverse.archivetune.innertube.models.filterVideo
 
 data class BrowseResult(
     val title: String?,
@@ -21,6 +22,23 @@ data class BrowseResult(
                             items =
                                 it.items
                                     .filterExplicit()
+                                    .ifEmpty { return@mapNotNull null },
+                        )
+                    },
+            )
+        } else {
+            this
+        }
+
+    fun filterVideo(enabled: Boolean = true) =
+        if (enabled) {
+            copy(
+                items =
+                    items.mapNotNull {
+                        it.copy(
+                            items =
+                                it.items
+                                    .filterVideo()
                                     .ifEmpty { return@mapNotNull null },
                         )
                     },
