@@ -55,19 +55,13 @@ ArchiveTune is a Supercharged fork of [Metrolist](https://github.com/mostafaalag
 </p>
 </div>
 
+## To translate app
 
-<h3> Q: Why ArchiveTune isn't showing in Android Auto? </h3>
+To **translate** or **improve a translation**, **fix typo**, or to **request new language**.
 
-1. Go to Android Auto's settings and tap multiple times on the version in the bottom to enable
-   developer settings
-2. In the three dots menu at the top-right of the screen, click "Developer settings"
-3. Enable "Unknown sources"
+[![Crowdin](https://badges.crowdin.net/archivetuneandroid/localized.svg)](https://crowdin.com/project/archivetuneandroid)
 
-<h3> Q: How to scrobble music to LastFM, LibreFM, ListenBrainz or GNU FM? </h3>
-
-Use other music scrobbler apps, I recommend [Pano Scrobbler](https://play.google.com/store/apps/details?id=com.arn.scrobble).
-
-</div>
+[![Translated with Crowdin](https://badges.crowdin.net/badge/light/crowdin-on-dark.png)](https://translate-archivetune.koiiverse.cloud)
 
 ## Credits & Acknowledgments
 
