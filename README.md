@@ -11,8 +11,18 @@ ArchiveTune is a Supercharged fork of [Metrolist](https://github.com/mostafaalag
 [![Discord](https://img.shields.io/discord/1346721194761523221?style=for-the-badge&logo=discord&logoColor=white&label=Discord&link=https%3A%2F%2Fdiscord%2Cgg%2FHRHGbYCZ2c)](https://discord.gg/HRHGbYCZ2c)
 
 
-<!-- use "⠀⠀" for spacing -->
-[<img src="https://raw.githubusercontent.com/koiverse/ArchiveTune/refs/heads/main/assets/badge_github.png" alt="Get it on GitHub" height="40">](https://github.com/koiverse/ArchiveTune/releases/latest)⠀⠀[<img src="https://raw.githubusercontent.com/koiverse/ArchiveTune/757d5932832e1da27ced56de98c5ad1275cf0db1/assets/IzzyOnDroidButtonBorder.svg" alt="Get it on IzzyOnDroid" height="40">](https://apt.izzysoft.de/fdroid/index/apk/moe.koiverse.archivetune)  [<img src="https://www.openapk.net/images/openapk-badge.png" alt="Get it on OpenAPK" height="50">](https://www.openapk.net/archivetune/moe.koiverse.archivetune/)
+<p align="center" style="display: flex; align-items: center; gap: 10px;">
+  <a href="https://github.com/koiverse/ArchiveTune/releases/latest" style="margin-right: 8px;">
+    <img src="https://raw.githubusercontent.com/koiverse/ArchiveTune/refs/heads/main/assets/badge_github.png" alt="Get it on GitHub" height="40">
+  </a>
+  <a href="https://apt.izzysoft.de/fdroid/index/apk/moe.koiverse.archivetune">
+    <img src="https://raw.githubusercontent.com/koiverse/ArchiveTune/757d5932832e1da27ced56de98c5ad1275cf0db1/assets/IzzyOnDroidButtonBorder.svg" alt="Get it on IzzyOnDroid" height="40">
+  </a>
+  <a href="https://www.openapk.net/archivetune/moe.koiverse.archivetune/">
+    <img src="https://www.openapk.net/images/openapk-badge.png" alt="Get it on OpenAPK" height="60">
+  </a>
+</p>
+
 
 
 > [!WARNING]
