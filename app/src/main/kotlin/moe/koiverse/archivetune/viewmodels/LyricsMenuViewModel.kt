@@ -12,6 +12,7 @@ import moe.koiverse.archivetune.utils.NetworkConnectivityObserver
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -75,17 +76,16 @@ constructor(
         job = null
     }
 
-    fun refetchLyrics(
+    suspend fun refetchLyrics(
         mediaMetadata: MediaMetadata,
         lyricsEntity: LyricsEntity?,
     ) {
-        database.query {
-            lyricsEntity?.let(::delete)
-            val lyrics =
-                runBlocking {
-                    lyricsHelper.getLyrics(mediaMetadata)
-                }
-            upsert(LyricsEntity(mediaMetadata.id, lyrics))
+        withContext(Dispatchers.IO) {
+            database.query {
+                lyricsEntity?.let(::delete)
+                val lyrics = lyricsHelper.getLyrics(mediaMetadata)
+                upsert(LyricsEntity(mediaMetadata.id, lyrics))
+            }
         }
     }
 }
