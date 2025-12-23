@@ -6,7 +6,9 @@ import androidx.lifecycle.viewModelScope
 import moe.koiverse.archivetune.innertube.YouTube
 import moe.koiverse.archivetune.innertube.models.YTItem
 import moe.koiverse.archivetune.innertube.models.filterExplicit
+import moe.koiverse.archivetune.innertube.models.filterVideo
 import moe.koiverse.archivetune.constants.HideExplicitKey
+import moe.koiverse.archivetune.constants.HideVideoKey
 import moe.koiverse.archivetune.db.MusicDatabase
 import moe.koiverse.archivetune.db.entities.SearchHistory
 import moe.koiverse.archivetune.utils.dataStore
@@ -57,15 +59,15 @@ constructor(
                                         ?.filter { query ->
                                             history.none { it.query == query }
                                         }.orEmpty(),
-                                    items =
-                                    result
+                                    items = result
                                         ?.recommendedItems
                                         ?.filterExplicit(
                                             context.dataStore.get(
                                                 HideExplicitKey,
                                                 false,
                                             ),
-                                        ).orEmpty(),
+                                        )
+                                        ?.filterVideo(context.dataStore.get(HideVideoKey, false)).orEmpty(),
                                 )
                             }
                     }
