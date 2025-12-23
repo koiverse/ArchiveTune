@@ -46,10 +46,12 @@ constructor(
                     title.value = artistItemsPage.title
                     itemsPage.value =
                         ItemsPage(
-                            (oldItemsPage.items + artistItemsContinuationPage.items)
+                            items = artistItemsPage.items
                                 .distinctBy { it.id }
                                 .filterExplicit(context.dataStore.get(HideExplicitKey, false))
                                 .filterVideo(context.dataStore.get(HideVideoKey, false)),
+                            continuation = artistItemsPage.continuation,
+                        )
                 }.onFailure {
                     reportException(it)
                 }
