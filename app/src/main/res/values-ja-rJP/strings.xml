@@ -426,6 +426,7 @@
     <string name="enable_lrclib">LrcLib 歌詞プロバイダーを有効にする</string>
     <string name="enable_kugou">KuGou 歌詞プロバイダーを有効にする</string>
     <string name="hide_explicit">露骨なコンテンツを非表示にする</string>
+    <string name="hide_video">Hide music videos</string>
     <string name="backup_restore">バックアップと復元</string>
     <string name="action_backup">バックアップ</string>
     <string name="action_restore">復元</string>
