@@ -173,6 +173,7 @@
     <!-- Player Settings -->
     <string name="disable_load_more_when_repeat_all">모두 반복 시 추가 로드 비활성화</string>
     <string name="disable_load_more_when_repeat_all_desc">전체 반복 모드가 활성화된 경우 더 많은 노래 및 유사한 콘텐츠를 자동으로 로드하지 마세요.</string>
+    <string name="hide_video_songs">Hide video songs</string>
     <!-- Material 3 Settings Sections -->
     <string name="settings_section_ui">사용자 인터페이스</string>
     <string name="settings_section_privacy">개인 정보 보호 &amp; 보안</string>
