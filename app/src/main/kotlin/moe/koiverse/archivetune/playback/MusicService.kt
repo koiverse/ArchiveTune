@@ -203,7 +203,8 @@ class MusicService :
     private var wasPlayingBeforeAudioFocusLoss = false
     private var hasAudioFocus = false
 
-    private var scope = CoroutineScope(Dispatchers.Main) + Job()
+    private var scopeJob = Job()
+    private var scope = CoroutineScope(Dispatchers.Main + scopeJob)
     private val binder = MusicBinder()
 
     private lateinit var connectivityManager: ConnectivityManager
@@ -317,7 +318,7 @@ class MusicService :
             .setMediaSourceFactory(createMediaSourceFactory())
             .setRenderersFactory(createRenderersFactory())
             .setHandleAudioBecomingNoisy(true)
-            .setWakeMode(C.WAKE_MODE_NETWORK)
+            .setWakeMode(C.WAKE_MODE_LOCAL)
             .setAudioAttributes(
                 AudioAttributes.Builder()
                     .setUsage(C.USAGE_MEDIA)
@@ -1773,6 +1774,7 @@ class MusicService :
         player.removeListener(this)
         player.removeListener(sleepTimer)
         player.release()
+        scopeJob.cancel()
         scope.launch { discordRpc?.stopActivity() }
         if (discordRpc?.isRpcRunning() == true) {
             discordRpc?.closeRPC()
@@ -1852,7 +1854,7 @@ class MusicService :
         } catch (e: Exception) {
             reportException(e)
         }
-        return super.onStartCommand(intent, flags, startId)
+        return START_STICKY
     }
 
     override fun onUpdateNotification(session: MediaSession, startInForegroundRequired: Boolean) {
