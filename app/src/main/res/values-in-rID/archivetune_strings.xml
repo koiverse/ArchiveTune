@@ -173,6 +173,7 @@
     <!-- Player Settings -->
     <string name="disable_load_more_when_repeat_all">Nonaktifkan muat lebih banyak saat ulangi semua</string>
     <string name="disable_load_more_when_repeat_all_desc">Jangan memuat lebih banyak lagu dan konten serupa secara otomatis saat mode ulangi semua diaktifkan</string>
+    <string name="hide_video_songs">Hide video songs</string>
     <!-- Material 3 Settings Sections -->
     <string name="settings_section_ui">Antarmuka Pengguna</string>
     <string name="settings_section_privacy">Privasi &amp; Keamanan</string>
