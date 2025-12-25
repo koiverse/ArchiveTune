@@ -9,6 +9,7 @@ ArchiveTune is a Supercharged fork of [Metrolist](https://github.com/mostafaalag
 [![Downloads](https://img.shields.io/github/downloads/koiverse/ArchiveTune/total?style=for-the-badge)](https://github.com/koiverse/ArchiveTune/releases)
 ![IzzyDroid](https://shields.rbtlog.dev/simple/moe.koiverse.archivetune?style=for-the-badge)
 [![Discord](https://img.shields.io/discord/1346721194761523221?style=for-the-badge&logo=discord&logoColor=white&label=Discord&link=https%3A%2F%2Fdiscord%2Cgg%2FHRHGbYCZ2c)](https://discord.gg/HRHGbYCZ2c)
+![Telegram](https://img.shields.io/badge/telegram-brightgreen?style=for-the-badge&logo=telegram&logoColor=white&link=https%3A%2F%2Ft.me%2Fkoiversearchivetune)
 
 
 <table>
