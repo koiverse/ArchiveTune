@@ -124,9 +124,10 @@ class PlayerConnection(
         player.prepare()
         player.playWhenReady = true
         // Immediately restart the Discord presence updater so it picks up the new track without waiting
-        try {
-            moe.koiverse.archivetune.ui.screens.settings.DiscordPresenceManager.restart()
-        } catch (_: Exception) {
+        if (moe.koiverse.archivetune.ui.screens.settings.DiscordPresenceManager.isRunning()) {
+            try {
+                moe.koiverse.archivetune.ui.screens.settings.DiscordPresenceManager.restart()
+            } catch (_: Exception) {}
         }
     }
 
@@ -135,9 +136,10 @@ class PlayerConnection(
         player.prepare()
         player.playWhenReady = true
         // Immediately restart the Discord presence updater so it picks up the new track without waiting
-        try {
-            moe.koiverse.archivetune.ui.screens.settings.DiscordPresenceManager.restart()
-        } catch (_: Exception) {
+        if (moe.koiverse.archivetune.ui.screens.settings.DiscordPresenceManager.isRunning()) {
+            try {
+                moe.koiverse.archivetune.ui.screens.settings.DiscordPresenceManager.restart()
+            } catch (_: Exception) {}
         }
     }
 
