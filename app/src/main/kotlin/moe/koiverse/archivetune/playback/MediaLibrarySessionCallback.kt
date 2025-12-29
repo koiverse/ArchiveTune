@@ -8,7 +8,7 @@ import androidx.annotation.DrawableRes
 import androidx.core.net.toUri
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
-import androidx.media3.session.PlayerCommand
+import androidx.media3.common.Player
 import androidx.media3.exoplayer.offline.Download
 import androidx.media3.session.LibraryResult
 import androidx.media3.session.MediaLibraryService
@@ -67,10 +67,10 @@ constructor(
                 .build(),
             connectionResult.availablePlayerCommands
                 .buildUpon()
-                .add(PlayerCommand.PLAY)
-                .add(PlayerCommand.PAUSE)
-                .add(PlayerCommand.SEEK_TO_NEXT)
-                .add(PlayerCommand.SEEK_TO_PREVIOUS)
+                .add(Player.COMMAND_PLAY)
+                .add(Player.COMMAND_PAUSE)
+                .add(Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM)
+                .add(Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM)
                 .build(),
         )
     }
