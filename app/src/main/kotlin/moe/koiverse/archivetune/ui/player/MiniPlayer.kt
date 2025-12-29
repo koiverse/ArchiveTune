@@ -221,10 +221,14 @@ private fun NewMiniPlayer(
                                     
                                     if (isRightSwipe && canSkipPrevious) {
                                         playerConnection.player.seekToPreviousMediaItem()
-                                        try { moe.koiverse.archivetune.ui.screens.settings.DiscordPresenceManager.restart() } catch (_: Exception) {}
+                                        if (moe.koiverse.archivetune.ui.screens.settings.DiscordPresenceManager.isRunning()) {
+                                            try { moe.koiverse.archivetune.ui.screens.settings.DiscordPresenceManager.restart() } catch (_: Exception) {}
+                                        }
                                     } else if (!isRightSwipe && canSkipNext) {
                                         playerConnection.player.seekToNext()
-                                        try { moe.koiverse.archivetune.ui.screens.settings.DiscordPresenceManager.restart() } catch (_: Exception) {}
+                                        if (moe.koiverse.archivetune.ui.screens.settings.DiscordPresenceManager.isRunning()) {
+                                            try { moe.koiverse.archivetune.ui.screens.settings.DiscordPresenceManager.restart() } catch (_: Exception) {}
+                                        }
                                     }
                                 }
                                 
@@ -611,10 +615,14 @@ private fun LegacyMiniPlayer(
                                     
                                     if (isRightSwipe && canSkipPrevious) {
                                         playerConnection.player.seekToPreviousMediaItem()
-                                        try { moe.koiverse.archivetune.ui.screens.settings.DiscordPresenceManager.restart() } catch (_: Exception) {}
+                                        if (moe.koiverse.archivetune.ui.screens.settings.DiscordPresenceManager.isRunning()) {
+                                            try { moe.koiverse.archivetune.ui.screens.settings.DiscordPresenceManager.restart() } catch (_: Exception) {}
+                                        }
                                     } else if (!isRightSwipe && canSkipNext) {
                                         playerConnection.player.seekToNext()
-                                        try { moe.koiverse.archivetune.ui.screens.settings.DiscordPresenceManager.restart() } catch (_: Exception) {}
+                                        if (moe.koiverse.archivetune.ui.screens.settings.DiscordPresenceManager.isRunning()) {
+                                            try { moe.koiverse.archivetune.ui.screens.settings.DiscordPresenceManager.restart() } catch (_: Exception) {}
+                                        }
                                     }
                                 }
                                 
