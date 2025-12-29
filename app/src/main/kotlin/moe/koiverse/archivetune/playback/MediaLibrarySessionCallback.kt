@@ -64,7 +64,13 @@ constructor(
                 .add(MediaSessionConstants.CommandToggleShuffle)
                 .add(MediaSessionConstants.CommandToggleRepeatMode)
                 .build(),
-            connectionResult.availablePlayerCommands,
+            connectionResult.availablePlayerCommands
+                .buildUpon()
+                .add(androidx.media3.common.Player.COMMAND_PLAY)
+                .add(androidx.media3.common.Player.COMMAND_PAUSE)
+                .add(androidx.media3.common.Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM)
+                .add(androidx.media3.common.Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM)
+                .build(),
         )
     }
 
