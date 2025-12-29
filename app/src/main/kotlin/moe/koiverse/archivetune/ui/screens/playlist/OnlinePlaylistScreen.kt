@@ -633,7 +633,9 @@ fun OnlinePlaylistScreen(
                                     // Start Mix Button
                                     Button(
                                         onClick = {
-                                            playerConnection.playQueue(YouTubeQueue(playlist.id, mix = true))
+                                            playlist.shuffleEndpoint?.let { shuffleEndpoint ->
+                                                playerConnection.playQueue(YouTubeQueue(shuffleEndpoint))
+                                            }
                                         },
                                         shape = RoundedCornerShape(24.dp),
                                         modifier = Modifier
