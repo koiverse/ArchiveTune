@@ -9,6 +9,7 @@ import moe.koiverse.archivetune.extensions.toMediaItem
 import moe.koiverse.archivetune.models.MediaMetadata
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.flow.first
 
 class LocalMixQueue(
     private val database: MusicDatabase,
@@ -18,19 +19,20 @@ class LocalMixQueue(
     override val preloadItem: MediaMetadata? = null
 
     override suspend fun getInitialStatus(): Queue.Status = withContext(Dispatchers.IO) {
-        val playlistSongs = database.playlistSongs(playlistId).first().map { it.songId }
-        val relatedSongIds = database.run {
-            playlistSongs.flatMap { songId ->
-                delegate.dao.getRelatedSongIds(songId)
-            }
-        }.distinct()
-        val mixSongIds = relatedSongIds.filterNot { it in playlistSongs }
-        val playedSongIds = database.delegate.dao.getRecentlyPlayedSongIds().toSet()
-        val finalMixIds = mixSongIds.filterNot { it in playedSongIds }.take(maxMixSize)
-        val mixSongs = database.delegate.dao.getSongsByIds(finalMixIds)
+        val playlistSongEntities = database.playlistSongs(playlistId).first()
+        val playlistSongIds = playlistSongEntities.map { it.songId }
+
+        val relatedSongs = playlistSongIds.flatMap { songId ->
+            database.relatedSongs(songId)
+        }
+        val uniqueRelated = relatedSongs.filter { it.id !in playlistSongIds }.distinctBy { it.id }
+        val recentEvents = database.events(limit = 100)
+        val recentlyPlayedIds = recentEvents.map { it.songId }.toSet()
+        val finalMix = uniqueRelated.filter { it.id !in recentlyPlayedIds }.take(maxMixSize)
+
         Queue.Status(
             title = "Mix from Playlist",
-            items = mixSongs.map { it.toMediaItem() },
+            items = finalMix.map { it.toMediaItem() },
             mediaItemIndex = 0,
         )
     }
