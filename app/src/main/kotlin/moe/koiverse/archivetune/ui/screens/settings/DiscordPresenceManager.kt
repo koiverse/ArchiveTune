@@ -38,7 +38,9 @@ object DiscordPresenceManager {
     private var consecutiveFailures = 0
     private const val MAX_CONSECUTIVE_FAILURES = 3
     private var lastRestartTime = 0L
-    private const val MIN_RESTART_INTERVAL = 30_000L // 30 seconds between restarts
+    private const val MIN_RESTART_INTERVAL = 30_000L 
+    private var lastFailedRestartDueToParams = 0L
+    private const val FAILED_RESTART_LOCKOUT = 60_000L
 
 
     // Last successful RPC timestamps (nullable). Exposed as StateFlow so Compose can observe changes.
@@ -247,7 +249,7 @@ object DiscordPresenceManager {
             Timber.tag(logTag).w("restart skipped (too many consecutive failures: %d)", consecutiveFailures)
             return false
         }
-        
+
         val ctx = lastStartContext
         val token = lastToken
         val songProv = lastSongProvider
@@ -256,11 +258,17 @@ object DiscordPresenceManager {
         val intervalProv = lastIntervalProvider
 
         if (ctx == null || token == null || songProv == null || posProv == null || pausedProv == null || intervalProv == null) {
+            if (now - lastFailedRestartDueToParams < FAILED_RESTART_LOCKOUT) {
+                Timber.tag(logTag).w("restart skipped (lockout after missing params, wait %dms)", FAILED_RESTART_LOCKOUT - (now - lastFailedRestartDueToParams))
+                return false
+            }
+            lastFailedRestartDueToParams = now
             Timber.tag(logTag).w("restart skipped (missing previous start parameters)")
             return false
         }
 
         lastRestartTime = now
+        lastFailedRestartDueToParams = 0L
         stop()
         start(ctx, token, songProv, posProv, pausedProv, intervalProv)
         Timber.tag(logTag).d("restarted")
