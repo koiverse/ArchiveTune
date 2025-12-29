@@ -133,6 +133,7 @@ import moe.koiverse.archivetune.innertube.utils.completed
 import moe.koiverse.archivetune.models.toMediaMetadata
 import moe.koiverse.archivetune.playback.ExoDownloadService
 import moe.koiverse.archivetune.playback.queues.ListQueue
+import moe.koiverse.archivetune.playback.queues.LocalMixQueue
 import moe.koiverse.archivetune.ui.component.DefaultDialog
 import moe.koiverse.archivetune.ui.component.DraggableScrollbar
 import moe.koiverse.archivetune.ui.component.EmptyPlaceholder
@@ -811,6 +812,29 @@ fun LocalPlaylistScreen(
                                         Icon(
                                             painter = painterResource(R.drawable.shuffle),
                                             contentDescription = stringResource(R.string.shuffle),
+                                            modifier = Modifier.size(24.dp)
+                                        )
+                                    }
+
+                                    // Start Mix Button
+                                    Button(
+                                        onClick = {
+                                            playerConnection.playQueue(
+                                                LocalMixQueue(
+                                                    database = database,
+                                                    playlistId = playlist.id,
+                                                    maxMixSize = 50,
+                                                ),
+                                            )
+                                        },
+                                        shape = RoundedCornerShape(24.dp),
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .height(48.dp)
+                                    ) {
+                                        Icon(
+                                            painter = painterResource(R.drawable.queue_music),
+                                            contentDescription = "Start Mix",
                                             modifier = Modifier.size(24.dp)
                                         )
                                     }
