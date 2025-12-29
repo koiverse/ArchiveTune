@@ -182,12 +182,16 @@ fun Thumbnail(
     LaunchedEffect(itemScrollOffset) {
         if (!thumbnailLazyGridState.isScrollInProgress || !swipeThumbnail || itemScrollOffset != 0 || currentMediaIndex < 0) return@LaunchedEffect
 
-            if (currentItem > currentMediaIndex && canSkipNext) {
+        if (currentItem > currentMediaIndex && canSkipNext) {
             playerConnection.player.seekToNext()
-            try { moe.koiverse.archivetune.ui.screens.settings.DiscordPresenceManager.restart() } catch (_: Exception) {}
+            if (moe.koiverse.archivetune.ui.screens.settings.DiscordPresenceManager.isRunning()) {
+                try { moe.koiverse.archivetune.ui.screens.settings.DiscordPresenceManager.restart() } catch (_: Exception) {}
+            }
         } else if (currentItem < currentMediaIndex && canSkipPrevious) {
             playerConnection.player.seekToPreviousMediaItem()
-            try { moe.koiverse.archivetune.ui.screens.settings.DiscordPresenceManager.restart() } catch (_: Exception) {}
+            if (moe.koiverse.archivetune.ui.screens.settings.DiscordPresenceManager.isRunning()) {
+                try { moe.koiverse.archivetune.ui.screens.settings.DiscordPresenceManager.restart() } catch (_: Exception) {}
+            }
         }
     }
 
@@ -332,7 +336,9 @@ fun Thumbnail(
                                                     seekDirection = context.getString(R.string.seek_forward_dynamic, skipAmount / 1000)
                                                 }
                                                 // If a user double-tap skip lands on a new media item, restart presence manager to pick up artwork quickly
-                                                try { moe.koiverse.archivetune.ui.screens.settings.DiscordPresenceManager.restart() } catch (_: Exception) {}
+                                                if (moe.koiverse.archivetune.ui.screens.settings.DiscordPresenceManager.isRunning()) {
+                                                    try { moe.koiverse.archivetune.ui.screens.settings.DiscordPresenceManager.restart() } catch (_: Exception) {}
+                                                }
 
                                                 showSeekEffect = true
                                             }
