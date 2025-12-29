@@ -610,6 +610,7 @@ fun OnlinePlaylistScreen(
                                         }
                                     }
 
+
                                     // Shuffle Button
                                     playlist.shuffleEndpoint?.let { shuffleEndpoint ->
                                         Button(
@@ -627,6 +628,23 @@ fun OnlinePlaylistScreen(
                                                 modifier = Modifier.size(24.dp)
                                             )
                                         }
+                                    }
+
+                                    // Start Mix Button
+                                    Button(
+                                        onClick = {
+                                            playerConnection.playQueue(YouTubeQueue(playlist.id, mix = true))
+                                        },
+                                        shape = RoundedCornerShape(24.dp),
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .height(48.dp)
+                                    ) {
+                                        Icon(
+                                            painter = painterResource(R.drawable.queue_music),
+                                            contentDescription = "Start Mix",
+                                            modifier = Modifier.size(24.dp)
+                                        )
                                     }
 
                                     // Radio Button
