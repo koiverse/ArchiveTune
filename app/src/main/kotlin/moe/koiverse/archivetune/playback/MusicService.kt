@@ -1208,12 +1208,14 @@ class MusicService :
                     )
                     if (!success) {
                         Timber.tag("MusicService").w("immediate presence update returned false — attempting restart")
-                        try {
-                            if (DiscordPresenceManager.restart()) {
-                                Timber.tag("MusicService").d("presence manager restarted after failed update")
+                        if (DiscordPresenceManager.isRunning()) {
+                            try {
+                                if (DiscordPresenceManager.restart()) {
+                                    Timber.tag("MusicService").d("presence manager restarted after failed update")
+                                }
+                            } catch (ex: Exception) {
+                                Timber.tag("MusicService").e(ex, "restart after failed presence update threw")
                             }
-                        } catch (ex: Exception) {
-                            Timber.tag("MusicService").e(ex, "restart after failed presence update threw")
                         }
                     }
 
@@ -1324,7 +1326,9 @@ class MusicService :
                             )
                             if (!success) {
                                 Timber.tag("MusicService").w("isPlaying/mediaTransition immediate presence update failed — restarting manager")
-                                try { DiscordPresenceManager.stop(); DiscordPresenceManager.restart() } catch (_: Exception) {}
+                                if (DiscordPresenceManager.isRunning()) {
+                                    try { DiscordPresenceManager.stop(); DiscordPresenceManager.restart() } catch (_: Exception) {}
+                                }
                             }
                             try {
                                 val lbEnabled = dataStore.get(ListenBrainzEnabledKey, false)
