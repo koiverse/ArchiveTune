@@ -67,8 +67,7 @@ constructor(
                 .build(),
             connectionResult.availablePlayerCommands
                 .buildUpon()
-                .add(Player.COMMAND_PLAY)
-                .add(Player.COMMAND_PAUSE)
+                .add(Player.COMMAND_PLAY_PAUSE)
                 .add(Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM)
                 .add(Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM)
                 .build(),
