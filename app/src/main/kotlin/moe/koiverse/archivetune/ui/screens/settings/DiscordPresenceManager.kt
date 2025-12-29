@@ -151,15 +151,16 @@ object DiscordPresenceManager {
         isPausedProvider: () -> Boolean,
         intervalProvider: () -> Long
     ) {
-        if (started.getAndSet(true)) return // <-- ensure only one job runs
-
-        // Save start parameters so callers can call restart() later.
         lastStartContext = context
         lastToken = token
         lastSongProvider = songProvider
         lastPositionProvider = positionProvider
         lastIsPausedProvider = isPausedProvider
         lastIntervalProvider = intervalProvider
+
+        if (started.getAndSet(true)) return
+
+        resetFailureCount()
         scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
         job = scope!!.launch {
             // Perform an immediate first update (or at the first second of the interval).
