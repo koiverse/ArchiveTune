@@ -238,7 +238,7 @@
     <string name="palette_forest_green">Forêt</string>
     <string name="palette_spotify_green">Spotify</string>
     <string name="palette_mint_fresh">Menthe</string>
-    <string name="palette_olive_garden">Olive</string>
+    <string name="palette_olive_garden">Vert Olive</string>
     <string name="palette_sage_green">Sauge</string>
     <!-- Oranges & Yellows -->
     <string name="palette_sunset_orange">Coucher de Soleil</string>
@@ -255,13 +255,13 @@
     <string name="palette_amethyst">Améthyste</string>
     <string name="palette_ultra_violet">Ultra Violet</string>
     <!-- Pinks -->
-    <string name="palette_cherry_blossom">Sakura</string>
+    <string name="palette_cherry_blossom">Fleur de Cerisier</string>
     <string name="palette_rose_quartz">Quartz</string>
     <string name="palette_magenta_pop">Magenta</string>
     <string name="palette_hot_pink">Rose</string>
     <string name="palette_blush">Blush</string>
     <string name="palette_coral">Corail</string>
-    <string name="palette_bubblegum">Bubblegum</string>
+    <string name="palette_bubblegum">Chewing-Gum</string>
     <!-- Reds -->
     <string name="palette_crimson_red">Cramoisi</string>
     <string name="palette_youtube_red">YouTube</string>
@@ -310,7 +310,7 @@
     <string name="palette_deep_sea">Mer profonde</string>
     <string name="palette_electric_violet">Violet Électrique</string>
     <string name="palette_mustard">Moutarde</string>
-    <string name="palette_olive">Olive</string>
+    <string name="palette_olive">O</string>
     <string name="palette_peachy_keen">Rêve de Pêche</string>
     <string name="palette_plum">Prune</string>
     <string name="palette_slate_gray">Gris Ardoise</string>
@@ -341,8 +341,8 @@
     <string name="discord_activity_type">Type d’activité</string>
     <string name="dark_theme_follow_system">Suivre le système</string>
     <string name="pure_black">Noir pur</string>
-    <string name="disable_blur">Disable blur effects</string>
-    <string name="disable_blur_desc">Disable blur effects throughout the app</string>
+    <string name="disable_blur">Désactiver les effets de flou</string>
+    <string name="disable_blur_desc">Désactiver les effets de flou dans toute l\'application</string>
     <string name="customize_navigation_tabs">Personnaliser les onglets de navigation</string>
     <string name="player">Lecteur</string>
     <string name="player_text_alignment">Alignement du texte du lecteur</string>
@@ -385,10 +385,10 @@
     <string name="enable_betterlyrics">Activer BetterLyrics</string>
     <string name="player_and_audio">Lecteur et audio</string>
     <string name="audio_quality">Qualité audio</string>
-    <string name="audio_quality_auto">Auto</string>
+    <string name="audio_quality_auto">Automatique</string>
     <string name="audio_quality_high">Élevée</string>
-    <string name="audio_quality_very_high">Very High</string>
-    <string name="audio_quality_highest">Highest</string>
+    <string name="audio_quality_very_high">Très élevée</string>
+    <string name="audio_quality_highest">La meilleure</string>
     <string name="audio_quality_low">Faible</string>
     <string name="network_metered_title">Traiter le réseau comme limité</string>
     <string name="network_metered_description">Si activé, l\'application privilégiera les flux basse qualité sur les réseaux limités</string>
@@ -419,9 +419,9 @@
     <string name="max_song_cache_size">Taille maximale du cache audio</string>
     <string name="clear_song_cache">Vider le cache audio</string>
     <string name="size_used">%s utilisés</string>
-    <string name="edit_tags">Edit Tags</string>
-    <string name="tag_name">Tag name</string>
-    <string name="tag_add">Add</string>
+    <string name="edit_tags">Modifier les balises</string>
+    <string name="tag_name">Nom de la balise</string>
+    <string name="tag_add">Ajouter</string>
     <string name="privacy">Confidentialité</string>
     <string name="listen_history">Historique d’écoute</string>
     <string name="pause_listen_history">Suspendre l’historique d’écoute</string>
@@ -438,7 +438,7 @@
     <string name="enable_lrclib">Activer la source LrcLib</string>
     <string name="enable_kugou">Activer la source KuGou</string>
     <string name="hide_explicit">Masquer le contenu explicite</string>
-    <string name="hide_video">Hide music videos</string>
+    <string name="hide_video">Masquer les clips musicaux</string>
     <string name="backup_restore">Sauvegarde et Restauration</string>
     <string name="action_backup">Sauvegarder</string>
     <string name="action_restore">Restaurer</string>
