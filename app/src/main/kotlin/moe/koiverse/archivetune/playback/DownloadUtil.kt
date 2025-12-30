@@ -66,7 +66,7 @@ constructor(
             if (playerCache.cacheSpace > 500 * 1024 * 1024L) {
                 kotlinx.coroutines.GlobalScope.launch(Dispatchers.IO) {
                     playerCache.keys.shuffled().take(10).forEach { key ->
-                        playerCache.getCacheSpaceForKey(key)
+                        playerCache.getCachedSpans(key).sumOf { it.length }
                     }
                 }
             }
