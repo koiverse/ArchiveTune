@@ -209,7 +209,8 @@ class App : Application(), SingletonImageLoader.Factory {
         if (diskCache.size > 500 * 1024 * 1024L) {
             Thread {
                 try {
-                    val files = diskCache.directory.listFiles()?.sortedBy { it.lastModified() } ?: emptyList()
+                    val dir = java.io.File(cacheDir, "coil")
+                    val files = dir.listFiles()?.sortedBy { f -> f.lastModified() } ?: emptyList<java.io.File>()
                     var freed = 0L
                     for (file in files) {
                         if (diskCache.size - freed <= 500 * 1024 * 1024L) break
