@@ -63,15 +63,19 @@ constructor(
         ) { dataSpec ->
             val mediaId = dataSpec.key ?: error("No media id")
             val length = if (dataSpec.length >= 0) dataSpec.length else 1
-
+            if (playerCache.cacheSpace > 500 * 1024 * 1024L) {
+                kotlinx.coroutines.GlobalScope.launch(Dispatchers.IO) {
+                    playerCache.keys.shuffled().take(10).forEach { key ->
+                        playerCache.getCacheSpaceForKey(key)
+                    }
+                }
+            }
             if (playerCache.isCached(mediaId, dataSpec.position, length)) {
                 return@Factory dataSpec
             }
-
             songUrlCache[mediaId]?.takeIf { it.second > System.currentTimeMillis() }?.let {
                 return@Factory dataSpec.withUri(it.first.toUri())
             }
-
             val playbackData = runBlocking(Dispatchers.IO) {
                 val networkMeteredPref = context.dataStore.get(NetworkMeteredKey, true)
                 YTPlayerUtils.playerResponseForPlayback(
