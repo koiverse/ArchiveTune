@@ -816,29 +816,6 @@ fun LocalPlaylistScreen(
                                         )
                                     }
 
-                                    // Start Mix Button
-                                    Button(
-                                        onClick = {
-                                            playerConnection.playQueue(
-                                                LocalMixQueue(
-                                                    database = database,
-                                                    playlistId = playlist.id,
-                                                    maxMixSize = 50,
-                                                ),
-                                            )
-                                        },
-                                        shape = RoundedCornerShape(24.dp),
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .height(48.dp)
-                                    ) {
-                                        Icon(
-                                            painter = painterResource(R.drawable.queue_music),
-                                            contentDescription = "Start Mix",
-                                            modifier = Modifier.size(24.dp)
-                                        )
-                                    }
-
                                     // Download Button
                                     Surface(
                                         onClick = {
@@ -958,6 +935,37 @@ fun LocalPlaylistScreen(
                                                 modifier = Modifier.size(24.dp)
                                             )
                                         }
+                                    }
+                                }
+
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 20.dp, vertical = 20.dp),
+                                    horizontalArrangement = Arrangement.Center,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    // Start Mix Button
+                                    Button(
+                                        onClick = {
+                                            playerConnection.playQueue(
+                                                LocalMixQueue(
+                                                    database = database,
+                                                    playlistId = playlist.id,
+                                                    maxMixSize = 50,
+                                                ),
+                                            )
+                                        },
+                                        shape = RoundedCornerShape(24.dp),
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .height(48.dp)
+                                    ) {
+                                        Icon(
+                                            painter = painterResource(R.drawable.mix),
+                                            contentDescription = "Start Mix",
+                                            modifier = Modifier.size(24.dp)
+                                        )
                                     }
                                 }
 

@@ -718,7 +718,9 @@ fun OnlinePlaylistScreen(
                                 }
 
                                 Row(
-                                    modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 20.dp, vertical = 20.dp),
                                     horizontalArrangement = Arrangement.Center,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
@@ -734,7 +736,7 @@ fun OnlinePlaylistScreen(
                                         modifier = Modifier.weight(1f).height(48.dp)
                                     ) {
                                         Icon(
-                                            painter = painterResource(R.drawable.queue_music),
+                                            painter = painterResource(R.drawable.mix),
                                             contentDescription = "Start Mix",
                                             modifier = Modifier.size(24.dp)
                                         )
