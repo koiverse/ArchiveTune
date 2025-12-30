@@ -128,6 +128,16 @@ fun LibraryPlaylistsScreen(
     val gridItemSize by rememberEnumPreference(GridItemsSizeKey, GridItemSize.BIG)
     val useNewLibraryDesign by rememberPreference(UseNewLibraryDesignKey, true)
 
+
+    val (selectedTagsFilter, onSelectedTagsFilterChange) = rememberPreference(PlaylistTagsFilterKey, "")
+    val selectedTagIds = remember(selectedTagsFilter) {
+        selectedTagsFilter.split(",").filter { it.isNotBlank() }.toSet()
+    }
+    val database = LocalDatabase.current
+    val filteredPlaylistIds by database.playlistIdsByTags(
+        if (selectedTagIds.isEmpty()) emptyList() else selectedTagIds.toList()
+    ).collectAsState(initial = emptyList())
+
     val playlists by viewModel.allPlaylists.collectAsState()
 
     val visiblePlaylists = playlists.distinctBy { it.id }
