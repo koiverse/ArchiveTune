@@ -419,6 +419,9 @@
     <string name="max_song_cache_size">Taille max du cache audio</string>
     <string name="clear_song_cache">Vider le cache audio</string>
     <string name="size_used">%s utilisés</string>
+    <string name="edit_tags">Edit Tags</string>
+    <string name="tag_name">Tag name</string>
+    <string name="tag_add">Add</string>
     <string name="privacy">Confidentialité</string>
     <string name="listen_history">Historique d’écoute</string>
     <string name="pause_listen_history">Suspendre l’historique d’écoute</string>
