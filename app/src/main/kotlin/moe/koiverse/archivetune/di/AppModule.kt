@@ -49,18 +49,31 @@ object AppModule {
         @ApplicationContext context: Context,
         databaseProvider: DatabaseProvider,
     ): SimpleCache {
-        val constructor = {
-            SimpleCache(
-                context.filesDir.resolve("exoplayer"),
-                when (val cacheSize = context.dataStore[MaxSongCacheSizeKey] ?: 1024) {
-                    -1 -> NoOpCacheEvictor()
-                    else -> LeastRecentlyUsedCacheEvictor(cacheSize * 1024 * 1024L)
-                },
-                databaseProvider,
-            )
+        val cacheSize = context.dataStore[MaxSongCacheSizeKey] ?: 1024
+        val evictor = when (cacheSize) {
+            -1 -> NoOpCacheEvictor()
+            else -> LeastRecentlyUsedCacheEvictor(cacheSize * 1024 * 1024L)
         }
-        constructor().release()
-        return constructor()
+        val cache = SimpleCache(
+            context.filesDir.resolve("exoplayer"),
+            evictor,
+            databaseProvider,
+        )
+        if (cache.cacheSpace > 500 * 1024 * 1024L) {
+            Thread {
+                try {
+                    val keys = cache.keys.sortedBy { cache.getCacheSpaceForKey(it) }
+                    var freed = 0L
+                    for (key in keys) {
+                        if (cache.cacheSpace - freed <= 500 * 1024 * 1024L) break
+                        val size = cache.getCacheSpaceForKey(key)
+                        cache.removeResource(key)
+                        freed += size
+                    }
+                } catch (_: Exception) {}
+            }.start()
+        }
+        return cache
     }
 
     @Singleton
