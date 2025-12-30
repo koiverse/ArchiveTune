@@ -35,6 +35,8 @@ import moe.koiverse.archivetune.db.entities.SongArtistMap
 import moe.koiverse.archivetune.db.entities.SongEntity
 import moe.koiverse.archivetune.db.entities.SortedSongAlbumMap
 import moe.koiverse.archivetune.db.entities.SortedSongArtistMap
+import moe.koiverse.archivetune.db.entities.TagEntity
+import moe.koiverse.archivetune.db.entities.PlaylistTagMap
 import moe.koiverse.archivetune.extensions.toSQLiteQuery
 import java.time.Instant
 import java.time.LocalDateTime
@@ -85,7 +87,9 @@ class MusicDatabase(
         Event::class,
         RelatedSongMap::class,
         SetVideoIdEntity::class,
-        PlayCountEntity::class
+        PlayCountEntity::class,
+        TagEntity::class,
+        PlaylistTagMap::class
     ],
     views = [
         SortedSongArtistMap::class,

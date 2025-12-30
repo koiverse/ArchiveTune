@@ -82,6 +82,8 @@ val SimilarContent = booleanPreferencesKey("similarContent")
 val AutoSkipNextOnErrorKey = booleanPreferencesKey("autoSkipNextOnError")
 val StopMusicOnTaskClearKey = booleanPreferencesKey("stopMusicOnTaskClear")
 val ArtistSeparatorsKey = stringPreferencesKey("artistSeparators")
+val PlaylistTagsFilterKey = stringPreferencesKey("playlistTagsFilter")
+val ShowTagsInLibraryKey = booleanPreferencesKey("showTagsInLibrary")
 
 val MaxImageCacheSizeKey = intPreferencesKey("maxImageCacheSize")
 val MaxSongCacheSizeKey = intPreferencesKey("maxSongCacheSize")

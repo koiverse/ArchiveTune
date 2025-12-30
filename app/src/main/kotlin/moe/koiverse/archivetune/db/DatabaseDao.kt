@@ -44,6 +44,9 @@ import moe.koiverse.archivetune.db.entities.SongAlbumMap
 import moe.koiverse.archivetune.db.entities.SongArtistMap
 import moe.koiverse.archivetune.db.entities.SongEntity
 import moe.koiverse.archivetune.db.entities.SongWithStats
+import moe.koiverse.archivetune.db.entities.TagEntity
+import moe.koiverse.archivetune.db.entities.PlaylistTagMap
+import moe.koiverse.archivetune.db.entities.PlaylistWithTags
 import moe.koiverse.archivetune.extensions.reversed
 import moe.koiverse.archivetune.extensions.toSQLiteQuery
 import moe.koiverse.archivetune.models.MediaMetadata
@@ -1393,5 +1396,63 @@ interface DatabaseDao {
 
     fun checkpoint() {
         raw("PRAGMA wal_checkpoint(FULL)".toSQLiteQuery())
+    }
+
+    @Transaction
+    @Query("SELECT * FROM tag ORDER BY name")
+    fun allTags(): Flow<List<TagEntity>>
+
+    @Transaction
+    @Query("SELECT * FROM tag WHERE id = :tagId")
+    fun tag(tagId: String): Flow<TagEntity?>
+
+    @Transaction
+    @Query("SELECT * FROM tag WHERE id IN (SELECT tagId FROM playlist_tag_map WHERE playlistId = :playlistId)")
+    fun playlistTags(playlistId: String): Flow<List<TagEntity>>
+
+    @Transaction
+    @Query("SELECT DISTINCT playlistId FROM playlist_tag_map WHERE tagId IN (:tagIds)")
+    fun playlistIdsByTags(tagIds: List<String>): Flow<List<String>>
+
+    @Transaction
+    @Query("SELECT COUNT(*) FROM playlist_tag_map WHERE playlistId = :playlistId AND tagId = :tagId")
+    fun isPlaylistTagged(playlistId: String, tagId: String): Flow<Int>
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    fun insert(tag: TagEntity)
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    fun insert(map: PlaylistTagMap)
+
+    @Update
+    fun update(tag: TagEntity)
+
+    @Delete
+    fun delete(tag: TagEntity)
+
+    @Delete
+    fun delete(playlistTagMap: PlaylistTagMap)
+
+    @Query("DELETE FROM playlist_tag_map WHERE playlistId = :playlistId")
+    fun removeAllPlaylistTags(playlistId: String)
+
+    @Query("DELETE FROM playlist_tag_map WHERE playlistId = :playlistId AND tagId = :tagId")
+    fun removePlaylistTag(playlistId: String, tagId: String)
+
+    @Transaction
+    fun addTagToPlaylist(playlistId: String, tagId: String) {
+        insert(PlaylistTagMap(playlistId = playlistId, tagId = tagId))
+    }
+
+    @Transaction
+    fun togglePlaylistTag(playlistId: String, tagId: String) {
+        runBlocking {
+            val isTagged = isPlaylistTagged(playlistId, tagId).first()
+            if (isTagged > 0) {
+                removePlaylistTag(playlistId, tagId)
+            } else {
+                addTagToPlaylist(playlistId, tagId)
+            }
+        }
     }
 }

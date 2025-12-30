@@ -55,6 +55,7 @@ import moe.koiverse.archivetune.playback.ExoDownloadService
 import moe.koiverse.archivetune.playback.queues.ListQueue
 import moe.koiverse.archivetune.playback.queues.YouTubeQueue
 import moe.koiverse.archivetune.ui.component.DefaultDialog
+import moe.koiverse.archivetune.ui.component.AssignTagsDialog
 import moe.koiverse.archivetune.ui.component.NewAction
 import moe.koiverse.archivetune.ui.component.NewActionGrid
 import moe.koiverse.archivetune.ui.component.PlaylistListItem
@@ -198,6 +199,21 @@ fun PlaylistMenu(
 
     var showDeletePlaylistDialog by remember {
         mutableStateOf(false)
+    }
+
+    var showAssignTagsDialog by remember {
+        mutableStateOf(false)
+    }
+
+    if (showAssignTagsDialog) {
+        AssignTagsDialog(
+            database = database,
+            playlistId = playlist.id,
+            onDismiss = { 
+                showAssignTagsDialog = false
+                onDismiss()
+            }
+        )
     }
 
     if (showDeletePlaylistDialog) {
@@ -424,6 +440,23 @@ fun PlaylistMenu(
                     },
                     modifier = Modifier.clickable {
                         showEditDialog = true
+                    }
+                )
+            }
+        }
+
+        if (autoPlaylist != true && downloadPlaylist != true) {
+            item {
+                ListItem(
+                    headlineContent = { Text(text = stringResource(R.string.manage_tags)) },
+                    leadingContent = {
+                        Icon(
+                            painter = painterResource(R.drawable.style),
+                            contentDescription = null,
+                        )
+                    },
+                    modifier = Modifier.clickable {
+                        showAssignTagsDialog = true
                     }
                 )
             }

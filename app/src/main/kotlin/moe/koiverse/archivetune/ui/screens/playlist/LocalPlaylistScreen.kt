@@ -137,6 +137,8 @@ import moe.koiverse.archivetune.playback.queues.LocalMixQueue
 import moe.koiverse.archivetune.ui.component.DefaultDialog
 import moe.koiverse.archivetune.ui.component.DraggableScrollbar
 import moe.koiverse.archivetune.ui.component.EmptyPlaceholder
+import moe.koiverse.archivetune.ui.component.PlaylistTagChips
+import moe.koiverse.archivetune.ui.component.AssignTagsDialog
 import moe.koiverse.archivetune.ui.component.IconButton
 import moe.koiverse.archivetune.ui.component.LocalMenuState
 import moe.koiverse.archivetune.ui.component.SongListItem
@@ -192,6 +194,15 @@ fun LocalPlaylistScreen(
     )
     var locked by rememberPreference(PlaylistEditLockKey, defaultValue = true)
     val (disableBlur) = rememberPreference(DisableBlurKey, false)
+    var showAssignTagsDialog by remember { mutableStateOf(false) }
+
+    if (showAssignTagsDialog && playlist != null) {
+        AssignTagsDialog(
+            database = database,
+            playlistId = playlist!!.id,
+            onDismiss = { showAssignTagsDialog = false }
+        )
+    }
 
     val coroutineScope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
