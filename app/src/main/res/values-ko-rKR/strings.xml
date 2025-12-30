@@ -410,6 +410,9 @@
     <string name="max_song_cache_size">이미지 캐시 지우기</string>
     <string name="clear_song_cache">최대 노래 캐시 크기</string>
     <string name="size_used">노래 캐시 지우기</string>
+    <string name="edit_tags">Edit Tags</string>
+    <string name="tag_name">Tag name</string>
+    <string name="tag_add">Add</string>
     <string name="privacy">%s 사용됨</string>
     <string name="listen_history">개인 정보 보호</string>
     <string name="pause_listen_history">기록 듣기</string>
