@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="explore">Explorer</string>
-    <string name="local_history">Local</string>
+    <string name="local_history">Locale</string>
     <string name="remote_history">Distant</string>
     <string name="charts">Classements</string>
     <string name="back_button_desc">Retour</string>
@@ -43,17 +43,17 @@
     <string name="remove_from_cache">Retirer du cache</string>
     <string name="copy_link">Copier le lien</string>
     <string name="select">Tout sélectionner</string>
-    <string name="manage_tags">Manage Tags</string>
-    <string name="add_tag">Add Tag</string>
-    <string name="edit_tag">Edit Tag</string>
-    <string name="tag_name">Tag Name</string>
-    <string name="tag_color">Tag Color</string>
-    <string name="choose_color">Choose Color</string>
-    <string name="tap_to_change_color">Tap to change color</string>
-    <string name="assign_tags">Assign Tags</string>
-    <string name="no_tags_available">No tags available. Create one first.</string>
-    <string name="manage_playlist_tags">Playlist Tags</string>
-    <string name="manage_playlist_tags_desc">Create and manage tags for organizing playlists</string>
+    <string name="manage_tags">Gérer les balises</string>
+    <string name="add_tag">Ajouter une balise</string>
+    <string name="edit_tag">Modifier la balise</string>
+    <string name="tag_name">Nom de la balise</string>
+    <string name="tag_color">Couleur de la balise</string>
+    <string name="choose_color">Choisissez la couleur</string>
+    <string name="tap_to_change_color">Appuyez pour changer la couleur</string>
+    <string name="assign_tags">Attribuer des balises</string>
+    <string name="no_tags_available">Aucune balise disponible. Veuillez en créer une.</string>
+    <string name="manage_playlist_tags">Balises de la playlist</string>
+    <string name="manage_playlist_tags_desc">Créez et gérez des balises pour organiser vos playlists</string>
     <string name="like_all">Tout aimer</string>
     <string name="dislike_all">Tout ne plus aimer</string>
     <string name="sort_by_last_updated">Date de mise à jour</string>
@@ -148,17 +148,17 @@
     <string name="playlist_add_local_to_synced_note">Remarque : L’ajout de morceaux locaux à des playlists synchronisées/distantes n’est pas pris en charge. Toute autre combinaison est valide.</string>
     <string name="auto_download_on_like">Téléchargement automatique des titres aimés</string>
     <string name="auto_download_on_like_desc">Télécharger automatiquement les titres que vous aimez</string>
-    <string name="swipe_sensitivity">Sensibilité du balayage</string>
-    <string name="swipe_sensitivity_desc">Ajuster la sensibilité du geste de changement de titre</string>
+    <string name="swipe_sensitivity">Sensibilité du balayage du mini-lecteur</string>
+    <string name="swipe_sensitivity_desc">Ajuster la sensibilité des gestes de balayage pour changer de titre</string>
     <string name="sensitivity_percentage">%1$d%%</string>
     <string name="clear_song_cache_dialog">Voulez-vous vraiment supprimer tous les titres en cache ?</string>
     <string name="clear_image_cache_dialog">Voulez-vous vraiment supprimer toutes les images en cache ?</string>
     <string name="clear_downloads_dialog">Voulez-vous vraiment supprimer tous les téléchargements ?</string>
     <string name="disable">Désactiver</string>
-    <string name="pause_remote_listen_history">Suspendre l\'historique envoyé à YouTube Music</string>
+    <string name="pause_remote_listen_history">Mettez en pause, partagez et consultez votre historique d\'écoute sur YouTube Music</string>
     <string name="not_logged_in_youtube">Non connecté à YouTube</string>
     <string name="default_links">Ouvrir les liens supportés</string>
-    <string name="open_app_settings_error">Impossible d\'ouvrir les paramètres de l\'app</string>
+    <string name="open_app_settings_error">Impossible d\'ouvrir les paramètres de l\'application</string>
     <string name="release_notes">Notes de version</string>
     <string name="all_time">Tout le temps</string>
     <string name="past_24_hours">Dernières 24 heures</string>
@@ -172,8 +172,8 @@
     <string name="numbers">Chiffres</string>
     <string name="subscribers">Abonnés</string>
     <string name="views">Vues</string>
-    <string name="likes">Likes</string>
-    <string name="dislikes">Dislikes</string>
+    <string name="likes">J\'aime</string>
+    <string name="dislikes">Je n\'aime pas</string>
     <string name="subscribe">S’abonner</string>
     <string name="subscribed">Abonné</string>
     <string name="playlist_not_found">Playlist introuvable</string>
@@ -185,8 +185,8 @@
         <item quantity="other">%d secondes</item>
     </plurals>
     <!-- Player Settings -->
-    <string name="disable_load_more_when_repeat_all">Désactiver le chargement auto en mode \"tout répéter\"</string>
-    <string name="disable_load_more_when_repeat_all_desc">N\'ajoute pas automatiquement de titres lorsque le mode répétition totale est activé</string>
+    <string name="disable_load_more_when_repeat_all">Désactiver le chargement supplémentaire lors de la répétition de tout</string>
+    <string name="disable_load_more_when_repeat_all_desc">Ne pas charger automatiquement d\'autres titres et contenus similaires lorsque le mode « Répéter tout » est activé</string>
     <!-- Material 3 Settings Sections -->
     <string name="settings_section_ui">Interface utilisateur</string>
     <string name="settings_section_privacy">Confidentialité &amp; Sécurité</string>
