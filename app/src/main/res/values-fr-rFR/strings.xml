@@ -226,39 +226,39 @@
     <!-- Palette Names -->
     <string name="palette_default">Par défaut</string>
     <!-- Blues -->
-    <string name="palette_ocean_blue">Bleu océan</string>
+    <string name="palette_ocean_blue">Océan</string>
     <string name="palette_arctic_blue">Arctique</string>
-    <string name="palette_midnight_navy">Minuit</string>
-    <string name="palette_sky_blue">Bleu ciel</string>
-    <string name="palette_cobalt_blue">Bleu cobalt</string>
-    <string name="palette_electric_blue">Bleu électrique</string>
+    <string name="palette_midnight_navy">Marine</string>
+    <string name="palette_sky_blue">Ciel</string>
+    <string name="palette_cobalt_blue">Cobalt</string>
+    <string name="palette_electric_blue">Électrique</string>
     <!-- Greens -->
-    <string name="palette_emerald_green">Émeraude</string>
+    <string name="palette_emerald_green">Vert émeraude</string>
     <string name="palette_teal_wave">Vague sarcelle</string>
-    <string name="palette_forest_green">Vert forêt</string>
+    <string name="palette_forest_green">Forêt</string>
     <string name="palette_spotify_green">Spotify</string>
     <string name="palette_mint_fresh">Menthe</string>
     <string name="palette_olive_garden">Olive</string>
     <string name="palette_sage_green">Sauge</string>
     <!-- Oranges & Yellows -->
-    <string name="palette_sunset_orange">Coucher de soleil</string>
-    <string name="palette_golden_hour">Heure dorée</string>
+    <string name="palette_sunset_orange">Coucher de Soleil</string>
+    <string name="palette_golden_hour">Dorée</string>
     <string name="palette_warm_amber">Ambre</string>
     <string name="palette_tangerine_blast">Mandarine</string>
     <string name="palette_peach">Pêche</string>
     <string name="palette_mango">Mangue</string>
     <!-- Purples -->
-    <string name="palette_royal_purple">Violet royal</string>
+    <string name="palette_royal_purple">Violet</string>
     <string name="palette_lavender_dream">Lavande</string>
     <string name="palette_grape_purple">Raisin</string>
     <string name="palette_violet">Violet</string>
     <string name="palette_amethyst">Améthyste</string>
-    <string name="palette_ultra_violet">Ultraviolet</string>
+    <string name="palette_ultra_violet">Ultra Violet</string>
     <!-- Pinks -->
     <string name="palette_cherry_blossom">Sakura</string>
-    <string name="palette_rose_quartz">Quartz rose</string>
+    <string name="palette_rose_quartz">Quartz</string>
     <string name="palette_magenta_pop">Magenta</string>
-    <string name="palette_hot_pink">Rose vif</string>
+    <string name="palette_hot_pink">Rose</string>
     <string name="palette_blush">Blush</string>
     <string name="palette_coral">Corail</string>
     <string name="palette_bubblegum">Bubblegum</string>
@@ -266,7 +266,7 @@
     <string name="palette_crimson_red">Cramoisi</string>
     <string name="palette_youtube_red">YouTube</string>
     <string name="palette_wine_red">Bordeaux</string>
-    <string name="palette_ruby_red">Rouge rubis</string>
+    <string name="palette_ruby_red">Rubis</string>
     <string name="palette_scarlet">Écarlate</string>
     <!-- Neutrals -->
     <string name="palette_charcoal">Charbon</string>
@@ -274,27 +274,27 @@
     <string name="palette_slate">Ardoise</string>
     <string name="palette_graphite">Graphite</string>
     <!-- Earth Tones -->
-    <string name="palette_terracotta">Terre cuite</string>
+    <string name="palette_terracotta">Terre Cuite</string>
     <string name="palette_coffee">Café</string>
     <string name="palette_mocha">Moka</string>
     <string name="palette_sand">Sable</string>
     <string name="palette_clay">Argile</string>
     <!-- Pastels -->
-    <string name="palette_pastel_pink">Rose pastel</string>
-    <string name="palette_pastel_blue">Bleu pastel</string>
-    <string name="palette_pastel_green">Vert pastel</string>
-    <string name="palette_pastel_yellow">Jaune pastel</string>
-    <string name="palette_pastel_purple">Violet pastel</string>
+    <string name="palette_pastel_pink">Rose Pastel</string>
+    <string name="palette_pastel_blue">Bleu Pastel</string>
+    <string name="palette_pastel_green">Vert Pastel</string>
+    <string name="palette_pastel_yellow">Jaune Pastel</string>
+    <string name="palette_pastel_purple">Violet Pastel</string>
     <!-- Neon & Vibrant -->
-    <string name="palette_neon_green">Vert néon</string>
-    <string name="palette_neon_pink">Rose néon</string>
-    <string name="palette_neon_blue">Bleu néon</string>
-    <string name="palette_neon_orange">Orange néon</string>
+    <string name="palette_neon_green">Vert Néon</string>
+    <string name="palette_neon_pink">Rose Néon</string>
+    <string name="palette_neon_blue">Bleu Néon</string>
+    <string name="palette_neon_orange">Orange Néon</string>
     <string name="palette_cyberpunk">Cyberpunk</string>
     <string name="palette_synthwave">Synthwave</string>
     <!-- Special & Themed -->
     <string name="palette_ocean">Océan</string>
-    <string name="palette_forest">Forêt profonde</string>
+    <string name="palette_forest">Forêt Profonde</string>
     <string name="palette_autumn">Automne</string>
     <string name="palette_winter">Hiver</string>
     <string name="palette_spring">Printemps</string>
@@ -302,18 +302,18 @@
     <string name="palette_twilight">Crépuscule</string>
     <string name="palette_aurora">Aurore</string>
     <string name="palette_candy">Bonbon</string>
-    <string name="palette_rainbow">Arc-en-ciel</string>
+    <string name="palette_rainbow">Arc-en-Ciel</string>
     <!-- Additional Palettes -->
-    <string name="palette_aquamarine">Aigue-marine</string>
+    <string name="palette_aquamarine">Bleu Vert</string>
     <string name="palette_coral_reef">Récif corallien</string>
-    <string name="palette_cotton_candy">Barbe à papa</string>
+    <string name="palette_cotton_candy">Barbe à Papa</string>
     <string name="palette_deep_sea">Mer profonde</string>
-    <string name="palette_electric_violet">Violet électrique</string>
+    <string name="palette_electric_violet">Violet Électrique</string>
     <string name="palette_mustard">Moutarde</string>
     <string name="palette_olive">Olive</string>
-    <string name="palette_peachy_keen">Rêve de pêche</string>
+    <string name="palette_peachy_keen">Rêve de Pêche</string>
     <string name="palette_plum">Prune</string>
-    <string name="palette_slate_gray">Gris ardoise</string>
+    <string name="palette_slate_gray">Gris Ardoise</string>
     <string name="palette_sunset_beach">Plage au coucher du soleil</string>
     <string name="palette_turquoise">Turquoise</string>
     <!-- End of Color Palette -->
@@ -411,12 +411,12 @@
     <string name="cache">Cache</string>
     <string name="image_cache">Cache d’images</string>
     <string name="song_cache">Cache des titres</string>
-    <string name="max_cache_size">Taille max du cache</string>
+    <string name="max_cache_size">Taille maximale du cache</string>
     <string name="unlimited">Illimité</string>
     <string name="clear_all_downloads">Supprimer tous les téléchargements</string>
-    <string name="max_image_cache_size">Taille max du cache image</string>
+    <string name="max_image_cache_size">Taille maximale du cache image</string>
     <string name="clear_image_cache">Vider le cache image</string>
-    <string name="max_song_cache_size">Taille max du cache audio</string>
+    <string name="max_song_cache_size">Taille maximale du cache audio</string>
     <string name="clear_song_cache">Vider le cache audio</string>
     <string name="size_used">%s utilisés</string>
     <string name="edit_tags">Edit Tags</string>
@@ -439,7 +439,7 @@
     <string name="enable_kugou">Activer la source KuGou</string>
     <string name="hide_explicit">Masquer le contenu explicite</string>
     <string name="hide_video">Hide music videos</string>
-    <string name="backup_restore">Sauvegarde et restauration</string>
+    <string name="backup_restore">Sauvegarde et Restauration</string>
     <string name="action_backup">Sauvegarder</string>
     <string name="action_restore">Restaurer</string>
     <string name="imported_playlist">Playlist importée</string>
@@ -456,17 +456,17 @@
     <string name="scrobbling">Scrobbling</string>
     <string name="lastfm_integration">Intégration Last.fm</string>
     <string name="enable_scrobbling">Activer le scrobbling</string>
-    <string name="lastfm_now_playing">Mettre à jour “En lecture”</string>
+    <string name="lastfm_now_playing">Mise à jour de la lecture en cours</string>
     <string name="scrobbling_configuration">Configuration du scrobbling</string>
     <string name="scrobble_min_track_duration">Durée minimale du titre</string>
-    <string name="scrobble_delay_percent">Pourcentage de délai</string>
-    <string name="scrobble_delay_minutes">Délai (secondes)</string>
+    <string name="scrobble_delay_percent">Pourcentage de délai de scrobble</string>
+    <string name="scrobble_delay_minutes">Délai de scrobble (secondes)</string>
     <string name="username">Nom d\'utilisateur</string>
     <string name="password">Mot de passe</string>
     <string name="logging_in">Connexion…</string>
     <!-- ListenBrainz -->
     <string name="listenbrainz_scrobbling">Scrobbling ListenBrainz</string>
-    <string name="listenbrainz_scrobbling_description">Envoyer les titres en lecture et terminés à ListenBrainz</string>
+    <string name="listenbrainz_scrobbling_description">Activer l\'envoi des titres en cours d\'écoute et des titres terminés à ListenBrainz</string>
     <string name="set_listenbrainz_token">Définir le jeton ListenBrainz</string>
     <string name="edit_listenbrainz_token">Modifier le jeton ListenBrainz</string>
     <!-- Discord activity customization -->
@@ -525,8 +525,8 @@
     <string name="logout_confirm_no">Annuler</string>
     <!--Misc settings additions-->
     <string name="experiment_settings">Paramètres expérimentaux</string>
-    <string name="show_discord_debug_ui">Afficher l’interface de debug</string>
-    <string name="enable_discord_debug_lines">Activer les lignes de debug</string>
+    <string name="show_discord_debug_ui">Afficher l\'interface utilisateur de débogage</string>
+    <string name="enable_discord_debug_lines">Activer les lignes de paramètres de débogage</string>
     <string name="presence_manager_running">Gestionnaire de présence : actif</string>
     <string name="presence_manager_stopped">Gestionnaire de présence : arrêté</string>
     <string name="debug_last_rpc_times">Dernier RPC : début %1$s  fin %2$s</string>
@@ -537,21 +537,21 @@
     <string name="open">Ouvrir</string>
     <string name="reset_to_default_levels">Réinitialiser</string>
     <string name="no_logs">Aucun journal</string>
-    <string name="show_nerd_stats">Afficher les stats avancées</string>
-    <string name="description_show_nerd_stats">Afficher les statistiques de lecture (codec, débit, buffer…)</string>
-    <string name="display_codec_on_player">Afficher le codec</string>
-    <string name="description_display_codec_on_player">Afficher le codec audio actuel sur le lecteur</string>
-    <string name="nerd_stats">Stats avancées</string>
-    <string name="track_label">Piste</string>
-    <string name="no_track_playing">Aucune piste en lecture</string>
+    <string name="show_nerd_stats">Afficher les statistiques avancées</string>
+    <string name="description_show_nerd_stats">Afficher les statistiques de lecture en temps réel (codec, débit binaire, mémoire tampon)</string>
+    <string name="display_codec_on_player">Afficher le codec sur le lecteur</string>
+    <string name="description_display_codec_on_player">Afficher les informations du codec audio actuel sur le lecteur</string>
+    <string name="nerd_stats">Statistiques avancées</string>
+    <string name="track_label">Titre</string>
+    <string name="no_track_playing">Aucun titre en cours de lecture</string>
     <string name="codec_label">Codec</string>
     <string name="unknown_codec">Codec inconnu</string>
-    <string name="bitrate_label">Débit</string>
-    <string name="unknown_bitrate">Débit inconnu</string>
-    <string name="sample_rate_label">Fréquence</string>
-    <string name="unknown_sample_rate">Fréquence inconnue</string>
+    <string name="bitrate_label">Débit binaire</string>
+    <string name="unknown_bitrate">Débit binaire inconnu</string>
+    <string name="sample_rate_label">Fréquence d\'échantillonnage</string>
+    <string name="unknown_sample_rate">Fréquence d\'échantillonnage inconnue</string>
     <string name="content_length_label">Longueur du contenu</string>
-    <string name="unknown_content_length">Longueur inconnue</string>
+    <string name="unknown_content_length">Longueur du contenu inconnue</string>
     <string name="format_label">Format</string>
     <string name="loading_format">Chargement du format…</string>
     <string name="buffer_health_label">Buffer</string>
@@ -573,7 +573,7 @@
     <string name="channel_stable">Stable</string>
     <string name="channel_nightly">Nightly</string>
     <string name="commit_history">Développement</string>
-    <string name="recent_commits">Commits récents</string>
+    <string name="recent_commits">Dernières contributions</string>
     <string name="update_notification_channel_name">Mises à jour de l\'application</string>
     <string name="update_notification_channel_desc">Notifications pour les nouvelles mises à jour</string>
     <string name="update_notification_title">Mise à jour disponible</string>
