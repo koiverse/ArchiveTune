@@ -43,6 +43,17 @@
     <string name="remove_from_cache">캐시에서 제거</string>
     <string name="copy_link">링크 복사</string>
     <string name="select">모두 선택</string>
+    <string name="manage_tags">Manage Tags</string>
+    <string name="add_tag">Add Tag</string>
+    <string name="edit_tag">Edit Tag</string>
+    <string name="tag_name">Tag Name</string>
+    <string name="tag_color">Tag Color</string>
+    <string name="choose_color">Choose Color</string>
+    <string name="tap_to_change_color">Tap to change color</string>
+    <string name="assign_tags">Assign Tags</string>
+    <string name="no_tags_available">No tags available. Create one first.</string>
+    <string name="manage_playlist_tags">Playlist Tags</string>
+    <string name="manage_playlist_tags_desc">Create and manage tags for organizing playlists</string>
     <string name="like_all">모두처럼</string>
     <string name="dislike_all">모두 싫어함</string>
     <string name="sort_by_last_updated">업데이트된 날짜</string>
@@ -173,7 +184,6 @@
     <!-- Player Settings -->
     <string name="disable_load_more_when_repeat_all">모두 반복 시 추가 로드 비활성화</string>
     <string name="disable_load_more_when_repeat_all_desc">전체 반복 모드가 활성화된 경우 더 많은 노래 및 유사한 콘텐츠를 자동으로 로드하지 마세요.</string>
-    <string name="hide_video_songs">Hide video songs</string>
     <!-- Material 3 Settings Sections -->
     <string name="settings_section_ui">사용자 인터페이스</string>
     <string name="settings_section_privacy">개인 정보 보호 &amp; 보안</string>
