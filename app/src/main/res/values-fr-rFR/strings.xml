@@ -13,21 +13,21 @@
     <string name="playlists">Playlists</string>
     <!-- Top bar -->
     <plurals name="n_selected">
-        <item quantity="one">%d sélectionnés</item>
-        <item quantity="other">%d selected</item>
+        <item quantity="one">%d sélectionné</item>
+        <item quantity="other">%d sélectionnés</item>
     </plurals>
     <!-- Home -->
     <string name="history">Historique</string>
     <string name="stats">Statistiques</string>
-    <string name="mood_and_genres">Ambiances et genres</string>
+    <string name="mood_and_genres">Ambiances et Genres</string>
     <string name="account">Compte</string>
-    <string name="quick_picks">Sélections rapides</string>
-    <string name="quick_picks_empty">Écoutez des titres pour générer vos sélections rapides</string>
+    <string name="quick_picks">Sélection Rapide</string>
+    <string name="quick_picks_empty">Écoutez des titres pour générer votre sélection rapide</string>
     <string name="forgotten_favorites">Favoris oubliés</string>
     <string name="keep_listening">Continuer l\'écoute</string>
     <string name="your_youtube_playlists">Vos playlists YouTube</string>
     <string name="similar_to">Similaire à</string>
-    <string name="new_release_albums">Nouveaux albums</string>
+    <string name="new_release_albums">Nouveautés</string>
     <string name="select_playlist_to_sync">Sélectionnez une playlist à synchroniser</string>
     <string name="integration">Intégration</string>
     <!-- History -->
@@ -92,7 +92,7 @@
     <string name="downloading">Téléchargement…</string>
     <string name="remove_download">Supprimer le téléchargement</string>
     <string name="import_playlist">Importer une playlist</string>
-    <string name="import_failed">Import failed</string>
+    <string name="import_failed">Échec de l\'importation</string>
     <string name="update_button">Mettre à jour</string>
     <string name="add_to_playlist">Ajouter à une playlist</string>
     <string name="view_artist">Voir l\'artiste</string>
