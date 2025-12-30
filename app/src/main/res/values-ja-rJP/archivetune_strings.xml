@@ -43,6 +43,17 @@
     <string name="remove_from_cache">キャッシュから削除</string>
     <string name="copy_link">リンクをコピー</string>
     <string name="select">すべて選択</string>
+    <string name="manage_tags">Manage Tags</string>
+    <string name="add_tag">Add Tag</string>
+    <string name="edit_tag">Edit Tag</string>
+    <string name="tag_name">Tag Name</string>
+    <string name="tag_color">Tag Color</string>
+    <string name="choose_color">Choose Color</string>
+    <string name="tap_to_change_color">Tap to change color</string>
+    <string name="assign_tags">Assign Tags</string>
+    <string name="no_tags_available">No tags available. Create one first.</string>
+    <string name="manage_playlist_tags">Playlist Tags</string>
+    <string name="manage_playlist_tags_desc">Create and manage tags for organizing playlists</string>
     <string name="like_all">みんなと同じように</string>
     <string name="dislike_all">全部嫌い</string>
     <string name="sort_by_last_updated">更新日</string>
@@ -173,7 +184,6 @@
     <!-- Player Settings -->
     <string name="disable_load_more_when_repeat_all">すべて繰り返すときにさらに読み込みを無効にする</string>
     <string name="disable_load_more_when_repeat_all_desc">全リピートモードが有効になっている場合、さらに曲や類似のコンテンツを自動ロードしないでください。</string>
-    <string name="hide_video_songs">Hide video songs</string>
     <!-- Material 3 Settings Sections -->
     <string name="settings_section_ui">ユーザーインターフェース</string>
     <string name="settings_section_privacy">プライバシー &amp; セキュリティ</string>
