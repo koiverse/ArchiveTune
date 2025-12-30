@@ -410,6 +410,9 @@
     <string name="max_song_cache_size">Ukuran cache lagu maks</string>
     <string name="clear_song_cache">Hapus cache lagu</string>
     <string name="size_used">%s yang digunakan</string>
+    <string name="edit_tags">Edit Tags</string>
+    <string name="tag_name">Tag name</string>
+    <string name="tag_add">Add</string>
     <string name="privacy">Privasi</string>
     <string name="listen_history">Dengarkan riwayat</string>
     <string name="pause_listen_history">Jeda dengarkan riwayat</string>
