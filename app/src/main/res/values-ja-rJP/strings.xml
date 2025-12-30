@@ -410,6 +410,9 @@
     <string name="max_song_cache_size">最大曲キャッシュサイズ</string>
     <string name="clear_song_cache">曲キャッシュをクリア</string>
     <string name="size_used">%s使用</string>
+    <string name="edit_tags">Edit Tags</string>
+    <string name="tag_name">Tag name</string>
+    <string name="tag_add">Add</string>
     <string name="privacy">プライバシー</string>
     <string name="listen_history">再生履歴</string>
     <string name="pause_listen_history">再生を一時停止 履歴</string>
