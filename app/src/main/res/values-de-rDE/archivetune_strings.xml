@@ -43,6 +43,17 @@
     <string name="remove_from_cache">Aus Cache entfernen</string>
     <string name="copy_link">Link kopieren</string>
     <string name="select">Alles auswählen</string>
+    <string name="manage_tags">Manage Tags</string>
+    <string name="add_tag">Add Tag</string>
+    <string name="edit_tag">Edit Tag</string>
+    <string name="tag_name">Tag Name</string>
+    <string name="tag_color">Tag Color</string>
+    <string name="choose_color">Choose Color</string>
+    <string name="tap_to_change_color">Tap to change color</string>
+    <string name="assign_tags">Assign Tags</string>
+    <string name="no_tags_available">No tags available. Create one first.</string>
+    <string name="manage_playlist_tags">Playlist Tags</string>
+    <string name="manage_playlist_tags_desc">Create and manage tags for organizing playlists</string>
     <string name="like_all">Wie alle</string>
     <string name="dislike_all">Mag alles nicht</string>
     <string name="sort_by_last_updated">Datum aktualisiert</string>
@@ -176,7 +187,6 @@
     <!-- Player Settings -->
     <string name="disable_load_more_when_repeat_all">Deaktivieren Sie „Mehr laden, wenn alles wiederholt wird“.</string>
     <string name="disable_load_more_when_repeat_all_desc">Wenn der Modus „Alle wiederholen“ aktiviert ist, werden nicht automatisch weitere Songs und ähnliche Inhalte geladen</string>
-    <string name="hide_video_songs">Hide video songs</string>
     <!-- Material 3 Settings Sections -->
     <string name="settings_section_ui">Benutzeroberfläche</string>
     <string name="settings_section_privacy">Datenschutz &amp; Sicherheit</string>
