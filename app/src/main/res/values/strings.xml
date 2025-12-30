@@ -455,6 +455,10 @@
     <string name="clear_song_cache">Clear song cache</string>
     <string name="size_used">%s used</string>
 
+    <string name="edit_tags">Edit Tags</string>
+    <string name="tag_name">Tag name</string>
+    <string name="tag_add">Add</string>
+
     <string name="privacy">Privacy</string>
     <string name="listen_history">Listen history</string>
     <string name="pause_listen_history">Pause listen history</string>
