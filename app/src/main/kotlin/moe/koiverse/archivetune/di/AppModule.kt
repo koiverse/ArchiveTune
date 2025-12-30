@@ -62,11 +62,13 @@ object AppModule {
         if (cache.cacheSpace > 500 * 1024 * 1024L) {
             Thread {
                 try {
-                    val keys = cache.keys.sortedBy { cache.getCacheSpaceForKey(it) }
+                    val keys = cache.keys.toList().sortedBy { key ->
+                        cache.getCachedSpans(key).sumOf { it.length }
+                    }
                     var freed = 0L
                     for (key in keys) {
                         if (cache.cacheSpace - freed <= 500 * 1024 * 1024L) break
-                        val size = cache.getCacheSpaceForKey(key)
+                        val size = cache.getCachedSpans(key).sumOf { it.length }
                         cache.removeResource(key)
                         freed += size
                     }
