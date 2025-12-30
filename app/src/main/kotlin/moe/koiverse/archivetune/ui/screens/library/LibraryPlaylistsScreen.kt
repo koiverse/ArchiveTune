@@ -210,15 +210,6 @@ fun LibraryPlaylistsScreen(
     val (ytmSync) = rememberPreference(YtmSyncKey, true)
     val (disableBlur) = rememberPreference(DisableBlurKey, false)
     val (showTagsInLibrary) = rememberPreference(ShowTagsInLibraryKey, true)
-    val (selectedTagsFilter, onSelectedTagsFilterChange) = rememberPreference(PlaylistTagsFilterKey, "")
-    val selectedTagIds = remember(selectedTagsFilter) {
-        selectedTagsFilter.split(",").filter { it.isNotBlank() }.toSet()
-    }
-    val database = LocalDatabase.current
-
-    val filteredPlaylistIds by database.playlistIdsByTags(
-        if (selectedTagIds.isEmpty()) emptyList() else selectedTagIds.toList()
-    ).collectAsState(initial = emptyList())
 
     LaunchedEffect(Unit) {
         if (ytmSync) {
