@@ -15,7 +15,7 @@ import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
 
 object BetterLyrics {
-    private const val API_BASE_URL = "https://lyrics-api-go-better-lyrics-api-pr-12.up.railway.app"
+    private const val API_BASE_URL = "https://lyrics-api.boidu.dev/"
     
     private val client by lazy {
         HttpClient(CIO) {
