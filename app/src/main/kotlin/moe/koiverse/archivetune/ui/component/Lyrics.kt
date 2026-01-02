@@ -150,7 +150,9 @@ import moe.koiverse.archivetune.lyrics.LyricsUtils.isChinese
 import moe.koiverse.archivetune.lyrics.LyricsUtils.findCurrentLineIndex
 import moe.koiverse.archivetune.lyrics.LyricsUtils.isJapanese
 import moe.koiverse.archivetune.lyrics.LyricsUtils.isKorean
+import moe.koiverse.archivetune.lyrics.LyricsUtils.isTtml
 import moe.koiverse.archivetune.lyrics.LyricsUtils.parseLyrics
+import moe.koiverse.archivetune.lyrics.LyricsUtils.parseTtml
 import moe.koiverse.archivetune.lyrics.LyricsUtils.romanizeJapanese
 import moe.koiverse.archivetune.lyrics.LyricsUtils.romanizeKorean
 import moe.koiverse.archivetune.ui.component.shimmer.ShimmerHost
@@ -404,6 +406,36 @@ fun Lyrics(
             }.let {
                 listOf(LyricsEntry.HEAD_LYRICS_ENTRY) + it
             }
+        } else if (isTtml(lyrics)) {
+            val parsedLines = parseTtml(lyrics)
+            parsedLines.map { entry ->
+                val newEntry = LyricsEntry(entry.time, entry.text, entry.words)
+                if (romanizeJapaneseLyrics) {
+                    if (isJapanese(entry.text) && !isChinese(entry.text)) {
+                        scope.launch {
+                            try {
+                                newEntry.romanizedTextFlow.value = romanizeJapanese(entry.text)
+                            } catch (e: Exception) {
+                                moe.koiverse.archivetune.utils.reportException(e)
+                            }
+                        }
+                    }
+                }
+                if (romanizeKoreanLyrics) {
+                    if (isKorean(entry.text)) {
+                        scope.launch {
+                            try {
+                                newEntry.romanizedTextFlow.value = romanizeKorean(entry.text)
+                            } catch (e: Exception) {
+                                moe.koiverse.archivetune.utils.reportException(e)
+                            }
+                        }
+                    }
+                }
+                newEntry
+            }.let {
+                listOf(LyricsEntry.HEAD_LYRICS_ENTRY) + it
+            }
         } else {
             lyrics.lines().mapIndexed { index, line ->
                 val newEntry = LyricsEntry(index * 100L, line)
@@ -435,7 +467,7 @@ fun Lyrics(
     }
     val isSynced =
         remember(lyrics) {
-            !lyrics.isNullOrEmpty() && lyrics.startsWith("[")
+            !lyrics.isNullOrEmpty() && (lyrics.startsWith("[") || isTtml(lyrics))
         }
 
     val lyricsBaseColor = if (useDarkTheme) Color.White else Color.Black
