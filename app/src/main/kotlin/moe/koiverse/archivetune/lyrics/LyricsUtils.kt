@@ -4,6 +4,7 @@ import android.text.format.DateUtils
 import com.atilika.kuromoji.ipadic.Tokenizer
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import moe.koiverse.archivetune.betterlyrics.TTMLParser
 
 @Suppress("RegExpRedundantEscape")
 object LyricsUtils {
@@ -101,125 +102,53 @@ object LyricsUtils {
         Tokenizer()
     }
 
+    fun isTtml(lyrics: String): Boolean {
+        val trimmed = lyrics.trimStart()
+        if (!trimmed.startsWith("<")) return false
+        if (trimmed.startsWith("<tt") || trimmed.startsWith("<?xml")) {
+            return trimmed.contains("<tt")
+        }
+        return false
+    }
+
+    fun parseTtml(lyrics: String): List<LyricsEntry> {
+        val parsedLines = TTMLParser.parseTTML(lyrics)
+        if (parsedLines.isEmpty()) return emptyList()
+
+        return parsedLines.map { line ->
+            val words =
+                line.words
+                    .filter { it.text.isNotBlank() }
+                    .map { word ->
+                        WordTimestamp(
+                            text = word.text,
+                            startTime = word.startTime,
+                            endTime = word.endTime,
+                        )
+                    }.takeIf { it.isNotEmpty() }
+
+            LyricsEntry(
+                time = (line.startTime * 1000.0).toLong(),
+                text = line.text,
+                words = words,
+            )
+        }.sorted()
+    }
+
     fun parseLyrics(lyrics: String): List<LyricsEntry> {
         val lines = lyrics.lines()
         val result = mutableListOf<LyricsEntry>()
-        
-        // First pass: parse all lyrics lines
-        var i = 0
-        while (i < lines.size) {
-            val line = lines[i]
-            if (!line.trim().startsWith("<") || !line.trim().endsWith(">")) {
-                // This is a lyrics line
-                val entries = parseLine(line, null)
-                if (entries != null) {
-                    // Check if next line has word timestamps
-                    val wordTimestamps = if (i + 1 < lines.size) {
-                        val nextLine = lines[i + 1]
-                        if (nextLine.trim().startsWith("<") && nextLine.trim().endsWith(">")) {
-                            parseWordTimestamps(nextLine.trim().removeSurrounding("<", ">"))
-                        } else null
-                    } else null
-                    
-                    // Add entries with word timestamps if available
-                    if (wordTimestamps != null) {
-                        result.addAll(entries.map { entry ->
-                            LyricsEntry(entry.time, entry.text, wordTimestamps)
-                        })
-                    } else {
-                        result.addAll(entries)
-                    }
-                }
+
+        for (line in lines) {
+            val entries = parseLine(line)
+            if (entries != null) {
+                result.addAll(entries)
             }
-            i++
         }
         return result.sorted()
     }
-    
-    private fun parseWordTimestamps(data: String): List<WordTimestamp>? {
-        if (data.isBlank()) return null
-        return try {
-            // Parse word timing format: word:startTime:endTime|word2:startTime2:endTime2|...
-            // Handle escaped characters: \| for literal |, \: for literal :
-            val words = mutableListOf<WordTimestamp>()
-            var currentWord = StringBuilder()
-            var currentPart = 0 // 0 = text, 1 = startTime, 2 = endTime
-            var wordText = ""
-            var startTime = 0.0
-            var i = 0
-            
-            while (i < data.length) {
-                val char = data[i]
-                
-                // Handle escape sequences
-                if (char == '\\' && i + 1 < data.length) {
-                    val nextChar = data[i + 1]
-                    if (nextChar == '|' || nextChar == ':') {
-                        currentWord.append(nextChar)
-                        i += 2
-                        continue
-                    }
-                }
-                
-                when (char) {
-                    ':' -> {
-                        when (currentPart) {
-                            0 -> {
-                                wordText = currentWord.toString()
-                                currentWord = StringBuilder()
-                                currentPart = 1
-                            }
-                            1 -> {
-                                startTime = currentWord.toString().toDoubleOrNull() ?: 0.0
-                                currentWord = StringBuilder()
-                                currentPart = 2
-                            }
-                            else -> {
-                                // Unexpected colon, treat as part of text
-                                currentWord.append(char)
-                            }
-                        }
-                    }
-                    '|' -> {
-                        // End of current word entry
-                        if (currentPart == 2 && wordText.isNotEmpty()) {
-                            val endTime = currentWord.toString().toDoubleOrNull() ?: 0.0
-                            words.add(WordTimestamp(
-                                text = wordText,
-                                startTime = startTime,
-                                endTime = endTime
-                            ))
-                        }
-                        // Reset for next word
-                        currentWord = StringBuilder()
-                        currentPart = 0
-                        wordText = ""
-                        startTime = 0.0
-                    }
-                    else -> {
-                        currentWord.append(char)
-                    }
-                }
-                i++
-            }
-            
-            // Don't forget the last word entry
-            if (currentPart == 2 && wordText.isNotEmpty()) {
-                val endTime = currentWord.toString().toDoubleOrNull() ?: 0.0
-                words.add(WordTimestamp(
-                    text = wordText,
-                    startTime = startTime,
-                    endTime = endTime
-                ))
-            }
-            
-            words.ifEmpty { null }
-        } catch (e: Exception) {
-            null
-        }
-    }
 
-    private fun parseLine(line: String, words: List<WordTimestamp>? = null): List<LyricsEntry>? {
+    private fun parseLine(line: String): List<LyricsEntry>? {
         if (line.isEmpty()) {
             return null
         }
@@ -238,7 +167,7 @@ object LyricsUtils {
                     mil *= 10
                 }
                 val time = min * DateUtils.MINUTE_IN_MILLIS + sec * DateUtils.SECOND_IN_MILLIS + mil
-                LyricsEntry(time, text, words)
+                LyricsEntry(time, text)
             }.toList()
     }
 
