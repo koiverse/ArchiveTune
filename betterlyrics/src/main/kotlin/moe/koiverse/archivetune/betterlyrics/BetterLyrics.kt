@@ -71,14 +71,7 @@ object BetterLyrics {
     ) = runCatching {
         val ttml = fetchTTML(artist, title, duration)
             ?: throw IllegalStateException("Lyrics unavailable")
-        
-        // Parse TTML and convert to LRC format
-        val parsedLines = TTMLParser.parseTTML(ttml)
-        if (parsedLines.isEmpty()) {
-            throw IllegalStateException("Failed to parse lyrics")
-        }
-        
-        TTMLParser.toLRC(parsedLines)
+        ttml
     }
 
 
@@ -88,10 +81,9 @@ object BetterLyrics {
         duration: Int,
         callback: (String) -> Unit,
     ) {
-        // The new API returns a single TTML result, not multiple options
         val result = getLyrics(title, artist, duration)
-        result.onSuccess { lrcString ->
-            callback(lrcString)
+        result.onSuccess { ttml ->
+            callback(ttml)
         }
     }
 }
