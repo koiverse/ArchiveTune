@@ -250,41 +250,6 @@ object TTMLParser {
     }
     
     /**
-     * Convert parsed lines to enhanced LRC format with word-level timing
-     * Format: [mm:ss.cc]text
-     *         <word1:start1:end1|word2:start2:end2|...>
-     */
-    fun toLRC(lines: List<ParsedLine>): String {
-        return buildString {
-            lines.forEach { line ->
-                val timeMs = (line.startTime * 1000).toLong()
-                val minutes = timeMs / 60000
-                val seconds = (timeMs % 60000) / 1000
-                val centiseconds = (timeMs % 1000) / 10
-                
-                appendLine(String.format("[%02d:%02d.%02d]%s", minutes, seconds, centiseconds, line.text))
-                
-                // Add word-level timestamps as special format if available
-                // Format: <word:startTime:endTime|word2:startTime2:endTime2|...>
-                if (line.words.isNotEmpty() && line.words.any { it.startTime != it.endTime }) {
-                    val wordsData = line.words
-                        .filter { it.text.isNotBlank() }
-                        .joinToString("|") { word ->
-                            // Escape special characters in word text
-                            val escapedText = word.text
-                                .replace("|", "\\|")
-                                .replace(":", "\\:")
-                            "${escapedText}:${String.format("%.3f", word.startTime)}:${String.format("%.3f", word.endTime)}"
-                        }
-                    if (wordsData.isNotEmpty()) {
-                        appendLine("<$wordsData>")
-                    }
-                }
-            }
-        }
-    }
-    
-    /**
      * Parse TTML time format
      * Supports: "9.731", "1:23.456", "1:23:45.678", "00:01:23.456"
      */
