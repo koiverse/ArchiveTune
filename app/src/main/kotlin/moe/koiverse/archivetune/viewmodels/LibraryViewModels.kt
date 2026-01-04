@@ -54,6 +54,8 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.text.Collator
@@ -303,10 +305,15 @@ constructor(
                 database.playlists(sortType, descending)
             }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
+    private val _isRefreshing = MutableStateFlow(false)
+    val isRefreshing = _isRefreshing.asStateFlow()
+
     fun sync() {
-        viewModelScope.launch(Dispatchers.IO) { 
+        viewModelScope.launch(Dispatchers.IO) {
+            _isRefreshing.value = true
             syncUtils.syncSavedPlaylists()
             syncUtils.syncAutoSyncPlaylists()
+            _isRefreshing.value = false
         }
     }
 

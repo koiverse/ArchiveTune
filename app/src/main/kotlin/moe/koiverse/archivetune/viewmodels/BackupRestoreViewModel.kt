@@ -20,169 +20,241 @@ import moe.koiverse.archivetune.playback.MusicService
 import moe.koiverse.archivetune.playback.MusicService.Companion.PERSISTENT_QUEUE_FILE
 import moe.koiverse.archivetune.utils.reportException
 import dagger.hilt.android.lifecycle.HiltViewModel
+import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.util.zip.ZipEntry
 import javax.inject.Inject
 import kotlin.system.exitProcess
+import moe.koiverse.archivetune.utils.dataStore
+
+import androidx.datastore.preferences.core.edit
+import kotlinx.coroutines.flow.first
 
 @HiltViewModel
 class BackupRestoreViewModel @Inject constructor(
     val database: MusicDatabase,
 ) : ViewModel() {
+
     fun backup(context: Context, uri: Uri) {
-        runCatching {
-            context.applicationContext.contentResolver.openOutputStream(uri)?.use { outputStream ->
-                outputStream.buffered().zipOutputStream().use { zipStream ->
-                    // Backup settings file
-                    val settingsFile = context.filesDir / "datastore" / SETTINGS_FILENAME
-                    if (settingsFile.exists()) {
-                        settingsFile.inputStream().buffered().use { inputStream ->
-                            zipStream.putNextEntry(ZipEntry(SETTINGS_FILENAME))
-                            inputStream.copyTo(zipStream)
+        viewModelScope.launch(Dispatchers.IO) {
+            runCatching {
+                context.applicationContext.contentResolver.openOutputStream(uri)?.use { outputStream ->
+                    outputStream.buffered().zipOutputStream().use { zipStream ->
+                        // 1. Backup Settings to XML
+                        zipStream.putNextEntry(ZipEntry(SETTINGS_XML_FILENAME))
+                        writeSettingsToXml(context, zipStream)
+                        zipStream.closeEntry()
+
+                        // 2. Backup Database
+                        // Ensure checkpoint
+                        database.checkpoint()
+                        
+                        // Copy DB file
+                        val dbFile = context.getDatabasePath(InternalDatabase.DB_NAME)
+                        if (dbFile.exists()) {
+                            zipStream.putNextEntry(ZipEntry(InternalDatabase.DB_NAME))
+                            FileInputStream(dbFile).use { input ->
+                                input.copyTo(zipStream)
+                            }
                             zipStream.closeEntry()
                         }
                     }
-                    
-                    // Ensure database is properly checkpointed before backup
-                    runBlocking(Dispatchers.IO) {
-                        database.checkpoint()
-                    }
-                    
-                    // Backup database file
-                    FileInputStream(database.openHelper.writableDatabase.path).use { inputStream ->
-                        zipStream.putNextEntry(ZipEntry(InternalDatabase.DB_NAME))
-                        inputStream.copyTo(zipStream)
-                        zipStream.closeEntry()
-                    }
+                } ?: throw IllegalStateException("Failed to open output stream")
+            }.onSuccess {
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(context, R.string.backup_create_success, Toast.LENGTH_SHORT).show()
                 }
-            } ?: throw IllegalStateException("Failed to create backup file")
-        }.onSuccess {
-            Toast.makeText(context, R.string.backup_create_success, Toast.LENGTH_SHORT).show()
-        }.onFailure { exception ->
-            reportException(exception)
-            
-            val errorMessage = when {
-                exception is IllegalStateException -> exception.message ?: context.getString(R.string.backup_create_failed)
-                exception.message?.contains("FileNotFoundException") == true -> "Database file not found"
-                exception.message?.contains("IOException") == true -> "Failed to write backup file"
-                else -> context.getString(R.string.backup_create_failed)
+            }.onFailure { exception ->
+                reportException(exception)
+                withContext(Dispatchers.Main) {
+                    val msg = exception.message ?: context.getString(R.string.backup_create_failed)
+                    Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
+                }
             }
-            
-            Toast.makeText(context, errorMessage, Toast.LENGTH_LONG).show()
         }
     }
 
     fun restore(context: Context, uri: Uri) {
-        runCatching {
-            // Validate that the file can be opened
-            context.applicationContext.contentResolver.openInputStream(uri)?.use { stream ->
-                // First pass: validate the backup file structure
-                var hasSettings = false
-                var hasDatabase = false
-                
-                stream.zipInputStream().use { inputStream ->
-                    var entry = tryOrNull { inputStream.nextEntry }
-                    while (entry != null) {
-                        when (entry.name) {
-                            SETTINGS_FILENAME -> hasSettings = true
-                            InternalDatabase.DB_NAME -> hasDatabase = true
-                        }
-                        entry = tryOrNull { inputStream.nextEntry }
-                    }
-                }
-                
-                // Validate backup file contains required components
-                if (!hasDatabase) {
-                    throw IllegalStateException("Invalid backup file: missing database")
-                }
-            } ?: throw IllegalStateException("Failed to open backup file")
-            
-            // Second pass: actually restore the data
-            context.applicationContext.contentResolver.openInputStream(uri)?.use { stream ->
-                stream.zipInputStream().use { inputStream ->
-                    var entry = tryOrNull { inputStream.nextEntry }
-                    while (entry != null) {
-                        when (entry.name) {
-                            SETTINGS_FILENAME -> {
-                                try {
-                                    val settingsDir = context.filesDir / "datastore"
-                                    if (!settingsDir.exists()) {
-                                        settingsDir.mkdirs()
-                                    }
-                                    (settingsDir / SETTINGS_FILENAME).outputStream()
-                                        .use { outputStream ->
-                                            inputStream.copyTo(outputStream)
-                                        }
-                                } catch (e: Exception) {
-                                    reportException(e)
-                                    // Continue even if settings restore fails
-                                }
+        viewModelScope.launch(Dispatchers.IO) {
+            runCatching {
+                // Verify file first
+                context.applicationContext.contentResolver.openInputStream(uri)?.use { stream ->
+                    var hasSettings = false
+                    var hasDb = false
+                    stream.zipInputStream().use { zip ->
+                        var entry = zip.nextEntry
+                        while (entry != null) {
+                            when (entry.name) {
+                                SETTINGS_XML_FILENAME, SETTINGS_FILENAME -> hasSettings = true
+                                InternalDatabase.DB_NAME -> hasDb = true
                             }
+                            entry = zip.nextEntry
+                        }
+                    }
+                    if (!hasDb) throw IllegalStateException("Backup missing database")
+                }
 
-                            InternalDatabase.DB_NAME -> {
-                                try {
-                                    // Ensure database is properly checkpointed and closed
-                                    runBlocking(Dispatchers.IO) {
-                                        database.checkpoint()
+                // Perform restore
+                context.applicationContext.contentResolver.openInputStream(uri)?.use { stream ->
+                    stream.zipInputStream().use { zip ->
+                        var entry = zip.nextEntry
+                        while (entry != null) {
+                            when (entry.name) {
+                                SETTINGS_XML_FILENAME -> {
+                                    // Parse XML and update DataStore
+                                    restoreSettingsFromXml(context, zip)
+                                }
+                                SETTINGS_FILENAME -> {
+                                    // Legacy binary restore
+                                    val settingsDir = context.filesDir / "datastore"
+                                    if (!settingsDir.exists()) settingsDir.mkdirs()
+                                    (settingsDir / SETTINGS_FILENAME).outputStream().use { out ->
+                                        zip.copyTo(out)
                                     }
+                                }
+                                InternalDatabase.DB_NAME -> {
+                                    // Restore DB
+                                    database.checkpoint()
                                     database.close()
-                                    
-                                    // Restore database file
-                                    val dbPath = database.openHelper.writableDatabase.path
-                                    if (dbPath != null) {
-                                        FileOutputStream(dbPath).use { outputStream ->
-                                            inputStream.copyTo(outputStream)
-                                        }
-                                    } else {
-                                        throw IllegalStateException("Database path is null")
+                                    val dbFile = context.getDatabasePath(InternalDatabase.DB_NAME)
+                                    FileOutputStream(dbFile).use { out ->
+                                        zip.copyTo(out)
                                     }
-                                } catch (e: Exception) {
-                                    reportException(e)
-                                    throw IllegalStateException("Failed to restore database: ${e.message}", e)
                                 }
                             }
+                            entry = zip.nextEntry
                         }
-                        entry = tryOrNull { inputStream.nextEntry }
                     }
                 }
-            } ?: throw IllegalStateException("Failed to open backup file")
-            
-            // Clean up and restart
-            try {
-                context.stopService(Intent(context, MusicService::class.java))
-            } catch (e: Exception) {
+
+                // Restart logic
+                withContext(Dispatchers.Main) {
+                   Toast.makeText(context, "Restore successful", Toast.LENGTH_SHORT).show()
+                }
+                
+                // Cleanup
+                try { context.stopService(Intent(context, MusicService::class.java)) } catch (_: Exception) {}
+                try { context.filesDir.resolve(PERSISTENT_QUEUE_FILE).delete() } catch (_: Exception) {}
+                
+             }.onSuccess {
+                 context.startActivity(Intent(context, MainActivity::class.java))
+                 exitProcess(0)
+             }.onFailure { e ->
                 reportException(e)
-                // Continue even if service stop fails
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(context, e.message ?: context.getString(R.string.restore_failed), Toast.LENGTH_LONG).show()
+                }
             }
-            
-            try {
-                context.filesDir.resolve(PERSISTENT_QUEUE_FILE).delete()
-            } catch (e: Exception) {
-                reportException(e)
-                // Continue even if queue file deletion fails
-            }
-            
-            context.startActivity(Intent(context, MainActivity::class.java))
-            exitProcess(0)
-        }.onFailure { exception ->
-            reportException(exception)
-            
-            // Provide more specific error messages
-            val errorMessage = when {
-                exception is IllegalStateException -> exception.message ?: context.getString(R.string.restore_failed)
-                exception.message?.contains("ZipException") == true -> "Invalid backup file format"
-                exception.message?.contains("FileNotFoundException") == true -> "Backup file not found"
-                exception.message?.contains("database") == true -> "Failed to restore database: ${exception.message}"
-                else -> context.getString(R.string.restore_failed)
-            }
-            
-            Toast.makeText(context, errorMessage, Toast.LENGTH_LONG).show()
         }
     }
 
+    private suspend fun writeSettingsToXml(context: Context, outputStream: java.io.OutputStream) {
+        val prefs = context.dataStore.data.first().asMap()
+        val serializer = android.util.Xml.newSerializer()
+        serializer.setOutput(outputStream, "UTF-8")
+        serializer.startDocument("UTF-8", true)
+        serializer.startTag(null, "ArchiveTuneBackup")
+        serializer.startTag(null, "Settings")
+
+        for ((key, value) in prefs) {
+            val tagName = when (value) {
+                is Boolean -> "boolean"
+                is Int -> "int"
+                is Long -> "long"
+                is Float -> "float"
+                is String -> "string"
+                is Set<*> -> "string-set"
+                else -> null
+            }
+            if (tagName != null) {
+                serializer.startTag(null, tagName)
+                serializer.attribute(null, "name", key.name)
+                if (value is Set<*>) {
+                    value.forEach { item ->
+                        serializer.startTag(null, "item")
+                        serializer.text(item.toString())
+                        serializer.endTag(null, "item")
+                    }
+                } else {
+                    serializer.attribute(null, "value", value.toString())
+                }
+                serializer.endTag(null, tagName)
+            }
+        }
+
+        serializer.endTag(null, "Settings")
+        serializer.endTag(null, "ArchiveTuneBackup")
+        serializer.endDocument()
+        serializer.flush()
+    }
+
+    private suspend fun restoreSettingsFromXml(context: Context, inputStream: java.io.InputStream) {
+        // Read full content to avoid ZipInputStream issues with XmlPullParser
+        val content = inputStream.bufferedReader().use { it.readText() }
+        if (content.isEmpty()) return
+
+        val parser = android.util.Xml.newPullParser()
+        parser.setInput(java.io.StringReader(content))
+        
+        var eventType = parser.eventType
+        // Track restored count for debugging/verification (could be logged or toasted)
+        var restoredCount = 0
+        
+        while (eventType != org.xmlpull.v1.XmlPullParser.END_DOCUMENT) {
+            if (eventType == org.xmlpull.v1.XmlPullParser.START_TAG) {
+                val name = parser.name
+                val keyName = parser.getAttributeValue(null, "name")
+                
+                if (keyName != null) {
+                    when (name) {
+                        "boolean" -> {
+                            val value = parser.getAttributeValue(null, "value")?.toBoolean()
+                            if (value != null) {
+                                context.dataStore.edit { it[androidx.datastore.preferences.core.booleanPreferencesKey(keyName)] = value }
+                                restoredCount++
+                            }
+                        }
+                        "int" -> {
+                            val value = parser.getAttributeValue(null, "value")?.toIntOrNull()
+                            if (value != null) {
+                                context.dataStore.edit { it[androidx.datastore.preferences.core.intPreferencesKey(keyName)] = value }
+                                restoredCount++
+                            }
+                        }
+                        "long" -> {
+                            val value = parser.getAttributeValue(null, "value")?.toLongOrNull()
+                            if (value != null) {
+                                context.dataStore.edit { it[androidx.datastore.preferences.core.longPreferencesKey(keyName)] = value }
+                                restoredCount++
+                            }
+                        }
+                        "float" -> {
+                            val value = parser.getAttributeValue(null, "value")?.toFloatOrNull()
+                            if (value != null) {
+                                context.dataStore.edit { it[androidx.datastore.preferences.core.floatPreferencesKey(keyName)] = value }
+                                restoredCount++
+                            }
+                        }
+                        "string" -> {
+                            val value = parser.getAttributeValue(null, "value")
+                            if (value != null) {
+                                context.dataStore.edit { it[androidx.datastore.preferences.core.stringPreferencesKey(keyName)] = value }
+                                restoredCount++
+                            }
+                        }
+                    }
+                }
+            }
+            eventType = parser.next()
+        }
+    }
+
+    // Keep existing import logic
     fun importPlaylistFromCsv(context: Context, uri: Uri): ArrayList<Song> {
         val songs = arrayListOf<Song>()
         runCatching {
@@ -308,5 +380,6 @@ class BackupRestoreViewModel @Inject constructor(
 
     companion object {
         const val SETTINGS_FILENAME = "settings.preferences_pb"
+        const val SETTINGS_XML_FILENAME = "settings.xml"
     }
 }

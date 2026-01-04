@@ -49,7 +49,7 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -376,14 +376,13 @@ fun HomeScreen(
                     .fillMaxSize(0.7f) // Cover top 70% of screen
                     .align(Alignment.TopCenter)
                     .zIndex(-1f) // Place behind all content
-                    .drawBehind {
-                    val width = size.width
-                    val height = size.height
-                    
-                    // Create mesh gradient with 5 color blobs for more variation
-                    // First color blob - top left
-                    drawRect(
-                        brush = Brush.radialGradient(
+                    .drawWithCache {
+                        val width = this.size.width
+                        val height = this.size.height
+
+                        // Create mesh gradient with 5 color blobs for more variation
+                        // First color blob - top left
+                        val brush1 = Brush.radialGradient(
                             colors = listOf(
                                 color1.copy(alpha = 0.25f),
                                 color1.copy(alpha = 0.15f),
@@ -393,11 +392,9 @@ fun HomeScreen(
                             center = Offset(width * 0.15f, height * 0.1f),
                             radius = width * 0.55f
                         )
-                    )
-                    
-                    // Second color blob - top right
-                    drawRect(
-                        brush = Brush.radialGradient(
+
+                        // Second color blob - top right
+                        val brush2 = Brush.radialGradient(
                             colors = listOf(
                                 color2.copy(alpha = 0.22f),
                                 color2.copy(alpha = 0.12f),
@@ -407,11 +404,9 @@ fun HomeScreen(
                             center = Offset(width * 0.85f, height * 0.2f),
                             radius = width * 0.65f
                         )
-                    )
-                    
-                    // Third color blob - middle left
-                    drawRect(
-                        brush = Brush.radialGradient(
+
+                        // Third color blob - middle left
+                        val brush3 = Brush.radialGradient(
                             colors = listOf(
                                 color3.copy(alpha = 0.2f),
                                 color3.copy(alpha = 0.1f),
@@ -421,11 +416,9 @@ fun HomeScreen(
                             center = Offset(width * 0.3f, height * 0.45f),
                             radius = width * 0.6f
                         )
-                    )
-                    
-                    // Fourth color blob - middle right
-                    drawRect(
-                        brush = Brush.radialGradient(
+
+                        // Fourth color blob - middle right
+                        val brush4 = Brush.radialGradient(
                             colors = listOf(
                                 color4.copy(alpha = 0.18f),
                                 color4.copy(alpha = 0.09f),
@@ -435,11 +428,9 @@ fun HomeScreen(
                             center = Offset(width * 0.7f, height * 0.5f),
                             radius = width * 0.7f
                         )
-                    )
-                    
-                    // Fifth color blob - bottom center (helps with smooth fade)
-                    drawRect(
-                        brush = Brush.radialGradient(
+
+                        // Fifth color blob - bottom center (helps with smooth fade)
+                        val brush5 = Brush.radialGradient(
                             colors = listOf(
                                 color5.copy(alpha = 0.15f),
                                 color5.copy(alpha = 0.07f),
@@ -449,11 +440,9 @@ fun HomeScreen(
                             center = Offset(width * 0.5f, height * 0.75f),
                             radius = width * 0.8f
                         )
-                    )
-                    
-                    // Add a final vertical gradient overlay to ensure smooth bottom fade
-                    drawRect(
-                        brush = Brush.verticalGradient(
+
+                        // Add a final vertical gradient overlay to ensure smooth bottom fade
+                        val overlayBrush = Brush.verticalGradient(
                             colors = listOf(
                                 Color.Transparent,
                                 Color.Transparent,
@@ -464,9 +453,17 @@ fun HomeScreen(
                             startY = height * 0.4f,
                             endY = height
                         )
-                    )
-                }
-        ) {}
+
+                        onDrawBehind {
+                            drawRect(brush = brush1)
+                            drawRect(brush = brush2)
+                            drawRect(brush = brush3)
+                            drawRect(brush = brush4)
+                            drawRect(brush = brush5)
+                            drawRect(brush = overlayBrush)
+                        }
+                    }
+            ) {}
         }
         
         BoxWithConstraints(
@@ -530,7 +527,6 @@ fun HomeScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(ListItemHeight * 4)
-                            .animateItem()
                     ) {
                         items(
                             items = quickPicks.distinctBy { it.id },
@@ -606,7 +602,6 @@ fun HomeScreen(
                                 MaterialTheme.typography.bodyLarge.lineHeight.toDp() * 2 +
                                         MaterialTheme.typography.bodyMedium.lineHeight.toDp() * 2
                             }) * rows)
-                            .animateItem()
                     ) {
                         items(keepListening) {
                             localGridItem(it)
@@ -657,7 +652,7 @@ fun HomeScreen(
                         contentPadding = WindowInsets.systemBars
                             .only(WindowInsetsSides.Horizontal)
                             .asPaddingValues(),
-                        modifier = Modifier.animateItem()
+                        modifier = Modifier
                     ) {
                         items(
                             items = accountPlaylists.distinctBy { it.id },
@@ -692,7 +687,6 @@ fun HomeScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(ListItemHeight * rows)
-                            .animateItem()
                     ) {
                         items(
                             items = forgottenFavorites.distinctBy { it.id },
@@ -787,7 +781,7 @@ fun HomeScreen(
                         contentPadding = WindowInsets.systemBars
                             .only(WindowInsetsSides.Horizontal)
                             .asPaddingValues(),
-                        modifier = Modifier.animateItem()
+                        modifier = Modifier
                     ) {
                         items(it.items) { item ->
                             ytGridItem(item)
@@ -833,7 +827,7 @@ fun HomeScreen(
                         contentPadding = WindowInsets.systemBars
                             .only(WindowInsetsSides.Horizontal)
                             .asPaddingValues(),
-                        modifier = Modifier.animateItem()
+                        modifier = Modifier
                     ) {
                         items(it.items) { item ->
                             ytGridItem(item)
@@ -878,7 +872,6 @@ fun HomeScreen(
                         contentPadding = PaddingValues(6.dp),
                         modifier = Modifier
                             .height((MoodAndGenresButtonHeight + 12.dp) * 4 + 12.dp)
-                            .animateItem()
                     ) {
                         items(moodAndGenres) {
                             MoodAndGenresButton(
