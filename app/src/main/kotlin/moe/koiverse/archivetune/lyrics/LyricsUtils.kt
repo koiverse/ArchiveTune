@@ -124,6 +124,7 @@ object LyricsUtils {
                             text = word.text,
                             startTime = word.startTime,
                             endTime = word.endTime,
+                            isBackground = word.isBackground,
                         )
                     }.takeIf { it.isNotEmpty() }
 

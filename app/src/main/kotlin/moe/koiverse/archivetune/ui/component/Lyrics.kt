@@ -193,6 +193,7 @@ private fun KaraokeWord(
     textColor: Color,
     inactiveAlpha: Float,
     fontWeight: FontWeight = FontWeight.ExtraBold,
+    isBackground: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     val duration = endTime - startTime
@@ -230,10 +231,13 @@ private fun KaraokeWord(
         }
     ) {
         // 1. Inactive (unfilled) layer - Always visible foundation
+        val effectiveFontSize = if (isBackground) fontSize * 0.85f else fontSize
+        val effectiveAlpha = if (isBackground) 0.6f else 1f
+        
         Text(
             text = text,
-            fontSize = fontSize,
-            color = textColor.copy(alpha = inactiveAlpha),
+            fontSize = effectiveFontSize,
+            color = textColor.copy(alpha = inactiveAlpha * effectiveAlpha),
             fontWeight = fontWeight
         )
 
@@ -241,8 +245,8 @@ private fun KaraokeWord(
         // Only drawn when progress is fully complete (1f)
         Text(
             text = text,
-            fontSize = fontSize,
-            color = textColor,
+            fontSize = effectiveFontSize,
+            color = textColor.copy(alpha = effectiveAlpha),
             fontWeight = fontWeight,
             modifier = Modifier.drawWithContent {
                 val currentTime = currentTimeProvider()
@@ -257,13 +261,13 @@ private fun KaraokeWord(
         // Uses offscreen compositing to apply the alpha mask properly
         Text(
             text = text,
-            fontSize = fontSize,
-            color = textColor,
+            fontSize = effectiveFontSize,
+            color = textColor.copy(alpha = effectiveAlpha),
             fontWeight = fontWeight,
             style = LocalTextStyle.current.copy(
                 shadow = Shadow(
-                    color = textColor,
-                    blurRadius = 30f // Strong glow
+                    color = textColor.copy(alpha = effectiveAlpha),
+                    blurRadius = if (isBackground) 20f else 30f // Reduced glow for background
                 )
             ),
             modifier = Modifier
@@ -570,7 +574,7 @@ fun Lyrics(
     }
 
     LaunchedEffect(lyrics) {
-        if (lyrics.isNullOrEmpty() || !lyrics.startsWith("[")) {
+        if (lyrics.isNullOrEmpty() || (!lyrics.startsWith("[") && !isTtml(lyrics))) {
             currentLineIndex = -1
             return@LaunchedEffect
         }
@@ -980,7 +984,8 @@ fun Lyrics(
                                         fontSize = lyricsTextSize.sp,
                                         textColor = lyricsBaseColor,
                                         inactiveAlpha = if (isUpcoming && isActiveLine) 0.3f else if (!isActiveLine) 0.5f else 0.3f,
-                                        fontWeight = if (hasRomanization) FontWeight.Bold else FontWeight.ExtraBold
+                                        fontWeight = if (hasRomanization) FontWeight.Bold else FontWeight.ExtraBold,
+                                        isBackground = word.isBackground
                                     )
                                     
                                     if (wordIndex < item.words.size - 1) {
@@ -1019,7 +1024,9 @@ fun Lyrics(
                                         else -> 0.35f 
                                     }
 
-                                    val wordColor = lyricsBaseColor.copy(alpha = wordAlpha)
+                                    // Apply background vocal styling
+                                    val effectiveAlpha = if (word.isBackground) wordAlpha * 0.6f else wordAlpha
+                                    val wordColor = lyricsBaseColor.copy(alpha = effectiveAlpha)
 
                                     val wordWeight = if (hasRomanization) {
                                         FontWeight.Bold
@@ -1035,7 +1042,8 @@ fun Lyrics(
                                     withStyle(
                                         style = SpanStyle(
                                             color = wordColor,
-                                            fontWeight = wordWeight
+                                            fontWeight = wordWeight,
+                                            fontSize = if (word.isBackground) lyricsTextSize.sp * 0.85f else TextUnit.Unspecified
                                         )
                                     ) {
                                         append(word.text)
@@ -1081,7 +1089,9 @@ fun Lyrics(
                                         0.65f
                                     }
 
-                                    val wordColor = lyricsBaseColor.copy(alpha = wordAlpha)
+                                    // Apply background vocal styling
+                                    val effectiveAlpha = if (word.isBackground) wordAlpha * 0.6f else wordAlpha
+                                    val wordColor = lyricsBaseColor.copy(alpha = effectiveAlpha)
 
                                     val wordWeight = if (hasRomanization) {
                                         FontWeight.Bold
@@ -1097,7 +1107,8 @@ fun Lyrics(
                                     withStyle(
                                         style = SpanStyle(
                                             color = wordColor,
-                                            fontWeight = wordWeight
+                                            fontWeight = wordWeight,
+                                            fontSize = if (word.isBackground) lyricsTextSize.sp * 0.85f else TextUnit.Unspecified
                                         )
                                     ) {
                                         append(word.text)
@@ -1139,10 +1150,17 @@ fun Lyrics(
                                     val glowIntensity = fillProgress * fillProgress 
                                     val brightness = 0.45f + (0.55f * fillProgress)
 
-                                    val wordColor = when {
+                                    val baseWordColor = when {
                                         !isActiveLine -> lyricsBaseColor.copy(alpha = 0.5f)
                                         isWordActive || hasWordPassed -> lyricsBaseColor.copy(alpha = brightness)
                                         else -> lyricsBaseColor.copy(alpha = 0.35f)
+                                    }
+                                    
+                                    // Apply background vocal styling
+                                    val wordColor = if (word.isBackground) {
+                                        baseWordColor.copy(alpha = baseWordColor.alpha * 0.6f)
+                                    } else {
+                                        baseWordColor
                                     }
 
                                     val wordWeight = if (hasRomanization) {
@@ -1182,7 +1200,8 @@ fun Lyrics(
                                         style = SpanStyle(
                                             color = wordColor,
                                             fontWeight = wordWeight,
-                                            shadow = wordShadow
+                                            shadow = wordShadow,
+                                            fontSize = if (word.isBackground) lyricsTextSize.sp * 0.85f else TextUnit.Unspecified
                                         )
                                     ) {
                                         append(word.text)
