@@ -985,13 +985,40 @@ fun Lyrics(
                         val romanizedText by item.romanizedTextFlow.collectAsState()
                         val hasRomanization = romanizedText != null
 
-                        val effectiveAnimationStyle = if (lyricsAnimationStyle == LyricsAnimationStyle.KARAOKE && !hasWordTimings) {
-                            LyricsAnimationStyle.APPLE
-                        } else {
-                            lyricsAnimationStyle
-                        }
+                        val effectiveAnimationStyle = lyricsAnimationStyle
 
-                        if (hasWordTimings && item.words != null && effectiveAnimationStyle == LyricsAnimationStyle.KARAOKE) {
+                        if (effectiveAnimationStyle == LyricsAnimationStyle.KARAOKE) {
+                            val wordsToRender = remember(item.words, item.text, item.time, lines) {
+                                if (hasWordTimings && item.words != null) {
+                                    item.words.map { 
+                                        Triple(
+                                            it.text, 
+                                            (it.startTime * 1000).toLong() to (it.endTime * 1000).toLong(),
+                                            it.isBackground
+                                        ) 
+                                    }
+                                } else {
+                                    // Simulate word timings
+                                    val nextLineTime = lines.getOrNull(index + 1)?.time ?: (item.time + 5000L).coerceAtLeast(item.time + 1000L)
+                                    val lineDuration = (nextLineTime - item.time).coerceAtLeast(100L)
+                                    val splitWords = item.text.split(" ")
+                                    val totalLength = item.text.length.coerceAtLeast(1)
+                                    
+                                    var currentOffset = 0L
+                                    splitWords.mapIndexed { idx, wordText ->
+                                        // Include space in length calculation except for last word
+                                        val lengthWithSpace = if (idx < splitWords.size - 1) wordText.length + 1 else wordText.length
+                                        val wordDuration = (lineDuration * (lengthWithSpace.toDouble() / totalLength)).toLong()
+                                        
+                                        val startTime = item.time + currentOffset
+                                        val endTime = startTime + wordDuration
+                                        currentOffset += wordDuration
+                                        
+                                        Triple(wordText, startTime to endTime, false)
+                                    }
+                                }
+                            }
+
                             FlowRow(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -1003,14 +1030,13 @@ fun Lyrics(
                                 },
                                 verticalArrangement = Arrangement.spacedBy(verticalLineSpacing),
                             ) {
-                                item.words.forEachIndexed { wordIndex, word ->
-                                    val wordStartMs = (word.startTime * 1000).toLong()
-                                    val wordEndMs = (word.endTime * 1000).toLong()
+                                wordsToRender.forEach { (text, timings, isBg) ->
+                                    val (wordStartMs, wordEndMs) = timings
                                     
                                     val isUpcoming = isActiveLine && currentPlaybackPosition < wordStartMs
                                     
                                     KaraokeWord(
-                                        text = word.text,
+                                        text = text,
                                         startTime = wordStartMs,
                                         endTime = wordEndMs,
                                         currentTimeProvider = { currentPlaybackPosition },
@@ -1018,7 +1044,7 @@ fun Lyrics(
                                         textColor = lyricsBaseColor,
                                         inactiveAlpha = if (isUpcoming && isActiveLine) 0.3f else if (!isActiveLine) 0.5f else 0.3f,
                                         fontWeight = if (hasRomanization) FontWeight.Bold else FontWeight.ExtraBold,
-                                        isBackground = word.isBackground
+                                        isBackground = isBg
                                     )
                                 }
                             }
@@ -1549,64 +1575,6 @@ fun Lyrics(
                                     scaleY = 1f
                                 }
                             )
-                        } else if (isActiveLine && effectiveAnimationStyle == LyricsAnimationStyle.KARAOKE) {
-                             if (hasWordTimings && item.words != null) {
-                                  val currentTimeProvider: () -> Long = { sliderPositionProvider() ?: 0L }
-                                  
-                                  FlowRow(
-                                      modifier = Modifier.padding(top = 2.dp).fillMaxWidth(),
-                                      horizontalArrangement = when (lyricsTextPosition) {
-                                          LyricsPosition.LEFT -> Arrangement.spacedBy(6.dp, Alignment.Start)
-                                          LyricsPosition.CENTER -> Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally)
-                                          LyricsPosition.RIGHT -> Arrangement.spacedBy(6.dp, Alignment.End)
-                                      },
-                                      verticalArrangement = Arrangement.spacedBy(verticalLineSpacing)
-                                  ) {
-                                      item.words.forEachIndexed { idx, word ->
-                                           val wordStartMs = (word.startTime * 1000).toLong()
-                                           val wordEndMs = (word.endTime * 1000).toLong()
-                                           
-                                           KaraokeWord(
-                                              text = word.text,
-                                              startTime = wordStartMs,
-                                              endTime = wordEndMs,
-                                              currentTimeProvider = currentTimeProvider,
-                                              fontSize = lyricsTextSize.sp,
-                                              textColor = lyricsBaseColor,
-                                              inactiveAlpha = 0.3f,
-                                              modifier = Modifier.padding(horizontal = 0.dp),
-                                              isBackground = word.isBackground
-                                           )
-                                      }
-                                  }
-                             } else {
-                                  // Fallback to standard text if timings are missing but words might exist?
-                                  // Actually if timings are missing, item.words might be null or empty depending on parser.
-                                  // But safe to use the same logic just in case.
-                                  val styledText = if (item.words != null) {
-                                      buildAnnotatedString {
-                                          item.words.forEachIndexed { idx, word ->
-                                              if (word.isBackground) {
-                                                  withStyle(SpanStyle(fontSize = lyricsTextSize.sp * 0.7f)) {
-                                                      append(word.text)
-                                                  }
-                                              } else {
-                                                  append(word.text)
-                                              }
-                                              if (idx < item.words.size - 1) append(" ")
-                                          }
-                                      }
-                                  } else AnnotatedString(item.text)
-
-                                  Text(
-                                      text = styledText,
-                                      fontSize = lyricsTextSize.sp,
-                                      color = lyricsBaseColor,
-                                      textAlign = alignment,
-                                      fontWeight = FontWeight.ExtraBold,
-                                      lineHeight = (lyricsTextSize * lyricsLineSpacing).sp
-                                  )
-                             }
                         } else if (isActiveLine && effectiveAnimationStyle == LyricsAnimationStyle.APPLE) {
 
                             val popInScale = remember { Animatable(0.96f) }
@@ -1716,7 +1684,7 @@ fun Lyrics(
                                                 val hasWordPassed = currentPlaybackPosition > wordEndMs
 
                                                 when (effectiveAnimationStyle) {
-                                                    LyricsAnimationStyle.APPLE -> {
+                                                    LyricsAnimationStyle.APPLE, LyricsAnimationStyle.KARAOKE -> {
                                                         val rawProgress = if (isWordActive && wordDuration > 0) {
                                                             val elapsed = currentPlaybackPosition - wordStartMs
                                                             (elapsed.toFloat() / wordDuration).coerceIn(0f, 1f)
