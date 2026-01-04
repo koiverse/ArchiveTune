@@ -12,6 +12,18 @@ object YouTubeSubtitleLyricsProvider : LyricsProvider {
         id: String,
         title: String,
         artist: String,
+        album: String?,
         duration: Int,
     ): Result<String> = YouTube.transcript(id)
+
+    override suspend fun getAllLyrics(
+        id: String,
+        title: String,
+        artist: String,
+        album: String?,
+        duration: Int,
+        callback: (String) -> Unit,
+    ) {
+        YouTube.transcript(id).onSuccess(callback)
+    }
 }

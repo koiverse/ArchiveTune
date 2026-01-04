@@ -3,7 +3,7 @@ package moe.koiverse.archivetune.betterlyrics
 import moe.koiverse.archivetune.betterlyrics.models.TTMLResponse
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
-import io.ktor.client.engine.cio.CIO
+import io.ktor.client.engine.okhttp.OkHttp
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.defaultRequest
 import io.ktor.client.plugins.HttpTimeout
@@ -18,7 +18,7 @@ object BetterLyrics {
     private const val API_BASE_URL = "https://lyrics-api.boidu.dev/"
     
     private val client by lazy {
-        HttpClient(CIO) {
+        HttpClient(OkHttp) {
             install(ContentNegotiation) {
                 json(
                     Json {
@@ -43,33 +43,62 @@ object BetterLyrics {
         }
     }
 
+    var logger: ((String) -> Unit)? = null
+
     private suspend fun fetchTTML(
         artist: String,
         title: String,
+        album: String? = null,
         duration: Int = -1,
-    ): String? = runCatching {
-        val response: HttpResponse = client.get("/getLyrics") {
-            parameter("s", title)
-            parameter("a", artist)
-            if (duration != -1) {
-                parameter("d", duration)
+
+    ): String? {
+        val urlBuilder = StringBuilder("/ttml/getLyrics")
+        urlBuilder.append("?s=$title&a=$artist")
+        if (album != null) urlBuilder.append("&al=$album")
+        if (duration != -1) urlBuilder.append("&d=$duration")
+        
+        logger?.invoke("Sending Request to: $API_BASE_URL${urlBuilder.toString().trimStart('/')}")
+        
+        return try {
+            val response: HttpResponse = client.get("/ttml/getLyrics") {
+                parameter("s", title)
+                parameter("a", artist)
+                album?.let { parameter("al", it) }
+                if (duration != -1) {
+                    parameter("d", duration)
+                }
             }
+            
+            logger?.invoke("Response Status: ${response.status}")
+    
+            if (!response.status.isSuccess()) {
+                logger?.invoke("Request failed with status: ${response.status}")
+                return null
+            }
+            
+            val ttmlResponse = response.body<TTMLResponse>()
+            val ttml = ttmlResponse.ttml
+            
+            if (ttml.isNotBlank()) {
+                logger?.invoke("Received TTML (length: ${ttml.length}): ${ttml.take(100)}...")
+            } else {
+                 logger?.invoke("Received empty TTML")
+            }
+            
+            ttml.takeIf { it.isNotBlank() }
+        } catch (e: Exception) {
+            logger?.invoke("Error fetching lyrics: ${e.stackTraceToString()}")
+            null
         }
-        
-        if (!response.status.isSuccess()) {
-            return@runCatching null
-        }
-        
-        val ttmlResponse = response.body<TTMLResponse>()
-        ttmlResponse.ttml.takeIf { it.isNotBlank() }
-    }.getOrNull()
+    }
 
     suspend fun getLyrics(
         title: String,
         artist: String,
+        album: String?,
         duration: Int,
     ) = runCatching {
-        val ttml = fetchTTML(artist, title, duration)
+        val ttml = fetchTTML(artist, title, album, duration)
             ?: throw IllegalStateException("Lyrics unavailable")
         ttml
     }
@@ -78,10 +107,11 @@ object BetterLyrics {
     suspend fun getAllLyrics(
         title: String,
         artist: String,
+        album: String?,
         duration: Int,
         callback: (String) -> Unit,
     ) {
-        val result = getLyrics(title, artist, duration)
+        val result = getLyrics(title, artist, album, duration)
         result.onSuccess { ttml ->
             callback(ttml)
         }

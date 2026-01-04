@@ -178,37 +178,55 @@ object TTMLParser {
                             val wordText = getDirectTextContent(childElement)
                             
                             if (wordText.isNotEmpty()) {
-                                // Add space between words if needed
-                                if (lineText.isNotEmpty() && !wordText.startsWith(" ") && 
-                                    !lineText.endsWith(" ") && !lineText.endsWith("\n")) {
-                                    lineText.append(" ")
-                                }
+                                // Check if we should merge with the previous word
+                                // Merge if:
+                                // 1. There is a previous word
+                                // 2. No space separator in lineText (from TextNodes)
+                                // 3. Current word doesn't explicitly start with space
+                                val shouldMerge = words.isNotEmpty() &&
+                                        lineText.isNotEmpty() &&
+                                        !lineText.last().isWhitespace() &&
+                                        !wordText.startsWith(" ")
+
                                 lineText.append(wordText)
                                 
                                 val wordStartTime = if (wordBegin.isNotEmpty()) parseTime(wordBegin) else lineStartTime
                                 val wordEndTime = if (wordEnd.isNotEmpty()) parseTime(wordEnd) else lineEndTime
                                 
-                                words.add(
-                                    ParsedWord(
-                                        text = wordText.trim(),
-                                        startTime = wordStartTime,
-                                        endTime = wordEndTime,
-                                        isBackground = isBgSpan
+                                if (shouldMerge) {
+                                    val lastWord = words.removeAt(words.lastIndex)
+                                    words.add(
+                                        lastWord.copy(
+                                            text = lastWord.text + wordText.trim(),
+                                            endTime = wordEndTime // Extend the word to end of this syllable
+                                        )
                                     )
-                                )
+                                } else {
+                                    words.add(
+                                        ParsedWord(
+                                            text = wordText.trim(),
+                                            startTime = wordStartTime,
+                                            endTime = wordEndTime,
+                                            isBackground = isBgSpan
+                                        )
+                                    )
+                                }
                             }
                         }
                     }
                 }
                 Node.TEXT_NODE -> {
                     val text = node.textContent
-                    // Only add non-whitespace text that's not just spacing
+                    // If text node is purely whitespace, treat as a single space
+                    // If it has content, append as is
                     if (text.isNotBlank()) {
-                        if (lineText.isNotEmpty() && !text.startsWith(" ") && 
-                            !lineText.endsWith(" ") && !lineText.endsWith("\n")) {
-                            lineText.append(" ")
-                        }
-                        lineText.append(text.trim())
+                         lineText.append(text)
+                    } else if (text.isNotEmpty()) {
+                         // Collapse multiple whitespace chars (like indentation) to single space
+                         // Only add if not already ending in whitespace to avoid double spaces
+                         if (lineText.isNotEmpty() && !lineText.last().isWhitespace()) {
+                             lineText.append(" ")
+                         }
                     }
                 }
             }
