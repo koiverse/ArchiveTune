@@ -988,6 +988,8 @@ fun Lyrics(
                         val effectiveAnimationStyle = lyricsAnimationStyle
 
                         if (effectiveAnimationStyle == LyricsAnimationStyle.KARAOKE) {
+                            val isCjk = isJapanese(item.text)
+
                             val wordsToRender = remember(item.words, item.text, item.time, lines) {
                                 if (hasWordTimings && item.words != null) {
                                     item.words.map { 
@@ -1001,7 +1003,12 @@ fun Lyrics(
                                     // Simulate word timings
                                     val nextLineTime = lines.getOrNull(index + 1)?.time ?: (item.time + 5000L).coerceAtLeast(item.time + 1000L)
                                     val lineDuration = (nextLineTime - item.time).coerceAtLeast(100L)
-                                    val splitWords = item.text.split(" ")
+                                    
+                                    val splitWords = if (isCjk) {
+                                        item.text.map { it.toString() }
+                                    } else {
+                                        item.text.split(" ")
+                                    }
                                     val totalLength = item.text.length.coerceAtLeast(1)
                                     
                                     var currentOffset = 0L
@@ -1019,14 +1026,16 @@ fun Lyrics(
                                 }
                             }
 
+                            val horizontalSpacing = if (isCjk) 0.dp else 6.dp
+
                             FlowRow(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(vertical = 4.dp), 
                                 horizontalArrangement = when (lyricsTextPosition) {
-                                    LyricsPosition.LEFT -> Arrangement.spacedBy(6.dp, Alignment.Start)
-                                    LyricsPosition.CENTER -> Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally)
-                                    LyricsPosition.RIGHT -> Arrangement.spacedBy(6.dp, Alignment.End)
+                                    LyricsPosition.LEFT -> Arrangement.spacedBy(horizontalSpacing, Alignment.Start)
+                                    LyricsPosition.CENTER -> Arrangement.spacedBy(horizontalSpacing, Alignment.CenterHorizontally)
+                                    LyricsPosition.RIGHT -> Arrangement.spacedBy(horizontalSpacing, Alignment.End)
                                 },
                                 verticalArrangement = Arrangement.spacedBy(verticalLineSpacing),
                             ) {

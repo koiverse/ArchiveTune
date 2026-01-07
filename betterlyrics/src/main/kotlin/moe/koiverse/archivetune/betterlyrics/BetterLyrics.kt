@@ -10,6 +10,7 @@ import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.request.get
 import io.ktor.client.request.parameter
 import io.ktor.client.statement.HttpResponse
+import io.ktor.client.statement.bodyAsText
 import io.ktor.http.isSuccess
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
@@ -48,14 +49,9 @@ object BetterLyrics {
     private suspend fun fetchTTML(
         artist: String,
         title: String,
-        album: String? = null,
-        duration: Int = -1,
-
     ): String? {
         val urlBuilder = StringBuilder("/ttml/getLyrics")
         urlBuilder.append("?s=$title&a=$artist")
-        if (album != null) urlBuilder.append("&al=$album")
-        if (duration != -1) urlBuilder.append("&d=$duration")
         
         logger?.invoke("Sending Request to: $API_BASE_URL${urlBuilder.toString().trimStart('/')}")
         
@@ -63,10 +59,6 @@ object BetterLyrics {
             val response: HttpResponse = client.get("/ttml/getLyrics") {
                 parameter("s", title)
                 parameter("a", artist)
-                album?.let { parameter("al", it) }
-                if (duration != -1) {
-                    parameter("d", duration)
-                }
             }
             
             logger?.invoke("Response Status: ${response.status}")
@@ -76,8 +68,22 @@ object BetterLyrics {
                 return null
             }
             
-            val ttmlResponse = response.body<TTMLResponse>()
+            val responseText = response.bodyAsText()
+            logger?.invoke("Raw Response: $responseText")
+
+            val ttmlResponse = try {
+                Json {
+                    ignoreUnknownKeys = true
+                    isLenient = true
+                    coerceInputValues = true
+                }.decodeFromString<TTMLResponse>(responseText)
+            } catch (e: Exception) {
+                logger?.invoke("JSON Parse Error: ${e.message}")
+                TTMLResponse("")
+            }
             val ttml = ttmlResponse.ttml
+            
+            logger?.invoke("Parsed TTML - isBlank: ${ttml.isBlank()}, length: ${ttml.length}, first 50 chars: ${ttml.take(50)}")
             
             if (ttml.isNotBlank()) {
                 logger?.invoke("Received TTML (length: ${ttml.length}): ${ttml.take(100)}...")
@@ -95,10 +101,8 @@ object BetterLyrics {
     suspend fun getLyrics(
         title: String,
         artist: String,
-        album: String?,
-        duration: Int,
     ) = runCatching {
-        val ttml = fetchTTML(artist, title, album, duration)
+        val ttml = fetchTTML(artist, title)
             ?: throw IllegalStateException("Lyrics unavailable")
         ttml
     }
@@ -107,11 +111,9 @@ object BetterLyrics {
     suspend fun getAllLyrics(
         title: String,
         artist: String,
-        album: String?,
-        duration: Int,
         callback: (String) -> Unit,
     ) {
-        val result = getLyrics(title, artist, album, duration)
+        val result = getLyrics(title, artist)
         result.onSuccess { ttml ->
             callback(ttml)
         }

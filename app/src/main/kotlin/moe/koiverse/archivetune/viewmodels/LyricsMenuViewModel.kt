@@ -91,4 +91,15 @@ constructor(
             }
         }
     }
+
+    fun updateLyrics(
+        mediaMetadata: MediaMetadata,
+        lyrics: String,
+    ) {
+        viewModelScope.launch(Dispatchers.IO) {
+            database.query {
+                upsert(LyricsEntity(mediaMetadata.id, lyrics))
+            }
+        }
+    }
 }
