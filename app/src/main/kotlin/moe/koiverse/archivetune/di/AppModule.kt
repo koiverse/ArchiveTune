@@ -49,7 +49,8 @@ object AppModule {
         @ApplicationContext context: Context,
         databaseProvider: DatabaseProvider,
     ): SimpleCache {
-        val cacheSize = context.dataStore[MaxSongCacheSizeKey] ?: 1024
+        // TODO: Make this non-blocking or load from a faster source.
+        val cacheSize = 1024
         val evictor = when (cacheSize) {
             -1 -> NoOpCacheEvictor()
             else -> LeastRecentlyUsedCacheEvictor(cacheSize * 1024 * 1024L)
