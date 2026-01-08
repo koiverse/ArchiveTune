@@ -575,8 +575,8 @@ class MusicService :
                         }
                     }
                 }.onSuccess { queue ->
+                    val restoredQueue = queue.toQueue()
                     withContext(Dispatchers.Main) {
-                        val restoredQueue = queue.toQueue()
                         playQueue(
                             queue = restoredQueue,
                             playWhenReady = false,
@@ -590,7 +590,10 @@ class MusicService :
                         }
                     }
                 }.onSuccess { queue ->
-                    automixItems.value = queue.items.map { it.toMediaItem() }
+                    val items = queue.items.map { it.toMediaItem() }
+                    withContext(Dispatchers.Main) {
+                        automixItems.value = items
+                    }
                 }
                 
                 runCatching {
@@ -618,10 +621,12 @@ class MusicService :
         }
 
         // Save queue periodically to prevent queue loss from crash or force kill
+        // Save queue periodically to prevent queue loss from crash or force kill
         scope.launch {
             while (isActive) {
                 delay(30.seconds)
-                if (dataStore.get(PersistentQueueKey, true)) {
+                val shouldSave = withContext(Dispatchers.IO) { dataStore.get(PersistentQueueKey, true) }
+                if (shouldSave) {
                     saveQueueToDisk()
                 }
             }
@@ -631,7 +636,8 @@ class MusicService :
         scope.launch {
             while (isActive) {
                 delay(10.seconds)
-                if (dataStore.get(PersistentQueueKey, true) && player.isPlaying) {
+                val shouldSave = withContext(Dispatchers.IO) { dataStore.get(PersistentQueueKey, true) }
+                if (shouldSave && player.isPlaying) {
                     saveQueueToDisk()
                 }
             }
@@ -973,19 +979,48 @@ class MusicService :
                     )
                 )
             } else {
+                val items = initialStatus.items
+                val index = initialStatus.mediaItemIndex
+                
+                // Chunk Loading: Only load a window around the current item initially
+                // to prevent blocking the Main Thread for seconds with large queues.
+                val windowStart = (index - 20).coerceAtLeast(0)
+                val windowEnd = (index + 50).coerceAtMost(items.size)
+                
+                val initialChunk = items.subList(windowStart, windowEnd)
+                val relativeIndex = index - windowStart
+                
                 player.setMediaItems(
-                    initialStatus.items,
-                    if (initialStatus.mediaItemIndex >
-                        0
-                    ) {
-                        initialStatus.mediaItemIndex
-                    } else {
-                        0
-                    },
+                    initialChunk,
+                    if (relativeIndex > 0) relativeIndex else 0,
                     initialStatus.position,
                 )
                 player.prepare()
                 player.playWhenReady = playWhenReady
+                
+                // Defer loading the rest of the queue
+                if (items.size > initialChunk.size) {
+                    scope.launch(SilentHandler) {
+                        try {
+                            delay(2000) // Allow UI to settle
+                            if (!isActive) return@launch
+                            
+                            // Add preceding items
+                            if (windowStart > 0) {
+                                val startChunk = items.subList(0, windowStart)
+                                player.addMediaItems(0, startChunk)
+                            }
+                            
+                            // Add succeeding items
+                            if (windowEnd < items.size) {
+                                val endChunk = items.subList(windowEnd, items.size)
+                                player.addMediaItems(endChunk)
+                            }
+                        } catch (e: Exception) {
+                            Timber.e(e, "Failed to load deferred queue items")
+                        }
+                    }
+                }
             }
         }
     }
@@ -1185,8 +1220,11 @@ class MusicService :
         scrobbleManager?.onSongStart(player.currentMetadata, duration = player.duration)
     }
 
-    if (dataStore.get(PersistentQueueKey, true)) {
-        saveQueueToDisk()
+    scope.launch {
+        val shouldSave = withContext(Dispatchers.IO) { dataStore.get(PersistentQueueKey, true) }
+        if (shouldSave) {
+            saveQueueToDisk()
+        }
     }
     ensurePresenceManager()
 }
@@ -1194,8 +1232,11 @@ class MusicService :
     override fun onPlaybackStateChanged(@Player.State playbackState: Int) {
     super.onPlaybackStateChanged(playbackState)
 
-    if (dataStore.get(PersistentQueueKey, true)) {
-        saveQueueToDisk()
+    scope.launch {
+        val shouldSave = withContext(Dispatchers.IO) { dataStore.get(PersistentQueueKey, true) }
+        if (shouldSave) {
+            saveQueueToDisk()
+        }
     }
 
     if (playbackState == Player.STATE_IDLE || playbackState == Player.STATE_ENDED) {
@@ -1205,7 +1246,7 @@ class MusicService :
     ensurePresenceManager()
     scope.launch {
         try {
-            val token = dataStore.get(DiscordTokenKey, "")
+            val token = withContext(Dispatchers.IO) { dataStore.get(DiscordTokenKey, "") }
             if (token.isNotBlank() && DiscordPresenceManager.isRunning()) {
                 // Obtain the freshest Song from DB using current media item id to avoid stale currentSong.value
                 val mediaId = player.currentMediaItem?.mediaId
@@ -1213,13 +1254,15 @@ class MusicService :
                 val finalSong = song ?: player.currentMetadata?.let { createTransientSongFromMedia(it) }
 
                 if (canUpdatePresence()) {
-                    val success = DiscordPresenceManager.updateNow(
-                        context = this@MusicService,
-                        token = token,
-                        song = finalSong,
-                        positionMs = player.currentPosition,
-                        isPaused = !player.playWhenReady,
-                    )
+                    val success = withContext(Dispatchers.IO) {
+                        DiscordPresenceManager.updateNow(
+                            context = this@MusicService,
+                            token = token,
+                            song = finalSong,
+                            positionMs = player.currentPosition,
+                            isPaused = !player.playWhenReady,
+                        )
+                    }
                     if (!success) {
                         Timber.tag("MusicService").w("immediate presence update returned false — attempting restart")
                         if (DiscordPresenceManager.isRunning()) {
@@ -1234,8 +1277,8 @@ class MusicService :
                     }
 
                     try {
-                        val lbEnabled = dataStore.get(ListenBrainzEnabledKey, false)
-                        val lbToken = dataStore.get(ListenBrainzTokenKey, "")
+                        val lbEnabled = withContext(Dispatchers.IO) { dataStore.get(ListenBrainzEnabledKey, false) }
+                        val lbToken = withContext(Dispatchers.IO) { dataStore.get(ListenBrainzTokenKey, "") }
                         if (lbEnabled && !lbToken.isNullOrBlank()) {
                             scope.launch(Dispatchers.IO) {
                                 try {
@@ -1322,22 +1365,31 @@ class MusicService :
             if (events.contains(Player.EVENT_MEDIA_ITEM_TRANSITION)) {
                 currentMediaMetadata.value = player.currentMetadata
             }
+            // Capture player state on Main thread
+            val currentMediaId = player.currentMediaItem?.mediaId
+            val currentMetadata = player.currentMetadata
+            val currentPosition = player.currentPosition
+            val isPlaying = player.isPlaying
+
             scope.launch {
                 try {
-                    val token = dataStore.get(DiscordTokenKey, "")
+                    val token = withContext(Dispatchers.IO) { dataStore.get(DiscordTokenKey, "") }
                     if (token.isNotBlank() && DiscordPresenceManager.isRunning()) {
-                        val mediaId = player.currentMediaItem?.mediaId
-                        val song = if (mediaId != null) withContext(Dispatchers.IO) { database.song(mediaId).first() } else null
-                        val finalSong = song ?: player.currentMetadata?.let { createTransientSongFromMedia(it) }
+                        val song = if (currentMediaId != null) withContext(Dispatchers.IO) { database.song(currentMediaId).first() } else null
+                        val finalSong = song ?: currentMetadata?.let { createTransientSongFromMedia(it) }
 
                         if (canUpdatePresence()) {
-                            val success = DiscordPresenceManager.updateNow(
-                                context = this@MusicService,
-                                token = token,
-                                song = finalSong,
-                                positionMs = player.currentPosition,
-                                isPaused = !player.isPlaying,
-                            )
+                            // Run update on IO if possible, assuming updateNow is thread-safe or handles its own threading correctly
+                            // If updateNow touches Views, this might break. Assuming it's network/logic.
+                            val success = withContext(Dispatchers.IO) {
+                                DiscordPresenceManager.updateNow(
+                                    context = this@MusicService,
+                                    token = token,
+                                    song = finalSong,
+                                    positionMs = currentPosition,
+                                    isPaused = !isPlaying,
+                                )
+                            }
                             if (!success) {
                                 Timber.tag("MusicService").w("isPlaying/mediaTransition immediate presence update failed — restarting manager")
                                 if (DiscordPresenceManager.isRunning()) {
@@ -1345,12 +1397,12 @@ class MusicService :
                                 }
                             }
                             try {
-                                val lbEnabled = dataStore.get(ListenBrainzEnabledKey, false)
-                                val lbToken = dataStore.get(ListenBrainzTokenKey, "")
+                                val lbEnabled = withContext(Dispatchers.IO) { dataStore.get(ListenBrainzEnabledKey, false) }
+                                val lbToken = withContext(Dispatchers.IO) { dataStore.get(ListenBrainzTokenKey, "") }
                                 if (lbEnabled && !lbToken.isNullOrBlank()) {
                                     scope.launch(Dispatchers.IO) {
                                         try {
-                                            ListenBrainzManager.submitPlayingNow(this@MusicService, lbToken, finalSong, player.currentPosition)
+                                            ListenBrainzManager.submitPlayingNow(this@MusicService, lbToken, finalSong, currentPosition)
                                         } catch (ie: Exception) {
                                             Timber.tag("MusicService").v(ie, "ListenBrainz playing_now submit failed for isPlaying/mediaTransition")
                                         }
@@ -1358,7 +1410,6 @@ class MusicService :
                                 }
                                 
                                 // Last.fm now playing - handled by ScrobbleManager
-                                // This block can be removed as ScrobbleManager handles it
                             } catch (_: Exception) {}
                         }
                     }
@@ -1393,8 +1444,10 @@ class MusicService :
         }
         
         // Save state when shuffle mode changes
-        if (dataStore.get(PersistentQueueKey, true)) {
-            saveQueueToDisk()
+        scope.launch(Dispatchers.IO) {
+            if (dataStore.get(PersistentQueueKey, true)) {
+                saveQueueToDisk()
+            }
         }
     }
 
@@ -1407,8 +1460,10 @@ class MusicService :
         }
         
         // Save state when repeat mode changes
-        if (dataStore.get(PersistentQueueKey, true)) {
-            saveQueueToDisk()
+        scope.launch(Dispatchers.IO) {
+            if (dataStore.get(PersistentQueueKey, true)) {
+                saveQueueToDisk()
+            }
         }
     }
 
@@ -1720,71 +1775,85 @@ class MusicService :
         )
     }
 
-    private fun saveQueueToDisk() {
-        if (player.mediaItemCount == 0) {
-            return
-        }
-        
-        // Save current queue with proper type information
-        val persistQueue = currentQueue.toPersistQueue(
-            title = queueTitle,
-            items = player.mediaItems.mapNotNull { it.metadata },
-            mediaItemIndex = player.currentMediaItemIndex,
-            position = player.currentPosition
-        )
-        
-        val persistAutomix =
-            PersistQueue(
-                title = "automix",
-                items = automixItems.value.mapNotNull { it.metadata },
-                mediaItemIndex = 0,
-                position = 0,
+    private suspend fun saveQueueToDisk() {
+        if (currentQueue == EmptyQueue) return
+
+        // Capture state on Main Thread
+        val mediaItemsSnapshot = player.mediaItems.mapNotNull { it.metadata }
+        val currentMediaItemIndex = player.currentMediaItemIndex
+        val currentPosition = player.currentPosition
+        val automixSnapshot = automixItems.value.mapNotNull { it.metadata }
+        val playWhenReady = player.playWhenReady
+        val repeatMode = player.repeatMode
+        val shuffleModeEnabled = player.shuffleModeEnabled
+        val volume = player.volume
+        val playbackState = player.playbackState
+
+        withContext(Dispatchers.IO) {
+            // Save current queue with proper type information
+            val persistQueue = currentQueue.toPersistQueue(
+                title = queueTitle,
+                items = mediaItemsSnapshot,
+                mediaItemIndex = currentMediaItemIndex,
+                position = currentPosition
             )
             
-        // Save player state
-        val persistPlayerState = PersistPlayerState(
-            playWhenReady = player.playWhenReady,
-            repeatMode = player.repeatMode,
-            shuffleModeEnabled = player.shuffleModeEnabled,
-            volume = player.volume,
-            currentPosition = player.currentPosition,
-            currentMediaItemIndex = player.currentMediaItemIndex,
-            playbackState = player.playbackState
-        )
-        
-        runCatching {
-            filesDir.resolve(PERSISTENT_QUEUE_FILE).outputStream().use { fos ->
-                ObjectOutputStream(fos).use { oos ->
-                    oos.writeObject(persistQueue)
+            val persistAutomix =
+                PersistQueue(
+                    title = "automix",
+                    items = automixSnapshot,
+                    mediaItemIndex = 0,
+                    position = 0,
+                )
+                
+            // Save player state
+            val persistPlayerState = PersistPlayerState(
+                playWhenReady = playWhenReady,
+                repeatMode = repeatMode,
+                shuffleModeEnabled = shuffleModeEnabled,
+                volume = volume,
+                currentPosition = currentPosition,
+                currentMediaItemIndex = currentMediaItemIndex, // Redundant but part of data class
+                playbackState = playbackState
+            )
+            
+            runCatching {
+                filesDir.resolve(PERSISTENT_QUEUE_FILE).outputStream().use { fos ->
+                    ObjectOutputStream(fos).use { oos ->
+                        oos.writeObject(persistQueue)
+                    }
                 }
+            }.onFailure {
+                reportException(it)
             }
-        }.onFailure {
-            reportException(it)
-        }
-        runCatching {
-            filesDir.resolve(PERSISTENT_AUTOMIX_FILE).outputStream().use { fos ->
-                ObjectOutputStream(fos).use { oos ->
-                    oos.writeObject(persistAutomix)
+            runCatching {
+                filesDir.resolve(PERSISTENT_AUTOMIX_FILE).outputStream().use { fos ->
+                    ObjectOutputStream(fos).use { oos ->
+                        oos.writeObject(persistAutomix)
+                    }
                 }
+            }.onFailure {
+                reportException(it)
             }
-        }.onFailure {
-            reportException(it)
-        }
-        runCatching {
-            filesDir.resolve(PERSISTENT_PLAYER_STATE_FILE).outputStream().use { fos ->
-                ObjectOutputStream(fos).use { oos ->
-                    oos.writeObject(persistPlayerState)
+            runCatching {
+                filesDir.resolve(PERSISTENT_PLAYER_STATE_FILE).outputStream().use { fos ->
+                    ObjectOutputStream(fos).use { oos ->
+                        oos.writeObject(persistPlayerState)
+                    }
                 }
+            }.onFailure {
+                reportException(it)
             }
-        }.onFailure {
-            reportException(it)
         }
     }
 
+
     override fun onDestroy() {
         super.onDestroy()
-        if (dataStore.get(PersistentQueueKey, true)) {
-            saveQueueToDisk()
+        runBlocking {
+            if (dataStore.get(PersistentQueueKey, true)) {
+                saveQueueToDisk()
+            }
         }
         connectivityObserver.unregister()
         abandonAudioFocus()
@@ -1840,28 +1909,31 @@ class MusicService :
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo) = mediaSession
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        // Always call startForeground immediately to prevent ANR
+        // when started via startForegroundService()
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                if (player.mediaItemCount == 0 || player.currentMediaItem == null) {
-                    val pending = PendingIntent.getActivity(
-                        this,
-                        0,
-                        Intent(this, MainActivity::class.java),
-                        PendingIntent.FLAG_IMMUTABLE
-                    )
-                    val notification: Notification = NotificationCompat.Builder(this, CHANNEL_ID)
-                        .setContentTitle(getString(R.string.music_player))
-                        .setContentText("")
-                        .setSmallIcon(R.drawable.small_icon)
-                        .setContentIntent(pending)
-                        .setOngoing(true)
-                        .build()
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                        startForeground(NOTIFICATION_ID, notification, android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK)
-                    } else {
-                        startForeground(NOTIFICATION_ID, notification)
-                    }
+                val pending = PendingIntent.getActivity(
+                    this,
+                    0,
+                    Intent(this, MainActivity::class.java),
+                    PendingIntent.FLAG_IMMUTABLE
+                )
+                val notification: Notification = NotificationCompat.Builder(this, CHANNEL_ID)
+                    .setContentTitle(getString(R.string.music_player))
+                    .setContentText("")
+                    .setSmallIcon(R.drawable.small_icon)
+                    .setContentIntent(pending)
+                    .setOngoing(true)
+                    .build()
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    startForeground(NOTIFICATION_ID, notification, android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK)
                 } else {
+                    startForeground(NOTIFICATION_ID, notification)
+                }
+                
+                // If there's media playing, update notification with proper content async
+                if (player.mediaItemCount > 0 && player.currentMediaItem != null) {
                     currentMediaMetadata.value = player.currentMetadata
                     scope.launch {
                         delay(100)

@@ -1014,7 +1014,8 @@ fun Lyrics(
                                     var currentOffset = 0L
                                     splitWords.mapIndexed { idx, wordText ->
                                         // Include space in length calculation except for last word
-                                        val lengthWithSpace = if (idx < splitWords.size - 1) wordText.length + 1 else wordText.length
+                                        // For CJK, we don't assume spaces between characters
+                                        val lengthWithSpace = if (!isCjk && idx < splitWords.size - 1) wordText.length + 1 else wordText.length
                                         val wordDuration = (lineDuration * (lengthWithSpace.toDouble() / totalLength)).toLong()
                                         
                                         val startTime = item.time + currentOffset
