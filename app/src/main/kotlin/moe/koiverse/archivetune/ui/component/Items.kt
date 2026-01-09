@@ -861,6 +861,7 @@ fun MediaMetadataListItem(
     isSelected: Boolean = false,
     isActive: Boolean = false,
     isPlaying: Boolean = false,
+    shouldLoadImage: Boolean = true,
     trailingContent: @Composable RowScope.() -> Unit = {},
 ) {
     ListItem(
@@ -876,6 +877,7 @@ fun MediaMetadataListItem(
                 isSelected = isSelected,
                 isActive = isActive,
                 isPlaying = isPlaying,
+                shouldLoadImage = shouldLoadImage,
                 shape = RoundedCornerShape(ThumbnailCornerRadius),
                 modifier = Modifier.size(ListThumbnailSize)
             )
@@ -1153,6 +1155,7 @@ fun ItemThumbnail(
     modifier: Modifier = Modifier,
     albumIndex: Int? = null,
     isSelected: Boolean = false,
+    shouldLoadImage: Boolean = true,
     thumbnailRatio: Float = 1f
 ) {
     Box(
@@ -1163,13 +1166,22 @@ fun ItemThumbnail(
             .clip(shape)
     ) {
         if (albumIndex == null) {
-            AsyncImage(
-                model = thumbnailUrl,
-                contentDescription = null,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(shape)
-            )
+            if (shouldLoadImage) {
+                AsyncImage(
+                    model = thumbnailUrl,
+                    contentDescription = null,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(shape)
+                )
+            } else {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(shape)
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                )
+            }
         }
 
         if (albumIndex != null) {

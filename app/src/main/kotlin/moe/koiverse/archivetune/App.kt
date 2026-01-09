@@ -200,7 +200,9 @@ class App : Application(), SingletonImageLoader.Factory {
     }
 
     override fun newImageLoader(context: PlatformContext): ImageLoader {
-        val cacheSize = dataStore[MaxImageCacheSizeKey] ?: 512
+        // TODO: Read this asynchronously or use a fast-path storage (SharedPreferences) to avoid blocking main thread.
+        // Defaulting to 512MB to separate IO from main thread initialization.
+        val cacheSize = 512
         val maxSize = cacheSize * 1024 * 1024L
         val diskCache = DiskCache.Builder()
             .directory(cacheDir.resolve("coil"))

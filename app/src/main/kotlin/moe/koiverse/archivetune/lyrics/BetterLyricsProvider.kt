@@ -26,7 +26,7 @@ object BetterLyricsProvider : LyricsProvider {
         artist: String,
         album: String?,
         duration: Int,
-    ): Result<String> = BetterLyrics.getLyrics(title, artist, album, duration)
+    ): Result<String> = BetterLyrics.getLyrics(title, artist)
 
     override suspend fun getAllLyrics(
         id: String,
@@ -36,6 +36,6 @@ object BetterLyricsProvider : LyricsProvider {
         duration: Int,
         callback: (String) -> Unit,
     ) {
-        BetterLyrics.getAllLyrics(title, artist, album, duration, callback)
+        BetterLyrics.getAllLyrics(title, artist, callback)
     }
 }

@@ -46,6 +46,8 @@ import kotlinx.coroutines.launch
 import me.bush.translator.Translator
 import me.bush.translator.Language
 import moe.koiverse.archivetune.utils.TranslatorLanguages
+import moe.koiverse.archivetune.utils.TranslatorLang
+import androidx.compose.runtime.produceState
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.TextFieldValue
@@ -92,14 +94,7 @@ fun LyricsMenu(
             initialTextFieldValue = TextFieldValue(lyricsProvider()?.lyrics.orEmpty()),
             singleLine = false,
             onDone = {
-                database.query {
-                    upsert(
-                        LyricsEntity(
-                            id = mediaMetadataProvider().id,
-                            lyrics = it,
-                        ),
-                    )
-                }
+                viewModel.updateLyrics(mediaMetadataProvider(), it)
             },
         )
     }
@@ -235,14 +230,7 @@ fun LyricsMenu(
                         .clickable {
                             onDismiss()
                             viewModel.cancelSearch()
-                            database.query {
-                                upsert(
-                                    LyricsEntity(
-                                        id = searchMediaMetadata.id,
-                                        lyrics = result.lyrics,
-                                    ),
-                                )
-                            }
+                            viewModel.updateLyrics(searchMediaMetadata, result.lyrics)
                         }
                         .padding(12.dp)
                         .animateContentSize(),
@@ -332,7 +320,11 @@ fun LyricsMenu(
                     mutableStateOf(TextFieldValue(text = initialText))
                 }
 
-            val languages = remember { TranslatorLanguages.load(context) }
+            val languages by produceState(initialValue = emptyList<TranslatorLang>()) {
+                withContext(Dispatchers.IO) {
+                    value = TranslatorLanguages.load(context)
+                }
+            }
             var expanded by remember { mutableStateOf(false) }
             var selectedLanguageCode by rememberSaveable { mutableStateOf("ENGLISH") }
             var isTranslating by remember { mutableStateOf(false) }
@@ -360,7 +352,7 @@ fun LyricsMenu(
                     } else {
                         TextButton(onClick = {
                             isTranslating = true
-                            coroutineScope.launch {
+                            coroutineScope.launch(Dispatchers.IO) {
                                 try {
                                     val translator = Translator()
 
@@ -459,9 +451,7 @@ fun LyricsMenu(
                                     }
 
                                     val translatedLyrics = out.joinToString("\n")
-                                    database.query {
-                                        upsert(LyricsEntity(id = mediaMetadataProvider().id, lyrics = translatedLyrics))
-                                    }
+                                    viewModel.updateLyrics(mediaMetadataProvider(), translatedLyrics)
                                     showTranslateDialog = false
                                 } catch (e: Exception) {
                                     Toast.makeText(
