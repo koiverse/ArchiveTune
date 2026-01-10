@@ -245,6 +245,9 @@
     <!-- Queue Title -->
     <string name="queue_all_songs">All songs</string>
     <string name="queue_searched_songs">Searched songs</string>
+    <string name="queue_continue_playing">Continue Playing</string>
+    <string name="queue_autoplaying_similar">Autoplaying similar music</string>
+    <string name="similar_content">Similar content</string>
     <!-- Notification name -->
     <string name="music_player">Music Player</string>
     <!-- Settings -->
@@ -455,9 +458,6 @@
     <string name="max_song_cache_size">Max song cache size</string>
     <string name="clear_song_cache">Clear song cache</string>
     <string name="size_used">%s used</string>
-    <string name="edit_tags">Edit Tags</string>
-    <string name="tag_name">Tag name</string>
-    <string name="tag_add">Add</string>
     <string name="privacy">Privacy</string>
     <string name="listen_history">Listen history</string>
     <string name="pause_listen_history">Pause listen history</string>
