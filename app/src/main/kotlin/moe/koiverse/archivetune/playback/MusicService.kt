@@ -267,68 +267,52 @@ class MusicService :
 
     override fun onCreate() {
         super.onCreate()
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val nm = getSystemService(NotificationManager::class.java)
-            nm?.createNotificationChannel(
-                NotificationChannel(
-                    CHANNEL_ID,
-                    getString(R.string.music_player),
-                    NotificationManager.IMPORTANCE_LOW
+
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                val nm = getSystemService(NotificationManager::class.java)
+                nm?.createNotificationChannel(
+                    NotificationChannel(
+                        CHANNEL_ID,
+                        getString(R.string.music_player),
+                        NotificationManager.IMPORTANCE_LOW
+                    )
                 )
+            }
+            val pending = PendingIntent.getActivity(
+                this,
+                0,
+                Intent(this, MainActivity::class.java),
+                PendingIntent.FLAG_IMMUTABLE
             )
+            val notification: Notification = NotificationCompat.Builder(this, CHANNEL_ID)
+                .setContentTitle(getString(R.string.music_player))
+                .setContentText("")
+                .setSmallIcon(R.drawable.small_icon)
+                .setContentIntent(pending)
+                .setOngoing(true)
+                .build()
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                startForeground(NOTIFICATION_ID, notification, android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK)
+            } else {
+                startForeground(NOTIFICATION_ID, notification)
+            }
+        } catch (e: Exception) {
+            reportException(e)
         }
-        val pending = PendingIntent.getActivity(
-            this,
-            0,
-            Intent(this, MainActivity::class.java),
-            PendingIntent.FLAG_IMMUTABLE
-        )
-        val playIntent = PendingIntent.getService(
-            this,
-            1,
-            Intent(this, MusicService::class.java).setAction("ACTION_PLAY"),
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-        val pauseIntent = PendingIntent.getService(
-            this,
-            2,
-            Intent(this, MusicService::class.java).setAction("ACTION_PAUSE"),
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-        val nextIntent = PendingIntent.getService(
-            this,
-            3,
-            Intent(this, MusicService::class.java).setAction("ACTION_NEXT"),
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-        val prevIntent = PendingIntent.getService(
-            this,
-            4,
-            Intent(this, MusicService::class.java).setAction("ACTION_PREVIOUS"),
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-        val isPlaying = try { player.isPlaying } catch (_: Exception) { false }
-        val notificationBuilder = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle(getString(R.string.music_player))
-            .setContentText("")
-            .setSmallIcon(R.drawable.small_icon)
-            .setContentIntent(pending)
-            .setOngoing(isPlaying)
-            .addAction(R.drawable.ic_skip_previous, getString(R.string.exo_controls_previous_description), prevIntent)
-            .addAction(
-                if (isPlaying) R.drawable.ic_pause else R.drawable.ic_play,
-                if (isPlaying) getString(R.string.exo_controls_pause_description) else getString(R.string.exo_controls_play_description),
-                if (isPlaying) pauseIntent else playIntent
-            )
-            .addAction(R.drawable.ic_skip_next, getString(R.string.exo_controls_next_description), nextIntent)
-            .setStyle(androidx.media.app.NotificationCompat.MediaStyle().setMediaSession(mediaSession.sessionCompatToken))
-        val notification = notificationBuilder.build()
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            startForeground(NOTIFICATION_ID, notification, android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK)
-        } else {
-            startForeground(NOTIFICATION_ID, notification)
-        }
+        
         ensurePresenceManager()
+        setMediaNotificationProvider(
+            DefaultMediaNotificationProvider(
+                this,
+                { NOTIFICATION_ID },
+                CHANNEL_ID,
+                R.string.music_player
+            )
+                .apply {
+                    setSmallIcon(R.drawable.small_icon)
+                },
+        )
         player = ExoPlayer
             .Builder(this)
             .setMediaSourceFactory(createMediaSourceFactory())
@@ -2037,62 +2021,40 @@ class MusicService :
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo) = mediaSession
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        when (intent?.action) {
-            "ACTION_PLAY" -> player.play()
-            "ACTION_PAUSE" -> player.pause()
-            "ACTION_NEXT" -> player.seekToNextMediaItem()
-            "ACTION_PREVIOUS" -> player.seekToPreviousMediaItem()
-        }
-        val pending = PendingIntent.getActivity(
-            this,
-            0,
-            Intent(this, MainActivity::class.java),
-            PendingIntent.FLAG_IMMUTABLE
-        )
-        val playIntent = PendingIntent.getService(
-            this,
-            1,
-            Intent(this, MusicService::class.java).setAction("ACTION_PLAY"),
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-        val pauseIntent = PendingIntent.getService(
-            this,
-            2,
-            Intent(this, MusicService::class.java).setAction("ACTION_PAUSE"),
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-        val nextIntent = PendingIntent.getService(
-            this,
-            3,
-            Intent(this, MusicService::class.java).setAction("ACTION_NEXT"),
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-        val prevIntent = PendingIntent.getService(
-            this,
-            4,
-            Intent(this, MusicService::class.java).setAction("ACTION_PREVIOUS"),
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-        val isPlaying = try { player.isPlaying } catch (_: Exception) { false }
-        val notificationBuilder = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle(getString(R.string.music_player))
-            .setContentText("")
-            .setSmallIcon(R.drawable.small_icon)
-            .setContentIntent(pending)
-            .setOngoing(isPlaying)
-            .addAction(R.drawable.ic_skip_previous, getString(R.string.exo_controls_previous_description), prevIntent)
-            .addAction(
-                if (isPlaying) R.drawable.ic_pause else R.drawable.ic_play,
-                if (isPlaying) getString(R.string.exo_controls_pause_description) else getString(R.string.exo_controls_play_description),
-                if (isPlaying) pauseIntent else playIntent
-            )
-            .addAction(R.drawable.ic_skip_next, getString(R.string.exo_controls_next_description), nextIntent)
-            .setStyle(androidx.media.app.NotificationCompat.MediaStyle().setMediaSession(mediaSession.sessionCompatToken))
-        val notification = notificationBuilder.build()
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            startForeground(NOTIFICATION_ID, notification, android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK)
-        } else {
-            startForeground(NOTIFICATION_ID, notification)
+        // Always call startForeground immediately to prevent ANR
+        // when started via startForegroundService()
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                val pending = PendingIntent.getActivity(
+                    this,
+                    0,
+                    Intent(this, MainActivity::class.java),
+                    PendingIntent.FLAG_IMMUTABLE
+                )
+                val notification: Notification = NotificationCompat.Builder(this, CHANNEL_ID)
+                    .setContentTitle(getString(R.string.music_player))
+                    .setContentText("")
+                    .setSmallIcon(R.drawable.small_icon)
+                    .setContentIntent(pending)
+                    .setOngoing(true)
+                    .build()
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    startForeground(NOTIFICATION_ID, notification, android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK)
+                } else {
+                    startForeground(NOTIFICATION_ID, notification)
+                }
+                
+                // If there's media playing, update notification with proper content async
+                if (player.mediaItemCount > 0 && player.currentMediaItem != null) {
+                    currentMediaMetadata.value = player.currentMetadata
+                    scope.launch {
+                        delay(100)
+                        updateNotification()
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            reportException(e)
         }
         return START_STICKY
     }
