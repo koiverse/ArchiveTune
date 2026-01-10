@@ -68,8 +68,15 @@ constructor(
             connectionResult.availablePlayerCommands
                 .buildUpon()
                 .add(Player.COMMAND_PLAY_PAUSE)
+                .add(Player.COMMAND_PLAY)
+                .add(Player.COMMAND_PAUSE)
+                .add(Player.COMMAND_STOP)
                 .add(Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM)
                 .add(Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM)
+                .add(Player.COMMAND_SEEK_IN_CURRENT_MEDIA_ITEM)
+                .add(Player.COMMAND_SEEK_TO_DEFAULT_POSITION)
+                .add(Player.COMMAND_SEEK_TO_MEDIA_ITEM)
+                .add(Player.COMMAND_SEEK_TO_POSITION)
                 .build(),
         )
     }
@@ -86,10 +93,47 @@ constructor(
             MediaSessionConstants.ACTION_TOGGLE_LIBRARY -> toggleLibrary()
             MediaSessionConstants.ACTION_TOGGLE_SHUFFLE -> session.player.shuffleModeEnabled =
                 !session.player.shuffleModeEnabled
-
+            
             MediaSessionConstants.ACTION_TOGGLE_REPEAT_MODE -> session.player.toggleRepeatMode()
         }
         return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
+    }
+    
+    override fun onPlayerCommandRequest(
+        session: MediaSession,
+        controller: MediaSession.ControllerInfo,
+        playerCommand: Int
+    ): Int {
+        val player = session.player
+        return when (playerCommand) {
+            Player.COMMAND_PLAY_PAUSE -> {
+                if (player.playWhenReady) {
+                    player.pause()
+                } else {
+                    player.prepare()
+                    player.play()
+                }
+                SessionResult.RESULT_SUCCESS
+            }
+            Player.COMMAND_PLAY -> {
+                player.prepare()
+                player.play()
+                SessionResult.RESULT_SUCCESS
+            }
+            Player.COMMAND_PAUSE -> {
+                player.pause()
+                SessionResult.RESULT_SUCCESS
+            }
+            Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM -> {
+                player.seekToNextMediaItem()
+                SessionResult.RESULT_SUCCESS
+            }
+            Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM -> {
+                player.seekToPreviousMediaItem()
+                SessionResult.RESULT_SUCCESS
+            }
+            else -> super.onPlayerCommandRequest(session, controller, playerCommand)
+        }
     }
 
     override fun onGetLibraryRoot(
