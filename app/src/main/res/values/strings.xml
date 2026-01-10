@@ -233,6 +233,9 @@
     <!-- Queue Title -->
     <string name="queue_all_songs">All songs</string>
     <string name="queue_searched_songs">Searched songs</string>
+    <string name="queue_continue_playing">Continue Playing</string>
+    <string name="queue_autoplaying_similar">Autoplaying similar music</string>
+    <string name="similar_content">Similar content</string>
 
     <!-- Notification name -->
     <string name="music_player">Music Player</string>

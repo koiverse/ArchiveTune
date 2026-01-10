@@ -110,6 +110,7 @@ import moe.koiverse.archivetune.constants.PlayerDesignStyleKey
 import moe.koiverse.archivetune.constants.PlayerButtonsStyle
 import moe.koiverse.archivetune.constants.PlayerButtonsStyleKey
 import moe.koiverse.archivetune.constants.QueueEditLockKey
+import moe.koiverse.archivetune.constants.SimilarContent
 import moe.koiverse.archivetune.extensions.metadata
 import moe.koiverse.archivetune.extensions.move
 import moe.koiverse.archivetune.extensions.togglePlayPause
@@ -127,6 +128,7 @@ import moe.koiverse.archivetune.ui.utils.ShowMediaInfo
 import moe.koiverse.archivetune.utils.makeTimeString
 import moe.koiverse.archivetune.utils.rememberEnumPreference
 import moe.koiverse.archivetune.utils.rememberPreference
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -179,6 +181,7 @@ fun Queue(
     }
 
     var locked by rememberPreference(QueueEditLockKey, defaultValue = true)
+    var similarContentEnabled by rememberPreference(SimilarContent, defaultValue = true)
 
     val playerDesignStyle by rememberEnumPreference(
         key = PlayerDesignStyleKey,
@@ -435,7 +438,7 @@ fun Queue(
             if (currentPlayingUid != null && shouldScrollToCurrent) {
                 val indexInMutableList = mutableQueueWindows.indexOfFirst { it.uid == currentPlayingUid }
                 if (indexInMutableList != -1) {
-                    lazyListState.scrollToItem(indexInMutableList + headerItems)
+                    lazyListState.scrollToItem(indexInMutableList + 1)
                 }
             }
         }
@@ -475,7 +478,7 @@ fun Queue(
             if (currentPlayingUid != null) {
                 val indexInMutableList = mutableQueueWindows.indexOfFirst { it.uid == currentPlayingUid }
                 if (indexInMutableList != -1) {
-                    lazyListState.scrollToItem(indexInMutableList + headerItems)
+                    lazyListState.scrollToItem(indexInMutableList + 1)
                 }
             }
         }
@@ -489,14 +492,58 @@ fun Queue(
                 state = lazyListState,
                 contentPadding =
                 WindowInsets.systemBars
+                    .only(WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal)
                     .add(
                         WindowInsets(
-                            top = ListItemHeight + 8.dp,
                             bottom = ListItemHeight + 8.dp,
                         ),
                     ).asPaddingValues(),
                 modifier = Modifier.nestedScroll(state.preUpPostDownNestedScrollConnection)
             ) {
+                // Current playing song header
+                stickyHeader {
+                    CurrentSongHeader(
+                        mediaMetadata = mediaMetadata,
+                        isPlaying = isPlaying,
+                        repeatMode = repeatMode,
+                        shuffleModeEnabled = playerConnection.player.shuffleModeEnabled,
+                        locked = locked,
+                        songCount = queueWindows.size,
+                        queueDuration = queueLength,
+                        similarContentEnabled = similarContentEnabled,
+                        backgroundColor = backgroundColor,
+                        onBackgroundColor = onBackgroundColor,
+                        onToggleLike = {
+                            playerConnection.service.toggleLike()
+                        },
+                        onMenuClick = {
+                            menuState.show {
+                                PlayerMenu(
+                                    mediaMetadata = mediaMetadata,
+                                    navController = navController,
+                                    playerBottomSheetState = playerBottomSheetState,
+                                    onShowDetailsDialog = {
+                                        mediaMetadata?.id?.let {
+                                            bottomSheetPageState.show {
+                                                ShowMediaInfo(it)
+                                            }
+                                        }
+                                    },
+                                    onDismiss = menuState::dismiss
+                                )
+                            }
+                        },
+                        onRepeatClick = { playerConnection.player.toggleRepeatMode() },
+                        onShuffleClick = {
+                            coroutineScope.launch(Dispatchers.Main) {
+                                playerConnection.player.shuffleModeEnabled = !playerConnection.player.shuffleModeEnabled
+                            }
+                        },
+                        onLockClick = { locked = !locked },
+                        onSimilarContentClick = { similarContentEnabled = !similarContentEnabled }
+                    )
+                }
+                
                 item {
                     Spacer(
                         modifier =
@@ -751,73 +798,12 @@ fun Queue(
             }
         }
 
+        // Old header hidden - now using sticky header at top of queue
         Column(
             modifier =
             Modifier
-                .background(
-                    if (pureBlack) Color.Black
-                    else MaterialTheme.colorScheme
-                        .secondaryContainer
-                        .copy(alpha = 0.90f),
-                )
-                .windowInsetsPadding(
-                    WindowInsets.systemBars
-                        .only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal),
-                ),
+                .height(0.dp)
         ) {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                modifier =
-                Modifier
-                    .height(ListItemHeight)
-                    .padding(horizontal = 12.dp),
-            ) {
-                Text(
-                    text = queueTitle.orEmpty(),
-                    style = MaterialTheme.typography.titleMedium,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f),
-                )
-
-                AnimatedVisibility(
-                    visible = !selection,
-                    enter = fadeIn() + slideInVertically { it },
-                    exit = fadeOut() + slideOutVertically { it },
-                ) {
-                    Row {
-                        IconButton(
-                            onClick = { locked = !locked },
-                            modifier = Modifier.padding(horizontal = 6.dp),
-                        ) {
-                            Icon(
-                                painter = painterResource(if (locked) R.drawable.lock else R.drawable.lock_open),
-                                contentDescription = null,
-                            )
-                        }
-                    }
-                }
-
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                    horizontalAlignment = Alignment.End,
-                ) {
-                    Text(
-                        text = pluralStringResource(
-                            R.plurals.n_song,
-                            queueWindows.size,
-                            queueWindows.size
-                        ),
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
-
-                    Text(
-                        text = makeTimeString(queueLength * 1000L),
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
-                }
-            }
 
             AnimatedVisibility(
                 visible = selection,
@@ -903,31 +889,12 @@ fun Queue(
 
         val shuffleModeEnabled by playerConnection.shuffleModeEnabled.collectAsState()
 
+        // Bottom bar hidden - controls now in sticky header
         Box(
             modifier =
             Modifier
-                .background(
-                    if (pureBlack) Color.Black
-                    else MaterialTheme.colorScheme
-                        .secondaryContainer
-                        .copy(alpha = 0.90f),
-                )
-                .fillMaxWidth()
-                .height(
-                    ListItemHeight +
-                            WindowInsets.systemBars
-                                .asPaddingValues()
-                                .calculateBottomPadding(),
-                )
+                .height(0.dp)
                 .align(Alignment.BottomCenter)
-                .clickable {
-                    state.collapseSoft()
-                }
-                .windowInsetsPadding(
-                    WindowInsets.systemBars
-                        .only(WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal),
-                )
-                .padding(12.dp),
         ) {
             IconButton(
                 modifier = Modifier.align(Alignment.CenterStart),

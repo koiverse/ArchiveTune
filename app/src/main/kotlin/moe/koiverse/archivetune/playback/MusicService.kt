@@ -953,6 +953,10 @@ class MusicService :
         currentQueue = queue
         queueTitle = null
         player.shuffleModeEnabled = false
+        
+        // Clear old automix items when starting a new queue
+        // This ensures recommendations are based on the new context
+        clearAutomix()
         if (queue.preloadItem != null) {
             player.setMediaItem(queue.preloadItem!!.toMediaItem())
             player.prepare()
@@ -1199,6 +1203,13 @@ class MusicService :
 
     scrobbleManager?.onSongStop()
 
+    // Clear automix when user manually seeks to a different song
+    // This ensures recommendations are refreshed based on the new context
+    if (reason == Player.MEDIA_ITEM_TRANSITION_REASON_SEEK && dataStore.get(AutoLoadMoreKey, true)) {
+        clearAutomix()
+    }
+
+    // Auto-load more from queue if available
     if (dataStore.get(AutoLoadMoreKey, true) &&
         reason != Player.MEDIA_ITEM_TRANSITION_REASON_REPEAT &&
         player.mediaItemCount - player.currentMediaItemIndex <= 5 &&
@@ -1212,6 +1223,55 @@ class MusicService :
                 player.addMediaItems(mediaItems.drop(1))
             } else {
                 scope.launch { discordRpc?.stopActivity() }
+            }
+        }
+    }
+    
+    // Auto-play recommendations when approaching end of queue
+    if (dataStore.get(AutoLoadMoreKey, true) &&
+        reason != Player.MEDIA_ITEM_TRANSITION_REASON_REPEAT &&
+        player.repeatMode == REPEAT_MODE_OFF &&
+        player.mediaItemCount - player.currentMediaItemIndex <= 3 &&
+        !currentQueue.hasNextPage()
+    ) {
+        scope.launch(SilentHandler) {
+            // First, try to add existing automix items
+            val existingAutomix = automixItems.value
+            if (existingAutomix.isNotEmpty()) {
+                // Filter out the current song to prevent duplicates
+                val currentSongId = player.currentMetadata?.id
+                val filteredAutomix = existingAutomix.filter { it.mediaId != currentSongId }
+                if (filteredAutomix.isNotEmpty()) {
+                    player.addMediaItems(filteredAutomix)
+                }
+                clearAutomix()
+            } else {
+                // If no automix items available, fetch recommendations based on current song
+                val currentMediaMetadata = player.currentMetadata
+                if (currentMediaMetadata != null) {
+                    YouTube
+                        .next(WatchEndpoint(videoId = currentMediaMetadata.id))
+                        .onSuccess { nextResult ->
+                            val radioItems = nextResult.items
+                                .map { it.toMediaItem() }
+                                .filter { it.mediaId != currentMediaMetadata.id } // Prevent duplicate of current song
+                                .filterExplicit(dataStore.get(HideExplicitKey, false))
+                                .filterVideo(dataStore.get(HideVideoKey, false))
+                            
+                            if (radioItems.isNotEmpty()) {
+                                player.addMediaItems(radioItems)
+                                
+                                // Fetch next batch for automix
+                                YouTube
+                                    .next(WatchEndpoint(playlistId = nextResult.endpoint.playlistId))
+                                    .onSuccess { automixResult ->
+                                        automixItems.value = automixResult.items
+                                            .map { it.toMediaItem() }
+                                            .filter { it.mediaId != currentMediaMetadata.id } // Filter out duplicate
+                                    }
+                            }
+                        }
+                }
             }
         }
     }
@@ -1241,6 +1301,58 @@ class MusicService :
 
     if (playbackState == Player.STATE_IDLE || playbackState == Player.STATE_ENDED) {
         scrobbleManager?.onSongStop()
+    }
+    
+    // Auto-start recommendations when playback ends
+    if (playbackState == Player.STATE_ENDED &&
+        dataStore.get(AutoLoadMoreKey, true) &&
+        player.repeatMode == REPEAT_MODE_OFF &&
+        player.currentMediaItem != null
+    ) {
+        scope.launch(SilentHandler) {
+            val lastMediaMetadata = player.currentMetadata
+            
+            // First check if we have automix items ready
+            val existingAutomix = automixItems.value
+            if (existingAutomix.isNotEmpty()) {
+                // Filter out the last played song to prevent immediate repeat
+                val filteredAutomix = existingAutomix.filter { it.mediaId != lastMediaMetadata?.id }
+                if (filteredAutomix.isNotEmpty()) {
+                    player.setMediaItems(filteredAutomix, 0, 0)
+                    player.prepare()
+                    player.play()
+                }
+                clearAutomix()
+            } else {
+                // Fetch recommendations based on the last played song
+                if (lastMediaMetadata != null) {
+                    YouTube
+                        .next(WatchEndpoint(videoId = lastMediaMetadata.id))
+                        .onSuccess { nextResult ->
+                            val radioItems = nextResult.items
+                                .map { it.toMediaItem() }
+                                .filter { it.mediaId != lastMediaMetadata.id } // Prevent immediate repeat
+                                .filterExplicit(dataStore.get(HideExplicitKey, false))
+                                .filterVideo(dataStore.get(HideVideoKey, false))
+                            
+                            if (radioItems.isNotEmpty()) {
+                                player.setMediaItems(radioItems, 0, 0)
+                                player.prepare()
+                                player.play()
+                                
+                                // Fetch next batch for automix
+                                YouTube
+                                    .next(WatchEndpoint(playlistId = nextResult.endpoint.playlistId))
+                                    .onSuccess { automixResult ->
+                                        automixItems.value = automixResult.items
+                                            .map { it.toMediaItem() }
+                                            .filter { it.mediaId != lastMediaMetadata.id } // Filter duplicate
+                                    }
+                            }
+                        }
+                }
+            }
+        }
     }
 
     ensurePresenceManager()
@@ -1443,8 +1555,8 @@ class MusicService :
             player.setShuffleOrder(DefaultShuffleOrder(shuffledIndices, System.currentTimeMillis()))
         }
         
-        // Save state when shuffle mode changes
-        scope.launch(Dispatchers.IO) {
+        // Save state when shuffle mode changes - must be on Main thread to access player
+        scope.launch {
             if (dataStore.get(PersistentQueueKey, true)) {
                 saveQueueToDisk()
             }
@@ -1459,8 +1571,8 @@ class MusicService :
             }
         }
         
-        // Save state when repeat mode changes
-        scope.launch(Dispatchers.IO) {
+        // Save state when repeat mode changes - must be on Main thread to access player
+        scope.launch {
             if (dataStore.get(PersistentQueueKey, true)) {
                 saveQueueToDisk()
             }
