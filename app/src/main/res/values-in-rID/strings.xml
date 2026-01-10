@@ -200,6 +200,9 @@
     <!-- Queue Title -->
     <string name="queue_all_songs">Semua lagu</string>
     <string name="queue_searched_songs">Lagu yang dicari</string>
+    <string name="queue_continue_playing">Continue Playing</string>
+    <string name="queue_autoplaying_similar">Autoplaying similar music</string>
+    <string name="similar_content">Similar content</string>
     <!-- Notification name -->
     <string name="music_player">Musik Pemain</string>
     <!-- Settings -->
@@ -410,9 +413,6 @@
     <string name="max_song_cache_size">Ukuran cache lagu maks</string>
     <string name="clear_song_cache">Hapus cache lagu</string>
     <string name="size_used">%s yang digunakan</string>
-    <string name="edit_tags">Edit Tags</string>
-    <string name="tag_name">Tag name</string>
-    <string name="tag_add">Add</string>
     <string name="privacy">Privasi</string>
     <string name="listen_history">Dengarkan riwayat</string>
     <string name="pause_listen_history">Jeda dengarkan riwayat</string>
