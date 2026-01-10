@@ -80,7 +80,6 @@
     <string name="seek_backward_dynamic">-%1$d secondes</string>
     <string name="seek_seconds_addup">Avance progressive</string>
     <string name="seek_seconds_addup_description">Si cette option est activée, cela ajoute 5 secondes supplémentaires à chaque saut de recherche</string>
-    <string name="similar_content">Contenu similaire</string>
     <string name="login_settings">Paramètres de connexion</string>
     <string name="general_settings">Paramètres généraux</string>
     <string name="player_background_style">Style d\'arrière-plan du lecteur</string>
