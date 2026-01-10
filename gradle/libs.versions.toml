@@ -12,7 +12,6 @@ hilt = "2.57.1"
 ktor = "3.3.0"
 ksp = "2.2.20-2.0.3"
 jsoup = "1.21.2"
-multidex = "2.0.1"
 coil = "3.3.0"
 guava = "33.5.0-jre"
 coroutinesGuava = "1.10.2"
@@ -103,8 +102,6 @@ desugaring = { module = "com.android.tools:desugar_jdk_libs", version.ref = "des
 junit = { module = "junit:junit", version.ref = "junit" }
 
 timber = { module = "com.jakewharton.timber:timber", version.ref = "timber" }
-
-multidex = { module = "androidx.multidex:multidex", version.ref = "multidex" }
 
 #newpipe-extractor = { module = "com.github.libre-tube:NewPipeExtractor", version = "70abbdb" }
 #newpipe-extractor = { module = "com.github.TeamNewPipe:NewPipeExtractor", version = "dev-SNAPSHOT" }
