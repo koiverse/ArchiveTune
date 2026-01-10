@@ -335,17 +335,6 @@ class MusicService :
         }
         
         ensurePresenceManager()
-        setMediaNotificationProvider(
-            DefaultMediaNotificationProvider(
-                this,
-                { NOTIFICATION_ID },
-                CHANNEL_ID,
-                R.string.music_player
-            )
-                .apply {
-                    setSmallIcon(R.drawable.small_icon)
-                },
-        )
         player = ExoPlayer
             .Builder(this)
             .setMediaSourceFactory(createMediaSourceFactory())
@@ -391,6 +380,16 @@ class MusicService :
                     ),
                 ).setBitmapLoader(CoilBitmapLoader(this, scope))
                 .build()
+        setMediaNotificationProvider(
+            DefaultMediaNotificationProvider(
+                this,
+                { NOTIFICATION_ID },
+                CHANNEL_ID,
+                R.string.music_player
+            ).apply {
+                setSmallIcon(R.drawable.small_icon)
+            }
+        )
         // Initialize volume asynchronously
         scope.launch {
             val volume = dataStore.get(PlayerVolumeKey, 1f).coerceIn(0f, 1f)
@@ -903,7 +902,7 @@ class MusicService :
                     )
                     .setIconResId(if (currentSong.value?.song?.liked == true) R.drawable.favorite else R.drawable.favorite_border)
                     .setSessionCommand(CommandToggleLike)
-                    .setEnabled(currentSong.value != null)
+                    .setEnabled(true)
                     .build(),
                 CommandButton
                     .Builder()
@@ -924,18 +923,20 @@ class MusicService :
                             else -> throw IllegalStateException()
                         },
                     ).setSessionCommand(CommandToggleRepeatMode)
+                    .setEnabled(true)
                     .build(),
                 CommandButton
                     .Builder()
                     .setDisplayName(getString(if (player.shuffleModeEnabled) R.string.action_shuffle_off else R.string.action_shuffle_on))
                     .setIconResId(if (player.shuffleModeEnabled) R.drawable.shuffle_on else R.drawable.shuffle)
                     .setSessionCommand(CommandToggleShuffle)
+                    .setEnabled(true)
                     .build(),
                 CommandButton.Builder()
                     .setDisplayName(getString(R.string.start_radio))
                     .setIconResId(R.drawable.radio)
                     .setSessionCommand(CommandToggleStartRadio)
-                    .setEnabled(currentSong.value != null)
+                    .setEnabled(true)
                     .build(),
             ),
         )
@@ -1182,6 +1183,7 @@ class MusicService :
                  val song = it.song.toggleLike()
                  update(song)
                  syncUtils.likeSong(song)
+                 updateNotification()
 
                  // Check if auto-download on like is enabled and the song is now liked
                  if (dataStore.get(AutoDownloadOnLikeKey, false) && song.liked) {
