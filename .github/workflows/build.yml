@@ -95,6 +95,7 @@ jobs:
 
       - name: Generate Debug Keystore
         run: |
+          rm -f ./app/persistent-debug.keystore
           keytool -genkeypair -v \
             -keystore ./app/persistent-debug.keystore \
             -alias androiddebugkey \
