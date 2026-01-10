@@ -261,9 +261,55 @@ class MusicService :
     val automixItems = MutableStateFlow<List<MediaItem>>(emptyList())
 
     private var consecutivePlaybackErr = 0
-
+    
     val maxSafeGainFactor = 1.414f // +3 dB
     private val crossfadeProcessor = CrossfadeAudioProcessor()
+    
+    private fun createActionIntent(action: String, requestCode: Int): PendingIntent =
+        PendingIntent.getService(
+            this,
+            requestCode,
+            Intent(this, MusicService::class.java).setAction(action),
+            PendingIntent.FLAG_IMMUTABLE
+        )
+    
+    private fun buildForegroundNotification(): Notification {
+        val pending = PendingIntent.getActivity(
+            this,
+            0,
+            Intent(this, MainActivity::class.java),
+            PendingIntent.FLAG_IMMUTABLE
+        )
+        val playPauseIcon = R.drawable.play
+        val builder = NotificationCompat.Builder(this, CHANNEL_ID)
+            .setContentTitle(getString(R.string.music_player))
+            .setContentText("")
+            .setSmallIcon(R.drawable.small_icon)
+            .setContentIntent(pending)
+            .setOngoing(true)
+            .addAction(
+                NotificationCompat.Action.Builder(
+                    R.drawable.skip_previous,
+                    "",
+                    createActionIntent(ACTION_PREVIOUS, 1)
+                ).build()
+            )
+            .addAction(
+                NotificationCompat.Action.Builder(
+                    playPauseIcon,
+                    "",
+                    createActionIntent(ACTION_PLAY_PAUSE, 2)
+                ).build()
+            )
+            .addAction(
+                NotificationCompat.Action.Builder(
+                    R.drawable.skip_next,
+                    "",
+                    createActionIntent(ACTION_NEXT, 3)
+                ).build()
+            )
+        return builder.build()
+    }
 
     override fun onCreate() {
         super.onCreate()
@@ -279,23 +325,10 @@ class MusicService :
                     )
                 )
             }
-            val pending = PendingIntent.getActivity(
-                this,
-                0,
-                Intent(this, MainActivity::class.java),
-                PendingIntent.FLAG_IMMUTABLE
-            )
-            val notification: Notification = NotificationCompat.Builder(this, CHANNEL_ID)
-                .setContentTitle(getString(R.string.music_player))
-                .setContentText("")
-                .setSmallIcon(R.drawable.small_icon)
-                .setContentIntent(pending)
-                .setOngoing(true)
-                .build()
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                startForeground(NOTIFICATION_ID, notification, android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK)
+                startForeground(NOTIFICATION_ID, buildForegroundNotification(), android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK)
             } else {
-                startForeground(NOTIFICATION_ID, notification)
+                startForeground(NOTIFICATION_ID, buildForegroundNotification())
             }
         } catch (e: Exception) {
             reportException(e)
@@ -2025,23 +2058,10 @@ class MusicService :
         // when started via startForegroundService()
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                val pending = PendingIntent.getActivity(
-                    this,
-                    0,
-                    Intent(this, MainActivity::class.java),
-                    PendingIntent.FLAG_IMMUTABLE
-                )
-                val notification: Notification = NotificationCompat.Builder(this, CHANNEL_ID)
-                    .setContentTitle(getString(R.string.music_player))
-                    .setContentText("")
-                    .setSmallIcon(R.drawable.small_icon)
-                    .setContentIntent(pending)
-                    .setOngoing(true)
-                    .build()
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    startForeground(NOTIFICATION_ID, notification, android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK)
+                    startForeground(NOTIFICATION_ID, buildForegroundNotification(), android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK)
                 } else {
-                    startForeground(NOTIFICATION_ID, notification)
+                    startForeground(NOTIFICATION_ID, buildForegroundNotification())
                 }
                 
                 // If there's media playing, update notification with proper content async
@@ -2056,11 +2076,42 @@ class MusicService :
         } catch (e: Exception) {
             reportException(e)
         }
+        when (intent?.action) {
+            ACTION_PREVIOUS -> {
+                try {
+                    if (player.isCommandAvailable(Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM)) {
+                        player.seekToPreviousMediaItem()
+                    } else if (player.isCommandAvailable(Player.COMMAND_SEEK_IN_CURRENT_MEDIA_ITEM)) {
+                        player.seekBack()
+                    }
+                } catch (_: Exception) {}
+                try { onUpdateNotification(mediaSession, false) } catch (_: Exception) {}
+            }
+            ACTION_PLAY_PAUSE -> {
+                try {
+                    if (player.isPlaying) player.pause() else {
+                        player.prepare()
+                        player.play()
+                    }
+                } catch (_: Exception) {}
+                try { onUpdateNotification(mediaSession, false) } catch (_: Exception) {}
+            }
+            ACTION_NEXT -> {
+                try {
+                    if (player.isCommandAvailable(Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM)) {
+                        player.seekToNextMediaItem()
+                    } else {
+                        player.seekForward()
+                    }
+                } catch (_: Exception) {}
+                try { onUpdateNotification(mediaSession, false) } catch (_: Exception) {}
+            }
+        }
         return START_STICKY
     }
 
     override fun onUpdateNotification(session: MediaSession, startInForegroundRequired: Boolean) {
-        super.onUpdateNotification(session, true)
+        super.onUpdateNotification(session, startInForegroundRequired)
     }
 
     inner class MusicBinder : Binder() {
@@ -2077,6 +2128,9 @@ class MusicService :
 
         const val CHANNEL_ID = "music_channel_01"
         const val NOTIFICATION_ID = 888
+        const val ACTION_PLAY_PAUSE = "moe.koiverse.archivetune.ACTION_PLAY_PAUSE"
+        const val ACTION_NEXT = "moe.koiverse.archivetune.ACTION_NEXT"
+        const val ACTION_PREVIOUS = "moe.koiverse.archivetune.ACTION_PREVIOUS"
         const val ERROR_CODE_NO_STREAM = 1000001
         const val CHUNK_LENGTH = 512 * 1024L
         const val PERSISTENT_QUEUE_FILE = "persistent_queue.data"
