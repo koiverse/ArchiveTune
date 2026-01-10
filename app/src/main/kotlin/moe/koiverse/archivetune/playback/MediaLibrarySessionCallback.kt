@@ -68,15 +68,11 @@ constructor(
             connectionResult.availablePlayerCommands
                 .buildUpon()
                 .add(Player.COMMAND_PLAY_PAUSE)
-                .add(Player.COMMAND_PLAY)
-                .add(Player.COMMAND_PAUSE)
-                .add(Player.COMMAND_STOP)
                 .add(Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM)
                 .add(Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM)
                 .add(Player.COMMAND_SEEK_IN_CURRENT_MEDIA_ITEM)
                 .add(Player.COMMAND_SEEK_TO_DEFAULT_POSITION)
                 .add(Player.COMMAND_SEEK_TO_MEDIA_ITEM)
-                .add(Player.COMMAND_SEEK_TO_POSITION)
                 .build(),
         )
     }
@@ -113,15 +109,6 @@ constructor(
                     player.prepare()
                     player.play()
                 }
-                SessionResult.RESULT_SUCCESS
-            }
-            Player.COMMAND_PLAY -> {
-                player.prepare()
-                player.play()
-                SessionResult.RESULT_SUCCESS
-            }
-            Player.COMMAND_PAUSE -> {
-                player.pause()
                 SessionResult.RESULT_SUCCESS
             }
             Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM -> {
