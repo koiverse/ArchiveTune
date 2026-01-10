@@ -209,6 +209,9 @@
     <!-- Queue Title -->
     <string name="queue_all_songs">Alle Lieder</string>
     <string name="queue_searched_songs">Gesuchte Lieder</string>
+    <string name="queue_continue_playing">Continue Playing</string>
+    <string name="queue_autoplaying_similar">Autoplaying similar music</string>
+    <string name="similar_content">Similar content</string>
     <!-- Notification name -->
     <string name="music_player">Musik-Player</string>
     <!-- Settings -->
@@ -419,9 +422,6 @@
     <string name="max_song_cache_size">Maximale Song-Cache-Größe</string>
     <string name="clear_song_cache">Song-Cache löschen</string>
     <string name="size_used">%s verwendet</string>
-    <string name="edit_tags">Edit Tags</string>
-    <string name="tag_name">Tag name</string>
-    <string name="tag_add">Add</string>
     <string name="privacy">Privatsphäre</string>
     <string name="listen_history">Hören Sie Geschichte</string>
     <string name="pause_listen_history">Hörverlauf pausieren</string>
