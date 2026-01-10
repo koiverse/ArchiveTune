@@ -78,7 +78,6 @@
     <string name="seek_backward_dynamic">-%1$d detik mundur</string>
     <string name="seek_seconds_addup">Pencarian progresif</string>
     <string name="seek_seconds_addup_description">Jika diaktifkan, Menambahkan 5 detik ekstra secara bertahap pada setiap lompatan pencarian</string>
-    <string name="similar_content">Konten serupa</string>
     <string name="login_settings">Pengaturan masuk</string>
     <string name="general_settings">Pengaturan umum</string>
     <string name="player_background_style">Gaya latar belakang pemain</string>
