@@ -209,6 +209,9 @@
     <!-- Queue Title -->
     <string name="queue_all_songs">Tous les titres</string>
     <string name="queue_searched_songs">Titres recherchés</string>
+    <string name="queue_continue_playing">Continue Playing</string>
+    <string name="queue_autoplaying_similar">Autoplaying similar music</string>
+    <string name="similar_content">Similar content</string>
     <!-- Notification name -->
     <string name="music_player">Lecteur de musique</string>
     <!-- Settings -->
@@ -419,9 +422,6 @@
     <string name="max_song_cache_size">Taille maximale du cache audio</string>
     <string name="clear_song_cache">Vider le cache audio</string>
     <string name="size_used">%s utilisés</string>
-    <string name="edit_tags">Modifier les balises</string>
-    <string name="tag_name">Nom de la balise</string>
-    <string name="tag_add">Ajouter</string>
     <string name="privacy">Confidentialité</string>
     <string name="listen_history">Historique d’écoute</string>
     <string name="pause_listen_history">Suspendre l’historique d’écoute</string>
