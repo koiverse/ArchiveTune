@@ -78,7 +78,6 @@
     <string name="seek_backward_dynamic">-%1$d초 뒤로</string>
     <string name="seek_seconds_addup">점진적 탐색</string>
     <string name="seek_seconds_addup_description">활성화된 경우 탐색 건너뛸 때마다 5초씩 증분적으로 추가됩니다.</string>
-    <string name="similar_content">유사한 콘텐츠</string>
     <string name="login_settings">로그인 설정</string>
     <string name="general_settings">일반 설정</string>
     <string name="player_background_style">플레이어 배경 스타일</string>
