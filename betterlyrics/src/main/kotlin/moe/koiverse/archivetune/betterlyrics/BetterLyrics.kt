@@ -17,16 +17,18 @@ import kotlinx.serialization.json.Json
 
 object BetterLyrics {
     private const val API_BASE_URL = "https://lyrics-api.boidu.dev/"
+    private val jsonFormat by lazy {
+        Json {
+            isLenient = true
+            ignoreUnknownKeys = true
+            coerceInputValues = true
+        }
+    }
     
     private val client by lazy {
         HttpClient(OkHttp) {
             install(ContentNegotiation) {
-                json(
-                    Json {
-                        isLenient = true
-                        ignoreUnknownKeys = true
-                    },
-                )
+                json(jsonFormat)
             }
 
             install(HttpTimeout) {
@@ -72,11 +74,7 @@ object BetterLyrics {
             logger?.invoke("Raw Response: $responseText")
 
             val ttmlResponse = try {
-                Json {
-                    ignoreUnknownKeys = true
-                    isLenient = true
-                    coerceInputValues = true
-                }.decodeFromString<TTMLResponse>(responseText)
+                jsonFormat.decodeFromString<TTMLResponse>(responseText)
             } catch (e: Exception) {
                 logger?.invoke("JSON Parse Error: ${e.message}")
                 TTMLResponse("")
