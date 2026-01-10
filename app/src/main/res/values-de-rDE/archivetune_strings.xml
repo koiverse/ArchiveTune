@@ -80,7 +80,6 @@
     <string name="seek_backward_dynamic">-%1$d Sekunden zurück</string>
     <string name="seek_seconds_addup">Progressive Suche</string>
     <string name="seek_seconds_addup_description">Wenn diese Option aktiviert ist, werden bei jedem Suchsprung schrittweise 5 zusätzliche Sekunden addiert</string>
-    <string name="similar_content">Ähnlicher Inhalt</string>
     <string name="login_settings">Anmeldeeinstellungen</string>
     <string name="general_settings">Allgemeine Einstellungen</string>
     <string name="player_background_style">Hintergrundstil des Spielers</string>
