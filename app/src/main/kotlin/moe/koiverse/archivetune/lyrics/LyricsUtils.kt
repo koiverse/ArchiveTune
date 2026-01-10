@@ -103,12 +103,11 @@ object LyricsUtils {
     }
 
     fun isTtml(lyrics: String): Boolean {
-        val trimmed = lyrics.trimStart()
+        val trimmed = lyrics.trim()
         if (!trimmed.startsWith("<")) return false
-        if (trimmed.startsWith("<tt") || trimmed.startsWith("<?xml")) {
-            return trimmed.contains("<tt")
-        }
-        return false
+
+        return trimmed.contains("<tt", ignoreCase = true) ||
+                trimmed.contains("http://www.w3.org/ns/ttml", ignoreCase = true)
     }
 
     fun parseTtml(lyrics: String): List<LyricsEntry> {
@@ -118,12 +117,13 @@ object LyricsUtils {
         return parsedLines.map { line ->
             val words =
                 line.words
-                    .filter { it.text.isNotBlank() }
+                    .filter { it.text.isNotEmpty() }
                     .map { word ->
                         WordTimestamp(
                             text = word.text,
                             startTime = word.startTime,
                             endTime = word.endTime,
+                            isBackground = word.isBackground,
                         )
                     }.takeIf { it.isNotEmpty() }
 

@@ -4,6 +4,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.asPaddingValues
@@ -22,6 +23,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.pulltorefresh.pullToRefresh
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
+import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -354,8 +359,17 @@ fun LibraryPlaylistsScreen(
         }
     }
 
-    Box(
-        modifier = Modifier.fillMaxSize(),
+    val isRefreshing by viewModel.isRefreshing.collectAsState()
+    val pullRefreshState = rememberPullToRefreshState()
+
+    BoxWithConstraints(
+        modifier = Modifier
+            .fillMaxSize()
+            .pullToRefresh(
+                state = pullRefreshState,
+                isRefreshing = isRefreshing,
+                onRefresh = viewModel::sync
+            ),
     ) {
         // Mesh gradient background layer - behind everything
         if (!disableBlur && gradientColors.isNotEmpty() && gradientAlpha > 0f) {
@@ -771,3 +785,4 @@ fun LibraryPlaylistsScreen(
         }
     }
 }
+

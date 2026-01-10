@@ -1,10 +1,14 @@
 package moe.koiverse.archivetune.betterlyrics.models
 
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
 data class TTMLResponse(
-    val ttml: String
+    @SerialName("lyrics")
+    val ttml: String = "",
+    @SerialName("provider")
+    val provider: String? = null
 )
 
 @Serializable

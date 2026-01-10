@@ -62,7 +62,7 @@ constructor(
         job?.cancel()
         job =
             viewModelScope.launch(Dispatchers.IO) {
-                lyricsHelper.getAllLyrics(mediaId, title, artist, duration) { result ->
+                lyricsHelper.getAllLyrics(mediaId, title, artist, null, duration) { result ->
                     results.update {
                         it + result
                     }
@@ -87,6 +87,17 @@ constructor(
         withContext(Dispatchers.IO) {
             database.query {
                 lyricsEntity?.let(::delete)
+                upsert(LyricsEntity(mediaMetadata.id, lyrics))
+            }
+        }
+    }
+
+    fun updateLyrics(
+        mediaMetadata: MediaMetadata,
+        lyrics: String,
+    ) {
+        viewModelScope.launch(Dispatchers.IO) {
+            database.query {
                 upsert(LyricsEntity(mediaMetadata.id, lyrics))
             }
         }
