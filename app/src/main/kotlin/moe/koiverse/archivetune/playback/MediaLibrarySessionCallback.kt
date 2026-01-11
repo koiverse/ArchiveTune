@@ -8,7 +8,6 @@ import androidx.annotation.DrawableRes
 import androidx.core.net.toUri
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
-import androidx.media3.common.Player
 import androidx.media3.exoplayer.offline.Download
 import androidx.media3.session.LibraryResult
 import androidx.media3.session.MediaLibraryService
@@ -53,32 +52,19 @@ constructor(
 
     override fun onConnect(
         session: MediaSession,
-        controller: MediaSession.ControllerInfo
+        controller: MediaSession.ControllerInfo,
     ): MediaSession.ConnectionResult {
-
-        val sessionCommands =
-            MediaSession.ConnectionResult.DEFAULT_SESSION_COMMANDS
+        val connectionResult = super.onConnect(session, controller)
+        return MediaSession.ConnectionResult.accept(
+            connectionResult.availableSessionCommands
                 .buildUpon()
                 .add(MediaSessionConstants.CommandToggleLike)
                 .add(MediaSessionConstants.CommandToggleStartRadio)
                 .add(MediaSessionConstants.CommandToggleLibrary)
                 .add(MediaSessionConstants.CommandToggleShuffle)
                 .add(MediaSessionConstants.CommandToggleRepeatMode)
-                .build()
-
-        val playerCommands =
-            MediaSession.ConnectionResult.DEFAULT_PLAYER_COMMANDS
-                .buildUpon()
-                .add(Player.COMMAND_PLAY_PAUSE)
-                .add(Player.COMMAND_SEEK_TO_NEXT)
-                .add(Player.COMMAND_SEEK_TO_PREVIOUS)
-                .add(Player.COMMAND_SET_REPEAT_MODE)
-                .add(Player.COMMAND_SET_SHUFFLE_MODE)
-                .build()
-
-        return MediaSession.ConnectionResult.accept(
-            sessionCommands,
-            playerCommands
+                .build(),
+            connectionResult.availablePlayerCommands,
         )
     }
 
@@ -92,37 +78,12 @@ constructor(
             MediaSessionConstants.ACTION_TOGGLE_LIKE -> toggleLike()
             MediaSessionConstants.ACTION_TOGGLE_START_RADIO -> toggleStartRadio()
             MediaSessionConstants.ACTION_TOGGLE_LIBRARY -> toggleLibrary()
-            MediaSessionConstants.ACTION_TOGGLE_SHUFFLE -> session.player.setShuffleModeEnabled(!session.player.shuffleModeEnabled)
+            MediaSessionConstants.ACTION_TOGGLE_SHUFFLE -> session.player.shuffleModeEnabled =
+                !session.player.shuffleModeEnabled
 
             MediaSessionConstants.ACTION_TOGGLE_REPEAT_MODE -> session.player.toggleRepeatMode()
         }
         return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
-    }
-
-    override fun onPlayerCommandRequest(
-        session: MediaSession,
-        controller: MediaSession.ControllerInfo,
-        playerCommand: Int
-    ): Int {
-        return if (session.player.isCommandAvailable(playerCommand)) {
-            SessionResult.RESULT_SUCCESS
-        } else {
-            SessionResult.RESULT_ERROR_NOT_SUPPORTED
-        }
-    }
-
-
-    override fun onPlaybackResumption(
-        mediaSession: MediaSession,
-        controller: MediaSession.ControllerInfo
-    ): ListenableFuture<MediaSession.MediaItemsWithStartPosition> {
-        return Futures.immediateFuture(
-            MediaSession.MediaItemsWithStartPosition(
-                emptyList(),
-                0,
-                0L
-            )
-        )
     }
 
     override fun onGetLibraryRoot(
@@ -336,6 +297,7 @@ constructor(
         startPositionMs: Long,
     ): ListenableFuture<MediaSession.MediaItemsWithStartPosition> =
         scope.future {
+            // Play from Android Auto
             val defaultResult =
                 MediaSession.MediaItemsWithStartPosition(emptyList(), startIndex, startPositionMs)
             val path =
