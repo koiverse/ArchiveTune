@@ -102,6 +102,7 @@ import moe.koiverse.archivetune.extensions.currentMetadata
 import moe.koiverse.archivetune.extensions.findNextMediaItemById
 import moe.koiverse.archivetune.extensions.mediaItems
 import moe.koiverse.archivetune.extensions.metadata
+import moe.koiverse.archivetune.extensions.setOffloadEnabled
 import moe.koiverse.archivetune.extensions.toMediaItem
 import moe.koiverse.archivetune.extensions.toPersistQueue
 import moe.koiverse.archivetune.extensions.toQueue
@@ -236,7 +237,7 @@ class MusicService :
         }
 
     private val normalizeFactor = MutableStateFlow(1f)
-    val playerVolume = MutableStateFlow(1f)
+    var playerVolume = MutableStateFlow(1f)
 
     lateinit var sleepTimer: SleepTimer
 
