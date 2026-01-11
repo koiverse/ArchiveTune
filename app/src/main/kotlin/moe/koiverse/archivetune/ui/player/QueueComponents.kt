@@ -61,6 +61,7 @@ import moe.koiverse.archivetune.ui.component.ActionPromptDialog
 import moe.koiverse.archivetune.ui.component.BottomSheetPageState
 import moe.koiverse.archivetune.ui.component.BottomSheetState
 import moe.koiverse.archivetune.ui.component.MenuState
+import moe.koiverse.archivetune.ui.component.bottomSheetDraggable
 import moe.koiverse.archivetune.ui.menu.PlayerMenu
 import moe.koiverse.archivetune.ui.utils.ShowMediaInfo
 import moe.koiverse.archivetune.utils.makeTimeString
@@ -72,6 +73,7 @@ import kotlin.math.roundToInt
  */
 @Composable
 fun CurrentSongHeader(
+    sheetState: BottomSheetState,
     mediaMetadata: MediaMetadata?,
     isPlaying: Boolean,
     repeatMode: Int,
@@ -95,6 +97,7 @@ fun CurrentSongHeader(
             .fillMaxWidth()
             .background(backgroundColor)
             .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal))
+            .bottomSheetDraggable(sheetState)
             .pointerInput(Unit) { detectTapGestures { } } // Block clicks while allowing drag
             .padding(horizontal = 16.dp, vertical = 12.dp)
     ) {

@@ -503,6 +503,7 @@ fun Queue(
                 // Current playing song header
                 stickyHeader {
                     CurrentSongHeader(
+                        sheetState = state,
                         mediaMetadata = mediaMetadata,
                         isPlaying = isPlaying,
                         repeatMode = repeatMode,

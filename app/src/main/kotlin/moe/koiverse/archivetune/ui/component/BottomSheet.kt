@@ -73,25 +73,9 @@ fun BottomSheet(
                         .roundToPx()
                         .coerceAtLeast(0)
                 IntOffset(x = 0, y = y)
-            }.pointerInput(state) {
-                val velocityTracker = VelocityTracker()
-
-                detectVerticalDragGestures(
-                    onVerticalDrag = { change, dragAmount ->
-                        velocityTracker.addPointerInputChange(change)
-                        state.dispatchRawDelta(dragAmount)
-                    },
-                    onDragCancel = {
-                        velocityTracker.resetTracking()
-                        state.snapTo(state.collapsedBound)
-                    },
-                    onDragEnd = {
-                        val velocity = -velocityTracker.calculateVelocity().y
-                        velocityTracker.resetTracking()
-                        state.performFling(velocity, onDismiss)
-                    },
-                )
-            }.clip(
+            }
+            .bottomSheetDraggable(state, onDismiss)
+            .clip(
                 RoundedCornerShape(
                     topStart = if (!state.isExpanded) 16.dp else 0.dp,
                     topEnd = if (!state.isExpanded) 16.dp else 0.dp,
@@ -348,6 +332,32 @@ fun rememberBottomSheetState(
             coroutineScope = coroutineScope,
             animatable = animatable,
             collapsedBound = collapsedBound,
+        )
+    }
+}
+
+@Composable
+fun Modifier.bottomSheetDraggable(
+    state: BottomSheetState,
+    onDismiss: (() -> Unit)? = null,
+): Modifier {
+    return this.pointerInput(state) {
+        val velocityTracker = VelocityTracker()
+
+        detectVerticalDragGestures(
+            onVerticalDrag = { change, dragAmount ->
+                velocityTracker.addPointerInputChange(change)
+                state.dispatchRawDelta(dragAmount)
+            },
+            onDragCancel = {
+                velocityTracker.resetTracking()
+                state.snapTo(state.collapsedBound)
+            },
+            onDragEnd = {
+                val velocity = -velocityTracker.calculateVelocity().y
+                velocityTracker.resetTracking()
+                state.performFling(velocity, onDismiss)
+            },
         )
     }
 }
