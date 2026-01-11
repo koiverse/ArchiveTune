@@ -8,7 +8,6 @@ import androidx.annotation.DrawableRes
 import androidx.core.net.toUri
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
-import androidx.media3.common.Player
 import androidx.media3.exoplayer.offline.Download
 import androidx.media3.session.LibraryResult
 import androidx.media3.session.MediaLibraryService
@@ -53,77 +52,54 @@ constructor(
 
     override fun onConnect(
         session: MediaSession,
-        controller: MediaSession.ControllerInfo,
+        controller: MediaSession.ControllerInfo
     ): MediaSession.ConnectionResult {
-        val connectionResult = super.onConnect(session, controller)
-        return MediaSession.ConnectionResult.accept(
-            connectionResult.availableSessionCommands
-                .buildUpon()
-                .add(MediaSessionConstants.CommandToggleLike)
-                .add(MediaSessionConstants.CommandToggleStartRadio)
-                .add(MediaSessionConstants.CommandToggleLibrary)
-                .add(MediaSessionConstants.CommandToggleShuffle)
-                .add(MediaSessionConstants.CommandToggleRepeatMode)
-                .build(),
-            connectionResult.availablePlayerCommands
-                .buildUpon()
-                .add(Player.COMMAND_PLAY_PAUSE)
-                .add(Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM)
-                .add(Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM)
-                .add(Player.COMMAND_SEEK_IN_CURRENT_MEDIA_ITEM)
-                .add(Player.COMMAND_SEEK_TO_DEFAULT_POSITION)
-                .add(Player.COMMAND_SEEK_TO_MEDIA_ITEM)
-                .add(Player.COMMAND_SET_SHUFFLE_MODE)
-                .add(Player.COMMAND_SET_REPEAT_MODE)
-                .build(),
-        )
+        val sessionCommands = MediaSession.ConnectionResult.DEFAULT_SESSION_COMMANDS
+            .buildUpon()
+            .add(MediaSessionConstants.CommandToggleLike)
+            .add(MediaSessionConstants.CommandToggleStartRadio)
+            .add(MediaSessionConstants.CommandToggleLibrary)
+            .add(MediaSessionConstants.CommandToggleShuffle)
+            .add(MediaSessionConstants.CommandToggleRepeatMode)
+            .build()
+
+        val playerCommands = MediaSession.ConnectionResult.DEFAULT_PLAYER_COMMANDS
+            .buildUpon()
+            .add(Player.COMMAND_SEEK_TO_NEXT)
+            .add(Player.COMMAND_SEEK_TO_PREVIOUS)
+            .add(Player.COMMAND_PLAY_PAUSE)
+            .add(Player.COMMAND_SET_REPEAT_MODE)
+            .add(Player.COMMAND_SET_SHUFFLE_MODE)
+            .build()
+
+        return MediaSession.ConnectionResult.accept(sessionCommands, playerCommands)
     }
 
     override fun onCustomCommand(
         session: MediaSession,
         controller: MediaSession.ControllerInfo,
         customCommand: SessionCommand,
-        args: Bundle,
+        args: Bundle
     ): ListenableFuture<SessionResult> {
         when (customCommand.customAction) {
             MediaSessionConstants.ACTION_TOGGLE_LIKE -> toggleLike()
             MediaSessionConstants.ACTION_TOGGLE_START_RADIO -> toggleStartRadio()
             MediaSessionConstants.ACTION_TOGGLE_LIBRARY -> toggleLibrary()
-            MediaSessionConstants.ACTION_TOGGLE_SHUFFLE -> session.player.shuffleModeEnabled =
-                !session.player.shuffleModeEnabled
-            
-            MediaSessionConstants.ACTION_TOGGLE_REPEAT_MODE -> session.player.toggleRepeatMode()
+            MediaSessionConstants.ACTION_TOGGLE_SHUFFLE -> {
+                session.player.shuffleModeEnabled = !session.player.shuffleModeEnabled
+            }
+            MediaSessionConstants.ACTION_TOGGLE_REPEAT_MODE -> {
+                val nextMode = when (session.player.repeatMode) {
+                    Player.REPEAT_MODE_OFF -> Player.REPEAT_MODE_ALL
+                    Player.REPEAT_MODE_ALL -> Player.REPEAT_MODE_ONE
+                    else -> Player.REPEAT_MODE_OFF
+                }
+                session.player.repeatMode = nextMode
+            }
         }
         return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
     }
-    
-    override fun onPlayerCommandRequest(
-        session: MediaSession,
-        controller: MediaSession.ControllerInfo,
-        playerCommand: Int
-    ): Int {
-        val player = session.player
-        return when (playerCommand) {
-            Player.COMMAND_PLAY_PAUSE -> {
-                if (player.playWhenReady) {
-                    player.pause()
-                } else {
-                    player.prepare()
-                    player.play()
-                }
-                SessionResult.RESULT_SUCCESS
-            }
-            Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM -> {
-                player.seekToNextMediaItem()
-                SessionResult.RESULT_SUCCESS
-            }
-            Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM -> {
-                player.seekToPreviousMediaItem()
-                SessionResult.RESULT_SUCCESS
-            }
-            else -> super.onPlayerCommandRequest(session, controller, playerCommand)
-        }
-    }
+
 
     override fun onGetLibraryRoot(
         session: MediaLibrarySession,
