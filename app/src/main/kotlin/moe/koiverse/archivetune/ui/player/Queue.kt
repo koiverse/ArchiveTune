@@ -474,76 +474,81 @@ fun Queue(
             }
         }
 
-        LaunchedEffect(Unit) {
-            if (currentPlayingUid != null) {
+        LaunchedEffect(state.isCollapsed) {
+            if (!state.isCollapsed && currentPlayingUid != null) {
                 val indexInMutableList = mutableQueueWindows.indexOfFirst { it.uid == currentPlayingUid }
                 if (indexInMutableList != -1) {
+                    // Scroll to the item + headerItems (Spacer)
+                    // The Spacer is at index 0, so the first song is at index 1.
+                    // If indexInMutableList is 0 (first song), we want to scroll to index 1.
                     lazyListState.scrollToItem(indexInMutableList + 1)
                 }
             }
         }
+
         Box(
             modifier =
             Modifier
                 .fillMaxSize()
                 .background(backgroundColor),
         ) {
-            LazyColumn(
-                state = lazyListState,
-                contentPadding =
-                WindowInsets.systemBars
-                    .only(WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal)
-                    .add(
-                        WindowInsets(
-                            bottom = ListItemHeight + 8.dp,
-                        ),
-                    ).asPaddingValues(),
-                modifier = Modifier.nestedScroll(state.preUpPostDownNestedScrollConnection)
-            ) {
-                // Current playing song header
-                stickyHeader {
-                    CurrentSongHeader(
-                        sheetState = state,
-                        mediaMetadata = mediaMetadata,
-                        isPlaying = isPlaying,
-                        repeatMode = repeatMode,
-                        shuffleModeEnabled = playerConnection.player.shuffleModeEnabled,
-                        locked = locked,
-                        songCount = queueWindows.size,
-                        queueDuration = queueLength,
-                        similarContentEnabled = similarContentEnabled,
-                        backgroundColor = backgroundColor,
-                        onBackgroundColor = onBackgroundColor,
-                        onToggleLike = {
-                            playerConnection.service.toggleLike()
-                        },
-                        onMenuClick = {
-                            menuState.show {
-                                PlayerMenu(
-                                    mediaMetadata = mediaMetadata,
-                                    navController = navController,
-                                    playerBottomSheetState = playerBottomSheetState,
-                                    onShowDetailsDialog = {
-                                        mediaMetadata?.id?.let {
-                                            bottomSheetPageState.show {
-                                                ShowMediaInfo(it)
-                                            }
+            Column(modifier = Modifier.fillMaxSize()) {
+                CurrentSongHeader(
+                    sheetState = state,
+                    mediaMetadata = mediaMetadata,
+                    isPlaying = isPlaying,
+                    repeatMode = repeatMode,
+                    shuffleModeEnabled = playerConnection.player.shuffleModeEnabled,
+                    locked = locked,
+                    songCount = queueWindows.size,
+                    queueDuration = queueLength,
+                    similarContentEnabled = similarContentEnabled,
+                    backgroundColor = backgroundColor,
+                    onBackgroundColor = onBackgroundColor,
+                    onToggleLike = {
+                        playerConnection.service.toggleLike()
+                    },
+                    onMenuClick = {
+                        menuState.show {
+                            PlayerMenu(
+                                mediaMetadata = mediaMetadata,
+                                navController = navController,
+                                playerBottomSheetState = playerBottomSheetState,
+                                onShowDetailsDialog = {
+                                    mediaMetadata?.id?.let {
+                                        bottomSheetPageState.show {
+                                            ShowMediaInfo(it)
                                         }
-                                    },
-                                    onDismiss = menuState::dismiss
-                                )
-                            }
-                        },
-                        onRepeatClick = { playerConnection.player.toggleRepeatMode() },
-                        onShuffleClick = {
-                            coroutineScope.launch(Dispatchers.Main) {
-                                playerConnection.player.shuffleModeEnabled = !playerConnection.player.shuffleModeEnabled
-                            }
-                        },
-                        onLockClick = { locked = !locked },
-                        onSimilarContentClick = { similarContentEnabled = !similarContentEnabled }
-                    )
-                }
+                                    }
+                                },
+                                onDismiss = menuState::dismiss
+                            )
+                        }
+                    },
+                    onRepeatClick = { playerConnection.player.toggleRepeatMode() },
+                    onShuffleClick = {
+                        coroutineScope.launch(Dispatchers.Main) {
+                            playerConnection.player.shuffleModeEnabled = !playerConnection.player.shuffleModeEnabled
+                        }
+                    },
+                    onLockClick = { locked = !locked },
+                    onSimilarContentClick = { similarContentEnabled = !similarContentEnabled }
+                )
+
+                LazyColumn(
+                    state = lazyListState,
+                    contentPadding =
+                    WindowInsets.systemBars
+                        .only(WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal)
+                        .add(
+                            WindowInsets(
+                                bottom = ListItemHeight + 8.dp,
+                            ),
+                        ).asPaddingValues(),
+                    modifier = Modifier
+                        .weight(1f)
+                        .nestedScroll(state.preUpPostDownNestedScrollConnection)
+                ) {
                 
                 item {
                     Spacer(
@@ -613,7 +618,7 @@ fun Queue(
                             ) {
                                 val shouldLoadImages by remember {
                                     derivedStateOf {
-                                        state.value > state.collapsedBound + 1.dp
+                                        state.value > state.collapsedBound + 80.dp
                                     }
                                 }
 
@@ -891,7 +896,8 @@ fun Queue(
         val shuffleModeEnabled by playerConnection.shuffleModeEnabled.collectAsState()
 
         // Bottom bar hidden - controls now in sticky header
-        Box(
+        Box(modifier = Modifier.fillMaxSize()) {
+            Box(
             modifier =
             Modifier
                 .height(0.dp)
@@ -957,4 +963,6 @@ fun Queue(
                 .align(Alignment.BottomCenter),
         )
     }
+}
+}
 }

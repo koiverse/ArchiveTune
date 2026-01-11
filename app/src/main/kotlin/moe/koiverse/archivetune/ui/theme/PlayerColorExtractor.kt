@@ -33,70 +33,54 @@ object PlayerColorExtractor {
         val dominantColor = palette.dominantSwatch?.rgb?.let { Color(it) }
         val mutedColor = palette.mutedSwatch?.rgb?.let { Color(it) }
         val darkMutedColor = palette.darkMutedSwatch?.rgb?.let { Color(it) }
+        val lightMutedColor = palette.lightMutedSwatch?.rgb?.let { Color(it) }
         
         // Build list of available distinct colors
         val availableColors = mutableListOf<Color>()
         
-        // Add vibrant colors first (more colorful)
-        vibrantColor?.let { availableColors.add(enhanceColorVividness(it, 1.3f)) }
-        lightVibrantColor?.let { 
-            if (!isSimilarColor(it, vibrantColor)) {
-                availableColors.add(enhanceColorVividness(it, 1.2f))
+        // Helper to add unique enhanced color
+        fun addIfUnique(color: Color?, enhancement: Float) {
+            if (color != null && !isSimilarToAny(color, availableColors)) {
+                availableColors.add(enhanceColorVividness(color, enhancement))
             }
         }
-        darkVibrantColor?.let { 
-            if (!isSimilarColor(it, vibrantColor) && !isSimilarColor(it, lightVibrantColor)) {
-                availableColors.add(enhanceColorVividness(it, 1.2f))
-            }
-        }
+
+        // Add colors with priority, aiming for up to 6 distinct colors
+        addIfUnique(vibrantColor, 1.3f)
+        addIfUnique(lightVibrantColor, 1.25f)
+        addIfUnique(darkVibrantColor, 1.2f)
+        addIfUnique(dominantColor, 1.1f)
+        addIfUnique(mutedColor, 1.0f)
+        addIfUnique(darkMutedColor, 0.9f)
+        addIfUnique(lightMutedColor, 1.0f)
         
-        // Add muted/dominant colors if we need more variety
-        dominantColor?.let { 
-            if (availableColors.size < 3 && !isSimilarToAny(it, availableColors)) {
-                availableColors.add(enhanceColorVividness(it, 1.1f))
-            }
-        }
-        mutedColor?.let { 
-            if (availableColors.size < 3 && !isSimilarToAny(it, availableColors)) {
-                availableColors.add(enhanceColorVividness(it, 1.0f))
-            }
-        }
-        darkMutedColor?.let { 
-            if (availableColors.size < 3 && !isSimilarToAny(it, availableColors)) {
-                availableColors.add(enhanceColorVividness(it, 0.9f))
-            }
-        }
-        
-        // Return 3 distinct colors, or create darkened versions if not enough
-        when {
-            availableColors.size >= 3 -> {
-                listOf(availableColors[0], availableColors[1], availableColors[2])
-            }
-            availableColors.size == 2 -> {
-                listOf(
-                    availableColors[0],
-                    availableColors[1],
-                    darkenColor(availableColors[1], 0.5f)
-                )
-            }
-            availableColors.size == 1 -> {
-                val base = availableColors[0]
-                listOf(
-                    base,
-                    darkenColor(base, 0.7f),
-                    darkenColor(base, 0.4f)
-                )
-            }
-            else -> {
-                // Fallback: use fallback color
+        // Ensure we have at least 4 colors for the 4-corner glow
+        while (availableColors.size < 4) {
+            if (availableColors.isNotEmpty()) {
+                // Generate variants from existing colors
+                val base = availableColors[availableColors.size % availableColors.size] // Cycle through
+                // Create a distinct variant (shift hue or change brightness essentially)
+                // For simplicity, we just darken/lighten differently based on index
+                val variant = if (availableColors.size % 2 == 0) {
+                     darkenColor(base, 0.6f)
+                } else {
+                     darkenColor(base, 0.8f)
+                }
+                
+                if (!isSimilarToAny(variant, availableColors)) {
+                     availableColors.add(variant)
+                } else {
+                     // Force add slightly modified to break loop if needed, or just add fallback
+                     availableColors.add(darkenColor(base, 0.5f))
+                }
+            } else {
+                // No colors extracted at all, use fallback
                 val base = Color(fallbackColor)
-                listOf(
-                    base,
-                    darkenColor(base, 0.7f),
-                    darkenColor(base, 0.4f)
-                )
+                availableColors.add(base)
             }
         }
+        
+        return@withContext availableColors
     }
 
     /**
