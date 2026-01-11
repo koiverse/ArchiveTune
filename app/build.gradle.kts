@@ -27,7 +27,6 @@ android {
         versionCode = 129
         versionName = "12.4.6"
 
-        multiDexEnabled = true
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
         
@@ -211,8 +210,6 @@ dependencies {
     implementation(libs.ktor.serialization.json)
 
     coreLibraryDesugaring(libs.desugaring)
-
-    implementation(libs.multidex)
 
     implementation(libs.timber)
     testImplementation(libs.junit)
