@@ -2056,8 +2056,6 @@ class MusicService :
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo) = mediaSession
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        // Always call startForeground immediately to prevent ANR
-        // when started via startForegroundService()
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -2113,6 +2111,7 @@ class MusicService :
     }
 
     override fun onUpdateNotification(session: MediaSession, startInForegroundRequired: Boolean) {
+        updateNotification()
         super.onUpdateNotification(session, startInForegroundRequired)
     }
 
