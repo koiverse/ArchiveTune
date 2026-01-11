@@ -198,6 +198,7 @@ class MusicService :
     lateinit var mediaLibrarySessionCallback: MediaLibrarySessionCallback
 
     private lateinit var audioManager: AudioManager
+    lateinit var playerVolume: MutableStateFlow<Float>
     private var audioFocusRequest: AudioFocusRequest? = null
     private var lastAudioFocusState = AudioManager.AUDIOFOCUS_NONE
     private var wasPlayingBeforeAudioFocusLoss = false
@@ -292,16 +293,11 @@ class MusicService :
                 .setContentIntent(pending)
                 .setOngoing(true)
                 .build()
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                startForeground(NOTIFICATION_ID, notification, android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK)
-            } else {
-                startForeground(NOTIFICATION_ID, notification)
-            }
+            startForeground(NOTIFICATION_ID, notification)
         } catch (e: Exception) {
             reportException(e)
         }
-        
-        ensurePresenceManager()
+
         setMediaNotificationProvider(
             DefaultMediaNotificationProvider(
                 this,
@@ -313,29 +309,31 @@ class MusicService :
                     setSmallIcon(R.drawable.small_icon)
                 },
         )
-        player = ExoPlayer
-            .Builder(this)
-            .setMediaSourceFactory(createMediaSourceFactory())
-            .setRenderersFactory(createRenderersFactory())
-            .setHandleAudioBecomingNoisy(true)
-            .setWakeMode(C.WAKE_MODE_LOCAL)
-            .setAudioAttributes(
-                AudioAttributes.Builder()
-                    .setUsage(C.USAGE_MEDIA)
-                    .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
-                    .build(),
-                false
-            )
-            .setSeekBackIncrementMs(5000)
-            .setSeekForwardIncrementMs(5000)
-            .build()
-
-        player.apply {
-            addListener(this@MusicService)
-            sleepTimer = SleepTimer(scope, this)
-            addListener(sleepTimer)
-            addAnalyticsListener(PlaybackStatsListener(false, this@MusicService))
-        }
+        player =
+            ExoPlayer
+                .Builder(this)
+                .setMediaSourceFactory(createMediaSourceFactory())
+                .setRenderersFactory(createRenderersFactory())
+                .setHandleAudioBecomingNoisy(true)
+                .setWakeMode(C.WAKE_MODE_NETWORK)
+                .setAudioAttributes(
+                    AudioAttributes
+                        .Builder()
+                        .setUsage(C.USAGE_MEDIA)
+                        .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
+                        .build(),
+                    false,
+                ).setSeekBackIncrementMs(5000)
+                .setSeekForwardIncrementMs(5000)
+                .setDeviceVolumeControlEnabled(true)
+                .build()
+                .apply {
+                    addListener(this@MusicService)
+                    sleepTimer = SleepTimer(scope, this)
+                    addListener(sleepTimer)
+                    addAnalyticsListener(PlaybackStatsListener(false, this@MusicService))
+                    setOffloadEnabled(dataStore.get(AudioOffload, false))
+                }
 
         audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
         setupAudioFocusRequest()
@@ -345,32 +343,24 @@ class MusicService :
             toggleStartRadio = ::toggleStartRadio
             toggleLibrary = ::toggleLibrary
         }
-        
         mediaSession =
-            MediaLibrarySession.Builder(this, player, mediaLibrarySessionCallback)
+            MediaLibrarySession
+                .Builder(this, player, mediaLibrarySessionCallback)
                 .setSessionActivity(
                     PendingIntent.getActivity(
                         this,
                         0,
                         Intent(this, MainActivity::class.java),
-                        PendingIntent.FLAG_IMMUTABLE
-                    )
-                )
-                .setBitmapLoader(CoilBitmapLoader(this, scope))
+                        PendingIntent.FLAG_IMMUTABLE,
+                    ),
+                ).setBitmapLoader(CoilBitmapLoader(this, scope))
                 .build()
-
-        scope.launch {
-            val volume = dataStore.get(PlayerVolumeKey, 1f).coerceIn(0f, 1f)
-            playerVolume.value = volume
-        }
-
-        scope.launch {
-            player.repeatMode = dataStore.get(RepeatModeKey, REPEAT_MODE_OFF)
-        }
+        player.repeatMode = dataStore.get(RepeatModeKey, REPEAT_MODE_OFF)
 
         val sessionToken = SessionToken(this, ComponentName(this, MusicService::class.java))
         val controllerFuture = MediaController.Builder(this, sessionToken).buildAsync()
         controllerFuture.addListener({ controllerFuture.get() }, MoreExecutors.directExecutor())
+        playerVolume = MutableStateFlow(dataStore.get(PlayerVolumeKey, 1f).coerceIn(0f, 1f))
 
         connectivityManager = getSystemService()!!
         connectivityObserver = NetworkConnectivityObserver(this)
