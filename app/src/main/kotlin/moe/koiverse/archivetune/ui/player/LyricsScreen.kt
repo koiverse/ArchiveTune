@@ -6,6 +6,14 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.ui.graphics.lerp
+import kotlin.math.floor
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -196,7 +204,7 @@ fun LyricsScreen(
     val fallbackColor = MaterialTheme.colorScheme.surface.toArgb()
 
     LaunchedEffect(mediaMetadata.id, playerBackground) {
-        if (playerBackground == PlayerBackgroundStyle.GRADIENT || playerBackground == PlayerBackgroundStyle.COLORING || playerBackground == PlayerBackgroundStyle.BLUR_GRADIENT || playerBackground == PlayerBackgroundStyle.GLOW) {
+        if (playerBackground == PlayerBackgroundStyle.GRADIENT || playerBackground == PlayerBackgroundStyle.COLORING || playerBackground == PlayerBackgroundStyle.BLUR_GRADIENT || playerBackground == PlayerBackgroundStyle.GLOW || playerBackground == PlayerBackgroundStyle.GLOW_ANIMATED) {
             if (mediaMetadata.thumbnailUrl != null) {
                 val cachedColors = gradientColorsCache[mediaMetadata.id]
                 if (cachedColors != null) {
@@ -252,6 +260,7 @@ fun LyricsScreen(
         PlayerBackgroundStyle.COLORING -> Color.White
         PlayerBackgroundStyle.BLUR_GRADIENT -> Color.White
         PlayerBackgroundStyle.GLOW -> Color.White
+        PlayerBackgroundStyle.GLOW_ANIMATED -> Color.White
         PlayerBackgroundStyle.CUSTOM -> Color.White
     }
 
@@ -262,6 +271,7 @@ fun LyricsScreen(
         PlayerBackgroundStyle.COLORING -> Color.Black
         PlayerBackgroundStyle.BLUR_GRADIENT -> Color.Black
         PlayerBackgroundStyle.GLOW -> Color.Black
+        PlayerBackgroundStyle.GLOW_ANIMATED -> Color.Black
         PlayerBackgroundStyle.CUSTOM -> Color.Black
     }
 
@@ -486,6 +496,229 @@ fun LyricsScreen(
                                         }
                                     }
                             ) {}
+                        }
+                    }
+                }
+                PlayerBackgroundStyle.GLOW_ANIMATED -> {
+                    AnimatedContent(
+                        targetState = gradientColors,
+                        transitionSpec = {
+                            fadeIn(tween(1000)) togetherWith fadeOut(tween(1000))
+                        }
+                    ) { colors ->
+                        if (colors.isNotEmpty()) {
+                            val infiniteTransition = rememberInfiniteTransition(label = "glow_anim")
+                            val phase1 by infiniteTransition.animateFloat(
+                                initialValue = 0f,
+                                targetValue = 1f,
+                                animationSpec = infiniteRepeatable(
+                                    animation = tween(8000, easing = LinearEasing),
+                                    repeatMode = RepeatMode.Reverse
+                                ),
+                                label = "phase1"
+                            )
+                            val phase2 by infiniteTransition.animateFloat(
+                                initialValue = 0f,
+                                targetValue = 1f,
+                                animationSpec = infiniteRepeatable(
+                                    animation = tween(11000, easing = LinearEasing),
+                                    repeatMode = RepeatMode.Reverse
+                                ),
+                                label = "phase2"
+                            )
+                            val phase3 by infiniteTransition.animateFloat(
+                                initialValue = 0f,
+                                targetValue = 1f,
+                                animationSpec = infiniteRepeatable(
+                                    animation = tween(13000, easing = LinearEasing),
+                                    repeatMode = RepeatMode.Reverse
+                                ),
+                                label = "phase3"
+                            )
+
+                            // Color animations: Use continuous float progress and interpolate manually
+                            // to ensure absolute smoothness without snapping.
+                            val colorProgress1 by infiniteTransition.animateFloat(
+                                initialValue = 0f,
+                                targetValue = 1f,
+                                animationSpec = infiniteRepeatable(
+                                    animation = tween(20000, easing = LinearEasing),
+                                    repeatMode = RepeatMode.Restart
+                                ),
+                                label = "colorProgress1"
+                            )
+
+                            val colorProgress2 by infiniteTransition.animateFloat(
+                                initialValue = 0f,
+                                targetValue = 1f,
+                                animationSpec = infiniteRepeatable(
+                                    animation = tween(23000, easing = LinearEasing),
+                                    repeatMode = RepeatMode.Restart
+                                ),
+                                label = "colorProgress2"
+                            )
+
+                            val colorProgress3 by infiniteTransition.animateFloat(
+                                initialValue = 0f,
+                                targetValue = 1f,
+                                animationSpec = infiniteRepeatable(
+                                    animation = tween(27000, easing = LinearEasing),
+                                    repeatMode = RepeatMode.Restart
+                                ),
+                                label = "colorProgress3"
+                            )
+                            
+                            val colorProgress4 by infiniteTransition.animateFloat(
+                                initialValue = 0f,
+                                targetValue = 1f,
+                                animationSpec = infiniteRepeatable(
+                                    animation = tween(25000, easing = LinearEasing),
+                                    repeatMode = RepeatMode.Restart
+                                ),
+                                label = "colorProgress4"
+                            )
+
+                             val colorProgress5 by infiniteTransition.animateFloat(
+                                initialValue = 0f,
+                                targetValue = 1f,
+                                animationSpec = infiniteRepeatable(
+                                    animation = tween(22000, easing = LinearEasing),
+                                    repeatMode = RepeatMode.Restart
+                                ),
+                                label = "colorProgress5"
+                            )
+
+                            // Helper to interpolate with offset
+                            fun getColorAt(progress: Float, offset: Int): Color {
+                                if (colors.isEmpty()) return Color.Transparent
+                                val size = colors.size
+                                // Add offset to shift start color
+                                val rawProgress = progress * size + offset
+                                val index = rawProgress.toInt() % size
+                                val nextIndex = (index + 1) % size
+                                val fraction = rawProgress - floor(rawProgress)
+                                return lerp(colors[index], colors[nextIndex], fraction)
+                            }
+                            
+                            // Calculate colors for this frame
+                            val color1 = getColorAt(colorProgress1, 0)
+                            // Use offsets to ensure blobs start with different colors
+                            val color2 = getColorAt(colorProgress2, 1) 
+                            val color3 = getColorAt(colorProgress3, 2)
+                            // Reverse logic for variety or just different speed/offset
+                            // For simplicity, just use forward with different offset
+                            val color4 = getColorAt(colorProgress4, 0) // Reuse offset 0 but different speed
+                            val color5 = getColorAt(colorProgress5, 3)
+
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .drawBehind {
+                                        val width = size.width
+                                        val height = size.height
+
+                                        if (colors.size >= 3) {
+                                            // Dynamic mesh gradient
+                                            // Blob 1: Top Left - moves right and down
+                                            drawRect(
+                                                brush = Brush.radialGradient(
+                                                    colors = listOf(
+                                                        color1.copy(alpha = 0.7f),
+                                                        color1.copy(alpha = 0.5f),
+                                                        color1.copy(alpha = 0.2f),
+                                                        Color.Transparent
+                                                    ),
+                                                    center = Offset(
+                                                        width * (0.15f + phase1 * 0.15f),
+                                                        height * (0.15f + phase2 * 0.1f)
+                                                    ),
+                                                    radius = width * (0.8f + phase3 * 0.1f)
+                                                )
+                                            )
+
+                                            // Blob 2: Top Right - moves left and down
+                                            drawRect(
+                                                brush = Brush.radialGradient(
+                                                    colors = listOf(
+                                                        color2.copy(alpha = 0.65f),
+                                                        color2.copy(alpha = 0.45f),
+                                                        color2.copy(alpha = 0.18f),
+                                                        Color.Transparent
+                                                    ),
+                                                    center = Offset(
+                                                        width * (0.85f - phase2 * 0.15f),
+                                                        height * (0.2f + phase1 * 0.1f)
+                                                    ),
+                                                    radius = width * (0.85f - phase3 * 0.05f)
+                                                )
+                                            )
+
+                                            // Blob 3: Middle Left - moves right
+                                            drawRect(
+                                                brush = Brush.radialGradient(
+                                                    colors = listOf(
+                                                        color3.copy(alpha = 0.6f),
+                                                        color3.copy(alpha = 0.4f),
+                                                        color3.copy(alpha = 0.15f),
+                                                        Color.Transparent
+                                                    ),
+                                                    center = Offset(
+                                                        width * (0.25f + phase3 * 0.1f),
+                                                        height * (0.5f + phase1 * 0.05f)
+                                                    ),
+                                                    radius = width * (0.75f + phase2 * 0.1f)
+                                                )
+                                            )
+
+                                            // Blob 4: Middle Right - moves left
+                                            drawRect(
+                                                brush = Brush.radialGradient(
+                                                    colors = listOf(
+                                                        color4.copy(alpha = 0.55f),
+                                                        colors[0].copy(alpha = 0.35f),
+                                                        colors[0].copy(alpha = 0.12f),
+                                                        Color.Transparent
+                                                    ),
+                                                    center = Offset(
+                                                        width * (0.75f - phase1 * 0.1f),
+                                                        height * (0.6f - phase2 * 0.05f)
+                                                    ),
+                                                    radius = width * (0.9f - phase3 * 0.1f)
+                                                )
+                                            )
+
+                                            // Blob 5: Bottom Center - moves up
+                                            drawRect(
+                                                brush = Brush.radialGradient(
+                                                    colors = listOf(
+                                                        color5.copy(alpha = 0.5f),
+                                                        colors[1].copy(alpha = 0.3f),
+                                                        colors[1].copy(alpha = 0.1f),
+                                                        Color.Transparent
+                                                    ),
+                                                    center = Offset(
+                                                        width * (0.5f + phase2 * 0.05f),
+                                                        height * (0.8f - phase1 * 0.1f)
+                                                    ),
+                                                    radius = width * (0.95f + phase3 * 0.05f)
+                                                )
+                                            )
+                                        } else {
+                                            // Fallback single blob breathing
+                                            drawRect(
+                                                brush = Brush.radialGradient(
+                                                    colors = listOf(
+                                                        colors[0].copy(alpha = 0.8f),
+                                                        colors[0].copy(alpha = 0.4f),
+                                                        Color.Transparent
+                                                    ),
+                                                    center = Offset(width * 0.5f, height * 0.4f),
+                                                    radius = width * (0.7f + phase1 * 0.1f)
+                                                )
+                                            )
+                                        }
+                                    }
+                            )
                         }
                     }
                 }
