@@ -1556,118 +1556,60 @@ fun PlayerBackground(
                     if (colors.isNotEmpty()) {
                         val infiniteTransition = rememberInfiniteTransition(label = "GlowAnimation")
 
-                        // Color cycling - rotate which color each gradient uses
-                        val colorRotation by infiniteTransition.animateFloat(
+                        val progress by infiniteTransition.animateFloat(
                             initialValue = 0f,
-                            targetValue = colors.size.toFloat(),
+                            targetValue = 1f,
                             animationSpec = infiniteRepeatable(
                                 animation = tween(20000, easing = LinearEasing),
                                 repeatMode = RepeatMode.Restart
                             ),
-                            label = "colorRotation"
+                            label = "glowProgress"
                         )
 
-                        // Gradient 1 - Sweeps across entire screen
-                        val offset1X by infiniteTransition.animateFloat(
-                            initialValue = 0.0f, targetValue = 1.0f,
-                            animationSpec = infiniteRepeatable(animation = tween(5000, easing = LinearEasing), repeatMode = RepeatMode.Reverse),
-                            label = "g1x"
-                        )
-                        val offset1Y by infiniteTransition.animateFloat(
-                            initialValue = 0.0f, targetValue = 0.5f,
-                            animationSpec = infiniteRepeatable(animation = tween(6000, easing = LinearEasing), repeatMode = RepeatMode.Reverse),
-                            label = "g1y"
-                        )
-                        val radius1 by infiniteTransition.animateFloat(
-                            initialValue = 0.8f, targetValue = 1.6f,
-                            animationSpec = infiniteRepeatable(animation = tween(4500, easing = LinearEasing), repeatMode = RepeatMode.Reverse),
-                            label = "g1r"
-                        )
+                        fun rotatedColorAt(index: Int): Color {
+                            val size = colors.size
+                            val idx = index.toFloat() + progress * size
+                            val a = kotlin.math.floor(idx).toInt() % size
+                            val b = (a + 1) % size
+                            val frac = idx - kotlin.math.floor(idx)
+                            return androidx.compose.ui.graphics.lerp(colors.getOrElse(a) { Color.DarkGray }, colors.getOrElse(b) { Color.DarkGray }, frac)
+                        }
 
-                        // Gradient 2 - Opposite direction
-                        val offset2X by infiniteTransition.animateFloat(
-                            initialValue = 1.0f, targetValue = 0.0f,
-                            animationSpec = infiniteRepeatable(animation = tween(5500, easing = LinearEasing), repeatMode = RepeatMode.Reverse),
-                            label = "g2x"
-                        )
-                        val offset2Y by infiniteTransition.animateFloat(
-                            initialValue = 0.5f, targetValue = 1.0f,
-                            animationSpec = infiniteRepeatable(animation = tween(6500, easing = LinearEasing), repeatMode = RepeatMode.Reverse),
-                            label = "g2y"
-                        )
-                        val radius2 by infiniteTransition.animateFloat(
-                            initialValue = 0.7f, targetValue = 1.5f,
-                            animationSpec = infiniteRepeatable(animation = tween(5000, easing = LinearEasing), repeatMode = RepeatMode.Reverse),
-                            label = "g2r"
-                        )
+                        fun oscillate(min: Float, max: Float, phase: Float, speed: Float = 1f): Float {
+                            val v = kotlin.math.sin(2f * kotlin.math.PI.toFloat() * (progress * speed + phase)).toFloat()
+                            return min + (max - min) * ((v + 1f) * 0.5f)
+                        }
 
-                        // Gradient 3 - Diagonal movement
-                        val offset3X by infiniteTransition.animateFloat(
-                            initialValue = 0.2f, targetValue = 0.8f,
-                            animationSpec = infiniteRepeatable(animation = tween(4800, easing = LinearEasing), repeatMode = RepeatMode.Reverse),
-                            label = "g3x"
-                        )
-                        val offset3Y by infiniteTransition.animateFloat(
-                            initialValue = 0.8f, targetValue = 0.2f,
-                            animationSpec = infiniteRepeatable(animation = tween(5200, easing = LinearEasing), repeatMode = RepeatMode.Reverse),
-                            label = "g3y"
-                        )
-                        val radius3 by infiniteTransition.animateFloat(
-                            initialValue = 0.6f, targetValue = 1.4f,
-                            animationSpec = infiniteRepeatable(animation = tween(4700, easing = LinearEasing), repeatMode = RepeatMode.Reverse),
-                            label = "g3r"
-                        )
+                        val color1 = rotatedColorAt(0)
+                        val color2 = rotatedColorAt(1)
+                        val color3 = rotatedColorAt(2)
+                        val color4 = rotatedColorAt(3)
+                        val color5 = rotatedColorAt(4)
+                        val color6 = rotatedColorAt(5)
 
-                        // Gradient 4 - Circular motion
-                        val offset4X by infiniteTransition.animateFloat(
-                            initialValue = 0.3f, targetValue = 0.7f,
-                            animationSpec = infiniteRepeatable(animation = tween(6200, easing = LinearEasing), repeatMode = RepeatMode.Reverse),
-                            label = "g4x"
-                        )
-                        val offset4Y by infiniteTransition.animateFloat(
-                            initialValue = 0.2f, targetValue = 0.8f,
-                            animationSpec = infiniteRepeatable(animation = tween(5800, easing = LinearEasing), repeatMode = RepeatMode.Reverse),
-                            label = "g4y"
-                        )
-                        val radius4 by infiniteTransition.animateFloat(
-                            initialValue = 0.9f, targetValue = 1.7f,
-                            animationSpec = infiniteRepeatable(animation = tween(5300, easing = LinearEasing), repeatMode = RepeatMode.Reverse),
-                            label = "g4r"
-                        )
+                        val o1x = oscillate(0.0f, 1.0f, 0.00f, 1.0f)
+                        val o1y = oscillate(0.0f, 0.5f, 0.07f, 1.1f)
+                        val r1 = oscillate(0.8f, 1.6f, 0.12f, 0.95f)
 
-                        // Gradient 5 - Vertical sweep
-                        val offset5X by infiniteTransition.animateFloat(
-                            initialValue = 0.4f, targetValue = 0.6f,
-                            animationSpec = infiniteRepeatable(animation = tween(7000, easing = LinearEasing), repeatMode = RepeatMode.Reverse),
-                            label = "g5x"
-                        )
-                        val offset5Y by infiniteTransition.animateFloat(
-                            initialValue = 0.0f, targetValue = 1.0f,
-                            animationSpec = infiniteRepeatable(animation = tween(6800, easing = LinearEasing), repeatMode = RepeatMode.Reverse),
-                            label = "g5y"
-                        )
-                        val radius5 by infiniteTransition.animateFloat(
-                            initialValue = 0.7f, targetValue = 1.5f,
-                            animationSpec = infiniteRepeatable(animation = tween(5500, easing = LinearEasing), repeatMode = RepeatMode.Reverse),
-                            label = "g5r"
-                        )
+                        val o2x = oscillate(1.0f, 0.0f, 0.2f, 1.05f)
+                        val o2y = oscillate(0.5f, 1.0f, 0.25f, 0.9f)
+                        val r2 = oscillate(0.7f, 1.5f, 0.18f, 1.02f)
 
-                        // Gradient 6 - Horizontal sweep
-                        val offset6X by infiniteTransition.animateFloat(
-                            initialValue = 0.0f, targetValue = 1.0f,
-                            animationSpec = infiniteRepeatable(animation = tween(7500, easing = LinearEasing), repeatMode = RepeatMode.Reverse),
-                            label = "g6x"
-                        )
-                        val offset6Y by infiniteTransition.animateFloat(
-                            initialValue = 0.5f, targetValue = 0.7f,
-                            animationSpec = infiniteRepeatable(animation = tween(6300, easing = LinearEasing), repeatMode = RepeatMode.Reverse),
-                            label = "g6y"
-                        )
-                        val radius6 by infiniteTransition.animateFloat(
-                            initialValue = 0.8f, targetValue = 1.8f,
-                            animationSpec = infiniteRepeatable(animation = tween(5700, easing = LinearEasing), repeatMode = RepeatMode.Reverse),
-                            label = "g6r"
-                        )
+                        val o3x = oscillate(0.2f, 0.8f, 0.33f, 0.98f)
+                        val o3y = oscillate(0.8f, 0.2f, 0.36f, 1.01f)
+                        val r3 = oscillate(0.6f, 1.4f, 0.29f, 0.97f)
+
+                        val o4x = oscillate(0.3f, 0.7f, 0.44f, 1.03f)
+                        val o4y = oscillate(0.2f, 0.8f, 0.41f, 0.99f)
+                        val r4 = oscillate(0.9f, 1.7f, 0.47f, 1.0f)
+
+                        val o5x = oscillate(0.4f, 0.6f, 0.55f, 0.95f)
+                        val o5y = oscillate(0.0f, 1.0f, 0.51f, 1.04f)
+                        val r5 = oscillate(0.7f, 1.5f, 0.58f, 1.06f)
+
+                        val o6x = oscillate(0.0f, 1.0f, 0.66f, 1.08f)
+                        val o6y = oscillate(0.5f, 0.7f, 0.62f, 0.96f)
+                        val r6 = oscillate(0.8f, 1.8f, 0.69f, 1.01f)
 
                         Box(
                             modifier = Modifier
@@ -1677,49 +1619,35 @@ fun PlayerBackground(
                                     val height = size.height
                                     val baseColor = Color(0xFF050505)
 
-                                    // Dynamically rotate colors based on animation
-                                    val rotationIndex = colorRotation.toInt() % colors.size
-                                    fun getRotatedColor(index: Int): Color {
-                                        val actualIndex = (index + rotationIndex) % colors.size
-                                        return colors.getOrElse(actualIndex) { Color.DarkGray }
-                                    }
-
-                                    val color1 = getRotatedColor(0)
-                                    val color2 = getRotatedColor(1)
-                                    val color3 = getRotatedColor(2)
-                                    val color4 = getRotatedColor(3)
-                                    val color5 = getRotatedColor(4)
-                                    val color6 = getRotatedColor(5)
-
                                     val brush1 = Brush.radialGradient(
                                         colors = listOf(color1.copy(alpha = 0.85f), color1.copy(alpha = 0.5f), Color.Transparent),
-                                        center = Offset(width * offset1X, height * offset1Y),
-                                        radius = width * radius1
+                                        center = Offset(width * o1x, height * o1y),
+                                        radius = width * r1
                                     )
                                     val brush2 = Brush.radialGradient(
                                         colors = listOf(color2.copy(alpha = 0.8f), color2.copy(alpha = 0.45f), Color.Transparent),
-                                        center = Offset(width * offset2X, height * offset2Y),
-                                        radius = width * radius2
+                                        center = Offset(width * o2x, height * o2y),
+                                        radius = width * r2
                                     )
                                     val brush3 = Brush.radialGradient(
                                         colors = listOf(color3.copy(alpha = 0.75f), color3.copy(alpha = 0.4f), Color.Transparent),
-                                        center = Offset(width * offset3X, height * offset3Y),
-                                        radius = width * radius3
+                                        center = Offset(width * o3x, height * o3y),
+                                        radius = width * r3
                                     )
                                     val brush4 = Brush.radialGradient(
                                         colors = listOf(color4.copy(alpha = 0.7f), color4.copy(alpha = 0.35f), Color.Transparent),
-                                        center = Offset(width * offset4X, height * offset4Y),
-                                        radius = width * radius4
+                                        center = Offset(width * o4x, height * o4y),
+                                        radius = width * r4
                                     )
                                     val brush5 = Brush.radialGradient(
                                         colors = listOf(color5.copy(alpha = 0.65f), color5.copy(alpha = 0.3f), Color.Transparent),
-                                        center = Offset(width * offset5X, height * offset5Y),
-                                        radius = width * radius5
+                                        center = Offset(width * o5x, height * o5y),
+                                        radius = width * r5
                                     )
                                     val brush6 = Brush.radialGradient(
                                         colors = listOf(color6.copy(alpha = 0.6f), color6.copy(alpha = 0.25f), Color.Transparent),
-                                        center = Offset(width * offset6X, height * offset6Y),
-                                        radius = width * radius6
+                                        center = Offset(width * o6x, height * o6y),
+                                        radius = width * r6
                                     )
 
                                     onDrawBehind {
