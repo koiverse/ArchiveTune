@@ -299,17 +299,7 @@ class MusicService :
             reportException(e)
         }
 
-        setMediaNotificationProvider(
-            DefaultMediaNotificationProvider(
-                this,
-                { NOTIFICATION_ID },
-                CHANNEL_ID,
-                R.string.music_player
-            )
-                .apply {
-                    setSmallIcon(R.drawable.small_icon)
-                },
-        )
+        
         player =
             ExoPlayer
                 .Builder(this)
@@ -356,6 +346,16 @@ class MusicService :
                     ),
                 ).setBitmapLoader(CoilBitmapLoader(this, scope))
                 .build()
+        setMediaNotificationProvider(
+            DefaultMediaNotificationProvider(
+                this,
+                { NOTIFICATION_ID },
+                CHANNEL_ID,
+                R.string.music_player
+            ).apply {
+                setSmallIcon(R.drawable.small_icon)
+            }
+        )
         player.repeatMode = dataStore.get(RepeatModeKey, REPEAT_MODE_OFF)
 
         val sessionToken = SessionToken(this, ComponentName(this, MusicService::class.java))
