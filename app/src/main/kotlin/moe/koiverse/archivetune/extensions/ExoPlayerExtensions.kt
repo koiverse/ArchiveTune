@@ -5,11 +5,10 @@ import timber.log.Timber
 
 fun ExoPlayer.setOffloadEnabled(enabled: Boolean) {
     try {
-        // Try to call platform API if present (some ExoPlayer versions expose this)
         val method = this::class.java.getMethod("setOffloadEnabled", Boolean::class.javaPrimitiveType)
         method.invoke(this, enabled)
     } catch (e: NoSuchMethodException) {
-        // API not present — ignore silently
+        Timber.tag("ExoPlayerExtensions").v("setOffloadEnabled method not found")
     } catch (t: Throwable) {
         Timber.tag("ExoPlayerExtensions").v(t, "setOffloadEnabled reflection failed")
     }
