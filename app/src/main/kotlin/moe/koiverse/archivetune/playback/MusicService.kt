@@ -347,29 +347,27 @@ class MusicService :
         }
         
         mediaSession =
-            MediaLibrarySession
-                .Builder(this, player, mediaLibrarySessionCallback)
+            MediaLibrarySession.Builder(this, player, mediaLibrarySessionCallback)
                 .setSessionActivity(
                     PendingIntent.getActivity(
                         this,
                         0,
                         Intent(this, MainActivity::class.java),
-                        PendingIntent.FLAG_IMMUTABLE,
-                    ),
-                ).setBitmapLoader(CoilBitmapLoader(this, scope))
+                        PendingIntent.FLAG_IMMUTABLE
+                    )
+                )
+                .setBitmapLoader(CoilBitmapLoader(this, scope))
                 .build()
-        // Initialize volume asynchronously
+
         scope.launch {
             val volume = dataStore.get(PlayerVolumeKey, 1f).coerceIn(0f, 1f)
             playerVolume.value = volume
         }
 
-        // Initialize repeat mode asynchronously
         scope.launch {
             player.repeatMode = dataStore.get(RepeatModeKey, REPEAT_MODE_OFF)
         }
 
-        // Keep a connected controller so that notification works
         val sessionToken = SessionToken(this, ComponentName(this, MusicService::class.java))
         val controllerFuture = MediaController.Builder(this, sessionToken).buildAsync()
         controllerFuture.addListener({ controllerFuture.get() }, MoreExecutors.directExecutor())
