@@ -53,19 +53,32 @@ constructor(
 
     override fun onConnect(
         session: MediaSession,
-        controller: MediaSession.ControllerInfo,
+        controller: MediaSession.ControllerInfo
     ): MediaSession.ConnectionResult {
-        val connectionResult = super.onConnect(session, controller)
-        return MediaSession.ConnectionResult.accept(
-            connectionResult.availableSessionCommands
+
+        val sessionCommands =
+            MediaSession.ConnectionResult.DEFAULT_SESSION_COMMANDS
                 .buildUpon()
                 .add(MediaSessionConstants.CommandToggleLike)
                 .add(MediaSessionConstants.CommandToggleStartRadio)
                 .add(MediaSessionConstants.CommandToggleLibrary)
                 .add(MediaSessionConstants.CommandToggleShuffle)
                 .add(MediaSessionConstants.CommandToggleRepeatMode)
-                .build(),
-            connectionResult.availablePlayerCommands,
+                .build()
+
+        val playerCommands =
+            MediaSession.ConnectionResult.DEFAULT_PLAYER_COMMANDS
+                .buildUpon()
+                .add(Player.COMMAND_PLAY_PAUSE)
+                .add(Player.COMMAND_SEEK_TO_NEXT)
+                .add(Player.COMMAND_SEEK_TO_PREVIOUS)
+                .add(Player.COMMAND_SET_REPEAT_MODE)
+                .add(Player.COMMAND_SET_SHUFFLE_MODE)
+                .build()
+
+        return MediaSession.ConnectionResult.accept(
+            sessionCommands,
+            playerCommands
         )
     }
 
@@ -79,8 +92,7 @@ constructor(
             MediaSessionConstants.ACTION_TOGGLE_LIKE -> toggleLike()
             MediaSessionConstants.ACTION_TOGGLE_START_RADIO -> toggleStartRadio()
             MediaSessionConstants.ACTION_TOGGLE_LIBRARY -> toggleLibrary()
-            MediaSessionConstants.ACTION_TOGGLE_SHUFFLE -> session.player.shuffleModeEnabled =
-                !session.player.shuffleModeEnabled
+            MediaSessionConstants.ACTION_TOGGLE_SHUFFLE -> session.player.setShuffleModeEnabled(!session.player.shuffleModeEnabled)
 
             MediaSessionConstants.ACTION_TOGGLE_REPEAT_MODE -> session.player.toggleRepeatMode()
         }
@@ -92,8 +104,13 @@ constructor(
         controller: MediaSession.ControllerInfo,
         playerCommand: Int
     ): Int {
-        return SessionResult.RESULT_SUCCESS
+        return if (session.player.isCommandAvailable(playerCommand)) {
+            SessionResult.RESULT_SUCCESS
+        } else {
+            SessionResult.RESULT_ERROR_NOT_SUPPORTED
+        }
     }
+
 
     override fun onPlaybackResumption(
         mediaSession: MediaSession,
