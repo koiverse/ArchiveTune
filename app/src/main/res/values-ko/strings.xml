@@ -561,9 +561,4 @@
     <string name="update_notification_title">업데이트 가능</string>
     <string name="update_notification_text">ArchiveTune %s이(가) 출시되었습니다</string>
     <string name="download">다운로드</string>
-    <string name="lyrics_line_spacing"></string>
-    <string name="hide_video"></string>
-    <string name="similar_content"></string>
-    <string name="queue_continue_playing"></string>
-    <string name="queue_autoplaying_similar"></string>
 </resources>

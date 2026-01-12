@@ -561,8 +561,4 @@
     <string name="update_notification_text">ArchiveTune %s sekarang tersedia</string>
     <string name="download">Unduh</string>
     <string name="lyrics_line_spacing">Jarak antar baris teks lirik</string>
-    <string name="hide_video"></string>
-    <string name="queue_continue_playing"></string>
-    <string name="queue_autoplaying_similar"></string>
-    <string name="similar_content"></string>
 </resources>

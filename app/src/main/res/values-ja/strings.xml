@@ -564,5 +564,4 @@
     <string name="queue_autoplaying_similar">類似した音楽の自動再生</string>
     <string name="lyrics_line_spacing">歌詞の行間</string>
     <string name="hide_video">ミュージックビデオを非表示にする</string>
-    <string name="similar_content"></string>
 </resources>
