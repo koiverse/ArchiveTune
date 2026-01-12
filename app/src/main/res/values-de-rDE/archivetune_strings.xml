@@ -181,17 +181,4 @@
     <string name="settings_section_player_content">Inhalt von Spieler &amp;</string>
     <string name="settings_section_storage">Speicher &amp; Daten</string>
     <string name="settings_section_system">System &amp; Über</string>
-    <string name="choose_color"></string>
-    <string name="resume_autoscroll"></string>
-    <string name="assign_tags"></string>
-    <string name="lyrics_text_size"></string>
-    <string name="tap_to_change_color"></string>
-    <string name="tag_name"></string>
-    <string name="manage_tags"></string>
-    <string name="add_tag"></string>
-    <string name="manage_playlist_tags_desc"></string>
-    <string name="manage_playlist_tags"></string>
-    <string name="tag_color"></string>
-    <string name="edit_tag"></string>
-    <string name="no_tags_available"></string>
 </resources>
