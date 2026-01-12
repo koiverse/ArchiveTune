@@ -2,6 +2,11 @@ package moe.koiverse.archivetune.extensions.system
 
 import android.content.Context
 import moe.koiverse.archivetune.models.MediaMetadata
+import moe.koiverse.archivetune.di.ExtensionManagerEntryPoint
+import moe.koiverse.archivetune.extensions.system.ui.UIConfig
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.decodeFromString
+import dagger.hilt.android.EntryPointAccessors
 import org.mozilla.javascript.Context as RhinoContext
 import org.mozilla.javascript.Function
 import org.mozilla.javascript.Scriptable
@@ -26,7 +31,7 @@ class ExtensionRuntime(
             val c = RhinoContext.enter()
             cx = c
             scope = c.initSafeStandardObjects()
-            val host = HostApi(appContext, manifest.id, settings)
+            val host = HostApi(appContext, manifest, settings, baseDir)
             val wrappedHost = RhinoContext.javaToJS(host, scope)
             ScriptableObject.putProperty(scope, "ArchiveTune", wrappedHost)
 
@@ -90,11 +95,12 @@ class ExtensionRuntime(
 
 class HostApi(
     private val context: Context,
-    private val extensionId: String,
-    private val settings: ExtensionSettingsStore
+    private val manifest: ExtensionManifest,
+    private val settings: ExtensionSettingsStore,
+    private val baseDir: File
 ) {
     fun log(message: String) {
-        android.util.Log.i("Extension-$extensionId", message.take(1000))
+        android.util.Log.i("Extension-${manifest.id}", message.take(1000))
     }
 
     fun getBoolean(key: String, default: Boolean): Boolean {
@@ -103,6 +109,21 @@ class HostApi(
 
     fun getInt(key: String, default: Int): Int {
         return settings.getInt(key, default)
+    }
+
+    fun setUI(route: String, jsonConfig: String) {
+        if (!manifest.permissions.contains(ExtensionPermission.UIOverride.name)) return
+        val entryPoint = EntryPointAccessors.fromApplication(context, ExtensionManagerEntryPoint::class.java)
+        val manager = entryPoint.extensionManager()
+        val cfg = Json { ignoreUnknownKeys = true }.decodeFromString<UIConfig>(jsonConfig)
+        manager.setUiConfig(manifest.id, route, cfg, baseDir)
+    }
+
+    fun clearUI(route: String) {
+        if (!manifest.permissions.contains(ExtensionPermission.UIOverride.name)) return
+        val entryPoint = EntryPointAccessors.fromApplication(context, ExtensionManagerEntryPoint::class.java)
+        val manager = entryPoint.extensionManager()
+        manager.clearUiConfig(route)
     }
 }
 
