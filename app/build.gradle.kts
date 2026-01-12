@@ -203,7 +203,6 @@ dependencies {
     implementation(libs.serialization.json)
     implementation(libs.rhino.android) {
         exclude(group = "org.mozilla", module = "rhino")
-        exclude(group = "org.mozilla", module = "rhino-runtime")
     }
 
     implementation(project(":innertube"))
@@ -248,5 +247,4 @@ tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach 
 
 configurations.all {
     exclude(group = "org.mozilla", module = "rhino")
-    exclude(group = "org.mozilla", module = "rhino-runtime")
 }
