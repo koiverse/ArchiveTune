@@ -23,6 +23,8 @@ import java.util.zip.ZipEntry
 import java.io.File
 import javax.inject.Inject
 import javax.inject.Singleton
+import moe.koiverse.archivetune.extensions.system.ui.UIConfig
+import kotlinx.coroutines.flow.update
 
 data class InstalledExtension(
     val manifest: ExtensionManifest,
@@ -42,6 +44,8 @@ class ExtensionManager @Inject constructor(
     val installed: StateFlow<List<InstalledExtension>> = _installed.asStateFlow()
 
     private val runtimes = mutableMapOf<String, ExtensionRuntime>()
+    private val uiConfigs = MutableStateFlow<Map<String, Pair<String, UIConfigAndBase>>>(emptyMap())
+    data class UIConfigAndBase(val config: UIConfig, val base: File)
 
     private fun rootDir(): File {
         val parent = context.filesDir.parentFile ?: context.filesDir
@@ -128,6 +132,7 @@ class ExtensionManager @Inject constructor(
     fun unload(id: String) {
         val rt = runtimes.remove(id) ?: return
         runCatching { rt.unload() }
+        clearUiConfigsForExtension(id)
     }
 
     fun enable(id: String) {
@@ -157,6 +162,24 @@ class ExtensionManager @Inject constructor(
 
     fun onQueueBuild(title: String?) {
         runtimes.values.forEach { runCatching { it.onQueueBuild(title) } }
+    }
+    
+    fun setUiConfig(extensionId: String, route: String, config: UIConfig, baseDir: File) {
+        uiConfigs.update { it.toMutableMap().apply { set(route, extensionId to UIConfigAndBase(config, baseDir)) } }
+    }
+    
+    fun clearUiConfig(route: String) {
+        uiConfigs.update { it.toMutableMap().apply { remove(route) } }
+    }
+    
+    fun clearUiConfigsForExtension(extensionId: String) {
+        uiConfigs.update {
+            it.filterValues { pair -> pair.first != extensionId }
+        }
+    }
+    
+    fun uiConfig(route: String): Pair<String, UIConfigAndBase>? {
+        return uiConfigs.value[route]
     }
 
     private fun flagKey(id: String) = "ext_enabled_$id"
