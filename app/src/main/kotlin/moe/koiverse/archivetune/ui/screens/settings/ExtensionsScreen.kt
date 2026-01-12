@@ -8,33 +8,11 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
-import androidx.compose.material3.Button
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Switch
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -55,7 +33,7 @@ import moe.koiverse.archivetune.ui.utils.backToMain
 @Composable
 fun ExtensionsScreen(
     navController: NavController,
-    scrollBehavior: androidx.compose.material3.TopAppBarScrollBehavior
+    scrollBehavior: TopAppBarScrollBehavior
 ) {
     val context = LocalContext.current
     val entryPoint = EntryPointAccessors.fromApplication(
@@ -64,35 +42,65 @@ fun ExtensionsScreen(
     )
     val manager = entryPoint.extensionManager()
     val extensions by manager.installed.collectAsState(emptyList())
-
     var menuExpanded by remember { mutableStateOf(false) }
 
     val installLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenDocument()
     ) { uri: Uri? ->
-        if (uri != null) {
-            val result = managerInstallFromDevice(manager, uri)
-            if (result.isSuccess) {
-                Toast.makeText(context, "Extension installed", Toast.LENGTH_SHORT).show()
-            } else {
-                Toast.makeText(context, "Installation failed", Toast.LENGTH_LONG).show()
-            }
-        }
+        uri ?: return@rememberLauncherForActivityResult
+        val result = managerInstallFromDevice(manager, uri)
+        Toast.makeText(
+            context,
+            if (result.isSuccess) "Extension installed" else "Installation failed",
+            Toast.LENGTH_LONG
+        ).show()
     }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 16.dp)
-    ) {
+    Scaffold(
+        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+        topBar = {
+            TopAppBar(
+                title = { Text(stringResource(R.string.extensions)) },
+                navigationIcon = {
+                    M3IconButton(
+                        onClick = navController::navigateUp,
+                        onLongClick = navController::backToMain
+                    ) {
+                        Icon(painterResource(R.drawable.arrow_back), null)
+                    }
+                },
+                actions = {
+                    IconButton(onClick = { menuExpanded = true }) {
+                        Icon(painterResource(R.drawable.more_vert), null)
+                    }
+                    DropdownMenu(
+                        expanded = menuExpanded,
+                        onDismissRequest = { menuExpanded = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.install_from_device)) },
+                            onClick = {
+                                menuExpanded = false
+                                installLauncher.launch(arrayOf("application/zip"))
+                            },
+                            leadingIcon = {
+                                Icon(painterResource(R.drawable.restore), null)
+                            }
+                        )
+                    }
+                },
+                scrollBehavior = scrollBehavior
+            )
+        }
+    ) { padding ->
         if (extensions.isEmpty()) {
             Box(
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding),
                 contentAlignment = Alignment.Center
             ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     val visible = remember { mutableStateOf(false) }
                     LaunchedEffect(Unit) { visible.value = true }
 
@@ -129,9 +137,14 @@ fun ExtensionsScreen(
                 }
             }
         } else {
-            Column {
-                Spacer(Modifier.height(16.dp))
-                extensions.forEach { ext ->
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+                    .padding(horizontal = 16.dp),
+                contentPadding = PaddingValues(vertical = 12.dp)
+            ) {
+                items(extensions, key = { it.manifest.id }) { ext ->
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -147,7 +160,7 @@ fun ExtensionsScreen(
                                         .data(iconFile)
                                         .build(),
                                     contentDescription = null,
-                                    modifier = Modifier.height(40.dp)
+                                    modifier = Modifier.size(40.dp)
                                 )
                             } else {
                                 Icon(
@@ -188,27 +201,24 @@ fun ExtensionsScreen(
                             Switch(
                                 checked = ext.enabled,
                                 onCheckedChange = {
-                                    if (it) {
-                                        manager.enable(ext.manifest.id)
-                                    } else {
-                                        manager.disable(ext.manifest.id)
-                                    }
+                                    if (it) manager.enable(ext.manifest.id)
+                                    else manager.disable(ext.manifest.id)
                                 }
                             )
-                            
+
                             IconButton(
                                 onClick = {
                                     val result = manager.delete(ext.manifest.id)
-                                    if (result.isSuccess) {
-                                        Toast.makeText(context, "Extension deleted", Toast.LENGTH_SHORT).show()
-                                    } else {
-                                        Toast.makeText(context, "Delete failed", Toast.LENGTH_LONG).show()
-                                    }
+                                    Toast.makeText(
+                                        context,
+                                        if (result.isSuccess) "Extension deleted" else "Delete failed",
+                                        Toast.LENGTH_LONG
+                                    ).show()
                                 }
                             ) {
                                 Icon(
                                     painter = painterResource(R.drawable.delete),
-                                    contentDescription = null
+                                    null
                                 )
                             }
                         }
@@ -217,44 +227,9 @@ fun ExtensionsScreen(
             }
         }
     }
-
-    TopAppBar(
-        title = { Text(stringResource(R.string.extensions)) },
-        navigationIcon = {
-            M3IconButton(
-                onClick = navController::navigateUp,
-                onLongClick = navController::backToMain
-            ) {
-                Icon(painterResource(R.drawable.arrow_back), null)
-            }
-        },
-        actions = {
-            IconButton(onClick = { menuExpanded = true }) {
-                Icon(painterResource(R.drawable.more_vert), null)
-            }
-            DropdownMenu(
-                expanded = menuExpanded,
-                onDismissRequest = { menuExpanded = false }
-            ) {
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.install_from_device)) },
-                    onClick = {
-                        menuExpanded = false
-                        installLauncher.launch(arrayOf("application/zip"))
-                    },
-                    leadingIcon = {
-                        Icon(painterResource(R.drawable.restore), null)
-                    }
-                )
-            }
-        },
-        scrollBehavior = scrollBehavior
-    )
 }
 
 private fun managerInstallFromDevice(
     manager: ExtensionManager,
     uri: Uri
-): Result<Unit> {
-    return manager.installFromZip(uri)
-}
+): Result<Unit> = manager.installFromZip(uri)
