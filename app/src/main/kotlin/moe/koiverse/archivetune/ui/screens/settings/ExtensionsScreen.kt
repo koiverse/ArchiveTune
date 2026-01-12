@@ -71,9 +71,7 @@ fun ExtensionsScreen(
         ActivityResultContracts.OpenDocument()
     ) { uri: Uri? ->
         if (uri != null) {
-            val result = runCatching {
-                managerInstallFromDevice(manager, uri)
-            }
+            val result = managerInstallFromDevice(manager, uri)
             if (result.isSuccess) {
                 Toast.makeText(context, "Extension installed", Toast.LENGTH_SHORT).show()
             } else {
@@ -257,6 +255,6 @@ fun ExtensionsScreen(
 private fun managerInstallFromDevice(
     manager: ExtensionManager,
     uri: Uri
-) {
-    manager.installFromZip(uri)
+): Result<Unit> {
+    return manager.installFromZip(uri)
 }
