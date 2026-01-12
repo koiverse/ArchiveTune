@@ -895,68 +895,6 @@ class MusicService :
                     .build(),
             ),
         )
-
-        val mediaItemsSnapshot = player.mediaItems.mapNotNull { it.metadata }
-        val currentMediaItemIndex = player.currentMediaItemIndex
-        val playWhenReady = player.playWhenReady
-
-        val prevIntent = Intent(this, MusicService::class.java).setAction(ACTION_PREVIOUS)
-        val nextIntent = Intent(this, MusicService::class.java).setAction(ACTION_NEXT)
-        val playIntent = Intent(this, MusicService::class.java).setAction(ACTION_PLAY)
-        val pauseIntent = Intent(this, MusicService::class.java).setAction(ACTION_PAUSE)
-        val toggleLikeIntent = Intent(this, MusicService::class.java).setAction(MediaSessionConstants.ACTION_TOGGLE_LIKE)
-        val toggleRepeatIntent = Intent(this, MusicService::class.java).setAction(MediaSessionConstants.ACTION_TOGGLE_REPEAT_MODE)
-
-        val prevPending = PendingIntent.getService(this, 0, prevIntent, PendingIntent.FLAG_IMMUTABLE)
-        val nextPending = PendingIntent.getService(this, 1, nextIntent, PendingIntent.FLAG_IMMUTABLE)
-        val playPending = PendingIntent.getService(this, 2, playIntent, PendingIntent.FLAG_IMMUTABLE)
-        val pausePending = PendingIntent.getService(this, 3, pauseIntent, PendingIntent.FLAG_IMMUTABLE)
-        val toggleLikePending = PendingIntent.getService(this, 4, toggleLikeIntent, PendingIntent.FLAG_IMMUTABLE)
-        val toggleRepeatPending = PendingIntent.getService(this, 5, toggleRepeatIntent, PendingIntent.FLAG_IMMUTABLE)
-
-        val title = currentMediaMetadata.value?.title ?: getString(R.string.music_player)
-        val artist = currentMediaMetadata.value?.artist ?: ""
-
-        val builder = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle(title)
-            .setContentText(artist)
-            .setSmallIcon(R.drawable.small_icon)
-            .setOngoing(player.playWhenReady && player.playbackState == Player.STATE_READY)
-            .setOnlyAlertOnce(true)
-            .setPriority(NotificationCompat.PRIORITY_LOW)
-            .setShowWhen(false)
-
-        builder.addAction(R.drawable.skip_previous, getString(R.string.previous), prevPending)
-
-        if (playWhenReady && player.playbackState == Player.STATE_READY) {
-            builder.addAction(R.drawable.pause, getString(R.string.pause), pausePending)
-        } else {
-            builder.addAction(R.drawable.play, getString(R.string.play), playPending)
-        }
-
-        builder.addAction(R.drawable.skip_next, getString(R.string.next), nextPending)
-        builder.addAction(if (currentSong.value?.song?.liked == true) R.drawable.favorite else R.drawable.favorite_border, getString(R.string.action_like), toggleLikePending)
-        builder.addAction(if (player.repeatMode == REPEAT_MODE_ONE) R.drawable.repeat_one_on else if (player.repeatMode == REPEAT_MODE_ALL) R.drawable.repeat_on else R.drawable.repeat, getString(R.string.repeat_mode), toggleRepeatPending)
-
-        val mediaStyle = androidx.media.app.NotificationCompat.MediaStyle()
-        mediaStyle.setShowActionsInCompactView(0,1,2)
-        builder.setStyle(mediaStyle)
-
-        val notification = builder.build()
-
-        try {
-            val nm = getSystemService(NotificationManager::class.java)
-            nm?.notify(NOTIFICATION_ID, notification)
-            if (player.mediaItemCount > 0 && player.currentMediaItem != null) {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    startForeground(NOTIFICATION_ID, notification, android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK)
-                } else {
-                    startForeground(NOTIFICATION_ID, notification)
-                }
-            }
-        } catch (e: Exception) {
-            reportException(e)
-        }
     }
 
     private suspend fun recoverSong(
@@ -2073,36 +2011,6 @@ class MusicService :
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         try {
-            val handled = when (intent?.action) {
-                ACTION_PLAY -> {
-                    player.play(); true
-                }
-                ACTION_PAUSE -> {
-                    player.pause(); true
-                }
-                ACTION_NEXT -> {
-                    player.seekToNextMediaItem(); true
-                }
-                ACTION_PREVIOUS -> {
-                    player.seekToPreviousMediaItem(); true
-                }
-                MediaSessionConstants.ACTION_TOGGLE_LIKE -> {
-                    toggleLike(); true
-                }
-                MediaSessionConstants.ACTION_TOGGLE_REPEAT_MODE -> {
-                    player.toggleRepeatMode(); true
-                }
-                MediaSessionConstants.ACTION_TOGGLE_SHUFFLE -> {
-                    player.shuffleModeEnabled = !player.shuffleModeEnabled; true
-                }
-                else -> false
-            }
-            if (handled) updateNotification()
-        } catch (e: Exception) {
-            reportException(e)
-        }
-
-        try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 val pending = PendingIntent.getActivity(
                     this,
@@ -2163,10 +2071,5 @@ class MusicService :
         const val PERSISTENT_PLAYER_STATE_FILE = "persistent_player_state.data"
         const val MAX_CONSECUTIVE_ERR = 5
         const val MIN_PRESENCE_UPDATE_INTERVAL = 20_000L
-
-        const val ACTION_PLAY = "ACTION_PLAY"
-        const val ACTION_PAUSE = "ACTION_PAUSE"
-        const val ACTION_NEXT = "ACTION_NEXT"
-        const val ACTION_PREVIOUS = "ACTION_PREVIOUS"
     }
 }
