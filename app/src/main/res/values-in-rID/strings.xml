@@ -563,5 +563,4 @@ ArchiveTune hanya akan mengekstrak token Anda, dan yang lainnya disimpan secara 
     <string name="update_notification_text">ArchiveTune %s sekarang tersedia</string>
     <string name="download">Unduh</string>
     <string name="lyrics_line_spacing">Jarak antar baris teks lirik</string>
-    <string name="similar_content">Konten terkait</string>
 </resources>
