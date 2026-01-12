@@ -201,7 +201,7 @@ dependencies {
     kapt(libs.hilt.compiler)
 
     implementation(libs.serialization.json)
-    implementation(libs.rhino)
+    implementation(libs.rhino.android)
 
     implementation(project(":innertube"))
     implementation(project(":kugou"))
