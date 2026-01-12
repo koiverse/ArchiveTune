@@ -181,6 +181,19 @@ class ExtensionManager @Inject constructor(
     fun uiConfig(route: String): Pair<String, UIConfigAndBase>? {
         return uiConfigs.value[route]
     }
+    
+    fun delete(id: String): Result<Unit> {
+        return runCatching {
+            disable(id)
+            clearUiConfigsForExtension(id)
+            val dir = rootDir().resolve(id)
+            if (dir.exists()) {
+                dir.deleteRecursively()
+            }
+            _installed.value = _installed.value.filterNot { it.manifest.id == id }
+            runtimes.remove(id)
+        }
+    }
 
     private fun flagKey(id: String) = "ext_enabled_$id"
 
@@ -197,4 +210,3 @@ class ExtensionManager @Inject constructor(
         }
     }
 }
-
