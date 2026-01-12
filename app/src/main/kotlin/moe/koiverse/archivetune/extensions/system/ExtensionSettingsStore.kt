@@ -7,6 +7,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.preferencesDataStoreFile
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
@@ -20,11 +21,21 @@ class ExtensionSettingsStore(
     context: Context,
     private val extensionId: String
 ) {
-    private val fileName = "ext_$extensionId.preferences_pb"
-    private val dataStore: DataStore<Preferences> = PreferenceDataStoreFactory.create(
-        corruptionHandler = ReplaceFileCorruptionHandler { emptyPreferences() },
-        produceFile = { context.preferencesDataStoreFile(fileName) }
-    )
+    private val dataStore: DataStore<Preferences> = getOrCreateStore(context, extensionId)
+
+    companion object {
+        private val stores = mutableMapOf<String, DataStore<Preferences>>()
+        private fun getOrCreateStore(context: Context, id: String): DataStore<Preferences> {
+            return synchronized(stores) {
+                stores.getOrPut(id) {
+                    PreferenceDataStoreFactory.create(
+                        corruptionHandler = ReplaceFileCorruptionHandler { emptyPreferences() },
+                        produceFile = { context.preferencesDataStoreFile("ext_$id") }
+                    )
+                }
+            }
+        }
+    }
 
     fun booleanFlow(key: String, default: Boolean): Flow<Boolean> {
         val k = booleanPreferencesKey(key)
@@ -33,6 +44,11 @@ class ExtensionSettingsStore(
 
     fun intFlow(key: String, default: Int): Flow<Int> {
         val k = intPreferencesKey(key)
+        return dataStore.data.map { it[k] ?: default }
+    }
+
+    fun stringFlow(key: String, default: String): Flow<String> {
+        val k = stringPreferencesKey(key)
         return dataStore.data.map { it[k] ?: default }
     }
 
@@ -46,6 +62,11 @@ class ExtensionSettingsStore(
         return runBlocking { dataStore.data.map { it[k] ?: default }.first() }
     }
 
+    fun getString(key: String, default: String): String {
+        val k = stringPreferencesKey(key)
+        return runBlocking { dataStore.data.map { it[k] ?: default }.first() }
+    }
+
     suspend fun setBoolean(key: String, value: Boolean) {
         val k = booleanPreferencesKey(key)
         dataStore.edit { it[k] = value }
@@ -53,6 +74,11 @@ class ExtensionSettingsStore(
 
     suspend fun setInt(key: String, value: Int) {
         val k = intPreferencesKey(key)
+        dataStore.edit { it[k] = value }
+    }
+
+    suspend fun setString(key: String, value: String) {
+        val k = stringPreferencesKey(key)
         dataStore.edit { it[k] = value }
     }
 }

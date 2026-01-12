@@ -13,12 +13,19 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.TextField
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenu
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -36,6 +43,7 @@ import moe.koiverse.archivetune.di.ExtensionManagerEntryPoint
 import moe.koiverse.archivetune.extensions.system.ExtensionManager
 import moe.koiverse.archivetune.extensions.system.SettingType
 import moe.koiverse.archivetune.extensions.system.ExtensionSettingsStore
+import moe.koiverse.archivetune.extensions.ui.ExtensionsUiContainer
 import moe.koiverse.archivetune.ui.component.IconButton as M3IconButton
 import moe.koiverse.archivetune.ui.utils.backToMain
 
@@ -50,7 +58,8 @@ fun ExtensionSettingsScreen(
     val entryPoint = EntryPointAccessors.fromApplication(context, ExtensionManagerEntryPoint::class.java)
     val manager: ExtensionManager = entryPoint.extensionManager()
     val id = backStackEntry.arguments?.getString("id") ?: ""
-    val ext = manager.installed.value.firstOrNull { it.manifest.id == id }
+    val installed by manager.installed.collectAsState(emptyList())
+    val ext = installed.firstOrNull { it.manifest.id == id }
     if (ext == null) {
         TopAppBar(
             title = { Text("Extension Settings") },
@@ -65,25 +74,27 @@ fun ExtensionSettingsScreen(
     }
     val store = remember { ExtensionSettingsStore(context, id) }
     val scope = rememberCoroutineScope()
+    val routeKey = "settings_extension_${ext.manifest.id}"
 
-    Column(Modifier.padding(horizontal = 16.dp)) {
-        Spacer(Modifier.height(16.dp))
-        ext.manifest.settings.forEach { s ->
-            when (s.type) {
-                SettingType.toggle -> {
-                    var checked by remember { mutableStateOf(store.getBoolean(s.key, s.defaultBoolean ?: false)) }
-                    RowItem(
-                        title = s.label,
-                        trailing = {
-                            Switch(checked = checked, onCheckedChange = {
-                                checked = it
-                                scope.launch {
-                                    store.setBoolean(s.key, it)
-                                    manager.reload(id)
-                                }
-                            })
-                        }
-                    )
+    ExtensionsUiContainer(routeKey) {
+        Column(Modifier.padding(horizontal = 16.dp)) {
+            Spacer(Modifier.height(16.dp))
+            ext.manifest.settings.forEach { s ->
+                when (s.type) {
+                    SettingType.toggle -> {
+                        var checked by remember { mutableStateOf(store.getBoolean(s.key, s.defaultBoolean ?: false)) }
+                        RowItem(
+                            title = s.label,
+                            trailing = {
+                                Switch(checked = checked, onCheckedChange = {
+                                    checked = it
+                                    scope.launch {
+                                        store.setBoolean(s.key, it)
+                                        manager.reload(id)
+                                    }
+                                })
+                            }
+                        )
                 }
                 SettingType.slider -> {
                     val def = s.defaultNumber ?: 0
@@ -103,12 +114,69 @@ fun ExtensionSettingsScreen(
                                 }
                             },
                             valueRange = min.toFloat()..max.toFloat(),
+                            steps = ((max - min) / step).let { if (it > 0) it - 1 else 0 }
                         )
                         Text("$value", style = MaterialTheme.typography.bodySmall)
                     }
                 }
+                SettingType.text -> {
+                    var text by remember { mutableStateOf(store.getString(s.key, s.defaultString ?: "")) }
+                    Column(Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
+                        OutlinedTextField(
+                            value = text,
+                            onValueChange = {
+                                text = it
+                                scope.launch {
+                                    store.setString(s.key, it)
+                                    manager.reload(id)
+                                }
+                            },
+                            label = { Text(s.label) },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                }
+                SettingType.select -> {
+                    val options = s.options ?: emptyList()
+                    var expanded by remember { mutableStateOf(false) }
+                    var selected by remember { mutableStateOf(store.getString(s.key, s.defaultString ?: options.firstOrNull().orEmpty())) }
+                    Column(Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
+                        Text(s.label, style = MaterialTheme.typography.titleMedium)
+                        ExposedDropdownMenuBox(
+                            expanded = expanded,
+                            onExpandedChange = { expanded = !expanded }
+                        ) {
+                            TextField(
+                                value = selected,
+                                onValueChange = {},
+                                readOnly = true,
+                                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                                modifier = Modifier.menuAnchor().fillMaxWidth()
+                            )
+                            ExposedDropdownMenu(
+                                expanded = expanded,
+                                onDismissRequest = { expanded = false }
+                            ) {
+                                options.forEach { opt ->
+                                    DropdownMenuItem(
+                                        text = { Text(opt) },
+                                        onClick = {
+                                            selected = opt
+                                            expanded = false
+                                            scope.launch {
+                                                store.setString(s.key, opt)
+                                                manager.reload(id)
+                                            }
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
+    }
     }
 
     TopAppBar(

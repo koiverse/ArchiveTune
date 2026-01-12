@@ -111,6 +111,10 @@ class HostApi(
         return settings.getInt(key, default)
     }
 
+    fun getString(key: String, default: String): String {
+        return settings.getString(key, default)
+    }
+
     fun setUI(route: String, jsonConfig: String) {
         if (!manifest.permissions.contains(ExtensionPermission.UIOverride.name)) return
         val entryPoint = EntryPointAccessors.fromApplication(context, ExtensionManagerEntryPoint::class.java)

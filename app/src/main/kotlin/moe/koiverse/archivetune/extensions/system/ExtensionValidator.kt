@@ -44,6 +44,15 @@ object ExtensionValidator {
                     if (min > max) errors.add("Slider min > max")
                     if (def < min || def > max) errors.add("Slider default out of range")
                 }
+                SettingType.text -> {
+                    if (s.defaultString == null) errors.add("Text missing defaultString")
+                }
+                SettingType.select -> {
+                    val opts = s.options ?: emptyList()
+                    if (opts.isEmpty()) errors.add("Select missing options")
+                    val def = s.defaultString
+                    if (def != null && def !in opts) errors.add("Select defaultString not in options")
+                }
             }
         }
 
