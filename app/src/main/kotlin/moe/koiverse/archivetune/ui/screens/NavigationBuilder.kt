@@ -78,6 +78,7 @@ import moe.koiverse.archivetune.ui.screens.settings.ExtensionSettingsScreen
 import moe.koiverse.archivetune.ui.utils.ShowMediaInfo
 import moe.koiverse.archivetune.utils.rememberEnumPreference
 import moe.koiverse.archivetune.utils.rememberPreference
+import moe.koiverse.archivetune.extensions.ui.ExtensionsUiContainer
 
 @OptIn(ExperimentalMaterial3Api::class)
 fun NavGraphBuilder.navigationBuilder(
@@ -86,30 +87,30 @@ fun NavGraphBuilder.navigationBuilder(
     latestVersionName: String,
 ) {
     composable(Screens.Home.route) {
-        HomeScreen(navController)
+        ExtensionsUiContainer("home") { HomeScreen(navController) }
     }
     composable(
         Screens.Library.route,
     ) {
-        LibraryScreen(navController)
+        ExtensionsUiContainer("library") { LibraryScreen(navController) }
     }
     composable("history") {
-        HistoryScreen(navController)
+        ExtensionsUiContainer("history") { HistoryScreen(navController) }
     }
     composable("stats") {
-        StatsScreen(navController)
+        ExtensionsUiContainer("stats") { StatsScreen(navController) }
     }
     composable("mood_and_genres") {
-        MoodAndGenresScreen(navController, scrollBehavior)
+        ExtensionsUiContainer("mood_and_genres") { MoodAndGenresScreen(navController, scrollBehavior) }
     }
     composable("account") {
-        AccountScreen(navController, scrollBehavior)
+        ExtensionsUiContainer("account") { AccountScreen(navController, scrollBehavior) }
     }
     composable("new_release") {
-        NewReleaseScreen(navController, scrollBehavior)
+        ExtensionsUiContainer("new_release") { NewReleaseScreen(navController, scrollBehavior) }
     }
     composable("charts_screen") {
-       ChartsScreen(navController)
+       ExtensionsUiContainer("charts_screen") { ChartsScreen(navController) }
     }
     composable(
         route = "browse/{browseId}",
@@ -119,11 +120,13 @@ fun NavGraphBuilder.navigationBuilder(
             }
         )
     ) {
-        BrowseScreen(
-            navController,
-            scrollBehavior,
-            it.arguments?.getString("browseId")
-        )
+        ExtensionsUiContainer("browse") {
+            BrowseScreen(
+                navController,
+                scrollBehavior,
+                it.arguments?.getString("browseId")
+            )
+        }
     }
     composable(
         route = "search/{query}",
@@ -154,7 +157,7 @@ fun NavGraphBuilder.navigationBuilder(
             fadeOut(tween(200))
         },
     ) {
-        OnlineSearchResult(navController)
+        ExtensionsUiContainer("search") { OnlineSearchResult(navController) }
     }
     composable(
         route = "album/{albumId}",
@@ -165,7 +168,7 @@ fun NavGraphBuilder.navigationBuilder(
             },
         ),
     ) {
-        AlbumScreen(navController, scrollBehavior)
+        ExtensionsUiContainer("album") { AlbumScreen(navController, scrollBehavior) }
     }
     composable(
         route = "artist/{artistId}",
@@ -176,7 +179,7 @@ fun NavGraphBuilder.navigationBuilder(
             },
         ),
     ) {
-        ArtistScreen(navController, scrollBehavior)
+        ExtensionsUiContainer("artist") { ArtistScreen(navController, scrollBehavior) }
     }
     composable(
         route = "artist/{artistId}/songs",
@@ -187,7 +190,7 @@ fun NavGraphBuilder.navigationBuilder(
             },
         ),
     ) {
-        ArtistSongsScreen(navController, scrollBehavior)
+        ExtensionsUiContainer("artist_songs") { ArtistSongsScreen(navController, scrollBehavior) }
     }
     composable(
         route = "artist/{artistId}/albums",
@@ -197,7 +200,7 @@ fun NavGraphBuilder.navigationBuilder(
             }
         )
     ) {
-        ArtistAlbumsScreen(navController, scrollBehavior)
+        ExtensionsUiContainer("artist_albums") { ArtistAlbumsScreen(navController, scrollBehavior) }
     }
     composable(
         route = "artist/{artistId}/items?browseId={browseId}&params={params}",
@@ -216,7 +219,7 @@ fun NavGraphBuilder.navigationBuilder(
             },
         ),
     ) {
-        ArtistItemsScreen(navController, scrollBehavior)
+        ExtensionsUiContainer("artist_items") { ArtistItemsScreen(navController, scrollBehavior) }
     }
     composable(
         route = "online_playlist/{playlistId}",
@@ -227,7 +230,7 @@ fun NavGraphBuilder.navigationBuilder(
             },
         ),
     ) {
-        OnlinePlaylistScreen(navController, scrollBehavior)
+        ExtensionsUiContainer("online_playlist") { OnlinePlaylistScreen(navController, scrollBehavior) }
     }
     composable(
         route = "local_playlist/{playlistId}",
@@ -238,7 +241,7 @@ fun NavGraphBuilder.navigationBuilder(
             },
         ),
     ) {
-        LocalPlaylistScreen(navController, scrollBehavior)
+        ExtensionsUiContainer("local_playlist") { LocalPlaylistScreen(navController, scrollBehavior) }
     }
     composable(
         route = "auto_playlist/{playlist}",
@@ -249,7 +252,7 @@ fun NavGraphBuilder.navigationBuilder(
             },
         ),
     ) {
-        AutoPlaylistScreen(navController, scrollBehavior)
+        ExtensionsUiContainer("auto_playlist") { AutoPlaylistScreen(navController, scrollBehavior) }
     }
     composable(
         route = "cache_playlist/{playlist}",
@@ -260,7 +263,7 @@ fun NavGraphBuilder.navigationBuilder(
             },
         ),
     ) {
-        CachePlaylistScreen(navController, scrollBehavior)
+        ExtensionsUiContainer("cache_playlist") { CachePlaylistScreen(navController, scrollBehavior) }
     }
     composable(
         route = "top_playlist/{top}",
@@ -271,7 +274,7 @@ fun NavGraphBuilder.navigationBuilder(
             },
         ),
     ) {
-        TopPlaylistScreen(navController, scrollBehavior)
+        ExtensionsUiContainer("top_playlist") { TopPlaylistScreen(navController, scrollBehavior) }
     }
     composable(
         route = "youtube_browse/{browseId}?params={params}",
@@ -287,52 +290,52 @@ fun NavGraphBuilder.navigationBuilder(
             },
         ),
     ) {
-        YouTubeBrowseScreen(navController)
+        ExtensionsUiContainer("youtube_browse") { YouTubeBrowseScreen(navController) }
     }
     composable("settings") {
-        SettingsScreen(navController, scrollBehavior, latestVersionName)
+        ExtensionsUiContainer("settings") { SettingsScreen(navController, scrollBehavior, latestVersionName) }
     }
     composable("settings/appearance") {
-        AppearanceSettings(navController, scrollBehavior)
+        ExtensionsUiContainer("settings_appearance") { AppearanceSettings(navController, scrollBehavior) }
     }
     composable("settings/appearance/palette_picker") {
-        PalettePickerScreen(navController)
+        ExtensionsUiContainer("settings_palette_picker") { PalettePickerScreen(navController) }
     }
     composable("settings/content") {
-        ContentSettings(navController, scrollBehavior)
+        ExtensionsUiContainer("settings_content") { ContentSettings(navController, scrollBehavior) }
     }
     composable("settings/player") {
-        PlayerSettings(navController, scrollBehavior)
+        ExtensionsUiContainer("settings_player") { PlayerSettings(navController, scrollBehavior) }
     }
     composable("settings/storage") {
-        StorageSettings(navController, scrollBehavior)
+        ExtensionsUiContainer("settings_storage") { StorageSettings(navController, scrollBehavior) }
     }
     composable("settings/privacy") {
-        PrivacySettings(navController, scrollBehavior)
+        ExtensionsUiContainer("settings_privacy") { PrivacySettings(navController, scrollBehavior) }
     }
     composable("settings/backup_restore") {
-        BackupAndRestore(navController, scrollBehavior)
+        ExtensionsUiContainer("settings_backup_restore") { BackupAndRestore(navController, scrollBehavior) }
     }
     composable("settings/discord") {
-        DiscordSettings(navController, scrollBehavior)
+        ExtensionsUiContainer("settings_discord") { DiscordSettings(navController, scrollBehavior) }
     }
     composable("settings/integration") {
-        IntegrationScreen(navController, scrollBehavior)
+        ExtensionsUiContainer("settings_integration") { IntegrationScreen(navController, scrollBehavior) }
     }
     composable("settings/lastfm") {
-        LastFMSettings(navController, scrollBehavior)
+        ExtensionsUiContainer("settings_lastfm") { LastFMSettings(navController, scrollBehavior) }
     }
     composable("settings/discord/experimental") {
-        moe.koiverse.archivetune.ui.screens.settings.DiscordExperimental(navController)
+        ExtensionsUiContainer("settings_discord_experimental") { moe.koiverse.archivetune.ui.screens.settings.DiscordExperimental(navController) }
     }
     composable("settings/misc") {
-        DebugSettings(navController)
+        ExtensionsUiContainer("settings_misc") { DebugSettings(navController) }
     }
     composable("settings/update") {
-        UpdateScreen(navController, scrollBehavior)
+        ExtensionsUiContainer("settings_update") { UpdateScreen(navController, scrollBehavior) }
     }
     composable("settings/extensions") {
-        ExtensionsScreen(navController, scrollBehavior)
+        ExtensionsUiContainer("settings_extensions") { ExtensionsScreen(navController, scrollBehavior) }
     }
     composable(
         route = "settings/extension/{id}",
@@ -340,18 +343,18 @@ fun NavGraphBuilder.navigationBuilder(
             navArgument("id") { type = NavType.StringType }
         )
     ) {
-        ExtensionSettingsScreen(navController, scrollBehavior, it)
+        ExtensionsUiContainer("settings_extension") { ExtensionSettingsScreen(navController, scrollBehavior, it) }
     }
     composable("settings/discord/login") {
-        DiscordLoginScreen(navController)
+        ExtensionsUiContainer("settings_discord_login") { DiscordLoginScreen(navController) }
     }
     composable("settings/about") {
-        AboutScreen(navController, scrollBehavior)
+        ExtensionsUiContainer("settings_about") { AboutScreen(navController, scrollBehavior) }
     }
     composable("customize_background") {
-        CustomizeBackground(navController)
+        ExtensionsUiContainer("customize_background") { CustomizeBackground(navController) }
     }
     composable("login") {
-        LoginScreen(navController)
+        ExtensionsUiContainer("login") { LoginScreen(navController) }
     }
 }
