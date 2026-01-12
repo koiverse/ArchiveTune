@@ -66,7 +66,7 @@
     <string name="seek_forward_dynamic">+%1$d 秒進む</string>
     <string name="seek_backward_dynamic">-%1$d 秒前に戻る</string>
     <string name="seek_seconds_addup">プログレッシブシーク</string>
-    <string name="seek_seconds_addup_description">有効にすると、シークスキップごとに 5 秒ずつ追加されます。</string>
+    <string name="seek_seconds_addup_description">有効にすると、シークスキップごとに 5 秒ずつ追加されます</string>
     <string name="similar_content">類似のコンテンツ</string>
     <string name="login_settings">ログイン設定</string>
     <string name="general_settings">一般設定</string>
@@ -105,7 +105,7 @@
     <string name="advanced_login">トークンを使用してログインする</string>
     <string name="token_hidden">タップしてトークンを表示</string>
     <string name="token_shown">もう一度タップしてコピーまたは編集します</string>
-    <string name="token_adv_login_description">これは高度なログイン方法です。 Web ポータルの代わりに、ここでログイン トークンを直接入力または更新することもできます。たとえば、これにより複数のデバイスでのログインが高速化されます。アプリが解析できない無効なトークン形式は受け入れられないことに注意してください。</string>
+    <string name="token_adv_login_description">これは高度なログイン方法です。 Web ポータルの代わりに、ここでログイン トークンを直接入力または更新することもできます。たとえば、これにより複数のデバイスでのログインが高速化されます。アプリが解析できない無効なトークン形式は受け入れられないことに注意してください</string>
     <string name="ytm_sync">YouTube Music アカウントと自動的に同期します</string>
     <string name="yt_sync">アカウントと自動同期</string>
     <string name="more_content">さらなるコンテンツ</string>
@@ -157,7 +157,7 @@
     <string name="numbers">数字</string>
     <string name="subscribers">購読者</string>
     <string name="views">ビュー</string>
-    <string name="likes">いいね！</string>
+    <string name="likes">いいね</string>
     <string name="dislikes">嫌いなもの</string>
     <string name="subscribe">購読する</string>
     <string name="subscribed">購読しました</string>
@@ -170,7 +170,7 @@
     </plurals>
     <!-- Player Settings -->
     <string name="disable_load_more_when_repeat_all">すべて繰り返すときにさらに読み込みを無効にする</string>
-    <string name="disable_load_more_when_repeat_all_desc">全リピートモードが有効になっている場合、さらに曲や類似のコンテンツを自動ロードしないでください。</string>
+    <string name="disable_load_more_when_repeat_all_desc">全リピートモードが有効になっている場合、さらに曲や類似のコンテンツを自動ロードしないでください</string>
     <!-- Material 3 Settings Sections -->
     <string name="settings_section_ui">ユーザーインターフェース</string>
     <string name="settings_section_privacy">プライバシー &amp; セキュリティ</string>
@@ -178,4 +178,17 @@
     <string name="settings_section_player_content">プレーヤー &amp; のコンテンツ</string>
     <string name="settings_section_storage">ストレージ &amp; データ</string>
     <string name="settings_section_system">システム &amp; について</string>
+    <string name="manage_tags">タグを管理する</string>
+    <string name="add_tag">タグを追加</string>
+    <string name="edit_tag">タグを編集</string>
+    <string name="tag_name">日名</string>
+    <string name="tag_color">タグの色</string>
+    <string name="choose_color">色を選択</string>
+    <string name="tap_to_change_color">タップして色を変更</string>
+    <string name="assign_tags">タグを割り当てる</string>
+    <string name="no_tags_available">利用可能なタグがありません。まずタグを作成してください。</string>
+    <string name="manage_playlist_tags">プレイリストタグ</string>
+    <string name="manage_playlist_tags_desc">プレイリストを整理するためのタグを作成・管理する</string>
+    <string name="lyrics_text_size">歌詞の文字サイズ</string>
+    <string name="resume_autoscroll">履歴書の自動スクロール</string>
 </resources>
