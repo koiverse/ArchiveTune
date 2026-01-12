@@ -74,23 +74,25 @@ fun ExtensionsScreen(
         }
     }
 
-    Column(Modifier.padding(horizontal = 16.dp)) {
-        Spacer(
-            Modifier.height(16.dp)
-        )
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 16.dp)
+    ) {
         if (extensions.isEmpty()) {
-            androidx.compose.foundation.layout.Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 24.dp),
+            Box(
+                modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
                     val visible = remember { mutableStateOf(false) }
                     LaunchedEffect(Unit) { visible.value = true }
+
                     AnimatedVisibility(
                         visible = visible.value,
-                        enter = fadeIn(animationSpec = tween(durationMillis = 350))
+                        enter = fadeIn(animationSpec = tween(350))
                     ) {
                         Image(
                             painter = painterResource(R.drawable.anime_blank),
@@ -98,21 +100,26 @@ fun ExtensionsScreen(
                             modifier = Modifier.height(140.dp)
                         )
                     }
+
                     Spacer(Modifier.height(12.dp))
+
                     Text(
                         text = stringResource(R.string.no_extension_installed),
                         style = MaterialTheme.typography.headlineSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+
                     Spacer(Modifier.height(12.dp))
-                    Button(onClick = { installLauncher.launch(arrayOf("application/zip")) }) {
+
+                    Button(
+                        onClick = { installLauncher.launch(arrayOf("application/zip")) }
+                    ) {
                         Icon(painterResource(R.drawable.add), null)
-                        Spacer(Modifier.padding(horizontal = 6.dp))
+                        Spacer(Modifier.width(6.dp))
                         Text(stringResource(R.string.add_extension))
                     }
                 }
-            }
-        }
+        } else {
         extensions.forEach { ext ->
             Row(
                 modifier = Modifier
@@ -156,6 +163,9 @@ fun ExtensionsScreen(
             }
         }
     }
+        }
+    }
+
 
     TopAppBar(
         title = { Text(stringResource(R.string.extensions)) },
