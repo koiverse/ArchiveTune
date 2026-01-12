@@ -201,7 +201,9 @@ dependencies {
     kapt(libs.hilt.compiler)
 
     implementation(libs.serialization.json)
-    implementation(libs.rhino.android)
+    implementation(libs.rhino.android) {
+        exclude(group = "org.mozilla", module = "rhino")
+    }
 
     implementation(project(":innertube"))
     implementation(project(":kugou"))
