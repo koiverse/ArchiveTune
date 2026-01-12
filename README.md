@@ -73,13 +73,19 @@ ArchiveTune is a Supercharged fork of [Metrolist](https://github.com/mostafaalag
 </p>
 </div>
 
-## To translate app
+<div align="center">
+<h1>Translations</h1>
 
-To **translate** or **improve a translation**, **fix typo**, or to **request new language**.
+[![Status penerjemahan](https://translate.codeberg.org/widget/archivetune/287x66-grey.png)](https://translate.codeberg.org/engage/archivetune/)
 
-[![Crowdin](https://badges.crowdin.net/archivetuneandroid/localized.svg)](https://crowdin.com/project/archivetuneandroid)
+We use Codeberg to translate ArchiveTune. For more details or to get started, visit our [ArchiveTune page](https://translate.codeberg.org/projects/archivetune/).
 
-[![Translated with Crowdin](https://badges.crowdin.net/badge/light/crowdin-on-dark.png)](https://translate-archivetune.koiiverse.cloud)
+<a href="https://translate.codeberg.org/projects/archivetune/">
+<img src="https://translate.codeberg.org/widget/archivetune/horizontal-blue.svg" alt="Translation status" />
+</a>
+
+Thank you very much for helping to make ArchiveTune accessible to many people worldwide.
+</div>
 
 ## Credits & Acknowledgments
 
