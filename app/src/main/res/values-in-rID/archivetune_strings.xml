@@ -56,11 +56,9 @@
     <string name="hide_player_thumbnail_desc">Ganti sampul album dengan logo aplikasi di pemutar</string>
     <string name="already_in_playlist">Sudah ada di daftar putar:</string>
     <plurals name="n_element">
-        <item quantity="one">%d elemen</item>
         <item quantity="other">%d elemen</item>
     </plurals>
     <plurals name="n_time">
-        <item quantity="one">%d kali</item>
         <item quantity="other">%d kali</item>
     </plurals>
     <string name="seek_backward">5 detik mundur</string>
@@ -138,9 +136,9 @@
     <string name="swipe_sensitivity">Sensitivitas gesek pemutar mini</string>
     <string name="swipe_sensitivity_desc">Sesuaikan seberapa sensitif gerakan menggesek untuk mengganti lagu</string>
     <string name="sensitivity_percentage">%1$d%%</string>
-    <string name="clear_song_cache_dialog">  Apakah Anda yakin ingin menghapus semua lagu yang di-cache?</string>
-    <string name="clear_image_cache_dialog">  Apakah Anda yakin ingin menghapus semua gambar yang di-cache?</string>
-    <string name="clear_downloads_dialog">  Apakah Anda yakin ingin menghapus semua unduhan?</string>
+    <string name="clear_song_cache_dialog">Apakah Anda yakin ingin menghapus semua lagu yang di-cache?</string>
+    <string name="clear_image_cache_dialog">Apakah Anda yakin ingin menghapus semua gambar yang di-cache?</string>
+    <string name="clear_downloads_dialog">Apakah Anda yakin ingin menghapus semua unduhan?</string>
     <string name="disable">Cacat</string>
     <string name="pause_remote_listen_history">Jeda berbagi riwayat mendengarkan dengan YouTube Music</string>
     <string name="not_logged_in_youtube">Belum masuk ke YouTube</string>
@@ -168,7 +166,6 @@
     <string name="empty_playlist">Daftar Putar Kosong</string>
     <string name="empty_playlist_desc">Daftar putar ini tidak berisi lagu apa pun</string>
     <plurals name="seconds">
-        <item quantity="one">1 second</item>
         <item quantity="other">%d detik</item>
     </plurals>
     <!-- Player Settings -->
