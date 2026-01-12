@@ -35,6 +35,7 @@ kuromojiIpadic = "0.9.0"
 extractor = "2d2d9ed"
 serializationJson = "1.7.3"
 rhino = "1.7.14"
+rhinoAndroid = "1.7.14"
 
 [libraries]
 annotation = { module = "androidx.annotation:annotation", version.ref = "annotation" }
@@ -112,6 +113,7 @@ newpipe-extractor = { module = "com.github.mostafaalagamy:MetrolistExtractor", v
 
 kuromoji-ipadic = { module = "com.atilika.kuromoji:kuromoji-ipadic", version.ref = "kuromojiIpadic" }
 rhino = { module = "org.mozilla:rhino", version.ref = "rhino" }
+rhino-android = { module = "com.faendir.rhino:rhino-android", version.ref = "rhinoAndroid" }
 
 [plugins]
 compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
