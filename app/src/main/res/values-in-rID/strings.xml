@@ -564,4 +564,5 @@
     <string name="hide_video"></string>
     <string name="queue_continue_playing"></string>
     <string name="queue_autoplaying_similar"></string>
+    <string name="similar_content"></string>
 </resources>
