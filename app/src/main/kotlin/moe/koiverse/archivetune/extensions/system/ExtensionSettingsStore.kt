@@ -7,10 +7,12 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.preferencesDataStoreFile
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import java.io.File
 
@@ -20,7 +22,7 @@ class ExtensionSettingsStore(
 ) {
     private val fileName = "ext_$extensionId.preferences_pb"
     private val dataStore: DataStore<Preferences> = PreferenceDataStoreFactory.create(
-        corruptionHandler = ReplaceFileCorruptionHandler { preferencesOf() },
+        corruptionHandler = ReplaceFileCorruptionHandler { emptyPreferences() },
         produceFile = { context.preferencesDataStoreFile(fileName) }
     )
 
