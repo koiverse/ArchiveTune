@@ -1,10 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="explore">探検する</string>
-
     <string name="local_history">地元</string>
     <string name="remote_history">リモート</string>
-
     <string name="charts">チャート</string>
     <string name="back_button_desc">戻る</string>
     <string name="no_title">タイトルなし</string>
@@ -15,12 +13,10 @@
     <string name="album_cover_desc">アルバムカバー</string>
     <string name="top_music_videos">人気のミュージック ビデオ</string>
     <string name="trending">トレンド</string>
-
     <string name="weeks">週間</string>
     <string name="months">月</string>
     <string name="years">年</string>
     <string name="continuous">継続的</string>
-
     <string name="liked">気に入った</string>
     <string name="offline">ダウンロード済み</string>
     <string name="my_top">私のトップ</string>
@@ -42,7 +38,6 @@
     <string name="text_color">文字の色</string>
     <string name="secondary_text_color">二次テキストの色</string>
     <string name="background_color">背景色</string>
-
     <string name="added_to_play_next">次にプレイするために追加されました</string>
     <string name="added_to_queue">キューに追加されました</string>
     <string name="remove_from_cache">キャッシュから削除</string>
@@ -54,36 +49,27 @@
     <string name="link_copied">リンクがクリップボードにコピーされました</string>
     <string name="starting_radio">ラジオを開始します</string>
     <string name="now_playing">プレイ中</string>
-
     <string name="close">近い</string>
     <string name="minimum_volume">最小音量</string>
     <string name="maximum_volume">最大音量</string>
     <string name="hide_player_thumbnail">プレーヤーのサムネイルを非表示にする</string>
     <string name="hide_player_thumbnail_desc">プレーヤーでアルバムのアートワークをアプリのロゴに置き換える</string>
-
     <string name="already_in_playlist">すでにプレイリストにあります:</string>
-
     <plurals name="n_element">
-        <item quantity="one">%d 要素</item>
         <item quantity="other">%d 要素</item>
     </plurals>
     <plurals name="n_time">
-        <item quantity="one">%d時間</item>
         <item quantity="other">%d回</item>
     </plurals>
-
     <string name="seek_backward">5秒戻る</string>
     <string name="seek_forward">5秒進む</string>
     <string name="seek_forward_dynamic">+%1$d 秒進む</string>
     <string name="seek_backward_dynamic">-%1$d 秒前に戻る</string>
     <string name="seek_seconds_addup">プログレッシブシーク</string>
     <string name="seek_seconds_addup_description">有効にすると、シークスキップごとに 5 秒ずつ追加されます。</string>
-
     <string name="similar_content">類似のコンテンツ</string>
-
     <string name="login_settings">ログイン設定</string>
     <string name="general_settings">一般設定</string>
-
     <string name="player_background_style">プレーヤーの背景スタイル</string>
     <string name="follow_theme">テーマに従う</string>
     <string name="gradient">勾配</string>
@@ -114,7 +100,6 @@
     <string name="show_downloaded_playlist">「ダウンロード済み」プレイリストを表示する</string>
     <string name="show_top_playlist">「トップ」プレイリストを表示</string>
     <string name="show_cached_playlist">「キャッシュされた」プレイリストを表示する</string>
-
     <string name="google">グーグル</string>
     <string name="discord">不和</string>
     <string name="advanced_login">トークンを使用してログインする</string>
@@ -136,7 +121,6 @@
     <string name="configure_supported_links">サポートされているリンクを構成する</string>
     <string name="intent_supported_links_not_found">サポートされているリンク設定が見つかりませんでした。手動で設定してください</string>
     <string name="set_first_lyrics_provider">優先歌詞プロバイダー</string>
-
     <string name="audio_quality_max">マックス（ベータ版）</string>
     <string name="enable_similar_content">同様のコンテンツを有効にする</string>
     <string name="similar_content_desc">キューの終わりに達すると、類似した曲を自動的に追加します</string>
@@ -144,32 +128,23 @@
     <string name="min_playback_duration_description">「再生済み」とみなされる前に再生する必要がある曲の最小量</string>
     <string name="percentage_format">%d%%</string>
     <string name="minimum_playback_duration">最小再生時間</string>
-
     <string name="import_online">「m3u」プレイリストをインポートする</string>
     <string name="import_csv">「csv」プレイリストをインポートする</string>
     <string name="playlist_add_local_to_synced_note">注: ローカルの曲を同期/リモートのプレイリストに追加することはサポートされていません。他の組み合わせは有効です</string>
-
     <string name="auto_download_on_like">「いいね！」で自動ダウンロード</string>
     <string name="auto_download_on_like_desc">気に入った曲を自動的にダウンロード</string>
-
     <string name="swipe_sensitivity">ミニプレーヤーのスワイプ感度</string>
     <string name="swipe_sensitivity_desc">曲を変更する際のスワイプ ジェスチャの感度を調整する</string>
     <string name="sensitivity_percentage">%1$d%%</string>
-
-    <string name="clear_song_cache_dialog">  キャッシュされた曲をすべてクリアしてもよろしいですか?</string>
-    <string name="clear_image_cache_dialog">  キャッシュされた画像をすべてクリアしてもよろしいですか?</string>
-    <string name="clear_downloads_dialog">  すべてのダウンロードをクリアしてもよろしいですか?</string>
-
+    <string name="clear_song_cache_dialog">キャッシュされた曲をすべてクリアしてもよろしいですか?</string>
+    <string name="clear_image_cache_dialog">キャッシュされた画像をすべてクリアしてもよろしいですか?</string>
+    <string name="clear_downloads_dialog">すべてのダウンロードをクリアしてもよろしいですか?</string>
     <string name="disable">無効にする</string>
-
     <string name="pause_remote_listen_history">YouTube Music での視聴履歴の共有を一時停止する</string>
     <string name="not_logged_in_youtube">YouTube にログインしていません</string>
-
     <string name="default_links">サポートされているリンクを開く</string>
     <string name="open_app_settings_error">アプリ設定を開けませんでした</string>
-
     <string name="release_notes">リリースノート</string>
-
     <string name="all_time">ずっと</string>
     <string name="past_24_hours">過去 24 時間</string>
     <string name="past_week">過去 1 週間</string>
@@ -191,14 +166,11 @@
     <string name="empty_playlist">空のプレイリスト</string>
     <string name="empty_playlist_desc">このプレイリストには曲が含まれていません</string>
     <plurals name="seconds">
-        <item quantity="one">1 second</item>
         <item quantity="other">%d秒</item>
     </plurals>
-
     <!-- Player Settings -->
     <string name="disable_load_more_when_repeat_all">すべて繰り返すときにさらに読み込みを無効にする</string>
     <string name="disable_load_more_when_repeat_all_desc">全リピートモードが有効になっている場合、さらに曲や類似のコンテンツを自動ロードしないでください。</string>
-    
     <!-- Material 3 Settings Sections -->
     <string name="settings_section_ui">ユーザーインターフェース</string>
     <string name="settings_section_privacy">プライバシー &amp; セキュリティ</string>
@@ -206,4 +178,17 @@
     <string name="settings_section_player_content">プレーヤー &amp; のコンテンツ</string>
     <string name="settings_section_storage">ストレージ &amp; データ</string>
     <string name="settings_section_system">システム &amp; について</string>
+    <string name="choose_color"></string>
+    <string name="resume_autoscroll"></string>
+    <string name="assign_tags"></string>
+    <string name="lyrics_text_size"></string>
+    <string name="tap_to_change_color"></string>
+    <string name="tag_name"></string>
+    <string name="manage_tags"></string>
+    <string name="add_tag"></string>
+    <string name="manage_playlist_tags_desc"></string>
+    <string name="manage_playlist_tags"></string>
+    <string name="tag_color"></string>
+    <string name="edit_tag"></string>
+    <string name="no_tags_available"></string>
 </resources>
