@@ -10,11 +10,14 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.decodeFromString
 import moe.koiverse.archivetune.models.MediaMetadata
 import moe.koiverse.archivetune.utils.dataStore
 import android.net.Uri
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import java.util.zip.ZipInputStream
 import java.util.zip.ZipEntry
 import java.io.File
@@ -160,7 +163,9 @@ class ExtensionManager @Inject constructor(
 
     private fun isEnabled(id: String): Boolean {
         val k = booleanPreferencesKey(flagKey(id))
-        return context.dataStore[k] ?: false
+        return runBlocking {
+            context.dataStore.data.map { it[k] ?: false }.first()
+        }
     }
 
     private fun updateEnabledState(id: String, enabled: Boolean) {
