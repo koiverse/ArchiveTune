@@ -196,4 +196,6 @@
     <string name="similar_content">Similar content</string>
     <string name="extensions">Extensions</string>
     <string name="install_from_device">Install From Device</string>
+    <string name="no_extension_installed">No Extension Installed</string>
+    <string name="add_extension">Add Extension</string>
 </resources>
