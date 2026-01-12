@@ -564,4 +564,23 @@
     <string name="new_version_available">Nouvelle version disponible !</string>
     <string name="translation_models">Modèles de traduction</string>
     <string name="clear_translation_models">Effacer les modèles de traduction</string>
+    <string name="queue_continue_playing">Continuer la lecture</string>
+    <string name="queue_autoplaying_similar">Lecture automatique de musique similaire</string>
+    <string name="hide_video">Masquer les clips musicaux</string>
+    <string name="updates">Mises à jour</string>
+    <string name="current_version">Version actuelle</string>
+    <string name="latest_version_format">Dernière mise à jour : %s</string>
+    <string name="notification_settings">Notification</string>
+    <string name="enable_update_notification">Activer les notifications de mise à jour</string>
+    <string name="enable_update_notification_desc">Soyez averti(e) lorsqu\'une nouvelle version stable est publiée</string>
+    <string name="update_channel">Chaîne de mise à jour</string>
+    <string name="channel_stable">Stable</string>
+    <string name="channel_nightly">Nocturne</string>
+    <string name="commit_history">Développement</string>
+    <string name="recent_commits">Engagements récents</string>
+    <string name="update_notification_channel_name">Mises à jour de l\'application</string>
+    <string name="update_notification_channel_desc">Notifications pour les nouvelles mises à jour de l\'application</string>
+    <string name="update_notification_title">Mise à jour disponible</string>
+    <string name="update_notification_text">ArchiveTune %s est désormais disponible</string>
+    <string name="download">Télécharger</string>
 </resources>
