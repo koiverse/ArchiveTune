@@ -18,6 +18,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Button
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -28,6 +29,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.setValue
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.core.tween
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -74,6 +78,41 @@ fun ExtensionsScreen(
         Spacer(
             Modifier.height(16.dp)
         )
+        if (extensions.isEmpty()) {
+            androidx.compose.foundation.layout.Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 24.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    val visible = remember { mutableStateOf(false) }
+                    LaunchedEffect(Unit) { visible.value = true }
+                    AnimatedVisibility(
+                        visible = visible.value,
+                        enter = fadeIn(animationSpec = tween(durationMillis = 350))
+                    ) {
+                        Image(
+                            painter = painterResource(R.drawable.anime_blank),
+                            contentDescription = null,
+                            modifier = Modifier.height(140.dp)
+                        )
+                    }
+                    Spacer(Modifier.height(12.dp))
+                    Text(
+                        text = stringResource(R.string.no_extension_installed),
+                        style = MaterialTheme.typography.headlineSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(Modifier.height(12.dp))
+                    Button(onClick = { installLauncher.launch(arrayOf("application/zip")) }) {
+                        Icon(painterResource(R.drawable.add), null)
+                        Spacer(Modifier.padding(horizontal = 6.dp))
+                        Text(stringResource(R.string.add_extension))
+                    }
+                }
+            }
+        }
         extensions.forEach { ext ->
             Row(
                 modifier = Modifier
