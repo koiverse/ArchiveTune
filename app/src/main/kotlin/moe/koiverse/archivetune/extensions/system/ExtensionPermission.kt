@@ -7,6 +7,6 @@ enum class ExtensionPermission {
     PlaybackEvents,
     QueueObserve,
     QueueModify,
-    SettingsRead
+    SettingsRead,
+    UIOverride
 }
-
