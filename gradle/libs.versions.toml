@@ -35,7 +35,7 @@ kuromojiIpadic = "0.9.0"
 extractor = "2d2d9ed"
 serializationJson = "1.7.3"
 rhino = "1.7.14"
-rhinoAndroid = "1.7.14"
+rhinoAndroid = "1.6.0"
 
 [libraries]
 annotation = { module = "androidx.annotation:annotation", version.ref = "annotation" }
