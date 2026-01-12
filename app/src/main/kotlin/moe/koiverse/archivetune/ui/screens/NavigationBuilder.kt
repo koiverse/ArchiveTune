@@ -335,7 +335,7 @@ fun NavGraphBuilder.navigationBuilder(
         ExtensionsUiContainer("settings_update") { UpdateScreen(navController, scrollBehavior) }
     }
     composable("settings/extensions") {
-        ExtensionsUiContainer("settings_extensions") { ExtensionsScreen(navController, scrollBehavior) }
+        ExtensionsScreen(navController, scrollBehavior)
     }
     composable(
         route = "settings/extension/{id}",
@@ -343,7 +343,7 @@ fun NavGraphBuilder.navigationBuilder(
             navArgument("id") { type = NavType.StringType }
         )
     ) {
-        ExtensionsUiContainer("settings_extension") { ExtensionSettingsScreen(navController, scrollBehavior, it) }
+        ExtensionSettingsScreen(navController, scrollBehavior, it)
     }
     composable("settings/discord/login") {
         ExtensionsUiContainer("settings_discord_login") { DiscordLoginScreen(navController) }
