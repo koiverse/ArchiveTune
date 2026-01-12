@@ -136,6 +136,13 @@ fun SettingsScreen(
         Material3SettingsGroup(
             title = stringResource(R.string.settings_section_system),
             items = buildList {
+                add(
+                    Material3SettingsItem(
+                        icon = painterResource(R.drawable.integration),
+                        title = { Text(stringResource(R.string.extensions)) },
+                        onClick = { navController.navigate("settings/extensions") }
+                    )
+                )
                 if (isAndroid12OrLater) {
                     add(
                         Material3SettingsItem(

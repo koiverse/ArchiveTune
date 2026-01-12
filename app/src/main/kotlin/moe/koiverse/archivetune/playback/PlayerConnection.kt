@@ -18,6 +18,8 @@ import moe.koiverse.archivetune.extensions.metadata
 import moe.koiverse.archivetune.playback.MusicService.MusicBinder
 import moe.koiverse.archivetune.playback.queues.Queue
 import moe.koiverse.archivetune.utils.reportException
+import dagger.hilt.android.EntryPointAccessors
+import moe.koiverse.archivetune.di.ExtensionManagerEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -164,6 +166,9 @@ class PlayerConnection(
         currentMediaItemIndex.value = player.currentMediaItemIndex
         currentWindowIndex.value = player.getCurrentQueueIndex()
         updateCanSkipPreviousAndNext()
+        val entryPoint = EntryPointAccessors.fromApplication(service.applicationContext, ExtensionManagerEntryPoint::class.java)
+        val manager = entryPoint.extensionManager()
+        meta?.let { manager.onTrackPlay(it) }
     }
 
     override fun onTimelineChanged(
@@ -175,6 +180,9 @@ class PlayerConnection(
         currentMediaItemIndex.value = player.currentMediaItemIndex
         currentWindowIndex.value = player.getCurrentQueueIndex()
         updateCanSkipPreviousAndNext()
+        val entryPoint = EntryPointAccessors.fromApplication(service.applicationContext, ExtensionManagerEntryPoint::class.java)
+        val manager = entryPoint.extensionManager()
+        manager.onQueueBuild(queueTitle.value)
     }
 
     override fun onShuffleModeEnabledChanged(enabled: Boolean) {

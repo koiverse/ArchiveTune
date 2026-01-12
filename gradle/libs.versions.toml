@@ -33,6 +33,8 @@ timber = "5.0.1"
 materialKolor = "3.0.1"
 kuromojiIpadic = "0.9.0"
 extractor = "2d2d9ed"
+serializationJson = "1.7.3"
+rhino = "1.7.14"
 
 [libraries]
 annotation = { module = "androidx.annotation:annotation", version.ref = "annotation" }
@@ -94,6 +96,7 @@ ktor-serialization-json = { module = "io.ktor:ktor-serialization-kotlinx-json", 
 jsoup = { module = "org.jsoup:jsoup", version.ref = "jsoup" }
 
 json = { module = "org.json:json", version.ref = "json" }
+serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "serializationJson" }
 
 brotli = { module = "org.brotli:dec", version.ref = "brotli" }
 
@@ -108,6 +111,7 @@ timber = { module = "com.jakewharton.timber:timber", version.ref = "timber" }
 newpipe-extractor = { module = "com.github.mostafaalagamy:MetrolistExtractor", version.ref = "extractor" }
 
 kuromoji-ipadic = { module = "com.atilika.kuromoji:kuromoji-ipadic", version.ref = "kuromojiIpadic" }
+rhino = { module = "org.mozilla:rhino", version.ref = "rhino" }
 
 [plugins]
 compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }

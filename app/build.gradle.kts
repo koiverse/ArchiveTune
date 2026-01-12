@@ -8,6 +8,7 @@ plugins {
     alias(libs.plugins.hilt)
     alias(libs.plugins.kotlin.ksp)
     alias(libs.plugins.compose.compiler)
+    alias(libs.plugins.kotlin.serialization)
 }
 
 val localProperties = Properties()
@@ -198,6 +199,9 @@ dependencies {
     implementation(libs.hilt)
     implementation(libs.jsoup)
     kapt(libs.hilt.compiler)
+
+    implementation(libs.serialization.json)
+    implementation(libs.rhino)
 
     implementation(project(":innertube"))
     implementation(project(":kugou"))
