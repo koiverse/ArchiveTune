@@ -176,7 +176,6 @@
     <string name="sleep_timer">スリープタイマー</string>
     <string name="end_of_song">曲の終わり</string>
     <plurals name="minute">
-        <item quantity="one">1 minute</item>
         <item quantity="other">%d minutes</item>
     </plurals>
     <string name="error_no_stream">利用可能なストリームがありません</string>
