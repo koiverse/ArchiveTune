@@ -185,4 +185,16 @@
     <string name="settings_section_player_content">Lecteur &amp; Contenu</string>
     <string name="settings_section_storage">Stockage &amp; Données</string>
     <string name="settings_section_system">Système &amp; À propos</string>
+    <string name="manage_tags">Gérer les balises</string>
+    <string name="add_tag">Ajouter une balise</string>
+    <string name="edit_tag">Modifier la balise</string>
+    <string name="tag_name">Nom de la balise</string>
+    <string name="tag_color">Couleur de la balise</string>
+    <string name="choose_color">Choisir une couleur</string>
+    <string name="tap_to_change_color">Appuyez pour changer la couleur</string>
+    <string name="assign_tags">Attribuer des balises</string>
+    <string name="no_tags_available">Aucune balise disponible. Veuillez en créer une.</string>
+    <string name="manage_playlist_tags">Balises de la playlist</string>
+    <string name="manage_playlist_tags_desc">Créez et gérez des balises pour organiser vos playlists</string>
+    <string name="player_design_v4">Cinématique</string>
 </resources>
