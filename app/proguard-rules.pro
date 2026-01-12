@@ -71,6 +71,7 @@
 -dontwarn javax.script.**
 -keep class jdk.dynalink.** { *; }
 -dontwarn jdk.dynalink.**
+-dontwarn javax.lang.model.**
 
 ## Logging (does not affect Timber)
 -assumenosideeffects class android.util.Log {
