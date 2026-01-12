@@ -135,10 +135,10 @@
     <string name="edit_playlist">編集プレイリスト</string>
     <string name="create_playlist">作成 プレイリスト</string>
     <string name="playlist_name">プレイリスト名</string>
-    <string name="error_playlist_name_empty">プレイリスト名を空にすることはできません</string>
+    <string name="error_playlist_name_empty">プレイリスト名は空欄にできません。</string>
     <string name="edit_artist">アーティストを編集</string>
     <string name="artist_name">アーティスト名</string>
-    <string name="error_artist_name_empty">アーティスト名を空にすることはできません</string>
+    <string name="error_artist_name_empty">アーティスト名は空欄にできません。</string>
     <string name="duplicates">重複</string>
     <string name="skip_duplicates">重複をスキップ</string>
     <string name="add_anyway">とにかく追加</string>
@@ -353,7 +353,7 @@
     <string name="fade">フェード</string>
     <string name="slide">スライド</string>
     <string name="karaoke">カラオケ</string>
-    <string name="apple_music_style">Apple Music</string>
+    <string name="apple_music_style">アップルミュージック</string>
     <string name="content">コンテンツ</string>
     <string name="action_logout">ログアウト</string>
     <string name="action_login">ログイン</string>
@@ -416,7 +416,7 @@
     <string name="use_login_for_browse">コンテンツの閲覧にログインを使用</string>
     <string name="use_login_for_browse_desc">これは、表示されるコンテンツに影響を与える可能性があり、たとえば、プレミアム アカウントでログインしている場合はプレミアムのみのアルバムが表示されます</string>
     <string name="disable_screenshot">スクリーンショットを無効にする</string>
-    <string name="disable_screenshot_desc">このオプションがオンの場合、スクリーンショットが表示されます</string>
+    <string name="disable_screenshot_desc">このオプションがオンの場合、スクリーンショットと最近のアプリ画面でのアプリの表示が無効になります。</string>
     <string name="enable_lrclib">LrcLib 歌詞プロバイダーを有効にする</string>
     <string name="enable_kugou">KuGou 歌詞プロバイダーを有効にする</string>
     <string name="hide_explicit">露骨なコンテンツを非表示にする</string>
@@ -501,7 +501,7 @@
     <string name="show_small_image">小さな画像を表示</string>
     <string name="description_show_small_image">有効にすると、リッチ プレゼンス プレビューに小さな円形の画像が表示され、利用可能な場合は Discord に送信されます</string>
     <string name="logout_confirm_title">ログアウトを確認</string>
-    <string name="logout_confirm_message">Discord からログアウトしてもよろしいですか?</string>
+    <string name="logout_confirm_message">Discordからログアウトしてもよろしいですか？。</string>
     <string name="logout_confirm_yes">ログアウト</string>
     <string name="logout_confirm_no">キャンセル</string>
     <!--Misc settings additions-->
@@ -564,4 +564,5 @@
     <string name="queue_autoplaying_similar">類似した音楽の自動再生</string>
     <string name="lyrics_line_spacing">歌詞の行間</string>
     <string name="hide_video">ミュージックビデオを非表示にする</string>
+    <string name="similar_content">類似コンテンツ</string>
 </resources>
