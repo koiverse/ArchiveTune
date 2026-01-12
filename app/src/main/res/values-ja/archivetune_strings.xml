@@ -67,7 +67,7 @@
     <string name="seek_backward_dynamic">-%1$d 秒前に戻る</string>
     <string name="seek_seconds_addup">プログレッシブシーク</string>
     <string name="seek_seconds_addup_description">有効にすると、シークスキップごとに 5 秒ずつ追加されます</string>
-    <string name="similar_content">類似のコンテンツ</string>
+    <string name="similar_content">類似コンテンツ</string>
     <string name="login_settings">ログイン設定</string>
     <string name="general_settings">一般設定</string>
     <string name="player_background_style">プレーヤーの背景スタイル</string>
