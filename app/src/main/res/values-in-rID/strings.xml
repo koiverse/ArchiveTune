@@ -114,70 +114,63 @@
     <string name="sort_by_custom">Kustom pesanan</string>
     <!-- Dialog -->
     <string name="media_id">ID media</string>
-    <string name="mime_type">MIME type</string>
-    <string name="codecs">Kodeks</string>
-    <string name="bitrate">Bitrate</string>
-    <string name="sample_rate">Sample rate</string>
-    <string name="loudness">Loudness</string>
-    <string name="volume">Volume</string>
-    <string name="file_size">Ukuran file</string>
-    <string name="unknown">Tidak diketahui</string>
-    <string name="copied">Disalin ke clipboard</string>
-    <string name="edit_lyrics">Edit lirik</string>
+    <string name="mime_type">Tipe MIME</string>
+    <string name="codecs">Kodek</string>
+    <string name="bitrate">Kecepatan bit</string>
+    <string name="sample_rate">Sampel rate</string>
+    <string name="loudness">Kekerasan</string>
+    <string name="volume">volume</string>
+    <string name="file_size">Ukuran berkas</string>
+    <string name="unknown">Tidak dikenal</string>
+    <string name="copied">Disalin ke papan klip</string>
+    <string name="edit_lyrics">Sunting lirik</string>
     <string name="search_lyrics">Cari lirik</string>
-    <string name="edit_song">Edit lagu</string>
+    <string name="edit_song">Sunting lagu</string>
     <string name="song_title">Judul lagu</string>
     <string name="song_artists">Artis lagu</string>
-    <string name="error_song_title_empty">Judul lagu tidak boleh kosong.</string>
-    <string name="error_song_artist_empty">Artis lagu tidak boleh kosong.</string>
+    <string name="error_song_title_empty">Judul lagu wajib diisi.</string>
+    <string name="error_song_artist_empty">Artis lagu wajib diisi.</string>
     <string name="save">Simpan</string>
-    <string name="choose_playlist">Pilih playlist</string>
-    <string name="edit_playlist">Edit daftar putar</string>
-    <string name="create_playlist">Buat playlist</string>
-    <string name="playlist_name">Nama playlist</string>
-    <string name="error_playlist_name_empty">Nama playlist tidak boleh kosong.</string>
-    <string name="edit_artist">Edit artis</string>
+    <string name="choose_playlist">Pilih daftar putar</string>
+    <string name="edit_playlist">Sunting daftar putar</string>
+    <string name="create_playlist">Buat daftar putar</string>
+    <string name="playlist_name">Nama daftar putar</string>
+    <string name="error_playlist_name_empty">Nama daftar putar tidak boleh kosong.</string>
+    <string name="edit_artist">Sunting artis</string>
     <string name="artist_name">Nama artis</string>
     <string name="error_artist_name_empty">Nama artis tidak boleh kosong.</string>
     <string name="duplicates">Duplikat</string>
     <string name="skip_duplicates">Lewati duplikat</string>
     <string name="add_anyway">Tetap tambahkan</string>
-    <string name="duplicates_description_single">Lagu sudah ada di playlist Anda</string>
-    <string name="duplicates_description_multiple">%d lagu sudah ada di playlist Anda</string>
+    <string name="duplicates_description_single">Lagu tersebut sudah ada di dalam daftar putar Anda</string>
+    <string name="duplicates_description_multiple">%d lagu sudah ada di dalam daftar putar Anda</string>
     <!-- Noun -->
     <plurals name="n_song">
-        <item quantity="one">%d song</item>
-        <item quantity="other">%d songs</item>
+        <item quantity="other">%d lagu</item>
     </plurals>
     <plurals name="n_artist">
-        <item quantity="one">%d artist</item>
-        <item quantity="other">%d artists</item>
+        <item quantity="other">%d artis</item>
     </plurals>
     <plurals name="n_album">
-        <item quantity="one">%d album</item>
-        <item quantity="other">%d albums</item>
+        <item quantity="other">%d album</item>
     </plurals>
     <plurals name="n_playlist">
-        <item quantity="one">%d playlist</item>
-        <item quantity="other">%d playlists</item>
+        <item quantity="other">%d daftar putar</item>
     </plurals>
     <plurals name="n_week">
-        <item quantity="one">%d week</item>
-        <item quantity="other">%d weeks</item>
+        <item quantity="other">%d minggu</item>
     </plurals>
     <plurals name="n_month">
-        <item quantity="one">%d month</item>
-        <item quantity="other">%d months</item>
+        <item quantity="other">%d bulan</item>
     </plurals>
     <plurals name="n_year">
-        <item quantity="one">%d year</item>
-        <item quantity="other">%d years</item>
+        <item quantity="other">%d tahun</item>
     </plurals>
     <!-- Snackbar -->
     <string name="playlist_imported">Daftar putar diimpor</string>
     <string name="removed_song_from_playlist">\"%s\" dihapus dari playlist</string>
     <string name="playlist_synced">Daftar Putar disinkronkan</string>
-    <string name="undo">Undo</string>
+    <string name="undo">Batalkan</string>
     <!-- Player -->
     <string name="lyrics_not_found">Lirik tidak ditemukan</string>
     <string name="sleep_timer">Pengatur waktu tidur</string>
@@ -570,4 +563,5 @@ ArchiveTune hanya akan mengekstrak token Anda, dan yang lainnya disimpan secara 
     <string name="update_notification_text">ArchiveTune %s sekarang tersedia</string>
     <string name="download">Unduh</string>
     <string name="lyrics_line_spacing">Jarak antar baris teks lirik</string>
+    <string name="similar_content">Konten terkait</string>
 </resources>
