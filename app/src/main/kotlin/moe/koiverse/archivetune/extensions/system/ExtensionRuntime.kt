@@ -24,6 +24,7 @@ class ExtensionRuntime(
     private var onLoadFn: Function? = null
     private var onUnloadFn: Function? = null
     private var onTrackPlayFn: Function? = null
+    private var onTrackPauseFn: Function? = null
     private var onQueueBuildFn: Function? = null
 
     fun load(): Result<Unit> {
@@ -42,6 +43,7 @@ class ExtensionRuntime(
             onLoadFn = lookupFunction("onLoad")
             onUnloadFn = lookupFunction("onUnload")
             onTrackPlayFn = lookupFunction("onTrackPlay")
+            onTrackPauseFn = lookupFunction("onTrackPause")
             onQueueBuildFn = lookupFunction("onQueueBuild")
 
             onLoadFn?.let { fn ->
@@ -62,6 +64,7 @@ class ExtensionRuntime(
         onLoadFn = null
         onUnloadFn = null
         onTrackPlayFn = null
+        onTrackPauseFn = null
         onQueueBuildFn = null
     }
 
@@ -76,6 +79,19 @@ class ExtensionRuntime(
         )
         val jsPayload = RhinoContext.javaToJS(payload, s)
         runCatching { onTrackPlayFn?.call(c, s, s, arrayOf(jsPayload)) }
+    }
+
+    fun onTrackPause(metadata: MediaMetadata) {
+        val c = cx ?: return
+        val s = scope ?: return
+        val payload = mapOf(
+            "id" to metadata.id,
+            "title" to metadata.title,
+            "artists" to metadata.artists,
+            "album" to metadata.album
+        )
+        val jsPayload = RhinoContext.javaToJS(payload, s)
+        runCatching { onTrackPauseFn?.call(c, s, s, arrayOf(jsPayload)) }
     }
 
     fun onQueueBuild(queueTitle: String?) {

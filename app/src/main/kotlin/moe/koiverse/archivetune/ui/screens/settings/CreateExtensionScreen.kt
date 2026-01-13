@@ -188,7 +188,9 @@ data class ExtensionBuilderState(
     var themePatches: MutableList<ThemePatchBuilderItem> = mutableListOf(),
     var menuEntries: MutableList<MenuEntryBuilderItem> = mutableListOf(),
     var contextActions: MutableList<ContextActionBuilderItem> = mutableListOf(),
-    var entryCode: String = DEFAULT_ENTRY_CODE
+    var entryCode: String = DEFAULT_ENTRY_CODE,
+    var iconUri: String = "",
+    var bannerUri: String = ""
 )
 
 data class SettingBuilderItem(
@@ -319,7 +321,7 @@ fun CreateExtensionScreen(
     var showAddThemePatchDialog by remember { mutableStateOf(false) }
     var showAddMenuEntryDialog by remember { mutableStateOf(false) }
     var editingSettingIndex by remember { mutableStateOf<Int?>(null) }
-
+    
     val exportLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/zip")) { uri ->
         uri?.let {
             scope.launch {
@@ -327,7 +329,21 @@ fun CreateExtensionScreen(
                 if (result.isSuccess) {
                     snackbarHostState.showSnackbar("Extension exported successfully!")
                 } else {
-                    snackbarHostState.showSnackbar("Export failed: ${result.exceptionOrNull()?.message}")
+                    snackbarHostState.showSnackbar("Export failed: ${'$'}{result.exceptionOrNull()?.message}")
+                }
+            }
+        }
+    }
+        
+    val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        uri?.let {
+            scope.launch {
+                val result = importExtension(context, uri)
+                if (result.isSuccess) {
+                    builderState.value = result.getOrThrow()
+                    snackbarHostState.showSnackbar("Extension loaded successfully!")
+                } else {
+                    snackbarHostState.showSnackbar("Failed to load extension: ${'$'}{result.exceptionOrNull()?.message}")
                 }
             }
         }
@@ -351,6 +367,7 @@ fun CreateExtensionScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = { importLauncher.launch("application/zip") }) { Icon(Icons.Default.Folder, "Import") }
                     IconButton(onClick = { showPreviewSheet = true }) { Icon(Icons.Default.Preview, "Preview") }
                     IconButton(onClick = { showExportDialog = true }) { Icon(Icons.Default.Save, "Export") }
                 },
@@ -508,6 +525,15 @@ private fun BasicInfoTab(state: ExtensionBuilderState, onStateChange: (Extension
         }
         item {
             OutlinedTextField(value = state.repository, onValueChange = { onStateChange(state.copy(repository = it)) }, label = { Text("Repository URL") }, placeholder = { Text("https://github.com/user/repo") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+        }
+        item {
+            SectionHeader("Assets", Icons.Default.Folder)
+        }
+        item {
+            AssetPicker("Icon", state.iconUri, "image/*") { uri -> onStateChange(state.copy(iconUri = uri.toString())) }
+        }
+        item {
+            AssetPicker("Banner", state.bannerUri, "image/*") { uri -> onStateChange(state.copy(bannerUri = uri.toString())) }
         }
         item {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -826,6 +852,8 @@ private fun PreviewSheetContent(state: ExtensionBuilderState) {
                 InfoRow("Settings", "${state.settings.size}")
                 InfoRow("UI Routes", "${state.uiRoutes.size}")
                 InfoRow("Hooks", "${state.hooks.size}")
+                InfoRow("Icon", if (state.iconUri.isNotEmpty()) "Included" else "None")
+                InfoRow("Banner", if (state.bannerUri.isNotEmpty()) "Included" else "None")
             }
         }
     }
@@ -836,6 +864,29 @@ private fun InfoRow(label: String, value: String) {
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
         Text(label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Text(value, style = MaterialTheme.typography.bodyMedium)
+    }
+}
+
+@Composable
+private fun AssetPicker(label: String, uri: String, mimeType: String, onUriSelected: (android.net.Uri) -> Unit) {
+    val context = LocalContext.current
+    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        uri?.let { onUriSelected(it) }
+    }
+    
+    Row(modifier = Modifier.fillMaxWidth().clickable { launcher.launch(mimeType) }.padding(vertical = 8.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+        Text(label, style = MaterialTheme.typography.bodyLarge)
+        if (uri.isNotEmpty()) {
+            val fileName = try {
+                context.contentResolver.query(android.net.Uri.parse(uri), arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->
+                    val nameIndex = cursor.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
+                    if (nameIndex >= 0 && cursor.moveToFirst()) cursor.getString(nameIndex) else "Selected"
+                } ?: "Selected"
+            } catch (e: Exception) { "Selected" }
+            Text(fileName, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
+        } else {
+            Text("Select", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
     }
 }
 
@@ -880,6 +931,8 @@ private fun ExportDialog(state: ExtensionBuilderState, onDismiss: () -> Unit, on
                     Text("The ZIP file will contain:", style = MaterialTheme.typography.bodySmall)
                     Text("• manifest.json", style = MaterialTheme.typography.bodySmall)
                     Text("• index.js", style = MaterialTheme.typography.bodySmall)
+                    if (state.iconUri.isNotEmpty()) Text("• icon.png", style = MaterialTheme.typography.bodySmall)
+                    if (state.bannerUri.isNotEmpty()) Text("• banner.png", style = MaterialTheme.typography.bodySmall)
                 }
             }
         },
@@ -1133,7 +1186,9 @@ private fun generateManifestJson(state: ExtensionBuilderState): String {
         autoEnable = state.autoEnable,
         hidden = state.hidden,
         beta = state.beta,
-        experimental = state.experimental
+        experimental = state.experimental,
+        icon = if (state.iconUri.isNotEmpty()) "icon.png" else null,
+        banner = if (state.bannerUri.isNotEmpty()) "banner.png" else null
     )
     return json.encodeToString(manifest)
 }
@@ -1149,8 +1204,167 @@ private fun exportExtension(context: Context, state: ExtensionBuilderState, uri:
                 zipOut.putNextEntry(ZipEntry("index.js"))
                 zipOut.write(state.entryCode.toByteArray())
                 zipOut.closeEntry()
+                
+                if (state.iconUri.isNotEmpty()) {
+                    try {
+                        val iconUri = android.net.Uri.parse(state.iconUri)
+                        context.contentResolver.openInputStream(iconUri)?.use { inputStream ->
+                            zipOut.putNextEntry(ZipEntry("icon.png"))
+                            inputStream.copyTo(zipOut)
+                            zipOut.closeEntry()
+                        }
+                    } catch (e: Exception) {}
+                }
+                
+                if (state.bannerUri.isNotEmpty()) {
+                    try {
+                        val bannerUri = android.net.Uri.parse(state.bannerUri)
+                        context.contentResolver.openInputStream(bannerUri)?.use { inputStream ->
+                            zipOut.putNextEntry(ZipEntry("banner.png"))
+                            inputStream.copyTo(zipOut)
+                            zipOut.closeEntry()
+                        }
+                    } catch (e: Exception) {}
+                }
             }
         } ?: throw Exception("Could not open output stream")
+    }
+}
+
+private fun importExtension(context: Context, uri: android.net.Uri): Result<ExtensionBuilderState> {
+    return runCatching {
+        val tempDir = File(context.cacheDir, "temp_extension_import")
+        tempDir.mkdirs()
+        
+        try {
+            context.contentResolver.openInputStream(uri)?.use { inputStream ->
+                java.util.zip.ZipInputStream(inputStream).use { zipIn ->
+                    var entry: java.util.zip.ZipEntry?
+                    while (zipIn.nextEntry.also { entry = it } != null) {
+                        val file = File(tempDir, entry!!.name)
+                        if (entry!!.isDirectory) {
+                            file.mkdirs()
+                        } else {
+                            file.parentFile?.mkdirs()
+                            file.outputStream().use { output ->
+                                zipIn.copyTo(output)
+                            }
+                        }
+                        zipIn.closeEntry()
+                    }
+                }
+            }
+            
+            val manifestFile = File(tempDir, "manifest.json")
+            if (!manifestFile.exists()) {
+                throw Exception("manifest.json not found in ZIP file")
+            }
+            
+            val manifestContent = manifestFile.readText()
+            val json = Json { ignoreUnknownKeys = true }
+            val manifest = json.decodeFromString<ExtensionManifest>(manifestContent)
+            
+            val jsFile = File(tempDir, "index.js")
+            val entryCode = if (jsFile.exists()) {
+                jsFile.readText()
+            } else {
+                DEFAULT_ENTRY_CODE
+            }
+            
+            val state = ExtensionBuilderState(
+                id = manifest.id,
+                name = manifest.name,
+                version = manifest.version,
+                author = manifest.author,
+                description = manifest.description ?: "",
+                website = manifest.website ?: "",
+                repository = manifest.repository ?: "",
+                license = manifest.license ?: "MIT",
+                minAppVersion = manifest.minAppVersion ?: "",
+                maxAppVersion = manifest.maxAppVersion ?: "",
+                category = manifest.category ?: "Utility",
+                tags = manifest.tags.toMutableList(),
+                allowSettings = manifest.allowSettings,
+                autoEnable = manifest.autoEnable,
+                hidden = manifest.hidden,
+                beta = manifest.beta,
+                experimental = manifest.experimental,
+                permissions = manifest.permissions.toMutableList(),
+                settings = manifest.settings.map { s ->
+                    SettingBuilderItem(
+                        key = s.key,
+                        type = s.type,
+                        label = s.label,
+                        description = s.description ?: "",
+                        icon = s.icon ?: "",
+                        placeholder = s.placeholder ?: "",
+                        defaultBoolean = s.defaultBoolean ?: false,
+                        defaultNumber = s.defaultNumber ?: 0,
+                        defaultString = s.defaultString ?: "",
+                        options = s.options?.toMutableList() ?: mutableListOf(),
+                        min = s.min ?: 0,
+                        max = s.max ?: 100,
+                        step = s.step ?: 1,
+                        category = s.category ?: "",
+                        order = s.order,
+                        restartRequired = s.restartRequired,
+                        experimental = s.experimental,
+                        deprecated = s.deprecated
+                    )
+                }.toMutableList(),
+                uiRoutes = manifest.uiRoutes.map { r ->
+                    UIRouteBuilderItem(
+                        route = r.route,
+                        mode = r.mode,
+                        position = r.position,
+                        priority = r.priority
+                    )
+                }.toMutableList(),
+                hooks = manifest.hooks.map { h ->
+                    HookBuilderItem(
+                        event = h.event,
+                        handler = h.handler,
+                        priority = h.priority,
+                        async = h.async
+                    )
+                }.toMutableList(),
+                themePatches = manifest.themePatches.map { p ->
+                    ThemePatchBuilderItem(
+                        target = p.target,
+                        property = p.property,
+                        value = p.value,
+                        mode = p.mode
+                    )
+                }.toMutableList(),
+                menuEntries = manifest.menuEntries.map { e ->
+                    MenuEntryBuilderItem(
+                        menuId = e.id,
+                        label = e.label,
+                        icon = e.icon ?: "",
+                        route = e.route ?: "",
+                        action = e.action ?: "",
+                        position = e.position,
+                        order = e.order,
+                        showWhen = e.showWhen ?: ""
+                    )
+                }.toMutableList(),
+                contextActions = manifest.contextActions.map { ca ->
+                    ContextActionBuilderItem(
+                        actionId = ca.id,
+                        label = ca.label,
+                        icon = ca.icon ?: "",
+                        action = ca.action,
+                        context = ca.context.toMutableList(),
+                        showWhen = ca.showWhen ?: ""
+                    )
+                }.toMutableList(),
+                entryCode = entryCode
+            )
+            
+            state
+        } finally {
+            tempDir.deleteRecursively()
+        }
     }
 }
                 

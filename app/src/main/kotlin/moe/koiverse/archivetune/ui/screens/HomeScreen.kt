@@ -62,6 +62,7 @@ import moe.koiverse.archivetune.ui.component.LocalMenuState
 import moe.koiverse.archivetune.ui.component.NavigationTitle
 import moe.koiverse.archivetune.ui.utils.SnapLayoutInfoProvider
 import moe.koiverse.archivetune.utils.rememberPreference
+import moe.koiverse.archivetune.utils.getExtensionManager
 import moe.koiverse.archivetune.viewmodels.HomeViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first

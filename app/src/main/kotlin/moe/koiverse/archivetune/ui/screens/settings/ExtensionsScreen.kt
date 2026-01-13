@@ -71,21 +71,31 @@ fun ExtensionsScreen(
     val manager = entryPoint.extensionManager()
     val extensions by manager.installed.collectAsState(emptyList())
     var menuExpanded by remember { mutableStateOf(false) }
-
+    val snackbarHostState = remember { SnackbarHostState() }
+    var errorMessageToShow by remember { mutableStateOf<String?>(null) }
+    
     val installLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenDocument()
     ) { uri: Uri? ->
         uri ?: return@rememberLauncherForActivityResult
         val result = managerInstallFromDevice(manager, uri)
-        Toast.makeText(
-            context,
-            if (result.isSuccess) "Extension installed" else "Installation failed",
-            Toast.LENGTH_LONG
-        ).show()
+        if (result.isSuccess) {
+            snackbarHostState.showSnackbar("Extension installed successfully!")
+        } else {
+            val errorMessage = result.exceptionOrNull()?.message ?: "Unknown error"
+            snackbarHostState.showSnackbar(
+                message = "Installation failed",
+                actionLabel = "View",
+                duration = SnackbarDuration.Long
+            ) {
+                errorMessageToShow = errorMessage
+            }
+        }
     }
 
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.extensions)) },
@@ -121,6 +131,12 @@ fun ExtensionsScreen(
             )
         }
     ) { padding ->
+        if (errorMessageToShow != null) {
+            ErrorDialog(
+                errorMessage = errorMessageToShow!!, 
+                onDismiss = { errorMessageToShow = null }
+            )
+        }
         if (extensions.isEmpty()) {
             Box(
                 modifier = Modifier
@@ -173,7 +189,18 @@ fun ExtensionsScreen(
                         onEnableChange = { enabled -> if (enabled) manager.enable(ext.manifest.id) else manager.disable(ext.manifest.id) },
                         onDeleteClick = {
                             val result = manager.delete(ext.manifest.id)
-                            Toast.makeText(context, if (result.isSuccess) "Extension deleted" else "Delete failed", Toast.LENGTH_LONG).show()
+                            if (result.isSuccess) {
+                                snackbarHostState.showSnackbar("Extension deleted successfully!")
+                            } else {
+                                val errorMessage = result.exceptionOrNull()?.message ?: "Unknown error"
+                                snackbarHostState.showSnackbar(
+                                    message = "Delete failed",
+                                    actionLabel = "View",
+                                    duration = SnackbarDuration.Long
+                                ) {
+                                    errorMessageToShow = errorMessage
+                                }
+                            }
                         }
                     )
                 }
@@ -471,3 +498,31 @@ private fun managerInstallFromDevice(
     manager: ExtensionManager,
     uri: Uri
 ): Result<Unit> = manager.installFromZip(uri)
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ErrorDialog(errorMessage: String, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Error Details") },
+        text = { 
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Text("An error occurred:")
+                Spacer(Modifier.height(8.dp))
+                Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+                    Text(
+                        text = errorMessage,
+                        modifier = Modifier.padding(12.dp),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            Button(onClick = onDismiss) {
+                Text("OK")
+            }
+        }
+    )
+}

@@ -33,6 +33,7 @@ import moe.koiverse.archivetune.ui.component.Material3SettingsItem
 import moe.koiverse.archivetune.ui.component.ReleaseNotesCard
 import moe.koiverse.archivetune.ui.utils.backToMain
 import moe.koiverse.archivetune.utils.Updater
+import moe.koiverse.archivetune.utils.getExtensionManager
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

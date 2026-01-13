@@ -155,6 +155,19 @@ class PlayerConnection(
         reason: Int,
     ) {
         playWhenReady.value = newPlayWhenReady
+        if (newPlayWhenReady) {
+            mediaMetadata.value?.let { metadata ->
+                val entryPoint = EntryPointAccessors.fromApplication(service.applicationContext, ExtensionManagerEntryPoint::class.java)
+                val manager = entryPoint.extensionManager()
+                manager.onTrackPlay(metadata)
+            }
+        } else {
+            mediaMetadata.value?.let { metadata ->
+                val entryPoint = EntryPointAccessors.fromApplication(service.applicationContext, ExtensionManagerEntryPoint::class.java)
+                val manager = entryPoint.extensionManager()
+                manager.onTrackPause(metadata)
+            }
+        }
     }
 
     override fun onMediaItemTransition(

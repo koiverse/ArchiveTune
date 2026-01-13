@@ -164,6 +164,10 @@ class ExtensionManager @Inject constructor(
         runtimes.values.forEach { runCatching { it.onQueueBuild(title) } }
     }
     
+    fun onTrackPause(metadata: MediaMetadata) {
+        runtimes.values.forEach { runCatching { it.onTrackPause(metadata) } }
+    }
+    
     fun setUiConfig(extensionId: String, route: String, config: UIConfig, baseDir: File) {
         uiConfigs.update { it.toMutableMap().apply { set(route, extensionId to UIConfigAndBase(config, baseDir)) } }
     }
