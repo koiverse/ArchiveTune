@@ -3,7 +3,8 @@ package moe.koiverse.archivetune.examples
 import android.content.Context
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
-import moe.koiverse.archivetune.utils.getExtensionManager
+import dagger.hilt.android.EntryPointAccessors
+import moe.koiverse.archivetune.di.ExtensionManagerEntryPoint
 import moe.koiverse.archivetune.extensions.system.ExtensionManager
 
 /**
@@ -17,7 +18,11 @@ object ExtensionManagerUsageExample {
     @Composable
     fun AccessExtensionManagerInComposable() {
         val context = LocalContext.current
-        val extensionManager = getExtensionManager(context)
+        val entryPoint = EntryPointAccessors.fromApplication(
+            context,
+            ExtensionManagerEntryPoint::class.java
+        )
+        val extensionManager = entryPoint.extensionManager()
         
         // Use the extension manager for various operations
         // extensionManager.enable("some_extension_id")
@@ -29,7 +34,11 @@ object ExtensionManagerUsageExample {
      * Example of accessing ExtensionManager from a regular function with Context
      */
     fun accessExtensionManagerInFunction(context: Context) {
-        val extensionManager = getExtensionManager(context)
+        val entryPoint = EntryPointAccessors.fromApplication(
+            context.applicationContext,
+            ExtensionManagerEntryPoint::class.java
+        )
+        val extensionManager = entryPoint.extensionManager()
         
         // Use the extension manager for various operations
         // extensionManager.discover()
@@ -41,7 +50,11 @@ object ExtensionManagerUsageExample {
      */
     class ExampleClass(private val context: Context) {
         private val extensionManager: ExtensionManager by lazy {
-            getExtensionManager(context)
+            val entryPoint = EntryPointAccessors.fromApplication(
+                context.applicationContext,
+                ExtensionManagerEntryPoint::class.java
+            )
+            entryPoint.extensionManager()
         }
 
         fun performExtensionOperation() {
