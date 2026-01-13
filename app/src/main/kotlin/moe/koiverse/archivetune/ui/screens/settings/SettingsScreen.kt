@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -280,7 +281,7 @@ private fun WelcomeCard() {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
-                        painter = painterResource(R.drawable.archive_tune_icon),
+                        painter = painterResource(R.drawable.archive),
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(48.dp)
@@ -293,7 +294,7 @@ private fun WelcomeCard() {
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = stringResource(R.string.welcome_to_archive_tune),
+                            text = stringResource(R.string.app_name),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -301,7 +302,7 @@ private fun WelcomeCard() {
                 }
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
-                    text = stringResource(R.string.settings_welcome_message),
+                    text = stringResource(R.string.settings),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Justify
@@ -391,7 +392,7 @@ private fun SettingsSection(
                                 }
                             } else {
                                 Icon(
-                                    painter = painterResource(R.drawable.arrow_right),
+                                    painter = painterResource(R.drawable.arrow_forward),
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.size(20.dp)
