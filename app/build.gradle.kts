@@ -157,6 +157,7 @@ dependencies {
     implementation(libs.guava)
     implementation(libs.coroutines.guava)
     implementation(libs.concurrent.futures)
+    implementation(libs.material.icons.extended)
 
     implementation(libs.activity)
     implementation(libs.navigation)

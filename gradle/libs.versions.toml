@@ -22,6 +22,7 @@ hiltNavigation = "1.3.0"
 datastore = "1.2.0-alpha02"
 workManager = "2.10.1"
 composeReorderable = "3.0.0"
+material-icons-extended = "1.7.8"
 squigglyslider = "1.0.0"
 shimmer = "1.3.3"
 palette = "1.0.0"
@@ -114,6 +115,7 @@ newpipe-extractor = { module = "com.github.mostafaalagamy:MetrolistExtractor", v
 kuromoji-ipadic = { module = "com.atilika.kuromoji:kuromoji-ipadic", version.ref = "kuromojiIpadic" }
 rhino = { module = "org.mozilla:rhino", version.ref = "rhino" }
 rhino-android = { module = "com.faendir.rhino:rhino-android", version.ref = "rhinoAndroid" }
+material-icons-extended = { module = "androidx.compose.material:material-icons-extended", version.ref = "material-icons-extended" }   
 
 [plugins]
 compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
