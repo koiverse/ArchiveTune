@@ -72,6 +72,7 @@ fun ExtensionsScreen(
     val extensions by manager.installed.collectAsState(emptyList())
     var menuExpanded by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
     var errorMessageToShow by remember { mutableStateOf<String?>(null) }
     
     val installLauncher = rememberLauncherForActivityResult(
@@ -80,15 +81,19 @@ fun ExtensionsScreen(
         uri ?: return@rememberLauncherForActivityResult
         val result = managerInstallFromDevice(manager, uri)
         if (result.isSuccess) {
-            snackbarHostState.showSnackbar("Extension installed successfully!")
+            scope.launch {
+                snackbarHostState.showSnackbar("Extension installed successfully!")
+            }
         } else {
             val errorMessage = result.exceptionOrNull()?.message ?: "Unknown error"
-            snackbarHostState.showSnackbar(
-                message = "Installation failed",
-                actionLabel = "View",
-                duration = SnackbarDuration.Long
-            ) {
-                errorMessageToShow = errorMessage
+            scope.launch {
+                snackbarHostState.showSnackbar(
+                    message = "Installation failed",
+                    actionLabel = "View",
+                    duration = SnackbarDuration.Long
+                ) {
+                    errorMessageToShow = errorMessage
+                }
             }
         }
     }
@@ -190,15 +195,19 @@ fun ExtensionsScreen(
                         onDeleteClick = {
                             val result = manager.delete(ext.manifest.id)
                             if (result.isSuccess) {
-                                snackbarHostState.showSnackbar("Extension deleted successfully!")
+                                scope.launch {
+                                    snackbarHostState.showSnackbar("Extension deleted successfully!")
+                                }
                             } else {
                                 val errorMessage = result.exceptionOrNull()?.message ?: "Unknown error"
-                                snackbarHostState.showSnackbar(
-                                    message = "Delete failed",
-                                    actionLabel = "View",
-                                    duration = SnackbarDuration.Long
-                                ) {
-                                    errorMessageToShow = errorMessage
+                                scope.launch {
+                                    snackbarHostState.showSnackbar(
+                                        message = "Delete failed",
+                                        actionLabel = "View",
+                                        duration = SnackbarDuration.Long
+                                    ) {
+                                        errorMessageToShow = errorMessage
+                                    }
                                 }
                             }
                         }
