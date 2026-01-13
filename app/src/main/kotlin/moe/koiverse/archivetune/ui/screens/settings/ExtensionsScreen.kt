@@ -29,6 +29,7 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Science
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.clip
@@ -89,11 +90,12 @@ fun ExtensionsScreen(
         } else {
             val errorMessage = result.exceptionOrNull()?.message ?: "Unknown error"
             scope.launch {
-                snackbarHostState.showSnackbar(
+                val result = snackbarHostState.showSnackbar(
                     message = "Installation failed",
                     actionLabel = "View",
                     duration = SnackbarDuration.Long
-                ) {
+                )
+                if (result == SnackbarResult.ActionPerformed) {
                     errorMessageToShow = errorMessage
                 }
             }
@@ -203,11 +205,12 @@ fun ExtensionsScreen(
                             } else {
                                 val errorMessage = result.exceptionOrNull()?.message ?: "Unknown error"
                                 scope.launch {
-                                    snackbarHostState.showSnackbar(
+                                    val result = snackbarHostState.showSnackbar(
                                         message = "Delete failed",
                                         actionLabel = "View",
                                         duration = SnackbarDuration.Long
-                                    ) {
+                                    )
+                                    if (result == SnackbarResult.ActionPerformed) {
                                         errorMessageToShow = errorMessage
                                     }
                                 }
