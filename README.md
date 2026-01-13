@@ -79,21 +79,24 @@ ArchiveTune is a Supercharged fork of [Metrolist](https://github.com/mostafaalag
 [![Status penerjemahan](https://translate.codeberg.org/widget/archivetune/287x66-grey.png)](https://translate.codeberg.org/engage/archivetune/)
 
 We use Codeberg to translate ArchiveTune. For more details or to get started, visit our [ArchiveTune page](https://translate.codeberg.org/projects/archivetune/).
-
 <a href="https://translate.codeberg.org/projects/archivetune/">
 <img src="https://translate.codeberg.org/widget/archivetune/horizontal-blue.svg" alt="Translation status" />
 </a>
-
 Thank you very much for helping to make ArchiveTune accessible to many people worldwide.
 </div>
 
 ## Credits & Acknowledgments
 
-ArchiveTune is a derivative work based on [**Metrolist**](https://github.com/mostafaalagamy/Metrolist) by **Mostafa Alagamy**, licensed under the [GNU General Public License v3.0](https://www.gnu.org/licenses/gpl-3.0.html). We thank the original author and contributors of Metrolist for their foundational work.
+ArchiveTune is a derivative work based on [**Metrolist**](https://github.com/mostafaalagamy/Metrolist) by **Mostafa Alagamy**.
 
 Additional acknowledgments:
 - [**Kizzy**](https://github.com/dead8309/Kizzy) – for the Discord Rich Presence implementation and inspiration.
 - The open-source community for tools, libraries, and APIs that make this project possible.
+
+## Awesome Contributor
+<a href="https://github.com/koiverse/ArchiveTune/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=koiverse/ArchiveTune" />
+</a>
 
 <div align="center">
 <h1>Disclaimer</h1>
