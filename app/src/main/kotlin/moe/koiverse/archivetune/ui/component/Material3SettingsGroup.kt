@@ -1,8 +1,9 @@
 package moe.koiverse.archivetune.ui.component
 
 import androidx.compose.animation.animateContentSize
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -61,9 +62,7 @@ fun Material3SettingsGroup(
     }
 }
 
-/**
- * Individual settings item row with Material 3 styling
- */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun Material3SettingsItemRow(
     item: Material3SettingsItem,
@@ -74,9 +73,10 @@ private fun Material3SettingsItemRow(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(12.dp))
-                .clickable(
-                    enabled = item.onClick != null,
-                    onClick = { item.onClick?.invoke() }
+                .combinedClickable(
+                    enabled = item.onClick != null || item.onLongClick != null,
+                    onClick = { item.onClick?.invoke() },
+                    onLongClick = { item.onLongClick?.invoke() }
                 )
                 .padding(horizontal = 20.dp, vertical = 16.dp),
             verticalAlignment = Alignment.CenterVertically
@@ -173,5 +173,6 @@ data class Material3SettingsItem(
     val trailingContent: (@Composable () -> Unit)? = null,
     val showBadge: Boolean = false,
     val isHighlighted: Boolean = false,
-    val onClick: (() -> Unit)? = null
+    val onClick: (() -> Unit)? = null,
+    val onLongClick: (() -> Unit)? = null
 )

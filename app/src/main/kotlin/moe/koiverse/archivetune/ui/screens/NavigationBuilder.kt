@@ -75,6 +75,7 @@ import moe.koiverse.archivetune.ui.screens.settings.StorageSettings
 import moe.koiverse.archivetune.ui.screens.settings.UpdateScreen
 import moe.koiverse.archivetune.ui.screens.settings.ExtensionsScreen
 import moe.koiverse.archivetune.ui.screens.settings.ExtensionSettingsScreen
+import moe.koiverse.archivetune.ui.screens.settings.CreateExtensionScreen
 import moe.koiverse.archivetune.ui.utils.ShowMediaInfo
 import moe.koiverse.archivetune.utils.rememberEnumPreference
 import moe.koiverse.archivetune.utils.rememberPreference
@@ -336,6 +337,9 @@ fun NavGraphBuilder.navigationBuilder(
     }
     composable("settings/extensions") {
         ExtensionsScreen(navController, scrollBehavior)
+    }
+    composable("settings/extensions/create") {
+        CreateExtensionScreen(navController, scrollBehavior)
     }
     composable(
         route = "settings/extension/{id}",
