@@ -442,6 +442,7 @@ fun RenderNode(
     }
 }
 
+@Composable
 private fun UIModifier.toModifier(onAction: UIActionHandler, action: String?): Modifier {
     var mod: Modifier = Modifier
     width?.let { w -> mod = when (w) { "fill" -> mod.fillMaxWidth(); "wrap" -> mod.wrapContentWidth(); else -> w.removeSuffix("dp").toIntOrNull()?.let { mod.width(it.dp) } ?: mod } }
@@ -466,17 +467,30 @@ private fun UIModifier.toModifier(onAction: UIActionHandler, action: String?): M
     return mod
 }
 
+@Composable
 private fun UIArrangement?.toVerticalArrangement(spacing: Int?): Arrangement.Vertical = when (this) { UIArrangement.start, UIArrangement.top -> Arrangement.Top; UIArrangement.center -> Arrangement.Center; UIArrangement.end, UIArrangement.bottom -> Arrangement.Bottom; UIArrangement.spaceBetween -> Arrangement.SpaceBetween; UIArrangement.spaceAround -> Arrangement.SpaceAround; UIArrangement.spaceEvenly -> Arrangement.SpaceEvenly; else -> spacing?.let { Arrangement.spacedBy(it.dp) } ?: Arrangement.spacedBy(8.dp) }
+@Composable
 private fun UIArrangement?.toHorizontalArrangement(spacing: Int?): Arrangement.Horizontal = when (this) { UIArrangement.start -> Arrangement.Start; UIArrangement.center -> Arrangement.Center; UIArrangement.end -> Arrangement.End; UIArrangement.spaceBetween -> Arrangement.SpaceBetween; UIArrangement.spaceAround -> Arrangement.SpaceAround; UIArrangement.spaceEvenly -> Arrangement.SpaceEvenly; else -> spacing?.let { Arrangement.spacedBy(it.dp) } ?: Arrangement.spacedBy(8.dp) }
+@Composable
 private fun UIAlignment?.toHorizontalAlignment(): Alignment.Horizontal = when (this) { UIAlignment.start -> Alignment.Start; UIAlignment.center -> Alignment.CenterHorizontally; UIAlignment.end -> Alignment.End; else -> Alignment.Start }
+@Composable
 private fun UIAlignment?.toVerticalAlignment(): Alignment.Vertical = when (this) { UIAlignment.start -> Alignment.Top; UIAlignment.center -> Alignment.CenterVertically; UIAlignment.end -> Alignment.Bottom; else -> Alignment.CenterVertically }
+@Composable
 private fun UIAlignment?.toAlignment(): Alignment = when (this) { UIAlignment.start -> Alignment.TopStart; UIAlignment.center -> Alignment.Center; UIAlignment.end -> Alignment.BottomEnd; else -> Alignment.TopStart }
+@Composable
 private fun String?.toShape(): androidx.compose.ui.graphics.Shape = when (this) { "circle" -> CircleShape; "rounded" -> RoundedCornerShape(12.dp); "roundedSmall" -> RoundedCornerShape(4.dp); "roundedMedium" -> RoundedCornerShape(8.dp); "roundedLarge" -> RoundedCornerShape(16.dp); "roundedExtraLarge" -> RoundedCornerShape(24.dp); else -> this?.removeSuffix("dp")?.toIntOrNull()?.let { RoundedCornerShape(it.dp) } ?: RoundedCornerShape(12.dp) }
+@Composable
 private fun UITextStyle?.toTextStyle(): androidx.compose.ui.text.TextStyle { if (this == null) return androidx.compose.ui.text.TextStyle.Default; return androidx.compose.ui.text.TextStyle(fontSize = fontSize?.sp ?: 14.sp, fontWeight = fontWeight.toFontWeight(), fontStyle = when (fontStyle) { "italic" -> FontStyle.Italic; else -> FontStyle.Normal }, color = color?.toColor() ?: Color.Unspecified, textAlign = textAlign.toTextAlign(), textDecoration = when (textDecoration) { "underline" -> TextDecoration.Underline; "lineThrough" -> TextDecoration.LineThrough; else -> TextDecoration.None }, letterSpacing = letterSpacing?.sp ?: 0.sp, lineHeight = lineHeight?.sp ?: 20.sp) }
+@Composable
 private fun String?.toFontWeight(): FontWeight = when (this) { "thin" -> FontWeight.Thin; "extraLight" -> FontWeight.ExtraLight; "light" -> FontWeight.Light; "normal" -> FontWeight.Normal; "medium" -> FontWeight.Medium; "semiBold" -> FontWeight.SemiBold; "bold" -> FontWeight.Bold; "extraBold" -> FontWeight.ExtraBold; "black" -> FontWeight.Black; else -> FontWeight.Normal }
+@Composable
 private fun String?.toTextAlign(): TextAlign = when (this) { "start", "left" -> TextAlign.Start; "center" -> TextAlign.Center; "end", "right" -> TextAlign.End; "justify" -> TextAlign.Justify; else -> TextAlign.Start }
+@Composable
 private fun String?.toTextOverflow(): TextOverflow = when (this) { "clip" -> TextOverflow.Clip; "ellipsis" -> TextOverflow.Ellipsis; "visible" -> TextOverflow.Visible; else -> TextOverflow.Clip }
+@Composable
 private fun String?.toContentScale(): androidx.compose.ui.layout.ContentScale = when (this) { "crop" -> androidx.compose.ui.layout.ContentScale.Crop; "fit" -> androidx.compose.ui.layout.ContentScale.Fit; "fillBounds" -> androidx.compose.ui.layout.ContentScale.FillBounds; "fillWidth" -> androidx.compose.ui.layout.ContentScale.FillWidth; "fillHeight" -> androidx.compose.ui.layout.ContentScale.FillHeight; "inside" -> androidx.compose.ui.layout.ContentScale.Inside; "none" -> androidx.compose.ui.layout.ContentScale.None; else -> androidx.compose.ui.layout.ContentScale.Fit }
+@Composable
 private fun String.toColor(): Color = try { if (startsWith("#")) Color(AndroidColor.parseColor(this)) else when (lowercase()) { "primary" -> Color(0xFF6200EE); "secondary" -> Color(0xFF03DAC6); "tertiary" -> Color(0xFF3700B3); "error" -> Color(0xFFB00020); "surface" -> Color(0xFFFFFFFF); "background" -> Color(0xFFFAFAFA); "white" -> Color.White; "black" -> Color.Black; "red" -> Color.Red; "green" -> Color.Green; "blue" -> Color.Blue; "yellow" -> Color.Yellow; "cyan" -> Color.Cyan; "magenta" -> Color.Magenta; "gray", "grey" -> Color.Gray; "lightgray", "lightgrey" -> Color.LightGray; "darkgray", "darkgrey" -> Color.DarkGray; "transparent" -> Color.Transparent; else -> Color.Unspecified } } catch (e: Exception) { Color.Unspecified }
+@Composable
 private fun String.toIconVector(): ImageVector = when (lowercase()) { "add", "plus" -> Icons.Default.Add; "arrow_back", "back" -> Icons.Default.ArrowBack; "check" -> Icons.Default.Check; "clear" -> Icons.Default.Clear; "close" -> Icons.Default.Close; "delete" -> Icons.Default.Delete; "edit" -> Icons.Default.Edit; "favorite", "heart" -> Icons.Default.Favorite; "home" -> Icons.Default.Home; "info" -> Icons.Default.Info; "menu" -> Icons.Default.Menu; "more_vert", "more" -> Icons.Default.MoreVert; "play", "play_arrow" -> Icons.Default.PlayArrow; "refresh" -> Icons.Default.Refresh; "search" -> Icons.Default.Search; "settings" -> Icons.Default.Settings; "share" -> Icons.Default.Share; "star" -> Icons.Default.Star; else -> Icons.Default.Info }
 private fun resolveIcon(name: String): Int? = when (name) { "add" -> moe.koiverse.archivetune.R.drawable.add; "settings" -> moe.koiverse.archivetune.R.drawable.settings; "restore" -> moe.koiverse.archivetune.R.drawable.restore; "arrow_back" -> moe.koiverse.archivetune.R.drawable.arrow_back; "delete" -> moe.koiverse.archivetune.R.drawable.delete; "more_vert" -> moe.koiverse.archivetune.R.drawable.more_vert; else -> null }

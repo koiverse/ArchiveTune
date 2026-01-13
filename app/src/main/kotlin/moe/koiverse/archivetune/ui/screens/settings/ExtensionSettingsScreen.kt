@@ -43,6 +43,8 @@ import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.outlined.StarOutline
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Badge
@@ -602,7 +604,7 @@ private fun PasswordSetting(setting: SettingDefinition, values: Map<String, Any>
     var visible by remember { mutableStateOf(false) }
     LaunchedEffect(values[setting.key]) { text = (values[setting.key] as? String) ?: text }
     Column(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
-        OutlinedTextField(value = text, onValueChange = { text = it; onValueChange(setting.key, it) }, label = { Text(setting.label) }, placeholder = setting.placeholder?.let { { Text(it) } }, supportingText = setting.description?.let { { Text(it) } }, modifier = Modifier.fillMaxWidth(), enabled = enabled, singleLine = true, visualTransformation = if (visible) VisualTransformation.None else PasswordVisualTransformation(), trailingIcon = { IconButton(onClick = { visible = !visible }) { Icon(painterResource(if (visible) R.drawable.visibility_off else R.drawable.visibility), null) } })
+        OutlinedTextField(value = text, onValueChange = { text = it; onValueChange(setting.key, it) }, label = { Text(setting.label) }, placeholder = setting.placeholder?.let { { Text(it) } }, supportingText = setting.description?.let { { Text(it) } }, modifier = Modifier.fillMaxWidth(), enabled = enabled, singleLine = true, visualTransformation = if (visible) VisualTransformation.None else PasswordVisualTransformation(), trailingIcon = { IconButton(onClick = { visible = !visible }) { Icon(if (visible) Icons.Default.VisibilityOff else Icons.Default.Visibility, null) } })
     }
 }
 
@@ -620,7 +622,7 @@ private fun TextareaSetting(setting: SettingDefinition, values: Map<String, Any>
     var text by remember { mutableStateOf((values[setting.key] as? String) ?: setting.defaultString ?: "") }
     LaunchedEffect(values[setting.key]) { text = (values[setting.key] as? String) ?: text }
     Column(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
-        OutlinedTextField(value = text, onValueChange = { text = it; onValueChange(setting.key, it) }, label = { Text(setting.label) }, placeholder = setting.placeholder?.let { { Text(it) } }, supportingText = setting.description?.let { { Text(it) } }, modifier = Modifier.fillMaxWidth().height((setting.lines ?: 4) * 24.dp + 56.dp), enabled = enabled, minLines = setting.lines ?: 4, maxLines = setting.maxLines ?: 8)
+        OutlinedTextField(value = text, onValueChange = { text = it; onValueChange(setting.key, it) }, label = { Text(setting.label) }, placeholder = setting.placeholder?.let { { Text(it) } }, supportingText = setting.description?.let { { Text(it) } }, modifier = Modifier.fillMaxWidth().height(((setting.lines ?: 4) * 24 + 56).dp), enabled = enabled, minLines = setting.lines ?: 4, maxLines = setting.maxLines ?: 8)
     }
 }
 

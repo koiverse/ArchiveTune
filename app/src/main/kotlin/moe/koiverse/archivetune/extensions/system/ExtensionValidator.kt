@@ -53,6 +53,89 @@ object ExtensionValidator {
                     val def = s.defaultString
                     if (def != null && def !in opts) errors.add("Select defaultString not in options")
                 }
+                SettingType.button -> {
+                    // Button doesn't require any specific validation
+                }
+                SettingType.checkbox -> {
+                    if (s.defaultBoolean == null) errors.add("Checkbox missing defaultBoolean")
+                }
+                SettingType.radio -> {
+                    val opts = s.options ?: emptyList()
+                    if (opts.isEmpty()) errors.add("Radio missing options")
+                    val def = s.defaultString
+                    if (def != null && def !in opts) errors.add("Radio defaultString not in options")
+                }
+                SettingType.multiSelect -> {
+                    val opts = s.options ?: emptyList()
+                    if (opts.isEmpty()) errors.add("MultiSelect missing options")
+                }
+                SettingType.color -> {
+                    if (s.defaultColor == null) errors.add("Color missing defaultColor")
+                }
+                SettingType.date -> {
+                    if (s.defaultString == null) errors.add("Date missing defaultString")
+                }
+                SettingType.time -> {
+                    if (s.defaultString == null) errors.add("Time missing defaultString")
+                }
+                SettingType.section -> {
+                    // Section doesn't require validation
+                }
+                SettingType.divider -> {
+                    // Divider doesn't require validation
+                }
+                SettingType.group -> {
+                    // Group doesn't require specific validation
+                }
+                SettingType.card -> {
+                    // Card doesn't require specific validation
+                }
+                SettingType.image -> {
+                    // Image doesn't require specific validation
+                }
+                SettingType.link -> {
+                    // Link doesn't require specific validation
+                }
+                SettingType.password -> {
+                    if (s.defaultString == null) errors.add("Password missing defaultString")
+                }
+                SettingType.number -> {
+                    if (s.defaultNumber == null) errors.add("Number missing defaultNumber")
+                }
+                SettingType.textarea -> {
+                    if (s.defaultString == null) errors.add("Textarea missing defaultString")
+                }
+                SettingType.chip -> {
+                    if (s.chipSelectable == null) errors.add("Chip missing chipSelectable")
+                }
+                SettingType.chipGroup -> {
+                    val opts = s.options ?: emptyList()
+                    if (opts.isEmpty()) errors.add("ChipGroup missing options")
+                }
+                SettingType.segmented -> {
+                    val opts = s.options ?: emptyList()
+                    if (opts.isEmpty()) errors.add("Segmented missing options")
+                    val def = s.defaultString
+                    if (def != null && def !in opts) errors.add("Segmented defaultString not in options")
+                }
+                SettingType.stepper -> {
+                    if (s.defaultNumber == null) errors.add("Stepper missing defaultNumber")
+                    val min = s.min ?: Int.MIN_VALUE
+                    val max = s.max ?: Int.MAX_VALUE
+                    val def = s.defaultNumber ?: 0
+                    if (min > max) errors.add("Stepper min > max")
+                    if (def < min || def > max) errors.add("Stepper default out of range")
+                }
+                SettingType.rating -> {
+                    if (s.defaultNumber == null) errors.add("Rating missing defaultNumber")
+                }
+                SettingType.progress -> {
+                    // Progress doesn't require specific validation
+                }
+                SettingType.custom -> {
+                } else -> {
+                    errors.add("Unknown setting type: ${s.type}")
+                }
             }
         }
 

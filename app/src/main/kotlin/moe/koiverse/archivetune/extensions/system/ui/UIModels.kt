@@ -641,12 +641,12 @@ sealed class UINode {
     @Serializable
     data class AnimatedVisibility(
         val child: UINode,
-        val visible: Boolean? = null,
         val enter: String? = null,
         val exit: String? = null,
         override val modifier: UIModifier? = null,
         override val id: String? = null,
         override val action: String? = null,
+        override val visible: Boolean? = null,
         override val condition: String? = null
     ) : UINode()
 

@@ -50,7 +50,7 @@ import coil3.request.ImageRequest
 import dagger.hilt.android.EntryPointAccessors
 import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.di.ExtensionManagerEntryPoint
-import moe.koiverse.archivetune.extensions.system.Extension
+import moe.koiverse.archivetune.extensions.system.InstalledExtension
 import moe.koiverse.archivetune.extensions.system.ExtensionManager
 import moe.koiverse.archivetune.extensions.system.ExtensionManifest
 import moe.koiverse.archivetune.ui.component.IconButton as M3IconButton
@@ -184,7 +184,7 @@ fun ExtensionsScreen(
 
 @Composable
 private fun ExtensionItemCard(
-    extension: Extension,
+    extension: InstalledExtension,
     onSettingsClick: () -> Unit,
     onEnableChange: (Boolean) -> Unit,
     onDeleteClick: () -> Unit
@@ -360,7 +360,7 @@ private fun ExtensionItemCard(
                 ) {
                     Column(modifier = Modifier.padding(top = 12.dp)) {
                         HorizontalDivider(modifier = Modifier.padding(bottom = 12.dp))
-                        ExtensionDetailGrid(manifest = manifest, extensionDir = extension.dir)
+                        ExtensionDetailGrid(extension = extension)
                     }
                 }
             }
@@ -370,7 +370,9 @@ private fun ExtensionItemCard(
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun ExtensionDetailGrid(manifest: ExtensionManifest, extensionDir: File) {
+private fun ExtensionDetailGrid(extension: InstalledExtension) {
+    val manifest = extension.manifest
+    val extensionDir = extension.dir
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         FlowRow(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
