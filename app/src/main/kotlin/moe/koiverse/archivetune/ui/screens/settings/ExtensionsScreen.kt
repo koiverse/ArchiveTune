@@ -48,6 +48,8 @@ import androidx.navigation.NavController
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import dagger.hilt.android.EntryPointAccessors
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.CoroutineScope
 import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.di.ExtensionManagerEntryPoint
 import moe.koiverse.archivetune.extensions.system.InstalledExtension
