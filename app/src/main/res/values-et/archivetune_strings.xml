@@ -66,4 +66,37 @@
     <string name="hide_player_thumbnail">Peida meediaesitaja pisipilt</string>
     <string name="hide_player_thumbnail_desc">Asenda meediaesitajas albumi kaanepilt rakenduse logoga</string>
     <string name="already_in_playlist">Juba on esitusloendis:</string>
+    <plurals name="n_element">
+        <item quantity="one">%d element</item>
+        <item quantity="other">%d elementi</item>
+    </plurals>
+    <plurals name="n_time">
+        <item quantity="one">%d kord</item>
+        <item quantity="other">%d korda</item>
+    </plurals>
+    <string name="seek_backward">5 sekundit tagasi</string>
+    <string name="seek_forward">5 sekundit edasi</string>
+    <string name="seek_forward_dynamic">+%1$d sekundit edasi</string>
+    <string name="seek_backward_dynamic">+%1$d sekundit tagasi</string>
+    <string name="seek_seconds_addup">Kumulatiivne kerimine</string>
+    <string name="seek_seconds_addup_description">Kui see valik on kasutusel, siis iga kerimisega lisandub 5 täiendavat sekundit</string>
+    <string name="login_settings">Sisselogimise seadistused</string>
+    <string name="general_settings">Üldseadistused</string>
+    <string name="player_background_style">Meediaesitaja tausta stiil</string>
+    <string name="resume_autoscroll">Jätka automaatset kerimist</string>
+    <string name="lyrics_romanize_japanese">Latiniseeri jaapanikeelsed laulusõnad</string>
+    <string name="lyrics_romanize_korean">Latiniseeri koreakeelsed laulusõnad</string>
+    <string name="app_language">Rakenduse keel</string>
+    <string name="configure_app_language">Seadista rakenduse keeli</string>
+    <string name="intent_app_language_not_found">Rakenduse keeleseadistusi ei õnnestunud leida, palun seadista nad käsitsi</string>
+    <string name="open_supported_links">Vaikimisi vaid toetatud link</string>
+    <string name="configure_supported_links">Seadista toetatud linke</string>
+    <string name="intent_supported_links_not_found">Toetatud linkide seadistuste leidmine ei õnnestunud, palun seadista nad käsitsi</string>
+    <string name="set_first_lyrics_provider">Laulusõnade eelistatud teenusepakkuja</string>
+    <string name="release_notes">Versiooniteave</string>
+    <string name="all_time">Kogu ajavahemik</string>
+    <string name="past_24_hours">Viimased 24 tundi</string>
+    <string name="past_week">Möödunud nädalal</string>
+    <string name="past_month">Möödunud kuul</string>
+    <string name="past_year">Möödunud aastal</string>
 </resources>
