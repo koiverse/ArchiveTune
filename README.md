@@ -79,12 +79,14 @@ ArchiveTune is a Supercharged fork of [Metrolist](https://github.com/mostafaalag
 [![Status penerjemahan](https://translate.codeberg.org/widget/archivetune/287x66-grey.png)](https://translate.codeberg.org/engage/archivetune/)
 
 We use Codeberg to translate ArchiveTune. For more details or to get started, visit our [ArchiveTune page](https://translate.codeberg.org/projects/archivetune/).
+
 <a href="https://translate.codeberg.org/projects/archivetune/">
 <img src="https://translate.codeberg.org/widget/archivetune/horizontal-blue.svg" alt="Translation status" />
 </a>
 Thank you very much for helping to make ArchiveTune accessible to many people worldwide.
 </div>
 
+<div align="center">
 ## Credits & Acknowledgments
 
 ArchiveTune is a derivative work based on [**Metrolist**](https://github.com/mostafaalagamy/Metrolist) by **Mostafa Alagamy**.
@@ -97,6 +99,7 @@ Additional acknowledgments:
 <a href="https://github.com/koiverse/ArchiveTune/graphs/contributors">
   <img src="https://contrib.rocks/image?repo=koiverse/ArchiveTune" />
 </a>
+</div>
 
 <div align="center">
 <h1>Disclaimer</h1>
