@@ -87,13 +87,22 @@ We use Codeberg to translate ArchiveTune. For more details or to get started, vi
 Thank you very much for helping to make ArchiveTune accessible to many people worldwide.
 </div>
 
-## Credits & Acknowledgments
+<div align="center">
+<h1>Credits & Acknowledgments</h1>
 
-ArchiveTune is a derivative work based on [**Metrolist**](https://github.com/mostafaalagamy/Metrolist) by **Mostafa Alagamy**, licensed under the [GNU General Public License v3.0](https://www.gnu.org/licenses/gpl-3.0.html). We thank the original author and contributors of Metrolist for their foundational work.
+ArchiveTune is a derivative work based on [**Metrolist**](https://github.com/mostafaalagamy/Metrolist) by **Mostafa Alagamy**.
 
 Additional acknowledgments:
 - [**Kizzy**](https://github.com/dead8309/Kizzy) – for the Discord Rich Presence implementation and inspiration.
 - The open-source community for tools, libraries, and APIs that make this project possible.
+</div>
+
+<div align="center">
+<h1>Awesome Contributors</h1>
+<a href="https://github.com/koiverse/ArchiveTune/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=koiverse/ArchiveTune" />
+</a>
+</div>
 
 <div align="center">
 <h1>Disclaimer</h1>
