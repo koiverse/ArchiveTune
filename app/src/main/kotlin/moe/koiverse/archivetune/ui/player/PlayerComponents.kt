@@ -858,14 +858,13 @@ fun PlayerPlaybackControls(
                     .padding(horizontal = PlayerHorizontalPadding)
             ) {
                 Row(
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     Row(
-                        horizontalArrangement = Arrangement.End,
-                        verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.weight(1f),
+                        horizontalArrangement = Arrangement.End,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
                         Surface(
                             onClick = {
@@ -878,7 +877,10 @@ fun PlayerPlaybackControls(
                             ),
                             modifier = Modifier.size(46.dp)
                         ) {
-                            Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
+                            ) {
                                 Icon(
                                     painter = painterResource(R.drawable.shuffle),
                                     contentDescription = null,
@@ -890,7 +892,7 @@ fun PlayerPlaybackControls(
                             }
                         }
 
-                        Spacer(modifier = Modifier.width(8.dp))
+                        Spacer(modifier = Modifier.width(12.dp))
 
                         Surface(
                             onClick = { playerConnection.seekToPrevious() },
@@ -899,18 +901,21 @@ fun PlayerPlaybackControls(
                             color = textBackgroundColor.copy(alpha = 0.15f),
                             modifier = Modifier.size(56.dp)
                         ) {
-                            Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
+                            ) {
                                 Icon(
                                     painter = painterResource(R.drawable.skip_previous),
                                     contentDescription = null,
-                                    tint = textBackgroundColor.copy(alpha = if (canSkipPrevious) 1f else 0.4f),
+                                    tint = textBackgroundColor.copy(
+                                        alpha = if (canSkipPrevious) 1f else 0.4f
+                                    ),
                                     modifier = Modifier.size(28.dp)
                                 )
                             }
                         }
                     }
-
-                    Spacer(modifier = Modifier.width(16.dp))
 
                     Surface(
                         onClick = {
@@ -923,9 +928,14 @@ fun PlayerPlaybackControls(
                         },
                         shape = RoundedCornerShape(28.dp),
                         color = textBackgroundColor,
-                        modifier = Modifier.size(88.dp)
+                        modifier = Modifier
+                            .padding(horizontal = 20.dp)
+                            .size(88.dp)
                     ) {
-                        Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
                             if (isLoading) {
                                 CircularProgressIndicator(
                                     modifier = Modifier.size(40.dp),
@@ -948,13 +958,10 @@ fun PlayerPlaybackControls(
                             }
                         }
                     }
-
-                    Spacer(modifier = Modifier.width(16.dp))
-
                     Row(
+                        modifier = Modifier.weight(1f),
                         horizontalArrangement = Arrangement.Start,
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.weight(1f)
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
                         Surface(
                             onClick = { playerConnection.seekToNext() },
@@ -963,17 +970,22 @@ fun PlayerPlaybackControls(
                             color = textBackgroundColor.copy(alpha = 0.15f),
                             modifier = Modifier.size(56.dp)
                         ) {
-                            Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
+                            ) {
                                 Icon(
                                     painter = painterResource(R.drawable.skip_next),
                                     contentDescription = null,
-                                    tint = textBackgroundColor.copy(alpha = if (canSkipNext) 1f else 0.4f),
+                                    tint = textBackgroundColor.copy(
+                                        alpha = if (canSkipNext) 1f else 0.4f
+                                    ),
                                     modifier = Modifier.size(28.dp)
                                 )
                             }
                         }
 
-                        Spacer(modifier = Modifier.width(8.dp))
+                        Spacer(modifier = Modifier.width(12.dp))
 
                         Surface(
                             onClick = { playerConnection.player.toggleRepeatMode() },
@@ -983,11 +995,13 @@ fun PlayerPlaybackControls(
                             ),
                             modifier = Modifier.size(46.dp)
                         ) {
-                            Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
+                            ) {
                                 Icon(
                                     painter = painterResource(
                                         when (repeatMode) {
-                                            Player.REPEAT_MODE_OFF, Player.REPEAT_MODE_ALL -> R.drawable.repeat
                                             Player.REPEAT_MODE_ONE -> R.drawable.repeat_one
                                             else -> R.drawable.repeat
                                         }
