@@ -44,7 +44,7 @@ class ExtensionManager @Inject constructor(
     val installed: StateFlow<List<InstalledExtension>> = _installed.asStateFlow()
 
     private val runtimes = mutableMapOf<String, ExtensionRuntime>()
-    private val uiConfigs = MutableStateFlow<Map<String, Pair<String, UIConfigAndBase>>>(emptyMap())
+    private val uiConfigs = MutableStateFlow<Map<String, List<Pair<String, UIConfigAndBase>>>>(emptyMap())
     data class UIConfigAndBase(val config: UIConfig, val base: File)
 
     private fun rootDir(): File {
@@ -169,21 +169,36 @@ class ExtensionManager @Inject constructor(
     }
     
     fun setUiConfig(extensionId: String, route: String, config: UIConfig, baseDir: File) {
-        uiConfigs.update { it.toMutableMap().apply { set(route, extensionId to UIConfigAndBase(config, baseDir)) } }
+        uiConfigs.update {
+            val map = it.toMutableMap()
+            val existing = map[route].orEmpty()
+            val filtered = existing.filterNot { entry -> entry.first == extensionId }
+            val updated = filtered + (extensionId to UIConfigAndBase(config, baseDir))
+            map[route] = updated.sortedByDescending { entry -> entry.second.config.priority }
+            map
+        }
     }
     
     fun clearUiConfig(route: String) {
-        uiConfigs.update { it.toMutableMap().apply { remove(route) } }
+        uiConfigs.update { current ->
+            current.toMutableMap().apply { remove(route) }
+        }
     }
     
     fun clearUiConfigsForExtension(extensionId: String) {
-        uiConfigs.update {
-            it.filterValues { pair -> pair.first != extensionId }
+        uiConfigs.update { current ->
+            current.mapValues { (_, list) ->
+                list.filterNot { entry -> entry.first == extensionId }
+            }.filterValues { list -> list.isNotEmpty() }
         }
     }
     
     fun uiConfig(route: String): Pair<String, UIConfigAndBase>? {
-        return uiConfigs.value[route]
+        return uiConfigs.value[route]?.maxByOrNull { it.second.config.priority }
+    }
+    
+    fun uiConfigs(route: String): List<Pair<String, UIConfigAndBase>> {
+        return uiConfigs.value[route].orEmpty()
     }
     
     fun delete(id: String): Result<Unit> {

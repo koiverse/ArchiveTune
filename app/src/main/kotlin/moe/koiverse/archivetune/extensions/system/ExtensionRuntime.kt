@@ -1,16 +1,14 @@
 package moe.koiverse.archivetune.extensions.system
 
 import android.content.Context
-import moe.koiverse.archivetune.models.MediaMetadata
+import app.cash.quickjs.QuickJs
+import dagger.hilt.android.EntryPointAccessors
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.json.Json
 import moe.koiverse.archivetune.di.ExtensionManagerEntryPoint
 import moe.koiverse.archivetune.extensions.system.ui.UIConfig
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.decodeFromString
-import dagger.hilt.android.EntryPointAccessors
-import org.mozilla.javascript.Context as RhinoContext
-import org.mozilla.javascript.Function
-import org.mozilla.javascript.Scriptable
-import org.mozilla.javascript.ScriptableObject
+import moe.koiverse.archivetune.extensions.system.ui.UiSlots
+import moe.koiverse.archivetune.models.MediaMetadata
 import java.io.File
 
 class ExtensionRuntime(
@@ -19,94 +17,170 @@ class ExtensionRuntime(
     private val baseDir: File,
     private val settings: ExtensionSettingsStore
 ) {
-    private var cx: RhinoContext? = null
-    private var scope: Scriptable? = null
-    private var onLoadFn: Function? = null
-    private var onUnloadFn: Function? = null
-    private var onTrackPlayFn: Function? = null
-    private var onTrackPauseFn: Function? = null
-    private var onQueueBuildFn: Function? = null
+    private var engine: QuickJs? = null
 
     fun load(): Result<Unit> {
         return runCatching {
-            val c = RhinoContext.enter()
-            cx = c
-            scope = c.initSafeStandardObjects()
-            val host = HostApi(appContext, manifest, settings, baseDir)
-            val wrappedHost = RhinoContext.javaToJS(host, scope)
-            ScriptableObject.putProperty(scope, "ArchiveTune", wrappedHost)
-
-            val entryFile = baseDir.resolve(manifest.entry)
-            val code = entryFile.readText()
-            c.evaluateString(scope, code, manifest.entry, 1, null)
-
-            onLoadFn = lookupFunction("onLoad")
-            onUnloadFn = lookupFunction("onUnload")
-            onTrackPlayFn = lookupFunction("onTrackPlay")
-            onTrackPauseFn = lookupFunction("onTrackPause")
-            onQueueBuildFn = lookupFunction("onQueueBuild")
-
-            onLoadFn?.let { fn ->
-                fn.call(c, scope, scope, arrayOf(wrappedHost))
+        val quickJs = QuickJs.create()
+        engine = quickJs
+        val host = HostApi(appContext, manifest, settings, baseDir)
+        quickJs.set("ArchiveTune", HostApiContract::class.java, host)
+        quickJs.evaluate("""globalThis.__ArchiveTuneHooks = {}; globalThis.__ArchiveTuneDispatch = function(name, payloadJson) { var hooks = globalThis.__ArchiveTuneHooks[name]; if (!hooks) return; var payload = null; if (payloadJson != null && payloadJson !== '') { try { payload = JSON.parse(payloadJson); } catch (e) { payload = null; } } for (var i = 0; i < hooks.length; i++) { var h = hooks[i]; if (typeof h === 'function') { try { h(payload); } catch (e) {} } } };""")
+        val slotsScript = """
+            if (typeof ArchiveTune === 'object' && ArchiveTune !== null) {
+                ArchiveTune.slots = {
+                    playerOverlay: "${UiSlots.PLAYER_OVERLAY}",
+                    lyricsOverlay: "${UiSlots.LYRICS_OVERLAY}",
+                    queueOverlay: "${UiSlots.QUEUE_OVERLAY}",
+                    searchFilter: "${UiSlots.SEARCH_FILTER}",
+                    settingsEntry: "${UiSlots.SETTINGS_ENTRY}",
+                    slot: function(id) { return "slot_" + id; },
+                    topBarActions: function(route) { return "topbar_actions_" + route; },
+                    bottomBar: function(route) { return "bottombar_" + route; },
+                    fab: function(route) { return "fab_" + route; },
+                    contextMenu: function(contextId, itemType) { return "context_" + contextId + "_" + itemType; },
+                    navItem: function(position) { return "nav_item_" + position; },
+                    homeWidget: function(id) { return "home_widget_" + id; }
+                };
             }
+        """.trimIndent()
+        quickJs.evaluate(slotsScript)
+        val entryFile = baseDir.resolve(manifest.entry)
+            val code = entryFile.readText()
+            quickJs.evaluate(code)
+            registerHooks()
+            callLifecycle("onLoad")
+            dispatch("onLoad", null)
         }
     }
 
     fun unload() {
         runCatching {
-            val c = cx ?: return@runCatching
-            val s = scope ?: return@runCatching
-            onUnloadFn?.call(c, s, s, emptyArray())
+            dispatch("onUnload", null)
+            callLifecycle("onUnload")
         }
-        RhinoContext.exit()
-        cx = null
-        scope = null
-        onLoadFn = null
-        onUnloadFn = null
-        onTrackPlayFn = null
-        onTrackPauseFn = null
-        onQueueBuildFn = null
+        engine?.close()
+        engine = null
     }
 
     fun onTrackPlay(metadata: MediaMetadata) {
-        val c = cx ?: return
-        val s = scope ?: return
-        val payload = mapOf(
-            "id" to metadata.id,
-            "title" to metadata.title,
-            "artists" to metadata.artists,
-            "album" to metadata.album
-        )
-        val jsPayload = RhinoContext.javaToJS(payload, s)
-        runCatching { onTrackPlayFn?.call(c, s, s, arrayOf(jsPayload)) }
+        val payload = trackPayload(metadata)
+        dispatch("onTrackPlay", payload)
     }
 
     fun onTrackPause(metadata: MediaMetadata) {
-        val c = cx ?: return
-        val s = scope ?: return
-        val payload = mapOf(
-            "id" to metadata.id,
-            "title" to metadata.title,
-            "artists" to metadata.artists,
-            "album" to metadata.album
-        )
-        val jsPayload = RhinoContext.javaToJS(payload, s)
-        runCatching { onTrackPauseFn?.call(c, s, s, arrayOf(jsPayload)) }
+        val payload = trackPayload(metadata)
+        dispatch("onTrackPause", payload)
     }
 
     fun onQueueBuild(queueTitle: String?) {
-        val c = cx ?: return
-        val s = scope ?: return
-        val payload = mapOf("title" to (queueTitle ?: ""))
-        val jsPayload = RhinoContext.javaToJS(payload, s)
-        runCatching { onQueueBuildFn?.call(c, s, s, arrayOf(jsPayload)) }
+        val payload = queuePayload(queueTitle)
+        dispatch("onQueueBuild", payload)
     }
 
-    private fun lookupFunction(name: String): Function? {
-        val s = scope ?: return null
-        val prop = ScriptableObject.getProperty(s, name)
-        return if (prop is Function) prop else null
+    private fun registerHooks() {
+        val quickJs = engine ?: return
+        if (manifest.hooks.isEmpty()) return
+        manifest.hooks.groupBy { it.event }.forEach { (event, hooksForEvent) ->
+            val sorted = hooksForEvent.sortedByDescending { it.priority }
+            val registrationScript = buildString {
+                append("(function(){ var list = globalThis.__ArchiveTuneHooks['")
+                append(event)
+                append("']; if (!list) { list = []; globalThis.__ArchiveTuneHooks['")
+                append(event)
+                append("'] = list; }")
+                sorted.forEach { hook ->
+                    if (hook.handler.isNotBlank()) {
+                        append(" if (typeof ")
+                        append(hook.handler)
+                        append(" === 'function') { list.push(")
+                        append(hook.handler)
+                        append("); }")
+                    }
+                }
+                append("})();")
+            }
+            quickJs.evaluate(registrationScript)
+        }
     }
+
+    private fun dispatch(event: String, payloadJson: String?) {
+        val quickJs = engine ?: return
+        val hasHooks = manifest.hooks.any { it.event == event }
+        if (!hasHooks) {
+            dispatchLegacy(event, payloadJson)
+            return
+        }
+        val safePayload = payloadJson ?: ""
+        val script = buildString {
+            append("if (typeof __ArchiveTuneDispatch === 'function') { __ArchiveTuneDispatch('")
+            append(event)
+            append("', ")
+            append(jsonStringLiteral(safePayload))
+            append("); }")
+        }
+        quickJs.evaluate(script)
+    }
+
+    private fun dispatchLegacy(event: String, payloadJson: String?) {
+        val quickJs = engine ?: return
+        val functionName = when (event) {
+            "onTrackPlay" -> "onTrackPlay"
+            "onTrackPause" -> "onTrackPause"
+            "onQueueBuild" -> "onQueueBuild"
+            else -> return
+        }
+        val script = if (payloadJson.isNullOrEmpty()) {
+            "if (typeof " + functionName + " === 'function') { try { " + functionName + "(); } catch (e) {} }"
+        } else {
+            "if (typeof " + functionName + " === 'function') { try { " + functionName + "(" + payloadJson + "); } catch (e) {} }"
+        }
+        quickJs.evaluate(script)
+    }
+
+    private fun trackPayload(metadata: MediaMetadata): String {
+        val title = metadata.title ?: ""
+        val album = metadata.album ?: ""
+        val artists = metadata.artists?.joinToString(",") ?: ""
+        val id = metadata.id ?: ""
+        return "{" + "\"id\":${jsonStringLiteral(id)}," + "\"title\":${jsonStringLiteral(title)}," + "\"artists\":${jsonStringLiteral(artists)}," + "\"album\":${jsonStringLiteral(album)}" + "}"
+    }
+
+    private fun queuePayload(queueTitle: String?): String {
+        val title = queueTitle ?: ""
+        return "{" + "\"title\":${jsonStringLiteral(title)}" + "}"
+    }
+
+    private fun callLifecycle(name: String) {
+        val quickJs = engine ?: return
+        val script = "if (typeof " + name + " === 'function') { try { " + name + "(ArchiveTune); } catch (e) {} }"
+        quickJs.evaluate(script)
+    }
+
+    private fun jsonStringLiteral(value: String): String {
+        val escaped = buildString {
+            value.forEach { ch ->
+                when (ch) {
+                    '\\' -> append("\\\\")
+                    '"' -> append("\\\"")
+                    '\n' -> append("\\n")
+                    '\r' -> append("\\r")
+                    '\t' -> append("\\t")
+                    else -> append(ch)
+                }
+            }
+        }
+        return "\"" + escaped + "\""
+    }
+}
+
+interface HostApiContract {
+    fun log(message: String)
+    fun getBoolean(key: String, default: Boolean): Boolean
+    fun getInt(key: String, default: Int): Int
+    fun getString(key: String, default: String): String
+    fun setUI(route: String, jsonConfig: String)
+    fun clearUI(route: String)
 }
 
 class HostApi(
@@ -114,36 +188,37 @@ class HostApi(
     private val manifest: ExtensionManifest,
     private val settings: ExtensionSettingsStore,
     private val baseDir: File
-) {
-    fun log(message: String) {
+) : HostApiContract {
+    private val json = Json { ignoreUnknownKeys = true }
+
+    override fun log(message: String) {
         android.util.Log.i("Extension-${manifest.id}", message.take(1000))
     }
 
-    fun getBoolean(key: String, default: Boolean): Boolean {
+    override fun getBoolean(key: String, default: Boolean): Boolean {
         return settings.getBoolean(key, default)
     }
 
-    fun getInt(key: String, default: Int): Int {
+    override fun getInt(key: String, default: Int): Int {
         return settings.getInt(key, default)
     }
 
-    fun getString(key: String, default: String): String {
+    override fun getString(key: String, default: String): String {
         return settings.getString(key, default)
     }
 
-    fun setUI(route: String, jsonConfig: String) {
+    override fun setUI(route: String, jsonConfig: String) {
         if (!manifest.permissions.contains(ExtensionPermission.UIOverride.name)) return
         val entryPoint = EntryPointAccessors.fromApplication(context, ExtensionManagerEntryPoint::class.java)
         val manager = entryPoint.extensionManager()
-        val cfg = Json { ignoreUnknownKeys = true }.decodeFromString<UIConfig>(jsonConfig)
+        val cfg = json.decodeFromString<UIConfig>(jsonConfig)
         manager.setUiConfig(manifest.id, route, cfg, baseDir)
     }
 
-    fun clearUI(route: String) {
+    override fun clearUI(route: String) {
         if (!manifest.permissions.contains(ExtensionPermission.UIOverride.name)) return
         val entryPoint = EntryPointAccessors.fromApplication(context, ExtensionManagerEntryPoint::class.java)
         val manager = entryPoint.extensionManager()
         manager.clearUiConfig(route)
     }
 }
-

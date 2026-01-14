@@ -184,7 +184,12 @@ data class ExtensionBuilderState(
     var settingsPages: MutableList<SettingsPageBuilderItem> = mutableListOf(),
     var uiRoutes: MutableList<UIRouteBuilderItem> = mutableListOf(),
     var featurePatches: MutableList<FeaturePatchBuilderItem> = mutableListOf(),
-    var hooks: MutableList<HookBuilderItem> = mutableListOf(),
+    var hooks: MutableList<HookBuilderItem> = mutableListOf(
+        HookBuilderItem(event = "onLoad", handler = "handleOnLoad", priority = 0, async = false),
+        HookBuilderItem(event = "onUnload", handler = "handleOnUnload", priority = 0, async = false),
+        HookBuilderItem(event = "onTrackPlay", handler = "handleOnTrackPlay", priority = 0, async = false),
+        HookBuilderItem(event = "onQueueBuild", handler = "handleOnQueueBuild", priority = 0, async = false)
+    ),
     var themePatches: MutableList<ThemePatchBuilderItem> = mutableListOf(),
     var menuEntries: MutableList<MenuEntryBuilderItem> = mutableListOf(),
     var contextActions: MutableList<ContextActionBuilderItem> = mutableListOf(),
@@ -282,20 +287,19 @@ data class ContextActionBuilderItem(
     var showWhen: String = ""
 )
 
-private const val DEFAULT_ENTRY_CODE = """function onLoad(api) {
-    api.log("Extension loaded!");
+private const val DEFAULT_ENTRY_CODE = """function handleOnLoad() {
+    ArchiveTune.log("Extension loaded");
 }
 
-function onUnload() {
-    // Cleanup code here
+function handleOnUnload() {
 }
 
-function onTrackPlay(track) {
-    // Called when a track starts playing
+function handleOnTrackPlay(track) {
+    ArchiveTune.log("Track: " + track.title);
 }
 
-function onQueueBuild(queue) {
-    // Called when queue is built
+function handleOnQueueBuild(queue) {
+    ArchiveTune.log("Queue: " + queue.title);
 }"""
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)

@@ -202,9 +202,7 @@ dependencies {
     kapt(libs.hilt.compiler)
 
     implementation(libs.serialization.json)
-    implementation(libs.rhino.android) {
-        exclude(group = "org.mozilla", module = "rhino")
-    }
+    implementation(libs.quickjs.android)
 
     implementation(project(":innertube"))
     implementation(project(":kugou"))
@@ -246,6 +244,3 @@ tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach 
     }
 }
 
-configurations.all {
-    exclude(group = "org.mozilla", module = "rhino")
-}

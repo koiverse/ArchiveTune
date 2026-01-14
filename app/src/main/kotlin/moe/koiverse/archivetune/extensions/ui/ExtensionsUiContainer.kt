@@ -25,6 +25,7 @@ import moe.koiverse.archivetune.extensions.system.ui.RenderNode
 import moe.koiverse.archivetune.extensions.system.ui.RenderUI
 import moe.koiverse.archivetune.extensions.system.ui.UIConfig
 import moe.koiverse.archivetune.extensions.system.ui.UIMode
+import moe.koiverse.archivetune.extensions.system.ui.UiSlots
 import java.io.File
 
 @Composable
@@ -36,15 +37,13 @@ fun ExtensionsUiContainer(
     val context = androidx.compose.ui.platform.LocalContext.current
     val entryPoint = EntryPointAccessors.fromApplication(context, ExtensionManagerEntryPoint::class.java)
     val manager = entryPoint.extensionManager()
-    val pair = manager.uiConfig(route)
+    val entries = manager.uiConfigs(route)
 
-    if (pair == null) {
+    if (entries.isEmpty()) {
         content()
         return
     }
 
-    val cfg = pair.second.config
-    val base = pair.second.base
     val values = remember { mutableStateMapOf<String, Any>() }
 
     val onAction: (String) -> Unit = { action ->
@@ -69,49 +68,69 @@ fun ExtensionsUiContainer(
         values[key] = value
     }
 
-    when (cfg.mode) {
-        UIMode.replace -> {
-            RenderUI(cfg, base, onAction, onValueChange, values)
-        }
-        UIMode.overlay -> {
-            Box(modifier = modifier) {
-                content()
-                RenderUI(cfg, base, onAction, onValueChange, values)
+    val sortedEntries = entries.sortedByDescending { it.second.config.priority }
+
+    var composed: @Composable () -> Unit = content
+
+    sortedEntries.forEach { entry ->
+        val cfg = entry.second.config
+        val base = entry.second.base
+        composed = when (cfg.mode) {
+            UIMode.replace -> {
+                { RenderUI(cfg, base, onAction, onValueChange, values) }
             }
-        }
-        UIMode.prepend -> {
-            Column(modifier = modifier) {
-                RenderUI(cfg, base, onAction, onValueChange, values)
-                content()
-            }
-        }
-        UIMode.append -> {
-            Column(modifier = modifier) {
-                content()
-                RenderUI(cfg, base, onAction, onValueChange, values)
-            }
-        }
-        UIMode.wrap -> {
-            Box(modifier = modifier) {
-                RenderUI(cfg, base, onAction, onValueChange, values)
-                Box(modifier = Modifier.fillMaxSize()) {
-                    content()
+            UIMode.overlay -> {
+                {
+                    Box(modifier = modifier) {
+                        composed()
+                        RenderUI(cfg, base, onAction, onValueChange, values)
+                    }
                 }
             }
-        }
-        UIMode.inject -> {
-            Box(modifier = modifier) {
-                content()
-                AnimatedVisibility(
-                    visible = true,
-                    enter = fadeIn() + slideInVertically(),
-                    exit = fadeOut() + slideOutVertically()
-                ) {
-                    RenderUI(cfg, base, onAction, onValueChange, values)
+            UIMode.prepend -> {
+                {
+                    Column(modifier = modifier) {
+                        RenderUI(cfg, base, onAction, onValueChange, values)
+                        composed()
+                    }
+                }
+            }
+            UIMode.append -> {
+                {
+                    Column(modifier = modifier) {
+                        composed()
+                        RenderUI(cfg, base, onAction, onValueChange, values)
+                    }
+                }
+            }
+            UIMode.wrap -> {
+                {
+                    Box(modifier = modifier) {
+                        RenderUI(cfg, base, onAction, onValueChange, values)
+                        Box(modifier = Modifier.fillMaxSize()) {
+                            composed()
+                        }
+                    }
+                }
+            }
+            UIMode.inject -> {
+                {
+                    Box(modifier = modifier) {
+                        composed()
+                        AnimatedVisibility(
+                            visible = true,
+                            enter = fadeIn() + slideInVertically(),
+                            exit = fadeOut() + slideOutVertically()
+                        ) {
+                            RenderUI(cfg, base, onAction, onValueChange, values)
+                        }
+                    }
                 }
             }
         }
     }
+
+    composed()
 }
 
 @Composable
@@ -123,18 +142,20 @@ fun ExtensionSlot(
     val context = androidx.compose.ui.platform.LocalContext.current
     val entryPoint = EntryPointAccessors.fromApplication(context, ExtensionManagerEntryPoint::class.java)
     val manager = entryPoint.extensionManager()
-    val pair = manager.uiConfig("slot_$slotId")
+    val entries = manager.uiConfigs(UiSlots.slot(slotId))
 
-    if (pair == null) {
+    if (entries.isEmpty()) {
         defaultContent()
         return
     }
 
-    val cfg = pair.second.config
-    val base = pair.second.base
     val values = remember { mutableStateMapOf<String, Any>() }
 
-    RenderUI(cfg, base, {}, { k, v -> values[k] = v }, values)
+    entries.sortedByDescending { it.second.config.priority }.forEach { entry ->
+        val cfg = entry.second.config
+        val base = entry.second.base
+        RenderUI(cfg, base, {}, { k, v -> values[k] = v }, values)
+    }
 }
 
 @Composable
@@ -145,15 +166,17 @@ fun ExtensionTopBarActions(
     val context = androidx.compose.ui.platform.LocalContext.current
     val entryPoint = EntryPointAccessors.fromApplication(context, ExtensionManagerEntryPoint::class.java)
     val manager = entryPoint.extensionManager()
-    val pair = manager.uiConfig("topbar_actions_$route")
+    val entries = manager.uiConfigs(UiSlots.topBarActions(route))
 
-    if (pair == null) return
+    if (entries.isEmpty()) return
 
-    val cfg = pair.second.config
-    val base = pair.second.base
     val values = remember { mutableStateMapOf<String, Any>() }
 
-    RenderUI(cfg, base, {}, { k, v -> values[k] = v }, values)
+    entries.sortedByDescending { it.second.config.priority }.forEach { entry ->
+        val cfg = entry.second.config
+        val base = entry.second.base
+        RenderUI(cfg, base, {}, { k, v -> values[k] = v }, values)
+    }
 }
 
 @Composable
@@ -165,42 +188,62 @@ fun ExtensionBottomBar(
     val context = androidx.compose.ui.platform.LocalContext.current
     val entryPoint = EntryPointAccessors.fromApplication(context, ExtensionManagerEntryPoint::class.java)
     val manager = entryPoint.extensionManager()
-    val pair = manager.uiConfig("bottombar_$route")
+    val entries = manager.uiConfigs(UiSlots.bottomBar(route))
 
-    if (pair == null) {
+    if (entries.isEmpty()) {
         defaultContent()
         return
     }
 
-    val cfg = pair.second.config
-    val base = pair.second.base
     val values = remember { mutableStateMapOf<String, Any>() }
 
-    when (cfg.mode) {
-        UIMode.replace -> RenderUI(cfg, base, {}, { k, v -> values[k] = v }, values)
-        UIMode.overlay -> {
-            Box(modifier = modifier) {
-                defaultContent()
-                RenderUI(cfg, base, {}, { k, v -> values[k] = v }, values)
+    val sortedEntries = entries.sortedByDescending { it.second.config.priority }
+
+    var composed: @Composable () -> Unit = defaultContent
+
+    sortedEntries.forEach { entry ->
+        val cfg = entry.second.config
+        val base = entry.second.base
+        composed = when (cfg.mode) {
+            UIMode.replace -> {
+                { RenderUI(cfg, base, {}, { k, v -> values[k] = v }, values) }
             }
-        }
-        UIMode.prepend -> {
-            Column(modifier = modifier) {
-                RenderUI(cfg, base, {}, { k, v -> values[k] = v }, values)
-                defaultContent()
+            UIMode.overlay -> {
+                {
+                    Box(modifier = modifier) {
+                        composed()
+                        RenderUI(cfg, base, {}, { k, v -> values[k] = v }, values)
+                    }
+                }
             }
-        }
-        UIMode.append -> {
-            Column(modifier = modifier) {
-                defaultContent()
-                RenderUI(cfg, base, {}, { k, v -> values[k] = v }, values)
+            UIMode.prepend -> {
+                {
+                    Column(modifier = modifier) {
+                        RenderUI(cfg, base, {}, { k, v -> values[k] = v }, values)
+                        composed()
+                    }
+                }
             }
-        }
-        else -> {
-            defaultContent()
-            RenderUI(cfg, base, {}, { k, v -> values[k] = v }, values)
+            UIMode.append -> {
+                {
+                    Column(modifier = modifier) {
+                        composed()
+                        RenderUI(cfg, base, {}, { k, v -> values[k] = v }, values)
+                    }
+                }
+            }
+            else -> {
+                {
+                    Column(modifier = modifier) {
+                        composed()
+                        RenderUI(cfg, base, {}, { k, v -> values[k] = v }, values)
+                    }
+                }
+            }
         }
     }
+
+    composed()
 }
 
 @Composable
@@ -212,26 +255,38 @@ fun ExtensionFloatingAction(
     val context = androidx.compose.ui.platform.LocalContext.current
     val entryPoint = EntryPointAccessors.fromApplication(context, ExtensionManagerEntryPoint::class.java)
     val manager = entryPoint.extensionManager()
-    val pair = manager.uiConfig("fab_$route")
+    val entries = manager.uiConfigs(UiSlots.fab(route))
 
-    if (pair == null) {
+    if (entries.isEmpty()) {
         defaultContent()
         return
     }
 
-    val cfg = pair.second.config
-    val base = pair.second.base
     val values = remember { mutableStateMapOf<String, Any>() }
 
-    when (cfg.mode) {
-        UIMode.replace -> RenderUI(cfg, base, {}, { k, v -> values[k] = v }, values)
-        else -> {
-            Box(modifier = modifier) {
-                defaultContent()
-                RenderUI(cfg, base, {}, { k, v -> values[k] = v }, values)
+    val sortedEntries = entries.sortedByDescending { it.second.config.priority }
+
+    var composed: @Composable () -> Unit = defaultContent
+
+    sortedEntries.forEach { entry ->
+        val cfg = entry.second.config
+        val base = entry.second.base
+        composed = when (cfg.mode) {
+            UIMode.replace -> {
+                { RenderUI(cfg, base, {}, { k, v -> values[k] = v }, values) }
+            }
+            else -> {
+                {
+                    Box(modifier = modifier) {
+                        composed()
+                        RenderUI(cfg, base, {}, { k, v -> values[k] = v }, values)
+                    }
+                }
             }
         }
     }
+
+    composed()
 }
 
 @Composable
@@ -245,38 +300,52 @@ fun ExtensionContextMenu(
     val context = androidx.compose.ui.platform.LocalContext.current
     val entryPoint = EntryPointAccessors.fromApplication(context, ExtensionManagerEntryPoint::class.java)
     val manager = entryPoint.extensionManager()
-    val pair = manager.uiConfig("context_${contextId}_${itemType}")
+    val entries = manager.uiConfigs(UiSlots.contextMenu(contextId, itemType))
 
-    if (pair == null) {
+    if (entries.isEmpty()) {
         defaultContent()
         return
     }
 
-    val cfg = pair.second.config
-    val base = pair.second.base
     val values = remember { mutableStateMapOf<String, Any>() }
 
     values["itemId"] = itemId
     values["itemType"] = itemType
 
-    when (cfg.mode) {
-        UIMode.replace -> RenderUI(cfg, base, {}, { k, v -> values[k] = v }, values)
-        UIMode.append -> {
-            Column(modifier = modifier) {
-                defaultContent()
-                RenderUI(cfg, base, {}, { k, v -> values[k] = v }, values)
+    val sortedEntries = entries.sortedByDescending { it.second.config.priority }
+
+    var composed: @Composable () -> Unit = defaultContent
+
+    sortedEntries.forEach { entry ->
+        val cfg = entry.second.config
+        val base = entry.second.base
+        composed = when (cfg.mode) {
+            UIMode.replace -> {
+                { RenderUI(cfg, base, {}, { k, v -> values[k] = v }, values) }
             }
-        }
-        UIMode.prepend -> {
-            Column(modifier = modifier) {
-                RenderUI(cfg, base, {}, { k, v -> values[k] = v }, values)
-                defaultContent()
+            UIMode.append -> {
+                {
+                    Column(modifier = modifier) {
+                        composed()
+                        RenderUI(cfg, base, {}, { k, v -> values[k] = v }, values)
+                    }
+                }
             }
-        }
-        else -> {
-            defaultContent()
+            UIMode.prepend -> {
+                {
+                    Column(modifier = modifier) {
+                        RenderUI(cfg, base, {}, { k, v -> values[k] = v }, values)
+                        composed()
+                    }
+                }
+            }
+            else -> {
+                composed
+            }
         }
     }
+
+    composed()
 }
 
 @Composable
@@ -287,15 +356,17 @@ fun ExtensionNavigationItem(
     val context = androidx.compose.ui.platform.LocalContext.current
     val entryPoint = EntryPointAccessors.fromApplication(context, ExtensionManagerEntryPoint::class.java)
     val manager = entryPoint.extensionManager()
-    val pair = manager.uiConfig("nav_item_$position")
+    val entries = manager.uiConfigs(UiSlots.navItem(position))
 
-    if (pair == null) return
+    if (entries.isEmpty()) return
 
-    val cfg = pair.second.config
-    val base = pair.second.base
     val values = remember { mutableStateMapOf<String, Any>() }
 
-    RenderUI(cfg, base, {}, { k, v -> values[k] = v }, values)
+    entries.sortedByDescending { it.second.config.priority }.forEach { entry ->
+        val cfg = entry.second.config
+        val base = entry.second.base
+        RenderUI(cfg, base, {}, { k, v -> values[k] = v }, values)
+    }
 }
 
 @Composable
@@ -306,25 +377,27 @@ fun ExtensionPlayerOverlay(
     val context = androidx.compose.ui.platform.LocalContext.current
     val entryPoint = EntryPointAccessors.fromApplication(context, ExtensionManagerEntryPoint::class.java)
     val manager = entryPoint.extensionManager()
-    val pair = manager.uiConfig("player_overlay")
+    val entries = manager.uiConfigs(UiSlots.PLAYER_OVERLAY)
 
-    if (pair == null) {
+    if (entries.isEmpty()) {
         defaultContent()
         return
     }
 
-    val cfg = pair.second.config
-    val base = pair.second.base
     val values = remember { mutableStateMapOf<String, Any>() }
 
     Box(modifier = modifier) {
         defaultContent()
-        AnimatedVisibility(
-            visible = true,
-            enter = fadeIn(),
-            exit = fadeOut()
-        ) {
-            RenderUI(cfg, base, {}, { k, v -> values[k] = v }, values)
+        entries.sortedByDescending { it.second.config.priority }.forEach { entry ->
+            val cfg = entry.second.config
+            val base = entry.second.base
+            AnimatedVisibility(
+                visible = true,
+                enter = fadeIn(),
+                exit = fadeOut()
+            ) {
+                RenderUI(cfg, base, {}, { k, v -> values[k] = v }, values)
+            }
         }
     }
 }
@@ -337,20 +410,22 @@ fun ExtensionLyricsOverlay(
     val context = androidx.compose.ui.platform.LocalContext.current
     val entryPoint = EntryPointAccessors.fromApplication(context, ExtensionManagerEntryPoint::class.java)
     val manager = entryPoint.extensionManager()
-    val pair = manager.uiConfig("lyrics_overlay")
+    val entries = manager.uiConfigs(UiSlots.LYRICS_OVERLAY)
 
-    if (pair == null) {
+    if (entries.isEmpty()) {
         defaultContent()
         return
     }
 
-    val cfg = pair.second.config
-    val base = pair.second.base
     val values = remember { mutableStateMapOf<String, Any>() }
 
     Box(modifier = modifier) {
         defaultContent()
-        RenderUI(cfg, base, {}, { k, v -> values[k] = v }, values)
+        entries.sortedByDescending { it.second.config.priority }.forEach { entry ->
+            val cfg = entry.second.config
+            val base = entry.second.base
+            RenderUI(cfg, base, {}, { k, v -> values[k] = v }, values)
+        }
     }
 }
 
@@ -362,20 +437,22 @@ fun ExtensionQueueOverlay(
     val context = androidx.compose.ui.platform.LocalContext.current
     val entryPoint = EntryPointAccessors.fromApplication(context, ExtensionManagerEntryPoint::class.java)
     val manager = entryPoint.extensionManager()
-    val pair = manager.uiConfig("queue_overlay")
+    val entries = manager.uiConfigs(UiSlots.QUEUE_OVERLAY)
 
-    if (pair == null) {
+    if (entries.isEmpty()) {
         defaultContent()
         return
     }
 
-    val cfg = pair.second.config
-    val base = pair.second.base
     val values = remember { mutableStateMapOf<String, Any>() }
 
     Box(modifier = modifier) {
         defaultContent()
-        RenderUI(cfg, base, {}, { k, v -> values[k] = v }, values)
+        entries.sortedByDescending { it.second.config.priority }.forEach { entry ->
+            val cfg = entry.second.config
+            val base = entry.second.base
+            RenderUI(cfg, base, {}, { k, v -> values[k] = v }, values)
+        }
     }
 }
 
@@ -387,15 +464,17 @@ fun ExtensionHomeWidget(
     val context = androidx.compose.ui.platform.LocalContext.current
     val entryPoint = EntryPointAccessors.fromApplication(context, ExtensionManagerEntryPoint::class.java)
     val manager = entryPoint.extensionManager()
-    val pair = manager.uiConfig("home_widget_$widgetId")
+    val entries = manager.uiConfigs(UiSlots.homeWidget(widgetId))
 
-    if (pair == null) return
+    if (entries.isEmpty()) return
 
-    val cfg = pair.second.config
-    val base = pair.second.base
     val values = remember { mutableStateMapOf<String, Any>() }
 
-    RenderUI(cfg, base, {}, { k, v -> values[k] = v }, values)
+    entries.sortedByDescending { it.second.config.priority }.forEach { entry ->
+        val cfg = entry.second.config
+        val base = entry.second.base
+        RenderUI(cfg, base, {}, { k, v -> values[k] = v }, values)
+    }
 }
 
 @Composable
@@ -406,32 +485,46 @@ fun ExtensionSearchFilter(
     val context = androidx.compose.ui.platform.LocalContext.current
     val entryPoint = EntryPointAccessors.fromApplication(context, ExtensionManagerEntryPoint::class.java)
     val manager = entryPoint.extensionManager()
-    val pair = manager.uiConfig("search_filter")
+    val entries = manager.uiConfigs(UiSlots.SEARCH_FILTER)
 
-    if (pair == null) {
+    if (entries.isEmpty()) {
         defaultContent()
         return
     }
 
-    val cfg = pair.second.config
-    val base = pair.second.base
     val values = remember { mutableStateMapOf<String, Any>() }
 
-    when (cfg.mode) {
-        UIMode.replace -> RenderUI(cfg, base, {}, { k, v -> values[k] = v }, values)
-        UIMode.append -> {
-            Column(modifier = modifier) {
-                defaultContent()
-                RenderUI(cfg, base, {}, { k, v -> values[k] = v }, values)
+    val sortedEntries = entries.sortedByDescending { it.second.config.priority }
+
+    var composed: @Composable () -> Unit = defaultContent
+
+    sortedEntries.forEach { entry ->
+        val cfg = entry.second.config
+        val base = entry.second.base
+        composed = when (cfg.mode) {
+            UIMode.replace -> {
+                { RenderUI(cfg, base, {}, { k, v -> values[k] = v }, values) }
             }
-        }
-        else -> {
-            Box(modifier = modifier) {
-                defaultContent()
-                RenderUI(cfg, base, {}, { k, v -> values[k] = v }, values)
+            UIMode.append -> {
+                {
+                    Column(modifier = modifier) {
+                        composed()
+                        RenderUI(cfg, base, {}, { k, v -> values[k] = v }, values)
+                    }
+                }
+            }
+            else -> {
+                {
+                    Box(modifier = modifier) {
+                        composed()
+                        RenderUI(cfg, base, {}, { k, v -> values[k] = v }, values)
+                    }
+                }
             }
         }
     }
+
+    composed()
 }
 
 @Composable
@@ -441,13 +534,15 @@ fun ExtensionSettingsEntry(
     val context = androidx.compose.ui.platform.LocalContext.current
     val entryPoint = EntryPointAccessors.fromApplication(context, ExtensionManagerEntryPoint::class.java)
     val manager = entryPoint.extensionManager()
-    val pair = manager.uiConfig("settings_entry")
+    val entries = manager.uiConfigs(UiSlots.SETTINGS_ENTRY)
 
-    if (pair == null) return
+    if (entries.isEmpty()) return
 
-    val cfg = pair.second.config
-    val base = pair.second.base
     val values = remember { mutableStateMapOf<String, Any>() }
 
-    RenderUI(cfg, base, {}, { k, v -> values[k] = v }, values)
+    entries.sortedByDescending { it.second.config.priority }.forEach { entry ->
+        val cfg = entry.second.config
+        val base = entry.second.base
+        RenderUI(cfg, base, {}, { k, v -> values[k] = v }, values)
+    }
 }
