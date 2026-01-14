@@ -1,6 +1,9 @@
 package moe.koiverse.archivetune.extensions.system
 
 import android.content.Context
+import android.os.Handler
+import android.os.Looper
+import android.widget.Toast
 import app.cash.quickjs.QuickJs
 import dagger.hilt.android.EntryPointAccessors
 import kotlinx.serialization.decodeFromString
@@ -181,6 +184,7 @@ interface HostApiContract {
     fun getString(key: String, default: String): String
     fun setUI(route: String, jsonConfig: String)
     fun clearUI(route: String)
+    fun showToast(message: String)
 }
 
 class HostApi(
@@ -220,5 +224,14 @@ class HostApi(
         val entryPoint = EntryPointAccessors.fromApplication(context, ExtensionManagerEntryPoint::class.java)
         val manager = entryPoint.extensionManager()
         manager.clearUiConfig(route)
+    }
+
+    override fun showToast(message: String) {
+        if (!manifest.permissions.contains(ExtensionPermission.NotificationShow.name)) return
+        val text = message.take(200)
+        if (text.isBlank()) return
+        Handler(Looper.getMainLooper()).post {
+            Toast.makeText(context, text, Toast.LENGTH_SHORT).show()
+        }
     }
 }
