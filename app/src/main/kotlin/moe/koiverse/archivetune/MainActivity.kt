@@ -168,6 +168,7 @@ import moe.koiverse.archivetune.ui.component.rememberBottomSheetState
 import moe.koiverse.archivetune.ui.component.shimmer.ShimmerTheme
 import moe.koiverse.archivetune.ui.menu.YouTubeSongMenu
 import moe.koiverse.archivetune.ui.player.BottomSheetPlayer
+import moe.koiverse.archivetune.ui.screens.PermissionScreen
 import moe.koiverse.archivetune.ui.screens.Screens
 import moe.koiverse.archivetune.ui.screens.navigationBuilder
 import moe.koiverse.archivetune.ui.screens.search.LocalSearchScreen
@@ -209,6 +210,7 @@ import androidx.datastore.preferences.core.edit
 import moe.koiverse.archivetune.constants.LaunchCountKey
 import moe.koiverse.archivetune.constants.HasPressedStarKey
 import moe.koiverse.archivetune.constants.RemindAfterKey
+import moe.koiverse.archivetune.constants.PermissionOnboardingCompletedKey
 import moe.koiverse.archivetune.ui.component.StarDialog
 
 @Suppress("DEPRECATION", "ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
@@ -539,14 +541,20 @@ class MainActivity : ComponentActivity() {
                 pureBlack = pureBlack,
                 themeColor = themeColor,
             ) {
-                BoxWithConstraints(
-                    modifier =
-                    Modifier
-                        .fillMaxSize()
-                        .background(
-                            if (pureBlack) Color.Black else MaterialTheme.colorScheme.surface
-                        )
-                ) {
+                var permissionOnboardingCompleted by rememberPreference(PermissionOnboardingCompletedKey, defaultValue = false)
+                if (!permissionOnboardingCompleted) {
+                    PermissionScreen(
+                        onContinue = { permissionOnboardingCompleted = true },
+                    )
+                } else {
+                    BoxWithConstraints(
+                        modifier =
+                        Modifier
+                            .fillMaxSize()
+                            .background(
+                                if (pureBlack) Color.Black else MaterialTheme.colorScheme.surface
+                            )
+                    ) {
                     val focusManager = LocalFocusManager.current
                     val density = LocalDensity.current
                     val windowsInsets = WindowInsets.systemBars
@@ -1414,6 +1422,7 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
     }
 
     private fun handleDeepLinkIntent(intent: Intent, navController: NavHostController) {
