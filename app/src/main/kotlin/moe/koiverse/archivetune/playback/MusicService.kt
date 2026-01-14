@@ -1939,24 +1939,79 @@ class MusicService :
 
     override fun onDestroy() {
         super.onDestroy()
-        runBlocking {
-            if (dataStore.get(PersistentQueueKey, true)) {
-                saveQueueToDisk()
-            }
-        }
-        connectivityObserver.unregister()
-        abandonAudioFocus()
-        mediaSession.release()
-        player.removeListener(this)
-        player.removeListener(sleepTimer)
-        player.release()
-        scopeJob.cancel()
-        scope.launch { discordRpc?.stopActivity() }
-        if (discordRpc?.isRpcRunning() == true) {
+        try {
+            DiscordPresenceManager.stop()
+        } catch (_: Exception) {}
+        try {
             discordRpc?.closeRPC()
-        }
+        } catch (_: Exception) {}
         discordRpc = null
-        DiscordPresenceManager.stop()
+        try {
+            connectivityObserver.unregister()
+        } catch (_: Exception) {}
+        abandonAudioFocus()
+        try {
+            if (dataStore.get(PersistentQueueKey, true) && player.mediaItemCount > 0) {
+                val mediaItemsSnapshot = player.mediaItems.mapNotNull { it.metadata }
+                val currentMediaItemIndex = player.currentMediaItemIndex
+                val currentPosition = player.currentPosition
+                val automixSnapshot = automixItems.value.mapNotNull { it.metadata }
+                val repeatMode = player.repeatMode
+                val shuffleModeEnabled = player.shuffleModeEnabled
+                val volume = player.volume
+                val playbackState = player.playbackState
+                val playWhenReady = player.playWhenReady
+                CoroutineScope(Dispatchers.IO).launch {
+                    try {
+                        val persistQueue = currentQueue.toPersistQueue(
+                            title = queueTitle,
+                            items = mediaItemsSnapshot,
+                            mediaItemIndex = currentMediaItemIndex,
+                            position = currentPosition
+                        )
+                        val persistAutomix = PersistQueue(
+                            title = "automix",
+                            items = automixSnapshot,
+                            mediaItemIndex = 0,
+                            position = 0,
+                        )
+                        val persistPlayerState = PersistPlayerState(
+                            playWhenReady = playWhenReady,
+                            repeatMode = repeatMode,
+                            shuffleModeEnabled = shuffleModeEnabled,
+                            volume = volume,
+                            currentPosition = currentPosition,
+                            currentMediaItemIndex = currentMediaItemIndex,
+                            playbackState = playbackState
+                        )
+                        filesDir.resolve(PERSISTENT_QUEUE_FILE).outputStream().use { fos ->
+                            ObjectOutputStream(fos).use { oos ->
+                                oos.writeObject(persistQueue)
+                            }
+                        }
+                        filesDir.resolve(PERSISTENT_AUTOMIX_FILE).outputStream().use { fos ->
+                            ObjectOutputStream(fos).use { oos ->
+                                oos.writeObject(persistAutomix)
+                            }
+                        }
+                        filesDir.resolve(PERSISTENT_PLAYER_STATE_FILE).outputStream().use { fos ->
+                            ObjectOutputStream(fos).use { oos ->
+                                oos.writeObject(persistPlayerState)
+                            }
+                        }
+                    } catch (_: Exception) {}
+                }
+            }
+        } catch (_: Exception) {}
+        try {
+            mediaSession.release()
+        } catch (_: Exception) {}
+        try {
+            player.removeListener(this)
+            player.removeListener(sleepTimer)
+            player.release()
+        } catch (_: Exception) {}
+        scopeJob.cancel()
     }
 
     override fun onBind(intent: Intent?): android.os.IBinder? {
@@ -1999,7 +2054,7 @@ class MusicService :
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         super.onStartCommand(intent, flags, startId)
-        return START_STICKY
+        return START_NOT_STICKY
     }
 
     override fun onUpdateNotification(session: MediaSession, startInForegroundRequired: Boolean) {
