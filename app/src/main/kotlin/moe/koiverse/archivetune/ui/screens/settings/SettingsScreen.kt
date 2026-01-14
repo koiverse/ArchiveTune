@@ -33,6 +33,7 @@ import moe.koiverse.archivetune.ui.component.Material3SettingsItem
 import moe.koiverse.archivetune.ui.component.ReleaseNotesCard
 import moe.koiverse.archivetune.ui.utils.backToMain
 import moe.koiverse.archivetune.utils.Updater
+import moe.koiverse.archivetune.utils.getExtensionManager
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -136,6 +137,14 @@ fun SettingsScreen(
         Material3SettingsGroup(
             title = stringResource(R.string.settings_section_system),
             items = buildList {
+                add(
+                    Material3SettingsItem(
+                        icon = painterResource(R.drawable.integration),
+                        title = { Text(stringResource(R.string.extensions)) },
+                        onClick = { navController.navigate("settings/extensions") },
+                        onLongClick = { navController.navigate("settings/extensions/create") }
+                    )
+                )
                 if (isAndroid12OrLater) {
                     add(
                         Material3SettingsItem(
