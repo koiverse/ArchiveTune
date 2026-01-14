@@ -1,28 +1,40 @@
 package moe.koiverse.archivetune.ui.screens.settings
 
+import android.Manifest
 import android.content.ActivityNotFoundException
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.provider.Settings
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.navigation.NavController
 import moe.koiverse.archivetune.BuildConfig
 import moe.koiverse.archivetune.LocalPlayerAwareWindowInsets
@@ -45,6 +57,44 @@ fun SettingsScreen(
     val context = LocalContext.current
     val isAndroid12OrLater = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
 
+    val storagePermission =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            Manifest.permission.READ_MEDIA_AUDIO
+        } else {
+            Manifest.permission.READ_EXTERNAL_STORAGE
+        }
+
+    val notificationPermission =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            Manifest.permission.POST_NOTIFICATIONS
+        } else {
+            null
+        }
+
+    var isStorageGranted by remember {
+        mutableStateOf(
+            ContextCompat.checkSelfPermission(context, storagePermission) == PackageManager.PERMISSION_GRANTED,
+        )
+    }
+
+    var isNotificationGranted by remember {
+        mutableStateOf(
+            notificationPermission == null ||
+                (notificationPermission != null &&
+                    ContextCompat.checkSelfPermission(context, notificationPermission) == PackageManager.PERMISSION_GRANTED),
+        )
+    }
+
+    val permissionLauncher =
+        rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { result ->
+            isStorageGranted = result[storagePermission] == true || isStorageGranted
+            if (notificationPermission != null) {
+                isNotificationGranted = result[notificationPermission] == true || isNotificationGranted
+            }
+        }
+
+    val shouldShowPermissionHint = !isStorageGranted || !isNotificationGranted
+
     Column(
         Modifier
             .windowInsetsPadding(LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom))
@@ -54,10 +104,67 @@ fun SettingsScreen(
         Spacer(
             Modifier.windowInsetsPadding(
                 LocalPlayerAwareWindowInsets.current.only(
-                    WindowInsetsSides.Top
-                )
-            )
+                    WindowInsetsSides.Top,
+                ),
+            ),
         )
+
+        if (shouldShowPermissionHint) {
+            Card(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(top = 16.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors =
+                    CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    ),
+            ) {
+                Column(
+                    modifier =
+                        Modifier
+                            .padding(16.dp),
+                ) {
+                    Text(
+                        text = stringResource(R.string.permissions_title),
+                        style = MaterialTheme.typography.titleMedium,
+                    )
+
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    Text(
+                        text = stringResource(R.string.permissions_subtitle),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Button(
+                        onClick = {
+                            val toRequest =
+                                buildList {
+                                    if (!isStorageGranted) {
+                                        add(storagePermission)
+                                    }
+                                    if (!isNotificationGranted && notificationPermission != null) {
+                                        add(notificationPermission)
+                                    }
+                                }
+                            if (toRequest.isNotEmpty()) {
+                                permissionLauncher.launch(toRequest.toTypedArray())
+                            }
+                        },
+                        modifier = Modifier.align(Alignment.End),
+                    ) {
+                        Text(text = stringResource(R.string.allow))
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+        }
 
         /*
         if (latestVersionName != BuildConfig.VERSION_NAME) {
