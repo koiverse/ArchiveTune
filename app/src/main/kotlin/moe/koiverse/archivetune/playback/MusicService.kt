@@ -175,11 +175,10 @@ import kotlin.math.min
 import kotlin.math.pow
 import kotlin.time.Duration.Companion.seconds
 import timber.log.Timber
-import androidx.core.app.NotificationCompat
-import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.os.Build
+import android.content.pm.PackageManager
 
 @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
 @AndroidEntryPoint
@@ -281,20 +280,6 @@ class MusicService :
                     )
                 )
             }
-            val pending = PendingIntent.getActivity(
-                this,
-                0,
-                Intent(this, MainActivity::class.java),
-                PendingIntent.FLAG_IMMUTABLE
-            )
-            val notification: Notification = NotificationCompat.Builder(this, CHANNEL_ID)
-                .setContentTitle(getString(R.string.music_player))
-                .setContentText("")
-                .setSmallIcon(R.drawable.small_icon)
-                .setContentIntent(pending)
-                .setOngoing(true)
-                .build()
-            startForeground(NOTIFICATION_ID, notification)
         } catch (e: Exception) {
             reportException(e)
         }
@@ -2013,44 +1998,15 @@ class MusicService :
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo) = mediaSession
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                val pending = PendingIntent.getActivity(
-                    this,
-                    0,
-                    Intent(this, MainActivity::class.java),
-                    PendingIntent.FLAG_IMMUTABLE
-                )
-                val notification: Notification = NotificationCompat.Builder(this, CHANNEL_ID)
-                    .setContentTitle(getString(R.string.music_player))
-                    .setContentText("")
-                    .setSmallIcon(R.drawable.small_icon)
-                    .setContentIntent(pending)
-                    .setOngoing(true)
-                    .build()
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    startForeground(NOTIFICATION_ID, notification, android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK)
-                } else {
-                    startForeground(NOTIFICATION_ID, notification)
-                }
-                
-                // If there's media playing, update notification with proper content async
-                if (player.mediaItemCount > 0 && player.currentMediaItem != null) {
-                    currentMediaMetadata.value = player.currentMetadata
-                    scope.launch {
-                        delay(100)
-                        updateNotification()
-                    }
-                }
-            }
-        } catch (e: Exception) {
-            reportException(e)
-        }
         return START_STICKY
     }
 
     override fun onUpdateNotification(session: MediaSession, startInForegroundRequired: Boolean) {
-        super.onUpdateNotification(session, true)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+            return
+        }
+        super.onUpdateNotification(session, startInForegroundRequired)
     }
 
     inner class MusicBinder : Binder() {
