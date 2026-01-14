@@ -60,12 +60,16 @@ fun <T> rememberPreference(
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
 
+    val initialValue = remember {
+        context.dataStore.get(key, defaultValue)
+    }
+
     val state =
         remember {
             context.dataStore.data
                 .map { it[key] ?: defaultValue }
                 .distinctUntilChanged()
-        }.collectAsState(defaultValue)
+        }.collectAsState(initialValue)
 
     return remember {
         object : MutableState<T> {
