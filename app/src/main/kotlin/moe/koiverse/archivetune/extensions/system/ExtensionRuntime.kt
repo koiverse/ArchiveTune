@@ -140,7 +140,7 @@ class ExtensionRuntime(
 
     private fun trackPayload(metadata: MediaMetadata): String {
         val title = metadata.title ?: ""
-        val album = metadata.album ?: ""
+        val album = metadata.album?.title ?: ""
         val artists = metadata.artists?.joinToString(",") ?: ""
         val id = metadata.id ?: ""
         return "{" + "\"id\":${jsonStringLiteral(id)}," + "\"title\":${jsonStringLiteral(title)}," + "\"artists\":${jsonStringLiteral(artists)}," + "\"album\":${jsonStringLiteral(album)}" + "}"
