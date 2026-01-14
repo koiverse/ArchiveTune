@@ -571,7 +571,7 @@ object YouTube {
         when {
             contents?.gridRenderer != null -> {
                 LibraryPage(
-                    items = contents.gridRenderer.items
+                    items = contents.gridRenderer.items.orEmpty()
                         .mapNotNull(GridRenderer.Item::musicTwoRowItemRenderer)
                         .mapNotNull { LibraryPage.fromMusicTwoRowItemRenderer(it) },
                     continuation = contents.gridRenderer.continuations?.getContinuation()
