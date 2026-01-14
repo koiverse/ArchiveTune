@@ -281,7 +281,7 @@ private fun WelcomeCard() {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
-                        painter = painterResource(R.drawable.archive),
+                        painter = painterResource(R.drawable.storage),
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(48.dp)
