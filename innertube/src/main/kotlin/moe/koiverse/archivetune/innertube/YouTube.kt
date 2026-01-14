@@ -543,10 +543,9 @@ object YouTube {
 
         val tabs = response.contents?.singleColumnBrowseResultsRenderer?.tabs
 
-        val contents = if (tabs != null && tabs.size >= tabIndex) {
+        val contents = if (tabs != null && tabIndex >= 0 && tabIndex < tabs.size) {
             tabs[tabIndex].tabRenderer.content?.sectionListRenderer?.contents?.firstOrNull()
-        }
-        else {
+        } else {
             null
         }
 
@@ -554,7 +553,7 @@ object YouTube {
             contents?.gridRenderer != null -> {
                 LibraryPage(
                     items = contents.gridRenderer.items
-                        .mapNotNull (GridRenderer.Item::musicTwoRowItemRenderer)
+                        .mapNotNull(GridRenderer.Item::musicTwoRowItemRenderer)
                         .mapNotNull { LibraryPage.fromMusicTwoRowItemRenderer(it) },
                     continuation = contents.gridRenderer.continuations?.getContinuation()
                 )
@@ -563,7 +562,7 @@ object YouTube {
             contents?.musicShelfRenderer?.contents != null -> {
                 LibraryPage(
                     items = contents.musicShelfRenderer.contents
-                        .mapNotNull (MusicShelfRenderer.Content::musicResponsiveListItemRenderer)
+                        .mapNotNull(MusicShelfRenderer.Content::musicResponsiveListItemRenderer)
                         .mapNotNull { LibraryPage.fromMusicResponsiveListItemRenderer(it) },
                     continuation = contents.musicShelfRenderer.continuations?.getContinuation()
                 )
