@@ -147,9 +147,8 @@ class SyncUtils @Inject constructor(
                     dbWriteSemaphore.withPermit {
                         val dbSong = database.song(song.id).firstOrNull()
                         val timestamp = LocalDateTime.now().minusSeconds(index.toLong())
-                        database.transaction {
+                        database.withTransaction {
                             if (dbSong == null) {
-                                // Use proper MediaMetadata insertion to save artist information
                                 insert(song.toMediaMetadata()) { it.copy(liked = true, likedDate = timestamp) }
                             } else if (!dbSong.song.liked || dbSong.song.likedDate != timestamp) {
                                 update(dbSong.song.copy(liked = true, likedDate = timestamp))
@@ -178,9 +177,8 @@ class SyncUtils @Inject constructor(
                 launch {
                     dbWriteSemaphore.withPermit {
                         val dbSong = database.song(song.id).firstOrNull()
-                        database.transaction {
+                        database.withTransaction {
                             if (dbSong == null) {
-                                // Use proper MediaMetadata insertion to save artist information
                                 insert(song.toMediaMetadata()) { it.toggleLibrary() }
                             } else if (dbSong.song.inLibrary == null) {
                                 update(dbSong.song.toggleLibrary())
@@ -242,9 +240,8 @@ class SyncUtils @Inject constructor(
                 launch {
                     dbWriteSemaphore.withPermit {
                         val dbArtist = database.artist(artist.id).firstOrNull()
-                        database.transaction {
+                        database.withTransaction {
                             if (dbArtist == null) {
-                                // Insert artist metadata but do not mark as bookmarked
                                 insert(
                                     ArtistEntity(
                                         id = artist.id,
@@ -254,7 +251,6 @@ class SyncUtils @Inject constructor(
                                     )
                                 )
                             } else {
-                                // Update existing artist metadata if changed, but keep bookmarkedAt as-is
                                 val existing = dbArtist.artist
                                 if (existing.name != artist.title || existing.thumbnailUrl != artist.thumbnail || existing.channelId != artist.channelId) {
                                     update(
@@ -378,22 +374,20 @@ class SyncUtils @Inject constructor(
 
             Timber.d("syncPlaylist: Updating local playlist (remote: ${remoteIds.size}, local: ${localIds.size})")
 
-            database.transaction {
-                runBlocking {
-                    database.clearPlaylist(playlistId)
-                    songs.forEachIndexed { idx, song ->
-                        if (database.song(song.id).firstOrNull() == null) {
-                            database.insert(song)
-                        }
-                        database.insert(
-                            PlaylistSongMap(
-                                songId = song.id,
-                                playlistId = playlistId,
-                                position = idx,
-                                setVideoId = song.setVideoId
-                            )
-                        )
+            database.withTransaction {
+                database.clearPlaylist(playlistId)
+                songs.forEachIndexed { idx, song ->
+                    if (database.song(song.id).firstOrNull() == null) {
+                        database.insert(song)
                     }
+                    database.insert(
+                        PlaylistSongMap(
+                            songId = song.id,
+                            playlistId = playlistId,
+                            position = idx,
+                            setVideoId = song.setVideoId
+                        )
+                    )
                 }
             }
             Timber.d("syncPlaylist: Successfully synced playlist")
