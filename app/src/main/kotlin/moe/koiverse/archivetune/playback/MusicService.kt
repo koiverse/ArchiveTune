@@ -1053,7 +1053,7 @@ class MusicService :
     }
 
     fun getAutomixAlbum(albumId: String) {
-        scope.launch(SilentHandler) {
+        scope.launch(Dispatchers.IO + SilentHandler) {
             YouTube
                 .album(albumId)
                 .onSuccess {
@@ -1063,10 +1063,9 @@ class MusicService :
     }
 
     fun getAutomix(playlistId: String) {
-        // Don't load automix/similar content if repeat mode is enabled
         if (dataStore[SimilarContent] == true && 
             player.repeatMode == REPEAT_MODE_OFF) {
-            scope.launch(SilentHandler) {
+            scope.launch(Dispatchers.IO + SilentHandler) {
                 YouTube
                     .next(WatchEndpoint(playlistId = playlistId))
                     .onSuccess {
