@@ -594,67 +594,77 @@ fun YouTubePlaylistMenu(
                 }
             )
         }
-        if (songs.isNotEmpty()) {
-            item {
-                when (downloadState) {
-                    Download.STATE_COMPLETED -> {
-                        ListItem(
-                            headlineContent = {
-                                Text(
-                                    text = stringResource(R.string.remove_download),
-                                    color = MaterialTheme.colorScheme.error
-                                )
-                            },
-                            leadingContent = {
-                                Icon(
-                                    painter = painterResource(R.drawable.offline),
-                                    contentDescription = null,
-                                )
-                            },
-                            modifier = Modifier.clickable {
-                                showRemoveDownloadDialog = true
+        item {
+            when (downloadState) {
+                Download.STATE_COMPLETED -> {
+                    ListItem(
+                        headlineContent = {
+                            Text(
+                                text = stringResource(R.string.remove_download),
+                                color = MaterialTheme.colorScheme.error
+                            )
+                        },
+                        leadingContent = {
+                            Icon(
+                                painter = painterResource(R.drawable.offline),
+                                contentDescription = null,
+                            )
+                        },
+                        modifier = Modifier.clickable {
+                            showRemoveDownloadDialog = true
+                        }
+                    )
+                }
+                Download.STATE_QUEUED, Download.STATE_DOWNLOADING -> {
+                    ListItem(
+                        headlineContent = { Text(text = stringResource(R.string.downloading)) },
+                        leadingContent = {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(24.dp),
+                                strokeWidth = 2.dp
+                            )
+                        },
+                        modifier = Modifier.clickable {
+                            showRemoveDownloadDialog = true
+                        }
+                    )
+                }
+                else -> {
+                    ListItem(
+                        headlineContent = { Text(text = stringResource(R.string.action_download)) },
+                        leadingContent = {
+                            Icon(
+                                painter = painterResource(R.drawable.download),
+                                contentDescription = null,
+                            )
+                        },
+                        modifier = Modifier.clickable {
+                            coroutineScope.launch {
+                                songs
+                                    .ifEmpty {
+                                        withContext(Dispatchers.IO) {
+                                            YouTube
+                                                .playlist(playlist.id)
+                                                .completed()
+                                                .getOrNull()
+                                                ?.songs
+                                                .orEmpty()
+                                        }
+                                    }.forEach { song ->
+                                        val downloadRequest = DownloadRequest.Builder(song.id, song.id.toUri())
+                                            .setCustomCacheKey(song.id)
+                                            .setData(song.title.toByteArray())
+                                            .build()
+                                        DownloadService.sendAddDownload(
+                                            context,
+                                            ExoDownloadService::class.java,
+                                            downloadRequest,
+                                            false
+                                        )
+                                    }
                             }
-                        )
-                    }
-                    Download.STATE_QUEUED, Download.STATE_DOWNLOADING -> {
-                        ListItem(
-                            headlineContent = { Text(text = stringResource(R.string.downloading)) },
-                            leadingContent = {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(24.dp),
-                                    strokeWidth = 2.dp
-                                )
-                            },
-                            modifier = Modifier.clickable {
-                                showRemoveDownloadDialog = true
-                            }
-                        )
-                    }
-                    else -> {
-                        ListItem(
-                            headlineContent = { Text(text = stringResource(R.string.action_download)) },
-                            leadingContent = {
-                                Icon(
-                                    painter = painterResource(R.drawable.download),
-                                    contentDescription = null,
-                                )
-                            },
-                            modifier = Modifier.clickable {
-                                songs.forEach { song ->
-                                    val downloadRequest = DownloadRequest.Builder(song.id, song.id.toUri())
-                                        .setCustomCacheKey(song.id)
-                                        .setData(song.title.toByteArray())
-                                        .build()
-                                    DownloadService.sendAddDownload(
-                                        context,
-                                        ExoDownloadService::class.java,
-                                        downloadRequest,
-                                        false
-                                    )
-                                }
-                            }
-                        )
-                    }
+                        }
+                    )
                 }
             }
         }
