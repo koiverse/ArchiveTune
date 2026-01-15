@@ -68,6 +68,11 @@ class MusicDatabase(
             }
         }
 
+    suspend fun <R> withTransaction(block: suspend MusicDatabase.() -> R): R =
+        delegate.withTransaction {
+            block(this@MusicDatabase)
+        }
+
     fun close() = delegate.close()
 }
 
