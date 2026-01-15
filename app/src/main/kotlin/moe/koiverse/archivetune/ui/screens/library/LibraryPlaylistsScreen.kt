@@ -145,13 +145,12 @@ fun LibraryPlaylistsScreen(
 
     val playlists by viewModel.allPlaylists.collectAsState()
 
-    val visiblePlaylists = playlists.distinctBy { it.id }
-        .filter { playlist ->
-            val name = playlist.playlist.name ?: ""
-            val matchesName = !name.contains("episode", ignoreCase = true)
-            val matchesTags = selectedTagIds.isEmpty() || playlist.id in filteredPlaylistIds
-            matchesName && matchesTags
-        }
+    val visiblePlaylists = playlists.filter { playlist ->
+        val name = playlist.playlist.name ?: ""
+        val matchesName = !name.contains("episode", ignoreCase = true)
+        val matchesTags = selectedTagIds.isEmpty() || playlist.id in filteredPlaylistIds
+        matchesName && matchesTags
+    }
 
     val topSize by viewModel.topValue.collectAsState(initial = 50)
 

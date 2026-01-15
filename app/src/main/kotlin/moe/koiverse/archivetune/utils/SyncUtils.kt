@@ -29,8 +29,13 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.async
+import kotlinx.coroutines.supervisorScope
 import timber.log.Timber
 import java.time.LocalDateTime
+import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -41,11 +46,67 @@ class SyncUtils @Inject constructor(
 ) {
     private val syncScope = CoroutineScope(Dispatchers.IO)
     
-    // Mutex to ensure only one sync operation runs at a time
     private val syncMutex = Mutex()
-    
-    // Semaphore to limit concurrent database writes per sync operation
+    private val playlistSyncMutex = Mutex()
     private val dbWriteSemaphore = Semaphore(2)
+    private val isSyncing = AtomicBoolean(false)
+    
+    suspend fun performFullSync() = withContext(Dispatchers.IO) {
+        if (!isSyncing.compareAndSet(false, true)) {
+            Timber.d("Sync already in progress, skipping")
+            return@withContext
+        }
+        
+        try {
+            syncMutex.withLock {
+                if (!isLoggedIn()) {
+                    Timber.w("Skipping full sync - user not logged in")
+                    return@withLock
+                }
+                
+                supervisorScope {
+                    listOf(
+                        async { syncLikedSongs() },
+                        async { syncLibrarySongs() },
+                        async { syncLikedAlbums() },
+                        async { syncArtistsSubscriptions() },
+                    ).awaitAll()
+                    
+                    syncSavedPlaylists()
+                    syncAutoSyncPlaylists()
+                }
+            }
+        } catch (e: Exception) {
+            Timber.e(e, "Error during full sync")
+        } finally {
+            isSyncing.set(false)
+        }
+    }
+    
+    suspend fun cleanupDuplicatePlaylists() = withContext(Dispatchers.IO) {
+        try {
+            val allPlaylists = database.playlistsByNameAsc().first()
+            val browseIdGroups = allPlaylists
+                .filter { it.playlist.browseId != null }
+                .groupBy { it.playlist.browseId }
+            
+            for ((browseId, playlists) in browseIdGroups) {
+                if (playlists.size > 1) {
+                    Timber.w("Found ${playlists.size} duplicate playlists for browseId: $browseId")
+                    val toKeep = playlists.maxByOrNull { it.songCount }
+                        ?: playlists.first()
+                    
+                    playlists.filter { it.id != toKeep.id }.forEach { duplicate ->
+                        Timber.d("Removing duplicate playlist: ${duplicate.playlist.name} (${duplicate.id})")
+                        database.clearPlaylist(duplicate.id)
+                        database.delete(duplicate.playlist)
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            Timber.e(e, "Error cleaning up duplicate playlists")
+        }
+    }
     
     /**
      * Check if user is properly logged in with a valid SAPISID cookie
@@ -213,11 +274,12 @@ class SyncUtils @Inject constructor(
         }
     }
 
-    suspend fun syncSavedPlaylists() = coroutineScope {
+    suspend fun syncSavedPlaylists() = playlistSyncMutex.withLock {
         if (!isLoggedIn()) {
             Timber.w("Skipping syncSavedPlaylists - user not logged in")
-            return@coroutineScope
+            return@withLock
         }
+        
         YouTube.library("FEmusic_liked_playlists").completed().onSuccess { page ->
             val remotePlaylists = page.items.filterIsInstance<PlaylistItem>()
                 .filterNot { it.id == "LM" || it.id == "SE" }
@@ -227,38 +289,45 @@ class SyncUtils @Inject constructor(
             val selectedIds = selectedCsv.split(',').map { it.trim() }.filter { it.isNotEmpty() }.toSet()
 
             val playlistsToSync = if (selectedIds.isNotEmpty()) remotePlaylists.filter { it.id in selectedIds } else remotePlaylists
-
             val remoteIds = playlistsToSync.map { it.id }.toSet()
-            val localPlaylists = database.playlistsByNameAsc().first()
 
+            val localPlaylists = database.playlistsByNameAsc().first()
             localPlaylists.filterNot { it.playlist.browseId in remoteIds }
                 .filterNot { it.playlist.browseId == null }
                 .forEach { database.update(it.playlist.localToggleLike()) }
 
-            playlistsToSync.forEach { playlist ->
-                launch {
-                    dbWriteSemaphore.withPermit {
-                        var playlistEntity = localPlaylists.find { it.playlist.browseId == playlist.id }?.playlist
-                        if (playlistEntity == null) {
-                            playlistEntity = PlaylistEntity(
-                                name = playlist.title,
-                                browseId = playlist.id,
-                                thumbnailUrl = playlist.thumbnail,
-                                isEditable = playlist.isEditable,
-                                bookmarkedAt = LocalDateTime.now(),
-                                remoteSongCount = playlist.songCountText?.let { Regex("""\\d+""").find(it)?.value?.toIntOrNull() },
-                                playEndpointParams = playlist.playEndpoint?.params,
-                                shuffleEndpointParams = playlist.shuffleEndpoint?.params,
-                                radioEndpointParams = playlist.radioEndpoint?.params
-                            )
-                            database.insert(playlistEntity)
-                        } else {
-                            database.update(playlistEntity, playlist)
-                        }
-                        syncPlaylist(playlist.id, playlistEntity.id)
+            for (playlist in playlistsToSync) {
+                try {
+                    val existingPlaylist = database.playlistByBrowseId(playlist.id).firstOrNull()
+                    
+                    val playlistEntity: PlaylistEntity
+                    if (existingPlaylist == null) {
+                        playlistEntity = PlaylistEntity(
+                            name = playlist.title,
+                            browseId = playlist.id,
+                            thumbnailUrl = playlist.thumbnail,
+                            isEditable = playlist.isEditable,
+                            bookmarkedAt = LocalDateTime.now(),
+                            remoteSongCount = playlist.songCountText?.let { Regex("""\d+""").find(it)?.value?.toIntOrNull() },
+                            playEndpointParams = playlist.playEndpoint?.params,
+                            shuffleEndpointParams = playlist.shuffleEndpoint?.params,
+                            radioEndpointParams = playlist.radioEndpoint?.params
+                        )
+                        database.insert(playlistEntity)
+                        Timber.d("syncSavedPlaylists: Created new playlist ${playlist.title} (${playlist.id})")
+                    } else {
+                        playlistEntity = existingPlaylist.playlist
+                        database.update(playlistEntity, playlist)
+                        Timber.d("syncSavedPlaylists: Updated existing playlist ${playlist.title} (${playlist.id})")
                     }
+                    
+                    syncPlaylist(playlist.id, playlistEntity.id)
+                } catch (e: Exception) {
+                    Timber.e(e, "Failed to sync playlist ${playlist.title}")
                 }
             }
+        }.onFailure { e ->
+            Timber.e(e, "syncSavedPlaylists: Failed to fetch playlists from YouTube")
         }
     }
 
