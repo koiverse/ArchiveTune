@@ -308,7 +308,7 @@ class MusicService :
                     sleepTimer = SleepTimer(scope, this)
                     addListener(sleepTimer)
                     addAnalyticsListener(PlaybackStatsListener(false, this@MusicService))
-                    setOffloadEnabled(dataStore.get(AudioOffload, false))
+                    setOffloadEnabled(false)
                 }
 
         audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
@@ -343,12 +343,22 @@ class MusicService :
         )
         
         updateNotification()
-        player.repeatMode = dataStore.get(RepeatModeKey, REPEAT_MODE_OFF)
+        player.repeatMode = REPEAT_MODE_OFF
 
         val sessionToken = SessionToken(this, ComponentName(this, MusicService::class.java))
         val controllerFuture = MediaController.Builder(this, sessionToken).buildAsync()
         controllerFuture.addListener({ controllerFuture.get() }, MoreExecutors.directExecutor())
-        playerVolume = MutableStateFlow(dataStore.get(PlayerVolumeKey, 1f).coerceIn(0f, 1f))
+        scope.launch(Dispatchers.IO) {
+            val prefs = dataStore.data.first()
+            val repeatMode = prefs[RepeatModeKey] ?: REPEAT_MODE_OFF
+            val volume = (prefs[PlayerVolumeKey] ?: 1f).coerceIn(0f, 1f)
+            val offload = prefs[AudioOffload] ?: false
+            withContext(Dispatchers.Main) {
+                player.repeatMode = repeatMode
+                playerVolume.value = volume
+                player.setOffloadEnabled(offload)
+            }
+        }
 
         connectivityManager = getSystemService()!!
         connectivityObserver = NetworkConnectivityObserver(this)
