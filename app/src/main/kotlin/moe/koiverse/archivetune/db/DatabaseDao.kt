@@ -1445,14 +1445,12 @@ interface DatabaseDao {
     }
 
     @Transaction
-    fun togglePlaylistTag(playlistId: String, tagId: String) {
-        runBlocking {
-            val isTagged = isPlaylistTagged(playlistId, tagId).first()
-            if (isTagged > 0) {
-                removePlaylistTag(playlistId, tagId)
-            } else {
-                addTagToPlaylist(playlistId, tagId)
-            }
+    suspend fun togglePlaylistTag(playlistId: String, tagId: String) {
+        val isTagged = isPlaylistTagged(playlistId, tagId).first()
+        if (isTagged > 0) {
+            removePlaylistTag(playlistId, tagId)
+        } else {
+            addTagToPlaylist(playlistId, tagId)
         }
     }
 }
