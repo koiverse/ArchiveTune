@@ -2,6 +2,7 @@ package moe.koiverse.archivetune.ui.menu
 
 import android.annotation.SuppressLint
 import android.content.Intent
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.clickable
@@ -150,8 +151,15 @@ fun YouTubeSongMenu(
             }  
             listOf(song.id)  
         },  
-        onDismiss = { showChoosePlaylistDialog = false }  
-    )  
+        onDismiss = { showChoosePlaylistDialog = false },
+        onAddComplete = { _, playlistNames ->
+            val message = when {
+                playlistNames.size == 1 -> context.getString(R.string.added_to_playlist, playlistNames.first())
+                else -> context.getString(R.string.added_to_n_playlists, playlistNames.size)
+            }
+            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+        },
+    )
 
     var showSelectArtistDialog by rememberSaveable {  
         mutableStateOf(false)  

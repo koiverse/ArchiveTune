@@ -1,6 +1,7 @@
 package moe.koiverse.archivetune.ui.menu
 
 import android.annotation.SuppressLint
+import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.WindowInsets
@@ -130,6 +131,15 @@ fun SelectionSongMenu(
         },
         onDismiss = {
             showChoosePlaylistDialog = false
+        },
+        onAddComplete = { songCount, playlistNames ->
+            val message = when {
+                songCount == 1 && playlistNames.size == 1 -> context.getString(R.string.added_to_playlist, playlistNames.first())
+                songCount > 1 && playlistNames.size == 1 -> context.getString(R.string.added_n_songs_to_playlist, songCount, playlistNames.first())
+                songCount == 1 -> context.getString(R.string.added_to_n_playlists, playlistNames.size)
+                else -> context.getString(R.string.added_n_songs_to_n_playlists, songCount, playlistNames.size)
+            }
+            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
         },
     )
 
@@ -518,7 +528,16 @@ fun SelectionMediaMetadataMenu(
                 it.id
             }
         },
-        onDismiss = { showChoosePlaylistDialog = false }
+        onDismiss = { showChoosePlaylistDialog = false },
+        onAddComplete = { songCount, playlistNames ->
+            val message = when {
+                songCount == 1 && playlistNames.size == 1 -> context.getString(R.string.added_to_playlist, playlistNames.first())
+                songCount > 1 && playlistNames.size == 1 -> context.getString(R.string.added_n_songs_to_playlist, songCount, playlistNames.first())
+                songCount == 1 -> context.getString(R.string.added_to_n_playlists, playlistNames.size)
+                else -> context.getString(R.string.added_n_songs_to_n_playlists, songCount, playlistNames.size)
+            }
+            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+        },
     )
 
     var downloadState by remember {
