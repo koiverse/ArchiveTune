@@ -102,11 +102,10 @@ constructor(
             return LYRICS_NOT_FOUND
         }
 
-        val scope = CoroutineScope(SupervisorJob())
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
         val deferred = scope.async {
             for (provider in lyricsProviders) {
                 val enabled = provider.isEnabled(context)
-                GlobalLog.append(Log.DEBUG, "LyricsHelper", "Checking provider: ${provider.name} (Enabled: $enabled)")
                 
                 if (enabled) {
                     try {
@@ -118,20 +117,15 @@ constructor(
                             mediaMetadata.duration,
                         )
                         result.onSuccess { lyrics ->
-                            GlobalLog.append(Log.INFO, "LyricsHelper", "Provider ${provider.name} returned success (Length: ${lyrics.length})")
                             return@async lyrics
                         }.onFailure {
-                            GlobalLog.append(Log.WARN, "LyricsHelper", "Provider ${provider.name} failed: ${it.message}")
                             reportException(it)
                         }
                     } catch (e: Exception) {
-                        GlobalLog.append(Log.ERROR, "LyricsHelper", "Exception in provider ${provider.name}: ${e.message}")
-                        // Catch network-related exceptions like UnresolvedAddressException
                         reportException(e)
                     }
                 }
             }
-            GlobalLog.append(Log.WARN, "LyricsHelper", "All providers failed or returned no lyrics")
             return@async LYRICS_NOT_FOUND
         }
 
@@ -158,22 +152,18 @@ constructor(
             return
         }
 
-        // Check network connectivity before making network requests
-        // Use synchronous check as fallback if flow doesn't emit
         val isNetworkAvailable = try {
             networkConnectivity.isCurrentlyConnected()
         } catch (e: Exception) {
-            // If network check fails, try to proceed anyway
             true
         }
         
         if (!isNetworkAvailable) {
-            // Still try to proceed in case of false negative
             return
         }
 
         val allResult = mutableListOf<LyricsResult>()
-        currentLyricsJob = CoroutineScope(SupervisorJob()).launch {
+        currentLyricsJob = CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
             lyricsProviders.forEach { provider ->
                 if (provider.isEnabled(context)) {
                     try {
@@ -183,7 +173,6 @@ constructor(
                             callback(result)
                         }
                     } catch (e: Exception) {
-                        // Catch network-related exceptions like UnresolvedAddressException
                         reportException(e)
                     }
                 }
