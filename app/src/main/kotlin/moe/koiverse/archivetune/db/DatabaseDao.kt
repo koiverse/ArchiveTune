@@ -1004,17 +1004,14 @@ interface DatabaseDao {
     fun incrementTotalPlayTime(songId: String, playTime: Long)
 
     @Query("UPDATE playCount SET count = count + 1 WHERE song = :songId AND year = :year AND month = :month")
-    fun incrementPlayCount(songId: String, year: Int, month: Int)
+    suspend fun incrementPlayCount(songId: String, year: Int, month: Int)
 
     /**
      * Increment by one the play count with today's year and month.
      */
-    fun incrementPlayCount(songId: String) {
+    suspend fun incrementPlayCount(songId: String) {
         val time = LocalDateTime.now().atOffset(ZoneOffset.UTC)
-        var oldCount: Int
-        runBlocking {
-            oldCount = getPlayCountByMonth(songId, time.year, time.monthValue).first()
-        }
+        val oldCount = getPlayCountByMonth(songId, time.year, time.monthValue).first()
 
         // add new
         if (oldCount <= 0) {
