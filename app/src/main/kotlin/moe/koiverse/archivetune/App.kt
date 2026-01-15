@@ -17,6 +17,7 @@ import coil3.request.crossfade
 import moe.koiverse.archivetune.constants.*
 import moe.koiverse.archivetune.extensions.*
 import moe.koiverse.archivetune.utils.dataStore
+import moe.koiverse.archivetune.utils.PreferenceStore
 import moe.koiverse.archivetune.utils.get
 import moe.koiverse.archivetune.utils.reportException
 import moe.koiverse.archivetune.innertube.YouTube
@@ -52,6 +53,7 @@ class App : Application(), SingletonImageLoader.Factory {
     override fun onCreate() {
         super.onCreate()
         instance = this
+        PreferenceStore.start(this)
         Timber.plant(Timber.DebugTree())
         try {
             Timber.plant(moe.koiverse.archivetune.utils.GlobalLogTree())
