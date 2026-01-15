@@ -159,12 +159,14 @@ constructor(
         }
 
     init {
-        val result = mutableMapOf<String, Download>()
-        val cursor = downloadManager.downloadIndex.getDownloads()
-        while (cursor.moveToNext()) {
-            result[cursor.download.request.id] = cursor.download
+        CoroutineScope(Dispatchers.IO).launch {
+            val result = mutableMapOf<String, Download>()
+            val cursor = downloadManager.downloadIndex.getDownloads()
+            while (cursor.moveToNext()) {
+                result[cursor.download.request.id] = cursor.download
+            }
+            downloads.value = result
         }
-        downloads.value = result
     }
 
     fun getDownload(songId: String): Flow<Download?> = downloads.map { it[songId] }
