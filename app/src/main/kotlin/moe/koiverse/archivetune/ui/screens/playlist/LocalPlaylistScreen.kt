@@ -1048,7 +1048,7 @@ fun LocalPlaylistScreen(
                                     delete(map.copy(position = Int.MAX_VALUE))
                                 }
                                 if (browseId != null) {
-                                    val setVideoId = getSetVideoId(map.songId)?.setVideoId
+                                    val setVideoId = map.setVideoId ?: database.getSetVideoId(map.songId)?.setVideoId
                                     if (setVideoId != null) {
                                         YouTube.removeFromPlaylist(browseId, map.songId, setVideoId)
                                     }
