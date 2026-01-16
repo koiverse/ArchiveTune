@@ -51,6 +51,7 @@
     <string name="choose_color">Choose Color</string>
     <string name="tap_to_change_color">Tap to change color</string>
     <string name="assign_tags">Assign Tags</string>
+    <string name="assign_tags_to_playlists">Assign to playlists</string>
     <string name="no_tags_available">No tags available. Create one first.</string>
     <string name="manage_playlist_tags">Playlist Tags</string>
     <string name="manage_playlist_tags_desc">Create and manage tags for organizing playlists</string>
@@ -65,6 +66,8 @@
     <string name="maximum_volume">Maximum Volume</string>
     <string name="hide_player_thumbnail">Hide Player Thumbnail</string>
     <string name="hide_player_thumbnail_desc">Replace album artwork with app logo in player</string>
+    <string name="show_tags_in_library">Show tags in library</string>
+    <string name="show_tags_in_library_desc">Show tag filter chips in the library</string>
     <string name="already_in_playlist">Already in playlist:</string>
     <plurals name="n_element">
         <item quantity="one">%d element</item>

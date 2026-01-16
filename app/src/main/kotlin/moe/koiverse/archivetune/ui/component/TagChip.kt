@@ -77,9 +77,9 @@ fun TagChip(
 ) {
     val backgroundColor = remember(tag.color, selected) {
         if (selected) {
-            Color(tag.color.toColorInt()).copy(alpha = 0.3f)
+            Color(tag.color.toColorInt()).copy(alpha = 0.35f)
         } else {
-            Color(tag.color.toColorInt()).copy(alpha = 0.15f)
+            Color(tag.color.toColorInt()).copy(alpha = 0.12f)
         }
     }
     
@@ -96,7 +96,7 @@ fun TagChip(
         shape = RoundedCornerShape(20.dp),
         color = animatedBackgroundColor,
         border = BorderStroke(
-            width = if (selected) 2.dp else 1.5.dp,
+            width = if (selected) 2.5.dp else 1.5.dp,
             color = contentColor
         ),
         modifier = modifier
@@ -121,8 +121,19 @@ fun TagChip(
                 modifier = Modifier
                     .size(16.dp)
                     .clip(CircleShape)
-                    .background(contentColor)
+                    .background(contentColor),
+                contentAlignment = Alignment.Center
             )
+            {
+                if (selected) {
+                    Icon(
+                        painter = painterResource(R.drawable.check),
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(12.dp)
+                    )
+                }
+            }
 
             Text(
                 text = tag.name,

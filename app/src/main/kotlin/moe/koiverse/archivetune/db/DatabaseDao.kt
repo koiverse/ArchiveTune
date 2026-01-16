@@ -1433,6 +1433,9 @@ interface DatabaseDao {
     @Query("DELETE FROM playlist_tag_map WHERE playlistId = :playlistId")
     fun removeAllPlaylistTags(playlistId: String)
 
+    @Query("DELETE FROM playlist_tag_map WHERE tagId = :tagId")
+    fun removeAllTagPlaylists(tagId: String)
+
     @Query("DELETE FROM playlist_tag_map WHERE playlistId = :playlistId AND tagId = :tagId")
     fun removePlaylistTag(playlistId: String, tagId: String)
 
