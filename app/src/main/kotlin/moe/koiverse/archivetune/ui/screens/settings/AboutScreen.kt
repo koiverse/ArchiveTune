@@ -5,12 +5,21 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.ui.Alignment
@@ -21,6 +30,7 @@ import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import coil3.compose.AsyncImage
@@ -41,6 +51,11 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.WindowInsetsSides
+import io.ktor.client.HttpClient
+import io.ktor.client.request.get
+import io.ktor.client.request.headers
+import io.ktor.client.statement.bodyAsText
+import org.json.JSONArray
 
 data class TeamMember(
     val avatarUrl: String,
@@ -52,6 +67,51 @@ data class TeamMember(
     val discord: String? = null
 
 )
+
+private data class GitHubContributor(
+    val login: String,
+    val avatarUrl: String,
+    val profileUrl: String,
+)
+
+private sealed interface ContributorsState {
+    data object Loading : ContributorsState
+    data class Loaded(val contributors: List<GitHubContributor>) : ContributorsState
+    data object Error : ContributorsState
+}
+
+private suspend fun fetchRepoContributors(
+    client: HttpClient,
+    owner: String,
+    repo: String,
+    perPage: Int = 100,
+): List<GitHubContributor> {
+    val response =
+        client.get("https://api.github.com/repos/$owner/$repo/contributors?per_page=$perPage") {
+            headers {
+                append("Accept", "application/vnd.github+json")
+                append("User-Agent", "ArchiveTune")
+            }
+        }.bodyAsText()
+    val jsonArray = JSONArray(response)
+    val contributors = ArrayList<GitHubContributor>(jsonArray.length())
+    for (i in 0 until jsonArray.length()) {
+        val item = jsonArray.getJSONObject(i)
+        val login = item.optString("login", "")
+        val avatarUrl = item.optString("avatar_url", "")
+        val profileUrl = item.optString("html_url", "")
+        if (login.isNotBlank() && avatarUrl.isNotBlank()) {
+            contributors.add(
+                GitHubContributor(
+                    login = login,
+                    avatarUrl = avatarUrl,
+                    profileUrl = profileUrl,
+                )
+            )
+        }
+    }
+    return contributors
+}
 
 @Composable
 fun OutlinedIconChip(
@@ -111,6 +171,23 @@ fun AboutScreen(
     scrollBehavior: TopAppBarScrollBehavior,
 ) {
     val uriHandler = LocalUriHandler.current
+    val httpClient = remember { HttpClient() }
+    DisposableEffect(Unit) {
+        onDispose { httpClient.close() }
+    }
+    var contributorsState by remember { mutableStateOf<ContributorsState>(ContributorsState.Loading) }
+    LaunchedEffect(Unit) {
+        contributorsState = runCatching {
+            fetchRepoContributors(
+                client = httpClient,
+                owner = "koiverse",
+                repo = "ArchiveTune",
+            )
+        }.fold(
+            onSuccess = { ContributorsState.Loaded(it) },
+            onFailure = { ContributorsState.Error }
+        )
+    }
 
     val teamMembers = listOf(
         TeamMember(
@@ -385,6 +462,132 @@ fun AboutScreen(
                     }
                 }
 
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 6.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainer
+                    ),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                    shape = RoundedCornerShape(20.dp)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(14.dp),
+                    ) {
+                        Text(
+                            text = "Awesome Contributor",
+                            style = MaterialTheme.typography.headlineSmall,
+                        )
+                        Spacer(Modifier.height(12.dp))
+                        ContributorGrid(
+                            state = contributorsState,
+                            onOpenProfile = uriHandler::openUri,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun ContributorGrid(
+    state: ContributorsState,
+    onOpenProfile: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val contributors = when (state) {
+        ContributorsState.Loading -> null
+        ContributorsState.Error -> emptyList()
+        is ContributorsState.Loaded -> state.contributors.take(20)
+    }
+
+    val columns = 4
+    val spacing = 10.dp
+    BoxWithConstraints(modifier = modifier) {
+        val itemWidth = (maxWidth - spacing * (columns - 1)) / columns
+        val tileShape = RoundedCornerShape(22.dp)
+        val tileColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
+
+        FlowRow(
+            maxItemsInEachRow = columns,
+            horizontalArrangement = Arrangement.spacedBy(spacing),
+            verticalArrangement = Arrangement.spacedBy(spacing),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            if (contributors == null) {
+                repeat(20) {
+                    Surface(
+                        shape = tileShape,
+                        color = tileColor,
+                        modifier = Modifier.width(itemWidth)
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 14.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.surfaceContainerHighest)
+                            )
+                            Spacer(Modifier.height(10.dp))
+                            Box(
+                                modifier = Modifier
+                                    .height(14.dp)
+                                    .fillMaxWidth(0.7f)
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .background(MaterialTheme.colorScheme.surfaceContainerHighest)
+                            )
+                        }
+                    }
+                }
+            } else {
+                contributors.forEach { contributor ->
+                    Surface(
+                        shape = tileShape,
+                        color = tileColor,
+                        modifier = Modifier
+                            .width(itemWidth)
+                            .clickable(enabled = contributor.profileUrl.isNotBlank()) {
+                                if (contributor.profileUrl.isNotBlank()) {
+                                    onOpenProfile(contributor.profileUrl)
+                                }
+                            }
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 14.dp, horizontal = 10.dp)
+                        ) {
+                            AsyncImage(
+                                model = contributor.avatarUrl,
+                                contentDescription = contributor.login,
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.surfaceContainerHighest)
+                            )
+                            Spacer(Modifier.height(10.dp))
+                            Text(
+                                text = contributor.login,
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                    }
+                }
             }
         }
     }
