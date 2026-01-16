@@ -1421,6 +1421,9 @@ interface DatabaseDao {
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     fun insert(map: PlaylistTagMap)
 
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    fun insertAllPlaylistTagMaps(maps: List<PlaylistTagMap>)
+
     @Update
     fun update(tag: TagEntity)
 
@@ -1442,6 +1445,21 @@ interface DatabaseDao {
     @Transaction
     fun addTagToPlaylist(playlistId: String, tagId: String) {
         insert(PlaylistTagMap(playlistId = playlistId, tagId = tagId))
+    }
+
+    @Transaction
+    fun addTagsToPlaylists(
+        playlistIds: List<String>,
+        tagIds: List<String>,
+    ) {
+        if (playlistIds.isEmpty() || tagIds.isEmpty()) return
+        val maps =
+            playlistIds.flatMap { playlistId ->
+                tagIds.map { tagId ->
+                    PlaylistTagMap(playlistId = playlistId, tagId = tagId)
+                }
+            }
+        insertAllPlaylistTagMaps(maps)
     }
 
     @Transaction
