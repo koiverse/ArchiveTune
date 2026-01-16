@@ -275,7 +275,7 @@ fun AboutScreen(
                 }
             }
 
-            networkResult.status.isSuccess() && !networkResult.body.isNullOrBlank() -> {
+            (networkResult.status.value in 200..299) && !networkResult.body.isNullOrBlank() -> {
                 val contributors = runCatching { parseContributorsJson(networkResult.body) }.getOrNull()
                 if (!contributors.isNullOrEmpty()) {
                     contributorsState = ContributorsState.Loaded(contributors)
