@@ -1,6 +1,7 @@
 package moe.koiverse.archivetune
 
 import android.app.Application
+import android.app.ActivityManager
 import android.content.Context
 import android.os.Build
 import android.widget.Toast
@@ -48,11 +49,27 @@ import java.util.*
 class App : Application(), SingletonImageLoader.Factory {
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     @Volatile private var isInitialized = false
+
+    private fun currentProcessName(): String? {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            Application.getProcessName()
+        } else {
+            val pid = android.os.Process.myPid()
+            val activityManager = getSystemService(Context.ACTIVITY_SERVICE) as? ActivityManager
+            activityManager?.runningAppProcesses
+                ?.firstOrNull { it.pid == pid }
+                ?.processName
+        }
+    }
     
     @OptIn(DelicateCoroutinesApi::class)
     override fun onCreate() {
         super.onCreate()
         instance = this
+        if (currentProcessName()?.endsWith(":crash") == true) {
+            Timber.plant(Timber.DebugTree())
+            return
+        }
         PreferenceStore.start(this)
         Timber.plant(Timber.DebugTree())
         try {
@@ -138,7 +155,6 @@ class App : Application(), SingletonImageLoader.Factory {
         }
 
         try {
-            val defaultHandler = Thread.getDefaultUncaughtExceptionHandler()
             Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
                 try {
                     val sw = StringWriter()
@@ -155,12 +171,8 @@ class App : Application(), SingletonImageLoader.Factory {
                 } catch (e: Exception) {
                     reportException(e)
                 } finally {
-                    try {
-                        defaultHandler?.uncaughtException(thread, throwable)
-                    } catch (_: Exception) {
-                        android.os.Process.killProcess(android.os.Process.myPid())
-                        exitProcess(2)
-                    }
+                    android.os.Process.killProcess(android.os.Process.myPid())
+                    exitProcess(2)
                 }
             }
         } catch (e: Exception) {
