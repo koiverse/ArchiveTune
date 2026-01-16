@@ -48,7 +48,6 @@ fun DiscordLoginScreen(navController: NavController) {
 
                 WebView.setWebContentsDebuggingEnabled(true)
 
-                settings.userAgentString = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
                 settings.javaScriptEnabled = true
                 settings.domStorageEnabled = true
                 settings.setSupportZoom(true)
@@ -81,50 +80,30 @@ fun DiscordLoginScreen(navController: NavController) {
                             view.evaluateJavascript(
                                 """
                                 (function() {
-                                    function getToken() {
-                                        try {
-                                            var token = localStorage.getItem("token");
-                                            if (token) return token.replace(/^"|"$/g, '');
-                                        } catch(e) {}
-                                        
-                                        try {
-                                            var webpack = window.webpackChunkdiscord_app;
-                                            if (webpack) {
-                                                var found = null;
-                                                webpack.push([
-                                                    [Math.random()],
-                                                    {},
-                                                    (e) => {
-                                                        for (const key in e.c) {
-                                                            var mod = e.c[key].exports;
-                                                            if (mod && mod.default && mod.default.getToken) {
-                                                                found = mod.default.getToken();
-                                                                break;
-                                                            }
-                                                            if (mod && mod.getToken) {
-                                                                found = mod.getToken();
-                                                                break;
-                                                            }
-                                                        }
-                                                    }
-                                                ]);
-                                                if (found) return found;
-                                            }
-                                        } catch(e) {}
-                                        return null;
-                                    }
-
-                                    var attempts = 0;
-                                    var interval = setInterval(function() {
-                                        var token = getToken();
+                                    try {
+                                        var token = localStorage.getItem("token");
                                         if (token) {
-                                            clearInterval(interval);
-                                            Android.onRetrieveToken(token);
+                                            Android.onRetrieveToken(token.slice(1, -1));
                                         } else {
-                                            attempts++;
-                                            if (attempts > 10) clearInterval(interval);
+                                            // fallback إلى alert (منطق kizzy)
+                                            var i = document.createElement('iframe');
+                                            document.body.appendChild(i);
+                                            setTimeout(function() {
+                                                try {
+                                                    var alt = i.contentWindow.localStorage.token;
+                                                    if (alt) {
+                                                        alert(alt.slice(1, -1));
+                                                    } else {
+                                                        alert("null");
+                                                    }
+                                                } catch (e) {
+                                                    alert("error");
+                                                }
+                                            }, 1000);
                                         }
-                                    }, 1000);
+                                    } catch (e) {
+                                        alert("error");
+                                    }
                                 })();
                                 """.trimIndent(), null
                             )
