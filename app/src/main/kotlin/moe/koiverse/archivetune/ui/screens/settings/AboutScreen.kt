@@ -27,6 +27,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -51,10 +52,18 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.datastore.preferences.core.edit
 import io.ktor.client.HttpClient
 import io.ktor.client.request.get
 import io.ktor.client.request.headers
+import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsText
+import io.ktor.http.HttpStatusCode
+import moe.koiverse.archivetune.constants.GitHubContributorsEtagKey
+import moe.koiverse.archivetune.constants.GitHubContributorsJsonKey
+import moe.koiverse.archivetune.constants.GitHubContributorsLastCheckedAtKey
+import moe.koiverse.archivetune.utils.dataStore
+import moe.koiverse.archivetune.utils.getAsync
 import org.json.JSONArray
 
 data class TeamMember(
@@ -80,27 +89,24 @@ private sealed interface ContributorsState {
     data object Error : ContributorsState
 }
 
-private suspend fun fetchRepoContributors(
-    client: HttpClient,
-    owner: String,
-    repo: String,
-    perPage: Int = 100,
+private const val ContributorsCacheCheckIntervalMs: Long = 24 * 60 * 60 * 1000L
+
+private fun parseContributorsJson(
+    json: String,
 ): List<GitHubContributor> {
-    val response =
-        client.get("https://api.github.com/repos/$owner/$repo/contributors?per_page=$perPage") {
-            headers {
-                append("Accept", "application/vnd.github+json")
-                append("User-Agent", "ArchiveTune")
-            }
-        }.bodyAsText()
-    val jsonArray = JSONArray(response)
+    val jsonArray = JSONArray(json)
     val contributors = ArrayList<GitHubContributor>(jsonArray.length())
     for (i in 0 until jsonArray.length()) {
         val item = jsonArray.getJSONObject(i)
         val login = item.optString("login", "")
+        val type = item.optString("type", "")
         val avatarUrl = item.optString("avatar_url", "")
         val profileUrl = item.optString("html_url", "")
-        if (login.isNotBlank() && avatarUrl.isNotBlank()) {
+        val isBot =
+            type.equals("Bot", ignoreCase = true) ||
+                login.lowercase().endsWith("[bot]")
+
+        if (!isBot && login.isNotBlank() && avatarUrl.isNotBlank()) {
             contributors.add(
                 GitHubContributor(
                     login = login,
@@ -111,6 +117,47 @@ private suspend fun fetchRepoContributors(
         }
     }
     return contributors
+}
+
+private data class ContributorsNetworkResult(
+    val status: HttpStatusCode,
+    val body: String?,
+    val etag: String?,
+)
+
+private suspend fun fetchRepoContributorsNetwork(
+    client: HttpClient,
+    owner: String,
+    repo: String,
+    perPage: Int = 100,
+    cachedEtag: String?,
+): ContributorsNetworkResult {
+    val response: HttpResponse =
+        client.get("https://api.github.com/repos/$owner/$repo/contributors?per_page=$perPage") {
+            headers {
+                append("Accept", "application/vnd.github+json")
+                append("User-Agent", "ArchiveTune")
+                if (!cachedEtag.isNullOrBlank()) {
+                    append("If-None-Match", cachedEtag)
+                }
+            }
+        }
+    val etag = response.headers["ETag"]
+    return when (response.status) {
+        HttpStatusCode.NotModified ->
+            ContributorsNetworkResult(
+                status = response.status,
+                body = null,
+                etag = cachedEtag ?: etag,
+            )
+
+        else ->
+            ContributorsNetworkResult(
+                status = response.status,
+                body = response.bodyAsText(),
+                etag = etag,
+            )
+    }
 }
 
 @Composable
@@ -170,6 +217,7 @@ fun AboutScreen(
     navController: NavController,
     scrollBehavior: TopAppBarScrollBehavior,
 ) {
+    val context = LocalContext.current
     val uriHandler = LocalUriHandler.current
     val httpClient = remember { HttpClient() }
     DisposableEffect(Unit) {
@@ -177,16 +225,69 @@ fun AboutScreen(
     }
     var contributorsState by remember { mutableStateOf<ContributorsState>(ContributorsState.Loading) }
     LaunchedEffect(Unit) {
-        contributorsState = runCatching {
-            fetchRepoContributors(
-                client = httpClient,
-                owner = "koiverse",
-                repo = "ArchiveTune",
-            )
-        }.fold(
-            onSuccess = { ContributorsState.Loaded(it) },
-            onFailure = { ContributorsState.Error }
-        )
+        val cachedJson = context.dataStore.getAsync(GitHubContributorsJsonKey)
+        val cachedEtag = context.dataStore.getAsync(GitHubContributorsEtagKey)
+        val lastCheckedAt = context.dataStore.getAsync(GitHubContributorsLastCheckedAtKey, 0L)
+        val now = System.currentTimeMillis()
+
+        val cachedContributors =
+            cachedJson
+                ?.takeIf { it.isNotBlank() }
+                ?.let { runCatching { parseContributorsJson(it) }.getOrNull() }
+
+        if (!cachedContributors.isNullOrEmpty()) {
+            contributorsState = ContributorsState.Loaded(cachedContributors)
+        }
+
+        val shouldCheckNetwork =
+            cachedJson.isNullOrBlank() || (now - lastCheckedAt) >= ContributorsCacheCheckIntervalMs
+
+        if (!shouldCheckNetwork) {
+            if (cachedContributors.isNullOrEmpty()) contributorsState = ContributorsState.Error
+            return@LaunchedEffect
+        }
+
+        val networkResult =
+            runCatching {
+                fetchRepoContributorsNetwork(
+                    client = httpClient,
+                    owner = "koiverse",
+                    repo = "ArchiveTune",
+                    cachedEtag = cachedEtag,
+                )
+            }.getOrNull()
+
+        if (networkResult == null) {
+            if (cachedContributors.isNullOrEmpty()) contributorsState = ContributorsState.Error
+            return@LaunchedEffect
+        }
+
+        context.dataStore.edit { prefs ->
+            prefs[GitHubContributorsLastCheckedAtKey] = now
+            networkResult.etag?.let { prefs[GitHubContributorsEtagKey] = it }
+            networkResult.body?.let { prefs[GitHubContributorsJsonKey] = it }
+        }
+
+        when {
+            networkResult.status == HttpStatusCode.NotModified -> {
+                if (cachedContributors.isNullOrEmpty()) {
+                    contributorsState = ContributorsState.Error
+                }
+            }
+
+            networkResult.status.isSuccess() && !networkResult.body.isNullOrBlank() -> {
+                val contributors = runCatching { parseContributorsJson(networkResult.body) }.getOrNull()
+                if (!contributors.isNullOrEmpty()) {
+                    contributorsState = ContributorsState.Loaded(contributors)
+                } else if (cachedContributors.isNullOrEmpty()) {
+                    contributorsState = ContributorsState.Error
+                }
+            }
+
+            else -> {
+                if (cachedContributors.isNullOrEmpty()) contributorsState = ContributorsState.Error
+            }
+        }
     }
 
     val teamMembers = listOf(
@@ -476,15 +577,18 @@ fun AboutScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(14.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
-                    Row(
-                        verticalAlignment = Alignment.Top,
-                    ){
-                        Text(
-                            text = "Awesome Contributor",
-                            style = MaterialTheme.typography.headlineSmall,
-                        )
-                    }
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                text = "Awesome contributor",
+                                style = MaterialTheme.typography.headlineSmall,
+                            )
+                        }
                         Spacer(Modifier.height(12.dp))
                         ContributorGrid(
                             state = contributorsState,
@@ -520,12 +624,12 @@ private fun ContributorGrid(
 
         FlowRow(
             maxItemsInEachRow = columns,
-            horizontalArrangement = Arrangement.spacedBy(spacing),
+            horizontalArrangement = Arrangement.spacedBy(spacing, Alignment.CenterHorizontally),
             verticalArrangement = Arrangement.spacedBy(spacing),
             modifier = Modifier.fillMaxWidth()
         ) {
             if (contributors == null) {
-                repeat(20) {
+                repeat(6) {
                     Surface(
                         shape = tileShape,
                         color = tileColor,
