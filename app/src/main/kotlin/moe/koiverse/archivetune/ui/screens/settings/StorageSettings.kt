@@ -42,12 +42,14 @@ import moe.koiverse.archivetune.LocalPlayerConnection
 import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.constants.MaxImageCacheSizeKey
 import moe.koiverse.archivetune.constants.MaxSongCacheSizeKey
+import moe.koiverse.archivetune.constants.SmartTrimmerKey
 import moe.koiverse.archivetune.extensions.tryOrNull
 import moe.koiverse.archivetune.ui.component.ActionPromptDialog
 import moe.koiverse.archivetune.ui.component.DefaultDialog
 import moe.koiverse.archivetune.ui.component.IconButton
 import moe.koiverse.archivetune.ui.component.ListPreference
 import moe.koiverse.archivetune.ui.component.PreferenceEntry
+import moe.koiverse.archivetune.ui.component.SwitchPreference
 import moe.koiverse.archivetune.ui.component.PreferenceGroupTitle
 import moe.koiverse.archivetune.ui.utils.backToMain
 import moe.koiverse.archivetune.ui.utils.formatFileSize
@@ -89,6 +91,10 @@ fun StorageSettings(
     val playerCacheDir = remember { context.filesDir.resolve("exoplayer") }
 
     val coroutineScope = rememberCoroutineScope()
+    val (smartTrimmer, onSmartTrimmerChange) = rememberPreference(
+        key = SmartTrimmerKey,
+        defaultValue = false
+    )
     val (maxImageCacheSize, onMaxImageCacheSizeChange) = rememberPreference(
         key = MaxImageCacheSizeKey,
         defaultValue = 512
@@ -185,6 +191,13 @@ fun StorageSettings(
             Modifier.windowInsetsPadding(
                 LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Top)
             )
+        )
+
+        SwitchPreference(
+            title = { Text(stringResource(R.string.smart_trimmer)) },
+            description = stringResource(R.string.smart_trimmer_description),
+            checked = smartTrimmer,
+            onCheckedChange = onSmartTrimmerChange,
         )
 
         // --- Section: Downloads ---
