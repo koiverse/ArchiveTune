@@ -228,7 +228,9 @@ fun AddToPlaylistDialog(
                             }
                             if (totalAdded > 0) {
                                 val names = playlistsWithDuplicates.map { it.playlist.name }
-                                onAddComplete?.invoke(totalAdded, names)
+                                withContext(Dispatchers.Main) {
+                                    onAddComplete?.invoke(totalAdded, names)
+                                }
                             }
                         }
                         showDuplicateDialog = false
@@ -245,7 +247,9 @@ fun AddToPlaylistDialog(
                                 database.addSongToPlaylist(playlist, songIds!!)
                             }
                             val names = playlistsWithDuplicates.map { it.playlist.name }
-                            onAddComplete?.invoke(songIds!!.size, names)
+                            withContext(Dispatchers.Main) {
+                                onAddComplete?.invoke(songIds!!.size, names)
+                            }
                         }
                         showDuplicateDialog = false
                         onDismiss()

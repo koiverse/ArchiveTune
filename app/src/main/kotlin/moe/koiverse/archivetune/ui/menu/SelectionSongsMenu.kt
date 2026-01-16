@@ -478,12 +478,14 @@ fun SelectionSongMenu(
                     },
                     modifier = Modifier.clickable {
                         onDismiss()
-                        var i = 0
-                        database.query {
-                            songPosition?.forEach { cur ->
-                                move(cur.playlistId, cur.position - i, Int.MAX_VALUE)
-                                delete(cur.copy(position = Int.MAX_VALUE))
-                                i++
+                        coroutineScope.launch(Dispatchers.IO) {
+                            database.withTransaction {
+                                var i = 0
+                                songPosition?.forEach { cur ->
+                                    move(cur.playlistId, cur.position - i, Int.MAX_VALUE)
+                                    delete(cur.copy(position = Int.MAX_VALUE))
+                                    i++
+                                }
                             }
                         }
                         clearAction()

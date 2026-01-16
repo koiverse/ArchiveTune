@@ -1040,23 +1040,19 @@ fun LocalPlaylistScreen(
                         val currentItem by rememberUpdatedState(song)
 
                         fun deleteFromPlaylist() {
-                            database.transaction {
-                                coroutineScope.launch {
-                                    playlist?.playlist?.browseId?.let { it1 ->
-                                        val setVideoId = getSetVideoId(currentItem.map.songId)
-                                        if (setVideoId?.setVideoId != null) {
-                                            YouTube.removeFromPlaylist(
-                                                it1, currentItem.map.songId, setVideoId.setVideoId!!
-                                            )
-                                        }
+                            val map = currentItem.map
+                            val browseId = playlist?.playlist?.browseId
+                            coroutineScope.launch(Dispatchers.IO) {
+                                database.withTransaction {
+                                    move(map.playlistId, map.position, Int.MAX_VALUE)
+                                    delete(map.copy(position = Int.MAX_VALUE))
+                                }
+                                if (browseId != null) {
+                                    val setVideoId = getSetVideoId(map.songId)?.setVideoId
+                                    if (setVideoId != null) {
+                                        YouTube.removeFromPlaylist(browseId, map.songId, setVideoId)
                                     }
                                 }
-                                move(
-                                    currentItem.map.playlistId,
-                                    currentItem.map.position,
-                                    Int.MAX_VALUE
-                                )
-                                delete(currentItem.map.copy(position = Int.MAX_VALUE))
                             }
                         }
 
@@ -1176,13 +1172,12 @@ fun LocalPlaylistScreen(
                         val currentItem by rememberUpdatedState(songWrapper.item)
 
                         fun deleteFromPlaylist() {
-                            database.transaction {
-                                move(
-                                    currentItem.map.playlistId,
-                                    currentItem.map.position,
-                                    Int.MAX_VALUE
-                                )
-                                delete(currentItem.map.copy(position = Int.MAX_VALUE))
+                            val map = currentItem.map
+                            coroutineScope.launch(Dispatchers.IO) {
+                                database.withTransaction {
+                                    move(map.playlistId, map.position, Int.MAX_VALUE)
+                                    delete(map.copy(position = Int.MAX_VALUE))
+                                }
                             }
                         }
 
