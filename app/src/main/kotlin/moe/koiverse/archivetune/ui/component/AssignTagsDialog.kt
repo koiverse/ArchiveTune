@@ -125,21 +125,32 @@ fun AssignTagsDialog(
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                Row(
+                Column(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FlowRow(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
                         TextButton(onClick = { showManageTagsDialog = true }) {
                             Text(stringResource(R.string.manage_tags))
                         }
 
-                        TextButton(onClick = { showAssignToPlaylistsDialog = true }) {
+                        TextButton(
+                            enabled = allTags.isNotEmpty(),
+                            onClick = { showAssignToPlaylistsDialog = true },
+                        ) {
                             Text(stringResource(R.string.assign_tags_to_playlists))
                         }
                     }
 
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FlowRow(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
                         TextButton(onClick = onDismiss) {
                             Text(stringResource(android.R.string.cancel))
                         }
