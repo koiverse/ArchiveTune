@@ -583,4 +583,21 @@
     <string name="update_notification_title">Mise à jour disponible</string>
     <string name="update_notification_text">ArchiveTune %s est désormais disponible</string>
     <string name="download">Télécharger</string>
+    <string name="added_to_playlist">Ajouté à %s</string>
+    <string name="added_n_songs_to_playlist">Ajout de %1$d titres à %2$s</string>
+    <string name="added_to_n_playlists">Ajouté à %d playlists</string>
+    <string name="added_n_songs_to_n_playlists">Ajout de %1$d titres à %2$d playlists</string>
+    <string name="smart_trimmer">Smart Trimmer</string>
+    <string name="smart_trimmer_description">Smart Trimmer gère de manière dynamique le cache d\'images et le cache des titres, en supprimant les anciennes entrées afin d\'économiser de l\'espace disque.</string>
+    <string name="permissions_title">Permettre à ArchiveTune de fonctionner de manière optimale</string>
+    <string name="permissions_subtitle">Nous utilisons quelques autorisations pour lire et gérer votre musique de manière fiable. Vous pouvez les modifier à tout moment dans les paramètres système.</string>
+    <string name="permission_storage_title">Accès au stockage</string>
+    <string name="permission_storage_desc">Nécessaire pour lire vos fichiers audio téléchargés et locaux en vue de leur lecture.</string>
+    <string name="permission_notifications_title">Notifications</string>
+    <string name="permission_notifications_desc">Permet d\'afficher les commandes de lecture et de continuer à écouter de la musique en arrière-plan.</string>
+    <string name="permission_status_allowed">Accordée</string>
+    <string name="permission_status_all_granted">Toutes les autorisations requises sont accordées. Vous êtes prêt à commencer.</string>
+    <string name="permission_status_required">Veuillez autoriser toutes les permissions requises pour continuer.</string>
+    <string name="next">Suivant</string>
+    <string name="allow">Autoriser</string>
 </resources>
