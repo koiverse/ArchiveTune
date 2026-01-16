@@ -87,6 +87,7 @@ val PlaylistTagsFilterKey = stringPreferencesKey("playlistTagsFilter")
 val ShowTagsInLibraryKey = booleanPreferencesKey("showTagsInLibrary")
 
 val MaxImageCacheSizeKey = intPreferencesKey("maxImageCacheSize")
+val SmartTrimmerKey = booleanPreferencesKey("smartTrimmer")
 val MaxSongCacheSizeKey = intPreferencesKey("maxSongCacheSize")
 
 val PauseListenHistoryKey = booleanPreferencesKey("pauseListenHistory")
