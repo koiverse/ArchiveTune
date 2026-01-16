@@ -230,6 +230,7 @@ class MainActivity : ComponentActivity() {
     private var latestVersionName by mutableStateOf(BuildConfig.VERSION_NAME)
 
     private var playerConnection by mutableStateOf<PlayerConnection?>(null)
+    private var isMusicServiceBound = false
     
     private val serviceConnection =
         object : ServiceConnection {
@@ -237,6 +238,7 @@ class MainActivity : ComponentActivity() {
                 name: ComponentName?,
                 service: IBinder?,
             ) {
+                isMusicServiceBound = true
                 if (service is MusicBinder) {
                     playerConnection =
                         PlayerConnection(this@MainActivity, service, database, lifecycleScope)
@@ -244,6 +246,7 @@ class MainActivity : ComponentActivity() {
             }
 
             override fun onServiceDisconnected(name: ComponentName?) {
+                isMusicServiceBound = false
                 playerConnection?.dispose()
                 playerConnection = null
             }
@@ -252,11 +255,24 @@ class MainActivity : ComponentActivity() {
     override fun onStart() {
         super.onStart()
         startMusicServiceSafely()
-        bindService(
-            Intent(this, MusicService::class.java),
-            serviceConnection,
-            Context.BIND_AUTO_CREATE
-        )
+        isMusicServiceBound =
+            bindService(
+                Intent(this, MusicService::class.java),
+                serviceConnection,
+                Context.BIND_AUTO_CREATE
+            )
+    }
+
+    private fun safeUnbindMusicService() {
+        if (!isMusicServiceBound) return
+        try {
+            unbindService(serviceConnection)
+        } catch (e: IllegalArgumentException) {
+        } catch (e: Exception) {
+            reportException(e)
+        } finally {
+            isMusicServiceBound = false
+        }
     }
 
     private fun isAppInForeground(): Boolean {
@@ -307,7 +323,7 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onStop() {
-        unbindService(serviceConnection)
+        safeUnbindMusicService()
         super.onStop()
     }
 
@@ -324,8 +340,8 @@ class MainActivity : ComponentActivity() {
                 false
             ) && playerConnection?.isPlaying?.value == true && isFinishing
         ) {
+            safeUnbindMusicService()
             stopService(Intent(this, MusicService::class.java))
-            unbindService(serviceConnection)
             playerConnection = null
         }
     }
