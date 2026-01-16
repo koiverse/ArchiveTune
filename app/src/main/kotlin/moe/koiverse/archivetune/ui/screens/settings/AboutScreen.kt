@@ -477,10 +477,14 @@ fun AboutScreen(
                             .fillMaxWidth()
                             .padding(14.dp),
                     ) {
+                    Row(
+                        verticalAlignment = Alignment.Top,
+                    ){
                         Text(
                             text = "Awesome Contributor",
                             style = MaterialTheme.typography.headlineSmall,
                         )
+                    }
                         Spacer(Modifier.height(12.dp))
                         ContributorGrid(
                             state = contributorsState,
