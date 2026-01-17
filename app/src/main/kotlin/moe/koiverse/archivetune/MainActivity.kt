@@ -290,7 +290,7 @@ class MainActivity : ComponentActivity() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             try {
                 if (isAppInForeground()) {
-                    startService(startIntent)
+                    androidx.core.content.ContextCompat.startForegroundService(this, startIntent)
                 }
             } catch (e: ForegroundServiceStartNotAllowedException) {
                 reportException(e)
