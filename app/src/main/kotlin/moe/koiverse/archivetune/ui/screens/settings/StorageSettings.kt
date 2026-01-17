@@ -111,10 +111,10 @@ fun StorageSettings(
         mutableStateOf(imageDiskCache.size)
     }
     var playerCacheSize by remember {
-        mutableStateOf(tryOrNull { playerCache.cacheSpace } ?: 0L)
+        mutableStateOf(0L)
     }
     var downloadCacheSize by remember {
-        mutableStateOf(tryOrNull { downloadCache.cacheSpace } ?: 0L)
+        mutableStateOf(0L)
     }
     val imageCacheProgress by animateFloatAsState(
         targetValue = if (imageDiskCache.maxSize > 0) {
@@ -157,27 +157,21 @@ fun StorageSettings(
     LaunchedEffect(playerCache, playerCacheDir) {
         while (isActive) {
             delay(500)
-            val cacheSpace = tryOrNull { playerCache.cacheSpace } ?: 0L
-            playerCacheSize = if (cacheSpace == 0L) {
+            playerCacheSize =
                 withContext(Dispatchers.IO) {
-                    calculateDirectorySize(playerCacheDir)
+                    val cacheSpace = tryOrNull { playerCache.cacheSpace } ?: 0L
+                    if (cacheSpace == 0L) calculateDirectorySize(playerCacheDir) else cacheSpace
                 }
-            } else {
-                cacheSpace
-            }
         }
     }
     LaunchedEffect(downloadCache, downloadCacheDir) {
         while (isActive) {
             delay(500)
-            val cacheSpace = tryOrNull { downloadCache.cacheSpace } ?: 0L
-            downloadCacheSize = if (cacheSpace == 0L) {
+            downloadCacheSize =
                 withContext(Dispatchers.IO) {
-                    calculateDirectorySize(downloadCacheDir)
+                    val cacheSpace = tryOrNull { downloadCache.cacheSpace } ?: 0L
+                    if (cacheSpace == 0L) calculateDirectorySize(downloadCacheDir) else cacheSpace
                 }
-            } else {
-                cacheSpace
-            }
         }
     }
 
