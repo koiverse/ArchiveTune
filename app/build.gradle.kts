@@ -21,6 +21,12 @@ android {
     namespace = "moe.koiverse.archivetune"
     compileSdk = 36
 
+    sourceSets {
+        getByName("main") {
+            assets.srcDir("src/main/kotlin/moe/koiverse/archivetune/extensions/item")
+        }
+    }
+
     defaultConfig {
     applicationId = "moe.koiverse.archivetune"
         minSdk = 26

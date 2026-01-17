@@ -133,8 +133,6 @@ object ExtensionValidator {
                     // Progress doesn't require specific validation
                 }
                 SettingType.custom -> {
-                } else -> {
-                    errors.add("Unknown setting type: ${s.type}")
                 }
             }
         }

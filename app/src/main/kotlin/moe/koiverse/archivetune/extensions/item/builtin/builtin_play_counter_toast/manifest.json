@@ -1,0 +1,58 @@
+{
+  "id": "builtin_play_counter_toast",
+  "name": "Play Counter Toast",
+  "version": "1.0.0",
+  "author": "Koiverse",
+  "entry": "index.js",
+  "description": "Show a toast every N track plays (per session).",
+  "category": "Utility",
+  "tags": [
+    "toast",
+    "counter"
+  ],
+  "allowSettings": true,
+  "autoEnable": false,
+  "permissions": [
+    "PlaybackEvents",
+    "NotificationShow",
+    "SettingsRead"
+  ],
+  "settings": [
+    {
+      "key": "enabled",
+      "type": "toggle",
+      "label": "Enabled",
+      "defaultBoolean": true,
+      "order": 0
+    },
+    {
+      "key": "every",
+      "type": "number",
+      "label": "Every N plays",
+      "description": "Show a toast every N plays",
+      "defaultNumber": 10,
+      "min": 1,
+      "max": 500,
+      "order": 1
+    },
+    {
+      "key": "message",
+      "type": "text",
+      "label": "Message",
+      "description": "Use {count} as placeholder",
+      "defaultString": "Played {count} tracks",
+      "order": 2
+    },
+    {
+      "key": "testToast",
+      "type": "button",
+      "label": "Test toast",
+      "action": {
+        "type": "toast",
+        "payload": "Play Counter Toast: test"
+      },
+      "order": 3
+    }
+  ]
+}
+

@@ -1,0 +1,58 @@
+{
+  "id": "builtin_playback_event_logger",
+  "name": "Playback Event Logger",
+  "version": "1.0.0",
+  "author": "Koiverse",
+  "entry": "index.js",
+  "description": "Log playback events to Logcat for debugging.",
+  "category": "Debug",
+  "tags": [
+    "debug",
+    "logcat"
+  ],
+  "allowSettings": true,
+  "autoEnable": false,
+  "permissions": [
+    "PlaybackEvents",
+    "QueueObserve",
+    "SettingsRead"
+  ],
+  "settings": [
+    {
+      "key": "enabled",
+      "type": "toggle",
+      "label": "Enabled",
+      "defaultBoolean": true,
+      "order": 0
+    },
+    {
+      "key": "logTrackPlay",
+      "type": "toggle",
+      "label": "Log onTrackPlay",
+      "defaultBoolean": true,
+      "order": 1
+    },
+    {
+      "key": "logTrackPause",
+      "type": "toggle",
+      "label": "Log onTrackPause",
+      "defaultBoolean": true,
+      "order": 2
+    },
+    {
+      "key": "logQueueBuild",
+      "type": "toggle",
+      "label": "Log onQueueBuild",
+      "defaultBoolean": true,
+      "order": 3
+    },
+    {
+      "key": "prefix",
+      "type": "text",
+      "label": "Log prefix",
+      "defaultString": "[Extension]",
+      "order": 4
+    }
+  ]
+}
+

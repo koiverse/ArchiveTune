@@ -659,7 +659,7 @@ class MainActivity : ComponentActivity() {
                             onActiveChange(false)
                             navController.navigate("search/${URLEncoder.encode(it, "UTF-8")}")
                             if (!pauseSearchHistory) {
-                                database.query {
+                                database.get().query {
                                     insert(SearchHistory(query = it))
                                 }
                             }
@@ -1285,7 +1285,7 @@ class MainActivity : ComponentActivity() {
                                                                     }"
                                                                 )
                                                                 if (!pauseSearchHistory) {
-                                                                    database.query {
+                                                                    database.get().query {
                                                                         insert(SearchHistory(query = it))
                                                                     }
                                                                 }

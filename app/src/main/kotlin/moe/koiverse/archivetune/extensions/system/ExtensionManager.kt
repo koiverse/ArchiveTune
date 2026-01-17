@@ -56,6 +56,7 @@ class ExtensionManager @Inject constructor(
         discoverJob?.cancel()
         discoverJob =
             scope.launch {
+                installBuiltInExtensionsIfMissing()
                 val list = mutableListOf<InstalledExtension>()
                 rootDir().listFiles()?.forEach { extDir ->
                     val manifestFile = extDir.resolve("manifest.json")
@@ -63,7 +64,7 @@ class ExtensionManager @Inject constructor(
                     runCatching {
                         val manifest = ExtensionValidator.loadManifest(manifestFile)
                         val res = ExtensionValidator.validateManifest(context, manifest, extDir)
-                        val enabled = isEnabled(manifest.id)
+                        val enabled = isEnabled(manifest.id, manifest.autoEnable)
                         val installedExt =
                             InstalledExtension(
                                 manifest,
@@ -237,9 +238,9 @@ class ExtensionManager @Inject constructor(
 
     private fun flagKey(id: String) = "ext_enabled_$id"
 
-    private suspend fun isEnabled(id: String): Boolean {
+    private suspend fun isEnabled(id: String, default: Boolean = false): Boolean {
         val k = booleanPreferencesKey(flagKey(id))
-        return context.dataStore.data.first()[k] ?: false
+        return context.dataStore.data.first()[k] ?: default
     }
 
     private fun updateEnabledState(id: String, enabled: Boolean) {
@@ -269,5 +270,36 @@ class ExtensionManager @Inject constructor(
         val rt = runtimes.remove(id) ?: return
         runCatching { rt.unload() }
         clearUiConfigsForExtension(id)
+    }
+
+    private fun installBuiltInExtensionsIfMissing() {
+        val assetManager = context.assets
+        val builtinRoot = "builtin"
+        val items = runCatching { assetManager.list(builtinRoot) }.getOrNull().orEmpty()
+        if (items.isEmpty()) return
+        items.forEach { id ->
+            if (id.isBlank()) return@forEach
+            val targetDir = rootDir().resolve(id)
+            if (targetDir.exists()) return@forEach
+            copyAssetPath("$builtinRoot/$id", targetDir)
+        }
+    }
+
+    private fun copyAssetPath(assetPath: String, out: File) {
+        val assetManager = context.assets
+        val children = runCatching { assetManager.list(assetPath) }.getOrNull().orEmpty()
+        if (children.isEmpty()) {
+            out.parentFile?.mkdirs()
+            assetManager.open(assetPath).use { input ->
+                out.outputStream().use { output ->
+                    input.copyTo(output)
+                }
+            }
+            return
+        }
+        out.mkdirs()
+        children.forEach { child ->
+            copyAssetPath("$assetPath/$child", File(out, child))
+        }
     }
 }

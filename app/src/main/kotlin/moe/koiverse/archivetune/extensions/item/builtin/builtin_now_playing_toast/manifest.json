@@ -1,0 +1,82 @@
+{
+  "id": "builtin_now_playing_toast",
+  "name": "Now Playing Toast",
+  "version": "1.0.0",
+  "author": "Koiverse",
+  "entry": "index.js",
+  "description": "Show a toast when playback starts or pauses.",
+  "category": "Utility",
+  "tags": [
+    "toast",
+    "playback"
+  ],
+  "allowSettings": true,
+  "autoEnable": true,
+  "permissions": [
+    "PlaybackEvents",
+    "NotificationShow",
+    "SettingsRead"
+  ],
+  "settings": [
+    {
+      "key": "enabled",
+      "type": "toggle",
+      "label": "Enabled",
+      "description": "Enable this extension",
+      "defaultBoolean": true,
+      "order": 0
+    },
+    {
+      "key": "when",
+      "type": "select",
+      "label": "When",
+      "description": "Choose when to show a toast",
+      "options": [
+        "play",
+        "pause",
+        "both"
+      ],
+      "optionLabels": [
+        "On play",
+        "On pause",
+        "Both"
+      ],
+      "defaultString": "play",
+      "order": 1
+    },
+    {
+      "key": "prefix",
+      "type": "text",
+      "label": "Prefix",
+      "description": "Text to prepend to the toast",
+      "defaultString": "Now playing: ",
+      "order": 2
+    },
+    {
+      "key": "includeArtists",
+      "type": "toggle",
+      "label": "Include artists",
+      "defaultBoolean": true,
+      "order": 3
+    },
+    {
+      "key": "includeAlbum",
+      "type": "toggle",
+      "label": "Include album",
+      "defaultBoolean": false,
+      "order": 4
+    },
+    {
+      "key": "testToast",
+      "type": "button",
+      "label": "Test toast",
+      "description": "Show a sample toast now",
+      "action": {
+        "type": "toast",
+        "payload": "Now Playing Toast: test"
+      },
+      "order": 5
+    }
+  ]
+}
+

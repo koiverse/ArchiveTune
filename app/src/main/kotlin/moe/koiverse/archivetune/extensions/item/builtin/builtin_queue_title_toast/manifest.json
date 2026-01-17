@@ -1,0 +1,54 @@
+{
+  "id": "builtin_queue_title_toast",
+  "name": "Queue Title Toast",
+  "version": "1.0.0",
+  "author": "Koiverse",
+  "entry": "index.js",
+  "description": "Show a toast when the queue is rebuilt.",
+  "category": "Utility",
+  "tags": [
+    "toast",
+    "queue"
+  ],
+  "allowSettings": true,
+  "autoEnable": false,
+  "permissions": [
+    "QueueObserve",
+    "NotificationShow",
+    "SettingsRead"
+  ],
+  "settings": [
+    {
+      "key": "enabled",
+      "type": "toggle",
+      "label": "Enabled",
+      "defaultBoolean": true,
+      "order": 0
+    },
+    {
+      "key": "prefix",
+      "type": "text",
+      "label": "Prefix",
+      "defaultString": "Queue: ",
+      "order": 1
+    },
+    {
+      "key": "showWhenEmpty",
+      "type": "toggle",
+      "label": "Show when title empty",
+      "defaultBoolean": false,
+      "order": 2
+    },
+    {
+      "key": "testToast",
+      "type": "button",
+      "label": "Test toast",
+      "action": {
+        "type": "toast",
+        "payload": "Queue Title Toast: test"
+      },
+      "order": 3
+    }
+  ]
+}
+

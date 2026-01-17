@@ -1,0 +1,46 @@
+{
+  "id": "builtin_welcome_toast",
+  "name": "Welcome Toast",
+  "version": "1.0.0",
+  "author": "Koiverse",
+  "entry": "index.js",
+  "description": "Show a toast when the extension is loaded.",
+  "category": "Utility",
+  "tags": [
+    "toast",
+    "startup"
+  ],
+  "allowSettings": true,
+  "autoEnable": false,
+  "permissions": [
+    "NotificationShow",
+    "SettingsRead"
+  ],
+  "settings": [
+    {
+      "key": "enabled",
+      "type": "toggle",
+      "label": "Enabled",
+      "defaultBoolean": true,
+      "order": 0
+    },
+    {
+      "key": "message",
+      "type": "text",
+      "label": "Message",
+      "defaultString": "ArchiveTune extensions are running",
+      "order": 1
+    },
+    {
+      "key": "testToast",
+      "type": "button",
+      "label": "Test toast",
+      "action": {
+        "type": "toast",
+        "payload": "Welcome Toast: test"
+      },
+      "order": 2
+    }
+  ]
+}
+
