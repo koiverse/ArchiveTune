@@ -24,6 +24,7 @@ import javax.inject.Qualifier
 import javax.inject.Singleton
 import java.io.File
 import java.util.NavigableSet
+import java.util.TreeSet
 
 @Qualifier
 @Retention(AnnotationRetention.BINARY)
@@ -52,13 +53,19 @@ private class LazyCache(
         delegate().getCachedSpans(key)
 
     override fun getKeys(): NavigableSet<String> =
-        delegate().keys
+        TreeSet(delegate().keys)
 
     override fun getCacheSpace(): Long =
         delegate().cacheSpace
 
+    override fun getUid(): Long =
+        delegate().uid
+
     override fun getCachedLength(key: String, position: Long, length: Long): Long =
         delegate().getCachedLength(key, position, length)
+
+    override fun getCachedBytes(key: String, position: Long, length: Long): Long =
+        delegate().getCachedBytes(key, position, length)
 
     override fun applyContentMetadataMutations(key: String, mutations: ContentMetadataMutations) =
         delegate().applyContentMetadataMutations(key, mutations)
@@ -90,8 +97,8 @@ private class LazyCache(
     override fun isCached(key: String, position: Long, length: Long): Boolean =
         delegate().isCached(key, position, length)
 
-    override fun setContentLength(key: String, length: Long) =
-        delegate().setContentLength(key, length)
+    override fun release() =
+        delegate().release()
 }
 
 @Module
