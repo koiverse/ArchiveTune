@@ -2057,15 +2057,24 @@ class MusicService :
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo) = mediaSession
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        super.onStartCommand(intent, flags, startId)
-        return START_NOT_STICKY
+        if (Build.VERSION.SDK_INT >= 26) {
+            try {
+                val notification =
+                    androidx.core.app.NotificationCompat.Builder(this, CHANNEL_ID)
+                        .setSmallIcon(R.drawable.music_note)
+                        .setContentTitle("ArchiveTune")
+                        .setPriority(androidx.core.app.NotificationCompat.PRIORITY_LOW)
+                        .build()
+                startForeground(NOTIFICATION_ID, notification)
+            } catch (e: Exception) {
+                moe.koiverse.archivetune.utils.reportException(e)
+            }
+        }
+        return super.onStartCommand(intent, flags, startId)
     }
 
     override fun onUpdateNotification(session: MediaSession, startInForegroundRequired: Boolean) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-            checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
-            return
-        }
+
         super.onUpdateNotification(session, startInForegroundRequired)
     }
 
