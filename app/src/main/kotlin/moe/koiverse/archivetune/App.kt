@@ -27,6 +27,7 @@ import moe.koiverse.archivetune.kugou.KuGou
 import moe.koiverse.archivetune.lastfm.LastFM
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.DelicateCoroutinesApi
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.SupervisorJob
@@ -44,6 +45,8 @@ import kotlin.system.exitProcess
 import timber.log.Timber
 import java.net.Proxy
 import java.util.*
+import dagger.hilt.android.EntryPointAccessors
+import moe.koiverse.archivetune.di.ExtensionManagerEntryPoint
 
 @HiltAndroidApp
 class App : Application(), SingletonImageLoader.Factory {
@@ -68,6 +71,7 @@ class App : Application(), SingletonImageLoader.Factory {
         instance = this
         if (currentProcessName()?.endsWith(":crash") == true) {
             Timber.plant(Timber.DebugTree())
+            startupWarmupDone.complete(Unit)
             return
         }
         PreferenceStore.start(this)
@@ -99,6 +103,25 @@ class App : Application(), SingletonImageLoader.Factory {
     }
 
     private fun initializeDeferredAsync() {
+        applicationScope.launch(Dispatchers.IO) {
+            try {
+                val entryPoint =
+                    EntryPointAccessors.fromApplication(
+                        this@App,
+                        ExtensionManagerEntryPoint::class.java,
+                    )
+                runCatching { entryPoint.extensionManager().discover() }
+                runCatching { entryPoint.musicDatabase() }
+                runCatching { entryPoint.playerCache() }
+                runCatching { entryPoint.downloadCache() }
+                runCatching { entryPoint.syncUtils() }
+                runCatching { entryPoint.downloadUtil() }
+            } catch (e: Exception) {
+                reportException(e)
+            } finally {
+                startupWarmupDone.complete(Unit)
+            }
+        }
         applicationScope.launch(Dispatchers.IO) {
             try {
                 val prefs = dataStore.data.first()
@@ -274,6 +297,7 @@ class App : Application(), SingletonImageLoader.Factory {
     companion object {
         lateinit var instance: App
             private set
+        val startupWarmupDone = CompletableDeferred<Unit>()
 
         fun forgetAccount(context: Context) {
             CoroutineScope(Dispatchers.IO).launch {

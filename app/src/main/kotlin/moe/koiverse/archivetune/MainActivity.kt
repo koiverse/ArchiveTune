@@ -210,20 +210,22 @@ import moe.koiverse.archivetune.viewmodels.HomeViewModel
 import java.net.URLDecoder
 import java.net.URLEncoder
 import java.util.Locale
+import dagger.Lazy
 import javax.inject.Inject
 import kotlin.time.Duration.Companion.days
+import kotlinx.coroutines.Job
 
 @Suppress("DEPRECATION", "ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     @Inject
-    lateinit var database: MusicDatabase
+    lateinit var database: Lazy<MusicDatabase>
 
     @Inject
-    lateinit var downloadUtil: DownloadUtil
+    lateinit var downloadUtil: Lazy<DownloadUtil>
 
     @Inject
-    lateinit var syncUtils: SyncUtils
+    lateinit var syncUtils: Lazy<SyncUtils>
 
     private lateinit var navController: NavHostController
     private var pendingIntent: Intent? = null
@@ -231,6 +233,7 @@ class MainActivity : ComponentActivity() {
 
     private var playerConnection by mutableStateOf<PlayerConnection?>(null)
     private var isMusicServiceBound = false
+    private var startAndBindJob: Job? = null
     
     private val serviceConnection =
         object : ServiceConnection {
@@ -241,7 +244,7 @@ class MainActivity : ComponentActivity() {
                 isMusicServiceBound = true
                 if (service is MusicBinder) {
                     playerConnection =
-                        PlayerConnection(this@MainActivity, service, database, lifecycleScope)
+                        PlayerConnection(this@MainActivity, service, database.get(), lifecycleScope)
                 }
             }
 
@@ -254,13 +257,18 @@ class MainActivity : ComponentActivity() {
 
     override fun onStart() {
         super.onStart()
-        startMusicServiceSafely()
-        isMusicServiceBound =
-            bindService(
-                Intent(this, MusicService::class.java),
-                serviceConnection,
-                Context.BIND_AUTO_CREATE
-            )
+        startAndBindJob?.cancel()
+        startAndBindJob = lifecycleScope.launch {
+            App.startupWarmupDone.await()
+            if (!lifecycle.currentState.isAtLeast(androidx.lifecycle.Lifecycle.State.STARTED)) return@launch
+            startMusicServiceSafely()
+            isMusicServiceBound =
+                bindService(
+                    Intent(this@MainActivity, MusicService::class.java),
+                    serviceConnection,
+                    Context.BIND_AUTO_CREATE,
+                )
+        }
     }
 
     private fun safeUnbindMusicService() {
@@ -323,6 +331,7 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onStop() {
+        startAndBindJob?.cancel()
         safeUnbindMusicService()
         super.onStop()
     }
@@ -406,7 +415,10 @@ class MainActivity : ComponentActivity() {
                 }
         }
 
-        setContent {
+        lifecycleScope.launch {
+            App.startupWarmupDone.await()
+            if (isDestroyed) return@launch
+            setContent {
             LaunchedEffect(Unit) {
                 if (System.currentTimeMillis() - Updater.lastCheckTime > 1.days.inWholeMilliseconds) {
                     Updater.getLatestVersionName().onSuccess {
@@ -931,13 +943,13 @@ class MainActivity : ComponentActivity() {
                     var showAccountDialog by remember { mutableStateOf(false) }
 
                     CompositionLocalProvider(
-                        LocalDatabase provides database,
+                        LocalDatabase provides database.get(),
                         LocalContentColor provides if (pureBlack) Color.White else contentColorFor(MaterialTheme.colorScheme.surface),
                         LocalPlayerConnection provides playerConnection,
                         LocalPlayerAwareWindowInsets provides playerAwareWindowInsets,
-                        LocalDownloadUtil provides downloadUtil,
+                        LocalDownloadUtil provides downloadUtil.get(),
                         LocalShimmerTheme provides ShimmerTheme,
-                        LocalSyncUtils provides syncUtils,
+                        LocalSyncUtils provides syncUtils.get(),
                         moe.koiverse.archivetune.ui.component.LocalBottomSheetPageState provides bottomSheetPageState,
                         moe.koiverse.archivetune.ui.component.LocalMenuState provides menuState,
                     ) {
@@ -1521,6 +1533,7 @@ class MainActivity : ComponentActivity() {
                     }
                 }
             }
+        }
         }
     }
 

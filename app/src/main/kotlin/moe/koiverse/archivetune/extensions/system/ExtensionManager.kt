@@ -6,20 +6,18 @@ import androidx.datastore.preferences.core.edit
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.decodeFromString
 import moe.koiverse.archivetune.models.MediaMetadata
 import moe.koiverse.archivetune.utils.dataStore
 import android.net.Uri
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.map
 import java.util.zip.ZipInputStream
-import java.util.zip.ZipEntry
 import java.io.File
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -39,6 +37,8 @@ class ExtensionManager @Inject constructor(
 ) {
     private val scope = CoroutineScope(Dispatchers.IO)
     private val json = Json { ignoreUnknownKeys = true }
+    @Volatile
+    private var discoverJob: Job? = null
 
     private val _installed = MutableStateFlow<List<InstalledExtension>>(emptyList())
     val installed: StateFlow<List<InstalledExtension>> = _installed.asStateFlow()
@@ -53,22 +53,45 @@ class ExtensionManager @Inject constructor(
     }
 
     fun discover() {
-        val list = mutableListOf<InstalledExtension>()
-        rootDir().listFiles()?.forEach { extDir ->
-            val manifestFile = extDir.resolve("manifest.json")
-            if (!manifestFile.exists()) return@forEach
-            runCatching {
-                val manifest = ExtensionValidator.loadManifest(manifestFile)
-                val res = ExtensionValidator.validateManifest(context, manifest, extDir)
-                val enabled = isEnabled(manifest.id)
-                val installedExt = InstalledExtension(manifest, extDir, enabled, error = if (res.valid) null else res.errors.joinToString(";"))
-                list.add(installedExt)
-            }.onFailure { e ->
-                list.add(InstalledExtension(ExtensionManifest(extDir.name, extDir.name, "0.0.0", "Unknown", "index.js"), extDir, false, error = e.message))
+        discoverJob?.cancel()
+        discoverJob =
+            scope.launch {
+                val list = mutableListOf<InstalledExtension>()
+                rootDir().listFiles()?.forEach { extDir ->
+                    val manifestFile = extDir.resolve("manifest.json")
+                    if (!manifestFile.exists()) return@forEach
+                    runCatching {
+                        val manifest = ExtensionValidator.loadManifest(manifestFile)
+                        val res = ExtensionValidator.validateManifest(context, manifest, extDir)
+                        val enabled = isEnabled(manifest.id)
+                        val installedExt =
+                            InstalledExtension(
+                                manifest,
+                                extDir,
+                                enabled,
+                                error = if (res.valid) null else res.errors.joinToString(";"),
+                            )
+                        list.add(installedExt)
+                    }.onFailure { e ->
+                        list.add(
+                            InstalledExtension(
+                                ExtensionManifest(
+                                    extDir.name,
+                                    extDir.name,
+                                    "0.0.0",
+                                    "Unknown",
+                                    "index.js",
+                                ),
+                                extDir,
+                                false,
+                                error = e.message,
+                            ),
+                        )
+                    }
+                }
+                _installed.value = list.sortedBy { it.manifest.name.lowercase() }
+                list.filter { it.enabled && it.error == null }.forEach { loadInternal(it.manifest.id) }
             }
-        }
-        _installed.value = list.sortedBy { it.manifest.name.lowercase() }
-        list.filter { it.enabled && it.error == null }.forEach { load(it.manifest.id) }
     }
 
     fun installFromZip(uri: Uri): Result<Unit> {
@@ -109,6 +132,10 @@ class ExtensionManager @Inject constructor(
                 }
                 val res = ExtensionValidator.validateManifest(context, mf, target)
                 if (!res.valid) throw IllegalStateException(res.errors.joinToString(";"))
+                _installed.value =
+                    (_installed.value.filterNot { it.manifest.id == mf.id } +
+                            InstalledExtension(mf, target, enabled = true, error = null))
+                        .sortedBy { it.manifest.name.lowercase() }
                 discover()
                 enable(mf.id)
             }
@@ -116,44 +143,34 @@ class ExtensionManager @Inject constructor(
     }
 
     fun load(id: String) {
-        val ext = _installed.value.firstOrNull { it.manifest.id == id } ?: return
-        if (runtimes.containsKey(id)) return
-        if (ext.error != null) return
-        val store = ExtensionSettingsStore(context, id)
-        val rt = ExtensionRuntime(context, ext.manifest, ext.dir, store)
-        val res = rt.load()
-        if (res.isSuccess) {
-            runtimes[id] = rt
-        } else {
-            disable(id)
-        }
+        scope.launch { loadInternal(id) }
     }
 
     fun unload(id: String) {
-        val rt = runtimes.remove(id) ?: return
-        runCatching { rt.unload() }
-        clearUiConfigsForExtension(id)
+        scope.launch { unloadInternal(id) }
     }
 
     fun enable(id: String) {
+        updateEnabledState(id, true)
         scope.launch {
             context.dataStore.edit { it[booleanPreferencesKey(flagKey(id))] = true }
+            loadInternal(id)
         }
-        load(id)
-        updateEnabledState(id, true)
     }
 
     fun disable(id: String) {
+        updateEnabledState(id, false)
         scope.launch {
             context.dataStore.edit { it[booleanPreferencesKey(flagKey(id))] = false }
+            unloadInternal(id)
         }
-        unload(id)
-        updateEnabledState(id, false)
     }
 
     fun reload(id: String) {
-        unload(id)
-        load(id)
+        scope.launch {
+            unloadInternal(id)
+            loadInternal(id)
+        }
     }
 
     fun onTrackPlay(metadata: MediaMetadata) {
@@ -203,7 +220,11 @@ class ExtensionManager @Inject constructor(
     
     fun delete(id: String): Result<Unit> {
         return runCatching {
-            disable(id)
+            updateEnabledState(id, false)
+            scope.launch {
+                context.dataStore.edit { it[booleanPreferencesKey(flagKey(id))] = false }
+            }
+            unloadInternal(id)
             clearUiConfigsForExtension(id)
             val dir = rootDir().resolve(id)
             if (dir.exists()) {
@@ -216,16 +237,37 @@ class ExtensionManager @Inject constructor(
 
     private fun flagKey(id: String) = "ext_enabled_$id"
 
-    private fun isEnabled(id: String): Boolean {
+    private suspend fun isEnabled(id: String): Boolean {
         val k = booleanPreferencesKey(flagKey(id))
-        return runBlocking {
-            context.dataStore.data.map { it[k] ?: false }.first()
-        }
+        return context.dataStore.data.first()[k] ?: false
     }
 
     private fun updateEnabledState(id: String, enabled: Boolean) {
         _installed.value = _installed.value.map {
             if (it.manifest.id == id) it.copy(enabled = enabled) else it
         }
+    }
+
+    private fun loadInternal(id: String) {
+        val ext = _installed.value.firstOrNull { it.manifest.id == id } ?: return
+        if (runtimes.containsKey(id)) return
+        if (ext.error != null) return
+        val store = ExtensionSettingsStore(context, id)
+        val rt = ExtensionRuntime(context, ext.manifest, ext.dir, store)
+        val res = rt.load()
+        if (res.isSuccess) {
+            runtimes[id] = rt
+        } else {
+            updateEnabledState(id, false)
+            scope.launch {
+                context.dataStore.edit { it[booleanPreferencesKey(flagKey(id))] = false }
+            }
+        }
+    }
+
+    private fun unloadInternal(id: String) {
+        val rt = runtimes.remove(id) ?: return
+        runCatching { rt.unload() }
+        clearUiConfigsForExtension(id)
     }
 }
