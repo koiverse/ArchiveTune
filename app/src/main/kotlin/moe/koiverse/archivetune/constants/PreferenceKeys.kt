@@ -87,6 +87,7 @@ val PlaylistTagsFilterKey = stringPreferencesKey("playlistTagsFilter")
 val ShowTagsInLibraryKey = booleanPreferencesKey("showTagsInLibrary")
 
 val MaxImageCacheSizeKey = intPreferencesKey("maxImageCacheSize")
+val SmartTrimmerKey = booleanPreferencesKey("smartTrimmer")
 val MaxSongCacheSizeKey = intPreferencesKey("maxSongCacheSize")
 
 val PauseListenHistoryKey = booleanPreferencesKey("pauseListenHistory")
@@ -428,6 +429,10 @@ val EnableUpdateNotificationKey = booleanPreferencesKey("enableUpdateNotificatio
 val UpdateChannelKey = stringPreferencesKey("updateChannel")
 val LastUpdateCheckKey = longPreferencesKey("lastUpdateCheck")
 val LastNotifiedVersionKey = stringPreferencesKey("lastNotifiedVersion")
+
+val GitHubContributorsEtagKey = stringPreferencesKey("github_contributors_etag")
+val GitHubContributorsJsonKey = stringPreferencesKey("github_contributors_json")
+val GitHubContributorsLastCheckedAtKey = longPreferencesKey("github_contributors_last_checked_at")
 
 enum class UpdateChannel {
     STABLE,

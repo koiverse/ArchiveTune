@@ -84,6 +84,7 @@ import moe.koiverse.archivetune.constants.ShowLikedPlaylistKey
 import moe.koiverse.archivetune.constants.ShowDownloadedPlaylistKey
 import moe.koiverse.archivetune.constants.ShowTopPlaylistKey
 import moe.koiverse.archivetune.constants.ShowCachedPlaylistKey
+import moe.koiverse.archivetune.constants.ShowTagsInLibraryKey
 import moe.koiverse.archivetune.constants.SwipeThumbnailKey
 import moe.koiverse.archivetune.constants.SwipeSensitivityKey
 import moe.koiverse.archivetune.constants.SwipeToSongKey
@@ -209,6 +210,10 @@ fun AppearanceSettings(
     )
     val (showCachedPlaylist, onShowCachedPlaylistChange) = rememberPreference(
         ShowCachedPlaylistKey,
+        defaultValue = true
+    )
+    val (showTagsInLibrary, onShowTagsInLibraryChange) = rememberPreference(
+        ShowTagsInLibraryKey,
         defaultValue = true
     )
 
@@ -841,6 +846,14 @@ fun AppearanceSettings(
                 }
             },
             onValueSelected = onDefaultChipChange,
+        )
+
+        SwitchPreference(
+            title = { Text(stringResource(R.string.show_tags_in_library)) },
+            description = stringResource(R.string.show_tags_in_library_desc),
+            icon = { Icon(painterResource(R.drawable.filter_alt), null) },
+            checked = showTagsInLibrary,
+            onCheckedChange = onShowTagsInLibraryChange,
         )
 
         SwitchPreference(

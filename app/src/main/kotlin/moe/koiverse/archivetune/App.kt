@@ -1,6 +1,7 @@
 package moe.koiverse.archivetune
 
 import android.app.Application
+import android.app.ActivityManager
 import android.content.Context
 import android.os.Build
 import android.widget.Toast
@@ -48,11 +49,27 @@ import java.util.*
 class App : Application(), SingletonImageLoader.Factory {
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     @Volatile private var isInitialized = false
+
+    private fun currentProcessName(): String? {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            Application.getProcessName()
+        } else {
+            val pid = android.os.Process.myPid()
+            val activityManager = getSystemService(Context.ACTIVITY_SERVICE) as? ActivityManager
+            activityManager?.runningAppProcesses
+                ?.firstOrNull { it.pid == pid }
+                ?.processName
+        }
+    }
     
     @OptIn(DelicateCoroutinesApi::class)
     override fun onCreate() {
         super.onCreate()
         instance = this
+        if (currentProcessName()?.endsWith(":crash") == true) {
+            Timber.plant(Timber.DebugTree())
+            return
+        }
         PreferenceStore.start(this)
         Timber.plant(Timber.DebugTree())
         try {
@@ -138,7 +155,6 @@ class App : Application(), SingletonImageLoader.Factory {
         }
 
         try {
-            val defaultHandler = Thread.getDefaultUncaughtExceptionHandler()
             Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
                 try {
                     val sw = StringWriter()
@@ -155,12 +171,8 @@ class App : Application(), SingletonImageLoader.Factory {
                 } catch (e: Exception) {
                     reportException(e)
                 } finally {
-                    try {
-                        defaultHandler?.uncaughtException(thread, throwable)
-                    } catch (_: Exception) {
-                        android.os.Process.killProcess(android.os.Process.myPid())
-                        exitProcess(2)
-                    }
+                    android.os.Process.killProcess(android.os.Process.myPid())
+                    exitProcess(2)
                 }
             }
         } catch (e: Exception) {
@@ -202,34 +214,61 @@ class App : Application(), SingletonImageLoader.Factory {
     }
 
     override fun newImageLoader(context: PlatformContext): ImageLoader {
-        // TODO: Read this asynchronously or use a fast-path storage (SharedPreferences) to avoid blocking main thread.
-        // Defaulting to 512MB to separate IO from main thread initialization.
-        val cacheSize = 512
-        val maxSize = cacheSize * 1024 * 1024L
-        val diskCache = DiskCache.Builder()
-            .directory(cacheDir.resolve("coil"))
-            .maxSizeBytes(maxSize)
-            .build()
-        if (diskCache.size > 500 * 1024 * 1024L) {
-            Thread {
-                try {
-                    val dir = java.io.File(cacheDir, "coil")
-                    val files = dir.listFiles()?.sortedBy { f -> f.lastModified() } ?: emptyList<java.io.File>()
-                    var freed = 0L
-                    for (file in files) {
-                        if (diskCache.size - freed <= 500 * 1024 * 1024L) break
-                        val size = file.length()
-                        file.delete()
-                        freed += size
-                    }
-                } catch (_: Exception) {}
-            }.start()
+        val smartTrimmer = dataStore[SmartTrimmerKey] ?: false
+
+        if (smartTrimmer) {
+            val cacheSize = dataStore[MaxImageCacheSizeKey] ?: 512
+            val maxSize = cacheSize * 1024 * 1024L
+            val diskCache = DiskCache.Builder()
+                .directory(cacheDir.resolve("coil"))
+                .maxSizeBytes(maxSize)
+                .build()
+            if (diskCache.size > 500 * 1024 * 1024L) {
+                Thread {
+                    try {
+                        val dir = java.io.File(cacheDir, "coil")
+                        val files = dir.listFiles()?.sortedBy { f -> f.lastModified() } ?: emptyList<java.io.File>()
+                        var freed = 0L
+                        for (file in files) {
+                            if (diskCache.size - freed <= 500 * 1024 * 1024L) break
+                            val size = file.length()
+                            file.delete()
+                            freed += size
+                        }
+                    } catch (_: Exception) {}
+                }.start()
+            }
+            return ImageLoader.Builder(this)
+                .crossfade(true)
+                .allowHardware(Build.VERSION.SDK_INT >= Build.VERSION_CODES.P)
+                .diskCache(diskCache)
+                .build()
+        } else {
+            val diskCache = DiskCache.Builder()
+                .directory(cacheDir.resolve("coil"))
+                .maxSizeBytes(512 * 1024 * 1024L)
+                .build()
+            if (diskCache.size > 500 * 1024 * 1024L) {
+                Thread {
+                    try {
+                        val dir = java.io.File(diskCache.directory.toString())
+                        val files = dir.listFiles()?.sortedBy { it.lastModified() } ?: emptyList<java.io.File>()
+                        var freed = 0L
+                        for (file in files) {
+                            if (diskCache.size - freed <= 500 * 1024 * 1024L) break
+                            val size = file.length()
+                            file.delete()
+                            freed += size
+                        }
+                    } catch (_: Exception) {}
+                }.start()
+            }
+            return ImageLoader.Builder(this)
+                .crossfade(true)
+                .allowHardware(Build.VERSION.SDK_INT >= Build.VERSION_CODES.P)
+                .diskCache(diskCache)
+                .build()
         }
-        return ImageLoader.Builder(this)
-            .crossfade(true)
-            .allowHardware(Build.VERSION.SDK_INT >= Build.VERSION_CODES.P)
-            .diskCache(diskCache)
-            .build()
     }
 
     companion object {

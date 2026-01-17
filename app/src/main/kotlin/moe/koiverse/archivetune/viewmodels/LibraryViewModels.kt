@@ -363,12 +363,7 @@ constructor(
     val syncAllLibrary = {
          viewModelScope.launch(Dispatchers.IO) {
              try {
-                 syncUtils.syncLikedSongs()
-                 syncUtils.syncLibrarySongs()
-                 syncUtils.syncArtistsSubscriptions()
-                 syncUtils.syncLikedAlbums()
-                 syncUtils.syncSavedPlaylists()
-                 syncUtils.syncAutoSyncPlaylists()
+                 syncUtils.performFullSync()
              } catch (e: Exception) {
                  timber.log.Timber.e(e, "Error during manual sync")
              }

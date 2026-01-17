@@ -170,6 +170,7 @@
         <activity
             android:name=".DebugActivity"
             android:exported="true"
+            android:process=":crash"
             android:theme="@style/Theme.ArchiveTune">
         </activity>
     </application>

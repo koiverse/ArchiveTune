@@ -221,6 +221,7 @@ dependencies {
     // Ensure ProcessLifecycleOwner is available for the presence manager and CI unit tests
     implementation("com.github.therealbush:translator:1.1.1")
     implementation("androidx.lifecycle:lifecycle-process:2.10.0")
+    implementation("androidx.compose.material3.adaptive:adaptive:1.2.0")
 }
 
 kapt {

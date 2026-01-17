@@ -86,11 +86,9 @@ import moe.koiverse.archivetune.constants.UseNewLibraryDesignKey
 import moe.koiverse.archivetune.constants.YtmSyncKey
 import moe.koiverse.archivetune.constants.DisableBlurKey
 import moe.koiverse.archivetune.constants.PlaylistTagsFilterKey
-import moe.koiverse.archivetune.constants.ShowTagsInLibraryKey
 import moe.koiverse.archivetune.db.entities.Playlist
 import moe.koiverse.archivetune.db.entities.PlaylistEntity
 import moe.koiverse.archivetune.ui.component.CreatePlaylistDialog
-import moe.koiverse.archivetune.ui.component.TagsFilterChips
 import moe.koiverse.archivetune.ui.component.HideOnScrollFAB
 import moe.koiverse.archivetune.ui.component.LibraryPlaylistGridItem
 import moe.koiverse.archivetune.ui.component.LibraryPlaylistListItem
@@ -145,13 +143,12 @@ fun LibraryPlaylistsScreen(
 
     val playlists by viewModel.allPlaylists.collectAsState()
 
-    val visiblePlaylists = playlists.distinctBy { it.id }
-        .filter { playlist ->
-            val name = playlist.playlist.name ?: ""
-            val matchesName = !name.contains("episode", ignoreCase = true)
-            val matchesTags = selectedTagIds.isEmpty() || playlist.id in filteredPlaylistIds
-            matchesName && matchesTags
-        }
+    val visiblePlaylists = playlists.filter { playlist ->
+        val name = playlist.playlist.name ?: ""
+        val matchesName = !name.contains("episode", ignoreCase = true)
+        val matchesTags = selectedTagIds.isEmpty() || playlist.id in filteredPlaylistIds
+        matchesName && matchesTags
+    }
 
     val topSize by viewModel.topValue.collectAsState(initial = 50)
 
@@ -214,7 +211,6 @@ fun LibraryPlaylistsScreen(
 
     val (ytmSync) = rememberPreference(YtmSyncKey, true)
     val (disableBlur) = rememberPreference(DisableBlurKey, false)
-    val (showTagsInLibrary) = rememberPreference(ShowTagsInLibraryKey, true)
 
     LaunchedEffect(Unit) {
         if (ytmSync) {
@@ -485,27 +481,6 @@ fun LibraryPlaylistsScreen(
                         filterContent()
                     }
 
-                    if (showTagsInLibrary) {
-                        item(
-                            key = "tags_filter",
-                            contentType = CONTENT_TYPE_HEADER,
-                        ) {
-                            TagsFilterChips(
-                                database = database,
-                                selectedTags = selectedTagIds,
-                                onTagToggle = { tag ->
-                                    val newTags = if (tag.id in selectedTagIds) {
-                                        selectedTagIds - tag.id
-                                    } else {
-                                        selectedTagIds + tag.id
-                                    }
-                                    onSelectedTagsFilterChange(newTags.joinToString(","))
-                                },
-                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                            )
-                        }
-                    }
-
                     item(
                         key = "header",
                         contentType = CONTENT_TYPE_HEADER,
@@ -634,28 +609,6 @@ fun LibraryPlaylistsScreen(
                         contentType = CONTENT_TYPE_HEADER,
                     ) {
                         filterContent()
-                    }
-
-                    if (showTagsInLibrary) {
-                        item(
-                            key = "tags_filter",
-                            span = { GridItemSpan(maxLineSpan) },
-                            contentType = CONTENT_TYPE_HEADER,
-                        ) {
-                            TagsFilterChips(
-                                database = database,
-                                selectedTags = selectedTagIds,
-                                onTagToggle = { tag ->
-                                    val newTags = if (tag.id in selectedTagIds) {
-                                        selectedTagIds - tag.id
-                                    } else {
-                                        selectedTagIds + tag.id
-                                    }
-                                    onSelectedTagsFilterChange(newTags.joinToString(","))
-                                },
-                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                            )
-                        }
                     }
 
                     item(

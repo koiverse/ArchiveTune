@@ -1053,7 +1053,7 @@ class MusicService :
     }
 
     fun getAutomixAlbum(albumId: String) {
-        scope.launch(SilentHandler) {
+        scope.launch(Dispatchers.IO + SilentHandler) {
             YouTube
                 .album(albumId)
                 .onSuccess {
@@ -1063,10 +1063,9 @@ class MusicService :
     }
 
     fun getAutomix(playlistId: String) {
-        // Don't load automix/similar content if repeat mode is enabled
         if (dataStore[SimilarContent] == true && 
             player.repeatMode == REPEAT_MODE_OFF) {
-            scope.launch(SilentHandler) {
+            scope.launch(Dispatchers.IO + SilentHandler) {
                 YouTube
                     .next(WatchEndpoint(playlistId = playlistId))
                     .onSuccess {
@@ -1752,11 +1751,6 @@ class MusicService :
                 .setEnableAudioTrackPlaybackParams(enableAudioTrackPlaybackParams)
                 .setAudioProcessorChain(
                     DefaultAudioSink.DefaultAudioProcessorChain(
-                        // Use the non-deprecated constructor with explicit types to avoid any
-                        // ambiguity or unexpected overload-resolution issues.
-                        // minimumSilenceDurationUs = 2_000_000L, silenceRetentionRatio = 0.2f,
-                        // maxSilenceToKeepDurationUs = 20_000L, minVolumeToKeepPercentageWhenMuting = 10,
-                        // silenceThresholdLevel = 256
                         crossfadeProcessor,
                         SilenceSkippingAudioProcessor(
                             2_000_000L,

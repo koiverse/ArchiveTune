@@ -2,6 +2,7 @@ package moe.koiverse.archivetune.ui.menu
 
 import android.content.Intent
 import android.content.res.Configuration
+import android.widget.Toast
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
@@ -244,6 +245,13 @@ fun SongMenu(
         },
         onDismiss = {
             showChoosePlaylistDialog = false
+        },
+        onAddComplete = { songCount, playlistNames ->
+            val message = when {
+                playlistNames.size == 1 -> context.getString(R.string.added_to_playlist, playlistNames.first())
+                else -> context.getString(R.string.added_to_n_playlists, playlistNames.size)
+            }
+            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
         },
     )
 
@@ -520,18 +528,17 @@ fun SongMenu(
                         )
                     },
                     modifier = Modifier.clickable {
-                        database.transaction {
-                            coroutineScope.launch {
-                                playlistBrowseId?.let { playlistId ->
-                                    if (playlistSong.map.setVideoId != null) {
-                                        YouTube.removeFromPlaylist(
-                                            playlistId, playlistSong.map.songId, playlistSong.map.setVideoId
-                                        )
-                                    }
-                                }
+                        val map = playlistSong.map
+                        coroutineScope.launch(Dispatchers.IO) {
+                            database.withTransaction {
+                                move(map.playlistId, map.position, Int.MAX_VALUE)
+                                delete(map.copy(position = Int.MAX_VALUE))
                             }
-                            move(playlistSong.map.playlistId, playlistSong.map.position, Int.MAX_VALUE)
-                            delete(playlistSong.map.copy(position = Int.MAX_VALUE))
+                            val browseId = playlistBrowseId
+                            val setVideoId = map.setVideoId
+                            if (browseId != null && setVideoId != null) {
+                                YouTube.removeFromPlaylist(browseId, map.songId, setVideoId)
+                            }
                         }
                         onDismiss()
                     }

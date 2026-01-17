@@ -11,6 +11,8 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -33,7 +35,19 @@ import kotlinx.coroutines.launch
 fun DiscordLoginScreen(navController: NavController) {
     val scope = rememberCoroutineScope()
     var discordToken by rememberPreference(DiscordTokenKey, "")
-    var webView: WebView? = null
+    var webView by remember { mutableStateOf<WebView?>(null) }
+    var isCompleting by remember { mutableStateOf(false) }
+
+    fun completeLogin(token: String) {
+        if (isCompleting) return
+        val trimmed = token.trim()
+        if (trimmed.isEmpty() || trimmed == "null" || trimmed == "error") return
+        isCompleting = true
+        discordToken = trimmed
+        webView?.stopLoading()
+        webView?.loadUrl("about:blank")
+        navController.navigateUp()
+    }
 
     AndroidView(
         modifier = Modifier
@@ -64,56 +78,97 @@ fun DiscordLoginScreen(navController: NavController) {
                     @JavascriptInterface
                     fun onRetrieveToken(token: String) {
                         Log.d("DiscordWebView", "Token: $token")
-                        if (token != "null" && token != "error") {
-                            discordToken = token
-                            scope.launch(Dispatchers.Main) {
-                                webView?.loadUrl("about:blank")
-                                navController.navigateUp()
-                            }
-                        }
+                        scope.launch(Dispatchers.Main) { completeLogin(token) }
                     }
                 }, "Android")
 
                 webViewClient = object : WebViewClient() {
                     override fun onPageFinished(view: WebView, url: String) {
-                        if (url.contains("/channels/@me") || url.contains("/app")) {
-                            view.evaluateJavascript(
-                                """
-                                (function() {
+                        if (isCompleting) return
+                        if (!url.contains("discord.com")) return
+                        if (url.contains("/login")) return
+
+                        val js = """
+                            (function() {
+                                function cleanToken(t) {
+                                    if (!t) return null;
                                     try {
-                                        var token = localStorage.getItem("token");
-                                        if (token) {
-                                            Android.onRetrieveToken(token.slice(1, -1));
-                                        } else {
-                                            // fallback إلى alert (منطق kizzy)
-                                            var i = document.createElement('iframe');
-                                            document.body.appendChild(i);
-                                            setTimeout(function() {
-                                                try {
-                                                    var alt = i.contentWindow.localStorage.token;
-                                                    if (alt) {
-                                                        alert(alt.slice(1, -1));
-                                                    } else {
-                                                        alert("null");
-                                                    }
-                                                } catch (e) {
-                                                    alert("error");
-                                                }
-                                            }, 1000);
+                                        var s = String(t);
+                                        if (s.length >= 2 && s[0] === '"' && s[s.length - 1] === '"') {
+                                            s = s.slice(1, -1);
                                         }
-                                    } catch (e) {
-                                        alert("error");
+                                        return s;
+                                    } catch (e) { return null; }
+                                }
+
+                                function send(t) {
+                                    var s = cleanToken(t);
+                                    if (s && s !== "null" && s !== "error") {
+                                        Android.onRetrieveToken(s);
+                                        return true;
                                     }
-                                })();
-                                """.trimIndent(), null
-                            )
-                        }
+                                    return false;
+                                }
+
+                                function tryLocalStorage() {
+                                    try {
+                                        return send(window.localStorage.getItem("token") || window.localStorage.token);
+                                    } catch (e) { return false; }
+                                }
+
+                                function tryIframe() {
+                                    try {
+                                        var i = document.createElement('iframe');
+                                        i.style.display = 'none';
+                                        document.body.appendChild(i);
+                                        var alt = i.contentWindow.localStorage.token || i.contentWindow.localStorage.getItem("token");
+                                        return send(alt);
+                                    } catch (e) { return false; }
+                                }
+
+                                function tryWebpack() {
+                                    try {
+                                        var w = window.webpackChunkdiscord_app;
+                                        if (!w || !w.push) return false;
+                                        var token = null;
+                                        w.push([[Math.random()], {}, function(req) {
+                                            try {
+                                                for (var k in req.c) {
+                                                    var m = req.c[k];
+                                                    var exp = m && m.exports && m.exports.default;
+                                                    if (exp && typeof exp.getToken === "function") {
+                                                        token = exp.getToken();
+                                                        break;
+                                                    }
+                                                }
+                                            } catch (e) {}
+                                        }]);
+                                        return send(token);
+                                    } catch (e) { return false; }
+                                }
+
+                                function run() {
+                                    if (tryLocalStorage()) return;
+                                    if (tryWebpack()) return;
+                                    tryIframe();
+                                }
+
+                                run();
+                                setTimeout(run, 1200);
+                                setTimeout(run, 3000);
+                            })();
+                        """.trimIndent()
+
+                        view.evaluateJavascript(js, null)
                     }
 
                     override fun shouldOverrideUrlLoading(
                         view: WebView,
                         request: WebResourceRequest
-                    ): Boolean = false
+                    ): Boolean {
+                        if (isCompleting) return true
+                        return false
+                    }
                 }
 
                 webChromeClient = object : WebChromeClient() {
@@ -123,13 +178,7 @@ fun DiscordLoginScreen(navController: NavController) {
                         message: String,
                         result: JsResult
                     ): Boolean {
-                        if (message != "null" && message != "error") {
-                            discordToken = message
-                            scope.launch(Dispatchers.Main) {
-                                view.loadUrl("about:blank")
-                                navController.navigateUp()
-                            }
-                        }
+                        scope.launch(Dispatchers.Main) { completeLogin(message) }
                         result.confirm()
                         return true
                     }
