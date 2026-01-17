@@ -223,21 +223,20 @@ class App : Application(), SingletonImageLoader.Factory {
                 .directory(cacheDir.resolve("coil"))
                 .maxSizeBytes(maxSize)
                 .build()
-            if (diskCache.size > 500 * 1024 * 1024L) {
-                Thread {
-                    try {
-                        val dir = java.io.File(cacheDir, "coil")
-                        val files = dir.listFiles()?.sortedBy { f -> f.lastModified() } ?: emptyList<java.io.File>()
-                        var freed = 0L
-                        for (file in files) {
-                            if (diskCache.size - freed <= 500 * 1024 * 1024L) break
-                            val size = file.length()
-                            file.delete()
-                            freed += size
-                        }
-                    } catch (_: Exception) {}
-                }.start()
-            }
+            Thread {
+                try {
+                    val dir = java.io.File(cacheDir, "coil")
+                    val files = dir.listFiles()?.sortedBy { f -> f.lastModified() } ?: emptyList<java.io.File>()
+                    val limit = 500 * 1024 * 1024L
+                    var currentSize = files.sumOf { it.length() }
+                    if (currentSize <= limit) return@Thread
+                    for (file in files) {
+                        if (currentSize <= limit) break
+                        val size = file.length()
+                        if (file.delete()) currentSize -= size
+                    }
+                } catch (_: Exception) {}
+            }.start()
             return ImageLoader.Builder(this)
                 .crossfade(true)
                 .allowHardware(Build.VERSION.SDK_INT >= Build.VERSION_CODES.P)
@@ -248,21 +247,20 @@ class App : Application(), SingletonImageLoader.Factory {
                 .directory(cacheDir.resolve("coil"))
                 .maxSizeBytes(512 * 1024 * 1024L)
                 .build()
-            if (diskCache.size > 500 * 1024 * 1024L) {
-                Thread {
-                    try {
-                        val dir = java.io.File(diskCache.directory.toString())
-                        val files = dir.listFiles()?.sortedBy { it.lastModified() } ?: emptyList<java.io.File>()
-                        var freed = 0L
-                        for (file in files) {
-                            if (diskCache.size - freed <= 500 * 1024 * 1024L) break
-                            val size = file.length()
-                            file.delete()
-                            freed += size
-                        }
-                    } catch (_: Exception) {}
-                }.start()
-            }
+            Thread {
+                try {
+                    val dir = java.io.File(diskCache.directory.toString())
+                    val files = dir.listFiles()?.sortedBy { it.lastModified() } ?: emptyList<java.io.File>()
+                    val limit = 500 * 1024 * 1024L
+                    var currentSize = files.sumOf { it.length() }
+                    if (currentSize <= limit) return@Thread
+                    for (file in files) {
+                        if (currentSize <= limit) break
+                        val size = file.length()
+                        if (file.delete()) currentSize -= size
+                    }
+                } catch (_: Exception) {}
+            }.start()
             return ImageLoader.Builder(this)
                 .crossfade(true)
                 .allowHardware(Build.VERSION.SDK_INT >= Build.VERSION_CODES.P)
