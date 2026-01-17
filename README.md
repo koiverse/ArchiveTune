@@ -1,8 +1,17 @@
-# ArchiveTune
-
-<img src="https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/icon.png" height="88" alt="ArchiveTune app icon">
-
-ArchiveTune is a Supercharged fork of [Metrolist](https://github.com/mostafaalagamy/Metrolist) With More Features & Improvements.
+<div align="center">
+	<img width="350" height="350" src="https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/icon.png" alt="Archivetune">
+	<br>
+	<div>
+		<br>
+		<h2>
+			<a href="https:/archivetune.koiiverse.cloud">ArchiveTune</a>
+			<br>
+      <br>
+			<sup>Experience YouTube Music Like Never Before with Advanced Features</sup>
+		</h2>
+	</div>
+	<hr>
+</div>
 
 [![Latest release](https://img.shields.io/github/v/release/koiverse/ArchiveTune?style=for-the-badge&include_prereleases)](https://github.com/koiverse/ArchiveTune/releases)
 [![GitHub license](https://img.shields.io/github/license/koiverse/ArchiveTune?style=for-the-badge)](https://github.com/koiverse/ArchiveTune/blob/main/LICENSE)
