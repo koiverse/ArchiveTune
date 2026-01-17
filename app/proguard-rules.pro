@@ -111,3 +111,5 @@
 -keep class androidx.media3.** { *; }
 -keep interface androidx.media3.** { *; }
 -dontwarn androidx.media3.**
+-keep class moe.koiverse.archivetune.extensions.system.HostApiContract { *; }
+-keep class moe.koiverse.archivetune.extensions.system.HostApi { *; }

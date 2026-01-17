@@ -206,6 +206,7 @@ import moe.koiverse.archivetune.utils.rememberEnumPreference
 import moe.koiverse.archivetune.utils.rememberPreference
 import moe.koiverse.archivetune.utils.reportException
 import moe.koiverse.archivetune.utils.setAppLocale
+import moe.koiverse.archivetune.utils.getExtensionManager
 import moe.koiverse.archivetune.viewmodels.HomeViewModel
 import java.net.URLDecoder
 import java.net.URLEncoder
@@ -581,10 +582,22 @@ class MainActivity : ComponentActivity() {
                 }
             }
 
+            val extensionManager = remember { getExtensionManager(this@MainActivity) }
+            val installedExtensions by extensionManager.installed.collectAsState(emptyList())
+            val themePatches =
+                remember(installedExtensions) {
+                    installedExtensions
+                        .asSequence()
+                        .filter { it.enabled && it.error == null }
+                        .flatMap { it.manifest.themePatches.asSequence() }
+                        .toList()
+                }
+
             ArchiveTuneTheme(
                 darkTheme = useDarkTheme,
                 pureBlack = pureBlack,
                 themeColor = themeColor,
+                themePatches = themePatches,
             ) {
                     BoxWithConstraints(
                         modifier =

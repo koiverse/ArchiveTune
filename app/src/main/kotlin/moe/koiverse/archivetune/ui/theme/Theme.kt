@@ -21,6 +21,7 @@ import com.materialkolor.PaletteStyle
 import com.materialkolor.dynamiccolor.ColorSpec
 import com.materialkolor.rememberDynamicColorScheme
 import com.materialkolor.score.Score
+import moe.koiverse.archivetune.extensions.system.ExtensionThemePatch
 
 val DefaultThemeColor = Color(0xFFED5564)
 
@@ -30,41 +31,31 @@ fun ArchiveTuneTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     pureBlack: Boolean = false,
     themeColor: Color = DefaultThemeColor,
+    themePatches: List<ExtensionThemePatch> = emptyList(),
     content: @Composable () -> Unit,
 ) {
     val context = LocalContext.current
-    // Determine if system dynamic colors should be used (Android S+ and default theme color)
     val useSystemDynamicColor = (themeColor == DefaultThemeColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
 
-    // Select the appropriate color scheme generation method
     val baseColorScheme = if (useSystemDynamicColor) {
-        // Use standard Material 3 dynamic color functions for system wallpaper colors
         if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
     } else {
-        // Use materialKolor only when a specific seed color is provided
         rememberDynamicColorScheme(
-            seedColor = themeColor, // themeColor is guaranteed non-default here
+            seedColor = themeColor,
             isDark = darkTheme,
             specVersion = ColorSpec.SpecVersion.SPEC_2025,
-            style = PaletteStyle.TonalSpot // Keep existing style
+            style = PaletteStyle.TonalSpot
         )
     }
 
-    // Apply pureBlack modification if needed, similar to original logic
-    val colorScheme = remember(baseColorScheme, pureBlack, darkTheme) {
-        if (darkTheme && pureBlack) {
-            baseColorScheme.pureBlack(true)
-        } else {
-            baseColorScheme
-        }
+    val colorScheme = remember(baseColorScheme, pureBlack, darkTheme, themePatches) {
+        val patched = baseColorScheme.applyExtensionColorPatches(themePatches, darkTheme)
+        if (darkTheme && pureBlack) patched.pureBlack(true) else patched
     }
 
-    // Use the defined M3 Expressive Typography
-    // TODO: Define M3 Expressive Shapes instance if needed
     MaterialExpressiveTheme(
         colorScheme = colorScheme,
-        typography = AppTypography, // Use the defined AppTypography
-        // shapes = MaterialTheme.shapes, // Placeholder - Needs update (Shapes not used in original)
+        typography = AppTypography,
         content = content
     )
 }
@@ -93,6 +84,67 @@ fun Bitmap.extractGradientColors(): List<Color> {
         listOf(Color(orderedColors[0]), Color(orderedColors[1]))
     else
         listOf(Color(0xFF595959), Color(0xFF0D0D0D))
+}
+
+private fun ColorScheme.applyExtensionColorPatches(
+    patches: List<ExtensionThemePatch>,
+    darkTheme: Boolean
+): ColorScheme {
+    if (patches.isEmpty()) return this
+    var scheme: ColorScheme = this
+    patches.forEach { patch ->
+        if (patch.target != "colorScheme") return@forEach
+        val mode = patch.mode.lowercase()
+        val applies =
+            when (mode) {
+                "both" -> true
+                "dark" -> darkTheme
+                "light" -> !darkTheme
+                else -> true
+            }
+        if (!applies) return@forEach
+        val color = parseThemePatchColor(patch.value) ?: return@forEach
+        scheme =
+            when (patch.property) {
+                "primary" -> scheme.copy(primary = color)
+                "secondary" -> scheme.copy(secondary = color)
+                "tertiary" -> scheme.copy(tertiary = color)
+                "background" -> scheme.copy(background = color)
+                "surface" -> scheme.copy(surface = color)
+                "error" -> scheme.copy(error = color)
+                "onPrimary" -> scheme.copy(onPrimary = color)
+                "onSecondary" -> scheme.copy(onSecondary = color)
+                "onTertiary" -> scheme.copy(onTertiary = color)
+                "onBackground" -> scheme.copy(onBackground = color)
+                "onSurface" -> scheme.copy(onSurface = color)
+                "primaryContainer" -> scheme.copy(primaryContainer = color)
+                "secondaryContainer" -> scheme.copy(secondaryContainer = color)
+                "tertiaryContainer" -> scheme.copy(tertiaryContainer = color)
+                "errorContainer" -> scheme.copy(errorContainer = color)
+                "onPrimaryContainer" -> scheme.copy(onPrimaryContainer = color)
+                "onSecondaryContainer" -> scheme.copy(onSecondaryContainer = color)
+                "onTertiaryContainer" -> scheme.copy(onTertiaryContainer = color)
+                "onError" -> scheme.copy(onError = color)
+                "onErrorContainer" -> scheme.copy(onErrorContainer = color)
+                "inversePrimary" -> scheme.copy(inversePrimary = color)
+                "surfaceTint" -> scheme.copy(surfaceTint = color)
+                "outline" -> scheme.copy(outline = color)
+                "outlineVariant" -> scheme.copy(outlineVariant = color)
+                "scrim" -> scheme.copy(scrim = color)
+                "surfaceVariant" -> scheme.copy(surfaceVariant = color)
+                "onSurfaceVariant" -> scheme.copy(onSurfaceVariant = color)
+                "inverseSurface" -> scheme.copy(inverseSurface = color)
+                "inverseOnSurface" -> scheme.copy(inverseOnSurface = color)
+                else -> scheme
+            }
+    }
+    return scheme
+}
+
+private fun parseThemePatchColor(value: String): Color? {
+    val text = value.trim()
+    if (!text.startsWith("#")) return null
+    return runCatching { Color(android.graphics.Color.parseColor(text)) }.getOrNull()
 }
 
 fun ColorScheme.pureBlack(apply: Boolean) =

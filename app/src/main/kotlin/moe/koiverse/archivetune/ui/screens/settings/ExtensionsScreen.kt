@@ -21,20 +21,25 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Code
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Science
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.Modifier
@@ -43,6 +48,8 @@ import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
@@ -77,6 +84,24 @@ fun ExtensionsScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     var errorMessageToShow by remember { mutableStateOf<String?>(null) }
+    var isSearching by rememberSaveable { mutableStateOf(false) }
+    var query by rememberSaveable(stateSaver = TextFieldValue.Saver) { mutableStateOf(TextFieldValue()) }
+    val focusRequester = remember { FocusRequester() }
+
+    val filteredExtensions =
+        remember(extensions, query.text) {
+            val q = query.text.trim()
+            if (q.isBlank()) {
+                extensions
+            } else {
+                extensions.filter { ext ->
+                    ext.manifest.name.contains(q, ignoreCase = true) ||
+                        ext.manifest.id.contains(q, ignoreCase = true) ||
+                        ext.manifest.author.contains(q, ignoreCase = true) ||
+                        (ext.manifest.description?.contains(q, ignoreCase = true) == true)
+                }
+            }
+        }
     
     val installLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenDocument()
@@ -102,21 +127,82 @@ fun ExtensionsScreen(
         }
     }
 
+    LaunchedEffect(isSearching) {
+        if (isSearching) focusRequester.requestFocus()
+    }
+
+    androidx.activity.compose.BackHandler(enabled = isSearching) {
+        isSearching = false
+        query = TextFieldValue()
+    }
+
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.extensions)) },
+                title = {
+                    if (isSearching) {
+                        TextField(
+                            value = query,
+                            onValueChange = { query = it },
+                            placeholder = {
+                                Text(
+                                    text = stringResource(R.string.search),
+                                    style = MaterialTheme.typography.titleLarge
+                                )
+                            },
+                            singleLine = true,
+                            textStyle = MaterialTheme.typography.titleLarge,
+                            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(imeAction = ImeAction.Search),
+                            colors = TextFieldDefaults.colors(
+                                focusedContainerColor = Color.Transparent,
+                                unfocusedContainerColor = Color.Transparent,
+                                focusedIndicatorColor = Color.Transparent,
+                                unfocusedIndicatorColor = Color.Transparent,
+                                disabledIndicatorColor = Color.Transparent,
+                            ),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .focusRequester(focusRequester)
+                        )
+                    } else {
+                        Text(stringResource(R.string.extensions))
+                    }
+                },
                 navigationIcon = {
                     M3IconButton(
-                        onClick = navController::navigateUp,
+                        onClick = {
+                            if (isSearching) {
+                                isSearching = false
+                                query = TextFieldValue()
+                            } else {
+                                navController.navigateUp()
+                            }
+                        },
                         onLongClick = navController::backToMain
                     ) {
                         Icon(painterResource(R.drawable.arrow_back), null)
                     }
                 },
                 actions = {
+                    if (isSearching) {
+                        IconButton(
+                            onClick = {
+                                if (query.text.isNotEmpty()) {
+                                    query = TextFieldValue()
+                                } else {
+                                    isSearching = false
+                                }
+                            }
+                        ) {
+                            Icon(Icons.Filled.Close, null)
+                        }
+                    } else {
+                        IconButton(onClick = { isSearching = true }) {
+                            Icon(Icons.Filled.Search, null)
+                        }
+                    }
                     IconButton(onClick = { menuExpanded = true }) {
                         Icon(painterResource(R.drawable.more_vert), null)
                     }
@@ -182,6 +268,19 @@ fun ExtensionsScreen(
                     }
                 }
             }
+        } else if (filteredExtensions.isEmpty()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = stringResource(R.string.no_results_found),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         } else {
             LazyColumn(
                 modifier = Modifier
@@ -191,7 +290,7 @@ fun ExtensionsScreen(
                 contentPadding = PaddingValues(vertical = 12.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                items(extensions, key = { it.manifest.id }) { ext ->
+                items(filteredExtensions, key = { it.manifest.id }) { ext ->
                     ExtensionItemCard(
                         extension = ext,
                         onSettingsClick = { navController.navigate("settings/extension/${ext.manifest.id}") },
