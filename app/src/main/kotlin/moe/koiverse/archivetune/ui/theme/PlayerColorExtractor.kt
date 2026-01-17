@@ -54,30 +54,41 @@ object PlayerColorExtractor {
         addIfUnique(darkMutedColor, 0.9f)
         addIfUnique(lightMutedColor, 1.0f)
         
-        // Ensure we have at least 4 colors for the 4-corner glow
-        while (availableColors.size < 4) {
-            if (availableColors.isNotEmpty()) {
-                // Generate variants from existing colors
-                val base = availableColors[availableColors.size % availableColors.size] // Cycle through
-                // Create a distinct variant (shift hue or change brightness essentially)
-                // For simplicity, we just darken/lighten differently based on index
-                val variant = if (availableColors.size % 2 == 0) {
-                     darkenColor(base, 0.6f)
-                } else {
-                     darkenColor(base, 0.8f)
+        val fallbackSeed =
+            Color(fallbackColor).takeUnless { isNearGray(it) } ?: DefaultThemeColor
+
+        val seed = availableColors.firstOrNull() ?: fallbackSeed
+        val targets = listOf(25f, -25f, 55f, -55f, 120f, -120f, 180f, 150f, -150f)
+        val valueTargets = floatArrayOf(0.82f, 0.74f, 0.68f, 0.6f, 0.86f, 0.7f)
+
+        run {
+            val baseCandidates = (availableColors.toList() + seed).distinct()
+            var baseIndex = 0
+            var targetIndex = 0
+            while (availableColors.size < 6) {
+                val baseColor = baseCandidates[baseIndex % baseCandidates.size]
+                val hueShiftDegrees = targets[targetIndex % targets.size]
+                val valueTarget = valueTargets[availableColors.size % valueTargets.size]
+                val derived =
+                    tuneColorForMesh(
+                        hueShift(baseColor, hueShiftDegrees),
+                        saturationMin = 0.62f,
+                        saturationBoost = 1.08f,
+                        valueTarget = valueTarget,
+                        valueMin = 0.38f,
+                        valueMax = 0.9f,
+                    )
+                if (!isSimilarToAny(derived, availableColors)) {
+                    availableColors.add(derived)
                 }
-                
-                if (!isSimilarToAny(variant, availableColors)) {
-                     availableColors.add(variant)
-                } else {
-                     // Force add slightly modified to break loop if needed, or just add fallback
-                     availableColors.add(darkenColor(base, 0.5f))
-                }
-            } else {
-                // No colors extracted at all, use fallback
-                val base = Color(fallbackColor)
-                availableColors.add(base)
+                baseIndex++
+                targetIndex++
+                if (baseIndex > 40) break
             }
+        }
+
+        if (availableColors.isEmpty()) {
+            availableColors.add(tuneColorForMesh(fallbackSeed, 0.62f, 1.08f, 0.75f, 0.38f, 0.9f))
         }
         
         return@withContext availableColors
@@ -112,7 +123,8 @@ object PlayerColorExtractor {
         
         // Increase saturation for more vivid colors
         hsv[1] = (hsv[1] * saturationFactor).coerceAtMost(1.0f)
-        hsv[2] = (hsv[2] * Config.BRIGHTNESS_MULTIPLIER).coerceIn(0.35f, 0.75f)
+        hsv[1] = hsv[1].coerceAtLeast(0.55f)
+        hsv[2] = (hsv[2] * 1.02f).coerceIn(0.32f, 0.88f)
 
         return Color(android.graphics.Color.HSVToColor(hsv))
     }
@@ -155,17 +167,28 @@ object PlayerColorExtractor {
      */
     private fun isSimilarColor(color1: Color?, color2: Color?): Boolean {
         if (color1 == null || color2 == null) return false
-        val threshold = 40 // RGB difference threshold
+        val hsv1 = FloatArray(3)
+        val hsv2 = FloatArray(3)
+        android.graphics.Color.colorToHSV(color1.toArgb(), hsv1)
+        android.graphics.Color.colorToHSV(color2.toArgb(), hsv2)
+
+        val hueDiffRaw = kotlin.math.abs(hsv1[0] - hsv2[0])
+        val hueDiff = kotlin.math.min(hueDiffRaw, 360f - hueDiffRaw)
+        val satDiff = kotlin.math.abs(hsv1[1] - hsv2[1])
+        val valueDiff = kotlin.math.abs(hsv1[2] - hsv2[2])
+        if (hueDiff < 12f && satDiff < 0.12f && valueDiff < 0.12f) return true
+
+        val threshold = 28
         val r1 = (color1.red * 255).toInt()
         val g1 = (color1.green * 255).toInt()
         val b1 = (color1.blue * 255).toInt()
         val r2 = (color2.red * 255).toInt()
         val g2 = (color2.green * 255).toInt()
         val b2 = (color2.blue * 255).toInt()
-        
-        return kotlin.math.abs(r1 - r2) < threshold && 
-               kotlin.math.abs(g1 - g2) < threshold && 
-               kotlin.math.abs(b1 - b2) < threshold
+
+        return kotlin.math.abs(r1 - r2) < threshold &&
+            kotlin.math.abs(g1 - g2) < threshold &&
+            kotlin.math.abs(b1 - b2) < threshold
     }
     
     /**
@@ -184,6 +207,34 @@ object PlayerColorExtractor {
             green = (color.green * factor).coerceAtLeast(0f),
             blue = (color.blue * factor).coerceAtLeast(0f)
         )
+    }
+
+    private fun hueShift(color: Color, degrees: Float): Color {
+        val hsv = FloatArray(3)
+        android.graphics.Color.colorToHSV(color.toArgb(), hsv)
+        hsv[0] = ((hsv[0] + degrees) % 360f + 360f) % 360f
+        return Color(android.graphics.Color.HSVToColor(hsv))
+    }
+
+    private fun tuneColorForMesh(
+        color: Color,
+        saturationMin: Float,
+        saturationBoost: Float,
+        valueTarget: Float,
+        valueMin: Float,
+        valueMax: Float,
+    ): Color {
+        val hsv = FloatArray(3)
+        android.graphics.Color.colorToHSV(color.toArgb(), hsv)
+        hsv[1] = (kotlin.math.max(hsv[1], saturationMin) * saturationBoost).coerceIn(0f, 1f)
+        hsv[2] = (hsv[2] * 0.85f + valueTarget * 0.15f).coerceIn(valueMin, valueMax)
+        return Color(android.graphics.Color.HSVToColor(hsv))
+    }
+
+    private fun isNearGray(color: Color): Boolean {
+        val hsv = FloatArray(3)
+        android.graphics.Color.colorToHSV(color.toArgb(), hsv)
+        return hsv[1] < 0.08f || hsv[2] < 0.08f
     }
     
     /**
@@ -208,9 +259,9 @@ object PlayerColorExtractor {
         const val VIBRANT_SATURATION_FACTOR = 1.3f
         const val FALLBACK_SATURATION_FACTOR = 1.1f
         
-        const val BRIGHTNESS_MULTIPLIER = 0.85f
-        const val BRIGHTNESS_MIN = 0.35f
-        const val BRIGHTNESS_MAX = 0.75f
+        const val BRIGHTNESS_MULTIPLIER = 0.92f
+        const val BRIGHTNESS_MIN = 0.32f
+        const val BRIGHTNESS_MAX = 0.88f
         
         const val DARKER_VARIANT_FACTOR = 0.5f
     }

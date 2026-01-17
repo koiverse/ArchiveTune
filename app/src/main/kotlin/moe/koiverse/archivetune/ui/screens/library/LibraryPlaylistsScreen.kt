@@ -381,13 +381,19 @@ fun LibraryPlaylistsScreen(
                         
                         // Create mesh gradient with 5 color blobs for variation
                         if (gradientColors.size >= 3) {
+                            val c0 = gradientColors[0]
+                            val c1 = gradientColors[1]
+                            val c2 = gradientColors[2]
+                            val c3 = gradientColors.getOrElse(3) { c0 }
+                            val c4 = gradientColors.getOrElse(4) { c1 }
                             // First color blob - top left
                             drawRect(
                                 brush = Brush.radialGradient(
                                     colors = listOf(
-                                        gradientColors[0].copy(alpha = gradientAlpha * 0.25f),
-                                        gradientColors[0].copy(alpha = gradientAlpha * 0.15f),
-                                        gradientColors[0].copy(alpha = gradientAlpha * 0.05f),
+                                        c0.copy(alpha = gradientAlpha * 0.34f),
+                                        c0.copy(alpha = gradientAlpha * 0.2f),
+                                        c0.copy(alpha = gradientAlpha * 0.11f),
+                                        c0.copy(alpha = gradientAlpha * 0.05f),
                                         Color.Transparent
                                     ),
                                     center = Offset(width * 0.15f, height * 0.1f),
@@ -399,9 +405,10 @@ fun LibraryPlaylistsScreen(
                             drawRect(
                                 brush = Brush.radialGradient(
                                     colors = listOf(
-                                        gradientColors[1].copy(alpha = gradientAlpha * 0.22f),
-                                        gradientColors[1].copy(alpha = gradientAlpha * 0.12f),
-                                        gradientColors[1].copy(alpha = gradientAlpha * 0.04f),
+                                        c1.copy(alpha = gradientAlpha * 0.32f),
+                                        c1.copy(alpha = gradientAlpha * 0.19f),
+                                        c1.copy(alpha = gradientAlpha * 0.1f),
+                                        c1.copy(alpha = gradientAlpha * 0.045f),
                                         Color.Transparent
                                     ),
                                     center = Offset(width * 0.85f, height * 0.2f),
@@ -413,9 +420,10 @@ fun LibraryPlaylistsScreen(
                             drawRect(
                                 brush = Brush.radialGradient(
                                     colors = listOf(
-                                        gradientColors[2].copy(alpha = gradientAlpha * 0.2f),
-                                        gradientColors[2].copy(alpha = gradientAlpha * 0.1f),
-                                        gradientColors[2].copy(alpha = gradientAlpha * 0.03f),
+                                        c2.copy(alpha = gradientAlpha * 0.28f),
+                                        c2.copy(alpha = gradientAlpha * 0.16f),
+                                        c2.copy(alpha = gradientAlpha * 0.085f),
+                                        c2.copy(alpha = gradientAlpha * 0.038f),
                                         Color.Transparent
                                     ),
                                     center = Offset(width * 0.3f, height * 0.45f),
@@ -427,9 +435,10 @@ fun LibraryPlaylistsScreen(
                             drawRect(
                                 brush = Brush.radialGradient(
                                     colors = listOf(
-                                        gradientColors[0].copy(alpha = gradientAlpha * 0.18f),
-                                        gradientColors[0].copy(alpha = gradientAlpha * 0.09f),
-                                        gradientColors[0].copy(alpha = gradientAlpha * 0.02f),
+                                        c3.copy(alpha = gradientAlpha * 0.24f),
+                                        c3.copy(alpha = gradientAlpha * 0.13f),
+                                        c3.copy(alpha = gradientAlpha * 0.075f),
+                                        c3.copy(alpha = gradientAlpha * 0.03f),
                                         Color.Transparent
                                     ),
                                     center = Offset(width * 0.7f, height * 0.5f),
@@ -441,9 +450,10 @@ fun LibraryPlaylistsScreen(
                             drawRect(
                                 brush = Brush.radialGradient(
                                     colors = listOf(
-                                        gradientColors[1].copy(alpha = gradientAlpha * 0.15f),
-                                        gradientColors[1].copy(alpha = gradientAlpha * 0.07f),
-                                        gradientColors[1].copy(alpha = gradientAlpha * 0.02f),
+                                        c4.copy(alpha = gradientAlpha * 0.2f),
+                                        c4.copy(alpha = gradientAlpha * 0.11f),
+                                        c4.copy(alpha = gradientAlpha * 0.06f),
+                                        c4.copy(alpha = gradientAlpha * 0.022f),
                                         Color.Transparent
                                     ),
                                     center = Offset(width * 0.5f, height * 0.75f),
@@ -455,8 +465,8 @@ fun LibraryPlaylistsScreen(
                             drawRect(
                                 brush = Brush.radialGradient(
                                     colors = listOf(
-                                        gradientColors[0].copy(alpha = gradientAlpha * 0.25f),
-                                        gradientColors[0].copy(alpha = gradientAlpha * 0.15f),
+                                        gradientColors[0].copy(alpha = gradientAlpha * 0.34f),
+                                        gradientColors[0].copy(alpha = gradientAlpha * 0.2f),
                                         Color.Transparent
                                     ),
                                     center = Offset(width * 0.5f, height * 0.3f),

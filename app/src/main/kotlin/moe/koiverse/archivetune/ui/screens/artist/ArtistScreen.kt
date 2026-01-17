@@ -246,12 +246,17 @@ fun ArtistScreen(
                         val height = size.height
 
                         if (gradientColors.size >= 3) {
+                            val c0 = gradientColors[0]
+                            val c1 = gradientColors[1]
+                            val c2 = gradientColors[2]
+                            val c3 = gradientColors.getOrElse(3) { c0 }
+                            val c4 = gradientColors.getOrElse(4) { c1 }
                             // Primary color blob - top center
                             drawRect(
                                 brush = Brush.radialGradient(
                                     colors = listOf(
-                                        gradientColors[0].copy(alpha = gradientAlpha * 0.65f),
-                                        gradientColors[0].copy(alpha = gradientAlpha * 0.35f),
+                                        c0.copy(alpha = gradientAlpha * 0.72f),
+                                        c0.copy(alpha = gradientAlpha * 0.4f),
                                         Color.Transparent
                                     ),
                                     center = Offset(width * 0.5f, height * 0.2f),
@@ -263,8 +268,8 @@ fun ArtistScreen(
                             drawRect(
                                 brush = Brush.radialGradient(
                                     colors = listOf(
-                                        gradientColors[1].copy(alpha = gradientAlpha * 0.5f),
-                                        gradientColors[1].copy(alpha = gradientAlpha * 0.25f),
+                                        c1.copy(alpha = gradientAlpha * 0.56f),
+                                        c1.copy(alpha = gradientAlpha * 0.3f),
                                         Color.Transparent
                                     ),
                                     center = Offset(width * 0.15f, height * 0.35f),
@@ -276,12 +281,36 @@ fun ArtistScreen(
                             drawRect(
                                 brush = Brush.radialGradient(
                                     colors = listOf(
-                                        gradientColors[2].copy(alpha = gradientAlpha * 0.45f),
-                                        gradientColors[2].copy(alpha = gradientAlpha * 0.2f),
+                                        c2.copy(alpha = gradientAlpha * 0.52f),
+                                        c2.copy(alpha = gradientAlpha * 0.26f),
                                         Color.Transparent
                                     ),
                                     center = Offset(width * 0.85f, height * 0.45f),
                                     radius = width * 0.65f
+                                )
+                            )
+
+                            drawRect(
+                                brush = Brush.radialGradient(
+                                    colors = listOf(
+                                        c3.copy(alpha = gradientAlpha * 0.34f),
+                                        c3.copy(alpha = gradientAlpha * 0.18f),
+                                        Color.Transparent
+                                    ),
+                                    center = Offset(width * 0.35f, height * 0.6f),
+                                    radius = width * 0.8f
+                                )
+                            )
+
+                            drawRect(
+                                brush = Brush.radialGradient(
+                                    colors = listOf(
+                                        c4.copy(alpha = gradientAlpha * 0.28f),
+                                        c4.copy(alpha = gradientAlpha * 0.14f),
+                                        Color.Transparent
+                                    ),
+                                    center = Offset(width * 0.55f, height * 0.85f),
+                                    radius = width * 0.95f
                                 )
                             )
                         } else if (gradientColors.isNotEmpty()) {
