@@ -684,6 +684,17 @@ fun BottomSheetPlayer(
             }
         }
 
+        val queueOnBackgroundColor = if (useBlackBackground) Color.White else MaterialTheme.colorScheme.onSurface
+        val queueSurfaceColor = if (useBlackBackground) Color.Black else MaterialTheme.colorScheme.surface
+
+        val (queueTextButtonColor, queueIconButtonColor) = when (playerButtonsStyle) {
+            PlayerButtonsStyle.DEFAULT -> Pair(queueOnBackgroundColor, queueSurfaceColor)
+            PlayerButtonsStyle.SECONDARY -> Pair(
+                MaterialTheme.colorScheme.secondary,
+                MaterialTheme.colorScheme.onSecondary
+            )
+        }
+
         Queue(
             state = queueSheetState,
             playerBottomSheetState = state,
@@ -694,7 +705,7 @@ fun BottomSheetPlayer(
             } else {
                 MaterialTheme.colorScheme.surfaceContainer
             },
-            onBackgroundColor = onBackgroundColor,
+            onBackgroundColor = queueOnBackgroundColor,
             TextBackgroundColor = TextBackgroundColor,
             textButtonColor = textButtonColor,
             iconButtonColor = iconButtonColor,
