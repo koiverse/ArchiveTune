@@ -157,6 +157,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.isActive
@@ -207,6 +208,7 @@ class MusicService :
 
     private var scopeJob = Job()
     private var scope = CoroutineScope(Dispatchers.Main + scopeJob)
+    private var ioScope = CoroutineScope(Dispatchers.IO + scopeJob)
     private val binder = MusicBinder()
 
     private lateinit var connectivityManager: ConnectivityManager
@@ -231,11 +233,12 @@ class MusicService :
         currentMediaMetadata
             .flatMapLatest { mediaMetadata ->
                 database.song(mediaMetadata?.id)
-            }.stateIn(scope, SharingStarted.Lazily, null)
+            }.flowOn(Dispatchers.IO)
+            .stateIn(scope, SharingStarted.Lazily, null)
     private val currentFormat =
         currentMediaMetadata.flatMapLatest { mediaMetadata ->
             database.format(mediaMetadata?.id)
-        }
+        }.flowOn(Dispatchers.IO)
 
     private val normalizeFactor = MutableStateFlow(1f)
     var playerVolume = MutableStateFlow(1f)
@@ -269,6 +272,7 @@ class MusicService :
 
     override fun onCreate() {
         super.onCreate()
+        ensureScopesActive()
 
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -385,7 +389,7 @@ class MusicService :
             player.volume = finalVolume
         }
 
-        playerVolume.debounce(1000).collect(scope) { volume ->
+        playerVolume.debounce(1000).collect(ioScope) { volume ->
             dataStore.edit { settings ->
                 settings[PlayerVolumeKey] = volume
             }
@@ -405,7 +409,7 @@ class MusicService :
             dataStore.data.map { it[ShowLyricsKey] ?: false }.distinctUntilChanged(),
         ) { mediaMetadata, showLyrics ->
             mediaMetadata to showLyrics
-        }.collectLatest(scope) { (mediaMetadata, showLyrics) ->
+        }.collectLatest(ioScope) { (mediaMetadata, showLyrics) ->
             if (showLyrics && mediaMetadata != null && database.lyrics(mediaMetadata.id)
                     .first() == null
             ) {
@@ -478,32 +482,35 @@ class MusicService :
             .map { it[DiscordTokenKey] to (it[EnableDiscordRPCKey] ?: true) }
             .debounce(300)
             .distinctUntilChanged()
-            .collect(scope) { (key, enabled) ->
-                    try {
-                        if (discordRpc?.isRpcRunning() == true) {
-                            discordRpc?.closeRPC()
+            .collectLatest(scope) { (key, enabled) ->
+                val newRpc =
+                    withContext(Dispatchers.IO) {
+                        if (!key.isNullOrBlank() && enabled) {
+                            runCatching { DiscordRPC(this@MusicService, key) }
+                                .onFailure { Timber.tag("MusicService").e(it, "failed to create DiscordRPC client") }
+                                .getOrNull()
+                        } else {
+                            null
                         }
-                    } catch (_: Exception) {}
-                    discordRpc = null
-                    if (!key.isNullOrBlank() && enabled) {
-                        try {
-                            discordRpc = DiscordRPC(this, key)
-                        } catch (ex: Exception) {
-                            Timber.tag("MusicService").e(ex, "failed to create DiscordRPC client")
-                            discordRpc = null
-                        }
-
-                        if (player.playbackState == Player.STATE_READY && player.playWhenReady) {
-                            currentSong.value?.let {
-                                ensurePresenceManager()
-                            }
-                        }
-                    } else {
-                        try { DiscordPresenceManager.stop() } catch (_: Exception) {}
-                        try { discordRpc?.closeRPC() } catch (_: Exception) {}
-                        discordRpc = null
                     }
-        }
+
+                try {
+                    if (discordRpc?.isRpcRunning() == true) {
+                        withContext(Dispatchers.IO) { discordRpc?.closeRPC() }
+                    }
+                } catch (_: Exception) {}
+                discordRpc = newRpc
+
+                if (discordRpc != null) {
+                    if (player.playbackState == Player.STATE_READY && player.playWhenReady) {
+                        currentSong.value?.let {
+                            ensurePresenceManager()
+                        }
+                    }
+                } else {
+                    try { DiscordPresenceManager.stop() } catch (_: Exception) {}
+                }
+            }
 
         // Last.fm ScrobbleManager setup
         dataStore.data
@@ -517,7 +524,7 @@ class MusicService :
                     val delaySeconds = dataStore.get(ScrobbleDelaySecondsKey, LastFM.DEFAULT_SCROBBLE_DELAY_SECONDS)
                     
                     scrobbleManager = moe.koiverse.archivetune.utils.ScrobbleManager(
-                        scope,
+                        ioScope,
                         minSongDuration = minSongDuration,
                         scrobbleDelayPercent = delayPercent,
                         scrobbleDelaySeconds = delaySeconds
@@ -628,6 +635,18 @@ class MusicService :
                     saveQueueToDisk()
                 }
             }
+        }
+    }
+
+    private fun ensureScopesActive() {
+        if (!scopeJob.isActive) {
+            scopeJob = Job()
+        }
+        if (!scope.isActive) {
+            scope = CoroutineScope(Dispatchers.Main + scopeJob)
+        }
+        if (!ioScope.isActive) {
+            ioScope = CoroutineScope(Dispatchers.IO + scopeJob)
         }
     }
 
@@ -937,7 +956,7 @@ class MusicService :
         queue: Queue,
         playWhenReady: Boolean = true,
     ) {
-        if (!scope.isActive) scope = CoroutineScope(Dispatchers.Main) + Job()
+        ensureScopesActive()
         currentQueue = queue
         queueTitle = null
         player.shuffleModeEnabled = false
