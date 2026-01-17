@@ -30,6 +30,7 @@ fun ArchiveTuneTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     pureBlack: Boolean = false,
     themeColor: Color = DefaultThemeColor,
+    useSystemFont: Boolean = false,
     content: @Composable () -> Unit,
 ) {
     val context = LocalContext.current
@@ -59,11 +60,15 @@ fun ArchiveTuneTheme(
         }
     }
 
+    val typography = remember(useSystemFont) {
+        if (useSystemFont) SystemTypography else AppTypography
+    }
+
     // Use the defined M3 Expressive Typography
     // TODO: Define M3 Expressive Shapes instance if needed
     MaterialExpressiveTheme(
         colorScheme = colorScheme,
-        typography = AppTypography, // Use the defined AppTypography
+        typography = typography,
         // shapes = MaterialTheme.shapes, // Placeholder - Needs update (Shapes not used in original)
         content = content
     )

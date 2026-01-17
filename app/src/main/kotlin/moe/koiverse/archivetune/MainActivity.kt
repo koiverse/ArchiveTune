@@ -161,6 +161,7 @@ import moe.koiverse.archivetune.constants.SlimNavBarHeight
 import moe.koiverse.archivetune.constants.SlimNavBarKey
 import moe.koiverse.archivetune.constants.StopMusicOnTaskClearKey
 import moe.koiverse.archivetune.constants.UseNewMiniPlayerDesignKey
+import moe.koiverse.archivetune.constants.UseSystemFontKey
 import moe.koiverse.archivetune.db.MusicDatabase
 import moe.koiverse.archivetune.db.entities.SearchHistory
 import moe.koiverse.archivetune.innertube.YouTube
@@ -507,6 +508,7 @@ class MainActivity : ComponentActivity() {
             val enableDynamicTheme by rememberPreference(DynamicThemeKey, defaultValue = true)
             val customThemeColorValue by rememberPreference(CustomThemeColorKey, defaultValue = "default")
             val darkTheme by rememberEnumPreference(DarkModeKey, defaultValue = DarkMode.AUTO)
+            val useSystemFont by rememberPreference(UseSystemFontKey, defaultValue = false)
             val isSystemInDarkTheme = isSystemInDarkTheme()
             val useDarkTheme =
                 remember(darkTheme, isSystemInDarkTheme) {
@@ -573,6 +575,7 @@ class MainActivity : ComponentActivity() {
                 darkTheme = useDarkTheme,
                 pureBlack = pureBlack,
                 themeColor = themeColor,
+                useSystemFont = useSystemFont,
             ) {
                     BoxWithConstraints(
                         modifier =

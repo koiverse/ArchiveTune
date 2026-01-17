@@ -71,6 +71,7 @@ import moe.koiverse.archivetune.constants.UseNewMiniPlayerDesignKey
 import moe.koiverse.archivetune.constants.PlayerBackgroundStyle
 import moe.koiverse.archivetune.constants.PlayerBackgroundStyleKey
 import moe.koiverse.archivetune.constants.PureBlackKey
+import moe.koiverse.archivetune.constants.UseSystemFontKey
 import moe.koiverse.archivetune.constants.PlayerButtonsStyle
 import moe.koiverse.archivetune.constants.PlayerButtonsStyleKey
 import moe.koiverse.archivetune.constants.LyricsAnimationStyleKey
@@ -148,6 +149,7 @@ fun AppearanceSettings(
         )
     val (pureBlack, onPureBlackChange) = rememberPreference(PureBlackKey, defaultValue = false)
     val (disableBlur, onDisableBlurChange) = rememberPreference(DisableBlurKey, defaultValue = false)
+    val (useSystemFont, onUseSystemFontChange) = rememberPreference(UseSystemFontKey, defaultValue = false)
     val (defaultOpenTab, onDefaultOpenTabChange) = rememberEnumPreference(
         DefaultOpenTabKey,
         defaultValue = NavigationTab.HOME
@@ -426,6 +428,14 @@ fun AppearanceSettings(
             icon = { Icon(painterResource(R.drawable.blur_off), null) },
             checked = disableBlur,
             onCheckedChange = onDisableBlurChange,
+        )
+
+        SwitchPreference(
+            title = { Text(stringResource(R.string.use_system_font)) },
+            description = stringResource(R.string.use_system_font_desc),
+            icon = { Icon(painterResource(R.drawable.text_fields), null) },
+            checked = useSystemFont,
+            onCheckedChange = onUseSystemFontChange,
         )
 
         PreferenceGroupTitle(
