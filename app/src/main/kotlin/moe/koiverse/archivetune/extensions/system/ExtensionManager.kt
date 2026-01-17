@@ -5,8 +5,9 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -19,6 +20,7 @@ import moe.koiverse.archivetune.utils.dataStore
 import android.net.Uri
 import java.util.zip.ZipInputStream
 import java.io.File
+import java.util.concurrent.Executors
 import javax.inject.Inject
 import javax.inject.Singleton
 import moe.koiverse.archivetune.extensions.system.ui.UIConfig
@@ -35,7 +37,8 @@ data class InstalledExtension(
 class ExtensionManager @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
-    private val scope = CoroutineScope(Dispatchers.IO)
+    private val runtimeDispatcher = Executors.newSingleThreadExecutor().asCoroutineDispatcher()
+    private val scope = CoroutineScope(SupervisorJob() + runtimeDispatcher)
     private val json = Json { ignoreUnknownKeys = true }
     @Volatile
     private var discoverJob: Job? = null
@@ -175,15 +178,21 @@ class ExtensionManager @Inject constructor(
     }
 
     fun onTrackPlay(metadata: MediaMetadata) {
-        runtimes.values.forEach { runCatching { it.onTrackPlay(metadata) } }
+        scope.launch {
+            runtimes.values.forEach { runCatching { it.onTrackPlay(metadata) } }
+        }
     }
 
     fun onQueueBuild(title: String?) {
-        runtimes.values.forEach { runCatching { it.onQueueBuild(title) } }
+        scope.launch {
+            runtimes.values.forEach { runCatching { it.onQueueBuild(title) } }
+        }
     }
     
     fun onTrackPause(metadata: MediaMetadata) {
-        runtimes.values.forEach { runCatching { it.onTrackPause(metadata) } }
+        scope.launch {
+            runtimes.values.forEach { runCatching { it.onTrackPause(metadata) } }
+        }
     }
     
     fun setUiConfig(extensionId: String, route: String, config: UIConfig, baseDir: File) {
@@ -259,6 +268,10 @@ class ExtensionManager @Inject constructor(
         if (res.isSuccess) {
             runtimes[id] = rt
         } else {
+            val message = res.exceptionOrNull()?.message ?: res.exceptionOrNull()?.javaClass?.simpleName ?: "Unknown error"
+            _installed.value = _installed.value.map { item ->
+                if (item.manifest.id == id) item.copy(enabled = false, error = message) else item
+            }
             updateEnabledState(id, false)
             scope.launch {
                 context.dataStore.edit { it[booleanPreferencesKey(flagKey(id))] = false }
@@ -280,7 +293,26 @@ class ExtensionManager @Inject constructor(
         items.forEach { id ->
             if (id.isBlank()) return@forEach
             val targetDir = rootDir().resolve(id)
-            if (targetDir.exists()) return@forEach
+            val needsRepair =
+                if (!targetDir.exists()) {
+                    true
+                } else {
+                    val manifestFile = targetDir.resolve("manifest.json")
+                    if (!manifestFile.exists()) {
+                        true
+                    } else {
+                        val entry =
+                            runCatching { ExtensionValidator.loadManifest(manifestFile).entry }.getOrNull()
+                        if (entry.isNullOrBlank()) {
+                            true
+                        } else {
+                            !targetDir.resolve(entry).exists()
+                        }
+                    }
+                }
+
+            if (!needsRepair) return@forEach
+            if (targetDir.exists()) targetDir.deleteRecursively()
             copyAssetPath("$builtinRoot/$id", targetDir)
         }
     }
