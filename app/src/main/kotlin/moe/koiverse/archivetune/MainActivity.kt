@@ -1,19 +1,23 @@
 package moe.koiverse.archivetune
 
 import android.annotation.SuppressLint
+import android.Manifest
 import android.app.ActivityManager
 import android.app.ForegroundServiceStartNotAllowedException
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
+import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.os.IBinder
 import android.view.View
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
@@ -58,6 +62,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
+import androidx.core.content.ContextCompat
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationRail
@@ -291,7 +296,7 @@ class MainActivity : ComponentActivity() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             try {
                 if (isAppInForeground()) {
-                    androidx.core.content.ContextCompat.startForegroundService(this, startIntent)
+                    startService(startIntent)
                 }
             } catch (e: ForegroundServiceStartNotAllowedException) {
                 reportException(e)
@@ -304,13 +309,11 @@ class MainActivity : ComponentActivity() {
             }
         } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             try {
-                androidx.core.content.ContextCompat.startForegroundService(this, startIntent)
+                startService(startIntent)
             } catch (e: IllegalStateException) {
                 reportException(e)
-                try { startService(startIntent) } catch (_: Exception) {}
             } catch (e: SecurityException) {
                 reportException(e)
-                try { startService(startIntent) } catch (_: Exception) {}
             } catch (e: Exception) {
                 reportException(e)
             }
@@ -408,7 +411,23 @@ class MainActivity : ComponentActivity() {
         }
 
         setContent {
+            val notificationPermissionLauncher =
+                rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
+                    if (isGranted) {
+                        playerConnection?.service?.refreshPlaybackNotification()
+                    }
+                }
+
             LaunchedEffect(Unit) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                    ContextCompat.checkSelfPermission(
+                        this@MainActivity,
+                        Manifest.permission.POST_NOTIFICATIONS
+                    ) != PackageManager.PERMISSION_GRANTED
+                ) {
+                    notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                }
+
                 if (System.currentTimeMillis() - Updater.lastCheckTime > 1.days.inWholeMilliseconds) {
                     Updater.getLatestVersionName().onSuccess {
                         latestVersionName = it
