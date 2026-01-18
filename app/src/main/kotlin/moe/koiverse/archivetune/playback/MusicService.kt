@@ -179,8 +179,10 @@ import kotlin.time.Duration.Companion.seconds
 import timber.log.Timber
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.Notification
 import android.os.Build
-import android.content.pm.PackageManager
+import android.content.pm.ServiceInfo
+import androidx.core.app.NotificationCompat
 
 @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
 @AndroidEntryPoint
@@ -269,6 +271,53 @@ class MusicService :
 
     val maxSafeGainFactor = 1.414f // +3 dB
     private val crossfadeProcessor = CrossfadeAudioProcessor()
+    @Volatile
+    private var hasCalledStartForeground = false
+
+    private fun ensureStartedAsForeground() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
+        if (hasCalledStartForeground) return
+
+        val notification =
+            try {
+                val contentIntent =
+                    PendingIntent.getActivity(
+                        this,
+                        0,
+                        Intent(this, MainActivity::class.java),
+                        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+                    )
+
+                NotificationCompat.Builder(this, CHANNEL_ID)
+                    .setSmallIcon(R.drawable.small_icon)
+                    .setContentTitle(getString(R.string.music_player))
+                    .setContentText(getString(R.string.app_name))
+                    .setContentIntent(contentIntent)
+                    .setCategory(Notification.CATEGORY_SERVICE)
+                    .setPriority(NotificationCompat.PRIORITY_LOW)
+                    .setOngoing(true)
+                    .setOnlyAlertOnce(true)
+                    .build()
+            } catch (e: Exception) {
+                reportException(e)
+                return
+            }
+
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                startForeground(
+                    NOTIFICATION_ID,
+                    notification,
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK,
+                )
+            } else {
+                startForeground(NOTIFICATION_ID, notification)
+            }
+            hasCalledStartForeground = true
+        } catch (e: Exception) {
+            reportException(e)
+        }
+    }
 
     override fun onCreate() {
         super.onCreate()
@@ -288,6 +337,8 @@ class MusicService :
         } catch (e: Exception) {
             reportException(e)
         }
+
+        ensureStartedAsForeground()
 
         
         player =
@@ -913,6 +964,12 @@ class MusicService :
         } catch (e: Exception) {
             reportException(e)
         }
+    }
+
+    fun refreshPlaybackNotification() {
+        updateNotification()
+        runCatching { super.onUpdateNotification(mediaSession, player.isPlaying) }
+            .onFailure { reportException(it) }
     }
 
     private suspend fun recoverSong(
@@ -2077,16 +2134,15 @@ class MusicService :
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo) = mediaSession
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        ensureStartedAsForeground()
         super.onStartCommand(intent, flags, startId)
         return START_NOT_STICKY
     }
 
     override fun onUpdateNotification(session: MediaSession, startInForegroundRequired: Boolean) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-            checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
-            return
-        }
-        super.onUpdateNotification(session, startInForegroundRequired)
+        if (startInForegroundRequired) ensureStartedAsForeground()
+        runCatching { super.onUpdateNotification(session, startInForegroundRequired) }
+            .onFailure { reportException(it) }
     }
 
     inner class MusicBinder : Binder() {
