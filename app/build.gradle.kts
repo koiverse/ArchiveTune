@@ -176,7 +176,6 @@ dependencies {
 
     implementation(libs.material3)
     implementation(libs.palette)
-    implementation(libs.materialKolor)
 
     implementation(libs.coil)
     implementation(libs.coil.network.okhttp)
@@ -205,6 +204,7 @@ dependencies {
     implementation(project(":lastfm"))
     implementation(project(":betterlyrics"))
     implementation(project(":kizzy"))
+    implementation(project(":color"))
 
     implementation(libs.ktor.client.core)
     implementation(libs.ktor.serialization.json)

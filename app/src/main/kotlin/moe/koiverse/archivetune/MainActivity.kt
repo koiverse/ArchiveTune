@@ -539,7 +539,24 @@ class MainActivity : ComponentActivity() {
             val pureBlackEnabled by rememberPreference(PureBlackKey, defaultValue = false)
             val pureBlack = pureBlackEnabled && useDarkTheme
 
-            val customThemeColor = remember(customThemeColorValue) {
+            val customThemeSeedPalette = remember(customThemeColorValue) {
+                if (customThemeColorValue.startsWith("#")) {
+                    null
+                } else {
+                    moe.koiverse.archivetune.ui.screens.settings.ThemePalettes
+                        .findById(customThemeColorValue)
+                        ?.let {
+                            moe.koiverse.archivetune.ui.theme.ThemeSeedPalette(
+                                primary = it.primary,
+                                secondary = it.secondary,
+                                tertiary = it.tertiary,
+                                neutral = it.neutral,
+                            )
+                        }
+                }
+            }
+
+            val customThemeColor = remember(customThemeColorValue, customThemeSeedPalette) {
                 if (customThemeColorValue.startsWith("#")) {
                     try {
                         val colorString = customThemeColorValue.removePrefix("#")
@@ -548,8 +565,7 @@ class MainActivity : ComponentActivity() {
                         DefaultThemeColor
                     }
                 } else {
-                    moe.koiverse.archivetune.ui.screens.settings.ThemePalettes.findById(customThemeColorValue)?.primary
-                        ?: DefaultThemeColor
+                    customThemeSeedPalette?.primary ?: DefaultThemeColor
                 }
             }
 
@@ -594,6 +610,7 @@ class MainActivity : ComponentActivity() {
                 darkTheme = useDarkTheme,
                 pureBlack = pureBlack,
                 themeColor = themeColor,
+                seedPalette = if (!enableDynamicTheme) customThemeSeedPalette else null,
                 useSystemFont = useSystemFont,
             ) {
                     BoxWithConstraints(
