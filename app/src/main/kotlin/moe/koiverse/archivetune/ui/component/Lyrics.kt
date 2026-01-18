@@ -70,6 +70,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -606,38 +607,32 @@ fun Lyrics(
         mutableStateOf(false)
     }
 
-    LaunchedEffect(lyrics) {
+    LaunchedEffect(lyrics, lines, isAppMinimized) {
         if (lyrics.isNullOrEmpty() || (!lyrics.startsWith("[") && !isTtml(lyrics))) {
             currentLineIndex = -1
+            currentPlaybackPosition = 0L
             return@LaunchedEffect
         }
         while (isActive) {
+            if (isAppMinimized) {
+                delay(250L)
+                continue
+            }
+            withFrameNanos { }
             val sliderPosition = sliderPositionProvider()
             val seekingNow = sliderPosition != null
             if (isSeeking != seekingNow) {
                 isSeeking = seekingNow
             }
             val position = sliderPosition ?: playerConnection.player.currentPosition
-            val reduceMotionDuringScroll =
-                isManualScrolling || isSelectionModeActive
-            if (!reduceMotionDuringScroll || seekingNow) {
-                if (currentPlaybackPosition != position) {
-                    currentPlaybackPosition = position
-                }
+            val syncedPosition = (position + LyricsWordSyncLeadMs).coerceAtLeast(0L)
+            if (currentPlaybackPosition != syncedPosition) {
+                currentPlaybackPosition = syncedPosition
             }
             val newLineIndex = findCurrentLineIndex(lines, position)
             if (currentLineIndex != newLineIndex) {
                 currentLineIndex = newLineIndex
             }
-
-            val tickMs =
-                when {
-                    seekingNow -> 16L
-                    reduceMotionDuringScroll -> 120L
-                    lyricsAnimationStyle == LyricsAnimationStyle.NONE -> 50L
-                    else -> 16L
-                }
-            delay(tickMs)
         }
     }
 
@@ -2383,5 +2378,7 @@ private const val ArchiveTune_AUTO_SCROLL_DURATION = 1500L
 private const val ArchiveTune_INITIAL_SCROLL_DURATION = 1000L 
 private const val ArchiveTune_SEEK_DURATION = 800L 
 private const val ArchiveTune_FAST_SEEK_DURATION = 600L 
+
+private const val LyricsWordSyncLeadMs = 300L
 
 val LyricsPreviewTime = 2.seconds
