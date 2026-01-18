@@ -619,7 +619,7 @@ fun Lyrics(
             }
             val position = sliderPosition ?: playerConnection.player.currentPosition
             val reduceMotionDuringScroll =
-                isManualScrolling || isSelectionModeActive || lazyListState.isScrollInProgress
+                isManualScrolling || isSelectionModeActive
             if (!reduceMotionDuringScroll || seekingNow) {
                 if (currentPlaybackPosition != position) {
                     currentPlaybackPosition = position
@@ -1001,7 +1001,7 @@ fun Lyrics(
                         val effectiveAnimationStyle = lyricsAnimationStyle
 
                         val reduceMotionDuringScroll =
-                            isManualScrolling || isSelectionModeActive || lazyListState.isScrollInProgress
+                            isManualScrolling || isSelectionModeActive
 
                         if (effectiveAnimationStyle == LyricsAnimationStyle.KARAOKE) {
                             if (!isActiveLine || reduceMotionDuringScroll) {
