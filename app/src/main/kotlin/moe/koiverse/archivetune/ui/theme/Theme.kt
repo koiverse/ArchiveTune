@@ -6,10 +6,8 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialExpressiveTheme
-import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
-import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.Saver
@@ -19,9 +17,10 @@ import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.palette.graphics.Palette
-import com.google.android.material.color.utilities.Hct
-import com.google.android.material.color.utilities.SchemeTonalSpot
-import com.google.android.material.color.utilities.Score
+import com.materialkolor.PaletteStyle
+import com.materialkolor.dynamiccolor.ColorSpec
+import com.materialkolor.rememberDynamicColorScheme
+import com.materialkolor.score.Score
 
 val DefaultThemeColor = Color(0xFFED5564)
 
@@ -43,9 +42,13 @@ fun ArchiveTuneTheme(
         // Use standard Material 3 dynamic color functions for system wallpaper colors
         if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
     } else {
-        remember(themeColor, darkTheme) {
-            materialColorUtilitiesScheme(seedColor = themeColor, isDark = darkTheme)
-        }
+        // Use materialKolor only when a specific seed color is provided
+        rememberDynamicColorScheme(
+            seedColor = themeColor, // themeColor is guaranteed non-default here
+            isDark = darkTheme,
+            specVersion = ColorSpec.SpecVersion.SPEC_2025,
+            style = PaletteStyle.TonalSpot // Keep existing style
+        )
     }
 
     // Apply pureBlack modification if needed, similar to original logic
@@ -69,91 +72,6 @@ fun ArchiveTuneTheme(
         // shapes = MaterialTheme.shapes, // Placeholder - Needs update (Shapes not used in original)
         content = content
     )
-}
-
-private fun materialColorUtilitiesScheme(seedColor: Color, isDark: Boolean): ColorScheme {
-    val scheme = SchemeTonalSpot(Hct.fromInt(seedColor.toArgb()), isDark, 0.0)
-    val color = { argb: Int -> Color(argb) }
-
-    return if (isDark) {
-        darkColorScheme(
-            primary = color(scheme.primary),
-            onPrimary = color(scheme.onPrimary),
-            primaryContainer = color(scheme.primaryContainer),
-            onPrimaryContainer = color(scheme.onPrimaryContainer),
-            inversePrimary = color(scheme.inversePrimary),
-            secondary = color(scheme.secondary),
-            onSecondary = color(scheme.onSecondary),
-            secondaryContainer = color(scheme.secondaryContainer),
-            onSecondaryContainer = color(scheme.onSecondaryContainer),
-            tertiary = color(scheme.tertiary),
-            onTertiary = color(scheme.onTertiary),
-            tertiaryContainer = color(scheme.tertiaryContainer),
-            onTertiaryContainer = color(scheme.onTertiaryContainer),
-            background = color(scheme.background),
-            onBackground = color(scheme.onBackground),
-            surface = color(scheme.surface),
-            onSurface = color(scheme.onSurface),
-            surfaceVariant = color(scheme.surfaceVariant),
-            onSurfaceVariant = color(scheme.onSurfaceVariant),
-            surfaceTint = color(scheme.surfaceTint),
-            inverseSurface = color(scheme.inverseSurface),
-            inverseOnSurface = color(scheme.inverseOnSurface),
-            error = color(scheme.error),
-            onError = color(scheme.onError),
-            errorContainer = color(scheme.errorContainer),
-            onErrorContainer = color(scheme.onErrorContainer),
-            outline = color(scheme.outline),
-            outlineVariant = color(scheme.outlineVariant),
-            scrim = color(scheme.scrim),
-            surfaceBright = color(scheme.surfaceBright),
-            surfaceDim = color(scheme.surfaceDim),
-            surfaceContainer = color(scheme.surfaceContainer),
-            surfaceContainerHigh = color(scheme.surfaceContainerHigh),
-            surfaceContainerHighest = color(scheme.surfaceContainerHighest),
-            surfaceContainerLow = color(scheme.surfaceContainerLow),
-            surfaceContainerLowest = color(scheme.surfaceContainerLowest),
-        )
-    } else {
-        lightColorScheme(
-            primary = color(scheme.primary),
-            onPrimary = color(scheme.onPrimary),
-            primaryContainer = color(scheme.primaryContainer),
-            onPrimaryContainer = color(scheme.onPrimaryContainer),
-            inversePrimary = color(scheme.inversePrimary),
-            secondary = color(scheme.secondary),
-            onSecondary = color(scheme.onSecondary),
-            secondaryContainer = color(scheme.secondaryContainer),
-            onSecondaryContainer = color(scheme.onSecondaryContainer),
-            tertiary = color(scheme.tertiary),
-            onTertiary = color(scheme.onTertiary),
-            tertiaryContainer = color(scheme.tertiaryContainer),
-            onTertiaryContainer = color(scheme.onTertiaryContainer),
-            background = color(scheme.background),
-            onBackground = color(scheme.onBackground),
-            surface = color(scheme.surface),
-            onSurface = color(scheme.onSurface),
-            surfaceVariant = color(scheme.surfaceVariant),
-            onSurfaceVariant = color(scheme.onSurfaceVariant),
-            surfaceTint = color(scheme.surfaceTint),
-            inverseSurface = color(scheme.inverseSurface),
-            inverseOnSurface = color(scheme.inverseOnSurface),
-            error = color(scheme.error),
-            onError = color(scheme.onError),
-            errorContainer = color(scheme.errorContainer),
-            onErrorContainer = color(scheme.onErrorContainer),
-            outline = color(scheme.outline),
-            outlineVariant = color(scheme.outlineVariant),
-            scrim = color(scheme.scrim),
-            surfaceBright = color(scheme.surfaceBright),
-            surfaceDim = color(scheme.surfaceDim),
-            surfaceContainer = color(scheme.surfaceContainer),
-            surfaceContainerHigh = color(scheme.surfaceContainerHigh),
-            surfaceContainerHighest = color(scheme.surfaceContainerHighest),
-            surfaceContainerLow = color(scheme.surfaceContainerLow),
-            surfaceContainerLowest = color(scheme.surfaceContainerLowest),
-        )
-    }
 }
 
 fun Bitmap.extractThemeColor(): Color {

@@ -176,7 +176,7 @@ dependencies {
 
     implementation(libs.material3)
     implementation(libs.palette)
-    implementation(libs.material)
+    implementation(libs.materialKolor)
 
     implementation(libs.coil)
     implementation(libs.coil.network.okhttp)
