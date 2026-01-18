@@ -32,14 +32,18 @@ constructor(
     @ApplicationContext private val context: Context,
     private val networkConnectivity: NetworkConnectivityObserver,
 ) {
-    private var lyricsProviders =
+    private val baseProviders =
         listOf(
+            SimpMusicLyricsProvider,
             BetterLyricsProvider,
             LrcLibLyricsProvider,
             KuGouLyricsProvider,
             YouTubeSubtitleLyricsProvider,
-            YouTubeLyricsProvider
+            YouTubeLyricsProvider,
         )
+
+    private var lyricsProviders =
+        baseProviders
 
     val preferred =
         context.dataStore.data
@@ -47,30 +51,15 @@ constructor(
                 it[PreferredLyricsProviderKey].toEnum(PreferredLyricsProvider.LRCLIB)
             }.distinctUntilChanged()
             .map {
-                lyricsProviders =
+                val first =
                     when (it) {
-                        PreferredLyricsProvider.BETTER_LYRICS -> listOf(
-                            BetterLyricsProvider,
-                            LrcLibLyricsProvider,
-                            KuGouLyricsProvider,
-                            YouTubeSubtitleLyricsProvider,
-                            YouTubeLyricsProvider
-                        )
-                        PreferredLyricsProvider.LRCLIB -> listOf(
-                            LrcLibLyricsProvider,
-                            BetterLyricsProvider,
-                            KuGouLyricsProvider,
-                            YouTubeSubtitleLyricsProvider,
-                            YouTubeLyricsProvider
-                        )
-                        PreferredLyricsProvider.KUGOU -> listOf(
-                            KuGouLyricsProvider,
-                            BetterLyricsProvider,
-                            LrcLibLyricsProvider,
-                            YouTubeSubtitleLyricsProvider,
-                            YouTubeLyricsProvider
-                        )
+                        PreferredLyricsProvider.LRCLIB -> LrcLibLyricsProvider
+                        PreferredLyricsProvider.KUGOU -> KuGouLyricsProvider
+                        PreferredLyricsProvider.BETTER_LYRICS -> BetterLyricsProvider
+                        PreferredLyricsProvider.SIMPMUSIC -> SimpMusicLyricsProvider
                     }
+
+                lyricsProviders = listOf(first) + baseProviders.filterNot { provider -> provider == first }
             }
 
     private val cache = LruCache<String, List<LyricsResult>>(MAX_CACHE_SIZE)

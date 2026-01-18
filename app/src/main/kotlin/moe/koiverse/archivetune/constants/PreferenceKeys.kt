@@ -39,6 +39,7 @@ val ContentCountryKey = stringPreferencesKey("contentCountry")
 val EnableKugouKey = booleanPreferencesKey("enableKugou")
 val EnableLrcLibKey = booleanPreferencesKey("enableLrclib")
 val EnableBetterLyricsKey = booleanPreferencesKey("enableBetterLyrics")
+val EnableSimpMusicLyricsKey = booleanPreferencesKey("enableSimpMusicLyrics")
 val HideExplicitKey = booleanPreferencesKey("hideExplicit")
 val HideVideoKey = booleanPreferencesKey("hideVideo")
 val ProxyEnabledKey = booleanPreferencesKey("proxyEnabled")
@@ -321,6 +322,7 @@ enum class PreferredLyricsProvider {
     LRCLIB,
     KUGOU,
     BETTER_LYRICS,
+    SIMPMUSIC,
 }
 
 enum class PlayerButtonsStyle {

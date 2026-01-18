@@ -30,7 +30,6 @@ brotli = "0.1.2"
 desugaring = "2.1.5"
 junit = "4.13.2"
 timber = "5.0.1"
-materialKolor = "3.0.1"
 kuromojiIpadic = "0.9.0"
 extractor = "2d2d9ed"
 
@@ -61,8 +60,6 @@ viewmodel = { module = "androidx.lifecycle:lifecycle-viewmodel-ktx", version.ref
 viewmodel-compose = { module = "androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "lifecycle" }
 
 material3 = { module = "androidx.compose.material3:material3", version.ref = "material3" }
-
-materialKolor = { module = "com.materialkolor:material-kolor", version.ref = "materialKolor" }
 
 coil = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil" }
 coil-network-okhttp = { module = "io.coil-kt.coil3:coil-network-okhttp", version.ref = "coil" }
