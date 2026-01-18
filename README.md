@@ -9,7 +9,7 @@
       <br>
 			<sup>Experience YouTube Music Like Never Before with Advanced Features</sup>
 		</h2>
-    <a href="https://trendshift.io/repositories/17521" target="_blank"><img src="https://trendshift.io/api/badge/repositories/17521" alt="koiverse%2FArchiveTune | Trendshift" style="width: 150px; height: 55px;" width="150" height="55"/></a>
+    <a href="https://trendshift.io/repositories/17521" target="_blank"><img src="https://trendshift.io/api/badge/repositories/17521" alt="koiverse%2FArchiveTune | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
 	</div>
 	<hr>
 </div>
