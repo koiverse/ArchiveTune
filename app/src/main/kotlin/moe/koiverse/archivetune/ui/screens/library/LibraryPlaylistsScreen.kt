@@ -1,6 +1,7 @@
 package moe.koiverse.archivetune.ui.screens.library
 
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
@@ -233,6 +234,7 @@ fun LibraryPlaylistsScreen(
     // Gradient colors state for playlists page background
     var gradientColors by remember { mutableStateOf<List<Color>>(emptyList()) }
     val fallbackColor = MaterialTheme.colorScheme.surface.toArgb()
+    val surfaceColor = MaterialTheme.colorScheme.surface
     
     // Extract gradient colors from the first playlist with thumbnails
     LaunchedEffect(playlists) {
@@ -361,6 +363,7 @@ fun LibraryPlaylistsScreen(
     BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
+            .background(surfaceColor)
             .pullToRefresh(
                 state = pullRefreshState,
                 isRefreshing = isRefreshing,
@@ -474,6 +477,20 @@ fun LibraryPlaylistsScreen(
                                 )
                             )
                         }
+
+                        drawRect(
+                            brush = Brush.verticalGradient(
+                                colors = listOf(
+                                    Color.Transparent,
+                                    Color.Transparent,
+                                    surfaceColor.copy(alpha = gradientAlpha * 0.22f),
+                                    surfaceColor.copy(alpha = gradientAlpha * 0.55f),
+                                    surfaceColor
+                                ),
+                                startY = height * 0.4f,
+                                endY = height
+                            )
+                        )
                     }
             ) {}
         }

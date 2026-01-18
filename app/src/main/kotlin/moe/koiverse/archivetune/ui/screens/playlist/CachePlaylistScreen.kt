@@ -184,6 +184,7 @@ fun CachePlaylistScreen(
 
     // Capture fallback color in composable context
     val fallbackColor = MaterialTheme.colorScheme.surface.toArgb()
+    val surfaceColor = MaterialTheme.colorScheme.surface
 
     // Extract gradient colors from playlist cover (first song thumbnail)
     LaunchedEffect(cachedSongs) {
@@ -249,7 +250,9 @@ fun CachePlaylistScreen(
     val systemBarsTopPadding = WindowInsets.systemBars.asPaddingValues().calculateTopPadding()
 
     Box(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier
+            .fillMaxSize()
+            .background(surfaceColor),
     ) {
         // Mesh gradient background layer
         if (!disableBlur && gradientColors.isNotEmpty() && gradientAlpha > 0f) {
@@ -341,6 +344,20 @@ fun CachePlaylistScreen(
                                 )
                             )
                         }
+
+                        drawRect(
+                            brush = Brush.verticalGradient(
+                                colors = listOf(
+                                    Color.Transparent,
+                                    Color.Transparent,
+                                    surfaceColor.copy(alpha = gradientAlpha * 0.22f),
+                                    surfaceColor.copy(alpha = gradientAlpha * 0.55f),
+                                    surfaceColor
+                                ),
+                                startY = size.height * 0.35f,
+                                endY = size.height
+                            )
+                        )
                     }
             )
         }
