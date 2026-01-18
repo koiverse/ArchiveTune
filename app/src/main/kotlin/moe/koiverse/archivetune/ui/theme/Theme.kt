@@ -13,6 +13,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.SaverScope
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
@@ -66,11 +67,18 @@ fun ArchiveTuneTheme(
     } else {
         val baseColorScheme =
             remember(seedPalette, themeColor, darkTheme) {
-                m3DynamicColorScheme(
-                    seedPalette = seedPalette,
-                    keyColor = themeColor,
-                    isDark = darkTheme,
-                )
+                if (seedPalette != null) {
+                    exactPaletteColorScheme(
+                        palette = seedPalette,
+                        isDark = darkTheme,
+                    )
+                } else {
+                    m3DynamicColorScheme(
+                        seedPalette = null,
+                        keyColor = themeColor,
+                        isDark = darkTheme,
+                    )
+                }
             }
         val colorScheme = remember(baseColorScheme, pureBlack, darkTheme) {
             if (darkTheme && pureBlack) baseColorScheme.pureBlack(true) else baseColorScheme
@@ -83,6 +91,53 @@ fun ArchiveTuneTheme(
         )
     }
 }
+
+private fun exactPaletteColorScheme(
+    palette: ThemeSeedPalette,
+    isDark: Boolean,
+): ColorScheme {
+    val base = m3DynamicColorScheme(seedPalette = null, keyColor = palette.primary, isDark = isDark)
+
+    val surface = palette.neutral
+    val background = palette.neutral
+    val onSurface = surface.contentColor()
+    val onBackground = onSurface
+
+    fun container(color: Color) = lerp(color, surface, if (isDark) 0.65f else 0.35f)
+
+    val primaryContainer = container(palette.primary)
+    val secondaryContainer = container(palette.secondary)
+    val tertiaryContainer = container(palette.tertiary)
+    val surfaceVariant = lerp(surface, onSurface, if (isDark) 0.14f else 0.08f)
+
+    return base.copy(
+        primary = palette.primary,
+        onPrimary = palette.primary.contentColor(),
+        primaryContainer = primaryContainer,
+        onPrimaryContainer = primaryContainer.contentColor(),
+
+        secondary = palette.secondary,
+        onSecondary = palette.secondary.contentColor(),
+        secondaryContainer = secondaryContainer,
+        onSecondaryContainer = secondaryContainer.contentColor(),
+
+        tertiary = palette.tertiary,
+        onTertiary = palette.tertiary.contentColor(),
+        tertiaryContainer = tertiaryContainer,
+        onTertiaryContainer = tertiaryContainer.contentColor(),
+
+        surface = surface,
+        onSurface = onSurface,
+        background = background,
+        onBackground = onBackground,
+        surfaceVariant = surfaceVariant,
+        onSurfaceVariant = surfaceVariant.contentColor(),
+        surfaceTint = palette.primary,
+    )
+}
+
+private fun Color.contentColor(): Color =
+    if (luminance() > 0.5f) Color.Black else Color.White
 
 private fun m3DynamicColorScheme(
     seedPalette: ThemeSeedPalette?,
