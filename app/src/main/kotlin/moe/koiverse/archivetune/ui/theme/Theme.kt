@@ -18,6 +18,8 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.palette.graphics.Palette
 import com.kyant.m3color.hct.Hct
+import com.kyant.m3color.scheme.SchemeMonochrome
+import com.kyant.m3color.scheme.SchemeNeutral
 import com.kyant.m3color.scheme.SchemeTonalSpot
 import kotlin.math.abs
 import kotlin.math.min
@@ -93,10 +95,10 @@ private fun m3DynamicColorScheme(
     val tertiarySeed = seedPalette?.tertiary ?: primarySeed
     val neutralSeed = seedPalette?.neutral ?: primarySeed
 
-    val primaryScheme = SchemeTonalSpot(Hct.fromInt(primarySeed.toArgb()), isDark, contrastLevel)
-    val secondaryScheme = SchemeTonalSpot(Hct.fromInt(secondarySeed.toArgb()), isDark, contrastLevel)
-    val tertiaryScheme = SchemeTonalSpot(Hct.fromInt(tertiarySeed.toArgb()), isDark, contrastLevel)
-    val neutralScheme = SchemeTonalSpot(Hct.fromInt(neutralSeed.toArgb()), isDark, contrastLevel)
+    val primaryScheme = m3Scheme(primarySeed, isDark, contrastLevel)
+    val secondaryScheme = m3Scheme(secondarySeed, isDark, contrastLevel)
+    val tertiaryScheme = m3Scheme(tertiarySeed, isDark, contrastLevel)
+    val neutralScheme = m3Scheme(neutralSeed, isDark, contrastLevel)
 
     return ColorScheme(
         primary = primaryScheme.primary.toComposeColor(),
@@ -144,6 +146,15 @@ private fun m3DynamicColorScheme(
         surfaceTint = primaryScheme.surfaceTint.toComposeColor(),
     )
 }
+
+private fun m3Scheme(seedColor: Color, isDark: Boolean, contrastLevel: Double) =
+    Hct.fromInt(seedColor.toArgb()).let { hct ->
+        when {
+            hct.chroma < 4.0 -> SchemeMonochrome(hct, isDark, contrastLevel)
+            hct.chroma < 12.0 -> SchemeNeutral(hct, isDark, contrastLevel)
+            else -> SchemeTonalSpot(hct, isDark, contrastLevel)
+        }
+    }
 
 private fun Int.toComposeColor(): Color = Color(this.toLong() and 0xFFFFFFFFL)
 
