@@ -204,8 +204,8 @@ dependencies {
     implementation(project(":lastfm"))
     implementation(project(":betterlyrics"))
     implementation(project(":kizzy"))
-    implementation(project(":color"))
     implementation(project(":simpmusic"))
+    implementation("com.github.Kyant0:m3color:2025.4")
 
     implementation(libs.ktor.client.core)
     implementation(libs.ktor.serialization.json)

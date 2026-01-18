@@ -8,9 +8,7 @@ import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialExpressiveTheme
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
-import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.SaverScope
@@ -19,9 +17,8 @@ import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.palette.graphics.Palette
-import com.kyant.monet.LocalTonalPalettes
-import com.kyant.monet.TonalPalettes.Companion.toTonalPalettes
-import com.kyant.monet.dynamicColorScheme
+import com.kyant.m3color.hct.Hct
+import com.kyant.m3color.scheme.SchemeTonalSpot
 import kotlin.math.abs
 import kotlin.math.min
 
@@ -65,34 +62,66 @@ fun ArchiveTuneTheme(
             content = content
         )
     } else {
-        val tonalPalettes =
-            remember(seedPalette, themeColor) {
-                if (seedPalette != null) {
-                    lightColorScheme(
-                        primary = seedPalette.primary,
-                        secondary = seedPalette.secondary,
-                        tertiary = seedPalette.tertiary,
-                        surface = seedPalette.neutral,
-                        surfaceVariant = seedPalette.neutral,
-                    ).toTonalPalettes()
-                } else {
-                    themeColor.toTonalPalettes()
-                }
-            }
-
-        CompositionLocalProvider(LocalTonalPalettes provides tonalPalettes) {
-            val baseColorScheme = dynamicColorScheme(isLight = !darkTheme)
-            val colorScheme = remember(baseColorScheme, pureBlack, darkTheme) {
-                if (darkTheme && pureBlack) baseColorScheme.pureBlack(true) else baseColorScheme
-            }
-
-            MaterialExpressiveTheme(
-                colorScheme = colorScheme,
-                typography = typography,
-                content = content
-            )
+        val keyColor = remember(seedPalette, themeColor) { seedPalette?.primary ?: themeColor }
+        val baseColorScheme = remember(keyColor, darkTheme) { m3DynamicColorScheme(keyColor, darkTheme) }
+        val colorScheme = remember(baseColorScheme, pureBlack, darkTheme) {
+            if (darkTheme && pureBlack) baseColorScheme.pureBlack(true) else baseColorScheme
         }
+
+        MaterialExpressiveTheme(
+            colorScheme = colorScheme,
+            typography = typography,
+            content = content
+        )
     }
+}
+
+private fun m3DynamicColorScheme(
+    keyColor: Color,
+    isDark: Boolean,
+    contrastLevel: Double = 0.0,
+): ColorScheme {
+    val hct = Hct.fromInt(keyColor.toArgb())
+    val scheme = SchemeTonalSpot(hct, isDark, contrastLevel)
+
+    return ColorScheme(
+        background = Color(scheme.background),
+        error = Color(scheme.error),
+        errorContainer = Color(scheme.errorContainer),
+        inverseOnSurface = Color(scheme.inverseOnSurface),
+        inversePrimary = Color(scheme.inversePrimary),
+        inverseSurface = Color(scheme.inverseSurface),
+        onBackground = Color(scheme.onBackground),
+        onError = Color(scheme.onError),
+        onErrorContainer = Color(scheme.onErrorContainer),
+        onPrimary = Color(scheme.onPrimary),
+        onPrimaryContainer = Color(scheme.onPrimaryContainer),
+        onSecondary = Color(scheme.onSecondary),
+        onSecondaryContainer = Color(scheme.onSecondaryContainer),
+        onSurface = Color(scheme.onSurface),
+        onSurfaceVariant = Color(scheme.onSurfaceVariant),
+        onTertiary = Color(scheme.onTertiary),
+        onTertiaryContainer = Color(scheme.onTertiaryContainer),
+        outline = Color(scheme.outline),
+        outlineVariant = Color(scheme.outlineVariant),
+        primary = Color(scheme.primary),
+        primaryContainer = Color(scheme.primaryContainer),
+        scrim = Color(scheme.scrim),
+        secondary = Color(scheme.secondary),
+        secondaryContainer = Color(scheme.secondaryContainer),
+        surface = Color(scheme.surface),
+        surfaceBright = Color(scheme.surfaceBright),
+        surfaceContainer = Color(scheme.surfaceContainer),
+        surfaceContainerLow = Color(scheme.surfaceContainerLow),
+        surfaceContainerLowest = Color(scheme.surfaceContainerLowest),
+        surfaceContainerHigh = Color(scheme.surfaceContainerHigh),
+        surfaceContainerHighest = Color(scheme.surfaceContainerHighest),
+        surfaceDim = Color(scheme.surfaceDim),
+        surfaceTint = Color(scheme.surfaceTint),
+        surfaceVariant = Color(scheme.surfaceVariant),
+        tertiary = Color(scheme.tertiary),
+        tertiaryContainer = Color(scheme.tertiaryContainer),
+    )
 }
 
 fun Bitmap.extractThemeColor(): Color {
