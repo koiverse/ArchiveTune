@@ -1367,7 +1367,6 @@ private fun SelectedPaletteDetails(
         animationSpec = tween(durationMillis = 400),
         label = "detailNeutral"
     )
-    val scheme = MaterialTheme.colorScheme
     
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -1414,62 +1413,6 @@ private fun SelectedPaletteDetails(
                     label = "Neutral",
                     hexCode = palette.neutral.toHexString()
                 )
-            }
-
-            Spacer(modifier = Modifier.height(20.dp))
-
-            Text(
-                text = "Generated scheme",
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            val schemeSwatches = listOf(
-                Triple("Primary", scheme.primary, scheme.primary.toHexString()),
-                Triple("OnPrimary", scheme.onPrimary, scheme.onPrimary.toHexString()),
-                Triple("PrimCont", scheme.primaryContainer, scheme.primaryContainer.toHexString()),
-                Triple("OnPCont", scheme.onPrimaryContainer, scheme.onPrimaryContainer.toHexString()),
-
-                Triple("Secondary", scheme.secondary, scheme.secondary.toHexString()),
-                Triple("OnSecond", scheme.onSecondary, scheme.onSecondary.toHexString()),
-                Triple("SecCont", scheme.secondaryContainer, scheme.secondaryContainer.toHexString()),
-                Triple("OnSCont", scheme.onSecondaryContainer, scheme.onSecondaryContainer.toHexString()),
-
-                Triple("Tertiary", scheme.tertiary, scheme.tertiary.toHexString()),
-                Triple("OnTert", scheme.onTertiary, scheme.onTertiary.toHexString()),
-                Triple("TerCont", scheme.tertiaryContainer, scheme.tertiaryContainer.toHexString()),
-                Triple("OnTCont", scheme.onTertiaryContainer, scheme.onTertiaryContainer.toHexString()),
-
-                Triple("Surface", scheme.surface, scheme.surface.toHexString()),
-                Triple("OnSurf", scheme.onSurface, scheme.onSurface.toHexString()),
-                Triple("SurfVar", scheme.surfaceVariant, scheme.surfaceVariant.toHexString()),
-                Triple("OnSVar", scheme.onSurfaceVariant, scheme.onSurfaceVariant.toHexString()),
-
-                Triple("Background", scheme.background, scheme.background.toHexString()),
-                Triple("OnBack", scheme.onBackground, scheme.onBackground.toHexString()),
-                Triple("Outline", scheme.outline, scheme.outline.toHexString()),
-                Triple("Error", scheme.error, scheme.error.toHexString()),
-            )
-
-            schemeSwatches.chunked(4).forEachIndexed { index, row ->
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly
-                ) {
-                    row.forEach { (label, color, hex) ->
-                        ColorSwatch(
-                            color = color,
-                            label = label,
-                            hexCode = hex
-                        )
-                    }
-                }
-                if (index != (schemeSwatches.size - 1) / 4) {
-                    Spacer(modifier = Modifier.height(16.dp))
-                }
             }
         }
     }
