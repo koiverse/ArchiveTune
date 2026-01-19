@@ -34,11 +34,11 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
-import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
@@ -245,13 +245,11 @@ fun ThemeCreatorScreen(
                     .padding(horizontal = 16.dp),
             ) {
                 ExtendedFloatingActionButton(
-                    onClick = { importLauncher.launch(arrayOf("application/json", "text/plain", "*/*")) },
-                    icon = { Icon(painter = painterResource(R.drawable.restore), contentDescription = null) },
                     text = { Text(stringResource(R.string.import_theme)) },
-                    colors = FloatingActionButtonDefaults.extendedFloatingActionButtonColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                        contentColor = MaterialTheme.colorScheme.onSurface,
-                    )
+                    icon = { Icon(painter = painterResource(R.drawable.restore), contentDescription = null) },
+                    onClick = { importLauncher.launch(arrayOf("application/json", "text/plain", "*/*")) },
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    contentColor = MaterialTheme.colorScheme.onSurface,
                 )
                 ExtendedFloatingActionButton(
                     onClick = {
@@ -262,12 +260,10 @@ fun ThemeCreatorScreen(
                             .take(64)
                         exportLauncher.launch("$safeName.json")
                     },
-                    icon = { Icon(painter = painterResource(R.drawable.share), contentDescription = null) },
                     text = { Text(stringResource(R.string.export_theme)) },
-                    colors = FloatingActionButtonDefaults.extendedFloatingActionButtonColors(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor = MaterialTheme.colorScheme.onPrimary,
-                    )
+                    icon = { Icon(painter = painterResource(R.drawable.share), contentDescription = null) },
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
                 )
             }
         }
@@ -735,7 +731,7 @@ private fun SeedColorEditor(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        Icon(painter = painterResource(R.drawable.copy_link), contentDescription = null, modifier = Modifier.size(18.dp))
+                        Icon(painter = painterResource(R.drawable.link), contentDescription = null, modifier = Modifier.size(18.dp))
                         Text(text = stringResource(R.string.copy), style = MaterialTheme.typography.labelLarge)
                     }
                 }

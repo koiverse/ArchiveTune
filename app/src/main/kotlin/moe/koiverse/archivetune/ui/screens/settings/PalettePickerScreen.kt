@@ -47,7 +47,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -913,32 +912,28 @@ fun PalettePickerScreen(
                 )
             ) {
                 ExtendedFloatingActionButton(
-                    onClick = { navController.navigate("settings/appearance/theme_creator") },
+                    text = { Text(stringResource(R.string.custom_theme)) },
                     icon = {
                         Icon(
                             painter = painterResource(R.drawable.palette),
                             contentDescription = null
                         )
                     },
-                    text = { Text(stringResource(R.string.custom_theme)) },
-                    colors = FloatingActionButtonDefaults.extendedFloatingActionButtonColors(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor = MaterialTheme.colorScheme.onPrimary
-                    )
+                    onClick = { navController.navigate("settings/appearance/theme_creator") },
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
                 )
                 ExtendedFloatingActionButton(
-                    onClick = { importLauncher.launch(arrayOf("application/json", "text/plain", "*/*")) },
+                    text = { Text(stringResource(R.string.import_theme)) },
                     icon = {
                         Icon(
                             painter = painterResource(R.drawable.restore),
                             contentDescription = null
                         )
                     },
-                    text = { Text(stringResource(R.string.import_theme)) },
-                    colors = FloatingActionButtonDefaults.extendedFloatingActionButtonColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                        contentColor = MaterialTheme.colorScheme.onSurface
-                    )
+                    onClick = { importLauncher.launch(arrayOf("application/json", "text/plain", "*/*")) },
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    contentColor = MaterialTheme.colorScheme.onSurface,
                 )
             }
         }
