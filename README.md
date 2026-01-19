@@ -65,6 +65,7 @@
 ## 📸 Showcase
 
 <div align="center">
+  <img src="https://raw.githubusercontent.com/koiverse/ArchiveTune/refs/heads/dev/fastlane/metadata/android/en-US/images/ArchiveTuneBanner.png" alt="ArchiveTune Banner" style="width: 100%; max-width: 400px; border-radius: 12px;">
   <table border="0">
     <tr>
       <td><img src="https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/phoneScreenshots/screenshot_1.jpg" width="180" style="border-radius: 12px;"></td>
