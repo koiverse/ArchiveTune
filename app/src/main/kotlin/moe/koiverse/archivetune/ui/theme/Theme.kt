@@ -17,12 +17,21 @@ import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.palette.graphics.Palette
-import com.materialkolor.PaletteStyle
-import com.materialkolor.dynamiccolor.ColorSpec
-import com.materialkolor.rememberDynamicColorScheme
-import com.materialkolor.score.Score
+import com.kyant.m3color.hct.Hct
+import com.kyant.m3color.scheme.SchemeMonochrome
+import com.kyant.m3color.scheme.SchemeNeutral
+import com.kyant.m3color.scheme.SchemeTonalSpot
+import kotlin.math.abs
+import kotlin.math.min
 
 val DefaultThemeColor = Color(0xFFED5564)
+
+data class ThemeSeedPalette(
+    val primary: Color,
+    val secondary: Color,
+    val tertiary: Color,
+    val neutral: Color,
+)
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -30,69 +39,241 @@ fun ArchiveTuneTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     pureBlack: Boolean = false,
     themeColor: Color = DefaultThemeColor,
+    seedPalette: ThemeSeedPalette? = null,
+    useSystemFont: Boolean = false,
     content: @Composable () -> Unit,
 ) {
     val context = LocalContext.current
-    // Determine if system dynamic colors should be used (Android S+ and default theme color)
-    val useSystemDynamicColor = (themeColor == DefaultThemeColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
+    val useSystemDynamicColor =
+        (seedPalette == null && themeColor == DefaultThemeColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
 
-    // Select the appropriate color scheme generation method
-    val baseColorScheme = if (useSystemDynamicColor) {
-        // Use standard Material 3 dynamic color functions for system wallpaper colors
-        if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+    val typography = remember(useSystemFont) {
+        if (useSystemFont) SystemTypography else AppTypography
+    }
+
+    if (useSystemDynamicColor) {
+        val baseColorScheme =
+            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+        val colorScheme = remember(baseColorScheme, pureBlack, darkTheme) {
+            if (darkTheme && pureBlack) baseColorScheme.pureBlack(true) else baseColorScheme
+        }
+
+        MaterialExpressiveTheme(
+            colorScheme = colorScheme,
+            typography = typography,
+            content = content
+        )
     } else {
-        // Use materialKolor only when a specific seed color is provided
-        rememberDynamicColorScheme(
-            seedColor = themeColor, // themeColor is guaranteed non-default here
-            isDark = darkTheme,
-            specVersion = ColorSpec.SpecVersion.SPEC_2025,
-            style = PaletteStyle.TonalSpot // Keep existing style
+        val baseColorScheme =
+            remember(seedPalette, themeColor, darkTheme) {
+                if (seedPalette != null) {
+                    exactPaletteColorScheme(
+                        palette = seedPalette,
+                        isDark = darkTheme,
+                    )
+                } else {
+                    m3DynamicColorScheme(
+                        seedPalette = null,
+                        keyColor = themeColor,
+                        isDark = darkTheme,
+                    )
+                }
+            }
+        val colorScheme = remember(baseColorScheme, pureBlack, darkTheme) {
+            if (darkTheme && pureBlack) baseColorScheme.pureBlack(true) else baseColorScheme
+        }
+
+        MaterialExpressiveTheme(
+            colorScheme = colorScheme,
+            typography = typography,
+            content = content
         )
     }
+}
 
-    // Apply pureBlack modification if needed, similar to original logic
-    val colorScheme = remember(baseColorScheme, pureBlack, darkTheme) {
-        if (darkTheme && pureBlack) {
-            baseColorScheme.pureBlack(true)
-        } else {
-            baseColorScheme
-        }
-    }
+private fun exactPaletteColorScheme(
+    palette: ThemeSeedPalette,
+    isDark: Boolean,
+): ColorScheme {
+    val primaryScheme = m3Scheme(palette.primary, isDark, 0.0)
+    val secondaryScheme = m3Scheme(palette.secondary, isDark, 0.0)
+    val tertiaryScheme = m3Scheme(palette.tertiary, isDark, 0.0)
+    val neutralScheme = m3Scheme(palette.neutral, isDark, 0.0)
 
-    // Use the defined M3 Expressive Typography
-    // TODO: Define M3 Expressive Shapes instance if needed
-    MaterialExpressiveTheme(
-        colorScheme = colorScheme,
-        typography = AppTypography, // Use the defined AppTypography
-        // shapes = MaterialTheme.shapes, // Placeholder - Needs update (Shapes not used in original)
-        content = content
+    return ColorScheme(
+        primary = primaryScheme.primary.toComposeColor(),
+        onPrimary = primaryScheme.onPrimary.toComposeColor(),
+        primaryContainer = primaryScheme.primaryContainer.toComposeColor(),
+        onPrimaryContainer = primaryScheme.onPrimaryContainer.toComposeColor(),
+        inversePrimary = primaryScheme.inversePrimary.toComposeColor(),
+
+        secondary = secondaryScheme.primary.toComposeColor(),
+        onSecondary = secondaryScheme.onPrimary.toComposeColor(),
+        secondaryContainer = secondaryScheme.primaryContainer.toComposeColor(),
+        onSecondaryContainer = secondaryScheme.onPrimaryContainer.toComposeColor(),
+
+        tertiary = tertiaryScheme.primary.toComposeColor(),
+        onTertiary = tertiaryScheme.onPrimary.toComposeColor(),
+        tertiaryContainer = tertiaryScheme.primaryContainer.toComposeColor(),
+        onTertiaryContainer = tertiaryScheme.onPrimaryContainer.toComposeColor(),
+
+        background = neutralScheme.background.toComposeColor(),
+        onBackground = neutralScheme.onBackground.toComposeColor(),
+        surface = neutralScheme.surface.toComposeColor(),
+        onSurface = neutralScheme.onSurface.toComposeColor(),
+        surfaceVariant = neutralScheme.surfaceVariant.toComposeColor(),
+        onSurfaceVariant = neutralScheme.onSurfaceVariant.toComposeColor(),
+        inverseSurface = neutralScheme.inverseSurface.toComposeColor(),
+        inverseOnSurface = neutralScheme.inverseOnSurface.toComposeColor(),
+
+        surfaceBright = neutralScheme.surfaceBright.toComposeColor(),
+        surfaceDim = neutralScheme.surfaceDim.toComposeColor(),
+        surfaceContainer = neutralScheme.surfaceContainer.toComposeColor(),
+        surfaceContainerLow = neutralScheme.surfaceContainerLow.toComposeColor(),
+        surfaceContainerLowest = neutralScheme.surfaceContainerLowest.toComposeColor(),
+        surfaceContainerHigh = neutralScheme.surfaceContainerHigh.toComposeColor(),
+        surfaceContainerHighest = neutralScheme.surfaceContainerHighest.toComposeColor(),
+
+        outline = neutralScheme.outline.toComposeColor(),
+        outlineVariant = neutralScheme.outlineVariant.toComposeColor(),
+
+        error = primaryScheme.error.toComposeColor(),
+        onError = primaryScheme.onError.toComposeColor(),
+        errorContainer = primaryScheme.errorContainer.toComposeColor(),
+        onErrorContainer = primaryScheme.onErrorContainer.toComposeColor(),
+
+        scrim = neutralScheme.scrim.toComposeColor(),
+        surfaceTint = primaryScheme.surfaceTint.toComposeColor(),
     )
 }
 
+
+private fun m3DynamicColorScheme(
+    seedPalette: ThemeSeedPalette?,
+    keyColor: Color,
+    isDark: Boolean,
+    contrastLevel: Double = 0.0,
+): ColorScheme {
+    val primarySeed = seedPalette?.primary ?: keyColor
+    val secondarySeed = seedPalette?.secondary ?: primarySeed
+    val tertiarySeed = seedPalette?.tertiary ?: primarySeed
+    val neutralSeed = seedPalette?.neutral ?: primarySeed
+
+    val primaryScheme = m3Scheme(primarySeed, isDark, contrastLevel)
+    val secondaryScheme = m3Scheme(secondarySeed, isDark, contrastLevel)
+    val tertiaryScheme = m3Scheme(tertiarySeed, isDark, contrastLevel)
+    val neutralScheme = m3Scheme(neutralSeed, isDark, contrastLevel)
+
+    return ColorScheme(
+        primary = primaryScheme.primary.toComposeColor(),
+        onPrimary = primaryScheme.onPrimary.toComposeColor(),
+        primaryContainer = primaryScheme.primaryContainer.toComposeColor(),
+        onPrimaryContainer = primaryScheme.onPrimaryContainer.toComposeColor(),
+        inversePrimary = primaryScheme.inversePrimary.toComposeColor(),
+
+        secondary = secondaryScheme.primary.toComposeColor(),
+        onSecondary = secondaryScheme.onPrimary.toComposeColor(),
+        secondaryContainer = secondaryScheme.primaryContainer.toComposeColor(),
+        onSecondaryContainer = secondaryScheme.onPrimaryContainer.toComposeColor(),
+
+        tertiary = tertiaryScheme.primary.toComposeColor(),
+        onTertiary = tertiaryScheme.onPrimary.toComposeColor(),
+        tertiaryContainer = tertiaryScheme.primaryContainer.toComposeColor(),
+        onTertiaryContainer = tertiaryScheme.onPrimaryContainer.toComposeColor(),
+
+        background = neutralScheme.background.toComposeColor(),
+        onBackground = neutralScheme.onBackground.toComposeColor(),
+        surface = neutralScheme.surface.toComposeColor(),
+        onSurface = neutralScheme.onSurface.toComposeColor(),
+        surfaceVariant = neutralScheme.surfaceVariant.toComposeColor(),
+        onSurfaceVariant = neutralScheme.onSurfaceVariant.toComposeColor(),
+        inverseSurface = neutralScheme.inverseSurface.toComposeColor(),
+        inverseOnSurface = neutralScheme.inverseOnSurface.toComposeColor(),
+
+        surfaceBright = neutralScheme.surfaceBright.toComposeColor(),
+        surfaceDim = neutralScheme.surfaceDim.toComposeColor(),
+        surfaceContainer = neutralScheme.surfaceContainer.toComposeColor(),
+        surfaceContainerLow = neutralScheme.surfaceContainerLow.toComposeColor(),
+        surfaceContainerLowest = neutralScheme.surfaceContainerLowest.toComposeColor(),
+        surfaceContainerHigh = neutralScheme.surfaceContainerHigh.toComposeColor(),
+        surfaceContainerHighest = neutralScheme.surfaceContainerHighest.toComposeColor(),
+
+        outline = neutralScheme.outline.toComposeColor(),
+        outlineVariant = neutralScheme.outlineVariant.toComposeColor(),
+
+        error = primaryScheme.error.toComposeColor(),
+        onError = primaryScheme.onError.toComposeColor(),
+        errorContainer = primaryScheme.errorContainer.toComposeColor(),
+        onErrorContainer = primaryScheme.onErrorContainer.toComposeColor(),
+
+        scrim = neutralScheme.scrim.toComposeColor(),
+        surfaceTint = primaryScheme.surfaceTint.toComposeColor(),
+    )
+}
+
+private fun m3Scheme(seedColor: Color, isDark: Boolean, contrastLevel: Double) =
+    Hct.fromInt(seedColor.toArgb()).let { hct ->
+        when {
+            hct.chroma < 4.0 -> SchemeMonochrome(hct, isDark, contrastLevel)
+            hct.chroma < 12.0 -> SchemeNeutral(hct, isDark, contrastLevel)
+            else -> SchemeTonalSpot(hct, isDark, contrastLevel)
+        }
+    }
+
+private fun Int.toComposeColor(): Color = Color(this.toLong() and 0xFFFFFFFFL)
+
 fun Bitmap.extractThemeColor(): Color {
-    val colorsToPopulation = Palette.from(this)
-        .maximumColorCount(8)
+    val palette = Palette.from(this)
+        .maximumColorCount(16)
         .generate()
-        .swatches
-        .associate { it.rgb to it.population }
-    val rankedColors = Score.score(colorsToPopulation)
-    return Color(rankedColors.first())
+
+    val swatch =
+        palette.vibrantSwatch
+            ?: palette.dominantSwatch
+            ?: palette.mutedSwatch
+            ?: palette.lightVibrantSwatch
+            ?: palette.darkVibrantSwatch
+            ?: palette.lightMutedSwatch
+            ?: palette.darkMutedSwatch
+
+    return swatch?.rgb?.toComposeColor() ?: DefaultThemeColor
 }
 
 fun Bitmap.extractGradientColors(): List<Color> {
-    val extractedColors = Palette.from(this)
-        .maximumColorCount(64)
+    val palette = Palette.from(this)
+        .maximumColorCount(48)
         .generate()
-        .swatches
-        .associate { it.rgb to it.population }
 
-    val orderedColors = Score.score(extractedColors, 2, 0xff4285f4.toInt(), true)
-        .sortedByDescending { Color(it).luminance() }
+    val swatches = palette.swatches
+        .filter { it.population > 0 }
+        .sortedByDescending { it.population }
 
-    return if (orderedColors.size >= 2)
-        listOf(Color(orderedColors[0]), Color(orderedColors[1]))
-    else
-        listOf(Color(0xFF595959), Color(0xFF0D0D0D))
+    if (swatches.isEmpty()) {
+        return listOf(Color(0xFF595959), Color(0xFF0D0D0D))
+    }
+
+    val first = swatches.first()
+    val firstHsv = FloatArray(3)
+    android.graphics.Color.colorToHSV(first.rgb, firstHsv)
+
+    val second =
+        swatches
+            .drop(1)
+            .maxByOrNull { candidate ->
+                val hsv = FloatArray(3)
+                android.graphics.Color.colorToHSV(candidate.rgb, hsv)
+
+                val hueDiffRaw = abs(hsv[0] - firstHsv[0])
+                val hueDiff = min(hueDiffRaw, 360f - hueDiffRaw) / 180f
+                val satDiff = abs(hsv[1] - firstHsv[1])
+                val valueDiff = abs(hsv[2] - firstHsv[2])
+
+                hueDiff * 0.65f + satDiff * 0.2f + valueDiff * 0.15f
+            }
+            ?: first
+
+    return listOf(first.rgb.toComposeColor(), second.rgb.toComposeColor())
+        .sortedByDescending { it.luminance() }
 }
 
 fun ColorScheme.pureBlack(apply: Boolean) =
@@ -102,6 +283,6 @@ fun ColorScheme.pureBlack(apply: Boolean) =
     ) else this
 
 val ColorSaver = object : Saver<Color, Int> {
-    override fun restore(value: Int): Color = Color(value)
+    override fun restore(value: Int): Color = value.toComposeColor()
     override fun SaverScope.save(value: Color): Int = value.toArgb()
 }

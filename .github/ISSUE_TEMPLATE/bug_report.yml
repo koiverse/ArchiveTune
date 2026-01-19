@@ -1,0 +1,87 @@
+name: Bug Report
+description: Report a bug to help us improve ArchiveTune
+labels: [bug]
+body:
+  - type: checkboxes
+    id: pre-submission-checklist
+    attributes:
+      label: Bug Submission Checklist
+      description: >
+        Before submitting, please ensure you have completed the following steps. 
+        Incomplete reports or reports for versions other than the latest debug build may be closed.
+      options:
+        - label: I have tested this bug on the [latest debug version](https://github.com/koiverse/ArchiveTune/actions).
+          required: true
+        - label: I have searched existing issues (open and closed) to avoid duplicates.
+          required: true
+        - label: This report describes a single bug.
+          required: true
+        - label: The issue title is clear and concise.
+          required: true
+
+  - type: textarea
+    id: reproduction-steps
+    attributes:
+      label: Steps to Reproduce
+      description: How can we make this bug happen again?
+      placeholder: |
+        1. Open the app
+        2. Navigate to '...'
+        3. Tap on '....'
+        4. See error/crash
+    validations:
+      required: true
+
+  - type: textarea
+    id: behavior-comparison
+    attributes:
+      label: Expected vs. Actual Behavior
+      description: Describe what you expected to see and what actually occurred.
+      placeholder: |
+        Expected: The archive should load within 2 seconds.
+        Actual: The app freezes and eventually crashes.
+    validations:
+      required: true
+
+  - type: textarea
+    id: visual-evidence
+    attributes:
+      label: Visual Evidence
+      description: Screenshots or screen recordings are highly encouraged to help us diagnose the UI/UX issues.
+      placeholder: Drag and drop files here...
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs (Critical)
+      description: |
+        Please provide `adb logcat` output or app-generated logs. 
+        **Note:** Without logs, it is often impossible to fix internal crashes.
+      placeholder: Paste your logs here or attach a .txt file.
+    validations:
+      required: true
+
+  - type: input
+    id: environment-app-version
+    attributes:
+      label: ArchiveTune Version
+      description: Found in Settings -> About.
+      placeholder: e.g., 0.5.3 (Debug)
+    validations:
+      required: true
+
+  - type: input
+    id: environment-os-version
+    attributes:
+      label: Android Version / ROM
+      description: e.g., Android 13, LineageOS 20, OneUI 5.
+      placeholder: e.g., Android 14
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional Context
+      description: Anything else we should know? (e.g., specific device model, recent system updates, other apps that might be interfering).
+      placeholder: e.g., "I am using a Pixel 7 Pro running LineageOS 20."

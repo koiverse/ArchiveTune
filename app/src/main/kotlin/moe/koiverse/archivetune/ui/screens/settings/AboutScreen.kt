@@ -5,12 +5,21 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.ui.Alignment
@@ -18,9 +27,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import coil3.compose.AsyncImage
@@ -41,6 +52,19 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.datastore.preferences.core.edit
+import io.ktor.client.HttpClient
+import io.ktor.client.request.get
+import io.ktor.client.request.headers
+import io.ktor.client.statement.HttpResponse
+import io.ktor.client.statement.bodyAsText
+import io.ktor.http.HttpStatusCode
+import moe.koiverse.archivetune.constants.GitHubContributorsEtagKey
+import moe.koiverse.archivetune.constants.GitHubContributorsJsonKey
+import moe.koiverse.archivetune.constants.GitHubContributorsLastCheckedAtKey
+import moe.koiverse.archivetune.utils.dataStore
+import moe.koiverse.archivetune.utils.getAsync
+import org.json.JSONArray
 
 data class TeamMember(
     val avatarUrl: String,
@@ -52,6 +76,89 @@ data class TeamMember(
     val discord: String? = null
 
 )
+
+private data class GitHubContributor(
+    val login: String,
+    val avatarUrl: String,
+    val profileUrl: String,
+)
+
+private sealed interface ContributorsState {
+    data object Loading : ContributorsState
+    data class Loaded(val contributors: List<GitHubContributor>) : ContributorsState
+    data object Error : ContributorsState
+}
+
+private const val ContributorsCacheCheckIntervalMs: Long = 24 * 60 * 60 * 1000L
+
+private fun parseContributorsJson(
+    json: String,
+): List<GitHubContributor> {
+    val jsonArray = JSONArray(json)
+    val contributors = ArrayList<GitHubContributor>(jsonArray.length())
+    for (i in 0 until jsonArray.length()) {
+        val item = jsonArray.getJSONObject(i)
+        val login = item.optString("login", "")
+        val type = item.optString("type", "")
+        val avatarUrl = item.optString("avatar_url", "")
+        val profileUrl = item.optString("html_url", "")
+        val isBot =
+            type.equals("Bot", ignoreCase = true) ||
+                login.lowercase().endsWith("[bot]")
+
+        if (!isBot && login.isNotBlank() && avatarUrl.isNotBlank()) {
+            contributors.add(
+                GitHubContributor(
+                    login = login,
+                    avatarUrl = avatarUrl,
+                    profileUrl = profileUrl,
+                )
+            )
+        }
+    }
+    return contributors
+}
+
+private data class ContributorsNetworkResult(
+    val status: HttpStatusCode,
+    val body: String?,
+    val etag: String?,
+)
+
+private suspend fun fetchRepoContributorsNetwork(
+    client: HttpClient,
+    owner: String,
+    repo: String,
+    perPage: Int = 100,
+    cachedEtag: String?,
+): ContributorsNetworkResult {
+    val response: HttpResponse =
+        client.get("https://api.github.com/repos/$owner/$repo/contributors?per_page=$perPage") {
+            headers {
+                append("Accept", "application/vnd.github+json")
+                append("User-Agent", "ArchiveTune")
+                if (!cachedEtag.isNullOrBlank()) {
+                    append("If-None-Match", cachedEtag)
+                }
+            }
+        }
+    val etag = response.headers["ETag"]
+    return when (response.status) {
+        HttpStatusCode.NotModified ->
+            ContributorsNetworkResult(
+                status = response.status,
+                body = null,
+                etag = cachedEtag ?: etag,
+            )
+
+        else ->
+            ContributorsNetworkResult(
+                status = response.status,
+                body = response.bodyAsText(),
+                etag = etag,
+            )
+    }
+}
 
 @Composable
 fun OutlinedIconChip(
@@ -110,7 +217,78 @@ fun AboutScreen(
     navController: NavController,
     scrollBehavior: TopAppBarScrollBehavior,
 ) {
+    val context = LocalContext.current
     val uriHandler = LocalUriHandler.current
+    val httpClient = remember { HttpClient() }
+    DisposableEffect(Unit) {
+        onDispose { httpClient.close() }
+    }
+    var contributorsState by remember { mutableStateOf<ContributorsState>(ContributorsState.Loading) }
+    LaunchedEffect(Unit) {
+        val cachedJson = context.dataStore.getAsync(GitHubContributorsJsonKey)
+        val cachedEtag = context.dataStore.getAsync(GitHubContributorsEtagKey)
+        val lastCheckedAt = context.dataStore.getAsync(GitHubContributorsLastCheckedAtKey, 0L)
+        val now = System.currentTimeMillis()
+
+        val cachedContributors =
+            cachedJson
+                ?.takeIf { it.isNotBlank() }
+                ?.let { runCatching { parseContributorsJson(it) }.getOrNull() }
+
+        if (!cachedContributors.isNullOrEmpty()) {
+            contributorsState = ContributorsState.Loaded(cachedContributors)
+        }
+
+        val shouldCheckNetwork =
+            cachedJson.isNullOrBlank() || (now - lastCheckedAt) >= ContributorsCacheCheckIntervalMs
+
+        if (!shouldCheckNetwork) {
+            if (cachedContributors.isNullOrEmpty()) contributorsState = ContributorsState.Error
+            return@LaunchedEffect
+        }
+
+        val networkResult =
+            runCatching {
+                fetchRepoContributorsNetwork(
+                    client = httpClient,
+                    owner = "koiverse",
+                    repo = "ArchiveTune",
+                    cachedEtag = cachedEtag,
+                )
+            }.getOrNull()
+
+        if (networkResult == null) {
+            if (cachedContributors.isNullOrEmpty()) contributorsState = ContributorsState.Error
+            return@LaunchedEffect
+        }
+
+        context.dataStore.edit { prefs ->
+            prefs[GitHubContributorsLastCheckedAtKey] = now
+            networkResult.etag?.let { prefs[GitHubContributorsEtagKey] = it }
+            networkResult.body?.let { prefs[GitHubContributorsJsonKey] = it }
+        }
+
+        when {
+            networkResult.status == HttpStatusCode.NotModified -> {
+                if (cachedContributors.isNullOrEmpty()) {
+                    contributorsState = ContributorsState.Error
+                }
+            }
+
+            (networkResult.status.value in 200..299) && !networkResult.body.isNullOrBlank() -> {
+                val contributors = runCatching { parseContributorsJson(networkResult.body) }.getOrNull()
+                if (!contributors.isNullOrEmpty()) {
+                    contributorsState = ContributorsState.Loaded(contributors)
+                } else if (cachedContributors.isNullOrEmpty()) {
+                    contributorsState = ContributorsState.Error
+                }
+            }
+
+            else -> {
+                if (cachedContributors.isNullOrEmpty()) contributorsState = ContributorsState.Error
+            }
+        }
+    }
 
     val teamMembers = listOf(
         TeamMember(
@@ -119,7 +297,7 @@ fun AboutScreen(
             position = "always on mode UwU",
             profileUrl = "https://github.com/koiverse",
             github = "https://github.com/koiverse",
-            website = "https://prplmoe.me", // If blank, hide OutlinedIconChip for website
+            website = "https://koiiverse.cloud", // If blank, hide OutlinedIconChip for website
             discord = "https://discord.com/users/886971572668219392"
         ),
         TeamMember(
@@ -134,7 +312,7 @@ fun AboutScreen(
         TeamMember(
             avatarUrl = "https://avatars.githubusercontent.com/u/80542861?v=4",
             name = "MO AGAMY",
-            position = "Original Developer",
+            position = "Metrolist Dev",
             profileUrl = "https://github.com/mostafaalagamy",
             github = "https://github.com/mostafaalagamy",
             website = null,
@@ -282,7 +460,7 @@ fun AboutScreen(
                 Spacer(Modifier.width(8.dp))
 
                 IconButton(
-                    onClick = { uriHandler.openUri("https://archivetune.prplmoe.me") },
+                    onClick = { uriHandler.openUri("https://archivetune.koiiverse.cloud") },
                 ) {
                     Icon(
                         painter = painterResource(R.drawable.website),
@@ -385,6 +563,139 @@ fun AboutScreen(
                     }
                 }
 
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 6.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainer
+                    ),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                    shape = RoundedCornerShape(20.dp)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(14.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                text = "Awesome contributor",
+                                style = MaterialTheme.typography.headlineSmall,
+                            )
+                        }
+                        Spacer(Modifier.height(12.dp))
+                        ContributorGrid(
+                            state = contributorsState,
+                            onOpenProfile = uriHandler::openUri,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun ContributorGrid(
+    state: ContributorsState,
+    onOpenProfile: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val contributors = when (state) {
+        ContributorsState.Loading -> null
+        ContributorsState.Error -> emptyList()
+        is ContributorsState.Loaded -> state.contributors.take(20)
+    }
+
+    val columns = 4
+    val spacing = 10.dp
+    BoxWithConstraints(modifier = modifier) {
+        val itemWidth = (maxWidth - spacing * (columns - 1)) / columns
+        val tileShape = RoundedCornerShape(22.dp)
+        val tileColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
+
+        FlowRow(
+            maxItemsInEachRow = columns,
+            horizontalArrangement = Arrangement.spacedBy(spacing, Alignment.CenterHorizontally),
+            verticalArrangement = Arrangement.spacedBy(spacing),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            if (contributors == null) {
+                repeat(6) {
+                    Surface(
+                        shape = tileShape,
+                        color = tileColor,
+                        modifier = Modifier.width(itemWidth)
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 14.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.surfaceContainerHighest)
+                            )
+                            Spacer(Modifier.height(10.dp))
+                            Box(
+                                modifier = Modifier
+                                    .height(14.dp)
+                                    .fillMaxWidth(0.7f)
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .background(MaterialTheme.colorScheme.surfaceContainerHighest)
+                            )
+                        }
+                    }
+                }
+            } else {
+                contributors.forEach { contributor ->
+                    Surface(
+                        shape = tileShape,
+                        color = tileColor,
+                        modifier = Modifier
+                            .width(itemWidth)
+                            .clickable(enabled = contributor.profileUrl.isNotBlank()) {
+                                if (contributor.profileUrl.isNotBlank()) {
+                                    onOpenProfile(contributor.profileUrl)
+                                }
+                            }
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 14.dp, horizontal = 10.dp)
+                        ) {
+                            AsyncImage(
+                                model = contributor.avatarUrl,
+                                contentDescription = contributor.login,
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.surfaceContainerHighest)
+                            )
+                            Spacer(Modifier.height(10.dp))
+                            Text(
+                                text = contributor.login,
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                    }
+                }
             }
         }
     }

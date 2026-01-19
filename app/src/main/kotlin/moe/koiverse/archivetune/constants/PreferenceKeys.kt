@@ -9,8 +9,10 @@ import java.time.LocalDateTime
 import java.time.ZoneOffset
 
 val DynamicThemeKey = booleanPreferencesKey("dynamicTheme")
+val CustomThemeColorKey = stringPreferencesKey("customThemeColor")
 val DarkModeKey = stringPreferencesKey("darkMode")
 val PureBlackKey = booleanPreferencesKey("pureBlack")
+val UseSystemFontKey = booleanPreferencesKey("useSystemFont")
 val DefaultOpenTabKey = stringPreferencesKey("defaultOpenTab")
 val SlimNavBarKey = booleanPreferencesKey("slimNavBar")
 val GridItemsSizeKey = stringPreferencesKey("gridItemSize")
@@ -37,7 +39,9 @@ val ContentCountryKey = stringPreferencesKey("contentCountry")
 val EnableKugouKey = booleanPreferencesKey("enableKugou")
 val EnableLrcLibKey = booleanPreferencesKey("enableLrclib")
 val EnableBetterLyricsKey = booleanPreferencesKey("enableBetterLyrics")
+val EnableSimpMusicLyricsKey = booleanPreferencesKey("enableSimpMusicLyrics")
 val HideExplicitKey = booleanPreferencesKey("hideExplicit")
+val HideVideoKey = booleanPreferencesKey("hideVideo")
 val ProxyEnabledKey = booleanPreferencesKey("proxyEnabled")
 val ProxyUrlKey = stringPreferencesKey("proxyUrl")
 val ProxyTypeKey = stringPreferencesKey("proxyType")
@@ -72,6 +76,7 @@ enum class AudioQuality {
 val PersistentQueueKey = booleanPreferencesKey("persistentQueue")
 val SkipSilenceKey = booleanPreferencesKey("skipSilence")
 val AudioNormalizationKey = booleanPreferencesKey("audioNormalization")
+val AudioOffload = booleanPreferencesKey("audioOffload")
 val AudioCrossfadeDurationKey = intPreferencesKey("audioCrossfadeDuration")
 val AutoLoadMoreKey = booleanPreferencesKey("autoLoadMore")
 val DisableLoadMoreWhenRepeatAllKey = booleanPreferencesKey("disableLoadMoreWhenRepeatAll")
@@ -80,8 +85,11 @@ val SimilarContent = booleanPreferencesKey("similarContent")
 val AutoSkipNextOnErrorKey = booleanPreferencesKey("autoSkipNextOnError")
 val StopMusicOnTaskClearKey = booleanPreferencesKey("stopMusicOnTaskClear")
 val ArtistSeparatorsKey = stringPreferencesKey("artistSeparators")
+val PlaylistTagsFilterKey = stringPreferencesKey("playlistTagsFilter")
+val ShowTagsInLibraryKey = booleanPreferencesKey("showTagsInLibrary")
 
 val MaxImageCacheSizeKey = intPreferencesKey("maxImageCacheSize")
+val SmartTrimmerKey = booleanPreferencesKey("smartTrimmer")
 val MaxSongCacheSizeKey = intPreferencesKey("maxSongCacheSize")
 
 val PauseListenHistoryKey = booleanPreferencesKey("pauseListenHistory")
@@ -314,6 +322,7 @@ enum class PreferredLyricsProvider {
     LRCLIB,
     KUGOU,
     BETTER_LYRICS,
+    SIMPMUSIC,
 }
 
 enum class PlayerButtonsStyle {
@@ -325,6 +334,7 @@ enum class PlayerDesignStyle {
     V1,
     V2,
     V3,
+    V4,
 }
 
 enum class PlayerBackgroundStyle {
@@ -335,6 +345,7 @@ enum class PlayerBackgroundStyle {
     COLORING,
     BLUR_GRADIENT,
     GLOW,
+    GLOW_ANIMATED,
 }
 
 // Keys for customized background
@@ -415,3 +426,18 @@ val CountryCodeToName =
 val LaunchCountKey = intPreferencesKey("launch_count")
 val HasPressedStarKey = booleanPreferencesKey("has_pressed_star")
 val RemindAfterKey = intPreferencesKey("remind_after")
+
+// Update settings
+val EnableUpdateNotificationKey = booleanPreferencesKey("enableUpdateNotification")
+val UpdateChannelKey = stringPreferencesKey("updateChannel")
+val LastUpdateCheckKey = longPreferencesKey("lastUpdateCheck")
+val LastNotifiedVersionKey = stringPreferencesKey("lastNotifiedVersion")
+
+val GitHubContributorsEtagKey = stringPreferencesKey("github_contributors_etag")
+val GitHubContributorsJsonKey = stringPreferencesKey("github_contributors_json")
+val GitHubContributorsLastCheckedAtKey = longPreferencesKey("github_contributors_last_checked_at")
+
+enum class UpdateChannel {
+    STABLE,
+    NIGHTLY,
+}

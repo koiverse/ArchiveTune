@@ -355,12 +355,12 @@ fun TextFieldDialog(
             TextButton(
                 enabled = isValid,
                 onClick = {
-                    onDismiss()
                     if (textFields != null && onDoneMultiple != null) {
                         onDoneMultiple(textFields.map { it.second.text })
                     } else {
                         onDone(legacyFieldState.value.text)
                     }
+                    onDismiss()
                 },
             ) {
                 Text(text = stringResource(android.R.string.ok))

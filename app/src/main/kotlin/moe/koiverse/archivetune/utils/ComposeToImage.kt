@@ -20,6 +20,8 @@ import coil3.ImageLoader
 import coil3.request.ImageRequest
 import coil3.request.allowHardware
 import coil3.toBitmap
+import android.view.View
+import androidx.core.view.drawToBitmap
 import moe.koiverse.archivetune.R
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -27,6 +29,69 @@ import java.io.File
 import java.io.FileOutputStream
 
 object ComposeToImage {
+
+    fun captureViewBitmap(
+        view: View,
+        targetWidth: Int? = null,
+        targetHeight: Int? = null,
+        backgroundColor: Int? = null,
+    ): Bitmap {
+        val original = view.drawToBitmap()
+        val needsScale =
+            (targetWidth != null && targetWidth > 0 && targetWidth != original.width) ||
+            (targetHeight != null && targetHeight > 0 && targetHeight != original.height)
+        val base = if (needsScale) {
+            val tw = targetWidth ?: original.width
+            val th = targetHeight ?: (original.height * tw / original.width)
+            Bitmap.createScaledBitmap(original, tw, th, true)
+        } else {
+            original
+        }
+        if (backgroundColor != null) {
+            val out = Bitmap.createBitmap(base.width, base.height, Bitmap.Config.ARGB_8888)
+            val c = Canvas(out)
+            c.drawColor(backgroundColor)
+            c.drawBitmap(base, 0f, 0f, null)
+            return out
+        }
+        return base
+    }
+
+    fun cropBitmap(source: Bitmap, left: Int, top: Int, width: Int, height: Int): Bitmap {
+        val safeLeft = left.coerceIn(0, source.width.coerceAtLeast(1) - 1)
+        val safeTop = top.coerceIn(0, source.height.coerceAtLeast(1) - 1)
+        val safeWidth = width.coerceIn(1, source.width - safeLeft)
+        val safeHeight = height.coerceIn(1, source.height - safeTop)
+        return Bitmap.createBitmap(source, safeLeft, safeTop, safeWidth, safeHeight)
+    }
+
+    fun fitBitmap(
+        source: Bitmap,
+        targetWidth: Int,
+        targetHeight: Int,
+        backgroundColor: Int,
+    ): Bitmap {
+        val out = Bitmap.createBitmap(targetWidth, targetHeight, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(out)
+        canvas.drawColor(backgroundColor)
+
+        val scale = minOf(
+            targetWidth.toFloat() / source.width.coerceAtLeast(1),
+            targetHeight.toFloat() / source.height.coerceAtLeast(1),
+        )
+        val scaledW = (source.width * scale).toInt().coerceAtLeast(1)
+        val scaledH = (source.height * scale).toInt().coerceAtLeast(1)
+        val scaled = if (scaledW != source.width || scaledH != source.height) {
+            Bitmap.createScaledBitmap(source, scaledW, scaledH, true)
+        } else {
+            source
+        }
+
+        val dx = ((targetWidth - scaled.width) / 2f)
+        val dy = ((targetHeight - scaled.height) / 2f)
+        canvas.drawBitmap(scaled, dx, dy, null)
+        return out
+    }
 
     @RequiresApi(Build.VERSION_CODES.M)
     suspend fun createLyricsImage(
@@ -161,7 +226,16 @@ object ComposeToImage {
             lyricsLayout.draw(this)
         }
 
-        AppLogo(context, canvas, cardSize, padding, secondaryTxtColor, bgColor)
+        AppLogo(
+            context = context,
+            canvas = canvas,
+            canvasWidth = cardSize,
+            canvasHeight = cardSize,
+            padding = padding,
+            circleColor = secondaryTxtColor,
+            logoTint = bgColor,
+            textColor = secondaryTxtColor,
+        )
 
         return@withContext bitmap
     }
@@ -169,19 +243,22 @@ object ComposeToImage {
     private fun AppLogo(
         context: Context,
         canvas: Canvas,
-        cardSize: Int,
+        canvasWidth: Int,
+        canvasHeight: Int,
         padding: Float,
-        secondaryTxtColor: Int,
-        backgroundColor: Int
+        circleColor: Int,
+        logoTint: Int,
+        textColor: Int,
     ) {
-        val logoSize = (cardSize * 0.05f).toInt()
+        val baseSize = minOf(canvasWidth, canvasHeight).toFloat()
+        val logoSize = (baseSize * 0.05f).toInt()
 
         val rawLogo = context.getDrawable(R.drawable.small_icon)?.toBitmap(logoSize, logoSize)
         val logo = rawLogo?.let { source ->
             val colored = Bitmap.createBitmap(source.width, source.height, Bitmap.Config.ARGB_8888)
             val canvasLogo = Canvas(colored)
             val paint = Paint().apply {
-                colorFilter = PorterDuffColorFilter(backgroundColor, PorterDuff.Mode.SRC_IN)
+                colorFilter = PorterDuffColorFilter(logoTint, PorterDuff.Mode.SRC_IN)
                 isAntiAlias = true
             }
             canvasLogo.drawBitmap(source, 0f, 0f, paint)
@@ -190,8 +267,8 @@ object ComposeToImage {
 
         val appName = context.getString(R.string.app_name)
         val appNamePaint = TextPaint().apply {
-            color = secondaryTxtColor
-            textSize = cardSize * 0.030f
+            color = textColor
+            textSize = baseSize * 0.030f
             typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
             isAntiAlias = true
             letterSpacing = 0.01f
@@ -199,14 +276,14 @@ object ComposeToImage {
 
         val circleRadius = logoSize * 0.55f
         val logoX = padding + circleRadius - logoSize / 2f
-        val logoY = cardSize - padding - circleRadius - logoSize / 2f
+        val logoY = canvasHeight - padding - circleRadius - logoSize / 2f
         val circleX = padding + circleRadius
-        val circleY = cardSize - padding - circleRadius
+        val circleY = canvasHeight - padding - circleRadius
         val textX = padding + circleRadius * 2 + 12f
         val textY = circleY + appNamePaint.textSize * 0.3f
 
         val circlePaint = Paint().apply {
-            color = secondaryTxtColor
+            color = circleColor
             isAntiAlias = true
             style = Paint.Style.FILL
         }

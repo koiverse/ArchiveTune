@@ -7,7 +7,6 @@ import moe.koiverse.archivetune.constants.*
 import moe.koiverse.archivetune.utils.dataStore
 import com.my.kizzy.rpc.KizzyRPC
 import com.my.kizzy.rpc.RpcImage
-// ...existing code...
 import timber.log.Timber
 import me.bush.translator.Translator
 import me.bush.translator.Language
@@ -22,6 +21,8 @@ class DiscordRPC(
         private const val APPLICATION_ID = "1165706613961789445"
         private const val PAUSE_IMAGE_URL =
             "https://raw.githubusercontent.com/koiverse/ArchiveTune/main/fastlane/metadata/android/en-US/images/RPC/pause_icon.png"
+        private const val APP_ICON_URL = 
+            "https://raw.githubusercontent.com/koiverse/ArchiveTune/main/fastlane/metadata/android/en-US/images/icon.png"
         private const val logtag = "DiscordRPC"
     }
 
@@ -53,35 +54,16 @@ class DiscordRPC(
         return "https://$trimmed"
     }
 
-    private fun String?.toExternal(): RpcImage? {
-        if (this == null) return null
+    private fun createRpcImage(imageId: String?): RpcImage? {
+        if (imageId.isNullOrBlank()) return null
         return when {
-            startsWith("http://", ignoreCase = true) || startsWith("https://", ignoreCase = true) -> RpcImage.ExternalImage(this)
-            startsWith("mp:") || startsWith("b7.") -> RpcImage.ExternalImage(this)
-            else -> {
-                val normalized = normalizeUrl(this)
-                if (!normalized.isNullOrBlank()) RpcImage.ExternalImage(normalized)
-                else {
-                    Timber.tag(logtag).v("Skipping non-http image for RPC: %s", this)
-                    null
-                }
-            }
+            imageId.startsWith("mp:") -> RpcImage.DiscordImage(imageId.removePrefix("mp:"))
+            imageId.startsWith("external/") -> RpcImage.DiscordImage(imageId)
+            imageId.startsWith("attachments/") -> RpcImage.DiscordImage(imageId)
+            imageId.startsWith("http://", ignoreCase = true) || imageId.startsWith("https://", ignoreCase = true) -> RpcImage.ExternalImage(imageId)
+            else -> RpcImage.DiscordImage(imageId)
         }
     }
-
-    private fun pickImage(type: String, custom: String?, song: Song?, preferArtist: Boolean = false): RpcImage? {
-        return when (type) {
-            "thumbnail" -> song?.song?.thumbnailUrl.toExternal()
-            "artist" -> song?.artists?.firstOrNull()?.thumbnailUrl.toExternal()
-            "appicon" -> RpcImage.DiscordImage("appicon")
-            "custom" -> (custom?.takeIf { it.isNotBlank() } ?: song?.song?.thumbnailUrl).toExternal()
-            else -> if (preferArtist) song?.artists?.firstOrNull()?.thumbnailUrl.toExternal()
-            else song?.song?.thumbnailUrl.toExternal()
-        }
-    }
-
-    // rpcKey removed — we no longer resolve or cache external images here
-
 
     suspend fun updateSong(
         song: Song,
@@ -91,9 +73,9 @@ class DiscordRPC(
         val currentTime = System.currentTimeMillis()
         val calculatedStartTime = currentTime - currentPlaybackTimeMillis
 
-        // Reset cache if song changes
         if (lastSongId != song.song.id) {
             translationCache.clear()
+            DiscordImageResolver.clearCache()
             lastSongId = song.song.id
         }
 
@@ -226,45 +208,84 @@ class DiscordRPC(
         val smallImageTypePref = context.dataStore[DiscordSmallImageTypeKey] ?: "artist"
         val smallImageCustomPref = context.dataStore[DiscordSmallImageCustomUrlKey] ?: ""
 
-        val saved = ArtworkStorage.findBySongId(context, song.song.id)
+        val resolvedImages = DiscordImageResolver.resolveImagesForSong(context, song)
+        
+        Timber.tag(logtag).d(
+            "Resolved images - thumbnail: %s, artist: %s",
+            resolvedImages.thumbnailResolvedId?.take(40) ?: "null",
+            resolvedImages.artistResolvedId?.take(40) ?: "null"
+        )
 
         val finalLargeImage: RpcImage? = when (largeImageTypePref.lowercase()) {
-            "thumbnail", "custom" -> {
-                if (!saved?.thumbnail.isNullOrBlank()) {
-                    RpcImage.ExternalImage(saved.thumbnail!!)
-                } else {
-                    pickImage(largeImageTypePref, largeImageCustomPref, song, false)
-                }
+            "thumbnail", "song", "album" -> {
+                createRpcImage(resolvedImages.thumbnailResolvedId)
+                    ?: createRpcImage(resolvedImages.thumbnailOriginalUrl)
+                    ?: song.song.thumbnailUrl?.takeIf { it.isNotBlank() }?.let { RpcImage.ExternalImage(it) }
             }
             "artist" -> {
-                if (!saved?.artist.isNullOrBlank()) {
-                    RpcImage.ExternalImage(saved.artist!!)
+                createRpcImage(resolvedImages.artistResolvedId)
+                    ?: createRpcImage(resolvedImages.artistOriginalUrl)
+                    ?: song.artists.firstOrNull()?.thumbnailUrl?.takeIf { it.isNotBlank() }?.let { RpcImage.ExternalImage(it) }
+            }
+            "appicon" -> RpcImage.ExternalImage(APP_ICON_URL)
+            "custom" -> {
+                val customUrl = largeImageCustomPref.takeIf { it.isNotBlank() }
+                if (customUrl != null) {
+                    RpcImage.ExternalImage(customUrl)
                 } else {
-                    pickImage(largeImageTypePref, largeImageCustomPref, song, false)
+                    createRpcImage(resolvedImages.thumbnailResolvedId)
+                        ?: createRpcImage(resolvedImages.thumbnailOriginalUrl)
+                        ?: song.song.thumbnailUrl?.takeIf { it.isNotBlank() }?.let { RpcImage.ExternalImage(it) }
                 }
             }
-            else -> pickImage(largeImageTypePref, largeImageCustomPref, song, false)
+            "none", "dontshow" -> null
+            else -> {
+                createRpcImage(resolvedImages.thumbnailResolvedId)
+                    ?: createRpcImage(resolvedImages.thumbnailOriginalUrl)
+            }
         }
 
         val finalSmallImage: RpcImage? = when {
             isPaused -> RpcImage.ExternalImage(PAUSE_IMAGE_URL)
             smallImageTypePref.lowercase() in listOf("none", "dontshow") -> null
+            smallImageTypePref.lowercase() == "appicon" -> RpcImage.ExternalImage(APP_ICON_URL)
             smallImageTypePref.lowercase() == "artist" -> {
-                if (!saved?.artist.isNullOrBlank()) {
-                    RpcImage.ExternalImage(saved.artist!!)
+                createRpcImage(resolvedImages.artistResolvedId)
+                    ?: createRpcImage(resolvedImages.artistOriginalUrl)
+                    ?: song.artists.firstOrNull()?.thumbnailUrl?.takeIf { it.isNotBlank() }?.let { RpcImage.ExternalImage(it) }
+            }
+            smallImageTypePref.lowercase() in listOf("thumbnail", "song", "album") -> {
+                createRpcImage(resolvedImages.thumbnailResolvedId)
+                    ?: createRpcImage(resolvedImages.thumbnailOriginalUrl)
+                    ?: song.song.thumbnailUrl?.takeIf { it.isNotBlank() }?.let { RpcImage.ExternalImage(it) }
+            }
+            smallImageTypePref.lowercase() == "custom" -> {
+                val customUrl = smallImageCustomPref.takeIf { it.isNotBlank() }
+                if (customUrl != null) {
+                    RpcImage.ExternalImage(customUrl)
                 } else {
-                    pickImage(smallImageTypePref, smallImageCustomPref, song, true)
+                    createRpcImage(resolvedImages.artistResolvedId)
+                        ?: createRpcImage(resolvedImages.artistOriginalUrl)
+                        ?: song.artists.firstOrNull()?.thumbnailUrl?.takeIf { it.isNotBlank() }?.let { RpcImage.ExternalImage(it) }
                 }
             }
-            smallImageTypePref.lowercase() in listOf("thumbnail", "custom") -> {
-                if (!saved?.thumbnail.isNullOrBlank()) {
-                    RpcImage.ExternalImage(saved.thumbnail!!)
-                } else {
-                    pickImage(smallImageTypePref, smallImageCustomPref, song, true)
-                }
+            else -> {
+                createRpcImage(resolvedImages.artistResolvedId)
+                    ?: createRpcImage(resolvedImages.artistOriginalUrl)
             }
-            else -> pickImage(smallImageTypePref, smallImageCustomPref, song, true)
         }
+        
+        val largeImageStr = when (finalLargeImage) {
+            is RpcImage.DiscordImage -> "discord:${finalLargeImage.image.take(30)}"
+            is RpcImage.ExternalImage -> "external:${finalLargeImage.image.take(30)}"
+            null -> "null"
+        }
+        val smallImageStr = when (finalSmallImage) {
+            is RpcImage.DiscordImage -> "discord:${finalSmallImage.image.take(30)}"
+            is RpcImage.ExternalImage -> "external:${finalSmallImage.image.take(30)}"
+            null -> "null"
+        }
+        Timber.tag(logtag).d("Final images - large: %s, small: %s", largeImageStr, smallImageStr)
 
         val largeTextSource = (context.dataStore[DiscordLargeTextSourceKey] ?: "album").lowercase()
         val resolvedLargeText = when (largeTextSource) {
@@ -298,9 +319,39 @@ class DiscordRPC(
         this.setPlatform(platformPref)
 
         val hasValidDuration = (song.song.duration ?: -1) > 0
-        val sendStartTime = if (isPaused || !hasValidDuration) null else calculatedStartTime
-        val sendEndTime = if (isPaused || !hasValidDuration) null else currentTime + (song.song.duration * 1000L - currentPlaybackTimeMillis)
-        val sendSince = if (isPaused && showWhenPaused && hasValidDuration) currentTime else null
+        val durationMs = if (hasValidDuration) song.song.duration * 1000L else 0L
+        
+        val sendStartTime: Long?
+        val sendEndTime: Long?
+        val sendSince: Long?
+        
+        when {
+            isPaused && showWhenPaused -> {
+                sendStartTime = null
+                sendEndTime = null
+                sendSince = currentTime
+            }
+            isPaused && !showWhenPaused -> {
+                sendStartTime = null
+                sendEndTime = null
+                sendSince = null
+            }
+            !isPaused && hasValidDuration -> {
+                sendStartTime = calculatedStartTime
+                sendEndTime = calculatedStartTime + durationMs
+                sendSince = null
+            }
+            else -> {
+                sendStartTime = null
+                sendEndTime = null
+                sendSince = null
+            }
+        }
+        
+        Timber.tag(logtag).d(
+            "Timestamps - isPaused=%s, showWhenPaused=%s, hasValidDuration=%s, startTime=%s, endTime=%s, since=%s",
+            isPaused, showWhenPaused, hasValidDuration, sendStartTime, sendEndTime, sendSince
+        )
 
         val safeStatus = when (statusPref.lowercase()) {
             "online", "idle", "dnd", "invisible" -> statusPref

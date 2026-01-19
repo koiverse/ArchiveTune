@@ -6,6 +6,14 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.ui.graphics.lerp
+import kotlin.math.floor
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -196,7 +204,7 @@ fun LyricsScreen(
     val fallbackColor = MaterialTheme.colorScheme.surface.toArgb()
 
     LaunchedEffect(mediaMetadata.id, playerBackground) {
-        if (playerBackground == PlayerBackgroundStyle.GRADIENT || playerBackground == PlayerBackgroundStyle.COLORING || playerBackground == PlayerBackgroundStyle.BLUR_GRADIENT || playerBackground == PlayerBackgroundStyle.GLOW) {
+        if (playerBackground == PlayerBackgroundStyle.GRADIENT || playerBackground == PlayerBackgroundStyle.COLORING || playerBackground == PlayerBackgroundStyle.BLUR_GRADIENT || playerBackground == PlayerBackgroundStyle.GLOW || playerBackground == PlayerBackgroundStyle.GLOW_ANIMATED) {
             if (mediaMetadata.thumbnailUrl != null) {
                 val cachedColors = gradientColorsCache[mediaMetadata.id]
                 if (cachedColors != null) {
@@ -252,6 +260,7 @@ fun LyricsScreen(
         PlayerBackgroundStyle.COLORING -> Color.White
         PlayerBackgroundStyle.BLUR_GRADIENT -> Color.White
         PlayerBackgroundStyle.GLOW -> Color.White
+        PlayerBackgroundStyle.GLOW_ANIMATED -> Color.White
         PlayerBackgroundStyle.CUSTOM -> Color.White
     }
 
@@ -262,6 +271,7 @@ fun LyricsScreen(
         PlayerBackgroundStyle.COLORING -> Color.Black
         PlayerBackgroundStyle.BLUR_GRADIENT -> Color.Black
         PlayerBackgroundStyle.GLOW -> Color.Black
+        PlayerBackgroundStyle.GLOW_ANIMATED -> Color.Black
         PlayerBackgroundStyle.CUSTOM -> Color.Black
     }
 
@@ -279,266 +289,16 @@ fun LyricsScreen(
 
     Box(modifier = modifier.fillMaxSize()) {
         Box(modifier = Modifier.fillMaxSize()) {
-            when (playerBackground) {
-                PlayerBackgroundStyle.BLUR -> {
-                    AnimatedContent(
-                        targetState = mediaMetadata.thumbnailUrl,
-                        transitionSpec = {
-                            fadeIn(tween(1000)) togetherWith fadeOut(tween(1000))
-                        }
-                    ) { thumbnailUrl ->
-                        if (thumbnailUrl != null) {
-                            Box(modifier = Modifier.fillMaxSize()) {
-                                AsyncImage(
-                                    model = thumbnailUrl,
-                                    contentDescription = "Blurred background",
-                                    contentScale = ContentScale.Crop,
-                                    modifier = Modifier.fillMaxSize().let { 
-                                        if (disableBlur) it else it.blur(radius = 50.dp)
-                                    }
-                                )
-                                Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.4f)))
-                            }
-                        } else {
-                            Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface))
-                        }
-                    }
-                }
-                PlayerBackgroundStyle.GRADIENT -> {
-                    AnimatedContent(
-                        targetState = gradientColors,
-                        transitionSpec = {
-                            fadeIn(tween(1000)) togetherWith fadeOut(tween(1000))
-                        }
-                    ) { colors ->
-                        if (colors.isNotEmpty()) {
-                            Box(modifier = Modifier.fillMaxSize()) {
-                                val gradientColorStops = if (colors.size >= 3) {
-                                    arrayOf(
-                                        0.0f to colors[0],
-                                        0.5f to colors[1],
-                                        1.0f to colors[2]
-                                    )
-                                } else {
-                                    arrayOf(
-                                        0.0f to colors[0],
-                                        0.6f to colors[0].copy(alpha = 0.7f),
-                                        1.0f to Color.Black
-                                    )
-                                }
-                                Box(modifier = Modifier.fillMaxSize().background(Brush.verticalGradient(colorStops = gradientColorStops)))
-                                Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.2f)))
-                            }
-                        }
-                    }
-                }
-                PlayerBackgroundStyle.COLORING -> {
-                    AnimatedContent(
-                        targetState = gradientColors,
-                        transitionSpec = {
-                            fadeIn(tween(1000)) togetherWith fadeOut(tween(1000))
-                        }
-                    ) { colors ->
-                        if (colors.isNotEmpty()) {
-                            Box(modifier = Modifier.fillMaxSize().background(colors[0]))
-                        }
-                    }
-                }
-                PlayerBackgroundStyle.BLUR_GRADIENT -> {
-                    AnimatedContent(
-                        targetState = mediaMetadata.thumbnailUrl,
-                        transitionSpec = {
-                            fadeIn(tween(1000)) togetherWith fadeOut(tween(1000))
-                        }
-                    ) { thumbnailUrl ->
-                        if (thumbnailUrl != null) {
-                            Box(modifier = Modifier.fillMaxSize()) {
-                                AsyncImage(
-                                    model = thumbnailUrl,
-                                    contentDescription = "Blurred background",
-                                    contentScale = ContentScale.Crop,
-                                    modifier = Modifier.fillMaxSize().let { 
-                                        if (disableBlur) it else it.blur(radius = 50.dp)
-                                    }
-                                )
-                                val gradientColorStops = if (gradientColors.size >= 3) {
-                                    arrayOf(
-                                        0.0f to gradientColors[0].copy(alpha = 0.7f),
-                                        0.5f to gradientColors[1].copy(alpha = 0.7f),
-                                        1.0f to gradientColors[2].copy(alpha = 0.7f)
-                                    )
-                                } else if (gradientColors.isNotEmpty()) {
-                                    arrayOf(
-                                        0.0f to gradientColors[0].copy(alpha = 0.7f),
-                                        0.6f to gradientColors[0].copy(alpha = 0.4f),
-                                        1.0f to Color.Black.copy(alpha = 0.7f)
-                                    )
-                                } else {
-                                    arrayOf(
-                                        0.0f to Color.Transparent,
-                                        1.0f to Color.Transparent
-                                    )
-                                }
-                                Box(modifier = Modifier.fillMaxSize().background(Brush.verticalGradient(colorStops = gradientColorStops)))
-                            }
-                        }
-                    }
-                }
-                PlayerBackgroundStyle.GLOW -> {
-                    AnimatedContent(
-                        targetState = gradientColors,
-                        transitionSpec = {
-                            fadeIn(tween(1000)) togetherWith fadeOut(tween(1000))
-                        }
-                    ) { colors ->
-                        if (colors.isNotEmpty()) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .drawBehind {
-                                        val width = size.width
-                                        val height = size.height
-                                        
-                                        // Create seamless mesh gradient with 5 overlapping blobs
-                                        if (colors.size >= 3) {
-                                            // First color blob - top left
-                                            drawRect(
-                                                brush = Brush.radialGradient(
-                                                    colors = listOf(
-                                                        colors[0].copy(alpha = 0.7f),
-                                                        colors[0].copy(alpha = 0.5f),
-                                                        colors[0].copy(alpha = 0.2f),
-                                                        Color.Transparent
-                                                    ),
-                                                    center = Offset(width * 0.15f, height * 0.15f),
-                                                    radius = width * 0.8f
-                                                )
-                                            )
-                                            
-                                            // Second color blob - top right
-                                            drawRect(
-                                                brush = Brush.radialGradient(
-                                                    colors = listOf(
-                                                        colors[1].copy(alpha = 0.65f),
-                                                        colors[1].copy(alpha = 0.45f),
-                                                        colors[1].copy(alpha = 0.18f),
-                                                        Color.Transparent
-                                                    ),
-                                                    center = Offset(width * 0.85f, height * 0.2f),
-                                                    radius = width * 0.85f
-                                                )
-                                            )
-                                            
-                                            // Third color blob - middle left
-                                            drawRect(
-                                                brush = Brush.radialGradient(
-                                                    colors = listOf(
-                                                        colors[2].copy(alpha = 0.6f),
-                                                        colors[2].copy(alpha = 0.4f),
-                                                        colors[2].copy(alpha = 0.15f),
-                                                        Color.Transparent
-                                                    ),
-                                                    center = Offset(width * 0.25f, height * 0.5f),
-                                                    radius = width * 0.75f
-                                                )
-                                            )
-                                            
-                                            // Fourth color blob - middle right
-                                            drawRect(
-                                                brush = Brush.radialGradient(
-                                                    colors = listOf(
-                                                        colors[0].copy(alpha = 0.55f),
-                                                        colors[0].copy(alpha = 0.35f),
-                                                        colors[0].copy(alpha = 0.12f),
-                                                        Color.Transparent
-                                                    ),
-                                                    center = Offset(width * 0.75f, height * 0.6f),
-                                                    radius = width * 0.9f
-                                                )
-                                            )
-                                            
-                                            // Fifth color blob - bottom center
-                                            drawRect(
-                                                brush = Brush.radialGradient(
-                                                    colors = listOf(
-                                                        colors[1].copy(alpha = 0.5f),
-                                                        colors[1].copy(alpha = 0.3f),
-                                                        colors[1].copy(alpha = 0.1f),
-                                                        Color.Transparent
-                                                    ),
-                                                    center = Offset(width * 0.5f, height * 0.8f),
-                                                    radius = width * 0.95f
-                                                )
-                                            )
-                                        } else {
-                                            // Fallback: single radial gradient
-                                            drawRect(
-                                                brush = Brush.radialGradient(
-                                                    colors = listOf(
-                                                        colors[0].copy(alpha = 0.8f),
-                                                        colors[0].copy(alpha = 0.4f),
-                                                        Color.Transparent
-                                                    ),
-                                                    center = Offset(width * 0.5f, height * 0.4f),
-                                                    radius = width * 0.7f
-                                                )
-                                            )
-                                        }
-                                    }
-                            ) {}
-                        }
-                    }
-                }
-                PlayerBackgroundStyle.CUSTOM -> {
-                    AnimatedContent(
-                        targetState = playerCustomImageUri,
-                        transitionSpec = {
-                            fadeIn(tween(1000)) togetherWith fadeOut(tween(1000))
-                        }
-                    ) { uri ->
-                        if (!uri.isNullOrBlank()) {
-                            Box(modifier = Modifier.fillMaxSize()) {
-                                val blurPx = playerCustomBlur
-                                val contrastVal = playerCustomContrast
-                                val brightnessVal = playerCustomBrightness
-
-                                val t = (1f - contrastVal) * 128f + (brightnessVal - 1f) * 255f
-                                val matrix = floatArrayOf(
-                                    contrastVal, 0f, 0f, 0f, t,
-                                    0f, contrastVal, 0f, 0f, t,
-                                    0f, 0f, contrastVal, 0f, t,
-                                    0f, 0f, 0f, 1f, 0f,
-                                )
-
-                                val cm = ColorMatrix(matrix)
-
-                                AsyncImage(
-                                    model = Uri.parse(uri),
-                                    contentDescription = "Custom background",
-                                    contentScale = ContentScale.Crop,
-                                    modifier = Modifier.fillMaxSize().let { 
-                                        if (disableBlur) it else it.blur(radius = blurPx.dp)
-                                    },
-                                    colorFilter = ColorFilter.colorMatrix(cm)
-                                )
-                                Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.4f)))
-                            }
-                        } else {
-                            Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface))
-                        }
-                    }
-                }
-                else -> {
-                    Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface))
-                }
-            }
-            if (playerBackground != PlayerBackgroundStyle.DEFAULT) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(Color.Black.copy(alpha = 0.3f))
-                )
-            }
+            PlayerBackground(
+                playerBackground = playerBackground,
+                mediaMetadata = mediaMetadata,
+                gradientColors = gradientColors,
+                disableBlur = disableBlur,
+                playerCustomImageUri = playerCustomImageUri,
+                playerCustomBlur = playerCustomBlur,
+                playerCustomContrast = playerCustomContrast,
+                playerCustomBrightness = playerCustomBrightness
+            )
         }
 
         // Check orientation and layout accordingly

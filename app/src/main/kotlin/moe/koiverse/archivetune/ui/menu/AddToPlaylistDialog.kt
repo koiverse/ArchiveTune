@@ -49,8 +49,9 @@ fun AddToPlaylistDialog(
     isVisible: Boolean,
     allowSyncing: Boolean = true,
     initialTextFieldValue: String? = null,
-    onGetSong: suspend (Playlist) -> List<String>, // list of song ids. Songs should be inserted to database in this function.
+    onGetSong: suspend (Playlist) -> List<String>,
     onDismiss: () -> Unit,
+    onAddComplete: ((songCount: Int, playlistNames: List<String>) -> Unit)? = null,
 ) {
     val database = LocalDatabase.current
     val coroutineScope = rememberCoroutineScope()
@@ -156,7 +157,7 @@ fun AddToPlaylistDialog(
                                     }
                                 }
 
-                                playlistsWithoutDups.forEach { playlist ->
+                            playlistsWithoutDups.forEach { playlist ->
                                     database.addSongToPlaylist(playlist, currentSongIds)
                                     playlist.playlist.browseId?.let { plist ->
                                         currentSongIds.forEach { songId ->
@@ -168,6 +169,14 @@ fun AddToPlaylistDialog(
                             }
 
                             isAddingToPlaylist = false
+
+                            val selectedPlaylists = playlists.filter { selectedPlaylistIds.contains(it.id) }
+                            val addedPlaylistNames = selectedPlaylists
+                                .filter { !withDuplicates.contains(it) }
+                                .map { it.playlist.name }
+                            if (addedPlaylistNames.isNotEmpty()) {
+                                onAddComplete?.invoke(currentSongIds.size, addedPlaylistNames)
+                            }
                             
                             if (withDuplicates.isNotEmpty()) {
                                 playlistsWithDuplicates = withDuplicates
@@ -208,11 +217,19 @@ fun AddToPlaylistDialog(
                 TextButton(
                     onClick = {
                         coroutineScope.launch(Dispatchers.IO) {
+                            var totalAdded = 0
                             playlistsWithDuplicates.forEach { playlist ->
                                 val duplicatesForThisPlaylist = duplicateSongsMap[playlist.id] ?: emptyList()
                                 val songsToAdd = songIds!!.filter { it !in duplicatesForThisPlaylist }
                                 if (songsToAdd.isNotEmpty()) {
                                     database.addSongToPlaylist(playlist, songsToAdd)
+                                    totalAdded += songsToAdd.size
+                                }
+                            }
+                            if (totalAdded > 0) {
+                                val names = playlistsWithDuplicates.map { it.playlist.name }
+                                withContext(Dispatchers.Main) {
+                                    onAddComplete?.invoke(totalAdded, names)
                                 }
                             }
                         }
@@ -228,6 +245,10 @@ fun AddToPlaylistDialog(
                         coroutineScope.launch(Dispatchers.IO) {
                             playlistsWithDuplicates.forEach { playlist ->
                                 database.addSongToPlaylist(playlist, songIds!!)
+                            }
+                            val names = playlistsWithDuplicates.map { it.playlist.name }
+                            withContext(Dispatchers.Main) {
+                                onAddComplete?.invoke(songIds!!.size, names)
                             }
                         }
                         showDuplicateDialog = false

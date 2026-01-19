@@ -1,9 +1,11 @@
 package moe.koiverse.archivetune.ui.screens.library
 
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.asPaddingValues
@@ -22,6 +24,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.pulltorefresh.pullToRefresh
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
+import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -80,6 +86,7 @@ import moe.koiverse.archivetune.constants.ShowCachedPlaylistKey
 import moe.koiverse.archivetune.constants.UseNewLibraryDesignKey
 import moe.koiverse.archivetune.constants.YtmSyncKey
 import moe.koiverse.archivetune.constants.DisableBlurKey
+import moe.koiverse.archivetune.constants.PlaylistTagsFilterKey
 import moe.koiverse.archivetune.db.entities.Playlist
 import moe.koiverse.archivetune.db.entities.PlaylistEntity
 import moe.koiverse.archivetune.ui.component.CreatePlaylistDialog
@@ -93,11 +100,12 @@ import moe.koiverse.archivetune.ui.component.SortHeader
 import moe.koiverse.archivetune.utils.rememberEnumPreference
 import moe.koiverse.archivetune.utils.rememberPreference
 import moe.koiverse.archivetune.viewmodels.LibraryPlaylistsViewModel
+import moe.koiverse.archivetune.LocalDatabase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.util.UUID
 
-@OptIn(ExperimentalFoundationApi::class)
+@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun LibraryPlaylistsScreen(
     navController: NavController,
@@ -124,13 +132,24 @@ fun LibraryPlaylistsScreen(
     val gridItemSize by rememberEnumPreference(GridItemsSizeKey, GridItemSize.BIG)
     val useNewLibraryDesign by rememberPreference(UseNewLibraryDesignKey, true)
 
+
+    val (selectedTagsFilter, onSelectedTagsFilterChange) = rememberPreference(PlaylistTagsFilterKey, "")
+    val selectedTagIds = remember(selectedTagsFilter) {
+        selectedTagsFilter.split(",").filter { it.isNotBlank() }.toSet()
+    }
+    val database = LocalDatabase.current
+    val filteredPlaylistIds by database.playlistIdsByTags(
+        if (selectedTagIds.isEmpty()) emptyList() else selectedTagIds.toList()
+    ).collectAsState(initial = emptyList())
+
     val playlists by viewModel.allPlaylists.collectAsState()
 
-    val visiblePlaylists = playlists.distinctBy { it.id }
-        .filter { playlist ->
-            val name = playlist.playlist.name ?: ""
-            !name.contains("episode", ignoreCase = true)
-        }
+    val visiblePlaylists = playlists.filter { playlist ->
+        val name = playlist.playlist.name ?: ""
+        val matchesName = !name.contains("episode", ignoreCase = true)
+        val matchesTags = selectedTagIds.isEmpty() || playlist.id in filteredPlaylistIds
+        matchesName && matchesTags
+    }
 
     val topSize by viewModel.topValue.collectAsState(initial = 50)
 
@@ -215,6 +234,7 @@ fun LibraryPlaylistsScreen(
     // Gradient colors state for playlists page background
     var gradientColors by remember { mutableStateOf<List<Color>>(emptyList()) }
     val fallbackColor = MaterialTheme.colorScheme.surface.toArgb()
+    val surfaceColor = MaterialTheme.colorScheme.surface
     
     // Extract gradient colors from the first playlist with thumbnails
     LaunchedEffect(playlists) {
@@ -337,8 +357,18 @@ fun LibraryPlaylistsScreen(
         }
     }
 
-    Box(
-        modifier = Modifier.fillMaxSize(),
+    val isRefreshing by viewModel.isRefreshing.collectAsState()
+    val pullRefreshState = rememberPullToRefreshState()
+
+    BoxWithConstraints(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(surfaceColor)
+            .pullToRefresh(
+                state = pullRefreshState,
+                isRefreshing = isRefreshing,
+                onRefresh = viewModel::sync
+            ),
     ) {
         // Mesh gradient background layer - behind everything
         if (!disableBlur && gradientColors.isNotEmpty() && gradientAlpha > 0f) {
@@ -354,13 +384,19 @@ fun LibraryPlaylistsScreen(
                         
                         // Create mesh gradient with 5 color blobs for variation
                         if (gradientColors.size >= 3) {
+                            val c0 = gradientColors[0]
+                            val c1 = gradientColors[1]
+                            val c2 = gradientColors[2]
+                            val c3 = gradientColors.getOrElse(3) { c0 }
+                            val c4 = gradientColors.getOrElse(4) { c1 }
                             // First color blob - top left
                             drawRect(
                                 brush = Brush.radialGradient(
                                     colors = listOf(
-                                        gradientColors[0].copy(alpha = gradientAlpha * 0.25f),
-                                        gradientColors[0].copy(alpha = gradientAlpha * 0.15f),
-                                        gradientColors[0].copy(alpha = gradientAlpha * 0.05f),
+                                        c0.copy(alpha = gradientAlpha * 0.34f),
+                                        c0.copy(alpha = gradientAlpha * 0.2f),
+                                        c0.copy(alpha = gradientAlpha * 0.11f),
+                                        c0.copy(alpha = gradientAlpha * 0.05f),
                                         Color.Transparent
                                     ),
                                     center = Offset(width * 0.15f, height * 0.1f),
@@ -372,9 +408,10 @@ fun LibraryPlaylistsScreen(
                             drawRect(
                                 brush = Brush.radialGradient(
                                     colors = listOf(
-                                        gradientColors[1].copy(alpha = gradientAlpha * 0.22f),
-                                        gradientColors[1].copy(alpha = gradientAlpha * 0.12f),
-                                        gradientColors[1].copy(alpha = gradientAlpha * 0.04f),
+                                        c1.copy(alpha = gradientAlpha * 0.32f),
+                                        c1.copy(alpha = gradientAlpha * 0.19f),
+                                        c1.copy(alpha = gradientAlpha * 0.1f),
+                                        c1.copy(alpha = gradientAlpha * 0.045f),
                                         Color.Transparent
                                     ),
                                     center = Offset(width * 0.85f, height * 0.2f),
@@ -386,9 +423,10 @@ fun LibraryPlaylistsScreen(
                             drawRect(
                                 brush = Brush.radialGradient(
                                     colors = listOf(
-                                        gradientColors[2].copy(alpha = gradientAlpha * 0.2f),
-                                        gradientColors[2].copy(alpha = gradientAlpha * 0.1f),
-                                        gradientColors[2].copy(alpha = gradientAlpha * 0.03f),
+                                        c2.copy(alpha = gradientAlpha * 0.28f),
+                                        c2.copy(alpha = gradientAlpha * 0.16f),
+                                        c2.copy(alpha = gradientAlpha * 0.085f),
+                                        c2.copy(alpha = gradientAlpha * 0.038f),
                                         Color.Transparent
                                     ),
                                     center = Offset(width * 0.3f, height * 0.45f),
@@ -400,9 +438,10 @@ fun LibraryPlaylistsScreen(
                             drawRect(
                                 brush = Brush.radialGradient(
                                     colors = listOf(
-                                        gradientColors[0].copy(alpha = gradientAlpha * 0.18f),
-                                        gradientColors[0].copy(alpha = gradientAlpha * 0.09f),
-                                        gradientColors[0].copy(alpha = gradientAlpha * 0.02f),
+                                        c3.copy(alpha = gradientAlpha * 0.24f),
+                                        c3.copy(alpha = gradientAlpha * 0.13f),
+                                        c3.copy(alpha = gradientAlpha * 0.075f),
+                                        c3.copy(alpha = gradientAlpha * 0.03f),
                                         Color.Transparent
                                     ),
                                     center = Offset(width * 0.7f, height * 0.5f),
@@ -414,9 +453,10 @@ fun LibraryPlaylistsScreen(
                             drawRect(
                                 brush = Brush.radialGradient(
                                     colors = listOf(
-                                        gradientColors[1].copy(alpha = gradientAlpha * 0.15f),
-                                        gradientColors[1].copy(alpha = gradientAlpha * 0.07f),
-                                        gradientColors[1].copy(alpha = gradientAlpha * 0.02f),
+                                        c4.copy(alpha = gradientAlpha * 0.2f),
+                                        c4.copy(alpha = gradientAlpha * 0.11f),
+                                        c4.copy(alpha = gradientAlpha * 0.06f),
+                                        c4.copy(alpha = gradientAlpha * 0.022f),
                                         Color.Transparent
                                     ),
                                     center = Offset(width * 0.5f, height * 0.75f),
@@ -428,8 +468,8 @@ fun LibraryPlaylistsScreen(
                             drawRect(
                                 brush = Brush.radialGradient(
                                     colors = listOf(
-                                        gradientColors[0].copy(alpha = gradientAlpha * 0.25f),
-                                        gradientColors[0].copy(alpha = gradientAlpha * 0.15f),
+                                        gradientColors[0].copy(alpha = gradientAlpha * 0.34f),
+                                        gradientColors[0].copy(alpha = gradientAlpha * 0.2f),
                                         Color.Transparent
                                     ),
                                     center = Offset(width * 0.5f, height * 0.3f),
@@ -437,6 +477,20 @@ fun LibraryPlaylistsScreen(
                                 )
                             )
                         }
+
+                        drawRect(
+                            brush = Brush.verticalGradient(
+                                colors = listOf(
+                                    Color.Transparent,
+                                    Color.Transparent,
+                                    surfaceColor.copy(alpha = gradientAlpha * 0.22f),
+                                    surfaceColor.copy(alpha = gradientAlpha * 0.55f),
+                                    surfaceColor
+                                ),
+                                startY = height * 0.4f,
+                                endY = height
+                            )
+                        )
                     }
             ) {}
         }
@@ -709,5 +763,14 @@ fun LibraryPlaylistsScreen(
                 )
             }
         }
+
+        PullToRefreshDefaults.Indicator(
+            isRefreshing = isRefreshing,
+            state = pullRefreshState,
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .padding(LocalPlayerAwareWindowInsets.current.asPaddingValues()),
+        )
     }
 }
+

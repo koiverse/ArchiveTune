@@ -1,24 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
-
-<!-- Upstream InnerTune strings -->
-<!-- Do not add new features here -->
-<!-- Try to re-use strings here, but be careful on its usage e.g. verb vs noun -->
-<!-- "InnerTune" is replaced with "ArchiveTune" -->
-<!-- Translators: Do not modify this file for translations, use InnerTune's Weblate instead. -->
-
-<resources>
+<!-- Upstream InnerTune strings --><!-- Do not add new features here --><!-- Try to re-use strings here, but be careful on its usage e.g. verb vs noun --><!-- "InnerTune" is replaced with "ArchiveTune" --><!-- Translators: Do not modify this file for translations, use InnerTune's Weblate instead. --><resources>
     <!-- Bottom navigation -->
     <string name="home">Beranda</string>
     <string name="songs">Lagu</string>
     <string name="artists">Artis</string>
     <string name="albums">Album</string>
     <string name="playlists">Daftar Putar</string>
-
     <!-- Top bar -->
     <plurals name="n_selected">
         <item quantity="other">%d selected</item>
     </plurals>
-
     <!-- Home -->
     <string name="history">Sejarah</string>
     <string name="stats">Statistik</string>
@@ -33,18 +24,15 @@
     <string name="new_release_albums">Rilisan baru album</string>
     <string name="select_playlist_to_sync">Pilih daftar putar untuk sinkronisasi</string>
     <string name="integration">Integrasi</string>
-
     <!-- History -->
     <string name="today">Hari ini</string>
     <string name="yesterday">Kemarin</string>
     <string name="this_week">Minggu ini</string>
     <string name="last_week">Minggu lalu</string>
-
     <!-- Stats -->
     <string name="most_played_songs">Paling sering diputar lagu</string>
     <string name="most_played_artists">Artis yang paling sering diputar</string>
     <string name="most_played_albums">Album yang paling sering diputar</string>
-
     <!-- Search -->
     <string name="search">Penelusuran</string>
     <string name="search_yt_music">Telusuri YouTube Musik…</string>
@@ -63,32 +51,26 @@
     <string name="filter_featured_playlists">Daftar putar unggulan</string>
     <string name="filter_bookmarked">Ditandai</string>
     <string name="no_results_found">Tidak ada hasil yang ditemukan</string>
-
     <!-- Library -->
     <string name="library_song_empty">Lagu perpustakaan akan ditampilkan naik di sini</string>
     <string name="library_artist_empty">Artis perpustakaan akan muncul di sini</string>
     <string name="library_album_empty">Album perpustakaan akan muncul di sini</string>
     <string name="library_playlist_empty">Daftar putar Anda akan muncul di sini</string>
-
     <!-- Artist screen -->
     <string name="from_your_library">Dari perpustakaan Anda</string>
-
     <!-- Album screen -->
     <string name="other_versions">Versi lain</string>
-
     <!-- Playlist -->
     <string name="liked_songs">Lagu yang disukai</string>
     <string name="downloaded_songs">Lagu yang diunduh</string>
     <string name="playlist_is_empty">Daftar putar kosong</string>
     <string name="remove_download_playlist_confirm">Apakah Anda benar-benar ingin menghapus semua lagu daftar putar \"%s\" dari penyimpanan Lagu yang Diunduh?</string>
     <string name="delete_playlist_confirm">Apakah Anda benar-benar ingin menghapus daftar putar \"%s\"?</string>
-
     <!-- Button -->
     <string name="retry">Coba lagi</string>
     <string name="radio">Radio</string>
     <string name="shuffle">Acak</string>
     <string name="reset">Reset</string>
-
     <!-- Menu -->
     <string name="details">Detail</string>
     <string name="edit">Edit</string>
@@ -121,7 +103,6 @@
     <string name="action_sync">Sinkronisasi</string>
     <string name="advanced">Lanjutan</string>
     <string name="tempo_and_pitch">Tempo dan Pitch</string>
-
     <!-- Sort menu -->
     <string name="sort_by_create_date">Tanggal ditambahkan</string>
     <string name="sort_by_name">Nama</string>
@@ -131,94 +112,76 @@
     <string name="sort_by_length">Panjang</string>
     <string name="sort_by_play_time">Waktu putar</string>
     <string name="sort_by_custom">Kustom pesanan</string>
-
     <!-- Dialog -->
     <string name="media_id">ID media</string>
-    <string name="mime_type">MIME type</string>
-    <string name="codecs">Codecs</string>
-    <string name="bitrate">Bitrate</string>
-    <string name="sample_rate">Sample rate</string>
-    <string name="loudness">Loudness</string>
-    <string name="volume">Volume</string>
-    <string name="file_size">Ukuran file</string>
-    <string name="unknown">Tidak diketahui</string>
-    <string name="copied">Disalin ke clipboard</string>
-
-    <string name="edit_lyrics">Edit lirik</string>
+    <string name="mime_type">Tipe MIME</string>
+    <string name="codecs">Kodek</string>
+    <string name="bitrate">Kecepatan bit</string>
+    <string name="sample_rate">Sampel rate</string>
+    <string name="loudness">Kekerasan</string>
+    <string name="volume">volume</string>
+    <string name="file_size">Ukuran berkas</string>
+    <string name="unknown">Tidak dikenal</string>
+    <string name="copied">Disalin ke papan klip</string>
+    <string name="edit_lyrics">Sunting lirik</string>
     <string name="search_lyrics">Cari lirik</string>
-
-    <string name="edit_song">Edit lagu</string>
+    <string name="edit_song">Sunting lagu</string>
     <string name="song_title">Judul lagu</string>
     <string name="song_artists">Artis lagu</string>
-    <string name="error_song_title_empty">Judul lagu tidak boleh kosong.</string>
-    <string name="error_song_artist_empty">Artis lagu tidak boleh kosong.</string>
+    <string name="error_song_title_empty">Judul lagu wajib diisi.</string>
+    <string name="error_song_artist_empty">Artis lagu wajib diisi.</string>
     <string name="save">Simpan</string>
-
-    <string name="choose_playlist">Pilih playlist</string>
-    <string name="edit_playlist">Edit daftar putar</string>
-    <string name="create_playlist">Buat playlist</string>
-    <string name="playlist_name">Nama playlist</string>
-    <string name="error_playlist_name_empty">Nama playlist tidak boleh kosong.</string>
-
-    <string name="edit_artist">Edit artis</string>
+    <string name="choose_playlist">Pilih daftar putar</string>
+    <string name="edit_playlist">Sunting daftar putar</string>
+    <string name="create_playlist">Buat daftar putar</string>
+    <string name="playlist_name">Nama daftar putar</string>
+    <string name="error_playlist_name_empty">Nama daftar putar tidak boleh kosong.</string>
+    <string name="edit_artist">Sunting artis</string>
     <string name="artist_name">Nama artis</string>
     <string name="error_artist_name_empty">Nama artis tidak boleh kosong.</string>
-
     <string name="duplicates">Duplikat</string>
     <string name="skip_duplicates">Lewati duplikat</string>
     <string name="add_anyway">Tetap tambahkan</string>
-    <string name="duplicates_description_single">Lagu sudah ada di playlist Anda</string>
-    <string name="duplicates_description_multiple">%d lagu sudah ada di playlist Anda</string>
-
+    <string name="duplicates_description_single">Lagu tersebut sudah ada di dalam daftar putar Anda</string>
+    <string name="duplicates_description_multiple">%d lagu sudah ada di dalam daftar putar Anda</string>
     <!-- Noun -->
     <plurals name="n_song">
-        <item quantity="one">%d song</item>
-        <item quantity="other">%d songs</item>
+        <item quantity="other">%d lagu</item>
     </plurals>
     <plurals name="n_artist">
-        <item quantity="one">%d artist</item>
-        <item quantity="other">%d artists</item>
+        <item quantity="other">%d artis</item>
     </plurals>
     <plurals name="n_album">
-        <item quantity="one">%d album</item>
-        <item quantity="other">%d albums</item>
+        <item quantity="other">%d album</item>
     </plurals>
     <plurals name="n_playlist">
-        <item quantity="one">%d playlist</item>
-        <item quantity="other">%d playlists</item>
+        <item quantity="other">%d daftar putar</item>
     </plurals>
     <plurals name="n_week">
-        <item quantity="one">%d week</item>
-        <item quantity="other">%d weeks</item>
+        <item quantity="other">%d minggu</item>
     </plurals>
     <plurals name="n_month">
-        <item quantity="one">%d month</item>
-        <item quantity="other">%d months</item>
+        <item quantity="other">%d bulan</item>
     </plurals>
     <plurals name="n_year">
-        <item quantity="one">%d year</item>
-        <item quantity="other">%d years</item>
+        <item quantity="other">%d tahun</item>
     </plurals>
-
     <!-- Snackbar -->
     <string name="playlist_imported">Daftar putar diimpor</string>
     <string name="removed_song_from_playlist">\"%s\" dihapus dari playlist</string>
     <string name="playlist_synced">Daftar Putar disinkronkan</string>
-    <string name="undo">Undo</string>
-
+    <string name="undo">Batalkan</string>
     <!-- Player -->
     <string name="lyrics_not_found">Lirik tidak ditemukan</string>
     <string name="sleep_timer">Pengatur waktu tidur</string>
     <string name="end_of_song">Akhir lagu</string>
     <plurals name="minute">
-        <item quantity="one">1 minute</item>
         <item quantity="other">%d minutes</item>
     </plurals>
     <string name="error_no_stream">Tidak ada streaming yang tersedia</string>
     <string name="error_no_internet">Tidak ada koneksi jaringan</string>
     <string name="error_timeout">Waktu habis</string>
     <string name="error_unknown">Kesalahan tidak diketahui</string>
-
     <!-- Player action -->
     <string name="action_like">Suka</string>
     <string name="action_like_all">Suka semua</string>
@@ -229,19 +192,118 @@
     <string name="repeat_mode_off">Mode pengulangan nonaktif</string>
     <string name="repeat_mode_one">Ulangi lagu saat ini</string>
     <string name="repeat_mode_all">Ulangi antrian</string>
-
     <!-- Queue Title -->
     <string name="queue_all_songs">Semua lagu</string>
     <string name="queue_searched_songs">Lagu yang dicari</string>
-
     <!-- Notification name -->
     <string name="music_player">Musik Pemain</string>
-
     <!-- Settings -->
     <string name="settings">Setelan</string>
     <string name="appearance">Tampilan</string>
     <string name="theme">Tema</string>
     <string name="enable_dynamic_theme">Aktifkan tema dinamis</string>
+    <!-- Color Palette -->
+    <string name="color_palette">Palet Warna</string>
+    <string name="customize_theme_colors">Pilih warna tema aplikasi kamu</string>
+    <string name="selected_theme_color">Warna Tema Terpilih</string>
+    <string name="theme_preview">Pratinjau Tema</string>
+    <string name="select_palette">Pilih palet warna</string>
+    <string name="palette_applied">Palet diterapkan</string>
+    <!-- Palette Names -->
+    <string name="palette_default">Default</string>
+    <!-- Blues -->
+    <string name="palette_ocean_blue">Biru Laut</string>
+    <string name="palette_arctic_blue">Arktik</string>
+    <string name="palette_midnight_navy">Midnight</string>
+    <string name="palette_sky_blue">Biru Langit</string>
+    <string name="palette_cobalt_blue">Kobalt</string>
+    <string name="palette_electric_blue">Biru Elektrik</string>
+    <!-- Greens -->
+    <string name="palette_emerald_green">Emerald</string>
+    <string name="palette_teal_wave">Teal Wave</string>
+    <string name="palette_forest_green">Forest</string>
+    <string name="palette_spotify_green">Spotify</string>
+    <string name="palette_mint_fresh">Mint</string>
+    <string name="palette_olive_garden">Olive</string>
+    <string name="palette_sage_green">Sage</string>
+    <!-- Oranges & Yellows -->
+    <string name="palette_sunset_orange">Sunset</string>
+    <string name="palette_golden_hour">Golden Hour</string>
+    <string name="palette_warm_amber">Amber</string>
+    <string name="palette_tangerine_blast">Tangerine</string>
+    <string name="palette_peach">Peach</string>
+    <string name="palette_mango">Mango</string>
+    <!-- Purples -->
+    <string name="palette_royal_purple">Ungu Royal</string>
+    <string name="palette_lavender_dream">Lavender</string>
+    <string name="palette_grape_purple">Grape</string>
+    <string name="palette_violet">Violet</string>
+    <string name="palette_amethyst">Amethyst</string>
+    <string name="palette_ultra_violet">Ultra Violet</string>
+    <!-- Pinks -->
+    <string name="palette_cherry_blossom">Sakura</string>
+    <string name="palette_rose_quartz">Rose Quartz</string>
+    <string name="palette_magenta_pop">Magenta</string>
+    <string name="palette_hot_pink">Hot Pink</string>
+    <string name="palette_blush">Blush</string>
+    <string name="palette_coral">Coral</string>
+    <string name="palette_bubblegum">Bubblegum</string>
+    <!-- Reds -->
+    <string name="palette_crimson_red">Crimson</string>
+    <string name="palette_youtube_red">YouTube</string>
+    <string name="palette_wine_red">Wine</string>
+    <string name="palette_ruby_red">Ruby</string>
+    <string name="palette_scarlet">Scarlet</string>
+    <!-- Neutrals -->
+    <string name="palette_charcoal">Charcoal</string>
+    <string name="palette_silver">Silver</string>
+    <string name="palette_slate">Slate</string>
+    <string name="palette_graphite">Graphite</string>
+    <!-- Earth Tones -->
+    <string name="palette_terracotta">Terracotta</string>
+    <string name="palette_coffee">Coffee</string>
+    <string name="palette_mocha">Mocha</string>
+    <string name="palette_sand">Sand</string>
+    <string name="palette_clay">Clay</string>
+    <!-- Pastels -->
+    <string name="palette_pastel_pink">Pastel Pink</string>
+    <string name="palette_pastel_blue">Pastel Blue</string>
+    <string name="palette_pastel_green">Pastel Green</string>
+    <string name="palette_pastel_yellow">Pastel Yellow</string>
+    <string name="palette_pastel_purple">Pastel Purple</string>
+    <!-- Neon & Vibrant -->
+    <string name="palette_neon_green">Neon Green</string>
+    <string name="palette_neon_pink">Neon Pink</string>
+    <string name="palette_neon_blue">Neon Blue</string>
+    <string name="palette_neon_orange">Neon Orange</string>
+    <string name="palette_cyberpunk">Cyberpunk</string>
+    <string name="palette_synthwave">Synthwave</string>
+    <!-- Special & Themed -->
+    <string name="palette_ocean">Ocean</string>
+    <string name="palette_forest">Deep Forest</string>
+    <string name="palette_autumn">Autumn</string>
+    <string name="palette_winter">Winter</string>
+    <string name="palette_spring">Spring</string>
+    <string name="palette_summer">Summer</string>
+    <string name="palette_twilight">Twilight</string>
+    <string name="palette_aurora">Aurora</string>
+    <string name="palette_candy">Candy</string>
+    <string name="palette_rainbow">Rainbow</string>
+    <!-- Additional Palettes -->
+    <string name="palette_aquamarine">Aquamarine</string>
+    <string name="palette_coral_reef">Coral Reef</string>
+    <string name="palette_cotton_candy">Cotton Candy</string>
+    <string name="palette_deep_sea">Deep Sea</string>
+    <string name="palette_electric_violet">Electric Violet</string>
+    <string name="palette_mustard">Mustard</string>
+    <string name="palette_olive">Olive</string>
+    <string name="palette_peachy_keen">Peachy Keen</string>
+    <string name="palette_plum">Plum</string>
+    <string name="palette_slate_gray">Slate Gray</string>
+    <string name="palette_sunset_beach">Sunset Beach</string>
+    <string name="palette_turquoise">Turquoise</string>
+    <!-- End of Color Palette -->
+
     <string name="dark_theme">Tema gelap</string>
     <string name="dark_theme_on">Aktif</string>
     <string name="dark_theme_off">Mati</string>
@@ -278,13 +340,12 @@
     <string name="right">Kanan</string>
     <string name="player_slider_style">Penggeser pemutar style</string>
     <string name="default_">Default</string>
-    <string name="squiggly">Squiggly</string>
+    <string name="squiggly">Bergelombang</string>
     <string name="misc">Lain-lain</string>
     <string name="default_open_tab">Tab terbuka default</string>
     <string name="grid_cell_size">Sel kisi ukuran</string>
     <string name="small">Kecil</string>
     <string name="big">Besar</string>
-
     <!-- Lyrics animation style -->
     <string name="lyrics_animation_style">Gaya animasi lirik</string>
     <!-- Animation options -->
@@ -293,15 +354,12 @@
     <string name="slide">Geser</string>
     <string name="karaoke">Karaoke</string>
     <string name="apple_music_style">Apple Music</string>
-
-
     <string name="content">Konten</string>
     <string name="action_logout">Keluar</string>
     <string name="action_login">Masuk</string>
     <string name="login">Masuk</string>
     <string name="not_logged_in">Belum masuk</string>
     <string name="login_failed">Gagal masuk</string>
-
     <string name="content_language">Bahasa konten default</string>
     <string name="content_country">Negara konten default</string>
     <string name="system_default">Default sistem</string>
@@ -310,7 +368,6 @@
     <string name="proxy_url">Proxy URL</string>
     <string name="restart_to_take_effect">Mulai ulang untuk mengambil efek</string>
     <string name="enable_betterlyrics">Aktifkan BetterLyrics</string>
-
     <string name="player_and_audio">Pemutar dan audio</string>
     <string name="audio_quality">Kualitas audio</string>
     <string name="audio_quality_auto">Otomatis</string>
@@ -335,7 +392,6 @@
     <string name="add_symbol">Tambah simbol</string>
     <string name="enter_symbol">Masukkan simbol</string>
     <string name="equalizer">Equalizer</string>
-
     <string name="storage">Penyimpanan</string>
     <string name="cache">Cache</string>
     <string name="image_cache">Cache Gambar</string>
@@ -348,7 +404,6 @@
     <string name="max_song_cache_size">Ukuran cache lagu maks</string>
     <string name="clear_song_cache">Hapus cache lagu</string>
     <string name="size_used">%s yang digunakan</string>
-
     <string name="privacy">Privasi</string>
     <string name="listen_history">Dengarkan riwayat</string>
     <string name="pause_listen_history">Jeda dengarkan riwayat</string>
@@ -365,7 +420,6 @@
     <string name="enable_lrclib">Aktifkan penyedia lirik LrcLib</string>
     <string name="enable_kugou">Aktifkan penyedia lirik KuGou</string>
     <string name="hide_explicit">Sembunyikan konten eksplisit</string>
-
     <string name="backup_restore">Cadangkan dan pulihkan</string>
     <string name="action_backup">Cadangan</string>
     <string name="action_restore">Pulihkan</string>
@@ -373,15 +427,13 @@
     <string name="backup_create_success">Cadangan berhasil dibuat</string>
     <string name="backup_create_failed">Tidak dapat membuat cadangan</string>
     <string name="restore_failed">Gagal memulihkan cadangan</string>
-
     <string name="discord_integration">Integrasi Discord</string>
-    <string name="discord_information">ArchiveTune menggunakan perpustakaan KizzyRPC untuk mengatur status akun Discord Anda. Hal ini melibatkan penggunaan koneksi Discord Gateway, yang mungkin dianggap sebagai pelanggaran terhadap TOS Discord. Namun, tidak ada kasus yang diketahui mengenai akun pengguna yang ditangguhkan karena alasan ini. Risiko penggunaan ditanggung sendiri.&#10;ArchiveTune hanya akan mengekstrak token Anda, dan yang lainnya disimpan secara lokal.</string>
+    <string name="discord_information">ArchiveTune menggunakan perpustakaan KizzyRPC untuk mengatur status akun Discord Anda. Hal ini melibatkan penggunaan koneksi Discord Gateway, yang mungkin dianggap sebagai pelanggaran terhadap TOS Discord. Namun, tidak ada kasus yang diketahui mengenai akun pengguna yang ditangguhkan karena alasan ini. Risiko penggunaan ditanggung sendiri. ArchiveTune hanya akan mengekstrak token Anda, dan yang lainnya disimpan secara lokal.</string>
     <string name="dismiss">Tolak</string>
     <string name="options">Opsi</string>
     <string name="preview">Pratinjau</string>
     <string name="enable_discord_rpc">Aktifkan Kehadiran Kaya</string>
-
-        <!-- Last.fm -->
+    <!-- Last.fm -->
     <string name="scrobbling">Scrobbling</string>
     <string name="lastfm_integration">Integrasi Last.fm</string>
     <string name="enable_scrobbling">Aktifkan Scrobbling</string>
@@ -393,14 +445,11 @@
     <string name="username">Nama pengguna</string>
     <string name="password">Kata sandi</string>
     <string name="logging_in">Masuk…</string>
-
     <!-- ListenBrainz -->
     <string name="listenbrainz_scrobbling">Scrobbling ListenBrainz</string>
     <string name="listenbrainz_scrobbling_description">Aktifkan pengiriman lagu yang sedang dan telah diputar ke ListenBrainz</string>
     <string name="set_listenbrainz_token">Atur token ListenBrainz</string>
     <string name="edit_listenbrainz_token">Edit token ListenBrainz</string>
-
-
     <!-- Discord activity customization -->
     <string name="discord_activity_name">Nama aktivitas</string>
     <string name="discord_activity_details">Rincian aktivitas</string>
@@ -420,7 +469,6 @@
     <string name="activity_status">Status aktivitas</string>
     <string name="platform_status">Platform</string>
     <string name="update_interval">Interval pembaruan kehadiran</string>
-
     <!--Discord Tranalstor Settings-->
     <string name="translator_options">Penerjemah Opsi</string>
     <string name="enable_translator">Aktifkan Penerjemah</string>
@@ -432,19 +480,16 @@
     <string name="close_dialog">Tutup</string>
     <string name="select_dialog">Pilih</string>
     <string name="support_github">Bintang ArsipTune!</string>
-
     <!-- Update dialog -->
     <string name="new_update_available">Pembaruan baru tersedia</string>
     <string name="release_notes_unavailable">Catatan rilis adalah tidak tersedia</string>
     <string name="update_text">Pembaruan</string>
-
     <!-- Translate UI strings -->
     <string name="translate">Terjemahan</string>
     <string name="language_label">Bahasa</string>
     <string name="lyrics">Lirik</string>
     <string name="translation_success">Terjemahan disimpan</string>
     <string name="translation_failed">Terjemahan gagal</string>
-
     <!-- Discord settings additions -->
     <string name="discord_button_options">Opsi Tombol</string>
     <string name="discord_image_options">Opsi Gambar</string>
@@ -459,7 +504,6 @@
     <string name="logout_confirm_message">Apakah Anda yakin ingin keluar dari Discord?.</string>
     <string name="logout_confirm_yes">Keluar</string>
     <string name="logout_confirm_no">Batal</string>
-
     <!--Misc settings additions-->
     <string name="experiment_settings">Pengaturan Eksperimental</string>
     <string name="show_discord_debug_ui">Tampilkan UI Debug</string>
@@ -495,14 +539,26 @@
     <string name="playback_speed_label">Kecepatan Pemutaran</string>
     <string name="state_label">Status</string>
     <string name="media_id_label">ID Media</string>
-
-
-
-
     <string name="about">Tentang</string>
     <string name="app_version">Versi aplikasi</string>
-
     <string name="new_version_available">Versi baru tersedia</string>
     <string name="translation_models">Terjemahan Model</string>
     <string name="clear_translation_models">Model terjemahan yang jelas</string>
+    <string name="updates">Pembaruan</string>
+    <string name="current_version">Versi Saat Ini</string>
+    <string name="latest_version_format">Terbaru: %s</string>
+    <string name="notification_settings">Notifikasi</string>
+    <string name="enable_update_notification">Aktifkan Notifikasi Pembaruan</string>
+    <string name="enable_update_notification_desc">Dapatkan notifikasi saat versi stabil baru dirilis</string>
+    <string name="update_channel">Saluran Pembaruan</string>
+    <string name="channel_stable">Stabil</string>
+    <string name="channel_nightly">Malam</string>
+    <string name="commit_history">Pengembangan</string>
+    <string name="recent_commits">Komit Terbaru</string>
+    <string name="update_notification_channel_name">Pembaruan Aplikasi</string>
+    <string name="update_notification_channel_desc">Notifikasi untuk pembaruan aplikasi baru</string>
+    <string name="update_notification_title">Pembaruan Tersedia</string>
+    <string name="update_notification_text">ArchiveTune %s sekarang tersedia</string>
+    <string name="download">Unduh</string>
+    <string name="lyrics_line_spacing">Jarak antar baris teks lirik</string>
 </resources>

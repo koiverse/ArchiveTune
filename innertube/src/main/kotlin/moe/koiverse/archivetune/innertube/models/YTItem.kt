@@ -87,3 +87,22 @@ fun <T : YTItem> List<T>.filterExplicit(enabled: Boolean = true) =
     } else {
         this
     }
+
+// Filter out video songs (music videos) for YT results
+fun <T : YTItem> List<T>.filterVideo(enabled: Boolean = true) =
+    if (enabled) {
+        filter {
+            when (it) {
+                is SongItem -> {
+                    val isVideoBySet = it.setVideoId != null
+                    val isVideoByEndpoint = it.endpoint?.watchEndpointMusicSupportedConfigs?.watchEndpointMusicConfig?.musicVideoType
+                        ?.contains("MUSIC_VIDEO", ignoreCase = true) == true
+                    val isVideoByTitle = it.title.contains("MUSIC_VIDEO", ignoreCase = true)
+                    !(isVideoBySet || isVideoByEndpoint || isVideoByTitle)
+                }
+                else -> true
+            }
+        }
+    } else {
+        this
+    }

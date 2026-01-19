@@ -6,8 +6,8 @@ import androidx.core.content.getSystemService
 import androidx.core.net.toUri
 import androidx.media3.database.DatabaseProvider
 import androidx.media3.datasource.ResolvingDataSource
+import androidx.media3.datasource.cache.Cache
 import androidx.media3.datasource.cache.CacheDataSource
-import androidx.media3.datasource.cache.SimpleCache
 import androidx.media3.datasource.okhttp.OkHttpDataSource
 import androidx.media3.exoplayer.offline.Download
 import androidx.media3.exoplayer.offline.DownloadManager
@@ -41,8 +41,8 @@ constructor(
     @ApplicationContext context: Context,
     val database: MusicDatabase,
     val databaseProvider: DatabaseProvider,
-    @DownloadCache val downloadCache: SimpleCache,
-    @PlayerCache val playerCache: SimpleCache,
+    @DownloadCache val downloadCache: Cache,
+    @PlayerCache val playerCache: Cache,
 ) {
     private val connectivityManager = context.getSystemService<ConnectivityManager>()!!
     private val audioQuality by enumPreference(context, AudioQualityKey, AudioQuality.AUTO)
@@ -63,15 +63,19 @@ constructor(
         ) { dataSpec ->
             val mediaId = dataSpec.key ?: error("No media id")
             val length = if (dataSpec.length >= 0) dataSpec.length else 1
-
+            if (playerCache.cacheSpace > 500 * 1024 * 1024L) {
+                kotlinx.coroutines.GlobalScope.launch(Dispatchers.IO) {
+                    playerCache.keys.shuffled().take(10).forEach { key ->
+                        playerCache.getCachedSpans(key).sumOf { it.length }
+                    }
+                }
+            }
             if (playerCache.isCached(mediaId, dataSpec.position, length)) {
                 return@Factory dataSpec
             }
-
             songUrlCache[mediaId]?.takeIf { it.second > System.currentTimeMillis() }?.let {
                 return@Factory dataSpec.withUri(it.first.toUri())
             }
-
             val playbackData = runBlocking(Dispatchers.IO) {
                 val networkMeteredPref = context.dataStore.get(NetworkMeteredKey, true)
                 YTPlayerUtils.playerResponseForPlayback(
@@ -155,12 +159,14 @@ constructor(
         }
 
     init {
-        val result = mutableMapOf<String, Download>()
-        val cursor = downloadManager.downloadIndex.getDownloads()
-        while (cursor.moveToNext()) {
-            result[cursor.download.request.id] = cursor.download
+        CoroutineScope(Dispatchers.IO).launch {
+            val result = mutableMapOf<String, Download>()
+            val cursor = downloadManager.downloadIndex.getDownloads()
+            while (cursor.moveToNext()) {
+                result[cursor.download.request.id] = cursor.download
+            }
+            downloads.value = result
         }
-        downloads.value = result
     }
 
     fun getDownload(songId: String): Flow<Download?> = downloads.map { it[songId] }

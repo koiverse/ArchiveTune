@@ -38,6 +38,7 @@ import moe.koiverse.archivetune.constants.StopMusicOnTaskClearKey
 import moe.koiverse.archivetune.constants.HistoryDuration
 import moe.koiverse.archivetune.constants.SeekExtraSeconds
 import moe.koiverse.archivetune.ui.component.ArtistSeparatorsDialog
+import moe.koiverse.archivetune.ui.component.TagsManagementDialog
 import moe.koiverse.archivetune.ui.component.EnumListPreference
 import moe.koiverse.archivetune.ui.component.IconButton
 import moe.koiverse.archivetune.ui.component.PreferenceEntry
@@ -47,6 +48,7 @@ import moe.koiverse.archivetune.ui.component.SwitchPreference
 import moe.koiverse.archivetune.ui.utils.backToMain
 import moe.koiverse.archivetune.utils.rememberEnumPreference
 import moe.koiverse.archivetune.utils.rememberPreference
+import moe.koiverse.archivetune.LocalDatabase
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -111,6 +113,8 @@ fun PlayerSettings(
     )
 
     var showArtistSeparatorsDialog by remember { mutableStateOf(false) }
+    var showTagsManagementDialog by remember { mutableStateOf(false) }
+    val database = LocalDatabase.current
 
     if (showArtistSeparatorsDialog) {
         ArtistSeparatorsDialog(
@@ -120,6 +124,13 @@ fun PlayerSettings(
                 onArtistSeparatorsChange(newSeparators)
                 showArtistSeparatorsDialog = false
             }
+        )
+    }
+
+    if (showTagsManagementDialog) {
+        TagsManagementDialog(
+            database = database,
+            onDismiss = { showTagsManagementDialog = false }
         )
     }
 
@@ -147,10 +158,10 @@ fun PlayerSettings(
             onValueSelected = onAudioQualityChange,
             valueText = {
                 when (it) {
-                    AudioQuality.AUTO -> stringResource(R.string.audio_quality_auto)
                     AudioQuality.HIGH -> stringResource(R.string.audio_quality_high)
                     AudioQuality.VERY_HIGH -> stringResource(R.string.audio_quality_very_high)
                     AudioQuality.HIGHEST -> stringResource(R.string.audio_quality_highest)
+                    AudioQuality.AUTO -> stringResource(R.string.audio_quality_auto)
                     AudioQuality.LOW -> stringResource(R.string.audio_quality_low)
                 }
             }
@@ -253,6 +264,13 @@ fun PlayerSettings(
             description = artistSeparators.map { "\"$it\"" }.joinToString("  "),
             icon = { Icon(painterResource(R.drawable.artist), null) },
             onClick = { showArtistSeparatorsDialog = true }
+        )
+
+        PreferenceEntry(
+            title = { Text(stringResource(R.string.manage_playlist_tags)) },
+            description = stringResource(R.string.manage_playlist_tags_desc),
+            icon = { Icon(painterResource(R.drawable.style), null) },
+            onClick = { showTagsManagementDialog = true }
         )
     }
 

@@ -8,19 +8,14 @@ import moe.koiverse.archivetune.constants.YtmSyncKey
 import moe.koiverse.archivetune.utils.dataStore
 import moe.koiverse.archivetune.utils.get
 import moe.koiverse.archivetune.innertube.utils.parseCookieString
-import kotlinx.coroutines.runBlocking
 
 fun Context.isSyncEnabled(): Boolean {
-    return runBlocking {
-        dataStore.get(YtmSyncKey, true) && isUserLoggedIn()
-    }
+    return dataStore.get(YtmSyncKey, true) && isUserLoggedIn()
 }
 
 fun Context.isUserLoggedIn(): Boolean {
-    return runBlocking {
-        val cookie = dataStore[InnerTubeCookieKey] ?: ""
-        "SAPISID" in parseCookieString(cookie) && isInternetConnected()
-    }
+    val cookie = dataStore[InnerTubeCookieKey] ?: ""
+    return "SAPISID" in parseCookieString(cookie) && isInternetConnected()
 }
 
 fun Context.isInternetConnected(): Boolean {

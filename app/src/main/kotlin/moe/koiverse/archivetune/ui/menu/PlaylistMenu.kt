@@ -1,10 +1,13 @@
 package moe.koiverse.archivetune.ui.menu
 
 import android.content.Intent
+import android.content.res.Configuration
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
@@ -29,6 +32,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextRange
@@ -51,6 +55,7 @@ import moe.koiverse.archivetune.playback.ExoDownloadService
 import moe.koiverse.archivetune.playback.queues.ListQueue
 import moe.koiverse.archivetune.playback.queues.YouTubeQueue
 import moe.koiverse.archivetune.ui.component.DefaultDialog
+import moe.koiverse.archivetune.ui.component.AssignTagsDialog
 import moe.koiverse.archivetune.ui.component.NewAction
 import moe.koiverse.archivetune.ui.component.NewActionGrid
 import moe.koiverse.archivetune.ui.component.PlaylistListItem
@@ -196,6 +201,21 @@ fun PlaylistMenu(
         mutableStateOf(false)
     }
 
+    var showAssignTagsDialog by remember {
+        mutableStateOf(false)
+    }
+
+    if (showAssignTagsDialog) {
+        AssignTagsDialog(
+            database = database,
+            playlistId = playlist.id,
+            onDismiss = { 
+                showAssignTagsDialog = false
+                onDismiss()
+            }
+        )
+    }
+
     if (showDeletePlaylistDialog) {
         DefaultDialog(
             onDismiss = { showDeletePlaylistDialog = false },
@@ -263,78 +283,13 @@ fun PlaylistMenu(
 
     HorizontalDivider()
 
-    // Enhanced Action Grid using NewMenuComponents
-    NewActionGrid(
-        actions = listOf(
-            NewAction(
-                icon = {
-                    Icon(
-                        painter = painterResource(R.drawable.play),
-                        contentDescription = null,
-                        modifier = Modifier.size(28.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                },
-                text = stringResource(R.string.play),
-                onClick = {
-                    onDismiss()
-                    if (songs.isNotEmpty()) {
-                        playerConnection.playQueue(
-                            ListQueue(
-                                title = playlist.playlist.name,
-                                items = songs.map(Song::toMediaItem)
-                            )
-                        )
-                    }
-                }
-            ),
-            NewAction(
-                icon = {
-                    Icon(
-                        painter = painterResource(R.drawable.shuffle),
-                        contentDescription = null,
-                        modifier = Modifier.size(28.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                },
-                text = stringResource(R.string.shuffle),
-                onClick = {
-                    onDismiss()
-                    if (songs.isNotEmpty()) {
-                        playerConnection.playQueue(
-                            ListQueue(
-                                title = playlist.playlist.name,
-                                items = songs.shuffled().map(Song::toMediaItem)
-                            )
-                        )
-                    }
-                }
-            ),
-            NewAction(
-                icon = {
-                    Icon(
-                        painter = painterResource(R.drawable.share),
-                        contentDescription = null,
-                        modifier = Modifier.size(28.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                },
-                text = stringResource(R.string.share),
-                onClick = {
-                    onDismiss()
-                    val intent = Intent().apply {
-                        action = Intent.ACTION_SEND
-                        type = "text/plain"
-                        putExtra(Intent.EXTRA_TEXT, "https://music.youtube.com/playlist?list=${dbPlaylist?.playlist?.browseId}")
-                    }
-                    context.startActivity(Intent.createChooser(intent, null))
-                }
-            )
-        ),
-        modifier = Modifier.padding(horizontal = 4.dp, vertical = 16.dp)
-    )
+    Spacer(modifier = Modifier.height(12.dp))
+
+    val configuration = LocalConfiguration.current
+    val isPortrait = configuration.orientation == Configuration.ORIENTATION_PORTRAIT
 
     LazyColumn(
+        userScrollEnabled = !isPortrait,
         contentPadding = PaddingValues(
             start = 0.dp,
             top = 0.dp,
@@ -342,6 +297,78 @@ fun PlaylistMenu(
             bottom = 8.dp + WindowInsets.systemBars.asPaddingValues().calculateBottomPadding(),
         ),
     ) {
+        item {
+            // Enhanced Action Grid using NewMenuComponents
+            NewActionGrid(
+                actions = listOf(
+                    NewAction(
+                        icon = {
+                            Icon(
+                                painter = painterResource(R.drawable.play),
+                                contentDescription = null,
+                                modifier = Modifier.size(28.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        },
+                        text = stringResource(R.string.play),
+                        onClick = {
+                            onDismiss()
+                            if (songs.isNotEmpty()) {
+                                playerConnection.playQueue(
+                                    ListQueue(
+                                        title = playlist.playlist.name,
+                                        items = songs.map(Song::toMediaItem)
+                                    )
+                                )
+                            }
+                        }
+                    ),
+                    NewAction(
+                        icon = {
+                            Icon(
+                                painter = painterResource(R.drawable.shuffle),
+                                contentDescription = null,
+                                modifier = Modifier.size(28.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        },
+                        text = stringResource(R.string.shuffle),
+                        onClick = {
+                            onDismiss()
+                            if (songs.isNotEmpty()) {
+                                playerConnection.playQueue(
+                                    ListQueue(
+                                        title = playlist.playlist.name,
+                                        items = songs.shuffled().map(Song::toMediaItem)
+                                    )
+                                )
+                            }
+                        }
+                    ),
+                    NewAction(
+                        icon = {
+                            Icon(
+                                painter = painterResource(R.drawable.share),
+                                contentDescription = null,
+                                modifier = Modifier.size(28.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        },
+                        text = stringResource(R.string.share),
+                        onClick = {
+                            onDismiss()
+                            val intent = Intent().apply {
+                                action = Intent.ACTION_SEND
+                                type = "text/plain"
+                                putExtra(Intent.EXTRA_TEXT, "https://music.youtube.com/playlist?list=${dbPlaylist?.playlist?.browseId}")
+                            }
+                            context.startActivity(Intent.createChooser(intent, null))
+                        }
+                    )
+                ),
+                modifier = Modifier.padding(horizontal = 4.dp, vertical = 16.dp)
+            )
+        }
         playlist.playlist.browseId?.let { browseId ->
             item {
                 ListItem(
@@ -413,6 +440,23 @@ fun PlaylistMenu(
                     },
                     modifier = Modifier.clickable {
                         showEditDialog = true
+                    }
+                )
+            }
+        }
+
+        if (autoPlaylist != true && downloadPlaylist != true) {
+            item {
+                ListItem(
+                    headlineContent = { Text(text = stringResource(R.string.manage_tags)) },
+                    leadingContent = {
+                        Icon(
+                            painter = painterResource(R.drawable.style),
+                            contentDescription = null,
+                        )
+                    },
+                    modifier = Modifier.clickable {
+                        showAssignTagsDialog = true
                     }
                 )
             }

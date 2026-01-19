@@ -11,6 +11,7 @@ interface LyricsProvider {
         id: String,
         title: String,
         artist: String,
+        album: String?,
         duration: Int,
     ): Result<String>
 
@@ -18,9 +19,10 @@ interface LyricsProvider {
         id: String,
         title: String,
         artist: String,
+        album: String?,
         duration: Int,
         callback: (String) -> Unit,
     ) {
-        getLyrics(id, title, artist, duration).onSuccess(callback)
+        getLyrics(id, title, artist, album, duration).onSuccess(callback)
     }
 }

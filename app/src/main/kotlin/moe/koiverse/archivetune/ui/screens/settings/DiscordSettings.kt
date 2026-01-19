@@ -1055,13 +1055,14 @@ fun RichPresence(
                             val songThumb = song?.song?.thumbnailUrl
                             val artistThumb = song?.artists?.firstOrNull()?.thumbnailUrl
 
+                            // Fix: Don't fallback from artist to song thumbnail - each source should be independent
                             val smallModel = when (smallImageType.lowercase()) {
-                                "thumbnail" -> songThumb ?: artistThumb
-                                "artist" -> artistThumb ?: songThumb
+                                "thumbnail" -> songThumb  // Only show song thumbnail, no fallback
+                                "artist" -> artistThumb   // Only show artist thumbnail, no fallback to song
                                 "appicon" -> "https://raw.githubusercontent.com/koiverse/ArchiveTune/main/fastlane/metadata/android/en-US/images/icon.png"
-                                "custom" -> smallImageCustomUrl.takeIf { it.isNotBlank() } ?: (artistThumb ?: songThumb)
-                                "dontshow" -> null
-                                else -> artistThumb ?: songThumb
+                                "custom" -> smallImageCustomUrl.takeIf { it.isNotBlank() } ?: songThumb  // Custom with fallback to song only
+                                "dontshow", "none" -> null
+                                else -> artistThumb  // Default to artist without fallback
                             }
                             smallModel?.let {
                                 Box(

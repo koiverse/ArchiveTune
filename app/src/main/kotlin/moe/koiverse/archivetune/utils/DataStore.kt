@@ -1,6 +1,7 @@
 package moe.koiverse.archivetune.utils
 
 import android.content.Context
+import android.os.Looper
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
@@ -12,7 +13,10 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.preferencesDataStore
 import moe.koiverse.archivetune.extensions.toEnum
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -22,23 +26,61 @@ import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.properties.ReadOnlyProperty
 
 val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
+object PreferenceStore {
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val _prefs = MutableStateFlow<Preferences?>(null)
+    @Volatile private var started = false
 
-operator fun <T> DataStore<Preferences>.get(key: Preferences.Key<T>): T? =
-    runBlocking(Dispatchers.IO) {
-        withTimeoutOrNull(1500) {
-            data.first()[key]
+    fun start(context: Context) {
+        if (started) return
+        synchronized(this) {
+            if (started) return
+            started = true
+            scope.launch {
+                context.dataStore.data.collect { preferences ->
+                    _prefs.value = preferences
+                }
+            }
         }
     }
+
+    fun <T> get(key: Preferences.Key<T>): T? = _prefs.value?.get(key)
+}
+
+operator fun <T> DataStore<Preferences>.get(key: Preferences.Key<T>): T? =
+    PreferenceStore.get(key)
+        ?: if (Looper.getMainLooper().thread == Thread.currentThread()) {
+            null
+        } else {
+            runBlocking(Dispatchers.IO) {
+                withTimeoutOrNull(1500) {
+                    data.first()[key]
+                }
+            }
+        }
 
 fun <T> DataStore<Preferences>.get(
     key: Preferences.Key<T>,
     defaultValue: T,
 ): T =
-    runBlocking(Dispatchers.IO) {
-        withTimeoutOrNull(1500) {
-            data.first()[key]
-        } ?: defaultValue
-    }
+    PreferenceStore.get(key)
+        ?: if (Looper.getMainLooper().thread == Thread.currentThread()) {
+            defaultValue
+        } else {
+            runBlocking(Dispatchers.IO) {
+                withTimeoutOrNull(1500) {
+                    data.first()[key]
+                } ?: defaultValue
+            }
+        }
+
+suspend fun <T> DataStore<Preferences>.getAsync(key: Preferences.Key<T>): T? =
+    data.first()[key]
+
+suspend fun <T> DataStore<Preferences>.getAsync(
+    key: Preferences.Key<T>,
+    defaultValue: T,
+): T = data.first()[key] ?: defaultValue
 
 fun <T> preference(
     context: Context,
@@ -65,7 +107,7 @@ fun <T> rememberPreference(
             context.dataStore.data
                 .map { it[key] ?: defaultValue }
                 .distinctUntilChanged()
-        }.collectAsState(context.dataStore[key] ?: defaultValue)
+        }.collectAsState(defaultValue)
 
     return remember {
         object : MutableState<T> {
@@ -94,13 +136,12 @@ inline fun <reified T : Enum<T>> rememberEnumPreference(
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
 
-    val initialValue = context.dataStore[key].toEnum(defaultValue = defaultValue)
     val state =
         remember {
             context.dataStore.data
                 .map { it[key].toEnum(defaultValue = defaultValue) }
                 .distinctUntilChanged()
-        }.collectAsState(initialValue)
+        }.collectAsState(defaultValue)
 
     return remember {
         object : MutableState<T> {

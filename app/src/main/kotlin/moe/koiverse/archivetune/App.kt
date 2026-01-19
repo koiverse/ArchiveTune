@@ -1,6 +1,7 @@
 package moe.koiverse.archivetune
 
 import android.app.Application
+import android.app.ActivityManager
 import android.content.Context
 import android.os.Build
 import android.widget.Toast
@@ -17,6 +18,7 @@ import coil3.request.crossfade
 import moe.koiverse.archivetune.constants.*
 import moe.koiverse.archivetune.extensions.*
 import moe.koiverse.archivetune.utils.dataStore
+import moe.koiverse.archivetune.utils.PreferenceStore
 import moe.koiverse.archivetune.utils.get
 import moe.koiverse.archivetune.utils.reportException
 import moe.koiverse.archivetune.innertube.YouTube
@@ -30,6 +32,7 @@ import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -44,70 +47,104 @@ import java.util.*
 
 @HiltAndroidApp
 class App : Application(), SingletonImageLoader.Factory {
-    // Create a proper application scope that will be cancelled when the app is destroyed
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    @Volatile private var isInitialized = false
+
+    private fun currentProcessName(): String? {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            Application.getProcessName()
+        } else {
+            val pid = android.os.Process.myPid()
+            val activityManager = getSystemService(Context.ACTIVITY_SERVICE) as? ActivityManager
+            activityManager?.runningAppProcesses
+                ?.firstOrNull { it.pid == pid }
+                ?.processName
+        }
+    }
     
     @OptIn(DelicateCoroutinesApi::class)
     override fun onCreate() {
         super.onCreate()
-        instance = this;
+        instance = this
+        if (currentProcessName()?.endsWith(":crash") == true) {
+            Timber.plant(Timber.DebugTree())
+            return
+        }
+        PreferenceStore.start(this)
         Timber.plant(Timber.DebugTree())
-        // Also plant the global log tree to capture logs into an in-memory flow for Debug UI
         try {
             Timber.plant(moe.koiverse.archivetune.utils.GlobalLogTree())
         } catch (_: Exception) {}
 
+        initializeCriticalSync()
+        initializeDeferredAsync()
+    }
+
+    private fun initializeCriticalSync() {
         val locale = Locale.getDefault()
-        val languageTag = locale.toLanguageTag().replace("-Hant", "") // replace zh-Hant-* to zh-*
+        val languageTag = locale.toLanguageTag().replace("-Hant", "")
         YouTube.locale = YouTubeLocale(
-            gl = dataStore[ContentCountryKey]?.takeIf { it != SYSTEM_DEFAULT }
-                ?: locale.country.takeIf { it in CountryCodeToName }
-                ?: "US",
-            hl = dataStore[ContentLanguageKey]?.takeIf { it != SYSTEM_DEFAULT }
-                ?: locale.language.takeIf { it in LanguageCodeToName }
+            gl = locale.country.takeIf { it in CountryCodeToName } ?: "US",
+            hl = locale.language.takeIf { it in LanguageCodeToName }
                 ?: languageTag.takeIf { it in LanguageCodeToName }
                 ?: "en"
         )
         if (languageTag == "zh-TW") {
             KuGou.useTraditionalChinese = true
         }
-
-        // Initialize Last.fm with API credentials
         LastFM.initialize(
             apiKey = BuildConfig.LASTFM_API_KEY,
             secret = BuildConfig.LASTFM_SECRET
         )
-        
-        // Load Last.fm session key from preferences
-        LastFM.sessionKey = dataStore[LastFMSessionKey]
+    }
 
-        if (dataStore[ProxyEnabledKey] == true) {
+    private fun initializeDeferredAsync() {
+        applicationScope.launch(Dispatchers.IO) {
             try {
-                YouTube.proxy = Proxy(
-                    dataStore[ProxyTypeKey].toEnum(defaultValue = Proxy.Type.HTTP),
-                    dataStore[ProxyUrlKey]!!.toInetSocketAddress()
-                )
+                val prefs = dataStore.data.first()
+                
+                prefs[ContentCountryKey]?.takeIf { it != SYSTEM_DEFAULT }?.let { country ->
+                    YouTube.locale = YouTube.locale.copy(gl = country)
+                }
+                prefs[ContentLanguageKey]?.takeIf { it != SYSTEM_DEFAULT }?.let { lang ->
+                    YouTube.locale = YouTube.locale.copy(hl = lang)
+                }
+                
+                LastFM.sessionKey = prefs[LastFMSessionKey]
+
+                if (prefs[ProxyEnabledKey] == true) {
+                    try {
+                        YouTube.proxy = Proxy(
+                            prefs[ProxyTypeKey].toEnum(defaultValue = Proxy.Type.HTTP),
+                            prefs[ProxyUrlKey]!!.toInetSocketAddress()
+                        )
+                    } catch (e: Exception) {
+                        withContext(Dispatchers.Main) {
+                            Toast.makeText(this@App, "Failed to parse proxy url.", LENGTH_SHORT).show()
+                        }
+                        reportException(e)
+                    }
+                }
+
+                if (prefs[UseLoginForBrowse] != false) {
+                    YouTube.useLoginForBrowse = true
+                }
+                
+                isInitialized = true
             } catch (e: Exception) {
-                Toast.makeText(this, "Failed to parse proxy url.", LENGTH_SHORT).show()
+                Timber.e(e, "Error during deferred initialization")
                 reportException(e)
             }
         }
 
-        if (dataStore[UseLoginForBrowse] != false) {
-            YouTube.useLoginForBrowse = true
-        }
-
-        applicationScope.launch {
+        applicationScope.launch(Dispatchers.IO) {
             dataStore.data
                 .map { it[VisitorDataKey] }
                 .distinctUntilChanged()
                 .collect { visitorData ->
                     YouTube.visitorData = visitorData
-                        ?.takeIf { it != "null" } // Previously visitorData was sometimes saved as "null" due to a bug
+                        ?.takeIf { it != "null" }
                         ?: YouTube.visitorData().onFailure {
-                            withContext(Dispatchers.Main) {
-                                Toast.makeText(this@App, "Failed to get visitorData.", LENGTH_SHORT).show()
-                            }
                             reportException(it)
                         }.getOrNull()?.also { newVisitorData ->
                             dataStore.edit { settings ->
@@ -118,7 +155,6 @@ class App : Application(), SingletonImageLoader.Factory {
         }
 
         try {
-            val defaultHandler = Thread.getDefaultUncaughtExceptionHandler()
             Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
                 try {
                     val sw = StringWriter()
@@ -135,39 +171,26 @@ class App : Application(), SingletonImageLoader.Factory {
                 } catch (e: Exception) {
                     reportException(e)
                 } finally {
-                    try {
-                        defaultHandler?.uncaughtException(thread, throwable)
-                    } catch (_: Exception) {
-                        android.os.Process.killProcess(android.os.Process.myPid())
-                        exitProcess(2)
-                    }
+                    android.os.Process.killProcess(android.os.Process.myPid())
+                    exitProcess(2)
                 }
             }
         } catch (e: Exception) {
             reportException(e)
         }
-        applicationScope.launch {
+        applicationScope.launch(Dispatchers.IO) {
             dataStore.data
                 .map { it[DataSyncIdKey] }
                 .distinctUntilChanged()
                 .collect { dataSyncId ->
                     YouTube.dataSyncId = dataSyncId?.let {
-                        /*
-                         * Workaround to avoid breaking older installations that have a dataSyncId
-                         * that contains "||" in it.
-                         * If the dataSyncId ends with "||" and contains only one id, then keep the
-                         * id before the "||".
-                         * If the dataSyncId contains "||" and is not at the end, then keep the
-                         * second id.
-                         * This is needed to keep using the same account as before.
-                         */
                         it.takeIf { !it.contains("||") }
                             ?: it.takeIf { it.endsWith("||") }?.substringBefore("||")
                             ?: it.substringAfter("||")
                     }
                 }
         }
-        applicationScope.launch {
+        applicationScope.launch(Dispatchers.IO) {
             dataStore.data
                 .map { it[InnerTubeCookieKey] }
                 .distinctUntilChanged()
@@ -175,13 +198,12 @@ class App : Application(), SingletonImageLoader.Factory {
                     try {
                         YouTube.cookie = cookie
                     } catch (e: Exception) {
-                        // we now allow user input now, here be the demons. This serves as a last ditch effort to avoid a crash loop
                         Timber.e("Could not parse cookie. Clearing existing cookie. %s", e.message)
                         forgetAccount(this@App)
                     }
                 }
         }
-        applicationScope.launch {
+        applicationScope.launch(Dispatchers.IO) {
             dataStore.data
                 .map { it[LastFMSessionKey] }
                 .distinctUntilChanged()
@@ -192,27 +214,59 @@ class App : Application(), SingletonImageLoader.Factory {
     }
 
     override fun newImageLoader(context: PlatformContext): ImageLoader {
-        val cacheSize = dataStore[MaxImageCacheSizeKey]
+        val smartTrimmer = dataStore[SmartTrimmerKey] ?: false
 
-        // will crash app if you set to 0 after cache starts being used
-        if (cacheSize == 0) {
+        if (smartTrimmer) {
+            val cacheSize = dataStore[MaxImageCacheSizeKey] ?: 512
+            val maxSize = cacheSize * 1024 * 1024L
+            val diskCache = DiskCache.Builder()
+                .directory(cacheDir.resolve("coil"))
+                .maxSizeBytes(maxSize)
+                .build()
+            Thread {
+                try {
+                    val dir = java.io.File(cacheDir, "coil")
+                    val files = dir.listFiles()?.sortedBy { f -> f.lastModified() } ?: emptyList<java.io.File>()
+                    val limit = 500 * 1024 * 1024L
+                    var currentSize = files.sumOf { it.length() }
+                    if (currentSize <= limit) return@Thread
+                    for (file in files) {
+                        if (currentSize <= limit) break
+                        val size = file.length()
+                        if (file.delete()) currentSize -= size
+                    }
+                } catch (_: Exception) {}
+            }.start()
             return ImageLoader.Builder(this)
                 .crossfade(true)
                 .allowHardware(Build.VERSION.SDK_INT >= Build.VERSION_CODES.P)
-                .diskCachePolicy(CachePolicy.DISABLED)
+                .diskCache(diskCache)
+                .build()
+        } else {
+            val diskCache = DiskCache.Builder()
+                .directory(cacheDir.resolve("coil"))
+                .maxSizeBytes(512 * 1024 * 1024L)
+                .build()
+            Thread {
+                try {
+                    val dir = java.io.File(diskCache.directory.toString())
+                    val files = dir.listFiles()?.sortedBy { it.lastModified() } ?: emptyList<java.io.File>()
+                    val limit = 500 * 1024 * 1024L
+                    var currentSize = files.sumOf { it.length() }
+                    if (currentSize <= limit) return@Thread
+                    for (file in files) {
+                        if (currentSize <= limit) break
+                        val size = file.length()
+                        if (file.delete()) currentSize -= size
+                    }
+                } catch (_: Exception) {}
+            }.start()
+            return ImageLoader.Builder(this)
+                .crossfade(true)
+                .allowHardware(Build.VERSION.SDK_INT >= Build.VERSION_CODES.P)
+                .diskCache(diskCache)
                 .build()
         }
-
-        return ImageLoader.Builder(this)
-        .crossfade(true)
-        .allowHardware(Build.VERSION.SDK_INT >= Build.VERSION_CODES.P)
-        .diskCache(
-            DiskCache.Builder()
-                .directory(cacheDir.resolve("coil"))
-                .maxSizeBytes((cacheSize ?: 512) * 1024 * 1024L)
-                .build()
-        )
-        .build()
     }
 
     companion object {
@@ -220,7 +274,7 @@ class App : Application(), SingletonImageLoader.Factory {
             private set
 
         fun forgetAccount(context: Context) {
-            runBlocking {
+            CoroutineScope(Dispatchers.IO).launch {
                 context.dataStore.edit { settings ->
                     settings.remove(InnerTubeCookieKey)
                     settings.remove(VisitorDataKey)

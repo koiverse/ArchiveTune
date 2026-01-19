@@ -27,7 +27,6 @@ android {
         versionCode = 129
         versionName = "12.4.6"
 
-        multiDexEnabled = true
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
         
@@ -73,23 +72,11 @@ android {
     }
 
     signingConfigs {
-        create("persistentDebug") {
-            storeFile = file("persistent-debug.keystore")
-            storePassword = "android"
-            keyAlias = "androiddebugkey"
-            keyPassword = "android"
-        }
         create("release") {
             storeFile = file("keystore/release.keystore")
             storePassword = System.getenv("STORE_PASSWORD")
             keyAlias = System.getenv("KEY_ALIAS")
             keyPassword = System.getenv("KEY_PASSWORD")
-        }
-        getByName("debug") {
-            keyAlias = "androiddebugkey"
-            keyPassword = "android"
-            storePassword = "android"
-            storeFile = file("${System.getProperty("user.home")}/.android/debug.keystore")
         }
     }
 
@@ -105,11 +92,6 @@ android {
         debug {
             applicationIdSuffix = ".debug"
             isDebuggable = true
-            signingConfig = if (System.getenv("GITHUB_EVENT_NAME") == "pull_request") {
-                signingConfigs.getByName("debug")
-            } else {
-                signingConfigs.getByName("persistentDebug")
-            }
         }
     }
 
@@ -179,6 +161,7 @@ dependencies {
     implementation(libs.navigation)
     implementation(libs.hilt.navigation)
     implementation(libs.datastore)
+    implementation(libs.work.runtime)
 
     implementation(libs.compose.runtime)
     implementation(libs.compose.foundation)
@@ -193,7 +176,6 @@ dependencies {
 
     implementation(libs.material3)
     implementation(libs.palette)
-    implementation(libs.materialKolor)
 
     implementation(libs.coil)
     implementation(libs.coil.network.okhttp)
@@ -222,19 +204,20 @@ dependencies {
     implementation(project(":lastfm"))
     implementation(project(":betterlyrics"))
     implementation(project(":kizzy"))
+    implementation(project(":simpmusic"))
+    implementation("com.github.Kyant0:m3color:2025.4")
 
     implementation(libs.ktor.client.core)
     implementation(libs.ktor.serialization.json)
 
     coreLibraryDesugaring(libs.desugaring)
 
-    implementation(libs.multidex)
-
     implementation(libs.timber)
     testImplementation(libs.junit)
     // Ensure ProcessLifecycleOwner is available for the presence manager and CI unit tests
     implementation("com.github.therealbush:translator:1.1.1")
     implementation("androidx.lifecycle:lifecycle-process:2.10.0")
+    implementation("androidx.compose.material3.adaptive:adaptive:1.2.0")
 }
 
 kapt {

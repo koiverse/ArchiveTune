@@ -1,24 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
-
-<!-- Upstream InnerTune strings -->
-<!-- Do not add new features here -->
-<!-- Try to re-use strings here, but be careful on its usage e.g. verb vs noun -->
-<!-- "InnerTune" is replaced with "ArchiveTune" -->
-<!-- Translators: Do not modify this file for translations, use InnerTune's Weblate instead. -->
-
-<resources>
+<!-- Upstream InnerTune strings --><!-- Do not add new features here --><!-- Try to re-use strings here, but be careful on its usage e.g. verb vs noun --><!-- "InnerTune" is replaced with "ArchiveTune" --><!-- Translators: Do not modify this file for translations, use InnerTune's Weblate instead. --><resources>
     <!-- Bottom navigation -->
     <string name="home">Startseite</string>
     <string name="songs">Lieder</string>
     <string name="artists">Künstler</string>
     <string name="albums">Alben</string>
     <string name="playlists">Wiedergabelisten</string>
-
     <!-- Top bar -->
     <plurals name="n_selected">
+        <item quantity="one"/>
         <item quantity="other">%d ausgewählt</item>
     </plurals>
-
     <!-- Home -->
     <string name="history">Hörverlauf</string>
     <string name="stats">Statistiken</string>
@@ -33,18 +25,15 @@
     <string name="new_release_albums">Neue Veröffentlichungsalben</string>
     <string name="select_playlist_to_sync">Wählen Sie eine Playlist zum Synchronisieren</string>
     <string name="integration">Integration</string>
-
     <!-- History -->
     <string name="today">Heute</string>
     <string name="yesterday">Gestern</string>
     <string name="this_week">Diese Woche</string>
     <string name="last_week">Letzte Woche</string>
-
     <!-- Stats -->
     <string name="most_played_songs">Die meisten gespielten Lieder</string>
     <string name="most_played_artists">Die meisten gespielten Künstler</string>
     <string name="most_played_albums">Die meisten gespielten Alben</string>
-
     <!-- Search -->
     <string name="search">Suchen</string>
     <string name="search_yt_music">Durchsuchen Sie YouTube Music…</string>
@@ -63,32 +52,26 @@
     <string name="filter_featured_playlists">Empfohlene Playlists</string>
     <string name="filter_bookmarked">Mit Lesezeichen versehen</string>
     <string name="no_results_found">Keine Ergebnisse gefunden</string>
-
     <!-- Library -->
     <string name="library_song_empty">Hier werden Bibliothekslieder angezeigt</string>
     <string name="library_artist_empty">Hier werden Bibliothekskünstler auftauchen</string>
     <string name="library_album_empty">Hier werden Bibliotheksalben angezeigt</string>
     <string name="library_playlist_empty">Ihre Playlists werden hier angezeigt</string>
-
     <!-- Artist screen -->
     <string name="from_your_library">Aus Ihrer Bibliothek</string>
-
     <!-- Album screen -->
     <string name="other_versions">Andere Versionen</string>
-
     <!-- Playlist -->
     <string name="liked_songs">Gefallene Lieder</string>
     <string name="downloaded_songs">Heruntergeladene Lieder</string>
     <string name="playlist_is_empty">Die Playlist ist leer</string>
     <string name="remove_download_playlist_confirm">Möchten Sie wirklich alle \"%s\" Playlist-Songs aus dem Speicher für heruntergeladene Songs entfernen?</string>
     <string name="delete_playlist_confirm">Möchten Sie die Playlist \"%s\" wirklich löschen?</string>
-
     <!-- Button -->
     <string name="retry">Wiederholen</string>
     <string name="radio">Radio</string>
     <string name="shuffle">Shuffle</string>
     <string name="reset">Zurücksetzen</string>
-
     <!-- Menu -->
     <string name="details">Details</string>
     <string name="edit">Bearbeiten</string>
@@ -121,7 +104,6 @@
     <string name="action_sync">Synchronisieren</string>
     <string name="advanced">Fortschrittlich</string>
     <string name="tempo_and_pitch">Tempo und Tonhöhe</string>
-
     <!-- Sort menu -->
     <string name="sort_by_create_date">Datum hinzugefügt</string>
     <string name="sort_by_name">Name</string>
@@ -131,7 +113,6 @@
     <string name="sort_by_length">Länge</string>
     <string name="sort_by_play_time">Wiedergabezeit</string>
     <string name="sort_by_custom">Benutzerdefiniert</string>
-
     <!-- Dialog -->
     <string name="media_id">Medien-ID</string>
     <string name="mime_type">MIME-Typ</string>
@@ -143,33 +124,27 @@
     <string name="file_size">Dateigröße</string>
     <string name="unknown">Unbekannt</string>
     <string name="copied">In die Zwischenablage kopiert</string>
-
     <string name="edit_lyrics">Songtext bearbeiten</string>
     <string name="search_lyrics">Songtexte suchen</string>
-
     <string name="edit_song">Lied bearbeiten</string>
     <string name="song_title">Songtitel</string>
     <string name="song_artists">Liedkünstler</string>
     <string name="error_song_title_empty">Der Songtitel darf nicht leer sein.</string>
     <string name="error_song_artist_empty">Song-Künstler darf nicht leer sein.</string>
     <string name="save">Speichern</string>
-
     <string name="choose_playlist">Wählen Sie eine Playlist</string>
     <string name="edit_playlist">Playlist bearbeiten</string>
     <string name="create_playlist">Playlist erstellen</string>
     <string name="playlist_name">Name der Wiedergabeliste</string>
     <string name="error_playlist_name_empty">Der Name der Wiedergabeliste darf nicht leer sein.</string>
-
     <string name="edit_artist">Künstler bearbeiten</string>
     <string name="artist_name">Künstlername</string>
     <string name="error_artist_name_empty">Der Name des Künstlers darf nicht leer sein.</string>
-
     <string name="duplicates">Duplikate</string>
     <string name="skip_duplicates">Überspringen Sie Duplikate</string>
     <string name="add_anyway">Trotzdem hinzufügen</string>
     <string name="duplicates_description_single">Das Lied ist bereits in Ihrer Playlist</string>
     <string name="duplicates_description_multiple">%d Songs sind bereits in Ihrer Playlist</string>
-
     <!-- Noun -->
     <plurals name="n_song">
         <item quantity="one">%d Lied</item>
@@ -199,13 +174,11 @@
         <item quantity="one">%d Jahr</item>
         <item quantity="other">%d Jahre</item>
     </plurals>
-
     <!-- Snackbar -->
     <string name="playlist_imported">Playlist importiert</string>
     <string name="removed_song_from_playlist">\"%s\" aus der Playlist entfernt</string>
     <string name="playlist_synced">Playlist synchronisiert</string>
     <string name="undo">Rückgängig machen</string>
-
     <!-- Player -->
     <string name="lyrics_not_found">Songtext nicht gefunden</string>
     <string name="sleep_timer">Sleep-Timer</string>
@@ -218,7 +191,6 @@
     <string name="error_no_internet">Keine Netzwerkverbindung</string>
     <string name="error_timeout">Time-out</string>
     <string name="error_unknown">Unbekannter Fehler</string>
-
     <!-- Player action -->
     <string name="action_like">Wie</string>
     <string name="action_like_all">Wie alle</string>
@@ -229,19 +201,118 @@
     <string name="repeat_mode_off">Wiederholungsmodus aus</string>
     <string name="repeat_mode_one">Aktuelles Lied wiederholen</string>
     <string name="repeat_mode_all">Warteschlange wiederholen</string>
-
     <!-- Queue Title -->
     <string name="queue_all_songs">Alle Lieder</string>
     <string name="queue_searched_songs">Gesuchte Lieder</string>
-
     <!-- Notification name -->
     <string name="music_player">Musik-Player</string>
-
     <!-- Settings -->
     <string name="settings">Einstellungen</string>
     <string name="appearance">Aussehen</string>
     <string name="theme">Thema</string>
     <string name="enable_dynamic_theme">Aktivieren Sie das dynamische Design</string>
+    <!-- Color Palette -->
+    <string name="color_palette">Farbpalette</string>
+    <string name="customize_theme_colors">Wähle die Farben deines App-Themes</string>
+    <string name="selected_theme_color">Ausgewählte Theme-Farbe</string>
+    <string name="theme_preview">Theme-Vorschau</string>
+    <string name="select_palette">Farbschema auswählen</string>
+    <string name="palette_applied">Palette angewendet</string>
+    <!-- Palette Names -->
+    <string name="palette_default">Standard</string>
+    <!-- Blues -->
+    <string name="palette_ocean_blue">Ozeanblau</string>
+    <string name="palette_arctic_blue">Arktis</string>
+    <string name="palette_midnight_navy">Mitternacht</string>
+    <string name="palette_sky_blue">Himmelblau</string>
+    <string name="palette_cobalt_blue">Kobaltblau</string>
+    <string name="palette_electric_blue">Elektrisch Blau</string>
+    <!-- Greens -->
+    <string name="palette_emerald_green">Smaragd</string>
+    <string name="palette_teal_wave">Türkiswelle</string>
+    <string name="palette_forest_green">Waldgrün</string>
+    <string name="palette_spotify_green">Spotify</string>
+    <string name="palette_mint_fresh">Minze</string>
+    <string name="palette_olive_garden">Olive</string>
+    <string name="palette_sage_green">Salbei</string>
+    <!-- Oranges & Yellows -->
+    <string name="palette_sunset_orange">Sonnenuntergang</string>
+    <string name="palette_golden_hour">Goldene Stunde</string>
+    <string name="palette_warm_amber">Bernstein</string>
+    <string name="palette_tangerine_blast">Mandarine</string>
+    <string name="palette_peach">Pfirsich</string>
+    <string name="palette_mango">Mango</string>
+    <!-- Purples -->
+    <string name="palette_royal_purple">Königslila</string>
+    <string name="palette_lavender_dream">Lavendel</string>
+    <string name="palette_grape_purple">Traube</string>
+    <string name="palette_violet">Violett</string>
+    <string name="palette_amethyst">Amethyst</string>
+    <string name="palette_ultra_violet">Ultraviolett</string>
+    <!-- Pinks -->
+    <string name="palette_cherry_blossom">Sakura</string>
+    <string name="palette_rose_quartz">Rosenquarz</string>
+    <string name="palette_magenta_pop">Magenta</string>
+    <string name="palette_hot_pink">Hot Pink</string>
+    <string name="palette_blush">Blush</string>
+    <string name="palette_coral">Koralle</string>
+    <string name="palette_bubblegum">Bubblegum</string>
+    <!-- Reds -->
+    <string name="palette_crimson_red">Karmesin</string>
+    <string name="palette_youtube_red">YouTube</string>
+    <string name="palette_wine_red">Weinrot</string>
+    <string name="palette_ruby_red">Rubinrot</string>
+    <string name="palette_scarlet">Scharlach</string>
+    <!-- Neutrals -->
+    <string name="palette_charcoal">Anthrazit</string>
+    <string name="palette_silver">Silber</string>
+    <string name="palette_slate">Schiefer</string>
+    <string name="palette_graphite">Graphit</string>
+    <!-- Earth Tones -->
+    <string name="palette_terracotta">Terrakotta</string>
+    <string name="palette_coffee">Kaffee</string>
+    <string name="palette_mocha">Mokka</string>
+    <string name="palette_sand">Sand</string>
+    <string name="palette_clay">Ton</string>
+    <!-- Pastels -->
+    <string name="palette_pastel_pink">Pastellrosa</string>
+    <string name="palette_pastel_blue">Pastellblau</string>
+    <string name="palette_pastel_green">Pastellgrün</string>
+    <string name="palette_pastel_yellow">Pastellgelb</string>
+    <string name="palette_pastel_purple">Pastelllila</string>
+    <!-- Neon & Vibrant -->
+    <string name="palette_neon_green">Neongrün</string>
+    <string name="palette_neon_pink">Neonpink</string>
+    <string name="palette_neon_blue">Neonblau</string>
+    <string name="palette_neon_orange">Neonorange</string>
+    <string name="palette_cyberpunk">Cyberpunk</string>
+    <string name="palette_synthwave">Synthwave</string>
+    <!-- Special & Themed -->
+    <string name="palette_ocean">Ozean</string>
+    <string name="palette_forest">Tiefer Wald</string>
+    <string name="palette_autumn">Herbst</string>
+    <string name="palette_winter">Winter</string>
+    <string name="palette_spring">Frühling</string>
+    <string name="palette_summer">Sommer</string>
+    <string name="palette_twilight">Dämmerung</string>
+    <string name="palette_aurora">Aurora</string>
+    <string name="palette_candy">Süßigkeiten</string>
+    <string name="palette_rainbow">Regenbogen</string>
+    <!-- Additional Palettes -->
+    <string name="palette_aquamarine">Aquamarin</string>
+    <string name="palette_coral_reef">Korallenriff</string>
+    <string name="palette_cotton_candy">Zuckerwatte</string>
+    <string name="palette_deep_sea">Tiefsee</string>
+    <string name="palette_electric_violet">Elektrisches Violett</string>
+    <string name="palette_mustard">Senf</string>
+    <string name="palette_olive">Olive</string>
+    <string name="palette_peachy_keen">Pfirsichtraum</string>
+    <string name="palette_plum">Pflaume</string>
+    <string name="palette_slate_gray">Schiefergrau</string>
+    <string name="palette_sunset_beach">Sonnenuntergangsstrand</string>
+    <string name="palette_turquoise">Türkis</string>
+    <!-- End of Color Palette -->
+
     <string name="dark_theme">Dunkles Thema</string>
     <string name="dark_theme_on">An</string>
     <string name="dark_theme_off">Aus</string>
@@ -284,7 +355,6 @@
     <string name="grid_cell_size">Größe der Rasterzelle</string>
     <string name="small">Klein</string>
     <string name="big">Groß</string>
-
     <!-- Lyrics animation style -->
     <string name="lyrics_animation_style">Songtext-Animationsstil</string>
     <!-- Animation options -->
@@ -293,15 +363,12 @@
     <string name="slide">Gleiten</string>
     <string name="karaoke">Karaoke</string>
     <string name="apple_music_style">Apple Music</string>
-
-
     <string name="content">Inhalt</string>
     <string name="action_logout">Abmelden</string>
     <string name="action_login">Einloggen</string>
     <string name="login">Login</string>
     <string name="not_logged_in">Nicht angemeldet</string>
     <string name="login_failed">Fehler bei der Anmeldung</string>
-
     <string name="content_language">Standardinhaltssprache</string>
     <string name="content_country">Standardinhaltsland</string>
     <string name="system_default">Systemstandard</string>
@@ -310,7 +377,6 @@
     <string name="proxy_url">Proxy-URL</string>
     <string name="restart_to_take_effect">Starten Sie neu, damit es wirksam wird</string>
     <string name="enable_betterlyrics">Aktivieren Sie BetterLyrics</string>
-
     <string name="player_and_audio">Player und Audio</string>
     <string name="audio_quality">Audioqualität</string>
     <string name="audio_quality_auto">Auto</string>
@@ -335,7 +401,6 @@
     <string name="add_symbol">Symbol hinzufügen</string>
     <string name="enter_symbol">Symbol eingeben</string>
     <string name="equalizer">Equalizer</string>
-
     <string name="storage">Speicher</string>
     <string name="cache">Cache</string>
     <string name="image_cache">Bildcache</string>
@@ -348,7 +413,6 @@
     <string name="max_song_cache_size">Maximale Song-Cache-Größe</string>
     <string name="clear_song_cache">Song-Cache löschen</string>
     <string name="size_used">%s verwendet</string>
-
     <string name="privacy">Privatsphäre</string>
     <string name="listen_history">Hörverlauf</string>
     <string name="pause_listen_history">Hörverlauf pausieren</string>
@@ -365,7 +429,6 @@
     <string name="enable_lrclib">Aktivieren Sie den Textanbieter LrcLib</string>
     <string name="enable_kugou">Aktivieren Sie den KuGou-Textanbieter</string>
     <string name="hide_explicit">Anstößige Inhalte ausblenden</string>
-
     <string name="backup_restore">Sichern und Wiederherstellen</string>
     <string name="action_backup">Sicherung</string>
     <string name="action_restore">Wiederherstellen</string>
@@ -373,15 +436,13 @@
     <string name="backup_create_success">Sicherung erfolgreich erstellt</string>
     <string name="backup_create_failed">Es konnte kein Backup erstellt werden</string>
     <string name="restore_failed">Sicherung konnte nicht wiederhergestellt werden</string>
-
     <string name="discord_integration">Discord-Integration</string>
-    <string name="discord_information">ArchiveTune verwendet die KizzyRPC-Bibliothek, um den Status Ihres Discord-Kontos festzulegen. Dies beinhaltet die Verwendung der Discord-Gateway-Verbindung, was als Verstoß gegen die AGB von Discord angesehen werden kann. Es sind jedoch keine Fälle bekannt, in denen Benutzerkonten aus diesem Grund gesperrt wurden. Die Nutzung erfolgt auf eigene Gefahr.&#10;ArchiveTune extrahiert nur Ihr Token und alles andere wird lokal gespeichert.</string>
+    <string name="discord_information">ArchiveTune verwendet die KizzyRPC-Bibliothek, um den Status Ihres Discord-Kontos festzulegen. Dies beinhaltet die Verwendung der Discord-Gateway-Verbindung, was als Verstoß gegen die AGB von Discord angesehen werden kann. Es sind jedoch keine Fälle bekannt, in denen Benutzerkonten aus diesem Grund gesperrt wurden. Die Nutzung erfolgt auf eigene Gefahr. ArchiveTune extrahiert nur Ihr Token und alles andere wird lokal gespeichert.</string>
     <string name="dismiss">Zurückweisen</string>
     <string name="options">Optionen</string>
     <string name="preview">Vorschau</string>
     <string name="enable_discord_rpc">Aktivieren Sie Rich Presence</string>
-
-        <!-- Last.fm -->
+    <!-- Last.fm -->
     <string name="scrobbling">Scrobbling</string>
     <string name="lastfm_integration">Last.fm-Integration</string>
     <string name="enable_scrobbling">Scrobbling aktivieren</string>
@@ -393,14 +454,11 @@
     <string name="username">Benutzername</string>
     <string name="password">Passwort</string>
     <string name="logging_in">Anmeldung…</string>
-
     <!-- ListenBrainz -->
     <string name="listenbrainz_scrobbling">ListenBrainz-Scrobbling</string>
     <string name="listenbrainz_scrobbling_description">Übermitteln von „Jetzt läuft“ und abgeschlossenen Wiedergaben an ListenBrainz aktivieren</string>
     <string name="set_listenbrainz_token">ListenBrainz-Token festlegen</string>
     <string name="edit_listenbrainz_token">ListenBrainz-Token bearbeiten</string>
-
-
     <!-- Discord activity customization -->
     <string name="discord_activity_name">Aktivitätsname</string>
     <string name="discord_activity_details">Aktivitätsdetails</string>
@@ -420,8 +478,6 @@
     <string name="activity_status">Aktivitätsstatus</string>
     <string name="platform_status">Plattform</string>
     <string name="update_interval">Aktualisierungsintervall der Präsenz</string>
-
-
     <!--Discord Tranalstor Settings-->
     <string name="translator_options">Übersetzeroptionen</string>
     <string name="enable_translator">Übersetzer aktivieren</string>
@@ -433,19 +489,16 @@
     <string name="close_dialog">Schließen</string>
     <string name="select_dialog">Wählen</string>
     <string name="support_github">Star ArchiveTune!</string>
-
     <!-- Update dialog -->
     <string name="new_update_available">Neues Update verfügbar</string>
     <string name="release_notes_unavailable">Versionshinweise sind nicht verfügbar</string>
     <string name="update_text">Aktualisieren</string>
-
     <!-- Translate UI strings -->
     <string name="translate">Übersetzen</string>
     <string name="language_label">Sprache</string>
     <string name="lyrics">Text</string>
     <string name="translation_success">Übersetzung gespeichert</string>
     <string name="translation_failed">Die Übersetzung ist fehlgeschlagen</string>
-
     <!-- Discord settings additions -->
     <string name="discord_button_options">Schaltflächenoptionen</string>
     <string name="discord_image_options">Bildoptionen</string>
@@ -460,7 +513,6 @@
     <string name="logout_confirm_message">Sind Sie sicher, dass Sie sich von Discord abmelden möchten?</string>
     <string name="logout_confirm_yes">Abmelden</string>
     <string name="logout_confirm_no">Stornieren</string>
-
     <!--Misc settings additions-->
     <string name="experiment_settings">Experimentelle Einstellungen</string>
     <string name="show_discord_debug_ui">Debug-Benutzeroberfläche anzeigen</string>
@@ -496,13 +548,8 @@
     <string name="playback_speed_label">Wiedergabegeschwindigkeit</string>
     <string name="state_label">Status</string>
     <string name="media_id_label">Medien-ID</string>
-
-
-
-
     <string name="about">Über</string>
     <string name="app_version">App-Version</string>
-
     <string name="new_version_available">Neue Version verfügbar</string>
     <string name="translation_models">Übersetzungsmodelle</string>
     <string name="clear_translation_models">Klare Übersetzungsmodelle</string>

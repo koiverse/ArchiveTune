@@ -4,6 +4,7 @@ import android.text.format.DateUtils
 import com.atilika.kuromoji.ipadic.Tokenizer
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import moe.koiverse.archivetune.betterlyrics.TTMLParser
 
 @Suppress("RegExpRedundantEscape")
 object LyricsUtils {
@@ -101,60 +102,53 @@ object LyricsUtils {
         Tokenizer()
     }
 
+    fun isTtml(lyrics: String): Boolean {
+        val trimmed = lyrics.trim()
+        if (!trimmed.startsWith("<")) return false
+
+        return trimmed.contains("<tt", ignoreCase = true) ||
+                trimmed.contains("http://www.w3.org/ns/ttml", ignoreCase = true)
+    }
+
+    fun parseTtml(lyrics: String): List<LyricsEntry> {
+        val parsedLines = TTMLParser.parseTTML(lyrics)
+        if (parsedLines.isEmpty()) return emptyList()
+
+        return parsedLines.map { line ->
+            val words =
+                line.words
+                    .filter { it.text.isNotEmpty() }
+                    .map { word ->
+                        WordTimestamp(
+                            text = word.text,
+                            startTime = word.startTime,
+                            endTime = word.endTime,
+                            isBackground = word.isBackground,
+                        )
+                    }.takeIf { it.isNotEmpty() }
+
+            LyricsEntry(
+                time = (line.startTime * 1000.0).toLong(),
+                text = line.text,
+                words = words,
+            )
+        }.sorted()
+    }
+
     fun parseLyrics(lyrics: String): List<LyricsEntry> {
         val lines = lyrics.lines()
         val result = mutableListOf<LyricsEntry>()
-        
-        // First pass: parse all lyrics lines
-        var i = 0
-        while (i < lines.size) {
-            val line = lines[i]
-            if (!line.trim().startsWith("<") || !line.trim().endsWith(">")) {
-                // This is a lyrics line
-                val entries = parseLine(line, null)
-                if (entries != null) {
-                    // Check if next line has word timestamps
-                    val wordTimestamps = if (i + 1 < lines.size) {
-                        val nextLine = lines[i + 1]
-                        if (nextLine.trim().startsWith("<") && nextLine.trim().endsWith(">")) {
-                            parseWordTimestamps(nextLine.trim().removeSurrounding("<", ">"))
-                        } else null
-                    } else null
-                    
-                    // Add entries with word timestamps if available
-                    if (wordTimestamps != null) {
-                        result.addAll(entries.map { entry ->
-                            LyricsEntry(entry.time, entry.text, wordTimestamps)
-                        })
-                    } else {
-                        result.addAll(entries)
-                    }
-                }
+
+        for (line in lines) {
+            val entries = parseLine(line)
+            if (entries != null) {
+                result.addAll(entries)
             }
-            i++
         }
         return result.sorted()
     }
-    
-    private fun parseWordTimestamps(data: String): List<WordTimestamp>? {
-        if (data.isBlank()) return null
-        return try {
-            data.split("|").mapNotNull { wordData ->
-                val parts = wordData.split(":")
-                if (parts.size == 3) {
-                    WordTimestamp(
-                        text = parts[0],
-                        startTime = parts[1].toDouble(),
-                        endTime = parts[2].toDouble()
-                    )
-                } else null
-            }
-        } catch (e: Exception) {
-            null
-        }
-    }
 
-    private fun parseLine(line: String, words: List<WordTimestamp>? = null): List<LyricsEntry>? {
+    private fun parseLine(line: String): List<LyricsEntry>? {
         if (line.isEmpty()) {
             return null
         }
@@ -173,7 +167,7 @@ object LyricsUtils {
                     mil *= 10
                 }
                 val time = min * DateUtils.MINUTE_IN_MILLIS + sec * DateUtils.SECOND_IN_MILLIS + mil
-                LyricsEntry(time, text, words)
+                LyricsEntry(time, text)
             }.toList()
     }
 
@@ -181,12 +175,24 @@ object LyricsUtils {
         lines: List<LyricsEntry>,
         position: Long,
     ): Int {
-        for (index in lines.indices) {
-            if (lines[index].time >= position + 300L) { // Use constant instead of import
-                return index - 1
+        if (lines.isEmpty()) return -1
+
+        val target = position + 300L
+        var low = 0
+        var high = lines.lastIndex
+
+        while (low <= high) {
+            val mid = (low + high).ushr(1)
+            val midTime = lines[mid].time
+
+            if (midTime < target) {
+                low = mid + 1
+            } else {
+                high = mid - 1
             }
         }
-        return lines.lastIndex
+
+        return high.coerceIn(0, lines.lastIndex)
     }
 
     /**

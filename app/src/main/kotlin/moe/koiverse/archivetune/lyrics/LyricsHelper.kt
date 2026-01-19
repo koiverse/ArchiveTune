@@ -1,7 +1,9 @@
 package moe.koiverse.archivetune.lyrics
 
 import android.content.Context
+import android.util.Log
 import android.util.LruCache
+import moe.koiverse.archivetune.utils.GlobalLog
 import moe.koiverse.archivetune.constants.PreferredLyricsProvider
 import moe.koiverse.archivetune.constants.PreferredLyricsProviderKey
 import moe.koiverse.archivetune.db.entities.LyricsEntity.Companion.LYRICS_NOT_FOUND
@@ -30,14 +32,18 @@ constructor(
     @ApplicationContext private val context: Context,
     private val networkConnectivity: NetworkConnectivityObserver,
 ) {
-    private var lyricsProviders =
+    private val baseProviders =
         listOf(
+            SimpMusicLyricsProvider,
             BetterLyricsProvider,
             LrcLibLyricsProvider,
             KuGouLyricsProvider,
             YouTubeSubtitleLyricsProvider,
-            YouTubeLyricsProvider
+            YouTubeLyricsProvider,
         )
+
+    private var lyricsProviders =
+        baseProviders
 
     val preferred =
         context.dataStore.data
@@ -45,30 +51,15 @@ constructor(
                 it[PreferredLyricsProviderKey].toEnum(PreferredLyricsProvider.LRCLIB)
             }.distinctUntilChanged()
             .map {
-                lyricsProviders =
+                val first =
                     when (it) {
-                        PreferredLyricsProvider.BETTER_LYRICS -> listOf(
-                            BetterLyricsProvider,
-                            LrcLibLyricsProvider,
-                            KuGouLyricsProvider,
-                            YouTubeSubtitleLyricsProvider,
-                            YouTubeLyricsProvider
-                        )
-                        PreferredLyricsProvider.LRCLIB -> listOf(
-                            LrcLibLyricsProvider,
-                            BetterLyricsProvider,
-                            KuGouLyricsProvider,
-                            YouTubeSubtitleLyricsProvider,
-                            YouTubeLyricsProvider
-                        )
-                        PreferredLyricsProvider.KUGOU -> listOf(
-                            KuGouLyricsProvider,
-                            BetterLyricsProvider,
-                            LrcLibLyricsProvider,
-                            YouTubeSubtitleLyricsProvider,
-                            YouTubeLyricsProvider
-                        )
+                        PreferredLyricsProvider.LRCLIB -> LrcLibLyricsProvider
+                        PreferredLyricsProvider.KUGOU -> KuGouLyricsProvider
+                        PreferredLyricsProvider.BETTER_LYRICS -> BetterLyricsProvider
+                        PreferredLyricsProvider.SIMPMUSIC -> SimpMusicLyricsProvider
                     }
+
+                lyricsProviders = listOf(first) + baseProviders.filterNot { provider -> provider == first }
             }
 
     private val cache = LruCache<String, List<LyricsResult>>(MAX_CACHE_SIZE)
@@ -79,8 +70,11 @@ constructor(
 
         val cached = cache.get(mediaMetadata.id)?.firstOrNull()
         if (cached != null) {
+            GlobalLog.append(Log.DEBUG, "LyricsHelper", "Found lyrics in cache for ${mediaMetadata.title}")
             return cached.lyrics
         }
+        
+        GlobalLog.append(Log.DEBUG, "LyricsHelper", "Fetching lyrics for ${mediaMetadata.title} (Artist: ${mediaMetadata.artists.joinToString { it.name }}, Album: ${mediaMetadata.album?.title})")
 
         // Check network connectivity before making network requests
         // Use synchronous check as fallback if flow doesn't emit
@@ -92,19 +86,23 @@ constructor(
         }
         
         if (!isNetworkAvailable) {
+            GlobalLog.append(Log.WARN, "LyricsHelper", "Network unavailable, aborting lyrics fetch")
             // Still proceed but return not found to avoid hanging
             return LYRICS_NOT_FOUND
         }
 
-        val scope = CoroutineScope(SupervisorJob())
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
         val deferred = scope.async {
             for (provider in lyricsProviders) {
-                if (provider.isEnabled(context)) {
+                val enabled = provider.isEnabled(context)
+                
+                if (enabled) {
                     try {
                         val result = provider.getLyrics(
                             mediaMetadata.id,
                             mediaMetadata.title,
                             mediaMetadata.artists.joinToString { it.name },
+                            mediaMetadata.album?.title,
                             mediaMetadata.duration,
                         )
                         result.onSuccess { lyrics ->
@@ -113,7 +111,6 @@ constructor(
                             reportException(it)
                         }
                     } catch (e: Exception) {
-                        // Catch network-related exceptions like UnresolvedAddressException
                         reportException(e)
                     }
                 }
@@ -130,6 +127,7 @@ constructor(
         mediaId: String,
         songTitle: String,
         songArtists: String,
+        songAlbum: String?,
         duration: Int,
         callback: (LyricsResult) -> Unit,
     ) {
@@ -143,32 +141,27 @@ constructor(
             return
         }
 
-        // Check network connectivity before making network requests
-        // Use synchronous check as fallback if flow doesn't emit
         val isNetworkAvailable = try {
             networkConnectivity.isCurrentlyConnected()
         } catch (e: Exception) {
-            // If network check fails, try to proceed anyway
             true
         }
         
         if (!isNetworkAvailable) {
-            // Still try to proceed in case of false negative
             return
         }
 
         val allResult = mutableListOf<LyricsResult>()
-        currentLyricsJob = CoroutineScope(SupervisorJob()).launch {
+        currentLyricsJob = CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
             lyricsProviders.forEach { provider ->
                 if (provider.isEnabled(context)) {
                     try {
-                        provider.getAllLyrics(mediaId, songTitle, songArtists, duration) { lyrics ->
+                        provider.getAllLyrics(mediaId, songTitle, songArtists, songAlbum, duration) { lyrics ->
                             val result = LyricsResult(provider.name, lyrics)
                             allResult += result
                             callback(result)
                         }
                     } catch (e: Exception) {
-                        // Catch network-related exceptions like UnresolvedAddressException
                         reportException(e)
                     }
                 }

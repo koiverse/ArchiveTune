@@ -2,6 +2,7 @@ package moe.koiverse.archivetune.betterlyrics
 
 import org.w3c.dom.Element
 import org.w3c.dom.Node
+import org.w3c.dom.NodeList
 import javax.xml.parsers.DocumentBuilderFactory
 
 object TTMLParser {
@@ -9,14 +10,34 @@ object TTMLParser {
     data class ParsedLine(
         val text: String,
         val startTime: Double,
-        val words: List<ParsedWord>
+        val endTime: Double,
+        val words: List<ParsedWord>,
+        val isBackground: Boolean = false
     )
     
     data class ParsedWord(
         val text: String,
         val startTime: Double,
-        val endTime: Double
+        val endTime: Double,
+        val isBackground: Boolean = false
     )
+
+    private fun isCjk(text: String): Boolean {
+        return text.any { c ->
+            Character.UnicodeBlock.of(c) in setOf(
+                Character.UnicodeBlock.CJK_UNIFIED_IDEOGRAPHS,
+                Character.UnicodeBlock.CJK_UNIFIED_IDEOGRAPHS_EXTENSION_A,
+                Character.UnicodeBlock.CJK_UNIFIED_IDEOGRAPHS_EXTENSION_B,
+                Character.UnicodeBlock.CJK_COMPATIBILITY_IDEOGRAPHS,
+                Character.UnicodeBlock.CJK_COMPATIBILITY_IDEOGRAPHS_SUPPLEMENT,
+                Character.UnicodeBlock.HIRAGANA,
+                Character.UnicodeBlock.KATAKANA,
+                Character.UnicodeBlock.HANGUL_SYLLABLES,
+                Character.UnicodeBlock.HANGUL_JAMO,
+                Character.UnicodeBlock.HANGUL_COMPATIBILITY_JAMO
+            )
+        }
+    }
     
     fun parseTTML(ttml: String): List<ParsedLine> {
         val lines = mutableListOf<ParsedLine>()
@@ -27,114 +48,454 @@ object TTMLParser {
             val builder = factory.newDocumentBuilder()
             val doc = builder.parse(ttml.byteInputStream())
             
-            // Find all <p> elements (paragraphs/lines)
-            val pElements = doc.getElementsByTagName("p")
+            // Find all elements ending with "div" which contain elements ending with "p"
+            val divElements = doc.getElementsByTagName("*") // Get all elements first
             
-            for (i in 0 until pElements.length) {
-                val pElement = pElements.item(i) as? Element ?: continue
+            for (divIdx in 0 until divElements.length) {
+                val divElement = divElements.item(divIdx) as? Element ?: continue
+                if (!divElement.tagName.endsWith("div", ignoreCase = true)) continue
+
+                // Get all child elements and check for "p" tag suffix
+                val pElements = divElement.getElementsByTagName("*")
                 
-                val begin = pElement.getAttribute("begin")
-                if (begin.isNullOrEmpty()) continue
-                
-                val startTime = parseTime(begin)
-                val words = mutableListOf<ParsedWord>()
-                val lineText = StringBuilder()
-                
-                // Parse <span> elements (words)
-                val spans = pElement.getElementsByTagName("span")
-                for (j in 0 until spans.length) {
-                    val span = spans.item(j) as? Element ?: continue
+                for (pIdx in 0 until pElements.length) {
+                    val pElement = pElements.item(pIdx) as? Element ?: continue
+                    if (!pElement.tagName.endsWith("p", ignoreCase = true)) continue
                     
-                    val wordBegin = span.getAttribute("begin")
-                    val wordEnd = span.getAttribute("end")
-                    val wordText = span.textContent.trim()
+                    val begin = pElement.getAttribute("begin")
+                    val end = pElement.getAttribute("end")
+                    if (begin.isNullOrEmpty()) continue
                     
-                    if (wordText.isNotEmpty()) {
-                        if (lineText.isNotEmpty()) {
-                            lineText.append(" ")
-                        }
-                        lineText.append(wordText)
+                    val startTime = parseTime(begin)
+                    val endTime = if (end.isNotEmpty()) parseTime(end) else startTime + 5.0
+                    val words = mutableListOf<ParsedWord>()
+                    val lineText = StringBuilder()
+                    
+                    // Recursively parse all span elements including nested ones (for background vocals)
+                    parseSpanElements(pElement, words, lineText, startTime, endTime, false)
+                    
+                    // If words list is empty but we have text, we need to generate fallback word timings
+                    if (words.isEmpty() && lineText.isNotEmpty()) {
+                        val directText = lineText.toString()
                         
-                        if (wordBegin.isNotEmpty() && wordEnd.isNotEmpty()) {
+                        // Clear lineText slightly redundant but safe since we append back effectively via logic below? 
+                        // Actually better to just use directText to generate words
+                        
+                        // Split line into words and interpolate timing
+                        val isCjkText = isCjk(directText)
+                        val splitWords = if (isCjkText) {
+                            directText.map { it.toString() }
+                        } else {
+                            directText.split(Regex("\\s+"))
+                        }
+                        
+                        val totalDuration = endTime - startTime
+                        val totalLength = if (isCjkText) splitWords.size.toDouble() else directText.length.toDouble()
+                        
+                        var currentWordStart = startTime
+                        
+                        splitWords.forEachIndexed { index, word ->
+                            val wordLen = if (isCjkText) 1.0 else word.length.toDouble()
+                            val wordDuration = if (totalLength > 0) {
+                                (wordLen / totalLength) * totalDuration
+                            } else {
+                                totalDuration / splitWords.size
+                            }
+                            
+                            val wordEnd = currentWordStart + wordDuration
+                            
                             words.add(
                                 ParsedWord(
-                                    text = wordText,
-                                    startTime = parseTime(wordBegin),
-                                    endTime = parseTime(wordEnd)
+                                    text = word,
+                                    startTime = currentWordStart,
+                                    endTime = wordEnd,
+                                    isBackground = false
                                 )
                             )
+                            
+                            // Add space token if not the last word AND NOT CJK
+                            if (index < splitWords.size - 1 && !isCjkText) {
+                                 words.add(
+                                     ParsedWord(
+                                         text = " ",
+                                         startTime = wordEnd,
+                                         endTime = wordEnd,
+                                         isBackground = false
+                                     )
+                                 )
+                            }
+                            currentWordStart = wordEnd
+                        }
+                    } else if (lineText.isEmpty()) {
+                        // Original fallback for when parseSpanElements failed to find even text nodes (e.g. CDATA or just completely empty?)
+                        val directText = getDirectTextContent(pElement).trim()
+                        if (directText.isNotEmpty()) {
+                            lineText.append(directText)
+                            // ... same logic again ...
+                            val isCjkText = isCjk(directText)
+                            // ...
+                             val splitWords = if (isCjkText) {
+                                directText.map { it.toString() }
+                            } else {
+                                directText.split(Regex("\\s+"))
+                            }
+                            
+                            val totalDuration = endTime - startTime
+                            val totalLength = if (isCjkText) splitWords.size.toDouble() else directText.length.toDouble()
+                            
+                            var currentWordStart = startTime
+                            
+                            splitWords.forEachIndexed { index, word ->
+                                val wordLen = if (isCjkText) 1.0 else word.length.toDouble()
+                                val wordDuration = if (totalLength > 0) {
+                                    (wordLen / totalLength) * totalDuration
+                                } else {
+                                    totalDuration / splitWords.size
+                                }
+                                
+                                val wordEnd = currentWordStart + wordDuration
+                                
+                                words.add(
+                                    ParsedWord(
+                                        text = word,
+                                        startTime = currentWordStart,
+                                        endTime = wordEnd,
+                                        isBackground = false
+                                    )
+                                )
+                                
+                                // Add space token if not the last word AND NOT CJK
+                                if (index < splitWords.size - 1 && !isCjkText) {
+                                     words.add(
+                                         ParsedWord(
+                                             text = " ",
+                                             startTime = wordEnd,
+                                             endTime = wordEnd,
+                                             isBackground = false
+                                         )
+                                     )
+                                }
+                                currentWordStart = wordEnd
+                            }
                         }
                     }
-                }
-                
-                // If no spans found, use text content directly
-                if (lineText.isEmpty()) {
-                    lineText.append(pElement.textContent.trim())
-                }
-                
-                if (lineText.isNotEmpty()) {
-                    lines.add(
-                        ParsedLine(
-                            text = lineText.toString(),
-                            startTime = startTime,
-                            words = words
+                    
+                    if (lineText.isNotEmpty()) {
+                        lines.add(
+                            ParsedLine(
+                                text = lineText.toString().trim(),
+                                startTime = startTime,
+                                endTime = endTime,
+                                words = words,
+                                isBackground = false
+                            )
                         )
-                    )
+                    }
+                }
+            }
+            
+            // Fallback: If no div elements found, try parsing p elements directly
+            if (lines.isEmpty()) {
+                val pElements = doc.getElementsByTagName("*")
+                
+                for (i in 0 until pElements.length) {
+                    val pElement = pElements.item(i) as? Element ?: continue
+                    if (!pElement.tagName.endsWith("p", ignoreCase = true)) continue
+                    
+                    val begin = pElement.getAttribute("begin")
+                    val end = pElement.getAttribute("end")
+                    if (begin.isNullOrEmpty()) continue
+                    
+                    val startTime = parseTime(begin)
+                    val endTime = if (end.isNotEmpty()) parseTime(end) else startTime + 5.0
+                    val words = mutableListOf<ParsedWord>()
+                    val lineText = StringBuilder()
+                    
+                    parseSpanElements(pElement, words, lineText, startTime, endTime, false)
+                    
+                    if (words.isEmpty() && lineText.isNotEmpty()) {
+                        val directText = lineText.toString()
+                        
+                         val isCjkText = isCjk(directText)
+                            val splitWords = if (isCjkText) {
+                                directText.map { it.toString() }
+                            } else {
+                                directText.split(Regex("\\s+"))
+                            }
+                            
+                            val totalDuration = endTime - startTime
+                            val totalLength = if (isCjkText) splitWords.size.toDouble() else directText.length.toDouble()
+                            
+                            var currentWordStart = startTime
+                            
+                            splitWords.forEachIndexed { index, word ->
+                                val wordLen = if (isCjkText) 1.0 else word.length.toDouble()
+                                val wordDuration = if (totalLength > 0) {
+                                    (wordLen / totalLength) * totalDuration
+                                } else {
+                                    totalDuration / splitWords.size
+                                }
+                                
+                                val wordEnd = currentWordStart + wordDuration
+                                
+                                words.add(
+                                    ParsedWord(
+                                        text = word,
+                                        startTime = currentWordStart,
+                                        endTime = wordEnd,
+                                        isBackground = false
+                                    )
+                                )
+                                
+                                if (index < splitWords.size - 1 && !isCjkText) {
+                                     words.add(
+                                         ParsedWord(
+                                             text = " ",
+                                             startTime = wordEnd,
+                                             endTime = wordEnd,
+                                             isBackground = false
+                                         )
+                                     )
+                                }
+                                currentWordStart = wordEnd
+                            }
+                    } else if (lineText.isEmpty()) {
+                        val directText = getDirectTextContent(pElement).trim()
+                        if (directText.isNotEmpty()) {
+                            lineText.append(directText)
+                            
+                            // Split line into words and interpolate timing
+                            val isCjkText = isCjk(directText)
+                            val splitWords = if (isCjkText) {
+                                directText.map { it.toString() }
+                            } else {
+                                directText.split(Regex("\\s+"))
+                            }
+                            
+                            val totalDuration = endTime - startTime
+                            val totalLength = if (isCjkText) splitWords.size.toDouble() else directText.length.toDouble()
+                            
+                            var currentWordStart = startTime
+                            
+                            splitWords.forEachIndexed { index, word ->
+                                val wordLen = if (isCjkText) 1.0 else word.length.toDouble()
+                                val wordDuration = if (totalLength > 0) {
+                                    (wordLen / totalLength) * totalDuration
+                                } else {
+                                    totalDuration / splitWords.size
+                                }
+                                
+                                val wordEnd = currentWordStart + wordDuration
+                                
+                                words.add(
+                                    ParsedWord(
+                                        text = word,
+                                        startTime = currentWordStart,
+                                        endTime = wordEnd,
+                                        isBackground = false
+                                    )
+                                )
+                                
+                                if (index < splitWords.size - 1 && !isCjkText) {
+                                     words.add(
+                                         ParsedWord(
+                                             text = " ",
+                                             startTime = wordEnd,
+                                             endTime = wordEnd,
+                                             isBackground = false
+                                         )
+                                     )
+                                }
+                                currentWordStart = wordEnd
+                            }
+                        }
+                    }
+                    
+                    if (lineText.isNotEmpty()) {
+                        lines.add(
+                            ParsedLine(
+                                text = lineText.toString().trim(),
+                                startTime = startTime,
+                                endTime = endTime,
+                                words = words,
+                                isBackground = false
+                            )
+                        )
+                    }
                 }
             }
         } catch (e: Exception) {
-            // Return empty list on parse error
+            e.printStackTrace()
             return emptyList()
         }
         
-        return lines
+        return lines.sortedBy { it.startTime }
     }
     
-    fun toLRC(lines: List<ParsedLine>): String {
-        return buildString {
-            lines.forEach { line ->
-                val timeMs = (line.startTime * 1000).toLong()
-                val minutes = timeMs / 60000
-                val seconds = (timeMs % 60000) / 1000
-                val centiseconds = (timeMs % 1000) / 10
-                
-                appendLine(String.format("[%02d:%02d.%02d]%s", minutes, seconds, centiseconds, line.text))
-                
-                // Add word-level timestamps as special comments if available
-                if (line.words.isNotEmpty()) {
-                    val wordsData = line.words.joinToString("|") { word ->
-                        "${word.text}:${word.startTime}:${word.endTime}"
+    /**
+     * Recursively parse span elements to extract word-level timing
+     * Handles nested spans for background vocals (role="x-bg")
+     */
+    private fun parseSpanElements(
+        element: Element,
+        words: MutableList<ParsedWord>,
+        lineText: StringBuilder,
+        lineStartTime: Double,
+        lineEndTime: Double,
+        isBackground: Boolean
+    ) {
+        val childNodes = element.childNodes
+        
+        for (i in 0 until childNodes.length) {
+            val node = childNodes.item(i)
+            
+            when (node.nodeType) {
+                Node.ELEMENT_NODE -> {
+                    val childElement = node as Element
+                    if (childElement.tagName.endsWith("span", ignoreCase = true)) {
+                        // Check if this is a background vocal span
+                        val role = childElement.getAttribute("role")
+                        val isBgSpan = role == "x-bg" || isBackground
+                        
+                        val wordBegin = childElement.getAttribute("begin")
+                        val wordEnd = childElement.getAttribute("end")
+                        
+                        // Check if this span has nested spans (for word-level timing within bg)
+                        val nestedSpans = childElement.getElementsByTagName("*")
+                        if (nestedSpans.length > 0 && hasDirectSpanChildren(childElement)) {
+                            // Parse nested spans recursively
+                            parseSpanElements(childElement, words, lineText, lineStartTime, lineEndTime, isBgSpan)
+                        } else {
+                            // This is a leaf span with text
+                            val wordText = getDirectTextContent(childElement)
+                            
+                            if (wordText.isNotEmpty()) {
+                                // Check if we should merge with the previous word
+                                // Merge if:
+                                // 1. There is a previous word
+                                // 2. No space separator in lineText (from TextNodes)
+                                // 3. Current word doesn't explicitly start with space
+                                val shouldMerge = words.isNotEmpty() &&
+                                        lineText.isNotEmpty() &&
+                                        !lineText.last().isWhitespace() &&
+                                        !wordText.startsWith(" ")
+
+                                lineText.append(wordText)
+                                
+                                val wordStartTime = if (wordBegin.isNotEmpty()) parseTime(wordBegin) else lineStartTime
+                                val wordEndTime = if (wordEnd.isNotEmpty()) parseTime(wordEnd) else lineEndTime
+                                
+                                if (shouldMerge) {
+                                    val lastWord = words.removeAt(words.lastIndex)
+                                    words.add(
+                                        lastWord.copy(
+                                            text = lastWord.text + wordText.trim(),
+                                            endTime = wordEndTime // Extend the word to end of this syllable
+                                        )
+                                    )
+                                } else {
+                                    words.add(
+                                        ParsedWord(
+                                            text = wordText.trim(),
+                                            startTime = wordStartTime,
+                                            endTime = wordEndTime,
+                                            isBackground = isBgSpan
+                                        )
+                                    )
+                                }
+                            }
+                        }
                     }
-                    appendLine("<$wordsData>")
+                }
+                Node.TEXT_NODE -> {
+                    val text = node.textContent
+                    // If text node is purely whitespace, treat as a single space
+                    // If it has content, append as is
+                    if (text.isNotBlank()) {
+                         lineText.append(text)
+                    } else if (text.isNotEmpty()) {
+                         // Collapse multiple whitespace chars (like indentation) to single space
+                         // Only add if not already ending in whitespace to avoid double spaces
+                         if (lineText.isNotEmpty() && !lineText.last().isWhitespace()) {
+                             lineText.append(" ")
+                             val lastWordEndTime = words.lastOrNull()?.endTime ?: lineStartTime
+                             words.add(
+                                 ParsedWord(
+                                     text = " ",
+                                     startTime = lastWordEndTime,
+                                     endTime = lastWordEndTime,
+                                     isBackground = isBackground
+                                 )
+                             )
+                         }
+                    }
                 }
             }
         }
     }
     
+    /**
+     * Check if element has direct span children (not nested further)
+     */
+    private fun hasDirectSpanChildren(element: Element): Boolean {
+        val childNodes = element.childNodes
+        for (i in 0 until childNodes.length) {
+            val node = childNodes.item(i)
+            if (node.nodeType == Node.ELEMENT_NODE) {
+                val childElement = node as Element
+                    if (childElement.tagName.endsWith("span", ignoreCase = true)) {
+                        return true
+                    }
+            }
+        }
+        return false
+    }
+    
+    /**
+     * Get only direct text content of an element (not from nested elements)
+     */
+    private fun getDirectTextContent(element: Element): String {
+        val textBuilder = StringBuilder()
+        val childNodes = element.childNodes
+        
+        for (i in 0 until childNodes.length) {
+            val node = childNodes.item(i)
+            if (node.nodeType == Node.TEXT_NODE) {
+                textBuilder.append(node.textContent)
+            }
+        }
+        
+        return textBuilder.toString()
+    }
+    
+    /**
+     * Parse TTML time format
+     * Supports: "9.731", "1:23.456", "1:23:45.678", "00:01:23.456"
+     */
     private fun parseTime(timeStr: String): Double {
-        // Parse TTML time format (e.g., "9.731", "1:23.456", "1:23:45.678")
         return try {
+            val cleanTime = timeStr.trim()
             when {
-                timeStr.contains(":") -> {
-                    val parts = timeStr.split(":")
+                cleanTime.contains(":") -> {
+                    val parts = cleanTime.split(":")
                     when (parts.size) {
                         2 -> {
                             // MM:SS.mmm format
-                            val minutes = parts[0].toDouble()
-                            val seconds = parts[1].toDouble()
+                            val minutes = parts[0].toDoubleOrNull() ?: 0.0
+                            val seconds = parts[1].toDoubleOrNull() ?: 0.0
                             minutes * 60 + seconds
                         }
                         3 -> {
                             // HH:MM:SS.mmm format
-                            val hours = parts[0].toDouble()
-                            val minutes = parts[1].toDouble()
-                            val seconds = parts[2].toDouble()
+                            val hours = parts[0].toDoubleOrNull() ?: 0.0
+                            val minutes = parts[1].toDoubleOrNull() ?: 0.0
+                            val seconds = parts[2].toDoubleOrNull() ?: 0.0
                             hours * 3600 + minutes * 60 + seconds
                         }
-                        else -> timeStr.toDoubleOrNull() ?: 0.0
+                        else -> cleanTime.toDoubleOrNull() ?: 0.0
                     }
                 }
-                else -> timeStr.toDoubleOrNull() ?: 0.0
+                else -> cleanTime.toDoubleOrNull() ?: 0.0
             }
         } catch (e: Exception) {
             0.0

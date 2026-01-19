@@ -27,6 +27,14 @@ interface Queue {
             } else {
                 this
             }
+        fun filterVideo(enabled: Boolean = true) =
+            if (enabled) {
+                copy(
+                    items = items.filterVideo(),
+                )
+            } else {
+                this
+            }
     }
 }
 
@@ -34,6 +42,15 @@ fun List<MediaItem>.filterExplicit(enabled: Boolean = true) =
     if (enabled) {
         filterNot {
             it.metadata?.explicit == true
+        }
+    } else {
+        this
+    }
+
+fun List<MediaItem>.filterVideo(enabled: Boolean = true) =
+    if (enabled) {
+        filterNot {
+            it.metadata?.setVideoId != null
         }
     } else {
         this

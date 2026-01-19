@@ -71,6 +71,7 @@ import moe.koiverse.archivetune.constants.UseNewMiniPlayerDesignKey
 import moe.koiverse.archivetune.constants.PlayerBackgroundStyle
 import moe.koiverse.archivetune.constants.PlayerBackgroundStyleKey
 import moe.koiverse.archivetune.constants.PureBlackKey
+import moe.koiverse.archivetune.constants.UseSystemFontKey
 import moe.koiverse.archivetune.constants.PlayerButtonsStyle
 import moe.koiverse.archivetune.constants.PlayerButtonsStyleKey
 import moe.koiverse.archivetune.constants.LyricsAnimationStyleKey
@@ -84,6 +85,7 @@ import moe.koiverse.archivetune.constants.ShowLikedPlaylistKey
 import moe.koiverse.archivetune.constants.ShowDownloadedPlaylistKey
 import moe.koiverse.archivetune.constants.ShowTopPlaylistKey
 import moe.koiverse.archivetune.constants.ShowCachedPlaylistKey
+import moe.koiverse.archivetune.constants.ShowTagsInLibraryKey
 import moe.koiverse.archivetune.constants.SwipeThumbnailKey
 import moe.koiverse.archivetune.constants.SwipeSensitivityKey
 import moe.koiverse.archivetune.constants.SwipeToSongKey
@@ -147,6 +149,7 @@ fun AppearanceSettings(
         )
     val (pureBlack, onPureBlackChange) = rememberPreference(PureBlackKey, defaultValue = false)
     val (disableBlur, onDisableBlurChange) = rememberPreference(DisableBlurKey, defaultValue = false)
+    val (useSystemFont, onUseSystemFontChange) = rememberPreference(UseSystemFontKey, defaultValue = false)
     val (defaultOpenTab, onDefaultOpenTabChange) = rememberEnumPreference(
         DefaultOpenTabKey,
         defaultValue = NavigationTab.HOME
@@ -209,6 +212,10 @@ fun AppearanceSettings(
     )
     val (showCachedPlaylist, onShowCachedPlaylistChange) = rememberPreference(
         ShowCachedPlaylistKey,
+        defaultValue = true
+    )
+    val (showTagsInLibrary, onShowTagsInLibraryChange) = rememberPreference(
+        ShowTagsInLibraryKey,
         defaultValue = true
     )
 
@@ -383,6 +390,15 @@ fun AppearanceSettings(
             onCheckedChange = onDynamicThemeChange,
         )
 
+        AnimatedVisibility(visible = !dynamicTheme) {
+            PreferenceEntry(
+                title = { Text(stringResource(R.string.color_palette)) },
+                description = stringResource(R.string.customize_theme_colors),
+                icon = { Icon(painterResource(R.drawable.format_paint), null) },
+                onClick = { navController.navigate("settings/appearance/palette_picker") }
+            )
+        }
+
         EnumListPreference(
             title = { Text(stringResource(R.string.dark_theme)) },
             icon = { Icon(painterResource(R.drawable.dark_mode), null) },
@@ -414,6 +430,14 @@ fun AppearanceSettings(
             onCheckedChange = onDisableBlurChange,
         )
 
+        SwitchPreference(
+            title = { Text(stringResource(R.string.use_system_font)) },
+            description = stringResource(R.string.use_system_font_desc),
+            icon = { Icon(painterResource(R.drawable.text_fields), null) },
+            checked = useSystemFont,
+            onCheckedChange = onUseSystemFontChange,
+        )
+
         PreferenceGroupTitle(
             title = stringResource(R.string.player),
         )
@@ -428,6 +452,7 @@ fun AppearanceSettings(
                     PlayerDesignStyle.V1 -> stringResource(R.string.player_design_v1)
                     PlayerDesignStyle.V2 -> stringResource(R.string.player_design_v2)
                     PlayerDesignStyle.V3 -> stringResource(R.string.player_design_v3)
+                    PlayerDesignStyle.V4 -> stringResource(R.string.player_design_v4)
                 }
             },
         )
@@ -461,6 +486,7 @@ fun AppearanceSettings(
                     PlayerBackgroundStyle.COLORING -> stringResource(R.string.coloring)
                     PlayerBackgroundStyle.BLUR_GRADIENT -> stringResource(R.string.blur_gradient)
                     PlayerBackgroundStyle.GLOW -> stringResource(R.string.glow)
+                    PlayerBackgroundStyle.GLOW_ANIMATED -> "Glow Animated"
                 }
             },
         )
@@ -830,6 +856,14 @@ fun AppearanceSettings(
                 }
             },
             onValueSelected = onDefaultChipChange,
+        )
+
+        SwitchPreference(
+            title = { Text(stringResource(R.string.show_tags_in_library)) },
+            description = stringResource(R.string.show_tags_in_library_desc),
+            icon = { Icon(painterResource(R.drawable.filter_alt), null) },
+            checked = showTagsInLibrary,
+            onCheckedChange = onShowTagsInLibraryChange,
         )
 
         SwitchPreference(

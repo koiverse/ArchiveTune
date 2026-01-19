@@ -20,20 +20,29 @@ data class LibraryPage(
     companion object {
         fun fromMusicTwoRowItemRenderer(renderer: MusicTwoRowItemRenderer): YTItem? {
             return when {
-                renderer.isAlbum -> AlbumItem(
-                    browseId = renderer.navigationEndpoint.browseEndpoint?.browseId ?: return null,
-                    playlistId = renderer.thumbnailOverlay?.musicItemThumbnailOverlayRenderer?.content
+                renderer.isAlbum -> {
+                    val browseId = renderer.navigationEndpoint.browseEndpoint?.browseId ?: return null
+                    val playlistId = renderer.thumbnailOverlay?.musicItemThumbnailOverlayRenderer?.content
                         ?.musicPlayButtonRenderer?.playNavigationEndpoint
-                        ?.watchPlaylistEndpoint?.playlistId ?: return null,
-                    title = renderer.title.runs?.firstOrNull()?.text ?: return null,
-                    artists = parseArtists(renderer.subtitle?.runs),
-                    year = renderer.subtitle?.runs?.lastOrNull()?.text?.toIntOrNull(),
-                    thumbnail = renderer.thumbnailRenderer.musicThumbnailRenderer?.getThumbnailUrl()
-                        ?: return null,
-                    explicit = renderer.subtitleBadges?.find {
-                        it.musicInlineBadgeRenderer?.icon?.iconType == "MUSIC_EXPLICIT_BADGE"
-                    } != null
-                )
+                        ?.watchPlaylistEndpoint?.playlistId
+                        ?: renderer.menu?.menuRenderer?.items?.firstOrNull()
+                            ?.menuNavigationItemRenderer?.navigationEndpoint
+                            ?.watchPlaylistEndpoint?.playlistId
+                        ?: browseId.removePrefix("MPREb_").let { "OLAK5uy_$it" }
+
+                    AlbumItem(
+                        browseId = browseId,
+                        playlistId = playlistId,
+                        title = renderer.title.runs?.firstOrNull()?.text ?: return null,
+                        artists = parseArtists(renderer.subtitle?.runs),
+                        year = renderer.subtitle?.runs?.lastOrNull()?.text?.toIntOrNull(),
+                        thumbnail = renderer.thumbnailRenderer.musicThumbnailRenderer?.getThumbnailUrl()
+                            ?: return null,
+                        explicit = renderer.subtitleBadges?.find {
+                            it.musicInlineBadgeRenderer?.icon?.iconType == "MUSIC_EXPLICIT_BADGE"
+                        } != null
+                    )
+                }
 
                 renderer.isPlaylist -> PlaylistItem(
                     id = renderer.navigationEndpoint.browseEndpoint?.browseId?.removePrefix("VL") ?: return null,

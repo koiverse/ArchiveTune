@@ -1,6 +1,8 @@
 package moe.koiverse.archivetune.ui.menu
 
 import android.content.Intent
+import android.content.res.Configuration
+import android.widget.Toast
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
@@ -48,6 +50,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextRange
@@ -243,6 +246,13 @@ fun SongMenu(
         onDismiss = {
             showChoosePlaylistDialog = false
         },
+        onAddComplete = { songCount, playlistNames ->
+            val message = when {
+                playlistNames.size == 1 -> context.getString(R.string.added_to_playlist, playlistNames.first())
+                else -> context.getString(R.string.added_to_n_playlists, playlistNames.size)
+            }
+            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+        },
     )
 
     if (showErrorPlaylistAddDialog) {
@@ -353,58 +363,11 @@ fun SongMenu(
 
     val bottomSheetPageState = LocalBottomSheetPageState.current
 
-    // Enhanced Action Grid using NewMenuComponents
-    NewActionGrid(
-        actions = listOf(
-            NewAction(
-                icon = {
-                    Icon(
-                        painter = painterResource(R.drawable.edit),
-                        contentDescription = null,
-                        modifier = Modifier.size(28.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                },
-                text = stringResource(R.string.edit),
-                onClick = { showEditDialog = true }
-            ),
-            NewAction(
-                icon = {
-                    Icon(
-                        painter = painterResource(R.drawable.playlist_add),
-                        contentDescription = null,
-                        modifier = Modifier.size(28.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                },
-                text = stringResource(R.string.add_to_playlist),
-                onClick = { showChoosePlaylistDialog = true }
-            ),
-            NewAction(
-                icon = {
-                    Icon(
-                        painter = painterResource(R.drawable.share),
-                        contentDescription = null,
-                        modifier = Modifier.size(28.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                },
-                text = stringResource(R.string.share),
-                onClick = {
-                    onDismiss()
-                    val intent = Intent().apply {
-                        action = Intent.ACTION_SEND
-                        type = "text/plain"
-                        putExtra(Intent.EXTRA_TEXT, "https://music.youtube.com/watch?v=${song.id}")
-                    }
-                    context.startActivity(Intent.createChooser(intent, null))
-                }
-            )
-        ),
-        modifier = Modifier.padding(horizontal = 4.dp, vertical = 16.dp)
-    )
+    val configuration = LocalConfiguration.current
+    val isPortrait = configuration.orientation == Configuration.ORIENTATION_PORTRAIT
 
     LazyColumn(
+        userScrollEnabled = !isPortrait,
         contentPadding = PaddingValues(
             start = 0.dp,
             top = 0.dp,
@@ -412,6 +375,58 @@ fun SongMenu(
             bottom = 8.dp + WindowInsets.systemBars.asPaddingValues().calculateBottomPadding(),
         ),
     ) {
+        item {
+            // Enhanced Action Grid using NewMenuComponents
+            NewActionGrid(
+                actions = listOf(
+                    NewAction(
+                        icon = {
+                            Icon(
+                                painter = painterResource(R.drawable.edit),
+                                contentDescription = null,
+                                modifier = Modifier.size(28.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        },
+                        text = stringResource(R.string.edit),
+                        onClick = { showEditDialog = true }
+                    ),
+                    NewAction(
+                        icon = {
+                            Icon(
+                                painter = painterResource(R.drawable.playlist_add),
+                                contentDescription = null,
+                                modifier = Modifier.size(28.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        },
+                        text = stringResource(R.string.add_to_playlist),
+                        onClick = { showChoosePlaylistDialog = true }
+                    ),
+                    NewAction(
+                        icon = {
+                            Icon(
+                                painter = painterResource(R.drawable.share),
+                                contentDescription = null,
+                                modifier = Modifier.size(28.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        },
+                        text = stringResource(R.string.share),
+                        onClick = {
+                            onDismiss()
+                            val intent = Intent().apply {
+                                action = Intent.ACTION_SEND
+                                type = "text/plain"
+                                putExtra(Intent.EXTRA_TEXT, "https://music.youtube.com/watch?v=${song.id}")
+                            }
+                            context.startActivity(Intent.createChooser(intent, null))
+                        }
+                    )
+                ),
+                modifier = Modifier.padding(horizontal = 4.dp, vertical = 16.dp)
+            )
+        }
         item {
             ListItem(
                 headlineContent = { Text(text = stringResource(R.string.start_radio)) },
@@ -513,18 +528,17 @@ fun SongMenu(
                         )
                     },
                     modifier = Modifier.clickable {
-                        database.transaction {
-                            coroutineScope.launch {
-                                playlistBrowseId?.let { playlistId ->
-                                    if (playlistSong.map.setVideoId != null) {
-                                        YouTube.removeFromPlaylist(
-                                            playlistId, playlistSong.map.songId, playlistSong.map.setVideoId
-                                        )
-                                    }
-                                }
+                        val map = playlistSong.map
+                        coroutineScope.launch(Dispatchers.IO) {
+                            database.withTransaction {
+                                move(map.playlistId, map.position, Int.MAX_VALUE)
+                                delete(map.copy(position = Int.MAX_VALUE))
                             }
-                            move(playlistSong.map.playlistId, playlistSong.map.position, Int.MAX_VALUE)
-                            delete(playlistSong.map.copy(position = Int.MAX_VALUE))
+                            val browseId = playlistBrowseId
+                            val setVideoId = map.setVideoId
+                            if (browseId != null && setVideoId != null) {
+                                YouTube.removeFromPlaylist(browseId, map.songId, setVideoId)
+                            }
                         }
                         onDismiss()
                     }

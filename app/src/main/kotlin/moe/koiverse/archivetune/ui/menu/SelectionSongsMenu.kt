@@ -1,6 +1,7 @@
 package moe.koiverse.archivetune.ui.menu
 
 import android.annotation.SuppressLint
+import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.WindowInsets
@@ -26,6 +27,10 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalConfiguration
+import android.content.res.Configuration
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -53,7 +58,7 @@ import moe.koiverse.archivetune.ui.component.NewAction
 import moe.koiverse.archivetune.ui.component.NewActionGrid
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
+
 import kotlinx.coroutines.withContext
 import java.time.LocalDateTime
 
@@ -121,18 +126,20 @@ fun SelectionSongMenu(
 
     AddToPlaylistDialog(
         isVisible = showChoosePlaylistDialog,
-        onGetSong = { playlist ->
-            coroutineScope.launch(Dispatchers.IO) {
-                songSelection.forEach { song ->
-                    playlist.playlist.browseId?.let { browseId ->
-                        YouTube.addToPlaylist(browseId, song.id)
-                    }
-                }
-            }
+        onGetSong = {
             songSelection.map { it.id }
         },
         onDismiss = {
             showChoosePlaylistDialog = false
+        },
+        onAddComplete = { songCount, playlistNames ->
+            val message = when {
+                songCount == 1 && playlistNames.size == 1 -> context.getString(R.string.added_to_playlist, playlistNames.first())
+                songCount > 1 && playlistNames.size == 1 -> context.getString(R.string.added_n_songs_to_playlist, songCount, playlistNames.first())
+                songCount == 1 -> context.getString(R.string.added_to_n_playlists, playlistNames.size)
+                else -> context.getString(R.string.added_n_songs_to_n_playlists, songCount, playlistNames.size)
+            }
+            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
         },
     )
 
@@ -178,70 +185,13 @@ fun SelectionSongMenu(
         )
     }
 
-    // Enhanced Action Grid using NewMenuComponents
-    NewActionGrid(
-        actions = listOf(
-            NewAction(
-                icon = {
-                    Icon(
-                        painter = painterResource(R.drawable.play),
-                        contentDescription = null,
-                        modifier = Modifier.size(28.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                },
-                text = stringResource(R.string.play),
-                onClick = {
-                    onDismiss()
-                    playerConnection.playQueue(
-                        ListQueue(
-                            title = "Selection",
-                            items = songSelection.map { it.toMediaItem() },
-                        ),
-                    )
-                    clearAction()
-                }
-            ),
-            NewAction(
-                icon = {
-                    Icon(
-                        painter = painterResource(R.drawable.shuffle),
-                        contentDescription = null,
-                        modifier = Modifier.size(28.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                },
-                text = stringResource(R.string.shuffle),
-                onClick = {
-                    onDismiss()
-                    playerConnection.playQueue(
-                        ListQueue(
-                            title = "Selection",
-                            items = songSelection.shuffled().map { it.toMediaItem() },
-                        ),
-                    )
-                    clearAction()
-                }
-            ),
-            NewAction(
-                icon = {
-                    Icon(
-                        painter = painterResource(R.drawable.playlist_add),
-                        contentDescription = null,
-                        modifier = Modifier.size(28.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                },
-                text = stringResource(R.string.add_to_playlist),
-                onClick = {
-                    showChoosePlaylistDialog = true
-                }
-            )
-        ),
-        modifier = Modifier.padding(horizontal = 4.dp, vertical = 16.dp)
-    )
+    Spacer(modifier = Modifier.height(12.dp))
+
+    val configuration = LocalConfiguration.current
+    val isPortrait = configuration.orientation == Configuration.ORIENTATION_PORTRAIT
 
     LazyColumn(
+        userScrollEnabled = !isPortrait,
         contentPadding = PaddingValues(
             start = 0.dp,
             top = 0.dp,
@@ -249,6 +199,70 @@ fun SelectionSongMenu(
             bottom = 8.dp + WindowInsets.systemBars.asPaddingValues().calculateBottomPadding(),
         ),
     ) {
+        item {
+            // Enhanced Action Grid using NewMenuComponents
+            NewActionGrid(
+                actions = listOf(
+                    NewAction(
+                        icon = {
+                            Icon(
+                                painter = painterResource(R.drawable.play),
+                                contentDescription = null,
+                                modifier = Modifier.size(28.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        },
+                        text = stringResource(R.string.play),
+                        onClick = {
+                            onDismiss()
+                            playerConnection.playQueue(
+                                ListQueue(
+                                    title = "Selection",
+                                    items = songSelection.map { it.toMediaItem() },
+                                ),
+                            )
+                            clearAction()
+                        }
+                    ),
+                    NewAction(
+                        icon = {
+                            Icon(
+                                painter = painterResource(R.drawable.shuffle),
+                                contentDescription = null,
+                                modifier = Modifier.size(28.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        },
+                        text = stringResource(R.string.shuffle),
+                        onClick = {
+                            onDismiss()
+                            playerConnection.playQueue(
+                                ListQueue(
+                                    title = "Selection",
+                                    items = songSelection.shuffled().map { it.toMediaItem() },
+                                ),
+                            )
+                            clearAction()
+                        }
+                    ),
+                    NewAction(
+                        icon = {
+                            Icon(
+                                painter = painterResource(R.drawable.playlist_add),
+                                contentDescription = null,
+                                modifier = Modifier.size(28.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        },
+                        text = stringResource(R.string.add_to_playlist),
+                        onClick = {
+                            showChoosePlaylistDialog = true
+                        }
+                    )
+                ),
+                modifier = Modifier.padding(horizontal = 4.dp, vertical = 16.dp)
+            )
+        }
         item {
             ListItem(
                 headlineContent = { Text(text = stringResource(R.string.play)) },
@@ -464,12 +478,14 @@ fun SelectionSongMenu(
                     },
                     modifier = Modifier.clickable {
                         onDismiss()
-                        var i = 0
-                        database.query {
-                            songPosition?.forEach { cur ->
-                                move(cur.playlistId, cur.position - i, Int.MAX_VALUE)
-                                delete(cur.copy(position = Int.MAX_VALUE))
-                                i++
+                        coroutineScope.launch(Dispatchers.IO) {
+                            database.withTransaction {
+                                var i = 0
+                                songPosition?.forEach { cur ->
+                                    move(cur.playlistId, cur.position - i, Int.MAX_VALUE)
+                                    delete(cur.copy(position = Int.MAX_VALUE))
+                                    i++
+                                }
                             }
                         }
                         clearAction()
@@ -510,15 +526,20 @@ fun SelectionMediaMetadataMenu(
         isVisible = showChoosePlaylistDialog,
         onGetSong = {
             songSelection.map {
-                runBlocking {
-                    withContext(Dispatchers.IO) {
-                        database.insert(it)
-                    }
-                }
+                database.insert(it)
                 it.id
             }
         },
-        onDismiss = { showChoosePlaylistDialog = false }
+        onDismiss = { showChoosePlaylistDialog = false },
+        onAddComplete = { songCount, playlistNames ->
+            val message = when {
+                songCount == 1 && playlistNames.size == 1 -> context.getString(R.string.added_to_playlist, playlistNames.first())
+                songCount > 1 && playlistNames.size == 1 -> context.getString(R.string.added_n_songs_to_playlist, songCount, playlistNames.first())
+                songCount == 1 -> context.getString(R.string.added_to_n_playlists, playlistNames.size)
+                else -> context.getString(R.string.added_n_songs_to_n_playlists, songCount, playlistNames.size)
+            }
+            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+        },
     )
 
     var downloadState by remember {

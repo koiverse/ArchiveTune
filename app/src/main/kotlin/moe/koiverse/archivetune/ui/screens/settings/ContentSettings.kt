@@ -57,12 +57,15 @@ fun ContentSettings(
     val (contentLanguage, onContentLanguageChange) = rememberPreference(key = ContentLanguageKey, defaultValue = "system")
     val (contentCountry, onContentCountryChange) = rememberPreference(key = ContentCountryKey, defaultValue = "system")
     val (hideExplicit, onHideExplicitChange) = rememberPreference(key = HideExplicitKey, defaultValue = false)
+    val (hideVideo, onHideVideoChange) = rememberPreference(key = HideVideoKey, defaultValue = false)
     val (proxyEnabled, onProxyEnabledChange) = rememberPreference(key = ProxyEnabledKey, defaultValue = false)
     val (proxyType, onProxyTypeChange) = rememberEnumPreference(key = ProxyTypeKey, defaultValue = Proxy.Type.HTTP)
     val (proxyUrl, onProxyUrlChange) = rememberPreference(key = ProxyUrlKey, defaultValue = "host:port")
     val (enableKugou, onEnableKugouChange) = rememberPreference(key = EnableKugouKey, defaultValue = true)
     val (enableLrclib, onEnableLrclibChange) = rememberPreference(key = EnableLrcLibKey, defaultValue = true)
     val (enableBetterLyrics, onEnableBetterLyricsChange) = rememberPreference(key = EnableBetterLyricsKey, defaultValue = true)
+    val (enableSimpMusicLyrics, onEnableSimpMusicLyricsChange) =
+        rememberPreference(key = EnableSimpMusicLyricsKey, defaultValue = true)
     val (preferredProvider, onPreferredProviderChange) =
         rememberEnumPreference(
             key = PreferredLyricsProviderKey,
@@ -127,6 +130,13 @@ fun ContentSettings(
             icon = { Icon(painterResource(R.drawable.explicit), null) },
             checked = hideExplicit,
             onCheckedChange = onHideExplicitChange,
+        )
+
+        SwitchPreference(
+            title = { Text(stringResource(R.string.hide_video)) },
+            icon = { Icon(painterResource(R.drawable.slow_motion_video), null) },
+            checked = hideVideo,
+            onCheckedChange = onHideVideoChange,
         )
 
         PreferenceGroupTitle(title = stringResource(R.string.app_language))
@@ -210,16 +220,28 @@ fun ContentSettings(
             checked = enableBetterLyrics,
             onCheckedChange = onEnableBetterLyricsChange,
         )
+        SwitchPreference(
+            title = { Text(stringResource(R.string.enable_simpmusic_lyrics)) },
+            icon = { Icon(painterResource(R.drawable.lyrics), null) },
+            checked = enableSimpMusicLyrics,
+            onCheckedChange = onEnableSimpMusicLyricsChange,
+        )
         ListPreference(
             title = { Text(stringResource(R.string.set_first_lyrics_provider)) },
             icon = { Icon(painterResource(R.drawable.lyrics), null) },
             selectedValue = preferredProvider,
-            values = listOf(PreferredLyricsProvider.LRCLIB, PreferredLyricsProvider.KUGOU, PreferredLyricsProvider.BETTER_LYRICS),
+            values = listOf(
+                PreferredLyricsProvider.LRCLIB,
+                PreferredLyricsProvider.KUGOU,
+                PreferredLyricsProvider.BETTER_LYRICS,
+                PreferredLyricsProvider.SIMPMUSIC,
+            ),
             valueText = {
                 when (it) {
                     PreferredLyricsProvider.LRCLIB -> "LrcLib"
                     PreferredLyricsProvider.KUGOU -> "KuGou"
                     PreferredLyricsProvider.BETTER_LYRICS -> "BetterLyrics"
+                    PreferredLyricsProvider.SIMPMUSIC -> "SimpMusic"
                 }
             },
             onValueSelected = onPreferredProviderChange,

@@ -37,13 +37,15 @@ data class AccountMenuResponse(
                             val channelHandle: Runs?,
                             val accountPhoto: Thumbnails,
                         ) {
-                            fun toAccountInfo() =
-                                AccountInfo(
-                                    name = accountName.runs!!.first().text,
-                                    email = email?.runs?.first()?.text,
-                                    channelHandle = channelHandle?.runs?.first()?.text,
+                            fun toAccountInfo(): AccountInfo? {
+                                val name = accountName.runs?.firstOrNull()?.text ?: return null
+                                return AccountInfo(
+                                    name = name,
+                                    email = email?.runs?.firstOrNull()?.text,
+                                    channelHandle = channelHandle?.runs?.firstOrNull()?.text,
                                     thumbnailUrl = accountPhoto.thumbnails.lastOrNull()?.url,
                                 )
+                            }
                         }
                     }
                 }

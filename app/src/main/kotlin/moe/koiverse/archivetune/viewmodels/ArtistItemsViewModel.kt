@@ -7,7 +7,9 @@ import androidx.lifecycle.viewModelScope
 import moe.koiverse.archivetune.innertube.YouTube
 import moe.koiverse.archivetune.innertube.models.BrowseEndpoint
 import moe.koiverse.archivetune.innertube.models.filterExplicit
+import moe.koiverse.archivetune.innertube.models.filterVideo
 import moe.koiverse.archivetune.constants.HideExplicitKey
+import moe.koiverse.archivetune.constants.HideVideoKey
 import moe.koiverse.archivetune.models.ItemsPage
 import moe.koiverse.archivetune.utils.dataStore
 import moe.koiverse.archivetune.utils.get
@@ -44,7 +46,10 @@ constructor(
                     title.value = artistItemsPage.title
                     itemsPage.value =
                         ItemsPage(
-                            items = artistItemsPage.items.distinctBy { it.id },
+                            items = artistItemsPage.items
+                                .distinctBy { it.id }
+                                .filterExplicit(context.dataStore.get(HideExplicitKey, false))
+                                .filterVideo(context.dataStore.get(HideVideoKey, false)),
                             continuation = artistItemsPage.continuation,
                         )
                 }.onFailure {

@@ -1,4 +1,4 @@
-package moe.koiverse.archivetune.ui.player
+﻿package moe.koiverse.archivetune.ui.player
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
@@ -118,398 +118,37 @@ private fun NewMiniPlayer(
     pureBlack: Boolean,
 ) {
     val playerConnection = LocalPlayerConnection.current ?: return
-    val database = LocalDatabase.current
-    val isPlaying by playerConnection.isPlaying.collectAsState()
-    val playbackState by playerConnection.playbackState.collectAsState()
-    val error by playerConnection.error.collectAsState()
-    val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
-    val canSkipNext by playerConnection.canSkipNext.collectAsState()
-    val canSkipPrevious by playerConnection.canSkipPrevious.collectAsState()
-    
-    // Track loading state when buffering
-    val isLoading = playbackState == STATE_BUFFERING
-    
-    val currentView = LocalView.current
     val layoutDirection = LocalLayoutDirection.current
     val coroutineScope = rememberCoroutineScope()
     val swipeSensitivity by rememberPreference(SwipeSensitivityKey, 0.73f)
     val swipeThumbnail by rememberPreference(moe.koiverse.archivetune.constants.SwipeThumbnailKey, true)
-    
-    val offsetXAnimatable = remember { Animatable(0f) }
-    var dragStartTime by remember { mutableStateOf(0L) }
-    var totalDragDistance by remember { mutableFloatStateOf(0f) }
 
-    val animationSpec = spring<Float>(
-        dampingRatio = Spring.DampingRatioNoBouncy,
-        stiffness = Spring.StiffnessLow
-    )
-    
-    val overlayAlpha by animateFloatAsState(
-        targetValue = if (isPlaying) 0.0f else 0.4f,
-        label = "overlay_alpha",
-        animationSpec = animationSpec
-    )
-
-    /**
-     * Calculates the auto-swipe threshold based on swipe sensitivity.
-     * The formula uses a sigmoid function to determine the threshold dynamically.
-     * Constants:
-     * - -11.44748: Controls the steepness of the sigmoid curve.
-     * - 9.04945: Adjusts the midpoint of the curve.
-     * - 600: Base threshold value in pixels.
-     *
-     * @param swipeSensitivity The sensitivity value (typically between 0 and 1).
-     * @return The calculated auto-swipe threshold in pixels.
-     */
-    fun calculateAutoSwipeThreshold(swipeSensitivity: Float): Int {
-        return (600 / (1f + kotlin.math.exp(-(-11.44748 * swipeSensitivity + 9.04945)))).roundToInt()
-    }
-    val autoSwipeThreshold = calculateAutoSwipeThreshold(swipeSensitivity)
-
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(MiniPlayerHeight)
-            .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal))
-            .padding(horizontal = 12.dp)
-            // Move the swipe detection to the outer box to affect the entire box
-            .let { baseModifier ->
-                if (swipeThumbnail) {
-                    baseModifier.pointerInput(Unit) {
-                        detectHorizontalDragGestures(
-                            onDragStart = {
-                                dragStartTime = System.currentTimeMillis()
-                                totalDragDistance = 0f
-                            },
-                            onDragCancel = {
-                                coroutineScope.launch {
-                                    offsetXAnimatable.animateTo(
-                                        targetValue = 0f,
-                                        animationSpec = animationSpec
-                                    )
-                                }
-                            },
-                            onHorizontalDrag = { _, dragAmount ->
-                                val adjustedDragAmount =
-                                    if (layoutDirection == LayoutDirection.Rtl) -dragAmount else dragAmount
-                                val canSkipPrevious = playerConnection.player.previousMediaItemIndex != -1
-                                val canSkipNext = playerConnection.player.nextMediaItemIndex != -1
-                                val allowLeft = adjustedDragAmount < 0 && canSkipNext
-                                val allowRight = adjustedDragAmount > 0 && canSkipPrevious
-                                if (allowLeft || allowRight) {
-                                    totalDragDistance += kotlin.math.abs(adjustedDragAmount)
-                                    coroutineScope.launch {
-                                        offsetXAnimatable.snapTo(offsetXAnimatable.value + adjustedDragAmount)
-                                    }
-                                }
-                            },
-                            onDragEnd = {
-                                val dragDuration = System.currentTimeMillis() - dragStartTime
-                                val velocity = if (dragDuration > 0) totalDragDistance / dragDuration else 0f
-                                val currentOffset = offsetXAnimatable.value
-                                
-                                val minDistanceThreshold = 50f
-                                val velocityThreshold = (swipeSensitivity * -8.25f) + 8.5f
-
-                                val shouldChangeSong = (
-                                    kotlin.math.abs(currentOffset) > minDistanceThreshold &&
-                                    velocity > velocityThreshold
-                                ) || (kotlin.math.abs(currentOffset) > autoSwipeThreshold)
-                                
-                                if (shouldChangeSong) {
-                                    val isRightSwipe = currentOffset > 0
-                                    
-                                    if (isRightSwipe && canSkipPrevious) {
-                                        playerConnection.player.seekToPreviousMediaItem()
-                                        try { moe.koiverse.archivetune.ui.screens.settings.DiscordPresenceManager.restart() } catch (_: Exception) {}
-                                    } else if (!isRightSwipe && canSkipNext) {
-                                        playerConnection.player.seekToNext()
-                                        try { moe.koiverse.archivetune.ui.screens.settings.DiscordPresenceManager.restart() } catch (_: Exception) {}
-                                    }
-                                }
-                                
-                                coroutineScope.launch {
-                                    offsetXAnimatable.animateTo(
-                                        targetValue = 0f,
-                                        animationSpec = animationSpec
-                                    )
-                                }
-                            }
-                        )
-                    }
-                } else {
-                    baseModifier
-                }
-            }
-    ) {
-        // Main MiniPlayer box that moves with swipe
+    SwipeableMiniPlayerBox(
+        modifier = modifier,
+        swipeSensitivity = swipeSensitivity,
+        swipeThumbnail = swipeThumbnail,
+        playerConnection = playerConnection,
+        layoutDirection = layoutDirection,
+        coroutineScope = coroutineScope,
+        pureBlack = pureBlack,
+        useLegacyBackground = false
+    ) { offsetX ->
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(64.dp) // Circular height
-                .offset { IntOffset(offsetXAnimatable.value.roundToInt(), 0) }
+                .offset { IntOffset(offsetX.roundToInt(), 0) }
                 .clip(RoundedCornerShape(32.dp)) // Clip first for perfect rounded corners
                 .background(
                     color = MaterialTheme.colorScheme.surfaceContainer // Same as navigation bar color
                 )
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 8.dp, vertical = 8.dp),
-            ) {
-                // Play/Pause button with circular progress indicator (left side)
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier.size(48.dp)
-                ) {
-                    // Circular progress indicator around the play button
-                    if (duration > 0) {
-                        CircularProgressIndicator(
-                            progress = { (position.toFloat() / duration).coerceIn(0f, 1f) },
-                            modifier = Modifier.size(48.dp),
-                            color = MaterialTheme.colorScheme.primary,
-                            strokeWidth = 3.dp,
-                            trackColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
-                        )
-                    }
-                    
-                    // Play/Pause button with thumbnail background
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier
-                            .size(40.dp)
-                            .clip(CircleShape)
-                            .border(
-                                width = 1.dp,
-                                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
-                                shape = CircleShape
-                            )
-                            .clickable {
-                                if (playbackState == Player.STATE_ENDED) {
-                                    playerConnection.player.seekTo(0, 0)
-                                    playerConnection.player.playWhenReady = true
-                                } else {
-                                    playerConnection.player.togglePlayPause()
-                                }
-                            }
-                    ) {
-                        // Thumbnail background
-                        mediaMetadata?.let { metadata ->
-                            AsyncImage(
-                                model = metadata.thumbnailUrl,
-                                contentDescription = null,
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .clip(CircleShape)
-                            )
-                        }
-                        
-                        // Semi-transparent overlay for better icon visibility
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .background(
-                                    color = Color.Black.copy(alpha = overlayAlpha),
-                                    shape = CircleShape
-                                )
-                        )
-                        
-                        if (isLoading) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(20.dp),
-                                color = Color.White,
-                                strokeWidth = 2.dp
-                            )
-                        } else {
-                            androidx.compose.animation.AnimatedVisibility(
-                                visible = playbackState == Player.STATE_ENDED || !isPlaying,
-                                enter = fadeIn(),
-                                exit = fadeOut()
-                            ) {
-                                Icon(
-                                    painter = painterResource(
-                                        if (playbackState == Player.STATE_ENDED) {
-                                            R.drawable.replay
-                                        } else {
-                                            R.drawable.play
-                                        }
-                                    ),
-                                    contentDescription = null,
-                                    tint = Color.White,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                            }
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.width(16.dp))
-
-                // Song info - takes most space in the middle
-                Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    mediaMetadata?.let { metadata ->
-                        AnimatedContent(
-                            targetState = metadata.title,
-                            transitionSpec = { fadeIn() togetherWith fadeOut() },
-                            label = "",
-                        ) { title ->
-                            Text(
-                                text = title,
-                                color = MaterialTheme.colorScheme.onSurface,
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Medium,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.basicMarquee(),
-                            )
-                        }
-
-                        AnimatedContent(
-                            targetState = metadata.artists.joinToString { it.name },
-                            transitionSpec = { fadeIn() togetherWith fadeOut() },
-                            label = "",
-                        ) { artists ->
-                            Text(
-                                text = artists,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                                fontSize = 12.sp,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.basicMarquee(),
-                            )
-                        }
-                        
-                        // Error indicator
-                        androidx.compose.animation.AnimatedVisibility(
-                            visible = error != null,
-                            enter = fadeIn(),
-                            exit = fadeOut(),
-                        ) {
-                            Text(
-                                text = "Error playing",
-                                color = MaterialTheme.colorScheme.error,
-                                fontSize = 10.sp,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.width(12.dp))
-
-                // Subscribe/Subscribed button
-                mediaMetadata?.let { metadata ->
-                    metadata.artists.firstOrNull()?.id?.let { artistId ->
-                        val libraryArtist by database.artist(artistId).collectAsState(initial = null)
-                        val isSubscribed = libraryArtist?.artist?.bookmarkedAt != null
-                        
-                        Box(
-                            contentAlignment = Alignment.Center,
-                            modifier = Modifier
-                                .size(40.dp)
-                                .clip(CircleShape)
-                                .border(
-                                    width = 1.dp,
-                                    color = if (isSubscribed)
-                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
-                                    else
-                                        MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
-                                    shape = CircleShape
-                                )
-                                .background(
-                                    color = if (isSubscribed) 
-                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
-                                    else 
-                                        Color.Transparent,
-                                    shape = CircleShape
-                                )
-                                .clickable {
-                                    database.transaction {
-                                        val artist = libraryArtist?.artist
-                                        if (artist != null) {
-                                            update(artist.toggleLike())
-                                        } else {
-                                            metadata.artists.firstOrNull()?.let { artistInfo ->
-                                                insert(
-                                                    ArtistEntity(
-                                                        id = artistInfo.id ?: "",
-                                                        name = artistInfo.name,
-                                                        channelId = null,
-                                                        thumbnailUrl = null,
-                                                    ).toggleLike()
-                                                )
-                                            }
-                                        }
-                                    }
-                                }
-                        ) {
-                            Icon(
-                                painter = painterResource(
-                                    if (isSubscribed) R.drawable.subscribed else R.drawable.subscribe
-                                ),
-                                contentDescription = null,
-                                tint = if (isSubscribed) 
-                                    MaterialTheme.colorScheme.primary 
-                                else 
-                                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.width(8.dp))
-
-                // Favorite button (right side)
-                mediaMetadata?.let { metadata ->
-                    val librarySong by database.song(metadata.id).collectAsState(initial = null)
-                    val isLiked = librarySong?.song?.liked == true
-                    
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier
-                            .size(40.dp)
-                            .clip(CircleShape)
-                            .border(
-                                width = 1.dp,
-                                color = if (isLiked)
-                                    MaterialTheme.colorScheme.error.copy(alpha = 0.5f)
-                                else
-                                    MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
-                                shape = CircleShape
-                            )
-                            .background(
-                                color = if (isLiked) 
-                                    MaterialTheme.colorScheme.error.copy(alpha = 0.1f)
-                                else 
-                                    Color.Transparent,
-                                shape = CircleShape
-                            )
-                            .clickable {
-                                playerConnection.service.toggleLike()
-                            }
-                    ) {
-                        Icon(
-                            painter = painterResource(
-                                if (isLiked) R.drawable.favorite else R.drawable.favorite_border
-                            ),
-                            contentDescription = null,
-                            tint = if (isLiked) 
-                                MaterialTheme.colorScheme.error 
-                            else 
-                                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-                }
-            }
+            NewMiniPlayerContent(
+                pureBlack = pureBlack,
+                position = position,
+                duration = duration,
+                playerConnection = playerConnection
+            )
         }
     }
 }
@@ -611,10 +250,14 @@ private fun LegacyMiniPlayer(
                                     
                                     if (isRightSwipe && canSkipPrevious) {
                                         playerConnection.player.seekToPreviousMediaItem()
-                                        try { moe.koiverse.archivetune.ui.screens.settings.DiscordPresenceManager.restart() } catch (_: Exception) {}
+                                        if (moe.koiverse.archivetune.ui.screens.settings.DiscordPresenceManager.isRunning()) {
+                                            try { moe.koiverse.archivetune.ui.screens.settings.DiscordPresenceManager.restart() } catch (_: Exception) {}
+                                        }
                                     } else if (!isRightSwipe && canSkipNext) {
                                         playerConnection.player.seekToNext()
-                                        try { moe.koiverse.archivetune.ui.screens.settings.DiscordPresenceManager.restart() } catch (_: Exception) {}
+                                        if (moe.koiverse.archivetune.ui.screens.settings.DiscordPresenceManager.isRunning()) {
+                                            try { moe.koiverse.archivetune.ui.screens.settings.DiscordPresenceManager.restart() } catch (_: Exception) {}
+                                        }
                                     }
                                 }
                                 

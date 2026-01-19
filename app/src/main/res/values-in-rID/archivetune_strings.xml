@@ -1,10 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="explore">Mengeksplorasi</string>
-
     <string name="local_history">Lokal</string>
     <string name="remote_history">Terpencil</string>
-
     <string name="charts">Grafik</string>
     <string name="back_button_desc">Kembali</string>
     <string name="no_title">Tidak ada judul</string>
@@ -15,12 +13,10 @@
     <string name="album_cover_desc">Sampul album</string>
     <string name="top_music_videos">Video musik teratas</string>
     <string name="trending">Sedang tren</string>
-
     <string name="weeks">Minggu</string>
     <string name="months">Bulan</string>
     <string name="years">Bertahun-tahun</string>
     <string name="continuous">Kontinu</string>
-
     <string name="liked">Menyukai</string>
     <string name="offline">Diunduh</string>
     <string name="my_top">Atasanku</string>
@@ -42,7 +38,6 @@
     <string name="text_color">Warna teks</string>
     <string name="secondary_text_color">Warna teks sekunder</string>
     <string name="background_color">Warna latar belakang</string>
-
     <string name="added_to_play_next">Ditambahkan untuk diputar berikutnya</string>
     <string name="added_to_queue">Ditambahkan ke antrian</string>
     <string name="remove_from_cache">Hapus dari cache</string>
@@ -54,43 +49,35 @@
     <string name="link_copied">Tautan disalin ke papan klip</string>
     <string name="starting_radio">Memulai radio</string>
     <string name="now_playing">Sedang Dimainkan</string>
-
     <string name="close">Menutup</string>
     <string name="minimum_volume">Volume Minimal</string>
     <string name="maximum_volume">Volume Maksimum</string>
     <string name="hide_player_thumbnail">Sembunyikan Gambar Kecil Pemain</string>
     <string name="hide_player_thumbnail_desc">Ganti sampul album dengan logo aplikasi di pemutar</string>
-
     <string name="already_in_playlist">Sudah ada di daftar putar:</string>
-
     <plurals name="n_element">
-        <item quantity="one">%d elemen</item>
         <item quantity="other">%d elemen</item>
     </plurals>
     <plurals name="n_time">
-        <item quantity="one">%d kali</item>
         <item quantity="other">%d kali</item>
     </plurals>
-
     <string name="seek_backward">5 detik mundur</string>
     <string name="seek_forward">5 detik ke depan</string>
     <string name="seek_forward_dynamic">+%1$d detik ke depan</string>
     <string name="seek_backward_dynamic">-%1$d detik mundur</string>
     <string name="seek_seconds_addup">Pencarian progresif</string>
     <string name="seek_seconds_addup_description">Jika diaktifkan, Menambahkan 5 detik ekstra secara bertahap pada setiap lompatan pencarian</string>
-
     <string name="similar_content">Konten serupa</string>
-
     <string name="login_settings">Pengaturan masuk</string>
     <string name="general_settings">Pengaturan umum</string>
-
     <string name="player_background_style">Gaya latar belakang pemain</string>
     <string name="follow_theme">Ikuti tema</string>
     <string name="gradient">Gradien</string>
     <string name="player_design_style">Gaya desain pemutar</string>
     <string name="player_design_v1">Klasik</string>
     <string name="player_design_v2">Modern</string>
-    <string name="player_design_v3">Elegan</string>
+    <string name="player_design_v3">Minimum</string>
+    <string name="player_design_v4">Sinematik</string>
     <string name="coloring">Pewarnaan</string>
     <string name="blur_gradient">Gradasi buram</string>
     <string name="glow">Bersinar</string>
@@ -113,7 +100,6 @@
     <string name="show_downloaded_playlist">Tampilkan daftar putar \"Diunduh\".</string>
     <string name="show_top_playlist">Tampilkan daftar putar \"Top\".</string>
     <string name="show_cached_playlist">Tampilkan daftar putar \"Tersimpan\".</string>
-
     <string name="google">Google</string>
     <string name="discord">Perselisihan</string>
     <string name="advanced_login">Masuk dengan token</string>
@@ -135,7 +121,6 @@
     <string name="configure_supported_links">Konfigurasikan tautan yang didukung</string>
     <string name="intent_supported_links_not_found">Tidak dapat menemukan setelan tautan yang didukung, harap konfigurasikan secara manual</string>
     <string name="set_first_lyrics_provider">Penyedia lirik pilihan</string>
-
     <string name="audio_quality_max">Maks (beta)</string>
     <string name="enable_similar_content">Aktifkan konten serupa</string>
     <string name="similar_content_desc">Secara otomatis menambahkan lebih banyak lagu serupa ketika akhir antrian tercapai</string>
@@ -143,32 +128,23 @@
     <string name="min_playback_duration_description">Jumlah minimum lagu yang harus diputar sebelum dianggap \"dimainkan\"</string>
     <string name="percentage_format">%d%%</string>
     <string name="minimum_playback_duration">Durasi pemutaran minimum</string>
-
     <string name="import_online">Impor daftar putar \"m3u\".</string>
     <string name="import_csv">Impor daftar putar \"csv\".</string>
     <string name="playlist_add_local_to_synced_note">Catatan: Menambahkan lagu lokal ke daftar putar yang disinkronkan/jarak jauh tidak didukung. Kombinasi lainnya valid</string>
-
     <string name="auto_download_on_like">Unduh otomatis di suka</string>
     <string name="auto_download_on_like_desc">Unduh lagu secara otomatis saat Anda menyukainya</string>
-
     <string name="swipe_sensitivity">Sensitivitas gesek pemutar mini</string>
     <string name="swipe_sensitivity_desc">Sesuaikan seberapa sensitif gerakan menggesek untuk mengganti lagu</string>
     <string name="sensitivity_percentage">%1$d%%</string>
-
-    <string name="clear_song_cache_dialog">  Apakah Anda yakin ingin menghapus semua lagu yang di-cache?</string>
-    <string name="clear_image_cache_dialog">  Apakah Anda yakin ingin menghapus semua gambar yang di-cache?</string>
-    <string name="clear_downloads_dialog">  Apakah Anda yakin ingin menghapus semua unduhan?</string>
-
+    <string name="clear_song_cache_dialog">Apakah Anda yakin ingin menghapus semua lagu yang di-cache?</string>
+    <string name="clear_image_cache_dialog">Apakah Anda yakin ingin menghapus semua gambar yang di-cache?</string>
+    <string name="clear_downloads_dialog">Apakah Anda yakin ingin menghapus semua unduhan?</string>
     <string name="disable">Cacat</string>
-
     <string name="pause_remote_listen_history">Jeda berbagi riwayat mendengarkan dengan YouTube Music</string>
     <string name="not_logged_in_youtube">Belum masuk ke YouTube</string>
-
     <string name="default_links">Buka tautan yang didukung</string>
     <string name="open_app_settings_error">Tidak dapat membuka pengaturan aplikasi</string>
-
     <string name="release_notes">Catatan rilis</string>
-
     <string name="all_time">Sepanjang waktu</string>
     <string name="past_24_hours">24 jam terakhir</string>
     <string name="past_week">Minggu lalu</string>
@@ -190,14 +166,11 @@
     <string name="empty_playlist">Daftar Putar Kosong</string>
     <string name="empty_playlist_desc">Daftar putar ini tidak berisi lagu apa pun</string>
     <plurals name="seconds">
-        <item quantity="one">1 second</item>
         <item quantity="other">%d detik</item>
     </plurals>
-
     <!-- Player Settings -->
     <string name="disable_load_more_when_repeat_all">Nonaktifkan muat lebih banyak saat ulangi semua</string>
     <string name="disable_load_more_when_repeat_all_desc">Jangan memuat lebih banyak lagu dan konten serupa secara otomatis saat mode ulangi semua diaktifkan</string>
-    
     <!-- Material 3 Settings Sections -->
     <string name="settings_section_ui">Antarmuka Pengguna</string>
     <string name="settings_section_privacy">Privasi &amp; Keamanan</string>
@@ -205,4 +178,17 @@
     <string name="settings_section_player_content">Konten Pemain &amp;</string>
     <string name="settings_section_storage">Penyimpanan &amp; Data</string>
     <string name="settings_section_system">Sistem &amp; Tentang</string>
+    <string name="manage_tags">Kelola Tag</string>
+    <string name="add_tag">Tambahkan Tag</string>
+    <string name="edit_tag">Ganti Tag</string>
+    <string name="tag_name">Nama Tag</string>
+    <string name="tag_color">Warna Tag</string>
+    <string name="choose_color">Pilih Warna</string>
+    <string name="tap_to_change_color">Tekan untuk mengganti warna</string>
+    <string name="assign_tags">Tambahkan Tag</string>
+    <string name="no_tags_available">Tidak ada tag tersedia. Buat sekarang.</string>
+    <string name="manage_playlist_tags">Tag daftar putar</string>
+    <string name="manage_playlist_tags_desc">Buat dan kelola tag untuk mengorganisir playlist</string>
+    <string name="lyrics_text_size">Ukuran teks lirik</string>
+    <string name="resume_autoscroll">Lanjutkan gulir otomatis</string>
 </resources>

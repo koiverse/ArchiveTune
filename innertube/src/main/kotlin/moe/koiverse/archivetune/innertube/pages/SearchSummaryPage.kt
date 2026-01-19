@@ -14,6 +14,7 @@ import moe.koiverse.archivetune.innertube.models.SongItem
 import moe.koiverse.archivetune.innertube.models.YTItem
 import moe.koiverse.archivetune.innertube.models.clean
 import moe.koiverse.archivetune.innertube.models.filterExplicit
+import moe.koiverse.archivetune.innertube.models.filterVideo
 import moe.koiverse.archivetune.innertube.models.oddElements
 import moe.koiverse.archivetune.innertube.models.splitBySeparator
 import moe.koiverse.archivetune.innertube.utils.parseTime
@@ -36,6 +37,20 @@ data class SearchSummaryPage(
                             s.items.filterExplicit().ifEmpty {
                                 return@mapNotNull null
                             },
+                    )
+                },
+            )
+        } else {
+            this
+        }
+
+    fun filterVideo(enabled: Boolean) =
+        if (enabled) {
+            SearchSummaryPage(
+                summaries.mapNotNull { s ->
+                    SearchSummary(
+                        title = s.title,
+                        items = s.items.filterVideo().ifEmpty { return@mapNotNull null },
                     )
                 },
             )

@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import moe.koiverse.archivetune.innertube.YouTube
 import moe.koiverse.archivetune.innertube.pages.BrowseResult
 import moe.koiverse.archivetune.constants.HideExplicitKey
+import moe.koiverse.archivetune.constants.HideVideoKey
 import moe.koiverse.archivetune.utils.dataStore
 import moe.koiverse.archivetune.utils.get
 import moe.koiverse.archivetune.utils.reportException
@@ -33,7 +34,8 @@ constructor(
             YouTube
                 .browse(browseId, params)
                 .onSuccess {
-                    result.value = it.filterExplicit(context.dataStore.get(HideExplicitKey, false))
+                    val hideVideo = context.dataStore.get(HideVideoKey, false)
+                    result.value = it.filterExplicit(context.dataStore.get(HideExplicitKey, false)).filterVideo(hideVideo)
                 }.onFailure {
                     reportException(it)
                 }
