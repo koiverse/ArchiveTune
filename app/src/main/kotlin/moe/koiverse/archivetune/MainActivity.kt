@@ -142,6 +142,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import moe.koiverse.archivetune.constants.AppBarHeight
 import moe.koiverse.archivetune.constants.AppLanguageKey
@@ -368,7 +369,9 @@ class MainActivity : ComponentActivity() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
 
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
-            val initialLocale = dataStore[AppLanguageKey]
+            val initialLocale = runBlocking(Dispatchers.IO) {
+                dataStore.data.first()[AppLanguageKey]
+            }
                 ?.takeUnless { it == SYSTEM_DEFAULT }
                 ?.let { Locale.forLanguageTag(it) }
                 ?: Locale.getDefault()
