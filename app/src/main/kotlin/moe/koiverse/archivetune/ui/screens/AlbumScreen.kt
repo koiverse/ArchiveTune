@@ -151,6 +151,7 @@ fun AlbumScreen(
     // Gradient colors state for album cover
     var gradientColors by remember { mutableStateOf<List<Color>>(emptyList()) }
     val fallbackColor = MaterialTheme.colorScheme.surface.toArgb()
+    val surfaceColor = MaterialTheme.colorScheme.surface
 
     // Extract gradient colors from album cover
     LaunchedEffect(albumWithSongs?.album?.thumbnailUrl) {
@@ -256,7 +257,9 @@ fun AlbumScreen(
     }
 
     Box(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier
+            .fillMaxSize()
+            .background(surfaceColor),
     ) {
         // Mesh gradient background layer
         if (!disableBlur && gradientColors.isNotEmpty() && gradientAlpha > 0f) {
@@ -271,12 +274,17 @@ fun AlbumScreen(
                         val height = size.height
 
                         if (gradientColors.size >= 3) {
+                            val c0 = gradientColors[0]
+                            val c1 = gradientColors[1]
+                            val c2 = gradientColors[2]
+                            val c3 = gradientColors.getOrElse(3) { c0 }
+                            val c4 = gradientColors.getOrElse(4) { c1 }
                             // Primary color blob - top center (stronger)
                             drawRect(
                                 brush = Brush.radialGradient(
                                     colors = listOf(
-                                        gradientColors[0].copy(alpha = gradientAlpha * 0.75f),
-                                        gradientColors[0].copy(alpha = gradientAlpha * 0.4f),
+                                        c0.copy(alpha = gradientAlpha * 0.75f),
+                                        c0.copy(alpha = gradientAlpha * 0.4f),
                                         Color.Transparent
                                     ),
                                     center = Offset(width * 0.5f, height * 0.15f),
@@ -288,8 +296,8 @@ fun AlbumScreen(
                             drawRect(
                                 brush = Brush.radialGradient(
                                     colors = listOf(
-                                        gradientColors[1].copy(alpha = gradientAlpha * 0.55f),
-                                        gradientColors[1].copy(alpha = gradientAlpha * 0.3f),
+                                        c1.copy(alpha = gradientAlpha * 0.55f),
+                                        c1.copy(alpha = gradientAlpha * 0.3f),
                                         Color.Transparent
                                     ),
                                     center = Offset(width * 0.1f, height * 0.4f),
@@ -301,12 +309,36 @@ fun AlbumScreen(
                             drawRect(
                                 brush = Brush.radialGradient(
                                     colors = listOf(
-                                        gradientColors[2].copy(alpha = gradientAlpha * 0.5f),
-                                        gradientColors[2].copy(alpha = gradientAlpha * 0.25f),
+                                        c2.copy(alpha = gradientAlpha * 0.5f),
+                                        c2.copy(alpha = gradientAlpha * 0.25f),
                                         Color.Transparent
                                     ),
                                     center = Offset(width * 0.9f, height * 0.35f),
                                     radius = width * 0.55f
+                                )
+                            )
+
+                            drawRect(
+                                brush = Brush.radialGradient(
+                                    colors = listOf(
+                                        c3.copy(alpha = gradientAlpha * 0.35f),
+                                        c3.copy(alpha = gradientAlpha * 0.18f),
+                                        Color.Transparent
+                                    ),
+                                    center = Offset(width * 0.25f, height * 0.65f),
+                                    radius = width * 0.75f
+                                )
+                            )
+
+                            drawRect(
+                                brush = Brush.radialGradient(
+                                    colors = listOf(
+                                        c4.copy(alpha = gradientAlpha * 0.3f),
+                                        c4.copy(alpha = gradientAlpha * 0.15f),
+                                        Color.Transparent
+                                    ),
+                                    center = Offset(width * 0.55f, height * 0.85f),
+                                    radius = width * 0.9f
                                 )
                             )
                         } else if (gradientColors.isNotEmpty()) {
@@ -322,6 +354,20 @@ fun AlbumScreen(
                                 )
                             )
                         }
+
+                        drawRect(
+                            brush = Brush.verticalGradient(
+                                colors = listOf(
+                                    Color.Transparent,
+                                    Color.Transparent,
+                                    surfaceColor.copy(alpha = gradientAlpha * 0.22f),
+                                    surfaceColor.copy(alpha = gradientAlpha * 0.55f),
+                                    surfaceColor
+                                ),
+                                startY = height * 0.4f,
+                                endY = height
+                            )
+                        )
                     }
             )
         }

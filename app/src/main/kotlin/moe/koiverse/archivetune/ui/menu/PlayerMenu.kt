@@ -159,7 +159,14 @@ fun PlayerMenu(
         },
         onDismiss = {
             showChoosePlaylistDialog = false
-        }
+        },
+        onAddComplete = { songCount, playlistNames ->
+            val message = when {
+                playlistNames.size == 1 -> context.getString(R.string.added_to_playlist, playlistNames.first())
+                else -> context.getString(R.string.added_to_n_playlists, playlistNames.size)
+            }
+            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+        },
     )
 
     var showSelectArtistDialog by rememberSaveable {

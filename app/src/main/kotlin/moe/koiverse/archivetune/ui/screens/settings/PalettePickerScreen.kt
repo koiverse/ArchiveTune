@@ -107,9 +107,9 @@ object ThemePalettes {
         id = "default",
         nameResId = R.string.palette_default,
         primary = Color(0xFFED5564),
-        secondary = Color(0xFFFF8A80),
-        tertiary = Color(0xFFFFCDD2),
-        neutral = Color(0xFF5D4037)
+        secondary = Color(0xFFED5564),
+        tertiary = Color(0xFFED5564),
+        neutral = Color(0xFFED5564)
     )
     
     // ===== Blues =====
@@ -117,54 +117,54 @@ object ThemePalettes {
         id = "ocean_blue",
         nameResId = R.string.palette_ocean_blue,
         primary = Color(0xFF4A90D9),
-        secondary = Color(0xFF82B1FF),
-        tertiary = Color(0xFFBBDEFB),
-        neutral = Color(0xFF37474F)
+        secondary = Color(0xFF4A90D9),
+        tertiary = Color(0xFF4A90D9),
+        neutral = Color(0xFF4A90D9)
     )
     
     val ArcticBlue = ThemePalette(
         id = "arctic_blue",
         nameResId = R.string.palette_arctic_blue,
         primary = Color(0xFF00BFFF),
-        secondary = Color(0xFF4DD0E1),
-        tertiary = Color(0xFFB2EBF2),
-        neutral = Color(0xFF006064)
+        secondary = Color(0xFF00BFFF),
+        tertiary = Color(0xFF00BFFF),
+        neutral = Color(0xFF00BFFF)
     )
     
     val MidnightNavy = ThemePalette(
         id = "midnight_navy",
         nameResId = R.string.palette_midnight_navy,
         primary = Color(0xFF2C3E50),
-        secondary = Color(0xFF546E7A),
-        tertiary = Color(0xFF90A4AE),
-        neutral = Color(0xFF1A237E)
+        secondary = Color(0xFF2C3E50),
+        tertiary = Color(0xFF2C3E50),
+        neutral = Color(0xFF2C3E50)
     )
     
     val SkyBlue = ThemePalette(
         id = "sky_blue",
         nameResId = R.string.palette_sky_blue,
         primary = Color(0xFF87CEEB),
-        secondary = Color(0xFFB3E5FC),
-        tertiary = Color(0xFFE1F5FE),
-        neutral = Color(0xFF0277BD)
+        secondary = Color(0xFF87CEEB),
+        tertiary = Color(0xFF87CEEB),
+        neutral = Color(0xFF87CEEB)
     )
     
     val CobaltBlue = ThemePalette(
         id = "cobalt_blue",
         nameResId = R.string.palette_cobalt_blue,
         primary = Color(0xFF0047AB),
-        secondary = Color(0xFF5472D3),
-        tertiary = Color(0xFFC5CAE9),
-        neutral = Color(0xFF1A237E)
+        secondary = Color(0xFF0047AB),
+        tertiary = Color(0xFF0047AB),
+        neutral = Color(0xFF0047AB)
     )
     
     val ElectricBlue = ThemePalette(
         id = "electric_blue",
         nameResId = R.string.palette_electric_blue,
         primary = Color(0xFF7DF9FF),
-        secondary = Color(0xFFB2FEFA),
-        tertiary = Color(0xFFE0FFFF),
-        neutral = Color(0xFF00838F)
+        secondary = Color(0xFF7DF9FF),
+        tertiary = Color(0xFF7DF9FF),
+        neutral = Color(0xFF7DF9FF)
     )
     
     // ===== Greens =====
@@ -172,63 +172,63 @@ object ThemePalettes {
         id = "emerald_green",
         nameResId = R.string.palette_emerald_green,
         primary = Color(0xFF2ECC71),
-        secondary = Color(0xFF69F0AE),
-        tertiary = Color(0xFFB9F6CA),
-        neutral = Color(0xFF2E7D32)
+        secondary = Color(0xFF2ECC71),
+        tertiary = Color(0xFF2ECC71),
+        neutral = Color(0xFF2ECC71)
     )
     
     val TealWave = ThemePalette(
         id = "teal_wave",
         nameResId = R.string.palette_teal_wave,
         primary = Color(0xFF1ABC9C),
-        secondary = Color(0xFF64FFDA),
-        tertiary = Color(0xFFB2DFDB),
-        neutral = Color(0xFF00695C)
+        secondary = Color(0xFF1ABC9C),
+        tertiary = Color(0xFF1ABC9C),
+        neutral = Color(0xFF1ABC9C)
     )
     
     val ForestGreen = ThemePalette(
         id = "forest_green",
         nameResId = R.string.palette_forest_green,
         primary = Color(0xFF228B22),
-        secondary = Color(0xFF66BB6A),
-        tertiary = Color(0xFFC8E6C9),
-        neutral = Color(0xFF1B5E20)
+        secondary = Color(0xFF228B22),
+        tertiary = Color(0xFF228B22),
+        neutral = Color(0xFF228B22)
     )
     
     val SpotifyGreen = ThemePalette(
         id = "spotify_green",
         nameResId = R.string.palette_spotify_green,
         primary = Color(0xFF1DB954),
-        secondary = Color(0xFF1ED760),
-        tertiary = Color(0xFFB3F5C3),
-        neutral = Color(0xFF191414)
+        secondary = Color(0xFF1DB954),
+        tertiary = Color(0xFF1DB954),
+        neutral = Color(0xFF1DB954)
     )
     
     val MintFresh = ThemePalette(
         id = "mint_fresh",
         nameResId = R.string.palette_mint_fresh,
         primary = Color(0xFF98FF98),
-        secondary = Color(0xFFB2FFAB),
-        tertiary = Color(0xFFE8F5E9),
-        neutral = Color(0xFF2E7D32)
+        secondary = Color(0xFF98FF98),
+        tertiary = Color(0xFF98FF98),
+        neutral = Color(0xFF98FF98)
     )
     
     val OliveGarden = ThemePalette(
         id = "olive_garden",
         nameResId = R.string.palette_olive_garden,
         primary = Color(0xFF808000),
-        secondary = Color(0xFFAFB42B),
-        tertiary = Color(0xFFF0F4C3),
-        neutral = Color(0xFF33691E)
+        secondary = Color(0xFF808000),
+        tertiary = Color(0xFF808000),
+        neutral = Color(0xFF808000)
     )
     
     val SageGreen = ThemePalette(
         id = "sage_green",
         nameResId = R.string.palette_sage_green,
         primary = Color(0xFF9CAF88),
-        secondary = Color(0xFFB5C99A),
-        tertiary = Color(0xFFDCEDC8),
-        neutral = Color(0xFF558B2F)
+        secondary = Color(0xFF9CAF88),
+        tertiary = Color(0xFF9CAF88),
+        neutral = Color(0xFF9CAF88)
     )
     
     // ===== Oranges & Yellows =====
@@ -236,54 +236,54 @@ object ThemePalettes {
         id = "sunset_orange",
         nameResId = R.string.palette_sunset_orange,
         primary = Color(0xFFE67E22),
-        secondary = Color(0xFFFFAB40),
-        tertiary = Color(0xFFFFE0B2),
-        neutral = Color(0xFF795548)
+        secondary = Color(0xFFE67E22),
+        tertiary = Color(0xFFE67E22),
+        neutral = Color(0xFFE67E22)
     )
     
     val GoldenHour = ThemePalette(
         id = "golden_hour",
         nameResId = R.string.palette_golden_hour,
         primary = Color(0xFFF39C12),
-        secondary = Color(0xFFFFD54F),
-        tertiary = Color(0xFFFFF9C4),
-        neutral = Color(0xFFFF6F00)
+        secondary = Color(0xFFF39C12),
+        tertiary = Color(0xFFF39C12),
+        neutral = Color(0xFFF39C12)
     )
     
     val WarmAmber = ThemePalette(
         id = "warm_amber",
         nameResId = R.string.palette_warm_amber,
         primary = Color(0xFFFFBF00),
-        secondary = Color(0xFFFFCA28),
-        tertiary = Color(0xFFFFECB3),
-        neutral = Color(0xFFFF8F00)
+        secondary = Color(0xFFFFBF00),
+        tertiary = Color(0xFFFFBF00),
+        neutral = Color(0xFFFFBF00)
     )
     
     val TangerineBlast = ThemePalette(
         id = "tangerine_blast",
         nameResId = R.string.palette_tangerine_blast,
         primary = Color(0xFFFF9800),
-        secondary = Color(0xFFFFB74D),
-        tertiary = Color(0xFFFFE0B2),
-        neutral = Color(0xFFE65100)
+        secondary = Color(0xFFFF9800),
+        tertiary = Color(0xFFFF9800),
+        neutral = Color(0xFFFF9800)
     )
     
     val Peach = ThemePalette(
         id = "peach",
         nameResId = R.string.palette_peach,
         primary = Color(0xFFFFDAB9),
-        secondary = Color(0xFFFFE4C4),
-        tertiary = Color(0xFFFFF3E0),
-        neutral = Color(0xFFBF360C)
+        secondary = Color(0xFFFFDAB9),
+        tertiary = Color(0xFFFFDAB9),
+        neutral = Color(0xFFFFDAB9)
     )
     
     val Mango = ThemePalette(
         id = "mango",
         nameResId = R.string.palette_mango,
         primary = Color(0xFFFF8243),
-        secondary = Color(0xFFFFAB91),
-        tertiary = Color(0xFFFFCCBC),
-        neutral = Color(0xFFD84315)
+        secondary = Color(0xFFFF8243),
+        tertiary = Color(0xFFFF8243),
+        neutral = Color(0xFFFF8243)
     )
     
     // ===== Purples & Violets =====
@@ -291,54 +291,54 @@ object ThemePalettes {
         id = "royal_purple",
         nameResId = R.string.palette_royal_purple,
         primary = Color(0xFF9B59B6),
-        secondary = Color(0xFFCE93D8),
-        tertiary = Color(0xFFF3E5F5),
-        neutral = Color(0xFF4A148C)
+        secondary = Color(0xFF9B59B6),
+        tertiary = Color(0xFF9B59B6),
+        neutral = Color(0xFF9B59B6)
     )
     
     val LavenderDream = ThemePalette(
         id = "lavender_dream",
         nameResId = R.string.palette_lavender_dream,
         primary = Color(0xFFB39DDB),
-        secondary = Color(0xFFD1C4E9),
-        tertiary = Color(0xFFEDE7F6),
-        neutral = Color(0xFF512DA8)
+        secondary = Color(0xFFB39DDB),
+        tertiary = Color(0xFFB39DDB),
+        neutral = Color(0xFFB39DDB)
     )
     
     val GrapePurple = ThemePalette(
         id = "grape_purple",
         nameResId = R.string.palette_grape_purple,
         primary = Color(0xFF6B5B95),
-        secondary = Color(0xFF9575CD),
-        tertiary = Color(0xFFD1C4E9),
-        neutral = Color(0xFF311B92)
+        secondary = Color(0xFF6B5B95),
+        tertiary = Color(0xFF6B5B95),
+        neutral = Color(0xFF6B5B95)
     )
     
     val Violet = ThemePalette(
         id = "violet",
         nameResId = R.string.palette_violet,
         primary = Color(0xFFEE82EE),
-        secondary = Color(0xFFE1BEE7),
-        tertiary = Color(0xFFF3E5F5),
-        neutral = Color(0xFF7B1FA2)
+        secondary = Color(0xFFEE82EE),
+        tertiary = Color(0xFFEE82EE),
+        neutral = Color(0xFFEE82EE)
     )
     
     val Amethyst = ThemePalette(
         id = "amethyst",
         nameResId = R.string.palette_amethyst,
         primary = Color(0xFF9966CC),
-        secondary = Color(0xFFB39DDB),
-        tertiary = Color(0xFFE1BEE7),
-        neutral = Color(0xFF6A1B9A)
+        secondary = Color(0xFF9966CC),
+        tertiary = Color(0xFF9966CC),
+        neutral = Color(0xFF9966CC)
     )
     
     val UltraViolet = ThemePalette(
         id = "ultra_violet",
         nameResId = R.string.palette_ultra_violet,
         primary = Color(0xFF645394),
-        secondary = Color(0xFF9575CD),
-        tertiary = Color(0xFFD1C4E9),
-        neutral = Color(0xFF4527A0)
+        secondary = Color(0xFF645394),
+        tertiary = Color(0xFF645394),
+        neutral = Color(0xFF645394)
     )
     
     // ===== Pinks & Roses =====
@@ -346,63 +346,63 @@ object ThemePalettes {
         id = "cherry_blossom",
         nameResId = R.string.palette_cherry_blossom,
         primary = Color(0xFFFFB7C5),
-        secondary = Color(0xFFF8BBD9),
-        tertiary = Color(0xFFFCE4EC),
-        neutral = Color(0xFF880E4F)
+        secondary = Color(0xFFFFB7C5),
+        tertiary = Color(0xFFFFB7C5),
+        neutral = Color(0xFFFFB7C5)
     )
     
     val RoseQuartz = ThemePalette(
         id = "rose_quartz",
         nameResId = R.string.palette_rose_quartz,
         primary = Color(0xFFF7CAC9),
-        secondary = Color(0xFFFFCCBC),
-        tertiary = Color(0xFFFBE9E7),
-        neutral = Color(0xFFBF360C)
+        secondary = Color(0xFFF7CAC9),
+        tertiary = Color(0xFFF7CAC9),
+        neutral = Color(0xFFF7CAC9)
     )
     
     val MagentaPop = ThemePalette(
         id = "magenta_pop",
         nameResId = R.string.palette_magenta_pop,
         primary = Color(0xFFFF00FF),
-        secondary = Color(0xFFFF80AB),
-        tertiary = Color(0xFFFCE4EC),
-        neutral = Color(0xFFAD1457)
+        secondary = Color(0xFFFF00FF),
+        tertiary = Color(0xFFFF00FF),
+        neutral = Color(0xFFFF00FF)
     )
     
     val HotPink = ThemePalette(
         id = "hot_pink",
         nameResId = R.string.palette_hot_pink,
         primary = Color(0xFFFF69B4),
-        secondary = Color(0xFFF48FB1),
-        tertiary = Color(0xFFF8BBD9),
-        neutral = Color(0xFFC2185B)
+        secondary = Color(0xFFFF69B4),
+        tertiary = Color(0xFFFF69B4),
+        neutral = Color(0xFFFF69B4)
     )
     
     val Blush = ThemePalette(
         id = "blush",
         nameResId = R.string.palette_blush,
         primary = Color(0xFFDE5D83),
-        secondary = Color(0xFFF48FB1),
-        tertiary = Color(0xFFFCE4EC),
-        neutral = Color(0xFF880E4F)
+        secondary = Color(0xFFDE5D83),
+        tertiary = Color(0xFFDE5D83),
+        neutral = Color(0xFFDE5D83)
     )
     
     val Coral = ThemePalette(
         id = "coral",
         nameResId = R.string.palette_coral,
         primary = Color(0xFFFF7F50),
-        secondary = Color(0xFFFF8A65),
-        tertiary = Color(0xFFFFCCBC),
-        neutral = Color(0xFFBF360C)
+        secondary = Color(0xFFFF7F50),
+        tertiary = Color(0xFFFF7F50),
+        neutral = Color(0xFFFF7F50)
     )
     
     val Bubblegum = ThemePalette(
         id = "bubblegum",
         nameResId = R.string.palette_bubblegum,
         primary = Color(0xFFFFC1CC),
-        secondary = Color(0xFFFFD6E0),
-        tertiary = Color(0xFFFFF0F5),
-        neutral = Color(0xFFD81B60)
+        secondary = Color(0xFFFFC1CC),
+        tertiary = Color(0xFFFFC1CC),
+        neutral = Color(0xFFFFC1CC)
     )
     
     // ===== Reds =====
@@ -410,45 +410,45 @@ object ThemePalettes {
         id = "crimson_red",
         nameResId = R.string.palette_crimson_red,
         primary = Color(0xFFDC143C),
-        secondary = Color(0xFFEF5350),
-        tertiary = Color(0xFFFFCDD2),
-        neutral = Color(0xFFB71C1C)
+        secondary = Color(0xFFDC143C),
+        tertiary = Color(0xFFDC143C),
+        neutral = Color(0xFFDC143C)
     )
     
     val YouTubeRed = ThemePalette(
         id = "youtube_red",
         nameResId = R.string.palette_youtube_red,
         primary = Color(0xFFFF0000),
-        secondary = Color(0xFFFF5252),
-        tertiary = Color(0xFFFFCDD2),
-        neutral = Color(0xFF282828)
+        secondary = Color(0xFFFF0000),
+        tertiary = Color(0xFFFF0000),
+        neutral = Color(0xFFFF0000)
     )
     
     val WineRed = ThemePalette(
         id = "wine_red",
         nameResId = R.string.palette_wine_red,
         primary = Color(0xFF722F37),
-        secondary = Color(0xFFAD4A5B),
-        tertiary = Color(0xFFEFCFD4),
-        neutral = Color(0xFF4A0E0E)
+        secondary = Color(0xFF722F37),
+        tertiary = Color(0xFF722F37),
+        neutral = Color(0xFF722F37)
     )
     
     val RubyRed = ThemePalette(
         id = "ruby_red",
         nameResId = R.string.palette_ruby_red,
         primary = Color(0xFFE0115F),
-        secondary = Color(0xFFEC407A),
-        tertiary = Color(0xFFF8BBD9),
-        neutral = Color(0xFF880E4F)
+        secondary = Color(0xFFE0115F),
+        tertiary = Color(0xFFE0115F),
+        neutral = Color(0xFFE0115F)
     )
     
     val Scarlet = ThemePalette(
         id = "scarlet",
         nameResId = R.string.palette_scarlet,
         primary = Color(0xFFFF2400),
-        secondary = Color(0xFFFF5722),
-        tertiary = Color(0xFFFFCCBC),
-        neutral = Color(0xFFBF360C)
+        secondary = Color(0xFFFF2400),
+        tertiary = Color(0xFFFF2400),
+        neutral = Color(0xFFFF2400)
     )
     
     // ===== Neutrals & Monochrome =====
@@ -456,36 +456,36 @@ object ThemePalettes {
         id = "charcoal",
         nameResId = R.string.palette_charcoal,
         primary = Color(0xFF36454F),
-        secondary = Color(0xFF607D8B),
-        tertiary = Color(0xFFCFD8DC),
-        neutral = Color(0xFF263238)
+        secondary = Color(0xFF36454F),
+        tertiary = Color(0xFF36454F),
+        neutral = Color(0xFF36454F)
     )
     
     val Silver = ThemePalette(
         id = "silver",
         nameResId = R.string.palette_silver,
         primary = Color(0xFFC0C0C0),
-        secondary = Color(0xFFE0E0E0),
-        tertiary = Color(0xFFF5F5F5),
-        neutral = Color(0xFF424242)
+        secondary = Color(0xFFC0C0C0),
+        tertiary = Color(0xFFC0C0C0),
+        neutral = Color(0xFFC0C0C0)
     )
     
     val Slate = ThemePalette(
         id = "slate",
         nameResId = R.string.palette_slate,
         primary = Color(0xFF708090),
-        secondary = Color(0xFF90A4AE),
-        tertiary = Color(0xFFCFD8DC),
-        neutral = Color(0xFF455A64)
+        secondary = Color(0xFF708090),
+        tertiary = Color(0xFF708090),
+        neutral = Color(0xFF708090)
     )
     
     val Graphite = ThemePalette(
         id = "graphite",
         nameResId = R.string.palette_graphite,
         primary = Color(0xFF474747),
-        secondary = Color(0xFF757575),
-        tertiary = Color(0xFFBDBDBD),
-        neutral = Color(0xFF212121)
+        secondary = Color(0xFF474747),
+        tertiary = Color(0xFF474747),
+        neutral = Color(0xFF474747)
     )
     
     // ===== Earth Tones =====
@@ -493,45 +493,45 @@ object ThemePalettes {
         id = "terracotta",
         nameResId = R.string.palette_terracotta,
         primary = Color(0xFFE2725B),
-        secondary = Color(0xFFFFAB91),
-        tertiary = Color(0xFFFFCCBC),
-        neutral = Color(0xFFBF360C)
+        secondary = Color(0xFFE2725B),
+        tertiary = Color(0xFFE2725B),
+        neutral = Color(0xFFE2725B)
     )
     
     val Coffee = ThemePalette(
         id = "coffee",
         nameResId = R.string.palette_coffee,
         primary = Color(0xFF6F4E37),
-        secondary = Color(0xFF8D6E63),
-        tertiary = Color(0xFFD7CCC8),
-        neutral = Color(0xFF3E2723)
+        secondary = Color(0xFF6F4E37),
+        tertiary = Color(0xFF6F4E37),
+        neutral = Color(0xFF6F4E37)
     )
     
     val Mocha = ThemePalette(
         id = "mocha",
         nameResId = R.string.palette_mocha,
         primary = Color(0xFF967969),
-        secondary = Color(0xFFA1887F),
-        tertiary = Color(0xFFD7CCC8),
-        neutral = Color(0xFF5D4037)
+        secondary = Color(0xFF967969),
+        tertiary = Color(0xFF967969),
+        neutral = Color(0xFF967969)
     )
     
     val Sand = ThemePalette(
         id = "sand",
         nameResId = R.string.palette_sand,
         primary = Color(0xFFC2B280),
-        secondary = Color(0xFFD7CCC8),
-        tertiary = Color(0xFFEFEBE9),
-        neutral = Color(0xFF795548)
+        secondary = Color(0xFFC2B280),
+        tertiary = Color(0xFFC2B280),
+        neutral = Color(0xFFC2B280)
     )
     
     val Clay = ThemePalette(
         id = "clay",
         nameResId = R.string.palette_clay,
         primary = Color(0xFFB66A50),
-        secondary = Color(0xFFBCAAA4),
-        tertiary = Color(0xFFEFEBE9),
-        neutral = Color(0xFF5D4037)
+        secondary = Color(0xFFB66A50),
+        tertiary = Color(0xFFB66A50),
+        neutral = Color(0xFFB66A50)
     )
     
     // ===== Pastels =====
@@ -539,45 +539,45 @@ object ThemePalettes {
         id = "pastel_pink",
         nameResId = R.string.palette_pastel_pink,
         primary = Color(0xFFFFD1DC),
-        secondary = Color(0xFFFFE4E9),
-        tertiary = Color(0xFFFFF5F7),
-        neutral = Color(0xFFE91E63)
+        secondary = Color(0xFFFFD1DC),
+        tertiary = Color(0xFFFFD1DC),
+        neutral = Color(0xFFFFD1DC)
     )
     
     val PastelBlue = ThemePalette(
         id = "pastel_blue",
         nameResId = R.string.palette_pastel_blue,
         primary = Color(0xFFAEC6CF),
-        secondary = Color(0xFFD4E5ED),
-        tertiary = Color(0xFFECF4F8),
-        neutral = Color(0xFF1976D2)
+        secondary = Color(0xFFAEC6CF),
+        tertiary = Color(0xFFAEC6CF),
+        neutral = Color(0xFFAEC6CF)
     )
     
     val PastelGreen = ThemePalette(
         id = "pastel_green",
         nameResId = R.string.palette_pastel_green,
         primary = Color(0xFF77DD77),
-        secondary = Color(0xFFB5EAB5),
-        tertiary = Color(0xFFE8F5E9),
-        neutral = Color(0xFF388E3C)
+        secondary = Color(0xFF77DD77),
+        tertiary = Color(0xFF77DD77),
+        neutral = Color(0xFF77DD77)
     )
     
     val PastelYellow = ThemePalette(
         id = "pastel_yellow",
         nameResId = R.string.palette_pastel_yellow,
         primary = Color(0xFFFDFD96),
-        secondary = Color(0xFFFFF9C4),
-        tertiary = Color(0xFFFFFDE7),
-        neutral = Color(0xFFF9A825)
+        secondary = Color(0xFFFDFD96),
+        tertiary = Color(0xFFFDFD96),
+        neutral = Color(0xFFFDFD96)
     )
     
     val PastelPurple = ThemePalette(
         id = "pastel_purple",
         nameResId = R.string.palette_pastel_purple,
         primary = Color(0xFFB19CD9),
-        secondary = Color(0xFFD1C4E9),
-        tertiary = Color(0xFFEDE7F6),
-        neutral = Color(0xFF7B1FA2)
+        secondary = Color(0xFFB19CD9),
+        tertiary = Color(0xFFB19CD9),
+        neutral = Color(0xFFB19CD9)
     )
     
     // ===== Neon & Vibrant =====
@@ -585,54 +585,54 @@ object ThemePalettes {
         id = "neon_green",
         nameResId = R.string.palette_neon_green,
         primary = Color(0xFF39FF14),
-        secondary = Color(0xFF76FF03),
-        tertiary = Color(0xFFCCFF90),
-        neutral = Color(0xFF33691E)
+        secondary = Color(0xFF39FF14),
+        tertiary = Color(0xFF39FF14),
+        neutral = Color(0xFF39FF14)
     )
     
     val NeonPink = ThemePalette(
         id = "neon_pink",
         nameResId = R.string.palette_neon_pink,
         primary = Color(0xFFFF10F0),
-        secondary = Color(0xFFFF80AB),
-        tertiary = Color(0xFFFCE4EC),
-        neutral = Color(0xFF880E4F)
+        secondary = Color(0xFFFF10F0),
+        tertiary = Color(0xFFFF10F0),
+        neutral = Color(0xFFFF10F0)
     )
     
     val NeonBlue = ThemePalette(
         id = "neon_blue",
         nameResId = R.string.palette_neon_blue,
         primary = Color(0xFF00F5FF),
-        secondary = Color(0xFF18FFFF),
-        tertiary = Color(0xFFB2EBF2),
-        neutral = Color(0xFF006064)
+        secondary = Color(0xFF00F5FF),
+        tertiary = Color(0xFF00F5FF),
+        neutral = Color(0xFF00F5FF)
     )
     
     val NeonOrange = ThemePalette(
         id = "neon_orange",
         nameResId = R.string.palette_neon_orange,
         primary = Color(0xFFFF5F1F),
-        secondary = Color(0xFFFF8A65),
-        tertiary = Color(0xFFFFCCBC),
-        neutral = Color(0xFFE65100)
+        secondary = Color(0xFFFF5F1F),
+        tertiary = Color(0xFFFF5F1F),
+        neutral = Color(0xFFFF5F1F)
     )
     
     val Cyberpunk = ThemePalette(
         id = "cyberpunk",
         nameResId = R.string.palette_cyberpunk,
         primary = Color(0xFFFF00FF),
-        secondary = Color(0xFF00FFFF),
-        tertiary = Color(0xFFFFFF00),
-        neutral = Color(0xFF0D0D0D)
+        secondary = Color(0xFFFF00FF),
+        tertiary = Color(0xFFFF00FF),
+        neutral = Color(0xFFFF00FF)
     )
     
     val Synthwave = ThemePalette(
         id = "synthwave",
         nameResId = R.string.palette_synthwave,
         primary = Color(0xFFFF6EC7),
-        secondary = Color(0xFF9D4EDD),
-        tertiary = Color(0xFF3C096C),
-        neutral = Color(0xFF10002B)
+        secondary = Color(0xFFFF6EC7),
+        tertiary = Color(0xFFFF6EC7),
+        neutral = Color(0xFFFF6EC7)
     )
     
     // ===== Special & Themed =====
@@ -640,90 +640,90 @@ object ThemePalettes {
         id = "ocean",
         nameResId = R.string.palette_ocean,
         primary = Color(0xFF006994),
-        secondary = Color(0xFF40E0D0),
-        tertiary = Color(0xFFB2DFDB),
-        neutral = Color(0xFF004D40)
+        secondary = Color(0xFF006994),
+        tertiary = Color(0xFF006994),
+        neutral = Color(0xFF006994)
     )
     
     val Forest = ThemePalette(
         id = "forest",
         nameResId = R.string.palette_forest,
         primary = Color(0xFF0B3D0B),
-        secondary = Color(0xFF4CAF50),
-        tertiary = Color(0xFFC8E6C9),
-        neutral = Color(0xFF1B5E20)
+        secondary = Color(0xFF0B3D0B),
+        tertiary = Color(0xFF0B3D0B),
+        neutral = Color(0xFF0B3D0B)
     )
     
     val Autumn = ThemePalette(
         id = "autumn",
         nameResId = R.string.palette_autumn,
         primary = Color(0xFFD2691E),
-        secondary = Color(0xFFFF8C00),
-        tertiary = Color(0xFFFFE4B5),
-        neutral = Color(0xFF8B4513)
+        secondary = Color(0xFFD2691E),
+        tertiary = Color(0xFFD2691E),
+        neutral = Color(0xFFD2691E)
     )
     
     val Winter = ThemePalette(
         id = "winter",
         nameResId = R.string.palette_winter,
         primary = Color(0xFFADD8E6),
-        secondary = Color(0xFFB0E0E6),
-        tertiary = Color(0xFFF0FFFF),
-        neutral = Color(0xFF4682B4)
+        secondary = Color(0xFFADD8E6),
+        tertiary = Color(0xFFADD8E6),
+        neutral = Color(0xFFADD8E6)
     )
     
     val Spring = ThemePalette(
         id = "spring",
         nameResId = R.string.palette_spring,
         primary = Color(0xFF98FB98),
-        secondary = Color(0xFFFFB6C1),
-        tertiary = Color(0xFFFFF0F5),
-        neutral = Color(0xFF3CB371)
+        secondary = Color(0xFF98FB98),
+        tertiary = Color(0xFF98FB98),
+        neutral = Color(0xFF98FB98)
     )
     
     val Summer = ThemePalette(
         id = "summer",
         nameResId = R.string.palette_summer,
         primary = Color(0xFFFFD700),
-        secondary = Color(0xFFFF6347),
-        tertiary = Color(0xFFFFFACD),
-        neutral = Color(0xFFFF4500)
+        secondary = Color(0xFFFFD700),
+        tertiary = Color(0xFFFFD700),
+        neutral = Color(0xFFFFD700)
     )
     
     val Twilight = ThemePalette(
         id = "twilight",
         nameResId = R.string.palette_twilight,
         primary = Color(0xFF4B0082),
-        secondary = Color(0xFF8A2BE2),
-        tertiary = Color(0xFFDDA0DD),
-        neutral = Color(0xFF2E0854)
+        secondary = Color(0xFF4B0082),
+        tertiary = Color(0xFF4B0082),
+        neutral = Color(0xFF4B0082)
     )
     
     val Aurora = ThemePalette(
         id = "aurora",
         nameResId = R.string.palette_aurora,
         primary = Color(0xFF00FF7F),
-        secondary = Color(0xFF00CED1),
-        tertiary = Color(0xFFDA70D6),
-        neutral = Color(0xFF191970)
+        secondary = Color(0xFF00FF7F),
+        tertiary = Color(0xFF00FF7F),
+        neutral = Color(0xFF00FF7F)
     )
     
     val Candy = ThemePalette(
         id = "candy",
         nameResId = R.string.palette_candy,
         primary = Color(0xFFFF69B4),
-        secondary = Color(0xFF00BFFF),
-        tertiary = Color(0xFFFFE4E1),
-        neutral = Color(0xFFFF1493)
+        secondary = Color(0xFFFF69B4),
+        tertiary = Color(0xFFFF69B4),
+        neutral = Color(0xFFFF69B4)
     )
     
     val Rainbow = ThemePalette(
         id = "rainbow",
         nameResId = R.string.palette_rainbow,
         primary = Color(0xFFFF0000),
-        secondary = Color(0xFFFFFF00),
-        tertiary = Color(0xFF00FF00),
-        neutral = Color(0xFF0000FF)
+        secondary = Color(0xFFFF0000),
+        tertiary = Color(0xFFFF0000),
+        neutral = Color(0xFFFF0000)
     )
     
     val allPalettes: List<ThemePalette> = listOf(
@@ -879,19 +879,7 @@ fun PalettePickerScreen(
                 modifier = Modifier.padding(horizontal = 24.dp)
             )
             
-            Spacer(modifier = Modifier.height(32.dp))
-            
-            Text(
-                text = stringResource(R.string.select_palette),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 24.dp)
-            )
-            
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(24.dp))
             
             ColorPaletteSelector(
                 palettes = ThemePalettes.allPalettes,
@@ -900,13 +888,6 @@ fun PalettePickerScreen(
                     onCustomThemeColorChange(palette.id)
                 },
                 modifier = Modifier.fillMaxWidth()
-            )
-            
-            Spacer(modifier = Modifier.height(32.dp))
-            
-            SelectedPaletteDetails(
-                palette = selectedPalette,
-                modifier = Modifier.padding(horizontal = 24.dp)
             )
             
             Spacer(modifier = Modifier.height(32.dp))
@@ -1147,7 +1128,7 @@ private fun ColorPaletteSelector(
             state = listState,
             modifier = Modifier.fillMaxWidth(),
             contentPadding = PaddingValues(horizontal = 24.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             items(palettes) { palette ->
                 PaletteCard(
@@ -1222,7 +1203,7 @@ private fun PaletteCard(
     onClick: () -> Unit
 ) {
     val scale by animateFloatAsState(
-        targetValue = if (isSelected) 1.08f else 1f,
+        targetValue = if (isSelected) 1.05f else 1f,
         animationSpec = spring(
             dampingRatio = Spring.DampingRatioMediumBouncy,
             stiffness = Spring.StiffnessLow
@@ -1231,15 +1212,9 @@ private fun PaletteCard(
     )
     
     val borderWidth by animateDpAsState(
-        targetValue = if (isSelected) 3.dp else 0.dp,
+        targetValue = if (isSelected) 2.dp else 0.dp,
         animationSpec = tween(durationMillis = 200),
         label = "borderAnimation"
-    )
-    
-    val elevation by animateDpAsState(
-        targetValue = if (isSelected) 12.dp else 4.dp,
-        animationSpec = tween(durationMillis = 200),
-        label = "elevationAnimation"
     )
     
     val animatedBorderColor by animateColorAsState(
@@ -1248,97 +1223,74 @@ private fun PaletteCard(
         label = "borderColorAnimation"
     )
     
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally
+    Card(
+        modifier = Modifier
+            .size(80.dp)
+            .scale(scale)
+            .border(borderWidth, animatedBorderColor, RoundedCornerShape(16.dp))
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
-        Card(
-            modifier = Modifier
-                .size(80.dp)
-                .scale(scale)
-                .shadow(elevation, RoundedCornerShape(20.dp))
-                .border(borderWidth, animatedBorderColor, RoundedCornerShape(20.dp))
-                .clickable(onClick = onClick),
-            shape = RoundedCornerShape(20.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant
-            )
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
         ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(8.dp)
-                    .clip(RoundedCornerShape(12.dp))
+            Canvas(
+                modifier = Modifier.size(56.dp)
             ) {
-                Canvas(modifier = Modifier.fillMaxSize()) {
-                    val halfWidth = size.width / 2
-                    val halfHeight = size.height / 2
-                    val cornerRadius = 12.dp.toPx()
-                    
-                    // Top-left - Primary
-                    drawRoundRect(
-                        color = palette.primary,
-                        topLeft = Offset.Zero,
-                        size = Size(halfWidth - 2, halfHeight - 2),
-                        cornerRadius = CornerRadius(cornerRadius, cornerRadius)
-                    )
-                    
-                    // Top-right - Secondary
-                    drawRoundRect(
-                        color = palette.secondary,
-                        topLeft = Offset(halfWidth + 2, 0f),
-                        size = Size(halfWidth - 2, halfHeight - 2),
-                        cornerRadius = CornerRadius(cornerRadius, cornerRadius)
-                    )
-                    
-                    // Bottom-left - Tertiary
-                    drawRoundRect(
-                        color = palette.tertiary,
-                        topLeft = Offset(0f, halfHeight + 2),
-                        size = Size(halfWidth - 2, halfHeight - 2),
-                        cornerRadius = CornerRadius(cornerRadius, cornerRadius)
-                    )
-                    
-                    // Bottom-right - Neutral
-                    drawRoundRect(
-                        color = palette.neutral,
-                        topLeft = Offset(halfWidth + 2, halfHeight + 2),
-                        size = Size(halfWidth - 2, halfHeight - 2),
-                        cornerRadius = CornerRadius(cornerRadius, cornerRadius)
-                    )
-                }
+                val radius = size.minDimension / 2
+                val center = Offset(size.width / 2, size.height / 2)
                 
-                // Selection checkmark
-                if (isSelected) {
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.Center)
-                            .size(28.dp)
-                            .shadow(4.dp, CircleShape)
-                            .clip(CircleShape)
-                            .background(Color.White),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            painter = painterResource(R.drawable.check),
-                            contentDescription = null,
-                            tint = palette.primary,
-                            modifier = Modifier.size(18.dp)
-                        )
-                    }
+                drawArc(
+                    color = palette.primary,
+                    startAngle = -90f,
+                    sweepAngle = 180f,
+                    useCenter = true,
+                    topLeft = Offset.Zero,
+                    size = size
+                )
+                
+                drawArc(
+                    color = palette.primary.copy(alpha = 0.4f),
+                    startAngle = 90f,
+                    sweepAngle = 90f,
+                    useCenter = true,
+                    topLeft = Offset.Zero,
+                    size = size
+                )
+                
+                drawArc(
+                    color = palette.primary.copy(alpha = 0.2f),
+                    startAngle = 180f,
+                    sweepAngle = 90f,
+                    useCenter = true,
+                    topLeft = Offset.Zero,
+                    size = size
+                )
+            }
+            
+            if (isSelected) {
+                Box(
+                    modifier = Modifier
+                        .size(24.dp)
+                        .shadow(2.dp, CircleShape)
+                        .clip(CircleShape)
+                        .background(Color.White),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.check),
+                        contentDescription = null,
+                        tint = palette.primary,
+                        modifier = Modifier.size(16.dp)
+                    )
                 }
             }
         }
-        
-        Spacer(modifier = Modifier.height(8.dp))
-        
-        Text(
-            text = stringResource(palette.nameResId),
-            style = MaterialTheme.typography.labelSmall,
-            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-            color = if (isSelected) palette.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-            maxLines = 1
-        )
     }
 }
 

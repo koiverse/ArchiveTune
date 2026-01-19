@@ -97,6 +97,9 @@ fun NavGraphBuilder.navigationBuilder(
     composable("stats") {
         StatsScreen(navController)
     }
+    composable("year_in_music") {
+        YearInMusicScreen(navController)
+    }
     composable("mood_and_genres") {
         MoodAndGenresScreen(navController, scrollBehavior)
     }

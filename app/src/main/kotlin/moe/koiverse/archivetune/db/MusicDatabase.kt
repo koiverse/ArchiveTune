@@ -13,6 +13,7 @@ import androidx.room.RenameColumn
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
+import androidx.room.withTransaction
 import androidx.room.migration.AutoMigrationSpec
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
@@ -66,6 +67,11 @@ class MusicDatabase(
                     block(this@MusicDatabase)
                 }
             }
+        }
+
+    suspend fun <R> withTransaction(block: suspend MusicDatabase.() -> R): R =
+        delegate.withTransaction {
+            block(this@MusicDatabase)
         }
 
     fun close() = delegate.close()
@@ -161,9 +167,68 @@ private class DatabaseCallback : RoomDatabase.Callback() {
                 db.query("PRAGMA synchronous = NORMAL").close()
                 db.query("PRAGMA temp_store = MEMORY").close()
                 db.query("PRAGMA mmap_size = 268435456").close()
+                
+                cleanupDuplicatePlaylistsOnOpen(db)
+                ensurePlaylistBrowseIdIndex(db)
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to set PRAGMA settings", e)
             }
+        }
+    }
+    
+    private fun cleanupDuplicatePlaylistsOnOpen(db: SupportSQLiteDatabase) {
+        try {
+            db.execSQL("""
+                DELETE FROM playlist_song_map WHERE playlistId IN (
+                    SELECT p1.id FROM playlist p1
+                    WHERE p1.browseId IS NOT NULL
+                    AND EXISTS (
+                        SELECT 1 FROM playlist p2 
+                        WHERE p2.browseId = p1.browseId 
+                        AND p2.id != p1.id
+                        AND (
+                            (SELECT COUNT(*) FROM playlist_song_map WHERE playlistId = p2.id) >
+                            (SELECT COUNT(*) FROM playlist_song_map WHERE playlistId = p1.id)
+                            OR (
+                                (SELECT COUNT(*) FROM playlist_song_map WHERE playlistId = p2.id) =
+                                (SELECT COUNT(*) FROM playlist_song_map WHERE playlistId = p1.id)
+                                AND p2.rowid < p1.rowid
+                            )
+                        )
+                    )
+                )
+            """)
+            
+            db.execSQL("""
+                DELETE FROM playlist WHERE id IN (
+                    SELECT p1.id FROM playlist p1
+                    WHERE p1.browseId IS NOT NULL
+                    AND EXISTS (
+                        SELECT 1 FROM playlist p2 
+                        WHERE p2.browseId = p1.browseId 
+                        AND p2.id != p1.id
+                        AND (
+                            (SELECT COUNT(*) FROM playlist_song_map WHERE playlistId = p2.id) >
+                            (SELECT COUNT(*) FROM playlist_song_map WHERE playlistId = p1.id)
+                            OR (
+                                (SELECT COUNT(*) FROM playlist_song_map WHERE playlistId = p2.id) =
+                                (SELECT COUNT(*) FROM playlist_song_map WHERE playlistId = p1.id)
+                                AND p2.rowid < p1.rowid
+                            )
+                        )
+                    )
+                )
+            """)
+        } catch (e: Exception) {
+            Log.w(TAG, "Duplicate playlist cleanup skipped", e)
+        }
+    }
+    
+    private fun ensurePlaylistBrowseIdIndex(db: SupportSQLiteDatabase) {
+        try {
+            db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_playlist_browseId ON playlist (browseId) WHERE browseId IS NOT NULL")
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to create browseId index", e)
         }
     }
 }
@@ -260,6 +325,8 @@ private class UniversalMigration(startVersion: Int, endVersion: Int) : Migration
         val columns = getColumns(db, "playlist")
         if (columns.isEmpty()) return
         
+        cleanupDuplicatePlaylists(db)
+        
         val needsRecreation = !columns.containsKey("isAutoSync") || 
             !columns.containsKey("isLocal") ||
             columns["isLocal"]?.defaultValue !in listOf("0", "'0'") ||
@@ -310,6 +377,58 @@ private class UniversalMigration(startVersion: Int, endVersion: Int) : Migration
         db.execSQL("UPDATE playlist SET isAutoSync = 0 WHERE isAutoSync IS NULL")
         db.execSQL("UPDATE playlist SET isLocal = 0 WHERE isLocal IS NULL")
         db.execSQL("UPDATE playlist SET isEditable = 1 WHERE isEditable IS NULL")
+        
+        db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_playlist_browseId ON playlist (browseId) WHERE browseId IS NOT NULL")
+    }
+    
+    private fun cleanupDuplicatePlaylists(db: SupportSQLiteDatabase) {
+        try {
+            db.execSQL("""
+                DELETE FROM playlist_song_map WHERE playlistId IN (
+                    SELECT p1.id FROM playlist p1
+                    WHERE p1.browseId IS NOT NULL
+                    AND EXISTS (
+                        SELECT 1 FROM playlist p2 
+                        WHERE p2.browseId = p1.browseId 
+                        AND p2.id != p1.id
+                        AND (
+                            (SELECT COUNT(*) FROM playlist_song_map WHERE playlistId = p2.id) >
+                            (SELECT COUNT(*) FROM playlist_song_map WHERE playlistId = p1.id)
+                            OR (
+                                (SELECT COUNT(*) FROM playlist_song_map WHERE playlistId = p2.id) =
+                                (SELECT COUNT(*) FROM playlist_song_map WHERE playlistId = p1.id)
+                                AND p2.rowid < p1.rowid
+                            )
+                        )
+                    )
+                )
+            """.trimIndent())
+            
+            db.execSQL("""
+                DELETE FROM playlist WHERE id IN (
+                    SELECT p1.id FROM playlist p1
+                    WHERE p1.browseId IS NOT NULL
+                    AND EXISTS (
+                        SELECT 1 FROM playlist p2 
+                        WHERE p2.browseId = p1.browseId 
+                        AND p2.id != p1.id
+                        AND (
+                            (SELECT COUNT(*) FROM playlist_song_map WHERE playlistId = p2.id) >
+                            (SELECT COUNT(*) FROM playlist_song_map WHERE playlistId = p1.id)
+                            OR (
+                                (SELECT COUNT(*) FROM playlist_song_map WHERE playlistId = p2.id) =
+                                (SELECT COUNT(*) FROM playlist_song_map WHERE playlistId = p1.id)
+                                AND p2.rowid < p1.rowid
+                            )
+                        )
+                    )
+                )
+            """.trimIndent())
+            
+            Log.i(TAG, "Duplicate playlist cleanup completed")
+        } catch (e: Exception) {
+            Log.e(TAG, "Error cleaning up duplicate playlists", e)
+        }
     }
     
     private fun migrateFormatTable(db: SupportSQLiteDatabase) {

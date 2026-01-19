@@ -1,0 +1,54 @@
+name: Feature Request
+description: Share an idea to improve ArchiveTune
+labels: [enhancement]
+body:
+  - type: checkboxes
+    id: pre-submission-checklist
+    attributes:
+      label: Pre-submission Checklist
+      description: >
+        Help us process your request faster by confirming the following. 
+        Please note that incomplete or duplicate requests may be closed.
+      options:
+        - label: I have searched existing issues to ensure this hasn't been requested before.
+          required: true
+        - label: This request covers a single, specific improvement.
+          required: true
+        - label: The issue title is concise and descriptive.
+          required: true
+
+  - type: textarea
+    id: problem-statement
+    attributes:
+      label: Is your feature request related to a problem?
+      description: A clear and concise description of what the problem or limitation is (e.g., "I'm always frustrated when...").
+      placeholder: Describe the current pain point or gap in functionality.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposed-solution
+    attributes:
+      label: Proposed Solution
+      description: Describe what you want to happen. How should this feature work in ArchiveTune?
+      placeholder: Provide a detailed breakdown of the desired behavior or UI changes.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives-considered
+    attributes:
+      label: Alternatives Considered
+      description: Any alternative solutions or features you've considered or tried.
+      placeholder: "e.g., Using a different workflow, a plugin, or a workaround."
+    validations:
+      required: false
+
+  - type: textarea
+    id: visual-context
+    attributes:
+      label: Visual Context & Attachments
+      description: Add any mockups, screenshots, or diagrams that help visualize the request.
+      placeholder: Drag and drop images here...
+    validations:
+      required: false

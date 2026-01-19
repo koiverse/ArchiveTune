@@ -1004,17 +1004,14 @@ interface DatabaseDao {
     fun incrementTotalPlayTime(songId: String, playTime: Long)
 
     @Query("UPDATE playCount SET count = count + 1 WHERE song = :songId AND year = :year AND month = :month")
-    fun incrementPlayCount(songId: String, year: Int, month: Int)
+    suspend fun incrementPlayCount(songId: String, year: Int, month: Int)
 
     /**
      * Increment by one the play count with today's year and month.
      */
-    fun incrementPlayCount(songId: String) {
+    suspend fun incrementPlayCount(songId: String) {
         val time = LocalDateTime.now().atOffset(ZoneOffset.UTC)
-        var oldCount: Int
-        runBlocking {
-            oldCount = getPlayCountByMonth(songId, time.year, time.monthValue).first()
-        }
+        val oldCount = getPlayCountByMonth(songId, time.year, time.monthValue).first()
 
         // add new
         if (oldCount <= 0) {
@@ -1424,6 +1421,9 @@ interface DatabaseDao {
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     fun insert(map: PlaylistTagMap)
 
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    fun insertAllPlaylistTagMaps(maps: List<PlaylistTagMap>)
+
     @Update
     fun update(tag: TagEntity)
 
@@ -1436,6 +1436,9 @@ interface DatabaseDao {
     @Query("DELETE FROM playlist_tag_map WHERE playlistId = :playlistId")
     fun removeAllPlaylistTags(playlistId: String)
 
+    @Query("DELETE FROM playlist_tag_map WHERE tagId = :tagId")
+    fun removeAllTagPlaylists(tagId: String)
+
     @Query("DELETE FROM playlist_tag_map WHERE playlistId = :playlistId AND tagId = :tagId")
     fun removePlaylistTag(playlistId: String, tagId: String)
 
@@ -1445,14 +1448,27 @@ interface DatabaseDao {
     }
 
     @Transaction
-    fun togglePlaylistTag(playlistId: String, tagId: String) {
-        runBlocking {
-            val isTagged = isPlaylistTagged(playlistId, tagId).first()
-            if (isTagged > 0) {
-                removePlaylistTag(playlistId, tagId)
-            } else {
-                addTagToPlaylist(playlistId, tagId)
+    fun addTagsToPlaylists(
+        playlistIds: List<String>,
+        tagIds: List<String>,
+    ) {
+        if (playlistIds.isEmpty() || tagIds.isEmpty()) return
+        val maps =
+            playlistIds.flatMap { playlistId ->
+                tagIds.map { tagId ->
+                    PlaylistTagMap(playlistId = playlistId, tagId = tagId)
+                }
             }
+        insertAllPlaylistTagMaps(maps)
+    }
+
+    @Transaction
+    suspend fun togglePlaylistTag(playlistId: String, tagId: String) {
+        val isTagged = isPlaylistTagged(playlistId, tagId).first()
+        if (isTagged > 0) {
+            removePlaylistTag(playlistId, tagId)
+        } else {
+            addTagToPlaylist(playlistId, tagId)
         }
     }
 }

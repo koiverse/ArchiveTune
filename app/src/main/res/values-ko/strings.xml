@@ -1,24 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
-
-<!-- Upstream InnerTune strings -->
-<!-- Do not add new features here -->
-<!-- Try to re-use strings here, but be careful on its usage e.g. verb vs noun -->
-<!-- "InnerTune" is replaced with "ArchiveTune" -->
-<!-- Translators: Do not modify this file for translations, use InnerTune's Weblate instead. -->
-
-<resources>
+<!-- Upstream InnerTune strings --><!-- Do not add new features here --><!-- Try to re-use strings here, but be careful on its usage e.g. verb vs noun --><!-- "InnerTune" is replaced with "ArchiveTune" --><!-- Translators: Do not modify this file for translations, use InnerTune's Weblate instead. --><resources>
     <!-- Bottom navigation -->
     <string name="home">홈</string>
     <string name="songs">노래</string>
     <string name="artists">아티스트</string>
     <string name="albums">앨범</string>
     <string name="playlists">재생 목록</string>
-
     <!-- Top bar -->
     <plurals name="n_selected">
         <item quantity="other">%d selected</item>
     </plurals>
-
     <!-- Home -->
     <string name="history">역사</string>
     <string name="stats">통계</string>
@@ -33,18 +24,15 @@
     <string name="new_release_albums">새 릴리스 앨범</string>
     <string name="select_playlist_to_sync">동기화할 재생 목록 선택</string>
     <string name="integration">통합</string>
-
     <!-- History -->
     <string name="today">오늘</string>
     <string name="yesterday">어제</string>
     <string name="this_week">이번 주</string>
     <string name="last_week">지난 주</string>
-
     <!-- Stats -->
     <string name="most_played_songs">가장 많이 재생됨 노래</string>
     <string name="most_played_artists">가장 많이 재생된 아티스트</string>
     <string name="most_played_albums">가장 많이 재생된 앨범</string>
-
     <!-- Search -->
     <string name="search">검색</string>
     <string name="search_yt_music">YouTube Music 검색…</string>
@@ -63,32 +51,26 @@
     <string name="filter_featured_playlists">추천 재생 목록</string>
     <string name="filter_bookmarked">북마크에 추가됨</string>
     <string name="no_results_found">결과 없음</string>
-
     <!-- Library -->
     <string name="library_song_empty">라이브러리 노래 여기에 표시됩니다</string>
     <string name="library_artist_empty">라이브러리 아티스트가 여기에 표시됩니다</string>
     <string name="library_album_empty">라이브러리 앨범이 여기에 표시됩니다</string>
     <string name="library_playlist_empty">재생 목록이 여기에 표시됩니다</string>
-
     <!-- Artist screen -->
     <string name="from_your_library">라이브러리에서</string>
-
     <!-- Album screen -->
     <string name="other_versions">다른 버전</string>
-
     <!-- Playlist -->
     <string name="liked_songs">좋아요 표시한 노래</string>
     <string name="downloaded_songs">다운로드한 노래</string>
     <string name="playlist_is_empty">재생 목록이 비어 있습니다</string>
     <string name="remove_download_playlist_confirm">다운로드한 노래 저장소에서 \"%s\" 재생 목록 노래를 모두 제거하시겠습니까?</string>
     <string name="delete_playlist_confirm">재생 목록을 삭제하시겠습니까? \"%s\"?</string>
-
     <!-- Button -->
     <string name="retry">재시도</string>
     <string name="radio">라디오</string>
     <string name="shuffle">셔플</string>
     <string name="reset">재설정</string>
-
     <!-- Menu -->
     <string name="details">세부정보</string>
     <string name="edit">편집</string>
@@ -121,7 +103,6 @@
     <string name="action_sync">동기화</string>
     <string name="advanced">고급</string>
     <string name="tempo_and_pitch">템포 및 피치</string>
-
     <!-- Sort menu -->
     <string name="sort_by_create_date">추가된 날짜</string>
     <string name="sort_by_name">이름</string>
@@ -131,7 +112,6 @@
     <string name="sort_by_length">길이</string>
     <string name="sort_by_play_time">재생 시간</string>
     <string name="sort_by_custom">사용자 지정 순서</string>
-
     <!-- Dialog -->
     <string name="media_id">미디어 아이디</string>
     <string name="mime_type">MIME 유형</string>
@@ -143,82 +123,65 @@
     <string name="file_size">파일 크기</string>
     <string name="unknown">알 수 없음</string>
     <string name="copied">클립보드에 복사됨</string>
-
     <string name="edit_lyrics">가사 편집</string>
     <string name="search_lyrics">가사 검색</string>
-
     <string name="edit_song">노래 편집</string>
     <string name="song_title">노래 제목</string>
     <string name="song_artists">노래 아티스트</string>
     <string name="error_song_title_empty">노래 제목은 비워둘 수 없습니다.</string>
     <string name="error_song_artist_empty">노래 아티스트는 비워둘 수 없습니다.</string>
     <string name="save">노래 아티스트는 비워둘 수 없습니다.</string>
-
     <string name="choose_playlist">저장</string>
     <string name="edit_playlist">재생 목록 선택</string>
     <string name="create_playlist">재생 목록 편집</string>
     <string name="playlist_name">만들기 재생 목록</string>
     <string name="error_playlist_name_empty">재생 목록 이름</string>
-
     <string name="edit_artist">재생 목록 이름은 비워둘 수 없습니다.</string>
     <string name="artist_name">아티스트 편집</string>
     <string name="error_artist_name_empty">아티스트 이름</string>
-
     <string name="duplicates">아티스트 이름은 비워 둘 수 없습니다.</string>
     <string name="skip_duplicates">중복</string>
     <string name="add_anyway">중복 건너뛰기</string>
     <string name="duplicates_description_single">어쨌든 추가</string>
     <string name="duplicates_description_multiple">노래가 이미 재생 목록에 있습니다</string>
-
     <!-- Noun -->
     <plurals name="n_song">
-        <item quantity="one">%d song</item>
         <item quantity="other">%d songs</item>
     </plurals>
     <plurals name="n_artist">
-        <item quantity="one">%d artist</item>
         <item quantity="other">%d artists</item>
     </plurals>
     <plurals name="n_album">
-        <item quantity="one">%d album</item>
         <item quantity="other">%d albums</item>
     </plurals>
     <plurals name="n_playlist">
-        <item quantity="one">%d playlist</item>
         <item quantity="other">%d playlists</item>
     </plurals>
     <plurals name="n_week">
-        <item quantity="one">%d week</item>
         <item quantity="other">%d weeks</item>
     </plurals>
     <plurals name="n_month">
-        <item quantity="one">%d month</item>
         <item quantity="other">%d months</item>
     </plurals>
     <plurals name="n_year">
-        <item quantity="one">%d year</item>
         <item quantity="other">%d years</item>
     </plurals>
-
     <!-- Snackbar -->
     <string name="playlist_imported">%d곡이 이미 재생 목록에 있습니다</string>
     <string name="removed_song_from_playlist">재생 목록을 가져왔습니다</string>
     <string name="playlist_synced">재생 목록에서 \"%s\"을(를) 제거했습니다</string>
     <string name="undo">재생 목록 동기화됨</string>
-
     <!-- Player -->
     <string name="lyrics_not_found">실행 취소</string>
     <string name="sleep_timer">가사를 찾을 수 없음</string>
     <string name="end_of_song">슬립 타이머</string>
     <plurals name="minute">
-        <item quantity="one">1 minute</item>
         <item quantity="other">%d minutes</item>
     </plurals>
     <string name="error_no_stream">노래 끝</string>
     <string name="error_no_internet">스트림 사용 가능 없음</string>
     <string name="error_timeout">네트워크 연결 없음</string>
     <string name="error_unknown">시간 초과</string>
-
     <!-- Player action -->
     <string name="action_like">알 수 없는 오류</string>
     <string name="action_like_all">좋아요</string>
@@ -229,14 +192,11 @@
     <string name="repeat_mode_off">셔플 끄기</string>
     <string name="repeat_mode_one">반복 모드 끄기</string>
     <string name="repeat_mode_all">현재 노래 반복</string>
-
     <!-- Queue Title -->
     <string name="queue_all_songs">반복 대기열</string>
     <string name="queue_searched_songs">모든 노래</string>
-
     <!-- Notification name -->
     <string name="music_player">검색된 노래</string>
-
     <!-- Settings -->
     <string name="settings">음악 플레이어</string>
     <string name="appearance">설정</string>
@@ -249,10 +209,8 @@
     <string name="theme_preview">테마 미리보기</string>
     <string name="select_palette">색상 팔레트를 선택하세요</string>
     <string name="palette_applied">팔레트가 적용되었습니다</string>
-
     <!-- Palette Names -->
     <string name="palette_default">기본값</string>
-
     <!-- Blues -->
     <string name="palette_ocean_blue">오션 블루</string>
     <string name="palette_arctic_blue">아크틱</string>
@@ -260,7 +218,6 @@
     <string name="palette_sky_blue">스카이 블루</string>
     <string name="palette_cobalt_blue">코발트</string>
     <string name="palette_electric_blue">일렉트릭 블루</string>
-
     <!-- Greens -->
     <string name="palette_emerald_green">에메랄드</string>
     <string name="palette_teal_wave">틸 웨이브</string>
@@ -269,7 +226,6 @@
     <string name="palette_mint_fresh">민트</string>
     <string name="palette_olive_garden">올리브</string>
     <string name="palette_sage_green">세이지</string>
-
     <!-- Oranges & Yellows -->
     <string name="palette_sunset_orange">선셋</string>
     <string name="palette_golden_hour">골든</string>
@@ -277,7 +233,6 @@
     <string name="palette_tangerine_blast">탱저린</string>
     <string name="palette_peach">피치</string>
     <string name="palette_mango">망고</string>
-
     <!-- Purples -->
     <string name="palette_royal_purple">로열 퍼플</string>
     <string name="palette_lavender_dream">라벤더</string>
@@ -285,7 +240,6 @@
     <string name="palette_violet">바이올렛</string>
     <string name="palette_amethyst">애메시스트</string>
     <string name="palette_ultra_violet">울트라 바이올렛</string>
-
     <!-- Pinks -->
     <string name="palette_cherry_blossom">사쿠라</string>
     <string name="palette_rose_quartz">로즈 쿼츠</string>
@@ -294,34 +248,29 @@
     <string name="palette_blush">블러시</string>
     <string name="palette_coral">코랄</string>
     <string name="palette_bubblegum">버블검</string>
-
     <!-- Reds -->
     <string name="palette_crimson_red">크림슨</string>
     <string name="palette_youtube_red">유튜브</string>
     <string name="palette_wine_red">와인</string>
     <string name="palette_ruby_red">루비</string>
     <string name="palette_scarlet">스칼렛</string>
-
     <!-- Neutrals -->
     <string name="palette_charcoal">차콜</string>
     <string name="palette_silver">실버</string>
     <string name="palette_slate">슬레이트</string>
     <string name="palette_graphite">그래파이트</string>
-
     <!-- Earth Tones -->
     <string name="palette_terracotta">테라코타</string>
     <string name="palette_coffee">커피</string>
     <string name="palette_mocha">모카</string>
     <string name="palette_sand">샌드</string>
     <string name="palette_clay">클레이</string>
-
     <!-- Pastels -->
     <string name="palette_pastel_pink">파스텔 핑크</string>
     <string name="palette_pastel_blue">파스텔 블루</string>
     <string name="palette_pastel_green">파스텔 그린</string>
     <string name="palette_pastel_yellow">파스텔 옐로우</string>
     <string name="palette_pastel_purple">파스텔 퍼플</string>
-
     <!-- Neon & Vibrant -->
     <string name="palette_neon_green">네온 그린</string>
     <string name="palette_neon_pink">네온 핑크</string>
@@ -329,7 +278,6 @@
     <string name="palette_neon_orange">네온 오렌지</string>
     <string name="palette_cyberpunk">사이버펑크</string>
     <string name="palette_synthwave">신스웨이브</string>
-
     <!-- Special & Themed -->
     <string name="palette_ocean">오션</string>
     <string name="palette_forest">딥 포레스트</string>
@@ -341,7 +289,6 @@
     <string name="palette_aurora">오로라</string>
     <string name="palette_candy">캔디</string>
     <string name="palette_rainbow">레인보우</string>
-
     <!-- Additional Palettes -->
     <string name="palette_aquamarine">아쿠아마린</string>
     <string name="palette_coral_reef">코랄 리프</string>
@@ -400,7 +347,6 @@
     <string name="grid_cell_size">기본 열린 탭</string>
     <string name="small">소형</string>
     <string name="big">큰</string>
-
     <!-- Lyrics animation style -->
     <string name="lyrics_animation_style">가사 애니메이션 스타일</string>
     <!-- Animation options -->
@@ -409,15 +355,12 @@
     <string name="slide">슬라이드</string>
     <string name="karaoke">카라오케</string>
     <string name="apple_music_style">Apple Music</string>
-
-
     <string name="content">콘텐츠</string>
     <string name="action_logout">로그아웃</string>
     <string name="action_login">로그인</string>
     <string name="login">로그인</string>
     <string name="not_logged_in">로그인</string>
     <string name="login_failed">로그인 안 됨</string>
-
     <string name="content_language">로그인 실패</string>
     <string name="content_country">기본 콘텐츠 언어</string>
     <string name="system_default">기본 콘텐츠 국가</string>
@@ -426,7 +369,6 @@
     <string name="proxy_url">프록시 유형</string>
     <string name="restart_to_take_effect">프록시 URL</string>
     <string name="enable_betterlyrics">적용하려면 다시 시작</string>
-
     <string name="player_and_audio">다시 시작하여 가져오기 효과</string>
     <string name="audio_quality">플레이어 및 오디오</string>
     <string name="audio_quality_auto">오디오 품질</string>
@@ -451,7 +393,6 @@
     <string name="add_symbol">기호 추가</string>
     <string name="enter_symbol">기호 입력</string>
     <string name="equalizer">작업 시 음악 중지 지우기</string>
-
     <string name="storage">이퀄라이저</string>
     <string name="cache">저장소</string>
     <string name="image_cache">캐시</string>
@@ -464,7 +405,6 @@
     <string name="max_song_cache_size">이미지 캐시 지우기</string>
     <string name="clear_song_cache">최대 노래 캐시 크기</string>
     <string name="size_used">노래 캐시 지우기</string>
-
     <string name="privacy">%s 사용됨</string>
     <string name="listen_history">개인 정보 보호</string>
     <string name="pause_listen_history">기록 듣기</string>
@@ -481,7 +421,6 @@
     <string name="enable_lrclib">이 옵션이 켜져 있으면 스크린샷과 앱의 최근 항목 보기가 비활성화되었습니다.</string>
     <string name="enable_kugou">LrcLib 가사 공급자 활성화</string>
     <string name="hide_explicit">KuGou 가사 공급자 활성화</string>
-
     <string name="backup_restore">노골적인 콘텐츠 숨기기</string>
     <string name="action_backup">백업 및 복원</string>
     <string name="action_restore">백업</string>
@@ -489,14 +428,12 @@
     <string name="backup_create_success">가져온 재생 목록</string>
     <string name="backup_create_failed">백업이 성공적으로 생성됨</string>
     <string name="restore_failed">백업을 생성할 수 없음</string>
-
     <string name="discord_integration">백업 복원 실패</string>
     <string name="discord_information">Discord 통합</string>
     <string name="dismiss">ArchiveTune은 KizzyRPC 라이브러리를 사용하여 Discord 계정 상태를 설정합니다. 여기에는 Discord 게이트웨이 연결 사용이 포함되며 이는 Discord의 TOS 위반으로 간주될 수 있습니다. 그러나 이러한 이유로 사용자 계정이 정지된 사례는 알려진 바가 없습니다. 사용에 따른 책임은 사용자에게 있습니다.ArchiveTune은 토큰만 추출하며 그 밖의 모든 항목은 로컬에 저장됩니다.</string>
     <string name="options">해제</string>
     <string name="preview">옵션</string>
     <string name="enable_discord_rpc">미리보기</string>
-
     <!-- Last.fm -->
     <string name="scrobbling">스크로블링</string>
     <string name="lastfm_integration">Last.fm 연동</string>
@@ -509,14 +446,11 @@
     <string name="username">사용자 이름</string>
     <string name="password">비밀번호</string>
     <string name="logging_in">로그인 중…</string>
-
     <!-- ListenBrainz -->
     <string name="listenbrainz_scrobbling">ListenBrainz 스크로블링</string>
     <string name="listenbrainz_scrobbling_description">현재 재생 중 및 재생이 완료된 트랙을 ListenBrainz에 전송하도록 활성화합니다</string>
     <string name="set_listenbrainz_token">ListenBrainz 토큰 설정</string>
     <string name="edit_listenbrainz_token">ListenBrainz 토큰 수정</string>
-
-
     <!-- Discord activity customization -->
     <string name="discord_activity_name">리치 프레즌스 활성화</string>
     <string name="discord_activity_details">활동 이름</string>
@@ -536,8 +470,6 @@
     <string name="activity_status">활동 상태</string>
     <string name="platform_status">플랫폼</string>
     <string name="update_interval">상태 업데이트 간격</string>
-
-
     <!--Discord Tranalstor Settings-->
     <string name="translator_options">버튼 2 맞춤 URL</string>
     <string name="enable_translator">번역기 옵션</string>
@@ -549,19 +481,16 @@
     <string name="close_dialog">언어 선택</string>
     <string name="select_dialog">닫기</string>
     <string name="support_github">선택</string>
-
     <!-- Update dialog -->
     <string name="new_update_available">ArchiveTune 별표 표시!</string>
     <string name="release_notes_unavailable">새 업데이트 사용 가능</string>
     <string name="update_text">출시 노트는 다음과 같습니다. 사용할 수 없음</string>
-
     <!-- Translate UI strings -->
     <string name="translate">업데이트</string>
     <string name="language_label">번역</string>
     <string name="lyrics">언어</string>
     <string name="translation_success">가사</string>
     <string name="translation_failed">번역 저장됨</string>
-
     <!-- Discord settings additions -->
     <string name="discord_button_options">번역 실패</string>
     <string name="discord_image_options">버튼 옵션</string>
@@ -576,7 +505,6 @@
     <string name="logout_confirm_message">로그아웃 확인</string>
     <string name="logout_confirm_yes">Discord에서 로그아웃하시겠습니까?</string>
     <string name="logout_confirm_no">로그아웃</string>
-
     <!--Misc settings additions-->
     <string name="experiment_settings">취소</string>
     <string name="show_discord_debug_ui">실험 설정</string>
@@ -612,17 +540,11 @@
     <string name="playback_speed_label">재생 속도</string>
     <string name="state_label">상태</string>
     <string name="media_id_label">미디어 ID</string>
-
-
-
-
     <string name="about">정보</string>
     <string name="app_version">앱 버전</string>
-
     <string name="new_version_available">새 버전 사용 가능</string>
     <string name="translation_models">번역 모델</string>
     <string name="clear_translation_models">번역 지우기 모델</string>
-
     <string name="updates">업데이트</string>
     <string name="current_version">현재 버전</string>
     <string name="latest_version_format">최신: %s</string>

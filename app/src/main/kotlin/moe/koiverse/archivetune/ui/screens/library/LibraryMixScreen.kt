@@ -24,6 +24,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -36,6 +37,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
+import moe.koiverse.archivetune.LocalDatabase
 import moe.koiverse.archivetune.LocalPlayerAwareWindowInsets
 import moe.koiverse.archivetune.LocalPlayerConnection
 import moe.koiverse.archivetune.R
@@ -49,6 +51,7 @@ import moe.koiverse.archivetune.constants.LibraryViewType
 import moe.koiverse.archivetune.constants.MixSortDescendingKey
 import moe.koiverse.archivetune.constants.MixSortType
 import moe.koiverse.archivetune.constants.MixSortTypeKey
+import moe.koiverse.archivetune.constants.PlaylistTagsFilterKey
 import moe.koiverse.archivetune.constants.ShowLikedPlaylistKey
 import moe.koiverse.archivetune.constants.ShowDownloadedPlaylistKey
 import moe.koiverse.archivetune.constants.ShowTopPlaylistKey
@@ -103,6 +106,15 @@ fun LibraryMixScreen(
 
     val (ytmSync) = rememberPreference(YtmSyncKey, true)
 
+    val (selectedTagsFilter) = rememberPreference(PlaylistTagsFilterKey, "")
+    val selectedTagIds = remember(selectedTagsFilter) {
+        selectedTagsFilter.split(",").filter { it.isNotBlank() }.toSet()
+    }
+    val database = LocalDatabase.current
+    val filteredPlaylistIds by database.playlistIdsByTags(
+        if (selectedTagIds.isEmpty()) emptyList() else selectedTagIds.toList()
+    ).collectAsState(initial = emptyList())
+
     val topSize by viewModel.topValue.collectAsState(initial = 50)
     val likedPlaylist =
         Playlist(
@@ -154,6 +166,11 @@ fun LibraryMixScreen(
     val playlist = viewModel.playlists.collectAsState()
 
     var allItems = albums.value + artist.value + playlist.value
+    if (selectedTagIds.isNotEmpty()) {
+        allItems = allItems.filter { item ->
+            item !is Playlist || item.id in filteredPlaylistIds
+        }
+    }
     val collator = Collator.getInstance(Locale.getDefault())
     collator.strength = Collator.PRIMARY
     allItems =

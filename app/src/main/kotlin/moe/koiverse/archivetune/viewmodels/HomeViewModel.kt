@@ -320,7 +320,9 @@ class HomeViewModel @Inject constructor(
         }
 
         viewModelScope.launch(Dispatchers.IO) {
-            kotlinx.coroutines.delay(2000)
+            kotlinx.coroutines.delay(3000)
+            
+            syncUtils.cleanupDuplicatePlaylists()
             
             val cookie = context.dataStore.data
                 .map { it[InnerTubeCookieKey] }
@@ -337,14 +339,7 @@ class HomeViewModel @Inject constructor(
 
                 if (isSyncEnabled) {
                     try {
-                        supervisorScope {
-                            launch { syncUtils.syncLikedSongs() }
-                            launch { syncUtils.syncLibrarySongs() }
-                            launch { syncUtils.syncSavedPlaylists() }
-                            launch { syncUtils.syncLikedAlbums() }
-                            launch { syncUtils.syncArtistsSubscriptions() }
-                            launch { syncUtils.syncAutoSyncPlaylists() }
-                        }
+                        syncUtils.performFullSync()
                     } catch (e: Exception) {
                         timber.log.Timber.e(e, "Error during sync")
                         reportException(e)

@@ -64,6 +64,8 @@ fun ContentSettings(
     val (enableKugou, onEnableKugouChange) = rememberPreference(key = EnableKugouKey, defaultValue = true)
     val (enableLrclib, onEnableLrclibChange) = rememberPreference(key = EnableLrcLibKey, defaultValue = true)
     val (enableBetterLyrics, onEnableBetterLyricsChange) = rememberPreference(key = EnableBetterLyricsKey, defaultValue = true)
+    val (enableSimpMusicLyrics, onEnableSimpMusicLyricsChange) =
+        rememberPreference(key = EnableSimpMusicLyricsKey, defaultValue = true)
     val (preferredProvider, onPreferredProviderChange) =
         rememberEnumPreference(
             key = PreferredLyricsProviderKey,
@@ -218,16 +220,28 @@ fun ContentSettings(
             checked = enableBetterLyrics,
             onCheckedChange = onEnableBetterLyricsChange,
         )
+        SwitchPreference(
+            title = { Text(stringResource(R.string.enable_simpmusic_lyrics)) },
+            icon = { Icon(painterResource(R.drawable.lyrics), null) },
+            checked = enableSimpMusicLyrics,
+            onCheckedChange = onEnableSimpMusicLyricsChange,
+        )
         ListPreference(
             title = { Text(stringResource(R.string.set_first_lyrics_provider)) },
             icon = { Icon(painterResource(R.drawable.lyrics), null) },
             selectedValue = preferredProvider,
-            values = listOf(PreferredLyricsProvider.LRCLIB, PreferredLyricsProvider.KUGOU, PreferredLyricsProvider.BETTER_LYRICS),
+            values = listOf(
+                PreferredLyricsProvider.LRCLIB,
+                PreferredLyricsProvider.KUGOU,
+                PreferredLyricsProvider.BETTER_LYRICS,
+                PreferredLyricsProvider.SIMPMUSIC,
+            ),
             valueText = {
                 when (it) {
                     PreferredLyricsProvider.LRCLIB -> "LrcLib"
                     PreferredLyricsProvider.KUGOU -> "KuGou"
                     PreferredLyricsProvider.BETTER_LYRICS -> "BetterLyrics"
+                    PreferredLyricsProvider.SIMPMUSIC -> "SimpMusic"
                 }
             },
             onValueSelected = onPreferredProviderChange,

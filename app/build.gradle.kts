@@ -176,7 +176,6 @@ dependencies {
 
     implementation(libs.material3)
     implementation(libs.palette)
-    implementation(libs.materialKolor)
 
     implementation(libs.coil)
     implementation(libs.coil.network.okhttp)
@@ -205,6 +204,8 @@ dependencies {
     implementation(project(":lastfm"))
     implementation(project(":betterlyrics"))
     implementation(project(":kizzy"))
+    implementation(project(":simpmusic"))
+    implementation("com.github.Kyant0:m3color:2025.4")
 
     implementation(libs.ktor.client.core)
     implementation(libs.ktor.serialization.json)
@@ -216,6 +217,7 @@ dependencies {
     // Ensure ProcessLifecycleOwner is available for the presence manager and CI unit tests
     implementation("com.github.therealbush:translator:1.1.1")
     implementation("androidx.lifecycle:lifecycle-process:2.10.0")
+    implementation("androidx.compose.material3.adaptive:adaptive:1.2.0")
 }
 
 kapt {

@@ -35,6 +35,7 @@ import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.ResolvingDataSource
 import androidx.media3.datasource.cache.CacheDataSource
 import androidx.media3.datasource.cache.CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR
+import androidx.media3.datasource.cache.Cache
 import androidx.media3.datasource.cache.SimpleCache
 import androidx.media3.datasource.okhttp.OkHttpDataSource
 import androidx.media3.exoplayer.DefaultRenderersFactory
@@ -156,6 +157,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.isActive
@@ -175,11 +177,12 @@ import kotlin.math.min
 import kotlin.math.pow
 import kotlin.time.Duration.Companion.seconds
 import timber.log.Timber
-import androidx.core.app.NotificationCompat
-import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.Notification
 import android.os.Build
+import android.content.pm.ServiceInfo
+import androidx.core.app.NotificationCompat
 
 @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
 @AndroidEntryPoint
@@ -207,6 +210,7 @@ class MusicService :
 
     private var scopeJob = Job()
     private var scope = CoroutineScope(Dispatchers.Main + scopeJob)
+    private var ioScope = CoroutineScope(Dispatchers.IO + scopeJob)
     private val binder = MusicBinder()
 
     private lateinit var connectivityManager: ConnectivityManager
@@ -231,11 +235,12 @@ class MusicService :
         currentMediaMetadata
             .flatMapLatest { mediaMetadata ->
                 database.song(mediaMetadata?.id)
-            }.stateIn(scope, SharingStarted.Lazily, null)
+            }.flowOn(Dispatchers.IO)
+            .stateIn(scope, SharingStarted.Lazily, null)
     private val currentFormat =
         currentMediaMetadata.flatMapLatest { mediaMetadata ->
             database.format(mediaMetadata?.id)
-        }
+        }.flowOn(Dispatchers.IO)
 
     private val normalizeFactor = MutableStateFlow(1f)
     var playerVolume = MutableStateFlow(1f)
@@ -244,11 +249,11 @@ class MusicService :
 
     @Inject
     @PlayerCache
-    lateinit var playerCache: SimpleCache
+    lateinit var playerCache: Cache
 
     @Inject
     @DownloadCache
-    lateinit var downloadCache: SimpleCache
+    lateinit var downloadCache: Cache
 
     lateinit var player: ExoPlayer
     private lateinit var mediaSession: MediaLibrarySession
@@ -266,9 +271,57 @@ class MusicService :
 
     val maxSafeGainFactor = 1.414f // +3 dB
     private val crossfadeProcessor = CrossfadeAudioProcessor()
+    @Volatile
+    private var hasCalledStartForeground = false
+
+    private fun ensureStartedAsForeground() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
+        if (hasCalledStartForeground) return
+
+        val notification =
+            try {
+                val contentIntent =
+                    PendingIntent.getActivity(
+                        this,
+                        0,
+                        Intent(this, MainActivity::class.java),
+                        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+                    )
+
+                NotificationCompat.Builder(this, CHANNEL_ID)
+                    .setSmallIcon(R.drawable.small_icon)
+                    .setContentTitle(getString(R.string.music_player))
+                    .setContentText(getString(R.string.app_name))
+                    .setContentIntent(contentIntent)
+                    .setCategory(Notification.CATEGORY_SERVICE)
+                    .setPriority(NotificationCompat.PRIORITY_LOW)
+                    .setOngoing(true)
+                    .setOnlyAlertOnce(true)
+                    .build()
+            } catch (e: Exception) {
+                reportException(e)
+                return
+            }
+
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                startForeground(
+                    NOTIFICATION_ID,
+                    notification,
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK,
+                )
+            } else {
+                startForeground(NOTIFICATION_ID, notification)
+            }
+            hasCalledStartForeground = true
+        } catch (e: Exception) {
+            reportException(e)
+        }
+    }
 
     override fun onCreate() {
         super.onCreate()
+        ensureScopesActive()
 
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -281,23 +334,11 @@ class MusicService :
                     )
                 )
             }
-            val pending = PendingIntent.getActivity(
-                this,
-                0,
-                Intent(this, MainActivity::class.java),
-                PendingIntent.FLAG_IMMUTABLE
-            )
-            val notification: Notification = NotificationCompat.Builder(this, CHANNEL_ID)
-                .setContentTitle(getString(R.string.music_player))
-                .setContentText("")
-                .setSmallIcon(R.drawable.small_icon)
-                .setContentIntent(pending)
-                .setOngoing(true)
-                .build()
-            startForeground(NOTIFICATION_ID, notification)
         } catch (e: Exception) {
             reportException(e)
         }
+
+        ensureStartedAsForeground()
 
         
         player =
@@ -323,7 +364,7 @@ class MusicService :
                     sleepTimer = SleepTimer(scope, this)
                     addListener(sleepTimer)
                     addAnalyticsListener(PlaybackStatsListener(false, this@MusicService))
-                    setOffloadEnabled(dataStore.get(AudioOffload, false))
+                    setOffloadEnabled(false)
                 }
 
         audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
@@ -356,12 +397,24 @@ class MusicService :
                 setSmallIcon(R.drawable.small_icon)
             }
         )
-        player.repeatMode = dataStore.get(RepeatModeKey, REPEAT_MODE_OFF)
+        
+        updateNotification()
+        player.repeatMode = REPEAT_MODE_OFF
 
         val sessionToken = SessionToken(this, ComponentName(this, MusicService::class.java))
         val controllerFuture = MediaController.Builder(this, sessionToken).buildAsync()
         controllerFuture.addListener({ controllerFuture.get() }, MoreExecutors.directExecutor())
-        playerVolume = MutableStateFlow(dataStore.get(PlayerVolumeKey, 1f).coerceIn(0f, 1f))
+        scope.launch(Dispatchers.IO) {
+            val prefs = dataStore.data.first()
+            val repeatMode = prefs[RepeatModeKey] ?: REPEAT_MODE_OFF
+            val volume = (prefs[PlayerVolumeKey] ?: 1f).coerceIn(0f, 1f)
+            val offload = prefs[AudioOffload] ?: false
+            withContext(Dispatchers.Main) {
+                player.repeatMode = repeatMode
+                playerVolume.value = volume
+                player.setOffloadEnabled(offload)
+            }
+        }
 
         connectivityManager = getSystemService()!!
         connectivityObserver = NetworkConnectivityObserver(this)
@@ -387,13 +440,13 @@ class MusicService :
             player.volume = finalVolume
         }
 
-        playerVolume.debounce(1000).collect(scope) { volume ->
+        playerVolume.debounce(1000).collect(ioScope) { volume ->
             dataStore.edit { settings ->
                 settings[PlayerVolumeKey] = volume
             }
         }
 
-        currentSong.debounce(1000).collect(scope) { song ->
+        currentSong.debounce(300).collect(scope) { song ->
             updateNotification()
             if (song != null && player.playWhenReady && player.playbackState == Player.STATE_READY) {
                 ensurePresenceManager()
@@ -407,7 +460,7 @@ class MusicService :
             dataStore.data.map { it[ShowLyricsKey] ?: false }.distinctUntilChanged(),
         ) { mediaMetadata, showLyrics ->
             mediaMetadata to showLyrics
-        }.collectLatest(scope) { (mediaMetadata, showLyrics) ->
+        }.collectLatest(ioScope) { (mediaMetadata, showLyrics) ->
             if (showLyrics && mediaMetadata != null && database.lyrics(mediaMetadata.id)
                     .first() == null
             ) {
@@ -480,32 +533,35 @@ class MusicService :
             .map { it[DiscordTokenKey] to (it[EnableDiscordRPCKey] ?: true) }
             .debounce(300)
             .distinctUntilChanged()
-            .collect(scope) { (key, enabled) ->
-                    try {
-                        if (discordRpc?.isRpcRunning() == true) {
-                            discordRpc?.closeRPC()
+            .collectLatest(scope) { (key, enabled) ->
+                val newRpc =
+                    withContext(Dispatchers.IO) {
+                        if (!key.isNullOrBlank() && enabled) {
+                            runCatching { DiscordRPC(this@MusicService, key) }
+                                .onFailure { Timber.tag("MusicService").e(it, "failed to create DiscordRPC client") }
+                                .getOrNull()
+                        } else {
+                            null
                         }
-                    } catch (_: Exception) {}
-                    discordRpc = null
-                    if (!key.isNullOrBlank() && enabled) {
-                        try {
-                            discordRpc = DiscordRPC(this, key)
-                        } catch (ex: Exception) {
-                            Timber.tag("MusicService").e(ex, "failed to create DiscordRPC client")
-                            discordRpc = null
-                        }
-
-                        if (player.playbackState == Player.STATE_READY && player.playWhenReady) {
-                            currentSong.value?.let {
-                                ensurePresenceManager()
-                            }
-                        }
-                    } else {
-                        try { DiscordPresenceManager.stop() } catch (_: Exception) {}
-                        try { discordRpc?.closeRPC() } catch (_: Exception) {}
-                        discordRpc = null
                     }
-        }
+
+                try {
+                    if (discordRpc?.isRpcRunning() == true) {
+                        withContext(Dispatchers.IO) { discordRpc?.closeRPC() }
+                    }
+                } catch (_: Exception) {}
+                discordRpc = newRpc
+
+                if (discordRpc != null) {
+                    if (player.playbackState == Player.STATE_READY && player.playWhenReady) {
+                        currentSong.value?.let {
+                            ensurePresenceManager()
+                        }
+                    }
+                } else {
+                    try { DiscordPresenceManager.stop() } catch (_: Exception) {}
+                }
+            }
 
         // Last.fm ScrobbleManager setup
         dataStore.data
@@ -519,7 +575,7 @@ class MusicService :
                     val delaySeconds = dataStore.get(ScrobbleDelaySecondsKey, LastFM.DEFAULT_SCROBBLE_DELAY_SECONDS)
                     
                     scrobbleManager = moe.koiverse.archivetune.utils.ScrobbleManager(
-                        scope,
+                        ioScope,
                         minSongDuration = minSongDuration,
                         scrobbleDelayPercent = delayPercent,
                         scrobbleDelaySeconds = delaySeconds
@@ -630,6 +686,18 @@ class MusicService :
                     saveQueueToDisk()
                 }
             }
+        }
+    }
+
+    private fun ensureScopesActive() {
+        if (!scopeJob.isActive) {
+            scopeJob = Job()
+        }
+        if (!scope.isActive) {
+            scope = CoroutineScope(Dispatchers.Main + scopeJob)
+        }
+        if (!ioScope.isActive) {
+            ioScope = CoroutineScope(Dispatchers.IO + scopeJob)
         }
     }
 
@@ -842,15 +910,13 @@ class MusicService :
     }
 
     private fun updateNotification() {
-        mediaSession.setCustomLayout(
-            listOf(
+        try {
+            val customLayout = listOf(
                 CommandButton
                     .Builder()
                     .setDisplayName(
                         getString(
-                            if (currentSong.value?.song?.liked ==
-                                true
-                            ) {
+                            if (currentSong.value?.song?.liked == true) {
                                 R.string.action_remove_like
                             } else {
                                 R.string.action_like
@@ -869,7 +935,7 @@ class MusicService :
                                 REPEAT_MODE_OFF -> R.string.repeat_mode_off
                                 REPEAT_MODE_ONE -> R.string.repeat_mode_one
                                 REPEAT_MODE_ALL -> R.string.repeat_mode_all
-                                else -> throw IllegalStateException()
+                                else -> R.string.repeat_mode_off
                             },
                         ),
                     ).setIconResId(
@@ -877,7 +943,7 @@ class MusicService :
                             REPEAT_MODE_OFF -> R.drawable.repeat
                             REPEAT_MODE_ONE -> R.drawable.repeat_one_on
                             REPEAT_MODE_ALL -> R.drawable.repeat_on
-                            else -> throw IllegalStateException()
+                            else -> R.drawable.repeat
                         },
                     ).setSessionCommand(CommandToggleRepeatMode)
                     .build(),
@@ -893,8 +959,17 @@ class MusicService :
                     .setSessionCommand(CommandToggleStartRadio)
                     .setEnabled(currentSong.value != null)
                     .build(),
-            ),
-        )
+            )
+            mediaSession.setCustomLayout(customLayout)
+        } catch (e: Exception) {
+            reportException(e)
+        }
+    }
+
+    fun refreshPlaybackNotification() {
+        updateNotification()
+        runCatching { super.onUpdateNotification(mediaSession, player.isPlaying) }
+            .onFailure { reportException(it) }
     }
 
     private suspend fun recoverSong(
@@ -938,7 +1013,7 @@ class MusicService :
         queue: Queue,
         playWhenReady: Boolean = true,
     ) {
-        if (!scope.isActive) scope = CoroutineScope(Dispatchers.Main) + Job()
+        ensureScopesActive()
         currentQueue = queue
         queueTitle = null
         player.shuffleModeEnabled = false
@@ -1055,7 +1130,7 @@ class MusicService :
     }
 
     fun getAutomixAlbum(albumId: String) {
-        scope.launch(SilentHandler) {
+        scope.launch(Dispatchers.IO + SilentHandler) {
             YouTube
                 .album(albumId)
                 .onSuccess {
@@ -1065,10 +1140,9 @@ class MusicService :
     }
 
     fun getAutomix(playlistId: String) {
-        // Don't load automix/similar content if repeat mode is enabled
         if (dataStore[SimilarContent] == true && 
             player.repeatMode == REPEAT_MODE_OFF) {
-            scope.launch(SilentHandler) {
+            scope.launch(Dispatchers.IO + SilentHandler) {
                 YouTube
                     .next(WatchEndpoint(playlistId = playlistId))
                     .onSuccess {
@@ -1754,11 +1828,6 @@ class MusicService :
                 .setEnableAudioTrackPlaybackParams(enableAudioTrackPlaybackParams)
                 .setAudioProcessorChain(
                     DefaultAudioSink.DefaultAudioProcessorChain(
-                        // Use the non-deprecated constructor with explicit types to avoid any
-                        // ambiguity or unexpected overload-resolution issues.
-                        // minimumSilenceDurationUs = 2_000_000L, silenceRetentionRatio = 0.2f,
-                        // maxSilenceToKeepDurationUs = 20_000L, minVolumeToKeepPercentageWhenMuting = 10,
-                        // silenceThresholdLevel = 256
                         crossfadeProcessor,
                         SilenceSkippingAudioProcessor(
                             2_000_000L,
@@ -1951,24 +2020,79 @@ class MusicService :
 
     override fun onDestroy() {
         super.onDestroy()
-        runBlocking {
-            if (dataStore.get(PersistentQueueKey, true)) {
-                saveQueueToDisk()
-            }
-        }
-        connectivityObserver.unregister()
-        abandonAudioFocus()
-        mediaSession.release()
-        player.removeListener(this)
-        player.removeListener(sleepTimer)
-        player.release()
-        scopeJob.cancel()
-        scope.launch { discordRpc?.stopActivity() }
-        if (discordRpc?.isRpcRunning() == true) {
+        try {
+            DiscordPresenceManager.stop()
+        } catch (_: Exception) {}
+        try {
             discordRpc?.closeRPC()
-        }
+        } catch (_: Exception) {}
         discordRpc = null
-        DiscordPresenceManager.stop()
+        try {
+            connectivityObserver.unregister()
+        } catch (_: Exception) {}
+        abandonAudioFocus()
+        try {
+            if (dataStore.get(PersistentQueueKey, true) && player.mediaItemCount > 0) {
+                val mediaItemsSnapshot = player.mediaItems.mapNotNull { it.metadata }
+                val currentMediaItemIndex = player.currentMediaItemIndex
+                val currentPosition = player.currentPosition
+                val automixSnapshot = automixItems.value.mapNotNull { it.metadata }
+                val repeatMode = player.repeatMode
+                val shuffleModeEnabled = player.shuffleModeEnabled
+                val volume = player.volume
+                val playbackState = player.playbackState
+                val playWhenReady = player.playWhenReady
+                CoroutineScope(Dispatchers.IO).launch {
+                    try {
+                        val persistQueue = currentQueue.toPersistQueue(
+                            title = queueTitle,
+                            items = mediaItemsSnapshot,
+                            mediaItemIndex = currentMediaItemIndex,
+                            position = currentPosition
+                        )
+                        val persistAutomix = PersistQueue(
+                            title = "automix",
+                            items = automixSnapshot,
+                            mediaItemIndex = 0,
+                            position = 0,
+                        )
+                        val persistPlayerState = PersistPlayerState(
+                            playWhenReady = playWhenReady,
+                            repeatMode = repeatMode,
+                            shuffleModeEnabled = shuffleModeEnabled,
+                            volume = volume,
+                            currentPosition = currentPosition,
+                            currentMediaItemIndex = currentMediaItemIndex,
+                            playbackState = playbackState
+                        )
+                        filesDir.resolve(PERSISTENT_QUEUE_FILE).outputStream().use { fos ->
+                            ObjectOutputStream(fos).use { oos ->
+                                oos.writeObject(persistQueue)
+                            }
+                        }
+                        filesDir.resolve(PERSISTENT_AUTOMIX_FILE).outputStream().use { fos ->
+                            ObjectOutputStream(fos).use { oos ->
+                                oos.writeObject(persistAutomix)
+                            }
+                        }
+                        filesDir.resolve(PERSISTENT_PLAYER_STATE_FILE).outputStream().use { fos ->
+                            ObjectOutputStream(fos).use { oos ->
+                                oos.writeObject(persistPlayerState)
+                            }
+                        }
+                    } catch (_: Exception) {}
+                }
+            }
+        } catch (_: Exception) {}
+        try {
+            mediaSession.release()
+        } catch (_: Exception) {}
+        try {
+            player.removeListener(this)
+            player.removeListener(sleepTimer)
+            player.release()
+        } catch (_: Exception) {}
+        scopeJob.cancel()
     }
 
     override fun onBind(intent: Intent?): android.os.IBinder? {
@@ -2010,44 +2134,15 @@ class MusicService :
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo) = mediaSession
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                val pending = PendingIntent.getActivity(
-                    this,
-                    0,
-                    Intent(this, MainActivity::class.java),
-                    PendingIntent.FLAG_IMMUTABLE
-                )
-                val notification: Notification = NotificationCompat.Builder(this, CHANNEL_ID)
-                    .setContentTitle(getString(R.string.music_player))
-                    .setContentText("")
-                    .setSmallIcon(R.drawable.small_icon)
-                    .setContentIntent(pending)
-                    .setOngoing(true)
-                    .build()
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    startForeground(NOTIFICATION_ID, notification, android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK)
-                } else {
-                    startForeground(NOTIFICATION_ID, notification)
-                }
-                
-                // If there's media playing, update notification with proper content async
-                if (player.mediaItemCount > 0 && player.currentMediaItem != null) {
-                    currentMediaMetadata.value = player.currentMetadata
-                    scope.launch {
-                        delay(100)
-                        updateNotification()
-                    }
-                }
-            }
-        } catch (e: Exception) {
-            reportException(e)
-        }
-        return START_STICKY
+        ensureStartedAsForeground()
+        super.onStartCommand(intent, flags, startId)
+        return START_NOT_STICKY
     }
 
     override fun onUpdateNotification(session: MediaSession, startInForegroundRequired: Boolean) {
-        super.onUpdateNotification(session, true)
+        if (startInForegroundRequired) ensureStartedAsForeground()
+        runCatching { super.onUpdateNotification(session, startInForegroundRequired) }
+            .onFailure { reportException(it) }
     }
 
     inner class MusicBinder : Binder() {

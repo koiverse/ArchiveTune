@@ -221,9 +221,10 @@ fun StatsScreen(
 
                         val brush1 = Brush.radialGradient(
                             colors = listOf(
-                                color1.copy(alpha = 0.25f),
-                                color1.copy(alpha = 0.15f),
-                                color1.copy(alpha = 0.05f),
+                                color1.copy(alpha = 0.38f),
+                                color1.copy(alpha = 0.24f),
+                                color1.copy(alpha = 0.14f),
+                                color1.copy(alpha = 0.06f),
                                 Color.Transparent
                             ),
                             center = Offset(width * 0.15f, height * 0.1f),
@@ -232,9 +233,10 @@ fun StatsScreen(
 
                         val brush2 = Brush.radialGradient(
                             colors = listOf(
-                                color2.copy(alpha = 0.22f),
-                                color2.copy(alpha = 0.12f),
-                                color2.copy(alpha = 0.04f),
+                                color2.copy(alpha = 0.34f),
+                                color2.copy(alpha = 0.2f),
+                                color2.copy(alpha = 0.11f),
+                                color2.copy(alpha = 0.05f),
                                 Color.Transparent
                             ),
                             center = Offset(width * 0.85f, height * 0.2f),
@@ -243,9 +245,10 @@ fun StatsScreen(
 
                         val brush3 = Brush.radialGradient(
                             colors = listOf(
-                                color3.copy(alpha = 0.2f),
-                                color3.copy(alpha = 0.1f),
-                                color3.copy(alpha = 0.03f),
+                                color3.copy(alpha = 0.3f),
+                                color3.copy(alpha = 0.17f),
+                                color3.copy(alpha = 0.09f),
+                                color3.copy(alpha = 0.04f),
                                 Color.Transparent
                             ),
                             center = Offset(width * 0.3f, height * 0.45f),
@@ -254,9 +257,10 @@ fun StatsScreen(
 
                         val brush4 = Brush.radialGradient(
                             colors = listOf(
-                                color4.copy(alpha = 0.18f),
-                                color4.copy(alpha = 0.09f),
-                                color4.copy(alpha = 0.02f),
+                                color4.copy(alpha = 0.26f),
+                                color4.copy(alpha = 0.14f),
+                                color4.copy(alpha = 0.08f),
+                                color4.copy(alpha = 0.03f),
                                 Color.Transparent
                             ),
                             center = Offset(width * 0.7f, height * 0.5f),
@@ -265,8 +269,9 @@ fun StatsScreen(
 
                         val brush5 = Brush.radialGradient(
                             colors = listOf(
-                                color5.copy(alpha = 0.15f),
-                                color5.copy(alpha = 0.07f),
+                                color5.copy(alpha = 0.22f),
+                                color5.copy(alpha = 0.12f),
+                                color5.copy(alpha = 0.06f),
                                 color5.copy(alpha = 0.02f),
                                 Color.Transparent
                             ),
@@ -278,8 +283,8 @@ fun StatsScreen(
                             colors = listOf(
                                 Color.Transparent,
                                 Color.Transparent,
-                                surfaceColor.copy(alpha = 0.3f),
-                                surfaceColor.copy(alpha = 0.7f),
+                                surfaceColor.copy(alpha = 0.22f),
+                                surfaceColor.copy(alpha = 0.55f),
                                 surfaceColor
                             ),
                             startY = height * 0.4f,
@@ -582,6 +587,17 @@ fun StatsScreen(
                     Icon(
                         painterResource(R.drawable.arrow_back),
                         contentDescription = null,
+                    )
+                }
+            },
+            actions = {
+                IconButton(
+                    onClick = { navController.navigate("year_in_music") },
+                    onLongClick = { }
+                ) {
+                    Icon(
+                        painterResource(R.drawable.calendar_today),
+                        contentDescription = stringResource(R.string.year_in_music),
                     )
                 }
             },

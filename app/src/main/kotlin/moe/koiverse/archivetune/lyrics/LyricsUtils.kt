@@ -175,12 +175,24 @@ object LyricsUtils {
         lines: List<LyricsEntry>,
         position: Long,
     ): Int {
-        for (index in lines.indices) {
-            if (lines[index].time >= position + 300L) { // Use constant instead of import
-                return index - 1
+        if (lines.isEmpty()) return -1
+
+        val target = position + 300L
+        var low = 0
+        var high = lines.lastIndex
+
+        while (low <= high) {
+            val mid = (low + high).ushr(1)
+            val midTime = lines[mid].time
+
+            if (midTime < target) {
+                low = mid + 1
+            } else {
+                high = mid - 1
             }
         }
-        return lines.lastIndex
+
+        return high.coerceIn(0, lines.lastIndex)
     }
 
     /**

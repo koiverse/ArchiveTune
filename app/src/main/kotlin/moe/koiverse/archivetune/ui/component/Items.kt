@@ -68,6 +68,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -89,6 +90,7 @@ import androidx.media3.exoplayer.offline.Download.STATE_QUEUED
 import coil3.compose.AsyncImage
 import coil3.compose.AsyncImagePainter
 import coil3.request.ImageRequest
+import coil3.request.allowHardware
 import moe.koiverse.archivetune.innertube.YouTube
 import moe.koiverse.archivetune.innertube.models.SongItem
 import moe.koiverse.archivetune.innertube.models.AlbumItem
@@ -1158,27 +1160,42 @@ fun ItemThumbnail(
     shouldLoadImage: Boolean = true,
     thumbnailRatio: Float = 1f
 ) {
-    Box(
+    val context = LocalContext.current
+    val density = LocalDensity.current
+
+    BoxWithConstraints(
         contentAlignment = Alignment.Center,
         modifier = modifier
             .fillMaxSize()
             .aspectRatio(thumbnailRatio)
             .clip(shape)
     ) {
+        val widthPx = if (maxWidth == Dp.Infinity) null else with(density) { maxWidth.roundToPx().coerceAtLeast(1) }
+        val heightPx = if (maxHeight == Dp.Infinity) null else with(density) { maxHeight.roundToPx().coerceAtLeast(1) }
+
         if (albumIndex == null) {
             if (shouldLoadImage) {
+                val request = remember(thumbnailUrl, widthPx, heightPx) {
+                    ImageRequest.Builder(context)
+                        .data(thumbnailUrl)
+                        .allowHardware(true)
+                        .apply {
+                            if (widthPx != null && heightPx != null) {
+                                size(widthPx, heightPx)
+                            }
+                        }
+                        .build()
+                }
                 AsyncImage(
-                    model = thumbnailUrl,
+                    model = request,
                     contentDescription = null,
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(shape)
+                        .fillMaxSize()
                 )
             } else {
                 Box(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(shape)
+                        .fillMaxSize()
                         .background(MaterialTheme.colorScheme.surfaceVariant)
                 )
             }
@@ -1241,14 +1258,30 @@ fun LocalThumbnail(
     playButtonVisible: Boolean = false,
     thumbnailRatio: Float = 1f
 ) {
-    Box(
+    val context = LocalContext.current
+    val density = LocalDensity.current
+
+    BoxWithConstraints(
         contentAlignment = Alignment.Center,
         modifier = modifier
             .aspectRatio(thumbnailRatio)
             .clip(shape)
     ) {
+        val widthPx = if (maxWidth == Dp.Infinity) null else with(density) { maxWidth.roundToPx().coerceAtLeast(1) }
+        val heightPx = if (maxHeight == Dp.Infinity) null else with(density) { maxHeight.roundToPx().coerceAtLeast(1) }
+        val request = remember(thumbnailUrl, widthPx, heightPx) {
+            ImageRequest.Builder(context)
+                .data(thumbnailUrl)
+                .allowHardware(true)
+                .apply {
+                    if (widthPx != null && heightPx != null) {
+                        size(widthPx, heightPx)
+                    }
+                }
+                .build()
+        }
         AsyncImage(
-            model = thumbnailUrl,
+            model = request,
             contentDescription = null,
             modifier = Modifier.fillMaxSize()
         )
@@ -1338,6 +1371,10 @@ fun PlaylistThumbnail(
     placeHolder: @Composable () -> Unit,
     shape: Shape
 ) {
+    val context = LocalContext.current
+    val density = LocalDensity.current
+    val sizePx = with(density) { size.roundToPx().coerceAtLeast(1) }
+
     when (thumbnails.size) {
         0 -> Box(
             contentAlignment = Alignment.Center,
@@ -1348,14 +1385,23 @@ fun PlaylistThumbnail(
         ) {
             placeHolder()
         }
-        1 -> AsyncImage(
-            model = thumbnails[0],
-            contentDescription = null,
-            contentScale = ContentScale.Crop,
-            modifier = Modifier
-                .size(size)
-                .clip(shape)
-        )
+        1 -> {
+            val request = remember(thumbnails, sizePx) {
+                ImageRequest.Builder(context)
+                    .data(thumbnails[0])
+                    .size(sizePx, sizePx)
+                    .allowHardware(true)
+                    .build()
+            }
+            AsyncImage(
+                model = request,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .size(size)
+                    .clip(shape)
+            )
+        }
         else -> Box(
             modifier = Modifier
                 .size(size)
@@ -1367,8 +1413,17 @@ fun PlaylistThumbnail(
                 Alignment.BottomStart,
                 Alignment.BottomEnd
             ).fastForEachIndexed { index, alignment ->
+                val halfPx = (sizePx / 2).coerceAtLeast(1)
+                val url = thumbnails.getOrNull(index)
+                val request = remember(url, halfPx) {
+                    ImageRequest.Builder(context)
+                        .data(url)
+                        .size(halfPx, halfPx)
+                        .allowHardware(true)
+                        .build()
+                }
                 AsyncImage(
-                    model = thumbnails.getOrNull(index),
+                    model = request,
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier

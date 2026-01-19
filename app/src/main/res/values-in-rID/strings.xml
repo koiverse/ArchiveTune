@@ -176,7 +176,6 @@
     <string name="sleep_timer">Pengatur waktu tidur</string>
     <string name="end_of_song">Akhir lagu</string>
     <plurals name="minute">
-        <item quantity="one">1 minute</item>
         <item quantity="other">%d minutes</item>
     </plurals>
     <string name="error_no_stream">Tidak ada streaming yang tersedia</string>
@@ -429,8 +428,7 @@
     <string name="backup_create_failed">Tidak dapat membuat cadangan</string>
     <string name="restore_failed">Gagal memulihkan cadangan</string>
     <string name="discord_integration">Integrasi Discord</string>
-    <string name="discord_information">ArchiveTune menggunakan perpustakaan KizzyRPC untuk mengatur status akun Discord Anda. Hal ini melibatkan penggunaan koneksi Discord Gateway, yang mungkin dianggap sebagai pelanggaran terhadap TOS Discord. Namun, tidak ada kasus yang diketahui mengenai akun pengguna yang ditangguhkan karena alasan ini. Risiko penggunaan ditanggung sendiri.
-ArchiveTune hanya akan mengekstrak token Anda, dan yang lainnya disimpan secara lokal.</string>
+    <string name="discord_information">ArchiveTune menggunakan perpustakaan KizzyRPC untuk mengatur status akun Discord Anda. Hal ini melibatkan penggunaan koneksi Discord Gateway, yang mungkin dianggap sebagai pelanggaran terhadap TOS Discord. Namun, tidak ada kasus yang diketahui mengenai akun pengguna yang ditangguhkan karena alasan ini. Risiko penggunaan ditanggung sendiri. ArchiveTune hanya akan mengekstrak token Anda, dan yang lainnya disimpan secara lokal.</string>
     <string name="dismiss">Tolak</string>
     <string name="options">Opsi</string>
     <string name="preview">Pratinjau</string>

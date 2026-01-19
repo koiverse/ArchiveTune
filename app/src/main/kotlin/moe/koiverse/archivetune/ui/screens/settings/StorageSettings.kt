@@ -42,12 +42,14 @@ import moe.koiverse.archivetune.LocalPlayerConnection
 import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.constants.MaxImageCacheSizeKey
 import moe.koiverse.archivetune.constants.MaxSongCacheSizeKey
+import moe.koiverse.archivetune.constants.SmartTrimmerKey
 import moe.koiverse.archivetune.extensions.tryOrNull
 import moe.koiverse.archivetune.ui.component.ActionPromptDialog
 import moe.koiverse.archivetune.ui.component.DefaultDialog
 import moe.koiverse.archivetune.ui.component.IconButton
 import moe.koiverse.archivetune.ui.component.ListPreference
 import moe.koiverse.archivetune.ui.component.PreferenceEntry
+import moe.koiverse.archivetune.ui.component.SwitchPreference
 import moe.koiverse.archivetune.ui.component.PreferenceGroupTitle
 import moe.koiverse.archivetune.ui.utils.backToMain
 import moe.koiverse.archivetune.ui.utils.formatFileSize
@@ -89,6 +91,10 @@ fun StorageSettings(
     val playerCacheDir = remember { context.filesDir.resolve("exoplayer") }
 
     val coroutineScope = rememberCoroutineScope()
+    val (smartTrimmer, onSmartTrimmerChange) = rememberPreference(
+        key = SmartTrimmerKey,
+        defaultValue = false
+    )
     val (maxImageCacheSize, onMaxImageCacheSizeChange) = rememberPreference(
         key = MaxImageCacheSizeKey,
         defaultValue = 512
@@ -105,10 +111,10 @@ fun StorageSettings(
         mutableStateOf(imageDiskCache.size)
     }
     var playerCacheSize by remember {
-        mutableStateOf(tryOrNull { playerCache.cacheSpace } ?: 0L)
+        mutableStateOf(0L)
     }
     var downloadCacheSize by remember {
-        mutableStateOf(tryOrNull { downloadCache.cacheSpace } ?: 0L)
+        mutableStateOf(0L)
     }
     val imageCacheProgress by animateFloatAsState(
         targetValue = if (imageDiskCache.maxSize > 0) {
@@ -151,27 +157,21 @@ fun StorageSettings(
     LaunchedEffect(playerCache, playerCacheDir) {
         while (isActive) {
             delay(500)
-            val cacheSpace = tryOrNull { playerCache.cacheSpace } ?: 0L
-            playerCacheSize = if (cacheSpace == 0L) {
+            playerCacheSize =
                 withContext(Dispatchers.IO) {
-                    calculateDirectorySize(playerCacheDir)
+                    val cacheSpace = tryOrNull { playerCache.cacheSpace } ?: 0L
+                    if (cacheSpace == 0L) calculateDirectorySize(playerCacheDir) else cacheSpace
                 }
-            } else {
-                cacheSpace
-            }
         }
     }
     LaunchedEffect(downloadCache, downloadCacheDir) {
         while (isActive) {
             delay(500)
-            val cacheSpace = tryOrNull { downloadCache.cacheSpace } ?: 0L
-            downloadCacheSize = if (cacheSpace == 0L) {
+            downloadCacheSize =
                 withContext(Dispatchers.IO) {
-                    calculateDirectorySize(downloadCacheDir)
+                    val cacheSpace = tryOrNull { downloadCache.cacheSpace } ?: 0L
+                    if (cacheSpace == 0L) calculateDirectorySize(downloadCacheDir) else cacheSpace
                 }
-            } else {
-                cacheSpace
-            }
         }
     }
 
@@ -185,6 +185,13 @@ fun StorageSettings(
             Modifier.windowInsetsPadding(
                 LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Top)
             )
+        )
+
+        SwitchPreference(
+            title = { Text(stringResource(R.string.smart_trimmer)) },
+            description = stringResource(R.string.smart_trimmer_description),
+            checked = smartTrimmer,
+            onCheckedChange = onSmartTrimmerChange,
         )
 
         // --- Section: Downloads ---
