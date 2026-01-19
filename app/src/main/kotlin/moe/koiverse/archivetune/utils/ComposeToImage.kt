@@ -30,20 +30,28 @@ import java.io.FileOutputStream
 
 object ComposeToImage {
 
+    private fun ensureSoftwareBitmap(bitmap: Bitmap): Bitmap {
+        return if (bitmap.config == Bitmap.Config.HARDWARE) {
+            bitmap.copy(Bitmap.Config.ARGB_8888, false)
+        } else {
+            bitmap
+        }
+    }
+
     fun captureViewBitmap(
         view: View,
         targetWidth: Int? = null,
         targetHeight: Int? = null,
         backgroundColor: Int? = null,
     ): Bitmap {
-        val original = view.drawToBitmap()
+        val original = ensureSoftwareBitmap(view.drawToBitmap())
         val needsScale =
             (targetWidth != null && targetWidth > 0 && targetWidth != original.width) ||
             (targetHeight != null && targetHeight > 0 && targetHeight != original.height)
         val base = if (needsScale) {
             val tw = targetWidth ?: original.width
             val th = targetHeight ?: (original.height * tw / original.width)
-            Bitmap.createScaledBitmap(original, tw, th, true)
+            ensureSoftwareBitmap(Bitmap.createScaledBitmap(original, tw, th, true))
         } else {
             original
         }
@@ -58,11 +66,12 @@ object ComposeToImage {
     }
 
     fun cropBitmap(source: Bitmap, left: Int, top: Int, width: Int, height: Int): Bitmap {
-        val safeLeft = left.coerceIn(0, source.width.coerceAtLeast(1) - 1)
-        val safeTop = top.coerceIn(0, source.height.coerceAtLeast(1) - 1)
-        val safeWidth = width.coerceIn(1, source.width - safeLeft)
-        val safeHeight = height.coerceIn(1, source.height - safeTop)
-        return Bitmap.createBitmap(source, safeLeft, safeTop, safeWidth, safeHeight)
+        val safeSource = ensureSoftwareBitmap(source)
+        val safeLeft = left.coerceIn(0, safeSource.width.coerceAtLeast(1) - 1)
+        val safeTop = top.coerceIn(0, safeSource.height.coerceAtLeast(1) - 1)
+        val safeWidth = width.coerceIn(1, safeSource.width - safeLeft)
+        val safeHeight = height.coerceIn(1, safeSource.height - safeTop)
+        return ensureSoftwareBitmap(Bitmap.createBitmap(safeSource, safeLeft, safeTop, safeWidth, safeHeight))
     }
 
     fun fitBitmap(
@@ -71,20 +80,21 @@ object ComposeToImage {
         targetHeight: Int,
         backgroundColor: Int,
     ): Bitmap {
+        val safeSource = ensureSoftwareBitmap(source)
         val out = Bitmap.createBitmap(targetWidth, targetHeight, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(out)
         canvas.drawColor(backgroundColor)
 
         val scale = minOf(
-            targetWidth.toFloat() / source.width.coerceAtLeast(1),
-            targetHeight.toFloat() / source.height.coerceAtLeast(1),
+            targetWidth.toFloat() / safeSource.width.coerceAtLeast(1),
+            targetHeight.toFloat() / safeSource.height.coerceAtLeast(1),
         )
-        val scaledW = (source.width * scale).toInt().coerceAtLeast(1)
-        val scaledH = (source.height * scale).toInt().coerceAtLeast(1)
-        val scaled = if (scaledW != source.width || scaledH != source.height) {
-            Bitmap.createScaledBitmap(source, scaledW, scaledH, true)
+        val scaledW = (safeSource.width * scale).toInt().coerceAtLeast(1)
+        val scaledH = (safeSource.height * scale).toInt().coerceAtLeast(1)
+        val scaled = if (scaledW != safeSource.width || scaledH != safeSource.height) {
+            ensureSoftwareBitmap(Bitmap.createScaledBitmap(safeSource, scaledW, scaledH, true))
         } else {
-            source
+            safeSource
         }
 
         val dx = ((targetWidth - scaled.width) / 2f)
