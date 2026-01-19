@@ -53,6 +53,7 @@ import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -121,6 +122,18 @@ fun YearInMusicScreen(
     var isGeneratingImage by remember { mutableStateOf(false) }
 
     val (disableBlur) = rememberPreference(DisableBlurKey, false)
+    val shareImageColors = ComposeToImage.YearInMusicImageColors(
+        background = MaterialTheme.colorScheme.surface.toArgb(),
+        surface = MaterialTheme.colorScheme.surfaceVariant.toArgb(),
+        surfaceVariant = MaterialTheme.colorScheme.surfaceVariant.toArgb(),
+        onSurface = MaterialTheme.colorScheme.onSurface.toArgb(),
+        onSurfaceVariant = MaterialTheme.colorScheme.onSurfaceVariant.toArgb(),
+        primary = MaterialTheme.colorScheme.primary.toArgb(),
+        secondary = MaterialTheme.colorScheme.secondary.toArgb(),
+        tertiary = MaterialTheme.colorScheme.tertiary.toArgb(),
+        outline = MaterialTheme.colorScheme.outline.toArgb(),
+        onPrimary = MaterialTheme.colorScheme.onPrimary.toArgb(),
+    )
     val color1 = MaterialTheme.colorScheme.primary
     val color2 = MaterialTheme.colorScheme.secondary
     val color3 = MaterialTheme.colorScheme.tertiary
@@ -389,7 +402,8 @@ fun YearInMusicScreen(
                                     year = selectedYear,
                                     totalListeningTime = totalListeningTime,
                                     topSongs = topSongsStats.take(5),
-                                    topArtists = topArtists.take(5)
+                                    topArtists = topArtists.take(5),
+                                    colors = shareImageColors,
                                 )
                                 val uri = ComposeToImage.saveBitmapAsFile(
                                     context,
