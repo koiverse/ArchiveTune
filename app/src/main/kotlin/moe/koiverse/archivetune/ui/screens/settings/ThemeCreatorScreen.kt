@@ -97,6 +97,7 @@ import kotlinx.coroutines.withContext
 import moe.koiverse.archivetune.LocalPlayerAwareWindowInsets
 import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.constants.CustomThemeColorKey
+import moe.koiverse.archivetune.constants.DynamicThemeKey
 import moe.koiverse.archivetune.ui.component.IconButton
 import moe.koiverse.archivetune.ui.theme.ArchiveTuneTheme
 import moe.koiverse.archivetune.ui.theme.ColorSaver
@@ -124,6 +125,10 @@ fun ThemeCreatorScreen(
         key = CustomThemeColorKey,
         defaultValue = ThemePalettes.Default.id,
     )
+    val (_, setDynamicThemeEnabled) = rememberPreference(
+        key = DynamicThemeKey,
+        defaultValue = true,
+    )
 
     val seedFromPrefs = remember(customThemeValue) {
         ThemeSeedPaletteCodec.decodeFromPreference(customThemeValue)
@@ -140,22 +145,20 @@ fun ThemeCreatorScreen(
     var tertiary by rememberSaveable(customThemeValue, stateSaver = ColorSaver) { mutableStateOf(seedFromPrefs.tertiary) }
     var neutral by rememberSaveable(customThemeValue, stateSaver = ColorSaver) { mutableStateOf(seedFromPrefs.neutral) }
 
-    val currentPalette by remember {
-        derivedStateOf {
-            ThemeSeedPalette(
-                primary = primary,
-                secondary = secondary,
-                tertiary = tertiary,
-                neutral = neutral,
-            )
-        }
-    }
+    val currentPalette =
+        ThemeSeedPalette(
+            primary = primary,
+            secondary = secondary,
+            tertiary = tertiary,
+            neutral = neutral,
+        )
 
     var activeRole by rememberSaveable { mutableStateOf(SeedRole.PRIMARY) }
     var showImportErrorDialog by rememberSaveable { mutableStateOf(false) }
     var importErrorText by rememberSaveable { mutableStateOf("") }
 
     fun applyThemeToPrefs() {
+        setDynamicThemeEnabled(false)
         setCustomThemeValue(ThemeSeedPaletteCodec.encodeForPreference(currentPalette, themeName.takeIf { it.isNotBlank() }))
         Toast.makeText(context, context.getString(R.string.theme_applied), Toast.LENGTH_SHORT).show()
     }
@@ -195,6 +198,7 @@ fun ThemeCreatorScreen(
                 val importedPalette = ThemeSeedPaletteCodec.decodeFromJson(text)
                 if (importedPalette != null) {
                     val name = ThemeSeedPaletteCodec.extractNameFromJsonOrNull(text)
+                    setDynamicThemeEnabled(false)
                     setCustomThemeValue(ThemeSeedPaletteCodec.encodeForPreference(importedPalette, name))
                     Toast.makeText(context, context.getString(R.string.theme_import_success), Toast.LENGTH_SHORT).show()
                 } else {
