@@ -602,4 +602,5 @@
     <string name="allow">Autoriser</string>
     <string name="use_system_font">Utiliser la police système</string>
     <string name="use_system_font_desc">Utilisez la police de l\'appareil au lieu de la police de l\'application</string>
+    <string name="enable_simpmusic_lyrics">Activer les paroles de SimpMusic</string>
 </resources>
