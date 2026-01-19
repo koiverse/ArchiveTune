@@ -166,6 +166,208 @@ object ComposeToImage {
         return@withContext bitmap
     }
 
+    @RequiresApi(Build.VERSION_CODES.M)
+    suspend fun createYearInMusicImage(
+        context: Context,
+        year: Int,
+        totalListeningTime: Long,
+        topSongs: List<moe.koiverse.archivetune.db.entities.SongWithStats>,
+        topArtists: List<moe.koiverse.archivetune.db.entities.Artist>
+    ): Bitmap = withContext(Dispatchers.Default) {
+        val cardWidth = 1080
+        val cardHeight = 1920
+        val bitmap = createBitmap(cardWidth, cardHeight)
+        val canvas = Canvas(bitmap)
+
+        val backgroundColor = 0xFF0D1117.toInt()
+        val primaryColor = 0xFF58A6FF.toInt()
+        val secondaryColor = 0xFF8B949E.toInt()
+        val textColor = 0xFFFFFFFF.toInt()
+        val accentColor = 0xFF238636.toInt()
+
+        val backgroundPaint = Paint().apply {
+            color = backgroundColor
+            isAntiAlias = true
+        }
+        canvas.drawRect(0f, 0f, cardWidth.toFloat(), cardHeight.toFloat(), backgroundPaint)
+
+        val gradientPaint = Paint().apply {
+            shader = LinearGradient(
+                0f, 0f, cardWidth.toFloat(), cardHeight * 0.3f,
+                intArrayOf(0xFF1F6FEB.toInt(), 0xFF238636.toInt(), 0xFF0D1117.toInt()),
+                floatArrayOf(0f, 0.5f, 1f),
+                Shader.TileMode.CLAMP
+            )
+            alpha = 100
+        }
+        canvas.drawRect(0f, 0f, cardWidth.toFloat(), cardHeight * 0.35f, gradientPaint)
+
+        val padding = 60f
+        var yOffset = padding + 40f
+
+        val yearPaint = TextPaint().apply {
+            color = textColor
+            textSize = 72f
+            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+            isAntiAlias = true
+        }
+        canvas.drawText("$year", padding, yOffset + 72f, yearPaint)
+        yOffset += 100f
+
+        val subtitlePaint = TextPaint().apply {
+            color = primaryColor
+            textSize = 48f
+            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+            isAntiAlias = true
+        }
+        canvas.drawText(context.getString(moe.koiverse.archivetune.R.string.year_in_music), padding, yOffset + 48f, subtitlePaint)
+        yOffset += 100f
+
+        val timeString = makeTimeStringForImage(totalListeningTime)
+        val timePaint = TextPaint().apply {
+            color = textColor
+            textSize = 96f
+            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+            isAntiAlias = true
+        }
+        canvas.drawText(timeString, padding, yOffset + 96f, timePaint)
+        yOffset += 120f
+
+        val timeLabelPaint = TextPaint().apply {
+            color = secondaryColor
+            textSize = 36f
+            typeface = Typeface.DEFAULT
+            isAntiAlias = true
+        }
+        canvas.drawText(context.getString(moe.koiverse.archivetune.R.string.total_listening_time), padding, yOffset + 36f, timeLabelPaint)
+        yOffset += 100f
+
+        if (topSongs.isNotEmpty()) {
+            val sectionPaint = TextPaint().apply {
+                color = primaryColor
+                textSize = 42f
+                typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+                isAntiAlias = true
+            }
+            canvas.drawText(context.getString(moe.koiverse.archivetune.R.string.top_songs), padding, yOffset + 42f, sectionPaint)
+            yOffset += 80f
+
+            val songTitlePaint = TextPaint().apply {
+                color = textColor
+                textSize = 36f
+                typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+                isAntiAlias = true
+            }
+            val songSubtitlePaint = TextPaint().apply {
+                color = secondaryColor
+                textSize = 28f
+                typeface = Typeface.DEFAULT
+                isAntiAlias = true
+            }
+
+            val imageLoader = ImageLoader(context)
+            val thumbnailSize = 100
+
+            topSongs.take(5).forEachIndexed { index, song ->
+                var songBitmap: Bitmap? = null
+                if (song.thumbnailUrl != null) {
+                    try {
+                        val request = ImageRequest.Builder(context)
+                            .data(song.thumbnailUrl)
+                            .size(thumbnailSize)
+                            .allowHardware(false)
+                            .build()
+                        val result = imageLoader.execute(request)
+                        songBitmap = result.image?.toBitmap()
+                    } catch (_: Exception) {}
+                }
+
+                songBitmap?.let {
+                    val rect = RectF(padding, yOffset, padding + thumbnailSize, yOffset + thumbnailSize)
+                    val path = Path().apply {
+                        addRoundRect(rect, 12f, 12f, Path.Direction.CW)
+                    }
+                    canvas.withClip(path) {
+                        drawBitmap(it, null, rect, null)
+                    }
+                }
+
+                val textX = padding + thumbnailSize + 20f
+                val titleText = "${index + 1}. ${song.title}"
+                val maxWidth = cardWidth - textX - padding
+                val truncatedTitle = truncateText(titleText, songTitlePaint, maxWidth)
+                canvas.drawText(truncatedTitle, textX, yOffset + 40f, songTitlePaint)
+
+                val playCount = "${song.songCountListened} plays • ${makeTimeStringForImage(song.timeListened)}"
+                canvas.drawText(playCount, textX, yOffset + 80f, songSubtitlePaint)
+
+                yOffset += thumbnailSize + 20f
+            }
+            yOffset += 40f
+        }
+
+        if (topArtists.isNotEmpty()) {
+            val sectionPaint = TextPaint().apply {
+                color = primaryColor
+                textSize = 42f
+                typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+                isAntiAlias = true
+            }
+            canvas.drawText(context.getString(moe.koiverse.archivetune.R.string.top_artists), padding, yOffset + 42f, sectionPaint)
+            yOffset += 80f
+
+            val artistPaint = TextPaint().apply {
+                color = textColor
+                textSize = 36f
+                typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+                isAntiAlias = true
+            }
+            val artistSubPaint = TextPaint().apply {
+                color = secondaryColor
+                textSize = 28f
+                typeface = Typeface.DEFAULT
+                isAntiAlias = true
+            }
+
+            topArtists.take(5).forEachIndexed { index, artist ->
+                val artistText = "${index + 1}. ${artist.artist.name}"
+                val maxWidth = cardWidth - padding * 2
+                val truncatedArtist = truncateText(artistText, artistPaint, maxWidth)
+                canvas.drawText(truncatedArtist, padding, yOffset + 36f, artistPaint)
+
+                val timeListened = artist.timeListened?.toLong() ?: 0L
+                val statsText = "${artist.songCount} plays • ${makeTimeStringForImage(timeListened)}"
+                canvas.drawText(statsText, padding, yOffset + 72f, artistSubPaint)
+
+                yOffset += 100f
+            }
+        }
+
+        AppLogo(context, canvas, cardWidth, padding, secondaryColor, backgroundColor)
+
+        return@withContext bitmap
+    }
+
+    private fun truncateText(text: String, paint: TextPaint, maxWidth: Float): String {
+        if (paint.measureText(text) <= maxWidth) return text
+        var truncated = text
+        while (truncated.isNotEmpty() && paint.measureText("$truncated...") > maxWidth) {
+            truncated = truncated.dropLast(1)
+        }
+        return "$truncated..."
+    }
+
+    private fun makeTimeStringForImage(timeMs: Long): String {
+        val totalSeconds = timeMs / 1000
+        val hours = totalSeconds / 3600
+        val minutes = (totalSeconds % 3600) / 60
+        return when {
+            hours > 0 -> "${hours}h ${minutes}m"
+            minutes > 0 -> "${minutes}m"
+            else -> "<1m"
+        }
+    }
+
     private fun AppLogo(
         context: Context,
         canvas: Canvas,

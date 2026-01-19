@@ -590,6 +590,16 @@ fun StatsScreen(
                     )
                 }
             },
+            actions = {
+                IconButton(
+                    onClick = { navController.navigate("year_in_music") }
+                ) {
+                    Icon(
+                        painterResource(R.drawable.calendar_today),
+                        contentDescription = stringResource(R.string.year_in_music),
+                    )
+                }
+            },
             colors = TopAppBarDefaults.topAppBarColors(
                 containerColor = Color.Transparent,
                 scrolledContainerColor = Color.Transparent
