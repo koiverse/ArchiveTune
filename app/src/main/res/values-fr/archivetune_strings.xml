@@ -207,4 +207,5 @@
     <string name="top_artists">Meilleurs Artistes</string>
     <string name="share_summary">Partager le résumé</string>
     <string name="no_listening_data">Aucune donnée d\'écoute pour cette année</string>
+    <string name="played">joués</string>
 </resources>
