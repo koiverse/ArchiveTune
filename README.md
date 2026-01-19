@@ -71,12 +71,16 @@
       <td><img src="https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/phoneScreenshots/screenshot_2.jpg" width="180" style="border-radius: 12px;"></td>
       <td><img src="https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/phoneScreenshots/screenshot_3.jpg" width="180" style="border-radius: 12px;"></td>
       <td><img src="https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/phoneScreenshots/screenshot_4.jpg" width="180" style="border-radius: 12px;"></td>
+      <td><img src="https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/phoneScreenshots/screenshot_5.jpg" width="180" style="border-radius: 12px;"></td>
+      <td><img src="https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/phoneScreenshots/screenshot_6.jpg" width="180" style="border-radius: 12px;"></td>
     </tr>
     <tr align="center">
-      <td><sub>Discovery</sub></td>
-      <td><sub>Hi-Fi Player</sub></td>
+      <td><sub>Player</sub></td>
       <td><sub>Live Lyrics</sub></td>
       <td><sub>Theme Customization</sub></td>
+      <td><sub>Live Statistics</sub></td>
+      <td><sub>Artist UI</sub></td>
+      <td><sub>Album UI</sub></td>
     </tr>
   </table>
 </div>
