@@ -46,6 +46,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -55,9 +56,12 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -120,28 +124,25 @@ fun YearInMusicScreen(
     val totalSongsPlayed by viewModel.totalSongsPlayed.collectAsState()
 
     var isGeneratingImage by remember { mutableStateOf(false) }
+    var isShareCaptureMode by remember { mutableStateOf(false) }
+    var shareBounds by remember { mutableStateOf<androidx.compose.ui.geometry.Rect?>(null) }
 
     val (disableBlur) = rememberPreference(DisableBlurKey, false)
-    val shareImageColors = ComposeToImage.YearInMusicImageColors(
-        background = MaterialTheme.colorScheme.surface.toArgb(),
-        surface = MaterialTheme.colorScheme.surfaceVariant.toArgb(),
-        surfaceVariant = MaterialTheme.colorScheme.surfaceVariant.toArgb(),
-        onSurface = MaterialTheme.colorScheme.onSurface.toArgb(),
-        onSurfaceVariant = MaterialTheme.colorScheme.onSurfaceVariant.toArgb(),
-        primary = MaterialTheme.colorScheme.primary.toArgb(),
-        secondary = MaterialTheme.colorScheme.secondary.toArgb(),
-        tertiary = MaterialTheme.colorScheme.tertiary.toArgb(),
-        outline = MaterialTheme.colorScheme.outline.toArgb(),
-        onPrimary = MaterialTheme.colorScheme.onPrimary.toArgb(),
-    )
     val color1 = MaterialTheme.colorScheme.primary
     val color2 = MaterialTheme.colorScheme.secondary
     val color3 = MaterialTheme.colorScheme.tertiary
     val color4 = MaterialTheme.colorScheme.primaryContainer
     val color5 = MaterialTheme.colorScheme.secondaryContainer
     val surfaceColor = MaterialTheme.colorScheme.surface
+    val view = LocalView.current
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .onGloballyPositioned { coordinates ->
+                shareBounds = coordinates.boundsInRoot()
+            }
+    ) {
         // Gradient background
         if (!disableBlur) {
             Box(
@@ -391,83 +392,109 @@ fun YearInMusicScreen(
         }
 
         if (topSongsStats.isNotEmpty() || topArtists.isNotEmpty()) {
-            FloatingActionButton(
-                onClick = {
-                    if (!isGeneratingImage) {
-                        isGeneratingImage = true
-                        coroutineScope.launch {
-                            try {
-                                val bitmap = ComposeToImage.createYearInMusicImage(
-                                    context = context,
-                                    year = selectedYear,
-                                    totalListeningTime = totalListeningTime,
-                                    topSongs = topSongsStats.take(5),
-                                    topArtists = topArtists.take(5),
-                                    colors = shareImageColors,
-                                )
-                                val uri = ComposeToImage.saveBitmapAsFile(
-                                    context,
-                                    bitmap,
-                                    "ArchiveTune_YearInMusic_$selectedYear"
-                                )
-                                val shareIntent = Intent(Intent.ACTION_SEND).apply {
-                                    type = "image/png"
-                                    putExtra(Intent.EXTRA_STREAM, uri)
-                                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                                }
-                                context.startActivity(
-                                    Intent.createChooser(
-                                        shareIntent,
-                                        context.getString(R.string.share_summary)
+            if (!isShareCaptureMode) {
+                FloatingActionButton(
+                    onClick = {
+                        if (!isGeneratingImage) {
+                            isGeneratingImage = true
+                            coroutineScope.launch {
+                                try {
+                                    isShareCaptureMode = true
+                                    withFrameNanos { }
+                                    withFrameNanos { }
+
+                                    val bg = MaterialTheme.colorScheme.surface.toArgb()
+                                    val raw = ComposeToImage.captureViewBitmap(
+                                        view = view,
+                                        backgroundColor = bg,
                                     )
-                                )
-                            } finally {
-                                isGeneratingImage = false
+                                    val bounds = shareBounds
+                                    val cropped =
+                                        if (bounds != null) {
+                                            ComposeToImage.cropBitmap(
+                                                source = raw,
+                                                left = bounds.left.toInt(),
+                                                top = bounds.top.toInt(),
+                                                width = bounds.width.toInt(),
+                                                height = bounds.height.toInt(),
+                                            )
+                                        } else {
+                                            raw
+                                        }
+                                    val fitted = ComposeToImage.fitBitmap(
+                                        source = cropped,
+                                        targetWidth = 1080,
+                                        targetHeight = 1920,
+                                        backgroundColor = bg,
+                                    )
+
+                                    val uri = ComposeToImage.saveBitmapAsFile(
+                                        context,
+                                        fitted,
+                                        "ArchiveTune_YearInMusic_$selectedYear"
+                                    )
+                                    val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                                        type = "image/png"
+                                        putExtra(Intent.EXTRA_STREAM, uri)
+                                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                    }
+                                    context.startActivity(
+                                        Intent.createChooser(
+                                            shareIntent,
+                                            context.getString(R.string.share_summary)
+                                        )
+                                    )
+                                } finally {
+                                    isShareCaptureMode = false
+                                    isGeneratingImage = false
+                                }
                             }
                         }
+                    },
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(16.dp)
+                        .windowInsetsPadding(
+                            LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Bottom)
+                        ),
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                ) {
+                    if (isGeneratingImage) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp),
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Icon(
+                            painter = painterResource(R.drawable.share),
+                            contentDescription = stringResource(R.string.share_summary)
+                        )
                     }
-                },
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(16.dp)
-                    .windowInsetsPadding(
-                        LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Bottom)
-                    ),
-                containerColor = MaterialTheme.colorScheme.primaryContainer,
-                contentColor = MaterialTheme.colorScheme.onPrimaryContainer
-            ) {
-                if (isGeneratingImage) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(24.dp),
-                        strokeWidth = 2.dp
-                    )
-                } else {
-                    Icon(
-                        painter = painterResource(R.drawable.share),
-                        contentDescription = stringResource(R.string.share_summary)
-                    )
                 }
             }
         }
 
-        TopAppBar(
-            title = { Text(stringResource(R.string.year_in_music)) },
-            navigationIcon = {
-                IconButton(
-                    onClick = navController::navigateUp,
-                    onLongClick = navController::backToMain
-                ) {
-                    Icon(
-                        painterResource(R.drawable.arrow_back),
-                        contentDescription = null
-                    )
-                }
-            },
-            colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = Color.Transparent,
-                scrolledContainerColor = Color.Transparent
+        if (!isShareCaptureMode) {
+            TopAppBar(
+                title = { Text(stringResource(R.string.year_in_music)) },
+                navigationIcon = {
+                    IconButton(
+                        onClick = navController::navigateUp,
+                        onLongClick = navController::backToMain
+                    ) {
+                        Icon(
+                            painterResource(R.drawable.arrow_back),
+                            contentDescription = null
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.Transparent,
+                    scrolledContainerColor = Color.Transparent
+                )
             )
-        )
+        }
     }
 }
 

@@ -21,6 +21,8 @@ import coil3.ImageLoader
 import coil3.request.ImageRequest
 import coil3.request.allowHardware
 import coil3.toBitmap
+import android.view.View
+import androidx.core.view.drawToBitmap
 import moe.koiverse.archivetune.R
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -59,6 +61,69 @@ object ComposeToImage {
                 )
             }
         }
+    }
+
+    fun captureViewBitmap(
+        view: View,
+        targetWidth: Int? = null,
+        targetHeight: Int? = null,
+        backgroundColor: Int? = null,
+    ): Bitmap {
+        val original = view.drawToBitmap()
+        val needsScale =
+            (targetWidth != null && targetWidth > 0 && targetWidth != original.width) ||
+            (targetHeight != null && targetHeight > 0 && targetHeight != original.height)
+        val base = if (needsScale) {
+            val tw = targetWidth ?: original.width
+            val th = targetHeight ?: (original.height * tw / original.width)
+            Bitmap.createScaledBitmap(original, tw, th, true)
+        } else {
+            original
+        }
+        if (backgroundColor != null) {
+            val out = Bitmap.createBitmap(base.width, base.height, Bitmap.Config.ARGB_8888)
+            val c = Canvas(out)
+            c.drawColor(backgroundColor)
+            c.drawBitmap(base, 0f, 0f, null)
+            return out
+        }
+        return base
+    }
+
+    fun cropBitmap(source: Bitmap, left: Int, top: Int, width: Int, height: Int): Bitmap {
+        val safeLeft = left.coerceIn(0, source.width.coerceAtLeast(1) - 1)
+        val safeTop = top.coerceIn(0, source.height.coerceAtLeast(1) - 1)
+        val safeWidth = width.coerceIn(1, source.width - safeLeft)
+        val safeHeight = height.coerceIn(1, source.height - safeTop)
+        return Bitmap.createBitmap(source, safeLeft, safeTop, safeWidth, safeHeight)
+    }
+
+    fun fitBitmap(
+        source: Bitmap,
+        targetWidth: Int,
+        targetHeight: Int,
+        backgroundColor: Int,
+    ): Bitmap {
+        val out = Bitmap.createBitmap(targetWidth, targetHeight, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(out)
+        canvas.drawColor(backgroundColor)
+
+        val scale = minOf(
+            targetWidth.toFloat() / source.width.coerceAtLeast(1),
+            targetHeight.toFloat() / source.height.coerceAtLeast(1),
+        )
+        val scaledW = (source.width * scale).toInt().coerceAtLeast(1)
+        val scaledH = (source.height * scale).toInt().coerceAtLeast(1)
+        val scaled = if (scaledW != source.width || scaledH != source.height) {
+            Bitmap.createScaledBitmap(source, scaledW, scaledH, true)
+        } else {
+            source
+        }
+
+        val dx = ((targetWidth - scaled.width) / 2f)
+        val dy = ((targetHeight - scaled.height) / 2f)
+        canvas.drawBitmap(scaled, dx, dy, null)
+        return out
     }
 
     @RequiresApi(Build.VERSION_CODES.M)
