@@ -2,6 +2,8 @@ package moe.koiverse.archivetune.ui.screens
 
 import android.content.Intent
 import android.graphics.Bitmap
+import android.view.View
+import android.view.ViewTreeObserver
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -46,7 +48,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -75,6 +76,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil3.compose.AsyncImage
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
 import moe.koiverse.archivetune.LocalPlayerAwareWindowInsets
 import moe.koiverse.archivetune.LocalPlayerConnection
 import moe.koiverse.archivetune.R
@@ -98,6 +100,7 @@ import moe.koiverse.archivetune.utils.joinByBullet
 import moe.koiverse.archivetune.utils.makeTimeString
 import moe.koiverse.archivetune.utils.rememberPreference
 import moe.koiverse.archivetune.viewmodels.YearInMusicViewModel
+import kotlin.coroutines.resume
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -134,6 +137,7 @@ fun YearInMusicScreen(
     val color4 = MaterialTheme.colorScheme.primaryContainer
     val color5 = MaterialTheme.colorScheme.secondaryContainer
     val surfaceColor = MaterialTheme.colorScheme.surface
+    val shareBackgroundArgb = surfaceColor.toArgb()
     val view = LocalView.current
 
     Box(
@@ -400,13 +404,12 @@ fun YearInMusicScreen(
                             coroutineScope.launch {
                                 try {
                                     isShareCaptureMode = true
-                                    withFrameNanos { }
-                                    withFrameNanos { }
+                                    awaitNextPreDraw(view)
+                                    awaitNextPreDraw(view)
 
-                                    val bg = MaterialTheme.colorScheme.surface.toArgb()
                                     val raw = ComposeToImage.captureViewBitmap(
                                         view = view,
-                                        backgroundColor = bg,
+                                        backgroundColor = shareBackgroundArgb,
                                     )
                                     val bounds = shareBounds
                                     val cropped =
@@ -425,7 +428,7 @@ fun YearInMusicScreen(
                                         source = cropped,
                                         targetWidth = 1080,
                                         targetHeight = 1920,
-                                        backgroundColor = bg,
+                                        backgroundColor = shareBackgroundArgb,
                                     )
 
                                     val uri = ComposeToImage.saveBitmapAsFile(
@@ -495,6 +498,24 @@ fun YearInMusicScreen(
                 )
             )
         }
+    }
+}
+
+private suspend fun awaitNextPreDraw(view: View) {
+    suspendCancellableCoroutine { cont ->
+        val vto = view.viewTreeObserver
+        val listener = object : ViewTreeObserver.OnPreDrawListener {
+            override fun onPreDraw(): Boolean {
+                if (vto.isAlive) vto.removeOnPreDrawListener(this)
+                cont.resume(Unit)
+                return true
+            }
+        }
+        vto.addOnPreDrawListener(listener)
+        cont.invokeOnCancellation {
+            if (vto.isAlive) vto.removeOnPreDrawListener(listener)
+        }
+        view.invalidate()
     }
 }
 
