@@ -592,7 +592,8 @@ private fun ThemeRichPreview(
     palette: ThemeSeedPalette,
     modifier: Modifier = Modifier,
 ) {
-    var isDark by rememberSaveable { mutableStateOf(isSystemInDarkTheme()) }
+    val systemDark = isSystemInDarkTheme()
+    var isDark by rememberSaveable { mutableStateOf(systemDark) }
 
     val animatedPrimary by animateColorAsState(palette.primary, animationSpec = spring(stiffness = Spring.StiffnessMediumLow), label = "richPreviewPrimary")
     val animatedSecondary by animateColorAsState(palette.secondary, animationSpec = spring(stiffness = Spring.StiffnessMediumLow), label = "richPreviewSecondary")
