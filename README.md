@@ -24,6 +24,9 @@
     <img src="https://img.shields.io/github/stars/koiverse/ArchiveTune?style=for-the-badge&color=6366f1&labelColor=1e1e2e&logo=github" alt="Stars" />
     <img src="https://img.shields.io/github/license/koiverse/ArchiveTune?style=for-the-badge&color=6366f1&labelColor=1e1e2e" alt="License" />
     <img src="https://img.shields.io/badge/Architecture-MVVM-6366f1?style=for-the-badge&labelColor=1e1e2e&logo=kotlin" alt="MVVM Architecture" />
+    <img src="https://img.shields.io/badge/Language-Kotlin-7f52ff?style=for-the-badge&logo=kotlin&color=6366f1&labelColor=1e1e2e" alt="Kotlin Language" />
+    <img src="https://img.shields.io/badge/Toolkit-Jetpack_Compose-4285f4?style=for-the-badge&logo=jetpack-compose&color=6366f1&labelColor=1e1e2e" alt="Jetpack Compose Toolkit" />
+    <img src="https://img.shields.io/badge/Design-Material_3-000000?style=for-the-badge&logo=material-design&color=6366f1&labelColor=1e1e2e" alt="Material Design 3" />
   </div>
   
   <br />
@@ -56,7 +59,7 @@
 * **System EQ Bridge:** Seamlessly integrates with system-level equalizers and spatial audio.
 
 ### 🎨 Visual & Identity
-* **Material You (M3):** The UI breathes through your wallpaper’s color palette.
+* **Material You (MD3E):** The UI breathes through your wallpaper’s color palette.
 * **Synced Lyrics:** Beautiful, word-by-word playback with translation & romanization.
 * **Music Insights:** Native "Year in Review" and real-time listening statistics.
 * **Discord RPC:** Show the world your vibe with high-quality Rich Presence.
@@ -77,7 +80,7 @@
       <td><sub>Discovery</sub></td>
       <td><sub>Hi-Fi Player</sub></td>
       <td><sub>Live Lyrics</sub></td>
-      <td><sub>Curated Library</sub></td>
+      <td><sub>Theme Customization</sub></td>
     </tr>
   </table>
 </div>
@@ -134,10 +137,6 @@ ArchiveTune is an independent third-party client.
 
 <div align="center">
   <p><b>If ArchiveTune elevated your music experience, please consider giving us a ⭐</b></p>
-  <img src="https://img.shields.io/badge/Language-Kotlin-7f52ff?style=for-the-badge&logo=kotlin" />
-  <img src="https://img.shields.io/badge/Toolkit-Jetpack_Compose-4285f4?style=for-the-badge&logo=jetpack-compose" />
-  <img src="https://img.shields.io/badge/Design-Material_3-000000?style=for-the-badge&logo=material-design" />
-  <br />
   <br />
   Made with 💜 by <strong>Koiverse</strong>
 </div>
