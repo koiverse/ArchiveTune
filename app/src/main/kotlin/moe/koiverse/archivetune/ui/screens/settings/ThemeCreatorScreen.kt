@@ -298,11 +298,11 @@ fun ThemeCreatorScreen(
                 .windowInsetsPadding(LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom))
                 .verticalScroll(rememberScrollState()),
         ) {
-            Spacer(modifier = Modifier.windowInsetsPadding(LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Top)))
-
             ThemeHeroPreview(
                 palette = currentPalette,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                modifier = Modifier
+                    .padding(horizontal = 16.dp)
+                    .padding(bottom = 12.dp),
             )
             ThemeRichPreview(
                 palette = currentPalette,
