@@ -89,11 +89,25 @@
 
 ## 📥 Installation
 
-| Platform | Channel | Status |
-| :--- | :--- | :--- |
-| **GitHub Releases** | [**Download APK**](https://github.com/koiverse/ArchiveTune/releases/latest) | `Stable / Recommended` |
-| **IzzyOnDroid** | [**F-Droid Repo**](https://apt.izzysoft.de/fdroid/index/apk/moe.koiverse.archivetune) | `Updated` |
-| **OpenAPK** | [**Direct Install**](https://www.openapk.net/archivetune/moe.koiverse.archivetune/) | `Available` |
+<div align="center">
+  <tr>
+    <td align="center">
+      <a href="https://github.com/koiverse/ArchiveTune/releases/latest">
+        <img src="https://raw.githubusercontent.com/koiverse/ArchiveTune/refs/heads/main/assets/badge_github.png" height="40" alt="Get it on GitHub">
+      </a>
+    </td>
+    <td align="center">
+      <a href="https://apt.izzysoft.de/fdroid/index/apk/moe.koiverse.archivetune">
+        <img src="https://raw.githubusercontent.com/koiverse/ArchiveTune/757d5932832e1da27ced56de98c5ad1275cf0db1/assets/IzzyOnDroidButtonBorder.svg" height="40" alt="Get it on IzzyOnDroid">
+      </a>
+    </td>
+    <td align="center">
+      <a href="https://www.openapk.net/archivetune/moe.koiverse.archivetune/">
+        <img src="https://www.openapk.net/images/openapk-badge.png" height="60" alt="Get it on OpenAPK">
+      </a>
+    </td>
+  </tr>
+</div>
 
 > [!IMPORTANT]  
 > **Geographic Availability:** If YouTube Music is not supported in your region, a VPN or Proxy set to a supported region is required for initial data fetching.
@@ -114,6 +128,10 @@ ArchiveTune belongs to everyone. Help us localize the experience for your region
 <a href="https://github.com/koiverse/ArchiveTune/graphs/contributors">
   <img src="https://contrib.rocks/image?repo=koiverse/ArchiveTune" />
 </a>
+
+### 🛠️ Development & Engineering
+Interested in building the project or contributing? ArchiveTune is built on a high-performance Kotlin stack.
+<a href="BUILDING.md"><b>Read the Build & Contribution Guide →</b></a>
 
 ---
 
