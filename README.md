@@ -1,157 +1,143 @@
 <div align="center">
-	<img width="150" height="150" src="https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/icon.png" alt="Archivetune">
-	<br>
-	<div>
-		<br>
-		<h2>
-			<a href="https:/archivetune.koiiverse.cloud">ArchiveTune</a>
-			<br>
-      <br>
-			<sup>Experience YouTube Music Like Never Before with Advanced Features</sup>
-		</h2>
-    <a href="https://trendshift.io/repositories/17521" target="_blank"><img src="https://trendshift.io/api/badge/repositories/17521" alt="koiverse%2FArchiveTune | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
-	</div>
-	<hr>
+
+  <img src="https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/icon.png" width="160" height="160" alt="ArchiveTune Logo" style="border-radius: 22%">
+
+  <h1>ArchiveTune</h1>
+
+  <p align="center">
+    <strong>Redefining the YouTube Music Experience on Android.</strong>
+    <br />
+    <em>High-performance. Privacy-centric. Audiophile-grade features.</em>
+  </p>
+
+  <p align="center">
+    <a href="https://archivetune.koiiverse.cloud"><b>Official Website</b></a> •
+    <a href="#-key-highlights"><b>Features</b></a> •
+    <a href="#-installation"><b>Download</b></a> •
+    <a href="#-showcase"><b>Showcase</b></a> •
+    <a href="https://github.com/koiverse/ArchiveTune/issues/new/choose"><b>Support</b></a>
+  </p>
+
+  <div align="center">
+    <img src="https://img.shields.io/github/v/release/koiverse/ArchiveTune?style=for-the-badge&color=6366f1&labelColor=1e1e2e&logo=github" alt="Latest Version" />
+    <img src="https://img.shields.io/github/downloads/koiverse/ArchiveTune/total?style=for-the-badge&color=6366f1&labelColor=1e1e2e&logo=github" alt="Downloads" />
+    <img src="https://img.shields.io/github/stars/koiverse/ArchiveTune?style=for-the-badge&color=6366f1&labelColor=1e1e2e&logo=github" alt="Stars" />
+    <img src="https://img.shields.io/github/license/koiverse/ArchiveTune?style=for-the-badge&color=6366f1&labelColor=1e1e2e" alt="License" />
+    <img src="https://img.shields.io/badge/Architecture-MVVM-6366f1?style=for-the-badge&labelColor=1e1e2e&logo=kotlin" alt="MVVM Architecture" />
+  </div>
+  
+  <br />
+
+  <a href="https://trendshift.io/repositories/17521" target="_blank">
+    <img src="https://trendshift.io/api/badge/repositories/17521" alt="ArchiveTune | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/>
+  </a>
 </div>
 
-[![Latest release](https://img.shields.io/github/v/release/koiverse/ArchiveTune?style=for-the-badge&include_prereleases)](https://github.com/koiverse/ArchiveTune/releases)
-[![GitHub license](https://img.shields.io/github/license/koiverse/ArchiveTune?style=for-the-badge)](https://github.com/koiverse/ArchiveTune/blob/main/LICENSE)
-[![Downloads](https://img.shields.io/github/downloads/koiverse/ArchiveTune/total?style=for-the-badge)](https://github.com/koiverse/ArchiveTune/releases)
-![IzzyDroid](https://shields.rbtlog.dev/simple/moe.koiverse.archivetune?style=for-the-badge)
+<hr />
 
+## 🎯 The Vision
 
-<table>
-  <tr>
-    <td align="center">
-      <a href="https://github.com/koiverse/ArchiveTune/releases/latest">
-        <img src="https://raw.githubusercontent.com/koiverse/ArchiveTune/refs/heads/main/assets/badge_github.png" height="40" alt="Get it on GitHub">
-      </a>
-    </td>
-    <td align="center">
-      <a href="https://apt.izzysoft.de/fdroid/index/apk/moe.koiverse.archivetune">
-        <img src="https://raw.githubusercontent.com/koiverse/ArchiveTune/757d5932832e1da27ced56de98c5ad1275cf0db1/assets/IzzyOnDroidButtonBorder.svg" height="40" alt="Get it on IzzyOnDroid">
-      </a>
-    </td>
-    <td align="center">
-      <a href="https://www.openapk.net/archivetune/moe.koiverse.archivetune/">
-        <img src="https://www.openapk.net/images/openapk-badge.png" height="60" alt="Get it on OpenAPK">
-      </a>
-    </td>
-  </tr>
-</table>
+**ArchiveTune** isn't just a wrapper—it's a precision-engineered music ecosystem. We believe your music library should be private, beautiful, and powerful. Designed for power users who refuse to compromise on audio quality or UI aesthetics.
 
+---
 
+## ⚡ Key Highlights
 
+### 🚀 Core Experience
+* **Ad-Free Core:** A pure, uninterrupted listening experience.
+* **Deep Library Sync:** Instant access to your Liked Songs, Playlists, and Subscriptions.
+* **Smart Caching:** High-speed playback with intelligent data management.
+* **Background Mastery:** Optimized background playback that respects your battery.
 
-> [!WARNING]
-> ArchiveTune is in a "stable beta" phase. While this app can certainly be used as your main music player, be aware there is a possibility of bugs, incomplete features, or any other unexpected behaviour.
+### 🎚️ Professional Audio Suite
+* **Loudness Normalization:** Industry-standard volume leveling (EBU R128).
+* **Precision Control:** On-the-fly **Tempo & Pitch** manipulation for musicians and DJs.
+* **The "Gapless" Flow:** Integrated **Crossfade** and **Silence Skipping**.
+* **System EQ Bridge:** Seamlessly integrates with system-level equalizers and spatial audio.
 
-> [!WARNING]
-> If you're in a region where YouTube Music is not supported, you won't be able to use this app unless you have a proxy or VPN to connect to a YTM-supported region.
+### 🎨 Visual & Identity
+* **Material You (M3):** The UI breathes through your wallpaper’s color palette.
+* **Synced Lyrics:** Beautiful, word-by-word playback with translation & romanization.
+* **Music Insights:** Native "Year in Review" and real-time listening statistics.
+* **Discord RPC:** Show the world your vibe with high-quality Rich Presence.
 
+---
 
-## Features
-
-**🎧 YouTube Music, Supercharged**
-
-* **Seamless Playback:** No ads & background playback.
-* **Library Sync:** Sign in to instantly access your liked songs, albums, artists, and playlists.
-* **Deep Integration:** Open YouTube and YouTube Music links directly within the app.
-* **Smart Organization:** Manage and sort your playlists with custom tags.
-
-**💾 Powerful Offline Mode**
-
-* **Download Anything:** Save songs, albums, and playlists for data-free listening.
-* **Background Management:** Reliable background downloading with progress notifications and batch management.
-
-**🎚️ Pro Audio Controls**
-
-* **Audio Suite:** Includes tempo & pitch controls, silence skipping, and crossfade.
-* **Volume Normalization:** Consistent volume levels using track loudness metadata.
-* **System Integration:** Full support for the system Equalizer and audio effects.
-
-**🎤 Immersive Lyrics**
-
-* **Karaoke Style:** Time-synced lyrics with word-by-word (LRC/TTML) support.
-* **Global Access:** Built-in translation and romanization features.
-* **Shareable Cards:** Generate and share beautiful lyric images.
-
-**🔁 Advanced Playback**
-
-* **Dynamic Queues:** Support for library, playlist, and radio-style queues.
-* **Queue Mastery:** Drag-and-drop reordering, quick actions, and sleep timer.
-
-**🔌 Ecosystem & Integrations**
-
-* **Connect Everywhere:** Android Auto support and customizable Discord Rich Presence.
-* **Scrobbling:** Auto-sync listening history to Last.fm and ListenBrainz.
-* **Insights:** View listening statistics and "Year in Review" summaries.
-
-**✨ Design & System**
-
-* **Material You:** Modern Material 3 interface with Dynamic Color theming.
-* **Customizable:** Extensive theme engine to match your style.
-* **Stay Updated:** Built-in updater to easily manage new versions directly in-app.
-
-
-> [!NOTE]
-> Android 8 (Oreo) and higher is supported. While the app may work on Android 7.x (Nougat), we do not officially support this version
+## 📸 Showcase
 
 <div align="center">
-<h1>ArchiveTune Screenshots</h1>
-
-  <img src="https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/phoneScreenshots/screenshot_1.jpg" width="30%" />
-  <img src="https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/phoneScreenshots/screenshot_2.jpg" width="30%" />
-  <img src="https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/phoneScreenshots/screenshot_3.jpg" width="30%" />
-  <img src="https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/phoneScreenshots/screenshot_4.jpg" width="30%" />
-  <img src="https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/phoneScreenshots/screenshot_5.jpg" width="30%" />
-  <img src="https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/phoneScreenshots/screenshot_6.jpg" width="30%" />
-</p>
+  <table border="0">
+    <tr>
+      <td><img src="https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/phoneScreenshots/screenshot_1.jpg" width="180" style="border-radius: 12px;"></td>
+      <td><img src="https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/phoneScreenshots/screenshot_2.jpg" width="180" style="border-radius: 12px;"></td>
+      <td><img src="https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/phoneScreenshots/screenshot_3.jpg" width="180" style="border-radius: 12px;"></td>
+      <td><img src="https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/phoneScreenshots/screenshot_4.jpg" width="180" style="border-radius: 12px;"></td>
+    </tr>
+    <tr align="center">
+      <td><sub>Discovery</sub></td>
+      <td><sub>Hi-Fi Player</sub></td>
+      <td><sub>Live Lyrics</sub></td>
+      <td><sub>Curated Library</sub></td>
+    </tr>
+  </table>
 </div>
 
+---
+
+## 📥 Installation
+
+| Platform | Channel | Status |
+| :--- | :--- | :--- |
+| **GitHub Releases** | [**Download APK**](https://github.com/koiverse/ArchiveTune/releases/latest) | `Stable / Recommended` |
+| **IzzyOnDroid** | [**F-Droid Repo**](https://apt.izzysoft.de/fdroid/index/apk/moe.koiverse.archivetune) | `Updated` |
+| **OpenAPK** | [**Direct Install**](https://www.openapk.net/archivetune/moe.koiverse.archivetune/) | `Available` |
+
+> [!IMPORTANT]  
+> **Geographic Availability:** If YouTube Music is not supported in your region, a VPN or Proxy set to a supported region is required for initial data fetching.
+
+---
+
+## 🌍 Globalization
+
+ArchiveTune belongs to everyone. Help us localize the experience for your region.
+
 <div align="center">
-<h1>Translations</h1>
-
-[![Status penerjemahan](https://translate.codeberg.org/widget/archivetune/287x66-grey.png)](https://translate.codeberg.org/engage/archivetune/)
-
-We use Codeberg to translate ArchiveTune. For more details or to get started, visit our [ArchiveTune page](https://translate.codeberg.org/projects/archivetune/).
-
-<a href="https://translate.codeberg.org/projects/archivetune/">
-<img src="https://translate.codeberg.org/widget/archivetune/horizontal-blue.svg" alt="Translation status" />
-</a>
-
-Thank you very much for helping to make ArchiveTune accessible to many people worldwide.
+  <a href="https://translate.codeberg.org/engage/archivetune/">
+    <img src="https://translate.codeberg.org/widget/archivetune/horizontal-blue.svg" alt="Translation status" />
+  </a>
 </div>
 
-<div align="center">
-<h1>Credits & Acknowledgments</h1>
-
-ArchiveTune is a derivative work based on [**Metrolist**](https://github.com/mostafaalagamy/Metrolist) by **Mostafa Alagamy**.
-
-Additional acknowledgments:
-- [**Kizzy**](https://github.com/dead8309/Kizzy) – for the Discord Rich Presence implementation and inspiration.
-- The open-source community for tools, libraries, and APIs that make this project possible.
-</div>
-
-<div align="center">
-<h1>Awesome Contributors</h1>
+### ✨ Project Contributors
 <a href="https://github.com/koiverse/ArchiveTune/graphs/contributors">
   <img src="https://contrib.rocks/image?repo=koiverse/ArchiveTune" />
 </a>
-</div>
+
+---
+
+## 🤝 Acknowledgments
+
+We stand on the shoulders of open-source giants:
+- **Metrolist** by [Mostafa Alagamy](https://github.com/mostafaalagamy/Metrolist) (Base framework).
+- **Kizzy** by [dead8309](https://github.com/dead8309/Kizzy) (Discord Logic).
+- The global community of translators and beta testers.
+
+---
+
+## ⚖️ Legal Disclaimer
+
+ArchiveTune is an independent third-party client.
+- Not affiliated with Google LLC or YouTube.
+- Does not bypass YouTube's technical protections.
+- Users are encouraged to support artists by purchasing music via official channels.
+
+---
 
 <div align="center">
-<h1>Disclaimer</h1>
-</div>
-
-This project and its contents are not affiliated with, funded, authorized, endorsed by, or in any way associated with YouTube, Google LLC, ArchiveTune Group LLC or any of its affiliates and subsidiaries.
-
-Any trademark, service mark, trade name, or other intellectual property rights used in this project are owned by the respective owners.
-
-
-<div align="center">
-Made with ❤️ by <strong>Koiverse</strong>
-</div>
-<div align="center">
-Give a ⭐ if you like it, there's no harm in giving a ⭐ as support, right?
+  <p><b>If ArchiveTune elevated your music experience, please consider giving us a ⭐</b></p>
+  <img src="https://img.shields.io/badge/Language-Kotlin-7f52ff?style=for-the-badge&logo=kotlin" />
+  <img src="https://img.shields.io/badge/Toolkit-Jetpack_Compose-4285f4?style=for-the-badge&logo=jetpack-compose" />
+  <img src="https://img.shields.io/badge/Design-Material_3-000000?style=for-the-badge&logo=material-design" />
+  <br />
+  <br />
+  Made with 💜 by <strong>Koiverse</strong>
 </div>
