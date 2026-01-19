@@ -141,8 +141,12 @@ Interested in building the project or contributing? ArchiveTune is built on a hi
 ## 🤝 Acknowledgments
 
 We stand on the shoulders of open-source giants:
-- **Metrolist** by [Mostafa Alagamy](https://github.com/mostafaalagamy/Metrolist) (Base framework).
-- **Kizzy** by [dead8309](https://github.com/dead8309/Kizzy) (Discord Logic).
+- **Metrolist** by [Mostafa Alagamy](https://github.com/mostafaalagamy/Metrolist) For Base framework.
+- **Kizzy** by [dead8309](https://github.com/dead8309/Kizzy) For Discord Integration.
+- **SimpMusic** by [maxrave-dev](https://github.com/maxrave-dev/SimpMusic) For Lyrics API Provider.
+- [BetterLyrics](https://better-lyrics.boidu.dev/) For word-by-word Lyrics API Provider.
+- [Material Color Utilities](https://github.com/material-foundation/material-color-utilities)
+- [Read You](https://github.com/Ashinch/ReadYou) and [Seal](https://github.com/JunkFood02/Seal) for Ui Components.
 - The global community of translators and beta testers.
 
 ---
