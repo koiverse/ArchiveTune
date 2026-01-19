@@ -9,13 +9,16 @@ import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.only
@@ -29,21 +32,37 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.AssistChip
+import androidx.compose.material3.AssistChipDefaults
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ElevatedButton
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -278,6 +297,10 @@ fun ThemeCreatorScreen(
             Spacer(modifier = Modifier.windowInsetsPadding(LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Top)))
 
             ThemeHeroPreview(
+                palette = currentPalette,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+            )
+            ThemeRichPreview(
                 palette = currentPalette,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
             )
@@ -561,6 +584,552 @@ private fun ThemeHeroPreview(
             }
         }
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ThemeRichPreview(
+    palette: ThemeSeedPalette,
+    modifier: Modifier = Modifier,
+) {
+    var isDark by rememberSaveable { mutableStateOf(isSystemInDarkTheme()) }
+
+    val animatedPrimary by animateColorAsState(palette.primary, animationSpec = spring(stiffness = Spring.StiffnessMediumLow), label = "richPreviewPrimary")
+    val animatedSecondary by animateColorAsState(palette.secondary, animationSpec = spring(stiffness = Spring.StiffnessMediumLow), label = "richPreviewSecondary")
+    val animatedTertiary by animateColorAsState(palette.tertiary, animationSpec = spring(stiffness = Spring.StiffnessMediumLow), label = "richPreviewTertiary")
+    val animatedNeutral by animateColorAsState(palette.neutral, animationSpec = spring(stiffness = Spring.StiffnessMediumLow), label = "richPreviewNeutral")
+
+    ArchiveTuneTheme(
+        darkTheme = isDark,
+        seedPalette = ThemeSeedPalette(animatedPrimary, animatedSecondary, animatedTertiary, animatedNeutral),
+    ) {
+        val localScope = rememberCoroutineScope()
+        val scrollState = rememberScrollState()
+
+        var navSelected by rememberSaveable { mutableStateOf(0) }
+        var chipSelected by rememberSaveable { mutableStateOf(true) }
+        var switchOn by rememberSaveable { mutableStateOf(true) }
+        var checkboxOn by rememberSaveable { mutableStateOf(true) }
+        var radioSelected by rememberSaveable { mutableStateOf(0) }
+        var sliderValue by rememberSaveable { mutableStateOf(0.62f) }
+        var query by rememberSaveable { mutableStateOf("ArchiveTune") }
+
+        Card(
+            modifier = modifier
+                .fillMaxWidth()
+                .height(560.dp)
+                .shadow(18.dp, RoundedCornerShape(26.dp)),
+            shape = RoundedCornerShape(26.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        ) {
+            Box(Modifier.fillMaxSize()) {
+                val glow =
+                    Brush.linearGradient(
+                        colors = listOf(
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.22f),
+                            MaterialTheme.colorScheme.tertiary.copy(alpha = 0.12f),
+                            Color.Transparent,
+                        )
+                    )
+                Box(
+                    Modifier
+                        .matchParentSize()
+                        .background(glow)
+                )
+
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalScroll(scrollState)
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp),
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                    ) {
+                        Column(Modifier.weight(1f)) {
+                            Text(
+                                text = stringResource(R.string.theme_preview),
+                                style = MaterialTheme.typography.titleMedium,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                            Text(
+                                text = "Components & surfaces",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                        Surface(
+                            shape = RoundedCornerShape(999.dp),
+                            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(4.dp),
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                PreviewSegment(
+                                    selected = !isDark,
+                                    text = "Light",
+                                    onClick = { isDark = false },
+                                )
+                                PreviewSegment(
+                                    selected = isDark,
+                                    text = "Dark",
+                                    onClick = { isDark = true },
+                                )
+                            }
+                        }
+                    }
+
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(22.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+                    ) {
+                        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Surface(
+                                    shape = CircleShape,
+                                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                                ) {
+                                    Icon(
+                                        painter = painterResource(R.drawable.arrow_back),
+                                        contentDescription = null,
+                                        modifier = Modifier.padding(10.dp).size(18.dp),
+                                    )
+                                }
+                                Spacer(Modifier.width(10.dp))
+                                Text(
+                                    text = "Premium look",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    modifier = Modifier.weight(1f),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                                BadgedBox(
+                                    badge = { Badge { Text("3") } },
+                                ) {
+                                    Surface(
+                                        shape = CircleShape,
+                                        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                                    ) {
+                                        Icon(
+                                            painter = painterResource(R.drawable.notifications_unread),
+                                            contentDescription = null,
+                                            modifier = Modifier.padding(10.dp).size(18.dp),
+                                        )
+                                    }
+                                }
+                                Spacer(Modifier.width(8.dp))
+                                Surface(
+                                    shape = CircleShape,
+                                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                                ) {
+                                    Icon(
+                                        painter = painterResource(R.drawable.more_vert),
+                                        contentDescription = null,
+                                        modifier = Modifier.padding(10.dp).size(18.dp),
+                                    )
+                                }
+                            }
+
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(20.dp),
+                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(12.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                ) {
+                                    Box(
+                                        Modifier
+                                            .size(52.dp)
+                                            .clip(RoundedCornerShape(18.dp))
+                                            .background(
+                                                Brush.linearGradient(
+                                                    listOf(
+                                                        MaterialTheme.colorScheme.primary,
+                                                        MaterialTheme.colorScheme.tertiary,
+                                                    )
+                                                )
+                                            )
+                                    )
+                                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                        Text(
+                                            text = "Now playing",
+                                            style = MaterialTheme.typography.titleSmall,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis,
+                                        )
+                                        Text(
+                                            text = "Hues, contrasts, and elevation",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis,
+                                        )
+                                    }
+                                    Surface(
+                                        shape = CircleShape,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        shadowElevation = 4.dp,
+                                    ) {
+                                        Icon(
+                                            painter = painterResource(R.drawable.play),
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.onPrimary,
+                                            modifier = Modifier.padding(10.dp).size(20.dp),
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(22.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+                    ) {
+                        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            PreviewSectionTitle("Buttons")
+                            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+                                Button(
+                                    onClick = { },
+                                    modifier = Modifier.weight(1f),
+                                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp),
+                                ) {
+                                    Text("Primary")
+                                }
+                                ElevatedButton(
+                                    onClick = { },
+                                    modifier = Modifier.weight(1f),
+                                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp),
+                                ) {
+                                    Text("Elevated")
+                                }
+                            }
+                            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+                                OutlinedButton(
+                                    onClick = { },
+                                    modifier = Modifier.weight(1f),
+                                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp),
+                                ) {
+                                    Text("Outlined")
+                                }
+                                TextButton(
+                                    onClick = {
+                                        localScope.launch {
+                                            chipSelected = !chipSelected
+                                        }
+                                    },
+                                    modifier = Modifier.weight(1f),
+                                ) {
+                                    Text("Text")
+                                }
+                            }
+                        }
+                    }
+
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(22.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+                    ) {
+                        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            PreviewSectionTitle("Chips")
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .horizontalScroll(rememberScrollState()),
+                                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                AssistChip(
+                                    onClick = { },
+                                    label = { Text("Assist") },
+                                    leadingIcon = {
+                                        Icon(painter = painterResource(R.drawable.tune), contentDescription = null, modifier = Modifier.size(18.dp))
+                                    },
+                                    colors = AssistChipDefaults.assistChipColors(
+                                        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                                        labelColor = MaterialTheme.colorScheme.onSurface,
+                                        leadingIconContentColor = MaterialTheme.colorScheme.onSurface,
+                                    ),
+                                )
+                                FilterChip(
+                                    selected = chipSelected,
+                                    onClick = { chipSelected = !chipSelected },
+                                    label = { Text(if (chipSelected) "Selected" else "Filter") },
+                                    leadingIcon = {
+                                        Icon(
+                                            painter = painterResource(if (chipSelected) R.drawable.check else R.drawable.filter_alt),
+                                            contentDescription = null,
+                                            modifier = Modifier.size(18.dp),
+                                        )
+                                    },
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                        selectedLabelColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                                        selectedLeadingIconColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                                    ),
+                                )
+                                AssistChip(
+                                    onClick = { },
+                                    label = { Text("Tertiary") },
+                                    colors = AssistChipDefaults.assistChipColors(
+                                        containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                                        labelColor = MaterialTheme.colorScheme.onTertiaryContainer,
+                                    ),
+                                )
+                            }
+                        }
+                    }
+
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(22.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+                    ) {
+                        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            PreviewSectionTitle("Inputs")
+                            TextField(
+                                value = query,
+                                onValueChange = { query = it.take(32) },
+                                singleLine = true,
+                                leadingIcon = { Icon(painter = painterResource(R.drawable.search), contentDescription = null) },
+                                trailingIcon = {
+                                    if (query.isNotBlank()) {
+                                        Surface(
+                                            shape = CircleShape,
+                                            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                                            modifier = Modifier
+                                                .clip(CircleShape)
+                                                .clickable { query = "" },
+                                        ) {
+                                            Icon(
+                                                painter = painterResource(R.drawable.close),
+                                                contentDescription = null,
+                                                modifier = Modifier.padding(8.dp).size(18.dp),
+                                            )
+                                        }
+                                    }
+                                },
+                                placeholder = { Text("Search") },
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                            OutlinedTextField(
+                                value = "Outline",
+                                onValueChange = { },
+                                singleLine = true,
+                                enabled = false,
+                                label = { Text("Disabled") },
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                        }
+                    }
+
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(22.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+                    ) {
+                        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            PreviewSectionTitle("Toggles")
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Column(Modifier.weight(1f)) {
+                                    Text("Switch", style = MaterialTheme.typography.labelLarge)
+                                    Text("On/off states", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                                androidx.compose.material3.Switch(
+                                    checked = switchOn,
+                                    onCheckedChange = { switchOn = it },
+                                )
+                            }
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Checkbox(checked = checkboxOn, onCheckedChange = { checkboxOn = it })
+                                Text("Checkbox", style = MaterialTheme.typography.labelLarge, modifier = Modifier.weight(1f))
+                                RadioButton(selected = radioSelected == 0, onClick = { radioSelected = 0 })
+                                RadioButton(selected = radioSelected == 1, onClick = { radioSelected = 1 })
+                            }
+                            Slider(
+                                value = sliderValue,
+                                onValueChange = { sliderValue = it },
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                        }
+                    }
+
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(22.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+                    ) {
+                        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            PreviewSectionTitle("Progress")
+                            LinearProgressIndicator(progress = { sliderValue }, modifier = Modifier.fillMaxWidth())
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Text("Loading", style = MaterialTheme.typography.labelLarge)
+                                CircularProgressIndicator(strokeWidth = 3.dp, modifier = Modifier.size(22.dp))
+                            }
+                        }
+                    }
+
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(22.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+                    ) {
+                        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            PreviewSectionTitle("List")
+                            ListItem(
+                                headlineContent = { Text("Playlist") },
+                                supportingContent = { Text("Curated picks • 24 tracks") },
+                                leadingContent = {
+                                    Surface(
+                                        shape = RoundedCornerShape(14.dp),
+                                        color = MaterialTheme.colorScheme.secondaryContainer,
+                                    ) {
+                                        Icon(
+                                            painter = painterResource(R.drawable.library_music_filled),
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                                            modifier = Modifier.padding(10.dp).size(18.dp),
+                                        )
+                                    }
+                                },
+                                trailingContent = {
+                                    Icon(
+                                        painter = painterResource(R.drawable.navigate_next),
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
+                            )
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f))
+                            ListItem(
+                                headlineContent = { Text("Liked songs") },
+                                supportingContent = { Text("Smart collection") },
+                                leadingContent = {
+                                    Surface(
+                                        shape = RoundedCornerShape(14.dp),
+                                        color = MaterialTheme.colorScheme.tertiaryContainer,
+                                    ) {
+                                        Icon(
+                                            painter = painterResource(R.drawable.favorite),
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                                            modifier = Modifier.padding(10.dp).size(18.dp),
+                                        )
+                                    }
+                                },
+                            )
+                        }
+                    }
+
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(22.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+                    ) {
+                        NavigationBar(containerColor = Color.Transparent) {
+                            NavigationBarItem(
+                                selected = navSelected == 0,
+                                onClick = { navSelected = 0 },
+                                icon = {
+                                    Icon(
+                                        painter = painterResource(if (navSelected == 0) R.drawable.home_filled else R.drawable.home_outlined),
+                                        contentDescription = null
+                                    )
+                                },
+                                label = { Text("Home") },
+                            )
+                            NavigationBarItem(
+                                selected = navSelected == 1,
+                                onClick = { navSelected = 1 },
+                                icon = {
+                                    Icon(
+                                        painter = painterResource(if (navSelected == 1) R.drawable.explore_filled else R.drawable.explore_outlined),
+                                        contentDescription = null
+                                    )
+                                },
+                                label = { Text("Explore") },
+                            )
+                            NavigationBarItem(
+                                selected = navSelected == 2,
+                                onClick = { navSelected = 2 },
+                                icon = { Icon(painter = painterResource(R.drawable.library_music_outlined), contentDescription = null) },
+                                label = { Text("Library") },
+                            )
+                        }
+                    }
+
+                    Spacer(Modifier.height(10.dp))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PreviewSegment(
+    selected: Boolean,
+    text: String,
+    onClick: () -> Unit,
+) {
+    val container =
+        if (selected) MaterialTheme.colorScheme.primary else Color.Transparent
+    val content =
+        if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
+
+    Surface(
+        shape = RoundedCornerShape(999.dp),
+        color = container,
+        contentColor = content,
+        shadowElevation = if (selected) 8.dp else 0.dp,
+        modifier = Modifier.clip(RoundedCornerShape(999.dp)).clickable(onClick = onClick),
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelLarge,
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
+@Composable
+private fun PreviewSectionTitle(text: String) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.titleSmall,
+        color = MaterialTheme.colorScheme.onSurface,
+    )
 }
 
 @Composable
