@@ -38,7 +38,7 @@ object BetterLyrics {
             }
 
             defaultRequest {
-                url(API_BASE_URL)
+                url("https://lyrics-api.boidu.dev/")
             }
             
             // Don't throw on non-2xx responses, handle them gracefully

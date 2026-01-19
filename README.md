@@ -38,13 +38,9 @@
 
 <hr />
 
-## 🎯 The Vision
-
 **ArchiveTune** isn't just a wrapper—it's a precision-engineered music ecosystem. We believe your music library should be private, beautiful, and powerful. Designed for power users who refuse to compromise on audio quality or UI aesthetics.
 
 ---
-
-## ⚡ Key Highlights
 
 ### 🚀 Core Experience
 * **Ad-Free Core:** A pure, uninterrupted listening experience.
@@ -89,7 +85,7 @@
 
 ## 📥 Installation
 
-<div align="center">
+<table>
   <tr>
     <td align="center">
       <a href="https://github.com/koiverse/ArchiveTune/releases/latest">
@@ -107,7 +103,9 @@
       </a>
     </td>
   </tr>
-</div>
+</table>
+
+
 
 > [!IMPORTANT]  
 > **Geographic Availability:** If YouTube Music is not supported in your region, a VPN or Proxy set to a supported region is required for initial data fetching.
