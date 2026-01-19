@@ -26,6 +26,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
+import kotlin.random.Random
 
 object ComposeToImage {
 
@@ -223,7 +224,9 @@ object ComposeToImage {
 
         val c = colors ?: YearInMusicImageColors.default()
         val contentPadding = 72f
-        val cornerRadius = 44f
+        val outerCornerRadius = 54f
+        val innerCornerRadius = 40f
+        val footerReserve = 160f
 
         val backgroundPaint = Paint().apply {
             color = c.background
@@ -231,173 +234,286 @@ object ComposeToImage {
         }
         canvas.drawRect(0f, 0f, cardWidth.toFloat(), cardHeight.toFloat(), backgroundPaint)
 
+        val bgLum = colorLuminance(c.background)
+        val glowAlphaBoost = if (bgLum >= 0.55) 1.15f else 1f
         drawRadialGlow(
             canvas = canvas,
             color = c.primary,
-            cx = cardWidth * 0.18f,
-            cy = cardHeight * 0.14f,
-            radius = cardWidth * 1.05f,
-            alpha = 110,
-        )
-        drawRadialGlow(
-            canvas = canvas,
-            color = c.tertiary,
-            cx = cardWidth * 1.02f,
-            cy = cardHeight * 0.22f,
-            radius = cardWidth * 0.95f,
-            alpha = 95,
+            cx = cardWidth * 0.16f,
+            cy = cardHeight * 0.12f,
+            radius = cardWidth * 1.12f,
+            alpha = (120 * glowAlphaBoost).toInt().coerceIn(0, 255),
         )
         drawRadialGlow(
             canvas = canvas,
             color = c.secondary,
-            cx = cardWidth * 0.92f,
-            cy = cardHeight * 0.92f,
-            radius = cardWidth * 1.25f,
-            alpha = 60,
+            cx = cardWidth * 1.04f,
+            cy = cardHeight * 0.22f,
+            radius = cardWidth * 0.92f,
+            alpha = (105 * glowAlphaBoost).toInt().coerceIn(0, 255),
         )
+        drawRadialGlow(
+            canvas = canvas,
+            color = c.tertiary,
+            cx = cardWidth * 0.54f,
+            cy = cardHeight * 0.56f,
+            radius = cardWidth * 1.25f,
+            alpha = (80 * glowAlphaBoost).toInt().coerceIn(0, 255),
+        )
+        drawRadialGlow(
+            canvas = canvas,
+            color = c.primary,
+            cx = cardWidth * 0.92f,
+            cy = cardHeight * 0.94f,
+            radius = cardWidth * 1.35f,
+            alpha = (55 * glowAlphaBoost).toInt().coerceIn(0, 255),
+        )
+
+        val baseOverlay = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            shader = LinearGradient(
+                0f,
+                0f,
+                0f,
+                cardHeight.toFloat(),
+                intArrayOf(
+                    setAlpha(c.surfaceVariant, if (bgLum >= 0.55) 38 else 30),
+                    setAlpha(c.surfaceVariant, if (bgLum >= 0.55) 18 else 22),
+                    setAlpha(c.background, 0),
+                ),
+                floatArrayOf(0f, 0.55f, 1f),
+                Shader.TileMode.CLAMP,
+            )
+        }
+        canvas.drawRect(0f, 0f, cardWidth.toFloat(), cardHeight.toFloat(), baseOverlay)
+
+        val noise = createNoiseBitmap(240, year)
+        val noisePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { alpha = if (bgLum >= 0.55) 24 else 16 }
+        var nx = 0f
+        while (nx < cardWidth) {
+            var ny = 0f
+            while (ny < cardHeight) {
+                canvas.drawBitmap(noise, nx, ny, noisePaint)
+                ny += noise.height
+            }
+            nx += noise.width
+        }
 
         val vignettePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             shader = RadialGradient(
-                cardWidth * 0.5f,
-                cardHeight * 0.45f,
-                cardHeight * 0.85f,
-                intArrayOf(setAlpha(c.background, 0), setAlpha(c.background, 210)),
-                floatArrayOf(0.55f, 1f),
+                cardWidth * 0.55f,
+                cardHeight * 0.35f,
+                cardHeight * 0.95f,
+                intArrayOf(setAlpha(c.background, 0), setAlpha(c.background, if (bgLum >= 0.55) 185 else 210)),
+                floatArrayOf(0.52f, 1f),
                 Shader.TileMode.CLAMP,
             )
         }
         canvas.drawRect(0f, 0f, cardWidth.toFloat(), cardHeight.toFloat(), vignettePaint)
 
-        var yOffset = 96f
+        var yOffset = 76f
         val contentWidth = (cardWidth - contentPadding * 2).toInt()
+        val safeBottom = cardHeight - footerReserve
 
-        val badgeText = context.getString(R.string.app_name)
-        val badgeTextPaint = TextPaint().apply {
-            color = setAlpha(c.onSurfaceVariant, 220)
-            textSize = 26f
-            typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
-            isAntiAlias = true
-            letterSpacing = 0.08f
-        }
-        val badgeHeight = 48f
-        val badgeWidth = badgeTextPaint.measureText(badgeText) + 38f
-        val badgeRect = RectF(
+        val heroHeight = 410f
+        val heroRect = RectF(
             contentPadding,
             yOffset,
-            contentPadding + badgeWidth,
-            yOffset + badgeHeight,
+            cardWidth - contentPadding,
+            (yOffset + heroHeight).coerceAtMost(safeBottom - 20f),
         )
         drawCard(
             canvas = canvas,
-            rect = badgeRect,
-            cornerRadius = badgeHeight * 0.55f,
-            fillColor = setAlpha(c.surface, 215),
-            borderColor = setAlpha(c.outline, 160),
+            rect = heroRect,
+            cornerRadius = outerCornerRadius,
+            fillColor = setAlpha(c.surface, if (bgLum >= 0.55) 225 else 210),
+            borderColor = setAlpha(c.outline, if (bgLum >= 0.55) 140 else 170),
+            shadowBlur = 52f,
+            shadowDy = 24f,
+            shadowAlpha = if (bgLum >= 0.55) 65 else 85,
+            highlightAlpha = 95,
+        )
+
+        val heroOverlayPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            shader = LinearGradient(
+                heroRect.left,
+                heroRect.top,
+                heroRect.right,
+                heroRect.bottom,
+                intArrayOf(setAlpha(c.primary, 36), setAlpha(c.secondary, 22), setAlpha(c.tertiary, 30)),
+                floatArrayOf(0f, 0.5f, 1f),
+                Shader.TileMode.CLAMP,
+            )
+        }
+        canvas.drawRoundRect(heroRect, outerCornerRadius, outerCornerRadius, heroOverlayPaint)
+
+        val heroX = heroRect.left + 44f
+        val heroTop = heroRect.top + 40f
+
+        val appBadgeText = context.getString(R.string.app_name).uppercase()
+        val appBadgePaint = TextPaint().apply {
+            color = setAlpha(c.onSurfaceVariant, 210)
+            textSize = 22f
+            typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
+            isAntiAlias = true
+            letterSpacing = 0.12f
+        }
+        val appBadgeH = 44f
+        val appBadgeW = appBadgePaint.measureText(appBadgeText) + 34f
+        val appBadgeRect = RectF(heroX, heroTop, heroX + appBadgeW, heroTop + appBadgeH)
+        drawCard(
+            canvas = canvas,
+            rect = appBadgeRect,
+            cornerRadius = appBadgeH * 0.5f,
+            fillColor = setAlpha(c.surfaceVariant, if (bgLum >= 0.55) 210 else 200),
+            borderColor = setAlpha(c.outline, if (bgLum >= 0.55) 110 else 150),
+            shadowBlur = 18f,
+            shadowDy = 10f,
+            shadowAlpha = 50,
+            highlightAlpha = 70,
         )
         canvas.drawText(
-            badgeText,
-            badgeRect.left + 19f,
-            badgeRect.centerY() + badgeTextPaint.textSize * 0.35f,
-            badgeTextPaint,
+            appBadgeText,
+            appBadgeRect.left + 17f,
+            appBadgeRect.centerY() + appBadgePaint.textSize * 0.36f,
+            appBadgePaint,
         )
-        yOffset = badgeRect.bottom + 32f
 
+        val yearBadgePaint = TextPaint().apply {
+            color = setAlpha(c.onSurface, 240)
+            textSize = 28f
+            typeface = Typeface.create("sans-serif-medium", Typeface.BOLD)
+            isAntiAlias = true
+        }
+        val yearBadgeText = "$year"
+        val yearBadgeW = yearBadgePaint.measureText(yearBadgeText) + 44f
+        val yearBadgeRect = RectF(appBadgeRect.right + 14f, heroTop, appBadgeRect.right + 14f + yearBadgeW, heroTop + appBadgeH)
+        val yearBadgeFill = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            shader = LinearGradient(
+                yearBadgeRect.left,
+                yearBadgeRect.top,
+                yearBadgeRect.right,
+                yearBadgeRect.bottom,
+                intArrayOf(setAlpha(c.primary, 200), setAlpha(c.secondary, 180)),
+                floatArrayOf(0f, 1f),
+                Shader.TileMode.CLAMP,
+            )
+        }
+        canvas.drawRoundRect(yearBadgeRect, appBadgeH * 0.5f, appBadgeH * 0.5f, yearBadgeFill)
+        val yearBadgeBorder = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = setAlpha(c.outline, if (bgLum >= 0.55) 90 else 140)
+            style = Paint.Style.STROKE
+            strokeWidth = 2f
+        }
+        canvas.drawRoundRect(yearBadgeRect, appBadgeH * 0.5f, appBadgeH * 0.5f, yearBadgeBorder)
+        canvas.drawText(
+            yearBadgeText,
+            yearBadgeRect.left + (yearBadgeW - yearBadgePaint.measureText(yearBadgeText)) / 2f,
+            yearBadgeRect.centerY() + yearBadgePaint.textSize * 0.34f,
+            yearBadgePaint,
+        )
+
+        val titleText = runCatching { context.getString(R.string.your_year_in_music, year) }.getOrElse {
+            "${context.getString(R.string.year_in_music)} $year"
+        }
         val titlePaint = TextPaint().apply {
-            color = c.onSurface
-            textSize = 72f
+            color = setAlpha(c.onSurface, 248)
+            textSize = 64f
             typeface = Typeface.create("sans-serif", Typeface.BOLD)
             isAntiAlias = true
-            letterSpacing = -0.015f
+            letterSpacing = -0.02f
         }
-        val titleText = runCatching {
-            context.getString(R.string.your_year_in_music, year)
-        }.getOrElse {
-            "$year ${context.getString(R.string.year_in_music)}"
-        }
+        val titleY = appBadgeRect.bottom + 26f
         val titleHeight = drawTextLayout(
             canvas = canvas,
             text = titleText,
             paint = titlePaint,
-            width = contentWidth,
-            x = contentPadding,
-            y = yOffset,
+            width = (heroRect.right - heroX - 44f).toInt(),
+            x = heroX,
+            y = titleY,
             maxLines = 2,
         )
-        yOffset += titleHeight + 22f
 
         val timeText = makeTimeStringForImage(totalListeningTime)
         val timePaint = TextPaint().apply {
-            textSize = 104f
+            textSize = 112f
             typeface = Typeface.create("sans-serif", Typeface.BOLD)
             isAntiAlias = true
+            setShadowLayer(20f, 0f, 10f, setAlpha(Color.BLACK, if (bgLum >= 0.55) 35 else 70))
             shader = LinearGradient(
-                contentPadding,
-                yOffset,
-                contentPadding + cardWidth * 0.7f,
-                yOffset + textSize,
+                heroX,
+                0f,
+                heroRect.right - 44f,
+                0f,
                 intArrayOf(c.primary, c.tertiary, c.secondary),
-                floatArrayOf(0f, 0.55f, 1f),
+                floatArrayOf(0f, 0.52f, 1f),
                 Shader.TileMode.CLAMP,
             )
         }
-        canvas.drawText(timeText, contentPadding, yOffset + timePaint.textSize, timePaint)
-        yOffset += timePaint.textSize + 14f
+        val timeY = titleY + titleHeight + 26f
+        canvas.drawText(timeText, heroX, timeY + timePaint.textSize, timePaint)
 
-        val labelPaint = TextPaint().apply {
-            color = setAlpha(c.onSurfaceVariant, 230)
-            textSize = 34f
+        val timeLabelPaint = TextPaint().apply {
+            color = setAlpha(c.onSurfaceVariant, 235)
+            textSize = 30f
             typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
             isAntiAlias = true
         }
         canvas.drawText(
             context.getString(R.string.total_listening_time),
-            contentPadding,
-            yOffset + labelPaint.textSize,
-            labelPaint,
+            heroX,
+            timeY + timePaint.textSize + 44f,
+            timeLabelPaint,
         )
-        yOffset += labelPaint.textSize + 34f
 
         val chipTextPaint = TextPaint().apply {
-            color = setAlpha(c.onSurface, 235)
-            textSize = 28f
+            color = setAlpha(c.onSurface, 245)
+            textSize = 26f
             typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
             isAntiAlias = true
         }
-        val chipHeight = 50f
-        val chipGap = 16f
+        val chipHeight = 48f
+        val chipGap = 14f
+        val chipsY = (heroRect.bottom - 40f - chipHeight)
         val chipTexts = listOf(
             context.getString(R.string.top_songs) + "  " + topSongs.size,
             context.getString(R.string.top_artists) + "  " + topArtists.size,
         )
-        var chipX = contentPadding
+        var chipX = heroX
         chipTexts.forEach { chipText ->
-            val chipWidth = chipTextPaint.measureText(chipText) + 30f
-            val chipRect = RectF(chipX, yOffset, chipX + chipWidth, yOffset + chipHeight)
+            val chipWidth = chipTextPaint.measureText(chipText) + 34f
+            val chipRect = RectF(chipX, chipsY, chipX + chipWidth, chipsY + chipHeight)
             drawCard(
                 canvas = canvas,
                 rect = chipRect,
                 cornerRadius = chipHeight * 0.5f,
-                fillColor = setAlpha(c.surface, 205),
-                borderColor = setAlpha(c.outline, 140),
+                fillColor = setAlpha(c.surfaceVariant, if (bgLum >= 0.55) 220 else 205),
+                borderColor = setAlpha(c.outline, if (bgLum >= 0.55) 105 else 150),
+                shadowBlur = 18f,
+                shadowDy = 10f,
+                shadowAlpha = 52,
+                highlightAlpha = 70,
             )
+            val dotPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = setAlpha(c.primary, 220) }
+            canvas.drawCircle(chipRect.left + 18f, chipRect.centerY(), 5.5f, dotPaint)
             canvas.drawText(
                 chipText,
-                chipRect.left + 15f,
+                chipRect.left + 30f,
                 chipRect.centerY() + chipTextPaint.textSize * 0.36f,
                 chipTextPaint,
             )
             chipX = chipRect.right + chipGap
         }
-        yOffset += chipHeight + 34f
+
+        yOffset = heroRect.bottom + 26f
 
         val imageLoader = ImageLoader(context)
 
         if (topSongs.isNotEmpty()) {
             val songsToRender = topSongs.take(5)
-            val itemHeight = 128f
-            val itemGap = 16f
-            val cardInnerPadding = 32f
-            val headerHeight = 66f
+            val itemHeight = 96f
+            val itemGap = 10f
+            val cardInnerPadding = 28f
+            val headerHeight = 54f
             val cardHeight = cardInnerPadding * 2 + headerHeight + songsToRender.size * itemHeight + (songsToRender.size - 1).coerceAtLeast(0) * itemGap
 
             val cardRect = RectF(
@@ -409,14 +525,18 @@ object ComposeToImage {
             drawCard(
                 canvas = canvas,
                 rect = cardRect,
-                cornerRadius = cornerRadius,
-                fillColor = setAlpha(c.surface, 220),
-                borderColor = setAlpha(c.outline, 170),
+                cornerRadius = outerCornerRadius,
+                fillColor = setAlpha(c.surface, if (bgLum >= 0.55) 225 else 215),
+                borderColor = setAlpha(c.outline, if (bgLum >= 0.55) 135 else 175),
+                shadowBlur = 44f,
+                shadowDy = 20f,
+                shadowAlpha = if (bgLum >= 0.55) 60 else 85,
+                highlightAlpha = 92,
             )
 
             val sectionPaint = TextPaint().apply {
                 color = setAlpha(c.onSurface, 245)
-                textSize = 40f
+                textSize = 38f
                 typeface = Typeface.create("sans-serif", Typeface.BOLD)
                 isAntiAlias = true
             }
@@ -431,8 +551,13 @@ object ComposeToImage {
                     Shader.TileMode.CLAMP,
                 )
             }
-            val accentRect = RectF(cardRect.left + cardInnerPadding, cardRect.top + cardInnerPadding + 20f, cardRect.left + cardInnerPadding + 80f, cardRect.top + cardInnerPadding + 28f)
-            canvas.drawRoundRect(accentRect, 8f, 8f, sectionAccentPaint)
+            val accentRect = RectF(
+                cardRect.left + cardInnerPadding,
+                cardRect.top + cardInnerPadding + 18f,
+                cardRect.left + cardInnerPadding + 96f,
+                cardRect.top + cardInnerPadding + 28f,
+            )
+            canvas.drawRoundRect(accentRect, 10f, 10f, sectionAccentPaint)
             canvas.drawText(
                 context.getString(R.string.top_songs),
                 cardRect.left + cardInnerPadding,
@@ -442,13 +567,13 @@ object ComposeToImage {
 
             val titlePaintRow = TextPaint().apply {
                 color = setAlpha(c.onSurface, 245)
-                textSize = 34f
+                textSize = 32f
                 typeface = Typeface.create("sans-serif-medium", Typeface.BOLD)
                 isAntiAlias = true
             }
             val subPaintRow = TextPaint().apply {
                 color = setAlpha(c.onSurfaceVariant, 230)
-                textSize = 26f
+                textSize = 24f
                 typeface = Typeface.create("sans-serif", Typeface.NORMAL)
                 isAntiAlias = true
             }
@@ -458,16 +583,46 @@ object ComposeToImage {
                 typeface = Typeface.create("sans-serif-medium", Typeface.BOLD)
                 isAntiAlias = true
             }
-            val dividerPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                color = setAlpha(c.outline, 120)
-                strokeWidth = 2f
+            val rowBgBorder = setAlpha(c.outline, if (bgLum >= 0.55) 95 else 135)
+            val rowBgFill = setAlpha(c.surfaceVariant, if (bgLum >= 0.55) 215 else 205)
+            val rowBgFill2 = setAlpha(c.surfaceVariant, if (bgLum >= 0.55) 200 else 190)
+            val timeBadgePaint = TextPaint().apply {
+                color = setAlpha(c.onSurface, 245)
+                textSize = 22f
+                typeface = Typeface.create("sans-serif-medium", Typeface.BOLD)
+                isAntiAlias = true
             }
 
             var rowY = cardRect.top + cardInnerPadding + headerHeight
-            val thumbSize = 92f
+            val thumbSize = 76f
             val thumbCorner = 22f
             songsToRender.forEachIndexed { index, song ->
-                val thumbRect = RectF(cardRect.left + cardInnerPadding, rowY, cardRect.left + cardInnerPadding + thumbSize, rowY + thumbSize)
+                val rowRect = RectF(
+                    cardRect.left + cardInnerPadding,
+                    rowY,
+                    cardRect.right - cardInnerPadding,
+                    rowY + itemHeight,
+                )
+                val rowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                    shader = LinearGradient(
+                        rowRect.left,
+                        rowRect.top,
+                        rowRect.right,
+                        rowRect.bottom,
+                        intArrayOf(rowBgFill, rowBgFill2),
+                        floatArrayOf(0f, 1f),
+                        Shader.TileMode.CLAMP,
+                    )
+                }
+                canvas.drawRoundRect(rowRect, innerCornerRadius, innerCornerRadius, rowPaint)
+                val rowBorderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                    color = rowBgBorder
+                    style = Paint.Style.STROKE
+                    strokeWidth = 2f
+                }
+                canvas.drawRoundRect(rowRect, innerCornerRadius, innerCornerRadius, rowBorderPaint)
+
+                val thumbRect = RectF(rowRect.left + 14f, rowRect.top + (itemHeight - thumbSize) / 2f, rowRect.left + 14f + thumbSize, rowRect.top + (itemHeight - thumbSize) / 2f + thumbSize)
                 val thumbPath = Path().apply { addRoundRect(thumbRect, thumbCorner, thumbCorner, Path.Direction.CW) }
 
                 var songBitmap: Bitmap? = null
@@ -505,37 +660,57 @@ object ComposeToImage {
                     badgeNumPaint,
                 )
 
-                val textX = thumbRect.right + 22f
-                val maxTextWidth = (cardRect.right - cardInnerPadding - textX).toInt()
-                val titleText = song.title
-                val truncatedTitle = truncateText(titleText, titlePaintRow, maxTextWidth.toFloat())
-                canvas.drawText(truncatedTitle, textX, rowY + 38f, titlePaintRow)
-
-                val playCount = "${song.songCountListened} plays • ${makeTimeStringForImage(song.timeListened ?: 0L)}"
-                canvas.drawText(playCount, textX, rowY + 76f, subPaintRow)
-
-                if (index != songsToRender.lastIndex) {
-                    val dividerY = rowY + itemHeight + 4f
-                    canvas.drawLine(
-                        cardRect.left + cardInnerPadding,
-                        dividerY,
-                        cardRect.right - cardInnerPadding,
-                        dividerY,
-                        dividerPaint,
+                val textX = thumbRect.right + 18f
+                val timeBadgeText = makeTimeStringForImage(song.timeListened ?: 0L)
+                val timeBadgeW = timeBadgePaint.measureText(timeBadgeText) + 26f
+                val timeBadgeH = 42f
+                val timeBadgeRect = RectF(
+                    rowRect.right - 14f - timeBadgeW,
+                    rowRect.centerY() - timeBadgeH / 2f,
+                    rowRect.right - 14f,
+                    rowRect.centerY() + timeBadgeH / 2f,
+                )
+                val timeBadgeFill = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                    shader = LinearGradient(
+                        timeBadgeRect.left,
+                        timeBadgeRect.top,
+                        timeBadgeRect.right,
+                        timeBadgeRect.bottom,
+                        intArrayOf(setAlpha(c.primary, 75), setAlpha(c.secondary, 55)),
+                        floatArrayOf(0f, 1f),
+                        Shader.TileMode.CLAMP,
                     )
                 }
+                canvas.drawRoundRect(timeBadgeRect, timeBadgeH * 0.5f, timeBadgeH * 0.5f, timeBadgeFill)
+                val timeBadgeBorder = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                    color = setAlpha(c.outline, if (bgLum >= 0.55) 90 else 130)
+                    style = Paint.Style.STROKE
+                    strokeWidth = 2f
+                }
+                canvas.drawRoundRect(timeBadgeRect, timeBadgeH * 0.5f, timeBadgeH * 0.5f, timeBadgeBorder)
+                canvas.drawText(
+                    timeBadgeText,
+                    timeBadgeRect.left + (timeBadgeW - timeBadgePaint.measureText(timeBadgeText)) / 2f,
+                    timeBadgeRect.centerY() + timeBadgePaint.textSize * 0.36f,
+                    timeBadgePaint,
+                )
+
+                val maxTextWidth = (timeBadgeRect.left - 14f - textX).toInt().coerceAtLeast(1)
+                val truncatedTitle = truncateText(song.title, titlePaintRow, maxTextWidth.toFloat())
+                canvas.drawText(truncatedTitle, textX, rowRect.top + 42f, titlePaintRow)
+                canvas.drawText("${song.songCountListened} plays", textX, rowRect.top + 76f, subPaintRow)
 
                 rowY += itemHeight + itemGap
             }
-            yOffset = cardRect.bottom + 26f
+            yOffset = cardRect.bottom + 22f
         }
 
         if (topArtists.isNotEmpty()) {
             val artistsToRender = topArtists.take(5)
-            val itemHeight = 120f
-            val itemGap = 16f
-            val cardInnerPadding = 32f
-            val headerHeight = 66f
+            val itemHeight = 88f
+            val itemGap = 10f
+            val cardInnerPadding = 28f
+            val headerHeight = 54f
             val cardHeight = cardInnerPadding * 2 + headerHeight + artistsToRender.size * itemHeight + (artistsToRender.size - 1).coerceAtLeast(0) * itemGap
 
             val cardRect = RectF(
@@ -547,14 +722,18 @@ object ComposeToImage {
             drawCard(
                 canvas = canvas,
                 rect = cardRect,
-                cornerRadius = cornerRadius,
-                fillColor = setAlpha(c.surface, 215),
-                borderColor = setAlpha(c.outline, 170),
+                cornerRadius = outerCornerRadius,
+                fillColor = setAlpha(c.surface, if (bgLum >= 0.55) 225 else 212),
+                borderColor = setAlpha(c.outline, if (bgLum >= 0.55) 135 else 175),
+                shadowBlur = 44f,
+                shadowDy = 20f,
+                shadowAlpha = if (bgLum >= 0.55) 60 else 85,
+                highlightAlpha = 92,
             )
 
             val sectionPaint = TextPaint().apply {
                 color = setAlpha(c.onSurface, 245)
-                textSize = 40f
+                textSize = 38f
                 typeface = Typeface.create("sans-serif", Typeface.BOLD)
                 isAntiAlias = true
             }
@@ -569,8 +748,13 @@ object ComposeToImage {
                     Shader.TileMode.CLAMP,
                 )
             }
-            val accentRect = RectF(cardRect.left + cardInnerPadding, cardRect.top + cardInnerPadding + 20f, cardRect.left + cardInnerPadding + 80f, cardRect.top + cardInnerPadding + 28f)
-            canvas.drawRoundRect(accentRect, 8f, 8f, sectionAccentPaint)
+            val accentRect = RectF(
+                cardRect.left + cardInnerPadding,
+                cardRect.top + cardInnerPadding + 18f,
+                cardRect.left + cardInnerPadding + 96f,
+                cardRect.top + cardInnerPadding + 28f,
+            )
+            canvas.drawRoundRect(accentRect, 10f, 10f, sectionAccentPaint)
             canvas.drawText(
                 context.getString(R.string.top_artists),
                 cardRect.left + cardInnerPadding,
@@ -580,13 +764,13 @@ object ComposeToImage {
 
             val artistPaint = TextPaint().apply {
                 color = setAlpha(c.onSurface, 245)
-                textSize = 34f
+                textSize = 32f
                 typeface = Typeface.create("sans-serif-medium", Typeface.BOLD)
                 isAntiAlias = true
             }
             val artistSubPaint = TextPaint().apply {
                 color = setAlpha(c.onSurfaceVariant, 230)
-                textSize = 26f
+                textSize = 24f
                 typeface = Typeface.create("sans-serif", Typeface.NORMAL)
                 isAntiAlias = true
             }
@@ -596,17 +780,47 @@ object ComposeToImage {
                 typeface = Typeface.create("sans-serif-medium", Typeface.BOLD)
                 isAntiAlias = true
             }
-            val dividerPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                color = setAlpha(c.outline, 120)
-                strokeWidth = 2f
+            val rowBgBorder = setAlpha(c.outline, if (bgLum >= 0.55) 95 else 135)
+            val rowBgFill = setAlpha(c.surfaceVariant, if (bgLum >= 0.55) 215 else 205)
+            val rowBgFill2 = setAlpha(c.surfaceVariant, if (bgLum >= 0.55) 200 else 190)
+            val timeBadgePaint = TextPaint().apply {
+                color = setAlpha(c.onSurface, 245)
+                textSize = 22f
+                typeface = Typeface.create("sans-serif-medium", Typeface.BOLD)
+                isAntiAlias = true
             }
 
             var rowY = cardRect.top + cardInnerPadding + headerHeight
-            val avatarSize = 84f
+            val avatarSize = 64f
             val avatarRadius = avatarSize / 2f
             artistsToRender.forEachIndexed { index, artist ->
-                val avatarCx = cardRect.left + cardInnerPadding + avatarRadius
-                val avatarCy = rowY + avatarRadius
+                val rowRect = RectF(
+                    cardRect.left + cardInnerPadding,
+                    rowY,
+                    cardRect.right - cardInnerPadding,
+                    rowY + itemHeight,
+                )
+                val rowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                    shader = LinearGradient(
+                        rowRect.left,
+                        rowRect.top,
+                        rowRect.right,
+                        rowRect.bottom,
+                        intArrayOf(rowBgFill, rowBgFill2),
+                        floatArrayOf(0f, 1f),
+                        Shader.TileMode.CLAMP,
+                    )
+                }
+                canvas.drawRoundRect(rowRect, innerCornerRadius, innerCornerRadius, rowPaint)
+                val rowBorderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                    color = rowBgBorder
+                    style = Paint.Style.STROKE
+                    strokeWidth = 2f
+                }
+                canvas.drawRoundRect(rowRect, innerCornerRadius, innerCornerRadius, rowBorderPaint)
+
+                val avatarCx = rowRect.left + 14f + avatarRadius
+                val avatarCy = rowRect.centerY()
 
                 var artistBitmap: Bitmap? = null
                 artist.artist.thumbnailUrl?.let { url ->
@@ -635,9 +849,9 @@ object ComposeToImage {
                 }
 
                 val badgeRadius = 15f
-                val badgeCx = avatarCx - avatarRadius + 10f
-                val badgeCy = avatarCy - avatarRadius + 10f
-                val badgePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = setAlpha(c.secondary, 230) }
+                val badgeCx = avatarCx - avatarRadius + 8f
+                val badgeCy = avatarCy - avatarRadius + 8f
+                val badgePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = setAlpha(c.secondary, 235) }
                 canvas.drawCircle(badgeCx, badgeCy, badgeRadius, badgePaint)
                 val badgeText = "${index + 1}"
                 val badgeTextWidth = badgeNumPaint.measureText(badgeText)
@@ -648,29 +862,63 @@ object ComposeToImage {
                     badgeNumPaint,
                 )
 
-                val textX = cardRect.left + cardInnerPadding + avatarSize + 22f
-                val maxTextWidth = (cardRect.right - cardInnerPadding - textX).toInt()
-                val name = truncateText(artist.artist.name, artistPaint, maxTextWidth.toFloat())
-                canvas.drawText(name, textX, rowY + 38f, artistPaint)
-
                 val timeListened = artist.timeListened?.toLong() ?: 0L
-                val statsText = "${artist.songCount} plays • ${makeTimeStringForImage(timeListened)}"
-                canvas.drawText(statsText, textX, rowY + 74f, artistSubPaint)
-
-                if (index != artistsToRender.lastIndex) {
-                    val dividerY = rowY + itemHeight + 4f
-                    canvas.drawLine(
-                        cardRect.left + cardInnerPadding,
-                        dividerY,
-                        cardRect.right - cardInnerPadding,
-                        dividerY,
-                        dividerPaint,
+                val timeBadgeText = makeTimeStringForImage(timeListened)
+                val timeBadgeW = timeBadgePaint.measureText(timeBadgeText) + 26f
+                val timeBadgeH = 42f
+                val timeBadgeRect = RectF(
+                    rowRect.right - 14f - timeBadgeW,
+                    rowRect.centerY() - timeBadgeH / 2f,
+                    rowRect.right - 14f,
+                    rowRect.centerY() + timeBadgeH / 2f,
+                )
+                val timeBadgeFill = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                    shader = LinearGradient(
+                        timeBadgeRect.left,
+                        timeBadgeRect.top,
+                        timeBadgeRect.right,
+                        timeBadgeRect.bottom,
+                        intArrayOf(setAlpha(c.secondary, 75), setAlpha(c.primary, 55)),
+                        floatArrayOf(0f, 1f),
+                        Shader.TileMode.CLAMP,
                     )
                 }
+                canvas.drawRoundRect(timeBadgeRect, timeBadgeH * 0.5f, timeBadgeH * 0.5f, timeBadgeFill)
+                val timeBadgeBorder = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                    color = setAlpha(c.outline, if (bgLum >= 0.55) 90 else 130)
+                    style = Paint.Style.STROKE
+                    strokeWidth = 2f
+                }
+                canvas.drawRoundRect(timeBadgeRect, timeBadgeH * 0.5f, timeBadgeH * 0.5f, timeBadgeBorder)
+                canvas.drawText(
+                    timeBadgeText,
+                    timeBadgeRect.left + (timeBadgeW - timeBadgePaint.measureText(timeBadgeText)) / 2f,
+                    timeBadgeRect.centerY() + timeBadgePaint.textSize * 0.36f,
+                    timeBadgePaint,
+                )
+
+                val textX = (avatarCx + avatarRadius + 16f)
+                val maxTextWidth = (timeBadgeRect.left - 14f - textX).toInt().coerceAtLeast(1)
+                val name = truncateText(artist.artist.name, artistPaint, maxTextWidth.toFloat())
+                canvas.drawText(name, textX, rowRect.top + 42f, artistPaint)
+                canvas.drawText("${artist.songCount} plays", textX, rowRect.top + 76f, artistSubPaint)
+
+                val ringPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                    style = Paint.Style.STROKE
+                    strokeWidth = 6f
+                    shader = SweepGradient(
+                        avatarCx,
+                        avatarCy,
+                        intArrayOf(c.primary, c.secondary, c.tertiary, c.primary),
+                        floatArrayOf(0f, 0.45f, 0.78f, 1f),
+                    )
+                    alpha = 190
+                }
+                canvas.drawCircle(avatarCx, avatarCy, avatarRadius + 5f, ringPaint)
 
                 rowY += itemHeight + itemGap
             }
-            yOffset = cardRect.bottom + 22f
+            yOffset = cardRect.bottom + 18f
         }
 
         AppLogo(
@@ -679,8 +927,8 @@ object ComposeToImage {
             canvasWidth = cardWidth,
             canvasHeight = cardHeight,
             padding = contentPadding,
-            circleColor = setAlpha(c.primary, 230),
-            logoTint = c.onPrimary,
+            circleColor = setAlpha(c.primary, 215),
+            logoTint = setAlpha(c.onSurface, 245),
             textColor = setAlpha(c.onSurfaceVariant, 235),
         )
 
@@ -716,6 +964,32 @@ object ComposeToImage {
         )
     }
 
+    private fun colorLuminance(color: Int): Double {
+        fun channel(v: Int): Double {
+            val c = v / 255.0
+            return if (c <= 0.04045) c / 12.92 else Math.pow((c + 0.055) / 1.055, 2.4)
+        }
+        val r = channel(Color.red(color))
+        val g = channel(Color.green(color))
+        val b = channel(Color.blue(color))
+        return 0.2126 * r + 0.7152 * g + 0.0722 * b
+    }
+
+    private fun createNoiseBitmap(size: Int, seed: Int): Bitmap {
+        val bmp = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+        val rnd = Random(seed)
+        val pixels = IntArray(size * size)
+        var i = 0
+        while (i < pixels.size) {
+            val v = rnd.nextInt(0, 256)
+            val a = rnd.nextInt(12, 26)
+            pixels[i] = Color.argb(a, v, v, v)
+            i++
+        }
+        bmp.setPixels(pixels, 0, size, 0, 0, size, size)
+        return bmp
+    }
+
     private fun drawRadialGlow(
         canvas: Canvas,
         color: Int,
@@ -743,14 +1017,38 @@ object ComposeToImage {
         cornerRadius: Float,
         fillColor: Int,
         borderColor: Int,
+        shadowBlur: Float = 28f,
+        shadowDy: Float = 14f,
+        shadowAlpha: Int = 70,
+        highlightAlpha: Int = 80,
     ) {
+        val shadowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = fillColor
+            setShadowLayer(shadowBlur, 0f, shadowDy, setAlpha(Color.BLACK, shadowAlpha))
+        }
+        canvas.drawRoundRect(rect, cornerRadius, cornerRadius, shadowPaint)
+
         val fillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = fillColor }
+        canvas.drawRoundRect(rect, cornerRadius, cornerRadius, fillPaint)
+
+        val highlightPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            shader = LinearGradient(
+                rect.left,
+                rect.top,
+                rect.left,
+                rect.bottom,
+                intArrayOf(setAlpha(Color.WHITE, highlightAlpha), setAlpha(Color.WHITE, 0)),
+                floatArrayOf(0f, 0.65f),
+                Shader.TileMode.CLAMP,
+            )
+        }
+        canvas.drawRoundRect(rect, cornerRadius, cornerRadius, highlightPaint)
+
         val borderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = borderColor
             style = Paint.Style.STROKE
             strokeWidth = 2f
         }
-        canvas.drawRoundRect(rect, cornerRadius, cornerRadius, fillPaint)
         canvas.drawRoundRect(rect, cornerRadius, cornerRadius, borderPaint)
     }
 
