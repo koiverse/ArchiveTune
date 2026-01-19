@@ -101,4 +101,6 @@
     <string name="glow">Свечение</string>
     <string name="player_buttons_style">Цвета кнопок проигрывателя</string>
     <string name="default_style">По умолчанию</string>
+    <string name="assign_tags_to_playlists">Присвоить к плейлистам</string>
+    <string name="show_tags_in_library">Показывать теги в библиотеке</string>
 </resources>
