@@ -1,5 +1,8 @@
 package moe.koiverse.archivetune.ui.screens.settings
 
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.Spring
@@ -20,10 +23,12 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -40,7 +45,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -55,6 +62,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -73,6 +81,7 @@ import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -87,8 +96,13 @@ import moe.koiverse.archivetune.LocalPlayerAwareWindowInsets
 import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.constants.CustomThemeColorKey
 import moe.koiverse.archivetune.ui.component.IconButton
+import moe.koiverse.archivetune.ui.theme.ThemeSeedPalette
+import moe.koiverse.archivetune.ui.theme.ThemeSeedPaletteCodec
 import moe.koiverse.archivetune.ui.utils.backToMain
 import moe.koiverse.archivetune.utils.rememberPreference
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 data class ThemePalette(
     val id: String,
@@ -830,18 +844,45 @@ private fun Color.toHexString(): String {
 fun PalettePickerScreen(
     navController: NavController
 ) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     val (customThemeColor, onCustomThemeColorChange) = rememberPreference(
         CustomThemeColorKey,
         defaultValue = ThemePalettes.Default.id
     )
     
     val selectedPalette = remember(customThemeColor) {
-        ThemePalettes.findById(customThemeColor)
+        val custom = ThemeSeedPaletteCodec.decodeFromPreference(customThemeColor)
+            ?.toThemePalette()
+        custom
+            ?: ThemePalettes.findById(customThemeColor)
             ?: ThemePalettes.findByPrimaryColor(customThemeColor)
             ?: ThemePalettes.Default
     }
     
     val isDarkTheme = isSystemInDarkTheme()
+
+    val importLauncher =
+        rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+            if (uri == null) return@rememberLauncherForActivityResult
+            scope.launch {
+                val text =
+                    withContext(Dispatchers.IO) {
+                        runCatching {
+                            context.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }.orEmpty()
+                        }.getOrNull().orEmpty()
+                    }
+                val imported = ThemeSeedPaletteCodec.decodeFromJson(text)
+                if (imported != null) {
+                    val name = ThemeSeedPaletteCodec.extractNameFromJsonOrNull(text)
+                    onCustomThemeColorChange(ThemeSeedPaletteCodec.encodeForPreference(imported, name))
+                    Toast.makeText(context, context.getString(R.string.theme_import_success), Toast.LENGTH_SHORT).show()
+                    navController.navigate("settings/appearance/theme_creator")
+                } else {
+                    Toast.makeText(context, context.getString(R.string.theme_import_failed), Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
     
     Scaffold(
         topBar = {
@@ -862,6 +903,44 @@ fun PalettePickerScreen(
                     containerColor = Color.Transparent
                 )
             )
+        },
+        floatingActionButton = {
+            Column(
+                horizontalAlignment = Alignment.End,
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.windowInsetsPadding(
+                    LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal)
+                )
+            ) {
+                ExtendedFloatingActionButton(
+                    onClick = { navController.navigate("settings/appearance/theme_creator") },
+                    icon = {
+                        Icon(
+                            painter = painterResource(R.drawable.palette),
+                            contentDescription = null
+                        )
+                    },
+                    text = { Text(stringResource(R.string.custom_theme)) },
+                    colors = FloatingActionButtonDefaults.extendedFloatingActionButtonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary
+                    )
+                )
+                ExtendedFloatingActionButton(
+                    onClick = { importLauncher.launch(arrayOf("application/json", "text/plain", "*/*")) },
+                    icon = {
+                        Icon(
+                            painter = painterResource(R.drawable.restore),
+                            contentDescription = null
+                        )
+                    },
+                    text = { Text(stringResource(R.string.import_theme)) },
+                    colors = FloatingActionButtonDefaults.extendedFloatingActionButtonColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        contentColor = MaterialTheme.colorScheme.onSurface
+                    )
+                )
+            }
         }
     ) { paddingValues ->
         Column(
@@ -894,6 +973,16 @@ fun PalettePickerScreen(
         }
     }
 }
+
+private fun ThemeSeedPalette.toThemePalette(): ThemePalette =
+    ThemePalette(
+        id = "custom_seed",
+        nameResId = R.string.palette_custom,
+        primary = primary,
+        secondary = secondary,
+        tertiary = tertiary,
+        neutral = neutral,
+    )
 
 @Composable
 private fun ThemePreviewCard(

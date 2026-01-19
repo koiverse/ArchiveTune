@@ -203,4 +203,41 @@
     <string name="share_summary">Share Summary</string>
     <string name="no_listening_data">No listening data for this year</string>
     <string name="played">played</string>
+
+    <string name="custom_theme">Custom Theme</string>
+    <string name="import_theme">Import Theme</string>
+    <string name="export_theme">Export Theme</string>
+
+    <string name="palette_custom">Custom</string>
+
+    <string name="theme_creator_title">Theme Creator</string>
+    <string name="theme_creator_subtitle">Tune colors, preview the result, then export or import.</string>
+
+    <string name="theme_meta_title">Theme Details</string>
+    <string name="theme_name_optional">Name (optional)</string>
+    <string name="theme_apply_button">Apply Theme</string>
+
+    <string name="theme_applied">Theme applied</string>
+    <string name="theme_export_success">Theme exported</string>
+    <string name="theme_export_failed">Export failed</string>
+    <string name="theme_import_success">Theme imported</string>
+    <string name="theme_import_failed">Import failed</string>
+    <string name="theme_import_failed_title">Can\'t import theme</string>
+
+    <string name="theme_seed_colors">Seed Colors</string>
+    <string name="theme_seed_primary">Primary</string>
+    <string name="theme_seed_secondary">Secondary</string>
+    <string name="theme_seed_tertiary">Tertiary</string>
+    <string name="theme_seed_neutral">Neutral</string>
+
+    <string name="theme_editor_title">%1$s Color</string>
+    <string name="theme_editor_hex">Hex</string>
+    <string name="theme_editor_hex_input">Hex value (#RRGGBB or #AARRGGBB)</string>
+    <string name="theme_presets_title">Presets</string>
+
+    <string name="theme_preview_trackline">A premium preview card</string>
+    <string name="theme_preview_primary_action">Primary Action</string>
+    <string name="theme_preview_secondary_action">Secondary Action</string>
+
+    <string name="copy">Copy</string>
 </resources>

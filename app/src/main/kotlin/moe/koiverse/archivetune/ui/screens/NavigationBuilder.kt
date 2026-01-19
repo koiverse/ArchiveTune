@@ -72,6 +72,7 @@ import moe.koiverse.archivetune.ui.screens.settings.PlayerSettings
 import moe.koiverse.archivetune.ui.screens.settings.PrivacySettings
 import moe.koiverse.archivetune.ui.screens.settings.SettingsScreen
 import moe.koiverse.archivetune.ui.screens.settings.StorageSettings
+import moe.koiverse.archivetune.ui.screens.settings.ThemeCreatorScreen
 import moe.koiverse.archivetune.ui.screens.settings.UpdateScreen
 import moe.koiverse.archivetune.ui.utils.ShowMediaInfo
 import moe.koiverse.archivetune.utils.rememberEnumPreference
@@ -298,6 +299,9 @@ fun NavGraphBuilder.navigationBuilder(
     }
     composable("settings/appearance/palette_picker") {
         PalettePickerScreen(navController)
+    }
+    composable("settings/appearance/theme_creator") {
+        ThemeCreatorScreen(navController)
     }
     composable("settings/content") {
         ContentSettings(navController, scrollBehavior)

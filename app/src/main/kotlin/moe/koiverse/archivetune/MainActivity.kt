@@ -545,6 +545,8 @@ class MainActivity : ComponentActivity() {
             val customThemeSeedPalette = remember(customThemeColorValue) {
                 if (customThemeColorValue.startsWith("#")) {
                     null
+                } else if (customThemeColorValue.startsWith("seedPalette:")) {
+                    moe.koiverse.archivetune.ui.theme.ThemeSeedPaletteCodec.decodeFromPreference(customThemeColorValue)
                 } else {
                     moe.koiverse.archivetune.ui.screens.settings.ThemePalettes
                         .findById(customThemeColorValue)
