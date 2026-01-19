@@ -49,24 +49,50 @@
 > [!WARNING]
 > If you're in a region where YouTube Music is not supported, you won't be able to use this app unless you have a proxy or VPN to connect to a YTM-supported region.
 
+
 ## Features
 
-- YouTube Music client features
-    - Song downloading (offline playback)
-    - Seamless playback: no ads & background playback
-    - Account synchronization
-    - Access to your library, playlists, and mixes
-    - Search for songs, albums, artists, and playlists
-- Sleek Modern and beautiful Material3 design
-- Multiple queues
-- Synchronized lyrics, and support for word by word/Karaoke lyrics formats (e.g LRC, TTML)
-- Translatable synced lyrics
-- Audio normalization, tempo/pitch adjustment, and various other audio effects
-- Android Auto support
-- Support for Android 8 (Oreo) and higher
-- Customizable Discord Rich Presence
-- Scrobbling support to LastFM & ListenBrainz
-- And many many more!
+**🎧 YouTube Music, Supercharged**
+
+* **Seamless Playback:** No ads & background playback.
+* **Library Sync:** Sign in to instantly access your liked songs, albums, artists, and playlists.
+* **Deep Integration:** Open YouTube and YouTube Music links directly within the app.
+* **Smart Organization:** Manage and sort your playlists with custom tags.
+
+**💾 Powerful Offline Mode**
+
+* **Download Anything:** Save songs, albums, and playlists for data-free listening.
+* **Background Management:** Reliable background downloading with progress notifications and batch management.
+
+**🎚️ Pro Audio Controls**
+
+* **Audio Suite:** Includes tempo & pitch controls, silence skipping, and crossfade.
+* **Volume Normalization:** Consistent volume levels using track loudness metadata.
+* **System Integration:** Full support for the system Equalizer and audio effects.
+
+**🎤 Immersive Lyrics**
+
+* **Karaoke Style:** Time-synced lyrics with word-by-word (LRC/TTML) support.
+* **Global Access:** Built-in translation and romanization features.
+* **Shareable Cards:** Generate and share beautiful lyric images.
+
+**🔁 Advanced Playback**
+
+* **Dynamic Queues:** Support for library, playlist, and radio-style queues.
+* **Queue Mastery:** Drag-and-drop reordering, quick actions, and sleep timer.
+
+**🔌 Ecosystem & Integrations**
+
+* **Connect Everywhere:** Android Auto support and customizable Discord Rich Presence.
+* **Scrobbling:** Auto-sync listening history to Last.fm and ListenBrainz.
+* **Insights:** View listening statistics and "Year in Review" summaries.
+
+**✨ Design & System**
+
+* **Material You:** Modern Material 3 interface with Dynamic Color theming.
+* **Customizable:** Extensive theme engine to match your style.
+* **Stay Updated:** Built-in updater to easily manage new versions directly in-app.
+
 
 > [!NOTE]
 > Android 8 (Oreo) and higher is supported. While the app may work on Android 7.x (Nougat), we do not officially support this version
