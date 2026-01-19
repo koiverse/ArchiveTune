@@ -85,12 +85,12 @@ constructor(
     }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
     val totalListeningTime = topSongsStats.map { songs ->
-        songs.sumOf { it.timeListened }
+        songs.sumOf { (it.timeListened ?: 0L) }
     }.stateIn(viewModelScope, SharingStarted.Lazily, 0L)
 
     val totalSongsPlayed = topSongsStats.map { songs ->
-        songs.sumOf { it.songCountListened }
-    }.stateIn(viewModelScope, SharingStarted.Lazily, 0)
+        songs.sumOf { it.songCountListened.toLong() }
+    }.stateIn(viewModelScope, SharingStarted.Lazily, 0L)
 
     init {
         viewModelScope.launch {

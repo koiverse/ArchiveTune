@@ -592,7 +592,8 @@ fun StatsScreen(
             },
             actions = {
                 IconButton(
-                    onClick = { navController.navigate("year_in_music") }
+                    onClick = { navController.navigate("year_in_music") },
+                    onLongClick = { }
                 ) {
                     Icon(
                         painterResource(R.drawable.calendar_today),

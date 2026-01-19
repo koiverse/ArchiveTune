@@ -461,7 +461,7 @@ fun YearInMusicScreen(
 private fun YearInMusicHeroSection(
     year: Int,
     totalListeningTime: Long,
-    totalSongsPlayed: Int
+    totalSongsPlayed: Long
 ) {
     Card(
         modifier = Modifier
@@ -503,7 +503,7 @@ private fun YearInMusicHeroSection(
             Spacer(modifier = Modifier.height(12.dp))
 
             Text(
-                text = pluralStringResource(R.plurals.n_song, totalSongsPlayed, totalSongsPlayed) +
+                text = pluralStringResource(R.plurals.n_song, totalSongsPlayed.toInt(), totalSongsPlayed.toInt()) +
                         " " + stringResource(R.string.played),
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)

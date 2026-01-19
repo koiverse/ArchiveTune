@@ -298,7 +298,7 @@ object ComposeToImage {
                 val truncatedTitle = truncateText(titleText, songTitlePaint, maxWidth)
                 canvas.drawText(truncatedTitle, textX, yOffset + 40f, songTitlePaint)
 
-                val playCount = "${song.songCountListened} plays • ${makeTimeStringForImage(song.timeListened)}"
+                val playCount = "${song.songCountListened} plays • ${makeTimeStringForImage(song.timeListened ?: 0L)}"
                 canvas.drawText(playCount, textX, yOffset + 80f, songSubtitlePaint)
 
                 yOffset += thumbnailSize + 20f
