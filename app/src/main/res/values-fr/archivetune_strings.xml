@@ -200,4 +200,11 @@
     <string name="assign_tags_to_playlists">Attribuer aux playlists</string>
     <string name="show_tags_in_library">Afficher les balises dans la bibliothèque</string>
     <string name="show_tags_in_library_desc">Afficher les puces de filtrage des balises dans la bibliothèque</string>
+    <string name="year_in_music">Année en Musique</string>
+    <string name="your_year_in_music">Votre %d Année en Musique</string>
+    <string name="total_listening_time">Durée totale d\'écoute</string>
+    <string name="top_songs">Meilleurs Titres</string>
+    <string name="top_artists">Meilleurs Artistes</string>
+    <string name="share_summary">Partager le résumé</string>
+    <string name="no_listening_data">Aucune donnée d\'écoute pour cette année</string>
 </resources>
