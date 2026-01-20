@@ -257,7 +257,6 @@ fun LibraryPlaylistListItem(
 
     val baseMod = modifier
         .fillMaxWidth()
-        .padding(horizontal = 12.dp)
         .padding(bottom = 8.dp)
 
     val openPlaylist: () -> Unit = {
@@ -266,9 +265,9 @@ fun LibraryPlaylistListItem(
             playlist.songCount == 0 &&
             playlist.playlist.remoteSongCount != 0
         ) {
-            navController.navigate("online_playlist/${'$'}{playlist.playlist.browseId}")
+            navController.navigate("online_playlist/${playlist.playlist.browseId}")
         } else {
-            navController.navigate("local_playlist/${'$'}{playlist.id}")
+            navController.navigate("local_playlist/${playlist.id}")
         }
     }
 
