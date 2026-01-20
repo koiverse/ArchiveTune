@@ -56,6 +56,7 @@ import moe.koiverse.archivetune.constants.ShowLikedPlaylistKey
 import moe.koiverse.archivetune.constants.ShowDownloadedPlaylistKey
 import moe.koiverse.archivetune.constants.ShowTopPlaylistKey
 import moe.koiverse.archivetune.constants.ShowCachedPlaylistKey
+import moe.koiverse.archivetune.constants.UseNewLibraryDesignKey
 import moe.koiverse.archivetune.constants.YtmSyncKey
 import moe.koiverse.archivetune.db.entities.Album
 import moe.koiverse.archivetune.db.entities.Artist
@@ -66,6 +67,8 @@ import moe.koiverse.archivetune.ui.component.AlbumGridItem
 import moe.koiverse.archivetune.ui.component.AlbumListItem
 import moe.koiverse.archivetune.ui.component.ArtistGridItem
 import moe.koiverse.archivetune.ui.component.ArtistListItem
+import moe.koiverse.archivetune.ui.component.LibraryPlaylistGridItem
+import moe.koiverse.archivetune.ui.component.LibraryPlaylistListItem
 import moe.koiverse.archivetune.ui.component.LocalMenuState
 import moe.koiverse.archivetune.ui.component.PlaylistGridItem
 import moe.koiverse.archivetune.ui.component.PlaylistListItem
@@ -160,6 +163,7 @@ fun LibraryMixScreen(
     val (showDownloaded) = rememberPreference(ShowDownloadedPlaylistKey, true)
     val (showTop) = rememberPreference(ShowTopPlaylistKey, true)
     val (showCached) = rememberPreference(ShowCachedPlaylistKey, true)
+    val (useNewLibraryDesign) = rememberPreference(UseNewLibraryDesignKey, true)
 
     val albums = viewModel.albums.collectAsState()
     val artist = viewModel.artists.collectAsState()
@@ -171,22 +175,37 @@ fun LibraryMixScreen(
             item !is Playlist || item.id in filteredPlaylistIds
         }
     }
+    val pinnedPlaylists = allItems.filterIsInstance<Playlist>().filter { it.playlist.isPinned }
+    val nonPinnedItems = allItems.filterNot { it is Playlist && it.playlist.isPinned }
     val collator = Collator.getInstance(Locale.getDefault())
     collator.strength = Collator.PRIMARY
-    allItems =
+    val sortedPinned =
+        when (sortType) {
+            MixSortType.CREATE_DATE -> pinnedPlaylists.sortedBy { it.playlist.createdAt }
+            MixSortType.NAME ->
+                pinnedPlaylists.sortedWith(
+                    compareBy(collator) { item -> item.playlist.name },
+                )
+
+            MixSortType.LAST_UPDATED -> pinnedPlaylists.sortedBy { it.playlist.lastUpdateTime }
+        }.let { list ->
+            if (sortDescending) list.asReversed() else list
+        }
+
+    val sortedNonPinned =
         when (sortType) {
             MixSortType.CREATE_DATE ->
-                allItems.sortedBy { item ->
+                nonPinnedItems.sortedBy { item ->
                     when (item) {
                         is Album -> item.album.bookmarkedAt
                         is Artist -> item.artist.bookmarkedAt
                         is Playlist -> item.playlist.createdAt
-                        else -> LocalDateTime.now()
+                        else -> null
                     }
                 }
 
             MixSortType.NAME ->
-                allItems.sortedWith(
+                nonPinnedItems.sortedWith(
                     compareBy(collator) { item ->
                         when (item) {
                             is Album -> item.album.title
@@ -198,15 +217,19 @@ fun LibraryMixScreen(
                 )
 
             MixSortType.LAST_UPDATED ->
-                allItems.sortedBy { item ->
+                nonPinnedItems.sortedBy { item ->
                     when (item) {
                         is Album -> item.album.lastUpdateTime
                         is Artist -> item.artist.lastUpdateTime
                         is Playlist -> item.playlist.lastUpdateTime
-                        else -> LocalDateTime.now()
+                        else -> null
                     }
                 }
-        }.reversed(sortDescending)
+        }.let { list ->
+            if (sortDescending) list.asReversed() else list
+        }
+
+    allItems = sortedPinned + sortedNonPinned
 
     val coroutineScope = rememberCoroutineScope()
 
@@ -381,45 +404,13 @@ fun LibraryMixScreen(
                     ) { item ->
                         when (item) {
                             is Playlist -> {
-                                PlaylistListItem(
+                                LibraryPlaylistListItem(
+                                    navController = navController,
+                                    menuState = menuState,
+                                    coroutineScope = coroutineScope,
                                     playlist = item,
-                                    trailingContent = {
-                                        IconButton(
-                                            onClick = {
-                                                menuState.show {
-                                                    PlaylistMenu(
-                                                        playlist = item,
-                                                        coroutineScope = coroutineScope,
-                                                        onDismiss = menuState::dismiss,
-                                                    )
-                                                }
-                                            },
-                                        ) {
-                                            Icon(
-                                                painter = painterResource(R.drawable.more_vert),
-                                                contentDescription = null,
-                                            )
-                                        }
-                                    },
-                                    modifier =
-                                    Modifier
-                                        .fillMaxWidth()
-                                        .combinedClickable(
-                                            onClick = {
-                                                navController.navigate("local_playlist/${item.id}")
-                                            },
-                                            onLongClick = {
-                                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                                menuState.show {
-                                                    PlaylistMenu(
-                                                        playlist = item,
-                                                        coroutineScope = coroutineScope,
-                                                        onDismiss = menuState::dismiss,
-                                                    )
-                                                }
-                                            },
-                                        )
-                                        .animateItem(),
+                                    useNewDesign = useNewLibraryDesign,
+                                    modifier = Modifier.animateItem(),
                                 )
                             }
 
@@ -636,28 +627,12 @@ fun LibraryMixScreen(
                     ) { item ->
                         when (item) {
                             is Playlist -> {
-                                PlaylistGridItem(
+                                LibraryPlaylistGridItem(
+                                    navController = navController,
+                                    menuState = menuState,
+                                    coroutineScope = coroutineScope,
                                     playlist = item,
-                                    fillMaxWidth = true,
-                                    modifier =
-                                    Modifier
-                                        .fillMaxWidth()
-                                        .combinedClickable(
-                                            onClick = {
-                                                navController.navigate("local_playlist/${item.id}")
-                                            },
-                                            onLongClick = {
-                                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                                menuState.show {
-                                                    PlaylistMenu(
-                                                        playlist = item,
-                                                        coroutineScope = coroutineScope,
-                                                        onDismiss = menuState::dismiss,
-                                                    )
-                                                }
-                                            },
-                                        )
-                                        .animateItem(),
+                                    modifier = Modifier.animateItem(),
                                 )
                             }
 
