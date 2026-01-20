@@ -192,7 +192,7 @@ fun LibraryPlaylistListItem(
             Icon(
                 painter =
                 painterResource(
-                    if (playlist.playlist.isPinned) R.drawable.bookmark_filled else R.drawable.bookmark
+                    if (playlist.playlist.isPinned) R.drawable.unpin else R.drawable.pin
                 ),
                 contentDescription = null,
             )

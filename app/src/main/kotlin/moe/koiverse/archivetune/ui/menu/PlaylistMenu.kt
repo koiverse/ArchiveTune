@@ -379,7 +379,7 @@ fun PlaylistMenu(
                         Icon(
                             painter =
                             painterResource(
-                                if (pinned) R.drawable.bookmark_filled else R.drawable.bookmark
+                                if (pinned) R.drawable.unpin else R.drawable.pin
                             ),
                             contentDescription = null,
                         )
