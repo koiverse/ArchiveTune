@@ -29,6 +29,7 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -225,7 +226,9 @@ fun LibraryMixScreen(
         }
 
     val customPlaylistMode = playlistSortType == PlaylistSortType.CUSTOM
-    val canReorderPlaylists = customPlaylistMode && selectedTagIds.isEmpty()
+    val canEnterReorderMode = customPlaylistMode && selectedTagIds.isEmpty()
+    var reorderEnabled by rememberSaveable { mutableStateOf(false) }
+    val canReorderPlaylists = canEnterReorderMode && reorderEnabled
     val listHeaderItems =
         2 +
             (if (showLiked) 1 else 0) +
@@ -283,6 +286,10 @@ fun LibraryMixScreen(
             }
         }
         dragInfo = null
+    }
+
+    LaunchedEffect(canEnterReorderMode) {
+        if (!canEnterReorderMode) reorderEnabled = false
     }
 
     val allItems =
@@ -387,6 +394,18 @@ fun LibraryMixScreen(
             )
 
             Spacer(Modifier.weight(1f))
+
+            if (canEnterReorderMode) {
+                IconButton(
+                    onClick = { reorderEnabled = !reorderEnabled },
+                    modifier = Modifier.padding(start = 6.dp),
+                ) {
+                    Icon(
+                        painter = painterResource(if (reorderEnabled) R.drawable.lock_open else R.drawable.lock),
+                        contentDescription = null,
+                    )
+                }
+            }
 
             IconButton(
                 onClick = {
