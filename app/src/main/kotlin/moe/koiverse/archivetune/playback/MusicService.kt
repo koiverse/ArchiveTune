@@ -1702,7 +1702,7 @@ class MusicService :
 
     override fun onEvents(player: Player, events: Player.Events) {
     if (events.contains(Player.EVENT_AUDIO_SESSION_ID)) {
-        val newSessionId = player.audioSessionId
+        val newSessionId = this.player.audioSessionId
         val oldSessionId = openedAudioSessionId
         if (isAudioEffectSessionOpened && newSessionId > 0 && oldSessionId != null && oldSessionId > 0 && oldSessionId != newSessionId) {
             sendBroadcast(
