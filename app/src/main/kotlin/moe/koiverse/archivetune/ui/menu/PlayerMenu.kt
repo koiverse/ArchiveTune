@@ -23,24 +23,36 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.Button
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.ListItem
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -57,6 +69,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.core.net.toUri
 import android.widget.Toast
@@ -72,8 +85,22 @@ import moe.koiverse.archivetune.LocalDownloadUtil
 import moe.koiverse.archivetune.LocalPlayerConnection
 import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.constants.ArtistSeparatorsKey
+import moe.koiverse.archivetune.constants.EqualizerBandLevelsMbKey
+import moe.koiverse.archivetune.constants.EqualizerBassBoostEnabledKey
+import moe.koiverse.archivetune.constants.EqualizerBassBoostStrengthKey
+import moe.koiverse.archivetune.constants.EqualizerCustomProfilesJsonKey
+import moe.koiverse.archivetune.constants.EqualizerEnabledKey
+import moe.koiverse.archivetune.constants.EqualizerOutputGainEnabledKey
+import moe.koiverse.archivetune.constants.EqualizerOutputGainMbKey
+import moe.koiverse.archivetune.constants.EqualizerSelectedProfileIdKey
+import moe.koiverse.archivetune.constants.EqualizerVirtualizerEnabledKey
+import moe.koiverse.archivetune.constants.EqualizerVirtualizerStrengthKey
 import moe.koiverse.archivetune.constants.ListItemHeight
 import moe.koiverse.archivetune.models.MediaMetadata
+import moe.koiverse.archivetune.playback.EqCapabilities
+import moe.koiverse.archivetune.playback.EqProfile
+import moe.koiverse.archivetune.playback.EqProfilesPayload
+import moe.koiverse.archivetune.playback.EqualizerJson
 import moe.koiverse.archivetune.playback.ExoDownloadService
 import moe.koiverse.archivetune.playback.queues.YouTubeQueue
 import moe.koiverse.archivetune.ui.component.BigSeekBar
@@ -81,12 +108,14 @@ import moe.koiverse.archivetune.ui.component.BottomSheetState
 import moe.koiverse.archivetune.ui.component.ListDialog
 import moe.koiverse.archivetune.ui.component.NewAction
 import moe.koiverse.archivetune.ui.component.NewActionGrid
+import moe.koiverse.archivetune.ui.component.TextFieldDialog
 import moe.koiverse.archivetune.utils.rememberPreference
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlin.math.log2
 import kotlin.math.pow
 import kotlin.math.round
+import java.util.UUID
 
 @Composable
 fun PlayerMenu(
@@ -213,6 +242,30 @@ fun PlayerMenu(
     if (showPitchTempoDialog) {
         TempoPitchDialog(
             onDismiss = { showPitchTempoDialog = false },
+        )
+    }
+
+    var showEqualizerDialog by rememberSaveable {
+        mutableStateOf(false)
+    }
+
+    if (showEqualizerDialog) {
+        EqualizerDialog(
+            onDismiss = { showEqualizerDialog = false },
+            openSystemEqualizer = {
+                val intent =
+                    Intent(AudioEffect.ACTION_DISPLAY_AUDIO_EFFECT_CONTROL_PANEL).apply {
+                        putExtra(
+                            AudioEffect.EXTRA_AUDIO_SESSION,
+                            playerConnection.player.audioSessionId,
+                        )
+                        putExtra(AudioEffect.EXTRA_PACKAGE_NAME, context.packageName)
+                        putExtra(AudioEffect.EXTRA_CONTENT_TYPE, AudioEffect.CONTENT_TYPE_MUSIC)
+                    }
+                if (intent.resolveActivity(context.packageManager) != null) {
+                    activityResultLauncher.launch(intent)
+                }
+            },
         )
     }
 
@@ -455,19 +508,7 @@ fun PlayerMenu(
                         )
                     },
                     modifier = Modifier.clickable {
-                        val intent =
-                            Intent(AudioEffect.ACTION_DISPLAY_AUDIO_EFFECT_CONTROL_PANEL).apply {
-                                putExtra(
-                                    AudioEffect.EXTRA_AUDIO_SESSION,
-                                    playerConnection.player.audioSessionId,
-                                )
-                                putExtra(AudioEffect.EXTRA_PACKAGE_NAME, context.packageName)
-                                putExtra(AudioEffect.EXTRA_CONTENT_TYPE, AudioEffect.CONTENT_TYPE_MUSIC)
-                            }
-                        if (intent.resolveActivity(context.packageManager) != null) {
-                            activityResultLauncher.launch(intent)
-                        }
-                        onDismiss()
+                        showEqualizerDialog = true
                     }
                 )
             }
@@ -606,4 +647,602 @@ fun <T> ValueAdjuster(
             )
         }
     }
+}
+
+@Composable
+fun EqualizerDialog(
+    onDismiss: () -> Unit,
+    openSystemEqualizer: () -> Unit,
+) {
+    val playerConnection = LocalPlayerConnection.current ?: return
+    val eqCapabilities by playerConnection.service.eqCapabilities.collectAsState()
+
+    val (eqEnabled, setEqEnabled) = rememberPreference(EqualizerEnabledKey, defaultValue = false)
+    val (selectedProfileId, setSelectedProfileId) = rememberPreference(EqualizerSelectedProfileIdKey, defaultValue = "flat")
+    val (bandLevelsRaw, setBandLevelsRaw) = rememberPreference(EqualizerBandLevelsMbKey, defaultValue = "")
+
+    val (outputGainEnabled, setOutputGainEnabled) = rememberPreference(EqualizerOutputGainEnabledKey, defaultValue = false)
+    val (outputGainMb, setOutputGainMb) = rememberPreference(EqualizerOutputGainMbKey, defaultValue = 0)
+
+    val (bassBoostEnabled, setBassBoostEnabled) = rememberPreference(EqualizerBassBoostEnabledKey, defaultValue = false)
+    val (bassBoostStrength, setBassBoostStrength) = rememberPreference(EqualizerBassBoostStrengthKey, defaultValue = 0)
+
+    val (virtualizerEnabled, setVirtualizerEnabled) = rememberPreference(EqualizerVirtualizerEnabledKey, defaultValue = false)
+    val (virtualizerStrength, setVirtualizerStrength) = rememberPreference(EqualizerVirtualizerStrengthKey, defaultValue = 0)
+
+    val (customProfilesJson, setCustomProfilesJson) = rememberPreference(EqualizerCustomProfilesJsonKey, defaultValue = "")
+
+    val caps = eqCapabilities
+    val bandCount = caps?.bandCount ?: 0
+    val minMb = caps?.minBandLevelMb ?: -1500
+    val maxMb = caps?.maxBandLevelMb ?: 1500
+
+    var outputGainLocal by rememberSaveable { mutableIntStateOf(outputGainMb) }
+    LaunchedEffect(outputGainMb) { outputGainLocal = outputGainMb }
+
+    var bassBoostStrengthLocal by rememberSaveable { mutableIntStateOf(bassBoostStrength) }
+    LaunchedEffect(bassBoostStrength) { bassBoostStrengthLocal = bassBoostStrength }
+
+    var virtualizerStrengthLocal by rememberSaveable { mutableIntStateOf(virtualizerStrength) }
+    LaunchedEffect(virtualizerStrength) { virtualizerStrengthLocal = virtualizerStrength }
+
+    var bandLevelsMb by remember { mutableStateOf<List<Int>>(emptyList()) }
+    LaunchedEffect(bandLevelsRaw, bandCount) {
+        bandLevelsMb = resampleLevelsByIndex(decodeBandLevelsMb(bandLevelsRaw), bandCount)
+    }
+
+    val profiles = remember(customProfilesJson) { decodeProfilesPayload(customProfilesJson).profiles }
+    val activeProfileId = selectedProfileId.removePrefix("profile:").takeIf { selectedProfileId.startsWith("profile:") }
+    val activeProfile = remember(profiles, activeProfileId) { profiles.firstOrNull { it.id == activeProfileId } }
+
+    var showSaveProfileDialog by rememberSaveable { mutableStateOf(false) }
+    var showManageProfilesDialog by rememberSaveable { mutableStateOf(false) }
+
+    if (showSaveProfileDialog) {
+        TextFieldDialog(
+            title = { Text(text = stringResource(R.string.eq_save_profile)) },
+            placeholder = { Text(text = stringResource(R.string.eq_profile_name)) },
+            onDone = { name ->
+                val trimmed = name.trim()
+                if (trimmed.isNotBlank()) {
+                    val newProfile =
+                        EqProfile(
+                            id = UUID.randomUUID().toString(),
+                            name = trimmed,
+                            bandCenterFreqHz = caps?.centerFreqHz.orEmpty(),
+                            bandLevelsMb = bandLevelsMb,
+                            outputGainMb = outputGainMb,
+                            bassBoostStrength = bassBoostStrength,
+                            virtualizerStrength = virtualizerStrength,
+                        )
+
+                    val updatedPayload =
+                        EqProfilesPayload(
+                            profiles =
+                                (profiles + newProfile)
+                                    .distinctBy { it.id }
+                                    .sortedBy { it.name.lowercase() },
+                        )
+
+                    setCustomProfilesJson(encodeProfilesPayload(updatedPayload))
+                    setSelectedProfileId("profile:${newProfile.id}")
+                }
+            },
+            onDismiss = { showSaveProfileDialog = false },
+        )
+    }
+
+    if (showManageProfilesDialog) {
+        ListDialog(
+            onDismiss = { showManageProfilesDialog = false },
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            items(
+                items = profiles,
+                key = { it.id },
+            ) { profile ->
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                setEqEnabled(true)
+                                setBandLevelsRaw(encodeBandLevelsMb(profile.bandLevelsMb))
+                                setOutputGainMb(profile.outputGainMb)
+                                setOutputGainEnabled(profile.outputGainMb != 0)
+                                setBassBoostStrength(profile.bassBoostStrength)
+                                setBassBoostEnabled(profile.bassBoostStrength != 0)
+                                setVirtualizerStrength(profile.virtualizerStrength)
+                                setVirtualizerEnabled(profile.virtualizerStrength != 0)
+                                setSelectedProfileId("profile:${profile.id}")
+                                showManageProfilesDialog = false
+                            }.padding(horizontal = 16.dp, vertical = 12.dp),
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = profile.name,
+                            style = MaterialTheme.typography.titleMedium,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        Text(
+                            text = stringResource(R.string.eq_custom_profile),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+
+                    IconButton(
+                        onClick = {
+                            val updatedPayload =
+                                EqProfilesPayload(
+                                    profiles = profiles.filterNot { it.id == profile.id },
+                                )
+                            setCustomProfilesJson(encodeProfilesPayload(updatedPayload))
+                            if (selectedProfileId == "profile:${profile.id}") {
+                                setSelectedProfileId("manual")
+                            }
+                        },
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.delete),
+                            contentDescription = null,
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false),
+    ) {
+        Surface(
+            modifier = Modifier.fillMaxSize(),
+            color = MaterialTheme.colorScheme.surface,
+        ) {
+            Column(
+                modifier = Modifier.fillMaxSize(),
+            ) {
+                TopAppBar(
+                    title = { Text(text = stringResource(R.string.equalizer)) },
+                    navigationIcon = {
+                        IconButton(onClick = onDismiss) {
+                            Icon(
+                                painter = painterResource(R.drawable.close),
+                                contentDescription = null,
+                            )
+                        }
+                    },
+                    actions = {
+                        Switch(
+                            checked = eqEnabled,
+                            onCheckedChange = {
+                                setEqEnabled(it)
+                                if (it && selectedProfileId.isBlank()) setSelectedProfileId("manual")
+                            },
+                            thumbContent = {
+                                Icon(
+                                    painter = painterResource(id = if (eqEnabled) R.drawable.check else R.drawable.close),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(SwitchDefaults.IconSize),
+                                )
+                            },
+                        )
+                        Spacer(Modifier.width(8.dp))
+                    },
+                    colors =
+                        TopAppBarDefaults.topAppBarColors(
+                            containerColor = MaterialTheme.colorScheme.surface,
+                            scrolledContainerColor = MaterialTheme.colorScheme.surface,
+                        ),
+                )
+
+                Column(
+                    modifier =
+                        Modifier
+                            .fillMaxSize()
+                            .verticalScroll(rememberScrollState())
+                            .padding(horizontal = 16.dp)
+                            .padding(bottom = 24.dp),
+                ) {
+                    Spacer(Modifier.height(12.dp))
+
+                    if (caps == null || bandCount <= 0) {
+                        Surface(
+                            color = MaterialTheme.colorScheme.surfaceContainer,
+                            shape = RoundedCornerShape(24.dp),
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                modifier = Modifier.padding(24.dp),
+                            ) {
+                                CircularProgressIndicator()
+                                Spacer(Modifier.height(16.dp))
+                                Text(
+                                    text = stringResource(R.string.eq_waiting_for_audio_session),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    textAlign = TextAlign.Center,
+                                )
+                                Spacer(Modifier.height(16.dp))
+                                Button(onClick = openSystemEqualizer) {
+                                    Text(text = stringResource(R.string.eq_open_system_equalizer))
+                                }
+                            }
+                        }
+                        Spacer(Modifier.height(24.dp))
+                        return@Column
+                    }
+
+                    EqSection(
+                        title = stringResource(R.string.eq_presets),
+                        trailing = {
+                            TextButton(onClick = openSystemEqualizer) {
+                                Text(text = stringResource(R.string.eq_system))
+                            }
+                        },
+                    ) {
+                        Row(
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 4.dp)
+                                    .verticalScroll(rememberScrollState()),
+                        ) {}
+
+                        Row(
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 8.dp),
+                        ) {
+                            FilterChip(
+                                selected = selectedProfileId == "flat",
+                                onClick = {
+                                    playerConnection.service.applyEqFlatPreset()
+                                    setSelectedProfileId("flat")
+                                },
+                                label = { Text(text = stringResource(R.string.eq_flat)) },
+                                colors =
+                                    FilterChipDefaults.filterChipColors(
+                                        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                                    ),
+                                border = null,
+                            )
+
+                            Spacer(Modifier.width(8.dp))
+
+                            caps.systemPresets.forEachIndexed { index, name ->
+                                FilterChip(
+                                    selected = selectedProfileId == "system:$index",
+                                    onClick = {
+                                        playerConnection.service.applySystemEqPreset(index)
+                                        setSelectedProfileId("system:$index")
+                                    },
+                                    label = {
+                                        Text(
+                                            text = name,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis,
+                                        )
+                                    },
+                                    colors =
+                                        FilterChipDefaults.filterChipColors(
+                                            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                                        ),
+                                    border = null,
+                                )
+                                Spacer(Modifier.width(8.dp))
+                            }
+                        }
+                    }
+
+                    Spacer(Modifier.height(12.dp))
+
+                    EqSection(
+                        title = stringResource(R.string.eq_profiles),
+                        trailing = {
+                            TextButton(onClick = { showManageProfilesDialog = true }) {
+                                Text(text = stringResource(R.string.eq_manage))
+                            }
+                        },
+                    ) {
+                        val subtitle =
+                            when {
+                                selectedProfileId == "flat" -> stringResource(R.string.eq_flat)
+                                selectedProfileId.startsWith("system:") -> stringResource(R.string.eq_system_preset)
+                                activeProfile != null -> activeProfile.name
+                                else -> stringResource(R.string.eq_manual)
+                            }
+
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 8.dp),
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = subtitle,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                                Text(
+                                    text = stringResource(R.string.eq_profile_hint),
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                            TextButton(onClick = { showSaveProfileDialog = true }) {
+                                Text(text = stringResource(R.string.eq_save))
+                            }
+                        }
+                    }
+
+                    Spacer(Modifier.height(12.dp))
+
+                    EqSection(
+                        title = stringResource(R.string.eq_bands),
+                        trailing = {
+                            TextButton(
+                                onClick = {
+                                    setSelectedProfileId("manual")
+                                    setBandLevelsRaw(encodeBandLevelsMb(List(bandCount) { 0 }))
+                                },
+                            ) {
+                                Text(text = stringResource(R.string.reset))
+                            }
+                        },
+                    ) {
+                        caps.centerFreqHz.forEachIndexed { band, hz ->
+                            val label = formatHz(hz)
+                            val value = bandLevelsMb.getOrNull(band) ?: 0
+                            val valueDb = (value / 100f).coerceIn(-24f, 24f)
+
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier =
+                                    Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 8.dp, vertical = 10.dp),
+                            ) {
+                                Text(
+                                    text = label,
+                                    style = MaterialTheme.typography.labelLarge,
+                                    modifier = Modifier.width(64.dp),
+                                )
+
+                                Slider(
+                                    value = value.toFloat().coerceIn(minMb.toFloat(), maxMb.toFloat()),
+                                    onValueChange = { newValue ->
+                                        val coerced = newValue.toInt().coerceIn(minMb, maxMb)
+                                        bandLevelsMb =
+                                            bandLevelsMb.toMutableList().apply {
+                                                while (size < bandCount) add(0)
+                                                set(band, coerced)
+                                            }
+                                    },
+                                    onValueChangeFinished = {
+                                        setSelectedProfileId("manual")
+                                        setBandLevelsRaw(encodeBandLevelsMb(bandLevelsMb))
+                                    },
+                                    valueRange = minMb.toFloat()..maxMb.toFloat(),
+                                    colors =
+                                        SliderDefaults.colors(
+                                            activeTrackColor = MaterialTheme.colorScheme.primary,
+                                            inactiveTrackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                                        ),
+                                    modifier = Modifier.weight(1f),
+                                )
+
+                                Text(
+                                    text = formatDb(valueDb),
+                                    style = MaterialTheme.typography.labelLarge,
+                                    textAlign = TextAlign.End,
+                                    modifier = Modifier.width(64.dp),
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(Modifier.height(12.dp))
+
+                    EqSection(title = stringResource(R.string.eq_output_gain)) {
+                        EqToggleSliderRow(
+                            enabled = outputGainEnabled,
+                            onEnabledChange = {
+                                setSelectedProfileId("manual")
+                                setOutputGainEnabled(it)
+                            },
+                            value = outputGainLocal,
+                            onValueChange = { outputGainLocal = it },
+                            valueRange = -1500..1500,
+                            formatValue = { formatDb(it / 100f) },
+                            modifier = Modifier.padding(horizontal = 8.dp),
+                            onValueChangeFinished = {
+                                setSelectedProfileId("manual")
+                                setOutputGainMb(outputGainLocal)
+                            },
+                        )
+                    }
+
+                    Spacer(Modifier.height(12.dp))
+
+                    EqSection(title = stringResource(R.string.eq_bass_boost)) {
+                        EqToggleSliderRow(
+                            enabled = bassBoostEnabled,
+                            onEnabledChange = {
+                                setSelectedProfileId("manual")
+                                setBassBoostEnabled(it)
+                            },
+                            value = bassBoostStrengthLocal,
+                            onValueChange = { bassBoostStrengthLocal = it },
+                            valueRange = 0..1000,
+                            formatValue = { "${it / 10}%" },
+                            modifier = Modifier.padding(horizontal = 8.dp),
+                            onValueChangeFinished = {
+                                setSelectedProfileId("manual")
+                                setBassBoostStrength(bassBoostStrengthLocal)
+                            },
+                        )
+                    }
+
+                    Spacer(Modifier.height(12.dp))
+
+                    EqSection(title = stringResource(R.string.eq_virtualizer)) {
+                        EqToggleSliderRow(
+                            enabled = virtualizerEnabled,
+                            onEnabledChange = {
+                                setSelectedProfileId("manual")
+                                setVirtualizerEnabled(it)
+                            },
+                            value = virtualizerStrengthLocal,
+                            onValueChange = { virtualizerStrengthLocal = it },
+                            valueRange = 0..1000,
+                            formatValue = { "${it / 10}%" },
+                            modifier = Modifier.padding(horizontal = 8.dp),
+                            onValueChangeFinished = {
+                                setSelectedProfileId("manual")
+                                setVirtualizerStrength(virtualizerStrengthLocal)
+                            },
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun EqSection(
+    title: String,
+    trailing: @Composable (() -> Unit)? = null,
+    content: @Composable () -> Unit,
+) {
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        shape = RoundedCornerShape(24.dp),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(modifier = Modifier.padding(vertical = 16.dp)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+            ) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.weight(1f),
+                )
+                trailing?.invoke()
+            }
+            content()
+        }
+    }
+}
+
+@Composable
+private fun EqToggleSliderRow(
+    enabled: Boolean,
+    onEnabledChange: (Boolean) -> Unit,
+    value: Int,
+    onValueChange: (Int) -> Unit,
+    valueRange: IntRange,
+    formatValue: (Int) -> String,
+    modifier: Modifier = Modifier,
+    onValueChangeFinished: (() -> Unit)? = null,
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = modifier.fillMaxWidth().padding(vertical = 8.dp),
+    ) {
+        Switch(
+            checked = enabled,
+            onCheckedChange = onEnabledChange,
+            thumbContent = {
+                Icon(
+                    painter = painterResource(id = if (enabled) R.drawable.check else R.drawable.close),
+                    contentDescription = null,
+                    modifier = Modifier.size(SwitchDefaults.IconSize),
+                )
+            },
+        )
+
+        Spacer(Modifier.width(12.dp))
+
+        Slider(
+            value = value.toFloat().coerceIn(valueRange.first.toFloat(), valueRange.last.toFloat()),
+            onValueChange = { onValueChange(it.toInt().coerceIn(valueRange.first, valueRange.last)) },
+            onValueChangeFinished = { onValueChangeFinished?.invoke() },
+            valueRange = valueRange.first.toFloat()..valueRange.last.toFloat(),
+            enabled = enabled,
+            colors =
+                SliderDefaults.colors(
+                    activeTrackColor = MaterialTheme.colorScheme.primary,
+                    inactiveTrackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                ),
+            modifier = Modifier.weight(1f),
+        )
+
+        Spacer(Modifier.width(12.dp))
+
+        Text(
+            text = formatValue(value),
+            style = MaterialTheme.typography.labelLarge,
+            textAlign = TextAlign.End,
+            modifier = Modifier.width(72.dp),
+        )
+    }
+}
+
+private fun decodeBandLevelsMb(raw: String?): List<Int> {
+    if (raw.isNullOrBlank()) return emptyList()
+    return runCatching { EqualizerJson.json.decodeFromString<List<Int>>(raw) }.getOrNull() ?: emptyList()
+}
+
+private fun encodeBandLevelsMb(levelsMb: List<Int>): String {
+    return runCatching { EqualizerJson.json.encodeToString(levelsMb) }.getOrNull().orEmpty()
+}
+
+private fun decodeProfilesPayload(raw: String?): EqProfilesPayload {
+    if (raw.isNullOrBlank()) return EqProfilesPayload()
+    return runCatching { EqualizerJson.json.decodeFromString<EqProfilesPayload>(raw) }.getOrNull() ?: EqProfilesPayload()
+}
+
+private fun encodeProfilesPayload(payload: EqProfilesPayload): String {
+    return runCatching { EqualizerJson.json.encodeToString(payload) }.getOrNull().orEmpty()
+}
+
+private fun resampleLevelsByIndex(levelsMb: List<Int>, targetCount: Int): List<Int> {
+    if (targetCount <= 0) return emptyList()
+    if (levelsMb.isEmpty()) return List(targetCount) { 0 }
+    if (levelsMb.size == targetCount) return levelsMb
+    if (targetCount == 1) return listOf(levelsMb.sum() / levelsMb.size)
+
+    val lastIndex = levelsMb.lastIndex.toFloat().coerceAtLeast(1f)
+    return List(targetCount) { i ->
+        val pos = i.toFloat() * lastIndex / (targetCount - 1).toFloat()
+        val lo = kotlin.math.floor(pos).toInt().coerceIn(0, levelsMb.lastIndex)
+        val hi = kotlin.math.ceil(pos).toInt().coerceIn(0, levelsMb.lastIndex)
+        val t = (pos - lo.toFloat()).coerceIn(0f, 1f)
+        val a = levelsMb[lo]
+        val b = levelsMb[hi]
+        (a + ((b - a) * t)).toInt()
+    }
+}
+
+private fun formatHz(hz: Int): String {
+    if (hz <= 0) return ""
+    return if (hz >= 1000) "${(hz / 1000f).let { round(it * 10f) / 10f }}k" else hz.toString()
+}
+
+private fun formatDb(db: Float): String {
+    val rounded = round(db * 10f) / 10f
+    return "${if (rounded > 0f) "+" else ""}$rounded dB"
 }
