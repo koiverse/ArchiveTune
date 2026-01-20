@@ -872,22 +872,28 @@ interface DatabaseDao {
     fun albumArtistMaps(albumId: String): List<AlbumArtistMap>
 
     @Transaction
-    @Query("SELECT *, (SELECT COUNT(*) FROM playlist_song_map WHERE playlistId = playlist.id) AS songCount FROM playlist WHERE bookmarkedAt IS NOT NULL ORDER BY rowId")
+    @Query("SELECT *, (SELECT COUNT(*) FROM playlist_song_map WHERE playlistId = playlist.id) AS songCount FROM playlist WHERE bookmarkedAt IS NOT NULL ORDER BY isPinned DESC, rowId")
     fun playlistsByCreateDateAsc(): Flow<List<Playlist>>
 
     @Transaction
     @Query(
-        "SELECT *, (SELECT COUNT(*) FROM playlist_song_map WHERE playlistId = playlist.id) AS songCount FROM playlist WHERE bookmarkedAt IS NOT NULL ORDER BY lastUpdateTime",
+        "SELECT *, (SELECT COUNT(*) FROM playlist_song_map WHERE playlistId = playlist.id) AS songCount FROM playlist WHERE bookmarkedAt IS NOT NULL ORDER BY isPinned DESC, lastUpdateTime",
     )
     fun playlistsByUpdatedDateAsc(): Flow<List<Playlist>>
 
     @Transaction
-    @Query("SELECT *, (SELECT COUNT(*) FROM playlist_song_map WHERE playlistId = playlist.id) AS songCount FROM playlist WHERE bookmarkedAt IS NOT NULL ORDER BY name")
+    @Query("SELECT *, (SELECT COUNT(*) FROM playlist_song_map WHERE playlistId = playlist.id) AS songCount FROM playlist WHERE bookmarkedAt IS NOT NULL ORDER BY isPinned DESC, name")
     fun playlistsByNameAsc(): Flow<List<Playlist>>
 
     @Transaction
-    @Query("SELECT *, (SELECT COUNT(*) FROM playlist_song_map WHERE playlistId = playlist.id) AS songCount FROM playlist WHERE bookmarkedAt IS NOT NULL ORDER BY songCount")
+    @Query("SELECT *, (SELECT COUNT(*) FROM playlist_song_map WHERE playlistId = playlist.id) AS songCount FROM playlist WHERE bookmarkedAt IS NOT NULL ORDER BY isPinned DESC, songCount")
     fun playlistsBySongCountAsc(): Flow<List<Playlist>>
+
+    @Transaction
+    @Query(
+        "SELECT *, (SELECT COUNT(*) FROM playlist_song_map WHERE playlistId = playlist.id) AS songCount FROM playlist WHERE bookmarkedAt IS NOT NULL ORDER BY isPinned DESC, COALESCE(customOrder, rowId), rowId",
+    )
+    fun playlistsByCustomOrderAsc(): Flow<List<Playlist>>
 
     fun playlists(
         sortType: PlaylistSortType,
@@ -898,12 +904,43 @@ interface DatabaseDao {
             playlistsByNameAsc().map { playlists ->
                 val collator = Collator.getInstance(Locale.getDefault())
                 collator.strength = Collator.PRIMARY
-                playlists.sortedWith(compareBy(collator) { it.playlist.name })
+                playlists.sortedWith { a, b ->
+                    val pinned = b.playlist.isPinned.compareTo(a.playlist.isPinned)
+                    if (pinned != 0) return@sortedWith pinned
+                    collator.compare(a.playlist.name, b.playlist.name)
+                }
             }
 
         PlaylistSortType.SONG_COUNT -> playlistsBySongCountAsc()
         PlaylistSortType.LAST_UPDATED -> playlistsByUpdatedDateAsc()
-    }.map { it.reversed(descending) }
+        PlaylistSortType.CUSTOM -> playlistsByCustomOrderAsc()
+    }.map { list ->
+        if (!descending || sortType == PlaylistSortType.CUSTOM) return@map list
+        val pinned = list.filter { it.playlist.isPinned }.asReversed()
+        val unpinned = list.filterNot { it.playlist.isPinned }.asReversed()
+        pinned + unpinned
+    }
+
+    @Query("UPDATE playlist SET isPinned = :isPinned WHERE id = :playlistId")
+    fun setPlaylistPinned(
+        playlistId: String,
+        isPinned: Boolean,
+    )
+
+    @Query("UPDATE playlist SET customOrder = :customOrder WHERE id = :playlistId")
+    fun setPlaylistCustomOrder(
+        playlistId: String,
+        customOrder: Int?,
+    )
+
+    @Query("SELECT MAX(customOrder) FROM playlist WHERE bookmarkedAt IS NOT NULL")
+    fun maxPlaylistCustomOrder(): Int?
+
+    @Query("SELECT MIN(customOrder) FROM playlist WHERE bookmarkedAt IS NOT NULL AND isPinned = 1")
+    fun minPinnedCustomOrder(): Int?
+
+    @Query("SELECT MAX(customOrder) FROM playlist WHERE bookmarkedAt IS NOT NULL AND isPinned = 0")
+    fun maxUnpinnedCustomOrder(): Int?
 
     @Transaction
     @Query("SELECT *, (SELECT COUNT(*) FROM playlist_song_map WHERE playlistId = playlist.id) AS songCount FROM playlist WHERE id = :playlistId")

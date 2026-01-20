@@ -28,6 +28,9 @@ data class PlaylistEntity(
     val thumbnailUrl: String? = null,
     val shuffleEndpointParams: String? = null,
     val radioEndpointParams: String? = null,
+    @ColumnInfo(name = "isPinned", defaultValue = "0")
+    val isPinned: Boolean = false,
+    val customOrder: Int? = null,
     @ColumnInfo(name = "isLocal", defaultValue = "0")
     val isLocal: Boolean = false,
     @ColumnInfo(name = "isAutoSync", defaultValue = "0")

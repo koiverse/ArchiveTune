@@ -45,7 +45,7 @@ import java.time.ZoneOffset
 import java.util.Date
 
 private const val TAG = "MusicDatabase"
-private const val CURRENT_VERSION = 25
+private const val CURRENT_VERSION = 26
 
 class MusicDatabase(
     private val delegate: InternalDatabase,
@@ -145,6 +145,7 @@ abstract class InternalDatabase : RoomDatabase() {
                         UniversalMigration(22, CURRENT_VERSION),
                         UniversalMigration(23, CURRENT_VERSION),
                         UniversalMigration(24, CURRENT_VERSION),
+                        UniversalMigration(25, CURRENT_VERSION),
                     )
                     .addCallback(DatabaseCallback())
                     .fallbackToDestructiveMigration()
@@ -327,8 +328,10 @@ private class UniversalMigration(startVersion: Int, endVersion: Int) : Migration
         
         cleanupDuplicatePlaylists(db)
         
-        val needsRecreation = !columns.containsKey("isAutoSync") || 
+        val needsRecreation = !columns.containsKey("isAutoSync") ||
             !columns.containsKey("isLocal") ||
+            !columns.containsKey("isPinned") ||
+            !columns.containsKey("customOrder") ||
             columns["isLocal"]?.defaultValue !in listOf("0", "'0'") ||
             columns["isEditable"]?.defaultValue !in listOf("1", "'1'", "true", "'true'")
         
@@ -350,6 +353,8 @@ private class UniversalMigration(startVersion: Int, endVersion: Int) : Migration
                     thumbnailUrl TEXT,
                     shuffleEndpointParams TEXT,
                     radioEndpointParams TEXT,
+                    isPinned INTEGER NOT NULL DEFAULT 0,
+                    customOrder INTEGER,
                     isLocal INTEGER NOT NULL DEFAULT 0,
                     isAutoSync INTEGER NOT NULL DEFAULT 0
                 )
@@ -357,15 +362,19 @@ private class UniversalMigration(startVersion: Int, endVersion: Int) : Migration
             
             val cols = listOf("id", "name", "browseId", "createdAt", "lastUpdateTime",
                 "isEditable", "bookmarkedAt", "remoteSongCount", "playEndpointParams",
-                "thumbnailUrl", "shuffleEndpointParams", "radioEndpointParams", "isLocal", "isAutoSync")
+                "thumbnailUrl", "shuffleEndpointParams", "radioEndpointParams", "isPinned", "customOrder", "isLocal", "isAutoSync")
             
             val select = cols.map { c ->
                 when {
                     c !in existing && c == "isEditable" -> "1"
                     c !in existing && c in listOf("isLocal", "isAutoSync") -> "0"
+                    c !in existing && c == "isPinned" -> "0"
+                    c !in existing && c == "customOrder" -> "rowid"
                     c !in existing -> "NULL"
                     c == "isEditable" -> "COALESCE($c, 1)"
                     c in listOf("isLocal", "isAutoSync") -> "COALESCE($c, 0)"
+                    c == "isPinned" -> "COALESCE($c, 0)"
+                    c == "customOrder" -> "COALESCE($c, rowid)"
                     else -> c
                 }
             }
@@ -377,6 +386,8 @@ private class UniversalMigration(startVersion: Int, endVersion: Int) : Migration
         db.execSQL("UPDATE playlist SET isAutoSync = 0 WHERE isAutoSync IS NULL")
         db.execSQL("UPDATE playlist SET isLocal = 0 WHERE isLocal IS NULL")
         db.execSQL("UPDATE playlist SET isEditable = 1 WHERE isEditable IS NULL")
+        db.execSQL("UPDATE playlist SET isPinned = 0 WHERE isPinned IS NULL")
+        db.execSQL("UPDATE playlist SET customOrder = rowid WHERE customOrder IS NULL")
         
         db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_playlist_browseId ON playlist (browseId) WHERE browseId IS NOT NULL")
     }

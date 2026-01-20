@@ -17,6 +17,7 @@ import androidx.navigation.NavController
 import moe.koiverse.archivetune.innertube.models.PlaylistItem
 import moe.koiverse.archivetune.innertube.models.WatchEndpoint
 import moe.koiverse.archivetune.R
+import moe.koiverse.archivetune.LocalDatabase
 import moe.koiverse.archivetune.db.entities.Album
 import moe.koiverse.archivetune.db.entities.Artist
 import moe.koiverse.archivetune.db.entities.Playlist
@@ -167,9 +168,46 @@ fun LibraryPlaylistListItem(
     coroutineScope: CoroutineScope,
     playlist: Playlist,
     useNewDesign: Boolean,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    showDragHandle: Boolean = false,
+    dragHandleModifier: Modifier = Modifier,
 ) {
+    val database = LocalDatabase.current
     val trailing: @Composable RowScope.() -> Unit = {
+        androidx.compose.material3.IconButton(
+            onClick = {
+                database.transaction {
+                    val newPinned = !playlist.playlist.isPinned
+                    val newOrder =
+                        if (newPinned) {
+                            (minPinnedCustomOrder() ?: 0) - 1
+                        } else {
+                            (maxUnpinnedCustomOrder() ?: (maxPlaylistCustomOrder() ?: 0)) + 1
+                        }
+                    setPlaylistPinned(playlist.id, newPinned)
+                    setPlaylistCustomOrder(playlist.id, newOrder)
+                }
+            },
+        ) {
+            Icon(
+                painter =
+                painterResource(
+                    if (playlist.playlist.isPinned) R.drawable.bookmark_filled else R.drawable.bookmark
+                ),
+                contentDescription = null,
+            )
+        }
+        if (showDragHandle) {
+            androidx.compose.material3.IconButton(
+                onClick = { },
+                modifier = dragHandleModifier,
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.drag_handle),
+                    contentDescription = null,
+                )
+            }
+        }
         androidx.compose.material3.IconButton(
             onClick = {
                 menuState.show {

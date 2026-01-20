@@ -25,6 +25,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import moe.koiverse.archivetune.R
+import moe.koiverse.archivetune.constants.PlaylistSortType
 import moe.koiverse.archivetune.constants.PlaylistSongSortType
 
 @Composable
@@ -94,16 +95,25 @@ inline fun <reified T : Enum<T>> SortHeader(
             }
         }
 
-        if (sortType != PlaylistSongSortType.CUSTOM && showDescending == true) {
-            ResizableIconButton(
-                icon = if (sortDescending) R.drawable.arrow_downward else R.drawable.arrow_upward,
-                color = MaterialTheme.colorScheme.primary,
-                modifier =
-                Modifier
-                    .size(32.dp)
-                    .padding(8.dp),
-                onClick = { onSortDescendingChange(!sortDescending) },
-            )
+        if (showDescending == true) {
+            val allowDescending =
+                when (sortType) {
+                    is PlaylistSongSortType -> sortType != PlaylistSongSortType.CUSTOM
+                    is PlaylistSortType -> sortType != PlaylistSortType.CUSTOM
+                    else -> true
+                }
+
+            if (allowDescending) {
+                ResizableIconButton(
+                    icon = if (sortDescending) R.drawable.arrow_downward else R.drawable.arrow_upward,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier =
+                    Modifier
+                        .size(32.dp)
+                        .padding(8.dp),
+                    onClick = { onSortDescendingChange(!sortDescending) },
+                )
+            }
         }
     }
 }

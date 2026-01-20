@@ -19,6 +19,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -34,6 +35,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -101,9 +103,13 @@ import moe.koiverse.archivetune.utils.rememberEnumPreference
 import moe.koiverse.archivetune.utils.rememberPreference
 import moe.koiverse.archivetune.viewmodels.LibraryPlaylistsViewModel
 import moe.koiverse.archivetune.LocalDatabase
+import moe.koiverse.archivetune.extensions.move
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.util.UUID
+import sh.calvin.reorderable.ReorderableItem
+import sh.calvin.reorderable.draggableHandle
+import sh.calvin.reorderable.rememberReorderableLazyListState
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -200,6 +206,62 @@ fun LibraryPlaylistsScreen(
 
     val lazyListState = rememberLazyListState()
     val lazyGridState = rememberLazyGridState()
+    val canReorderPlaylists = sortType == PlaylistSortType.CUSTOM && selectedTagIds.isEmpty()
+    val listHeaderItems =
+        2 +
+            (if (showLiked) 1 else 0) +
+            (if (showDownloaded) 1 else 0) +
+            (if (showTop) 1 else 0) +
+            (if (showCached) 1 else 0)
+    val mutableVisiblePlaylists = remember { mutableStateListOf<Playlist>() }
+    var dragInfo by remember { mutableStateOf<Pair<Int, Int>?>(null) }
+    val reorderableState = rememberReorderableLazyListState(
+        lazyListState = lazyListState,
+        scrollThresholdPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues(),
+    ) { from, to ->
+        if (!canReorderPlaylists) return@rememberReorderableLazyListState
+        if (from.index < listHeaderItems || to.index < listHeaderItems) return@rememberReorderableLazyListState
+
+        val fromIndex = from.index - listHeaderItems
+        val toIndex = to.index - listHeaderItems
+
+        if (fromIndex !in mutableVisiblePlaylists.indices || toIndex !in mutableVisiblePlaylists.indices) {
+            return@rememberReorderableLazyListState
+        }
+
+        val fromPinned = mutableVisiblePlaylists[fromIndex].playlist.isPinned
+        val toPinned = mutableVisiblePlaylists[toIndex].playlist.isPinned
+        if (fromPinned != toPinned) return@rememberReorderableLazyListState
+
+        val currentDragInfo = dragInfo
+        dragInfo =
+            if (currentDragInfo == null) {
+                fromIndex to toIndex
+            } else {
+                currentDragInfo.first to toIndex
+            }
+
+        mutableVisiblePlaylists.move(fromIndex, toIndex)
+    }
+
+    LaunchedEffect(visiblePlaylists, canReorderPlaylists, reorderableState.isAnyItemDragging) {
+        if (!canReorderPlaylists || !reorderableState.isAnyItemDragging) {
+            mutableVisiblePlaylists.clear()
+            mutableVisiblePlaylists.addAll(visiblePlaylists)
+        }
+    }
+
+    LaunchedEffect(reorderableState.isAnyItemDragging, canReorderPlaylists) {
+        if (!canReorderPlaylists || reorderableState.isAnyItemDragging) return@LaunchedEffect
+
+        dragInfo ?: return@LaunchedEffect
+        database.transaction {
+            mutableVisiblePlaylists.forEachIndexed { index, playlist ->
+                setPlaylistCustomOrder(playlist.id, index)
+            }
+        }
+        dragInfo = null
+    }
 
     val backStackEntry by navController.currentBackStackEntryAsState()
     val scrollToTop =
@@ -321,6 +383,7 @@ fun LibraryPlaylistsScreen(
                         PlaylistSortType.NAME -> R.string.sort_by_name
                         PlaylistSortType.SONG_COUNT -> R.string.sort_by_song_count
                         PlaylistSortType.LAST_UPDATED -> R.string.sort_by_last_updated
+                        PlaylistSortType.CUSTOM -> R.string.sort_by_custom
                     }
                 },
             )
@@ -596,19 +659,43 @@ fun LibraryPlaylistsScreen(
                         }
                     }
 
-                    items(
-                        items = visiblePlaylists,
-                        key = { it.id },
-                        contentType = { CONTENT_TYPE_PLAYLIST },
-                    ) { playlist ->
-                        LibraryPlaylistListItem(
-                            navController = navController,
-                            menuState = menuState,
-                            coroutineScope = coroutineScope,
-                            playlist = playlist,
-                            useNewDesign = useNewLibraryDesign,
-                            modifier = Modifier.animateItem()
-                        )
+                    if (canReorderPlaylists) {
+                        itemsIndexed(
+                            items = mutableVisiblePlaylists,
+                            key = { _, item -> item.id },
+                            contentType = { _, _ -> CONTENT_TYPE_PLAYLIST },
+                        ) { _, playlist ->
+                            ReorderableItem(
+                                state = reorderableState,
+                                key = playlist.id,
+                            ) {
+                                LibraryPlaylistListItem(
+                                    navController = navController,
+                                    menuState = menuState,
+                                    coroutineScope = coroutineScope,
+                                    playlist = playlist,
+                                    useNewDesign = useNewLibraryDesign,
+                                    showDragHandle = true,
+                                    dragHandleModifier = Modifier.draggableHandle(),
+                                    modifier = Modifier.animateItem(),
+                                )
+                            }
+                        }
+                    } else {
+                        items(
+                            items = visiblePlaylists,
+                            key = { it.id },
+                            contentType = { CONTENT_TYPE_PLAYLIST },
+                        ) { playlist ->
+                            LibraryPlaylistListItem(
+                                navController = navController,
+                                menuState = menuState,
+                                coroutineScope = coroutineScope,
+                                playlist = playlist,
+                                useNewDesign = useNewLibraryDesign,
+                                modifier = Modifier.animateItem(),
+                            )
+                        }
                     }
                 }
 
