@@ -27,6 +27,7 @@ import moe.koiverse.archivetune.constants.HideExplicitKey
 import moe.koiverse.archivetune.constants.LibraryFilter
 import moe.koiverse.archivetune.constants.PlaylistSortDescendingKey
 import moe.koiverse.archivetune.constants.PlaylistSortType
+import moe.koiverse.archivetune.constants.PlaylistSortDescendingKey
 import moe.koiverse.archivetune.constants.PlaylistSortTypeKey
 import moe.koiverse.archivetune.constants.SongFilter
 import moe.koiverse.archivetune.constants.SongFilterKey
@@ -298,7 +299,7 @@ constructor(
     val allPlaylists =
         context.dataStore.data
             .map {
-                it[PlaylistSortTypeKey].toEnum(PlaylistSortType.CREATE_DATE) to (it[PlaylistSortDescendingKey]
+                it[PlaylistSortTypeKey].toEnum(PlaylistSortType.CUSTOM) to (it[PlaylistSortDescendingKey]
                     ?: true)
             }.distinctUntilChanged()
             .flatMapLatest { (sortType, descending) ->
@@ -385,8 +386,13 @@ constructor(
         .flatMapLatest { hideExplicit ->
             database.albumsLiked(AlbumSortType.CREATE_DATE, true).map { it.filterExplicitAlbums(hideExplicit) }
         }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
-    var playlists = database.playlists(PlaylistSortType.CREATE_DATE, true)
-        .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+    var playlists =
+        context.dataStore.data
+            .map {
+                it[PlaylistSortTypeKey].toEnum(PlaylistSortType.CUSTOM) to (it[PlaylistSortDescendingKey] ?: true)
+            }.distinctUntilChanged()
+            .flatMapLatest { (sortType, descending) -> database.playlists(sortType, descending) }
+            .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
     init {
         viewModelScope.launch(Dispatchers.IO) {
