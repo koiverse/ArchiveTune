@@ -128,7 +128,7 @@ fun LibraryPlaylistsScreen(
     var viewType by rememberEnumPreference(PlaylistViewTypeKey, LibraryViewType.GRID)
     val (sortType, onSortTypeChange) = rememberEnumPreference(
         PlaylistSortTypeKey,
-        PlaylistSortType.CREATE_DATE
+        PlaylistSortType.CUSTOM
     )
     val (sortDescending, onSortDescendingChange) = rememberPreference(
         PlaylistSortDescendingKey,
@@ -243,8 +243,14 @@ fun LibraryPlaylistsScreen(
         mutableVisiblePlaylists.move(fromIndex, toIndex)
     }
 
-    LaunchedEffect(visiblePlaylists, canReorderPlaylists, reorderableState.isAnyItemDragging) {
-        if (!canReorderPlaylists || !reorderableState.isAnyItemDragging) {
+    LaunchedEffect(visiblePlaylists, canReorderPlaylists, reorderableState.isAnyItemDragging, dragInfo) {
+        if (!canReorderPlaylists) {
+            mutableVisiblePlaylists.clear()
+            mutableVisiblePlaylists.addAll(visiblePlaylists)
+            return@LaunchedEffect
+        }
+
+        if (!reorderableState.isAnyItemDragging && dragInfo == null) {
             mutableVisiblePlaylists.clear()
             mutableVisiblePlaylists.addAll(visiblePlaylists)
         }
