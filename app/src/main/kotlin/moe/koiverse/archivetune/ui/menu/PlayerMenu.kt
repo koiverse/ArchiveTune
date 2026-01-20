@@ -659,6 +659,7 @@ fun EqualizerDialog(
     onDismiss: () -> Unit,
     openSystemEqualizer: () -> Unit,
 ) {
+    val context = LocalContext.current
     val playerConnection = LocalPlayerConnection.current ?: return
     val eqCapabilities by playerConnection.service.eqCapabilities.collectAsState()
 
@@ -702,6 +703,7 @@ fun EqualizerDialog(
 
     var showSaveProfileDialog by rememberSaveable { mutableStateOf(false) }
     var showManageProfilesDialog by rememberSaveable { mutableStateOf(false) }
+    var showImportProfilesDialog by rememberSaveable { mutableStateOf(false) }
 
     if (showSaveProfileDialog) {
         TextFieldDialog(
@@ -734,6 +736,74 @@ fun EqualizerDialog(
                 }
             },
             onDismiss = { showSaveProfileDialog = false },
+        )
+    }
+
+    if (showImportProfilesDialog) {
+        TextFieldDialog(
+            title = { Text(text = stringResource(R.string.eq_import_profiles)) },
+            placeholder = { Text(text = stringResource(R.string.eq_import_profiles_placeholder)) },
+            singleLine = false,
+            maxLines = 10,
+            isInputValid = { it.trim().isNotBlank() },
+            onDone = { raw ->
+                val trimmed = raw.trim()
+                val payload =
+                    decodeProfilesPayload(trimmed).takeIf { it.profiles.isNotEmpty() }
+                        ?: runCatching {
+                            EqProfilesPayload(EqualizerJson.json.decodeFromString<List<EqProfile>>(trimmed))
+                        }.getOrNull()
+                        ?: EqProfilesPayload()
+
+                if (payload.profiles.isEmpty()) {
+                    Toast
+                        .makeText(context, context.getString(R.string.eq_import_failed), Toast.LENGTH_SHORT)
+                        .show()
+                    return@TextFieldDialog
+                }
+
+                val existingIds = profiles.map { it.id }.toMutableSet()
+                val normalizedImported =
+                    payload.profiles
+                        .map { p ->
+                            val baseName = p.name.trim().ifBlank { context.getString(R.string.eq_imported_profile) }
+                            val incomingId = p.id.trim()
+                            val finalId =
+                                if (incomingId.isBlank() || !existingIds.add(incomingId)) {
+                                    generateSequence { UUID.randomUUID().toString() }
+                                        .first { existingIds.add(it) }
+                                } else {
+                                    incomingId
+                                }
+
+                            p.copy(
+                                id = finalId,
+                                name = baseName,
+                            )
+                        }
+
+                val updatedPayload =
+                    EqProfilesPayload(
+                        profiles =
+                            (profiles + normalizedImported)
+                                .distinctBy { it.id }
+                                .sortedBy { it.name.lowercase() },
+                    )
+
+                setCustomProfilesJson(encodeProfilesPayload(updatedPayload))
+                val firstImportedId = normalizedImported.firstOrNull()?.id
+                if (firstImportedId != null) {
+                    setSelectedProfileId("profile:$firstImportedId")
+                }
+
+                Toast
+                    .makeText(
+                        context,
+                        context.getString(R.string.eq_import_success, normalizedImported.size),
+                        Toast.LENGTH_SHORT,
+                    ).show()
+            },
+            onDismiss = { showImportProfilesDialog = false },
         )
     }
 
@@ -979,6 +1049,9 @@ fun EqualizerDialog(
                             }
                             TextButton(onClick = { showSaveProfileDialog = true }) {
                                 Text(text = stringResource(R.string.eq_save))
+                            }
+                            TextButton(onClick = { showImportProfilesDialog = true }) {
+                                Text(text = stringResource(R.string.eq_import))
                             }
                         }
                     }
