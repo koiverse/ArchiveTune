@@ -205,7 +205,9 @@ fun LibraryPlaylistsScreen(
 
     val lazyListState = rememberLazyListState()
     val lazyGridState = rememberLazyGridState()
-    val canReorderPlaylists = sortType == PlaylistSortType.CUSTOM && selectedTagIds.isEmpty()
+    val canEnterReorderMode = sortType == PlaylistSortType.CUSTOM && selectedTagIds.isEmpty()
+    var reorderEnabled by rememberSaveable { mutableStateOf(false) }
+    val canReorderPlaylists = canEnterReorderMode && reorderEnabled
     val listHeaderItems =
         2 +
             (if (showLiked) 1 else 0) +
@@ -266,6 +268,10 @@ fun LibraryPlaylistsScreen(
             }
         }
         dragInfo = null
+    }
+    
+    LaunchedEffect(canEnterReorderMode) {
+        if (!canEnterReorderMode) reorderEnabled = false
     }
 
     val backStackEntry by navController.currentBackStackEntryAsState()
@@ -404,6 +410,18 @@ fun LibraryPlaylistsScreen(
                 style = MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.secondary,
             )
+
+            if (canEnterReorderMode) {
+                IconButton(
+                    onClick = { reorderEnabled = !reorderEnabled },
+                    modifier = Modifier.padding(start = 6.dp),
+                ) {
+                    Icon(
+                        painter = painterResource(if (reorderEnabled) R.drawable.lock_open else R.drawable.lock),
+                        contentDescription = null,
+                    )
+                }
+            }
 
             IconButton(
                 onClick = {
