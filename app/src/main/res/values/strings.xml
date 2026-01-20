@@ -425,6 +425,12 @@
     <string name="eq_save_profile">Save profile</string>
     <string name="eq_profile_name">Profile name</string>
     <string name="eq_custom_profile">Custom profile</string>
+    <string name="eq_import">Import</string>
+    <string name="eq_import_profiles">Import profiles</string>
+    <string name="eq_import_profiles_placeholder">Paste equalizer profiles JSON</string>
+    <string name="eq_import_failed">Invalid profile data</string>
+    <string name="eq_imported_profile">Imported</string>
+    <string name="eq_import_success">Imported %1$d profiles</string>
     <string name="eq_bands">Bands</string>
     <string name="eq_output_gain">Output gain</string>
     <string name="eq_bass_boost">Bass boost</string>

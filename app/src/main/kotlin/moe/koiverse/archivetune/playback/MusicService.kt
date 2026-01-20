@@ -1316,7 +1316,7 @@ class MusicService :
     }
 
     fun applySystemEqPreset(presetIndex: Int) {
-        ioScope.launch {
+        scope.launch {
             ensureAudioEffects(player.audioSessionId)
             val eq = equalizer ?: return@launch
             val maxPreset = runCatching { eq.numberOfPresets.toInt() }.getOrNull() ?: 0
@@ -1333,10 +1333,12 @@ class MusicService :
             val encoded = encodeBandLevelsMb(levels)
             if (encoded.isBlank()) return@launch
 
-            dataStore.edit { prefs ->
-                prefs[EqualizerEnabledKey] = true
-                prefs[EqualizerBandLevelsMbKey] = encoded
-                prefs[EqualizerSelectedProfileIdKey] = "system:$presetIndex"
+            ioScope.launch {
+                dataStore.edit { prefs ->
+                    prefs[EqualizerEnabledKey] = true
+                    prefs[EqualizerBandLevelsMbKey] = encoded
+                    prefs[EqualizerSelectedProfileIdKey] = "system:$presetIndex"
+                }
             }
         }
     }
