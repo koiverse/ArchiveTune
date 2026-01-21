@@ -175,7 +175,9 @@ jobs:
           UNIVERSAL_APK=$(find downloaded_artifacts/ArchiveTune -name "*.apk")
           ABI_APKS=$(find downloaded_artifacts -path "*/app-*-release/*.apk")
 
-          printf "%s" "${{ steps.build_changelog.outputs.changelog }}" > release_notes.md
+          cat > release_notes.md <<'__RELEASE_NOTES__'
+            ${{ steps.build_changelog.outputs.changelog }}
+            __RELEASE_NOTES__
           
           gh release create "v${{ needs.check-version.outputs.new_version }}" \
             --title "${{ needs.check-version.outputs.new_version }}" \
