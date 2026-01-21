@@ -840,10 +840,8 @@ private fun PlaylistSelectionDialog(onDismiss: () -> Unit) {
         confirmButton = {
             TextButton(
                 onClick = {
-                    coroutineScope.launch {
-                        context.dataStore.edit { settings ->
-                            settings[SelectedYtmPlaylistsKey] = selectedList.joinToString(",")
-                        }
+                    moe.koiverse.archivetune.utils.PreferenceStore.launchEdit(context.dataStore) {
+                        this[SelectedYtmPlaylistsKey] = selectedList.joinToString(",")
                     }
                     onDismiss()
                 }

@@ -262,10 +262,10 @@ fun AboutScreen(
             return@LaunchedEffect
         }
 
-        context.dataStore.edit { prefs ->
-            prefs[GitHubContributorsLastCheckedAtKey] = now
-            networkResult.etag?.let { prefs[GitHubContributorsEtagKey] = it }
-            networkResult.body?.let { prefs[GitHubContributorsJsonKey] = it }
+        moe.koiverse.archivetune.utils.PreferenceStore.launchEdit(context.dataStore) {
+            this[GitHubContributorsLastCheckedAtKey] = now
+            networkResult.etag?.let { this[GitHubContributorsEtagKey] = it }
+            networkResult.body?.let { this[GitHubContributorsJsonKey] = it }
         }
 
         when {
