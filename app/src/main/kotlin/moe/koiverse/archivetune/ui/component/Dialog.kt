@@ -5,6 +5,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.FlowRow
@@ -14,6 +15,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -77,62 +79,83 @@ fun DefaultDialog(
     title: (@Composable () -> Unit)? = null,
     buttons: (@Composable RowScope.() -> Unit)? = null,
     horizontalAlignment: Alignment.Horizontal = Alignment.CenterHorizontally,
+    contentScrollable: Boolean = false,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
-        Surface(
-            modifier = Modifier.padding(24.dp),
-            shape = AlertDialogDefaults.shape,
-            color = AlertDialogDefaults.containerColor,
-            tonalElevation = AlertDialogDefaults.TonalElevation
+        BoxWithConstraints(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(24.dp)
+                .imePadding()
+                .navigationBarsPadding(),
+            contentAlignment = Alignment.Center,
         ) {
-            Column(
-                horizontalAlignment = horizontalAlignment,
-                modifier = modifier
-                    .padding(24.dp)
+            Surface(
+                modifier = Modifier.heightIn(max = maxHeight),
+                shape = AlertDialogDefaults.shape,
+                color = AlertDialogDefaults.containerColor,
+                tonalElevation = AlertDialogDefaults.TonalElevation,
             ) {
-                if (icon != null) {
-                    CompositionLocalProvider(LocalContentColor provides AlertDialogDefaults.iconContentColor) {
-                        Box(
-                            Modifier.align(Alignment.CenterHorizontally)
-                        ) {
-                            icon()
+                Column(
+                    modifier = modifier.padding(24.dp),
+                ) {
+                    val bodyModifier =
+                        if (contentScrollable) {
+                            Modifier
+                                .weight(1f, fill = false)
+                                .verticalScroll(rememberScrollState())
+                        } else {
+                            Modifier
                         }
-                    }
 
-                    Spacer(Modifier.height(16.dp))
-                }
-                if (title != null) {
-                    CompositionLocalProvider(LocalContentColor provides AlertDialogDefaults.titleContentColor) {
-                        ProvideTextStyle(MaterialTheme.typography.headlineSmall) {
-                            Box(
-                                // Align the title to the center when an icon is present.
-                                Modifier.align(if (icon == null) Alignment.Start else Alignment.CenterHorizontally)
-                            ) {
-                                title()
-                            }
-                        }
-                    }
-
-                    Spacer(Modifier.height(16.dp))
-                }
-
-                content()
-
-                if (buttons != null) {
-                    Spacer(Modifier.height(24.dp))
-
-                    Row(
-                        modifier = Modifier.align(Alignment.End)
+                    Column(
+                        horizontalAlignment = horizontalAlignment,
+                        modifier = bodyModifier,
                     ) {
-                        CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.primary) {
-                            ProvideTextStyle(
-                                value = MaterialTheme.typography.labelLarge
-                            ) {
-                                buttons()
+                        if (icon != null) {
+                            CompositionLocalProvider(LocalContentColor provides AlertDialogDefaults.iconContentColor) {
+                                Box(
+                                    Modifier.align(Alignment.CenterHorizontally)
+                                ) {
+                                    icon()
+                                }
+                            }
+
+                            Spacer(Modifier.height(16.dp))
+                        }
+                        if (title != null) {
+                            CompositionLocalProvider(LocalContentColor provides AlertDialogDefaults.titleContentColor) {
+                                ProvideTextStyle(MaterialTheme.typography.headlineSmall) {
+                                    Box(
+                                        Modifier.align(if (icon == null) Alignment.Start else Alignment.CenterHorizontally)
+                                    ) {
+                                        title()
+                                    }
+                                }
+                            }
+
+                            Spacer(Modifier.height(16.dp))
+                        }
+
+                        content()
+                    }
+
+                    if (buttons != null) {
+                        Spacer(Modifier.height(24.dp))
+
+                        Row(
+                            modifier = Modifier.align(Alignment.End)
+                        ) {
+                            CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.primary) {
+                                ProvideTextStyle(
+                                    value = MaterialTheme.typography.labelLarge
+                                ) {
+                                    buttons()
+                                }
                             }
                         }
                     }
@@ -344,6 +367,7 @@ fun TextFieldDialog(
         modifier = modifier,
         icon = icon,
         title = title,
+        contentScrollable = true,
         buttons = {
             TextButton(onClick = onDismiss) {
                 Text(text = stringResource(android.R.string.cancel))
