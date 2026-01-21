@@ -4,6 +4,7 @@ import android.content.Context
 import dagger.hilt.android.qualifiers.ApplicationContext
 import moe.koiverse.archivetune.constants.InnerTubeCookieKey
 import moe.koiverse.archivetune.constants.SelectedYtmPlaylistsKey
+import moe.koiverse.archivetune.constants.YtmSyncKey
 import moe.koiverse.archivetune.innertube.YouTube
 import moe.koiverse.archivetune.innertube.models.AlbumItem
 import moe.koiverse.archivetune.innertube.models.ArtistItem
@@ -22,6 +23,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
@@ -34,6 +38,7 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.supervisorScope
 import timber.log.Timber
 import java.time.LocalDateTime
+import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -44,11 +49,27 @@ class SyncUtils @Inject constructor(
     @ApplicationContext private val context: Context,
 ) {
     private val syncScope = CoroutineScope(Dispatchers.IO)
+    private val syncEnabled = MutableStateFlow(true)
+    private val syncGeneration = AtomicLong(0L)
     
     private val syncMutex = Mutex()
     private val playlistSyncMutex = Mutex()
     private val dbWriteSemaphore = Semaphore(2)
     private val isSyncing = AtomicBoolean(false)
+
+    init {
+        syncScope.launch {
+            context.dataStore.data
+                .map { it[YtmSyncKey] ?: true }
+                .distinctUntilChanged()
+                .collect { enabled ->
+                    syncEnabled.value = enabled
+                    if (!enabled) {
+                        syncGeneration.incrementAndGet()
+                    }
+                }
+        }
+    }
     
     suspend fun performFullSync() = withContext(Dispatchers.IO) {
         if (!isSyncing.compareAndSet(false, true)) {
@@ -60,6 +81,10 @@ class SyncUtils @Inject constructor(
             syncMutex.withLock {
                 if (!isLoggedIn()) {
                     Timber.w("Skipping full sync - user not logged in")
+                    return@withLock
+                }
+                if (!isYtmSyncEnabled()) {
+                    Timber.w("Skipping full sync - sync disabled")
                     return@withLock
                 }
                 
@@ -117,12 +142,34 @@ class SyncUtils @Inject constructor(
         return cookie?.let { "SAPISID" in parseCookieString(it) } ?: false
     }
 
+    private suspend fun isYtmSyncEnabled(): Boolean {
+        val enabled =
+            context.dataStore.data
+            .map { it[YtmSyncKey] ?: true }
+            .first()
+        syncEnabled.value = enabled
+        if (!enabled) {
+            syncGeneration.incrementAndGet()
+        }
+        return enabled
+    }
+
+    private fun isSyncStillEnabled(gen: Long): Boolean {
+        return syncEnabled.value && syncGeneration.get() == gen
+    }
+
     fun likeSong(s: SongEntity) {
         syncScope.launch {
             if (!isLoggedIn()) {
                 Timber.w("Skipping likeSong - user not logged in")
                 return@launch
             }
+            if (!isYtmSyncEnabled()) {
+                Timber.w("Skipping likeSong - sync disabled")
+                return@launch
+            }
+            val gen = syncGeneration.get()
+            if (!isSyncStillEnabled(gen)) return@launch
             YouTube.likeVideo(s.id, s.liked)
         }
     }
@@ -132,21 +179,30 @@ class SyncUtils @Inject constructor(
             Timber.w("Skipping syncLikedSongs - user not logged in")
             return@coroutineScope
         }
+        if (!isYtmSyncEnabled()) {
+            Timber.w("Skipping syncLikedSongs - sync disabled")
+            return@coroutineScope
+        }
+        val gen = syncGeneration.get()
         YouTube.playlist("LM").completed().onSuccess { page ->
+            if (!isSyncStillEnabled(gen)) return@onSuccess
             val remoteSongs = page.songs
             val remoteIds = remoteSongs.map { it.id }
             val localSongs = database.likedSongsByNameAsc().first()
 
+            if (!isSyncStillEnabled(gen)) return@onSuccess
             localSongs.filterNot { it.id in remoteIds }
                 .forEach { database.update(it.song.localToggleLike()) }
 
-            val now = LocalDateTime.now()
             remoteSongs.forEachIndexed { index, song ->
                 launch {
+                    if (!isSyncStillEnabled(gen)) return@launch
                     dbWriteSemaphore.withPermit {
+                        if (!isSyncStillEnabled(gen)) return@withPermit
                         val dbSong = database.song(song.id).firstOrNull()
                         val timestamp = LocalDateTime.now().minusSeconds(index.toLong())
                         database.withTransaction {
+                            if (!isSyncStillEnabled(gen)) return@withTransaction
                             if (dbSong == null) {
                                 insert(song.toMediaMetadata()) { it.copy(liked = true, likedDate = timestamp) }
                             } else if (!dbSong.song.liked || dbSong.song.likedDate != timestamp) {
@@ -164,19 +220,29 @@ class SyncUtils @Inject constructor(
             Timber.w("Skipping syncLibrarySongs - user not logged in")
             return@coroutineScope
         }
+        if (!isYtmSyncEnabled()) {
+            Timber.w("Skipping syncLibrarySongs - sync disabled")
+            return@coroutineScope
+        }
+        val gen = syncGeneration.get()
         YouTube.library("FEmusic_liked_videos").completed().onSuccess { page ->
+            if (!isSyncStillEnabled(gen)) return@onSuccess
             val remoteSongs = page.items.filterIsInstance<SongItem>().reversed()
             val remoteIds = remoteSongs.map { it.id }.toSet()
             val localSongs = database.songsByNameAsc().first()
 
+            if (!isSyncStillEnabled(gen)) return@onSuccess
             localSongs.filterNot { it.id in remoteIds }
                 .forEach { database.update(it.song.toggleLibrary()) }
 
             remoteSongs.forEach { song ->
                 launch {
+                    if (!isSyncStillEnabled(gen)) return@launch
                     dbWriteSemaphore.withPermit {
+                        if (!isSyncStillEnabled(gen)) return@withPermit
                         val dbSong = database.song(song.id).firstOrNull()
                         database.withTransaction {
+                            if (!isSyncStillEnabled(gen)) return@withTransaction
                             if (dbSong == null) {
                                 insert(song.toMediaMetadata()) { it.toggleLibrary() }
                             } else if (dbSong.song.inLibrary == null) {
@@ -194,19 +260,29 @@ class SyncUtils @Inject constructor(
             Timber.w("Skipping syncLikedAlbums - user not logged in")
             return@coroutineScope
         }
+        if (!isYtmSyncEnabled()) {
+            Timber.w("Skipping syncLikedAlbums - sync disabled")
+            return@coroutineScope
+        }
+        val gen = syncGeneration.get()
         YouTube.library("FEmusic_liked_albums").completed().onSuccess { page ->
+            if (!isSyncStillEnabled(gen)) return@onSuccess
             val remoteAlbums = page.items.filterIsInstance<AlbumItem>().reversed()
             val remoteIds = remoteAlbums.map { it.id }.toSet()
             val localAlbums = database.albumsLikedByNameAsc().first()
 
+            if (!isSyncStillEnabled(gen)) return@onSuccess
             localAlbums.filterNot { it.id in remoteIds }
                 .forEach { database.update(it.album.localToggleLike()) }
 
             remoteAlbums.forEach { album ->
                 launch {
+                    if (!isSyncStillEnabled(gen)) return@launch
                     dbWriteSemaphore.withPermit {
+                        if (!isSyncStillEnabled(gen)) return@withPermit
                         val dbAlbum = database.album(album.id).firstOrNull()
                         YouTube.album(album.browseId).onSuccess { albumPage ->
+                            if (!isSyncStillEnabled(gen)) return@onSuccess
                             if (dbAlbum == null) {
                                 database.insert(albumPage)
                                 database.album(album.id).firstOrNull()?.let { newDbAlbum ->
@@ -227,19 +303,29 @@ class SyncUtils @Inject constructor(
             Timber.w("Skipping syncArtistsSubscriptions - user not logged in")
             return@coroutineScope
         }
+        if (!isYtmSyncEnabled()) {
+            Timber.w("Skipping syncArtistsSubscriptions - sync disabled")
+            return@coroutineScope
+        }
+        val gen = syncGeneration.get()
         YouTube.library("FEmusic_library_corpus_artists").completed().onSuccess { page ->
+            if (!isSyncStillEnabled(gen)) return@onSuccess
             val remoteArtists = page.items.filterIsInstance<ArtistItem>()
             val remoteIds = remoteArtists.map { it.id }.toSet()
             val localArtists = database.artistsBookmarkedByNameAsc().first()
 
+            if (!isSyncStillEnabled(gen)) return@onSuccess
             localArtists.filterNot { it.id in remoteIds }
                 .forEach { database.update(it.artist.localToggleLike()) }
 
             remoteArtists.forEach { artist ->
                 launch {
+                    if (!isSyncStillEnabled(gen)) return@launch
                     dbWriteSemaphore.withPermit {
+                        if (!isSyncStillEnabled(gen)) return@withPermit
                         val dbArtist = database.artist(artist.id).firstOrNull()
                         database.withTransaction {
+                            if (!isSyncStillEnabled(gen)) return@withTransaction
                             if (dbArtist == null) {
                                 insert(
                                     ArtistEntity(
@@ -274,8 +360,14 @@ class SyncUtils @Inject constructor(
             Timber.w("Skipping syncSavedPlaylists - user not logged in")
             return@withLock
         }
+        if (!isYtmSyncEnabled()) {
+            Timber.w("Skipping syncSavedPlaylists - sync disabled")
+            return@withLock
+        }
+        val gen = syncGeneration.get()
         
         YouTube.library("FEmusic_liked_playlists").completed().onSuccess { page ->
+            if (!isSyncStillEnabled(gen)) return@onSuccess
             val remotePlaylists = page.items.filterIsInstance<PlaylistItem>()
                 .filterNot { it.id == "LM" || it.id == "SE" }
                 .reversed()
@@ -287,11 +379,13 @@ class SyncUtils @Inject constructor(
             val remoteIds = playlistsToSync.map { it.id }.toSet()
 
             val localPlaylists = database.playlistsByNameAsc().first()
+            if (!isSyncStillEnabled(gen)) return@onSuccess
             localPlaylists.filterNot { it.playlist.browseId in remoteIds }
                 .filterNot { it.playlist.browseId == null }
                 .forEach { database.update(it.playlist.localToggleLike()) }
 
             for (playlist in playlistsToSync) {
+                if (!isSyncStillEnabled(gen)) return@onSuccess
                 try {
                     val existingPlaylist = database.playlistByBrowseId(playlist.id).firstOrNull()
                     
@@ -316,6 +410,7 @@ class SyncUtils @Inject constructor(
                         Timber.d("syncSavedPlaylists: Updated existing playlist ${playlist.title} (${playlist.id})")
                     }
                     
+                    if (!isSyncStillEnabled(gen)) return@onSuccess
                     syncPlaylist(playlist.id, playlistEntity.id)
                 } catch (e: Exception) {
                     Timber.e(e, "Failed to sync playlist ${playlist.title}")
@@ -331,6 +426,11 @@ class SyncUtils @Inject constructor(
             Timber.w("Skipping syncAutoSyncPlaylists - user not logged in")
             return@coroutineScope
         }
+        if (!isYtmSyncEnabled()) {
+            Timber.w("Skipping syncAutoSyncPlaylists - sync disabled")
+            return@coroutineScope
+        }
+        val gen = syncGeneration.get()
         val autoSyncPlaylists = database.playlistsByNameAsc().first()
             .filter { it.playlist.isAutoSync && it.playlist.browseId != null }
 
@@ -338,8 +438,10 @@ class SyncUtils @Inject constructor(
 
         autoSyncPlaylists.forEach { playlist ->
             launch {
+                if (!isSyncStillEnabled(gen)) return@launch
                 try {
                     dbWriteSemaphore.withPermit {
+                        if (!isSyncStillEnabled(gen)) return@withPermit
                         syncPlaylist(playlist.playlist.browseId!!, playlist.playlist.id)
                     }
                 } catch (e: Exception) {
@@ -350,9 +452,16 @@ class SyncUtils @Inject constructor(
     }
 
     private suspend fun syncPlaylist(browseId: String, playlistId: String) = coroutineScope {
+        if (!isYtmSyncEnabled()) {
+            Timber.w("syncPlaylist: Skipping - sync disabled")
+            return@coroutineScope
+        }
+        val gen = syncGeneration.get()
+        if (!isSyncStillEnabled(gen)) return@coroutineScope
         Timber.d("syncPlaylist: Starting sync for browseId=$browseId, playlistId=$playlistId")
         
         YouTube.playlist(browseId).completed().onSuccess { page ->
+            if (!isSyncStillEnabled(gen)) return@onSuccess
             val songs = page.songs.map(SongItem::toMediaMetadata)
             Timber.d("syncPlaylist: Fetched ${songs.size} songs from remote")
 
@@ -374,8 +483,10 @@ class SyncUtils @Inject constructor(
             Timber.d("syncPlaylist: Updating local playlist (remote: ${remoteIds.size}, local: ${localIds.size})")
 
             database.withTransaction {
+                if (!isSyncStillEnabled(gen)) return@withTransaction
                 database.clearPlaylist(playlistId)
                 songs.forEachIndexed { idx, song ->
+                    if (!isSyncStillEnabled(gen)) return@withTransaction
                     if (database.song(song.id).firstOrNull() == null) {
                         database.insert(song)
                     }

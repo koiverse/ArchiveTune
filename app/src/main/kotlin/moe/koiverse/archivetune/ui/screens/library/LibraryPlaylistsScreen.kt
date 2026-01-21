@@ -453,7 +453,7 @@ fun LibraryPlaylistsScreen(
             .pullToRefresh(
                 state = pullRefreshState,
                 isRefreshing = isRefreshing,
-                onRefresh = viewModel::sync
+                onRefresh = { if (ytmSync) viewModel.sync() }
             ),
     ) {
         // Mesh gradient background layer - behind everything

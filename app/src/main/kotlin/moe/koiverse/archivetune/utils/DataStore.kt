@@ -6,9 +6,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.platform.LocalContext
 import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.MutablePreferences
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.preferencesDataStore
@@ -45,6 +45,17 @@ object PreferenceStore {
     }
 
     fun <T> get(key: Preferences.Key<T>): T? = _prefs.value?.get(key)
+
+    fun launchEdit(
+        dataStore: DataStore<Preferences>,
+        block: MutablePreferences.() -> Unit,
+    ) {
+        scope.launch {
+            dataStore.edit { prefs ->
+                prefs.block()
+            }
+        }
+    }
 }
 
 operator fun <T> DataStore<Preferences>.get(key: Preferences.Key<T>): T? =
@@ -100,7 +111,6 @@ fun <T> rememberPreference(
     defaultValue: T,
 ): MutableState<T> {
     val context = LocalContext.current
-    val coroutineScope = rememberCoroutineScope()
 
     val state =
         remember {
@@ -114,10 +124,8 @@ fun <T> rememberPreference(
             override var value: T
                 get() = state.value
                 set(value) {
-                    coroutineScope.launch {
-                        context.dataStore.edit {
-                            it[key] = value
-                        }
+                    PreferenceStore.launchEdit(context.dataStore) {
+                        this[key] = value
                     }
                 }
 
@@ -134,7 +142,6 @@ inline fun <reified T : Enum<T>> rememberEnumPreference(
     defaultValue: T,
 ): MutableState<T> {
     val context = LocalContext.current
-    val coroutineScope = rememberCoroutineScope()
 
     val state =
         remember {
@@ -148,10 +155,8 @@ inline fun <reified T : Enum<T>> rememberEnumPreference(
             override var value: T
                 get() = state.value
                 set(value) {
-                    coroutineScope.launch {
-                        context.dataStore.edit {
-                            it[key] = value.name
-                        }
+                    PreferenceStore.launchEdit(context.dataStore) {
+                        this[key] = value.name
                     }
                 }
 
