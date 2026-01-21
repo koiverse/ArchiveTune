@@ -18,33 +18,36 @@ jobs:
       - uses: actions/checkout@v5
         with:
           fetch-depth: 0
-      - name: Check if version changed
+      
+      - name: Check version and Tag
         id: check_version
         run: |
           if [ ! -f app/build.gradle.kts ]; then
-            echo "File app/build.gradle.kts does not exist"
-            echo "version_changed=false" >> $GITHUB_OUTPUT
-            exit 0
+            echo "Error: app/build.gradle.kts does not exist"
+            exit 1
           fi
 
+          # 1. Extract the version from Gradle (using your regex)
           NEW_VERSION=$(grep -oP 'versionName\s*=\s*"\K[^"]+' app/build.gradle.kts || echo "")
+          
           if [ -z "$NEW_VERSION" ]; then
-            echo "Could not find versionName in app/build.gradle.kts"
-            echo "version_changed=false" >> $GITHUB_OUTPUT
-            exit 0
+            echo "Error: Could not find versionName in app/build.gradle.kts"
+            exit 1
           fi
 
-          OLD_VERSION=$(git diff HEAD^ HEAD -- app/build.gradle.kts | grep -oP 'versionName\s*=\s*"\K[^"]+' || echo "")
+          # 2. ALWAYS Output the detected version (Fixes the missing output bug)
+          echo "Detected version: $NEW_VERSION"
+          echo "new_version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
 
-          if [ -z "$OLD_VERSION" ]; then
-            echo "version_changed=true" >> $GITHUB_OUTPUT
-            echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
-          elif [ "$OLD_VERSION" != "$NEW_VERSION" ]; then
-            echo "version_changed=true" >> $GITHUB_OUTPUT
-            echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          # 3. Check if this version is already released (Tag Existence Check)
+          if git rev-parse "v$NEW_VERSION" >/dev/null 2>&1; then
+            echo "Tag v$NEW_VERSION already exists. Skipping release."
+            echo "version_changed=false" >> "$GITHUB_OUTPUT"
           else
-            echo "version_changed=false" >> $GITHUB_OUTPUT
+            echo "Tag v$NEW_VERSION does not exist. Proceeding with release."
+            echo "version_changed=true" >> "$GITHUB_OUTPUT"
           fi
+
       - name: Debug output
         run: |
           echo "version_changed: ${{ steps.check_version.outputs.version_changed }}"
@@ -52,7 +55,8 @@ jobs:
 
   build:
     needs: check-version
-    if: needs.check-version.outputs.version_changed == 'true' || github.event_name == 'workflow_dispatch'
+    # Removed '|| workflow_dispatch' so it respects the version check
+    if: needs.check-version.outputs.version_changed == 'true'
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -92,7 +96,6 @@ jobs:
           keyStorePassword: ${{ secrets.KEYSTORE_PASSWORD }}
           keyPassword: ${{ secrets.KEY_PASSWORD }}
           buildToolsVersion: 35.0.0
-
       
       - name: Move and rename signed APKs
         run: |
@@ -111,7 +114,8 @@ jobs:
 
   create-release:
     needs: [check-version, build]
-    if: needs.check-version.outputs.version_changed == 'true' || github.event_name == 'workflow_dispatch'
+    # Removed '|| workflow_dispatch' so it respects the version check
+    if: needs.check-version.outputs.version_changed == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -175,12 +179,14 @@ jobs:
           UNIVERSAL_APK=$(find downloaded_artifacts/ArchiveTune -name "*.apk")
           ABI_APKS=$(find downloaded_artifacts -path "*/app-*-release/*.apk")
 
-          cat > release_notes.md <<'__RELEASE_NOTES__'
-            ${{ steps.build_changelog.outputs.changelog }}
-            __RELEASE_NOTES__
+          # Cleaned up heredoc for safety
+          cat > release_notes.md <<EOF
+          ${{ steps.build_changelog.outputs.changelog }}
+          EOF
           
           gh release create "v${{ needs.check-version.outputs.new_version }}" \
             --title "${{ needs.check-version.outputs.new_version }}" \
             --notes-file release_notes.md \
             "$UNIVERSAL_APK" \
             $ABI_APKS
+            
