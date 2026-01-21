@@ -117,11 +117,56 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
       
       - name: Download all APKs
         uses: actions/download-artifact@v5
         with:
           path: downloaded_artifacts/
+
+      - name: Resolve changelog range
+        id: changelog_range
+        shell: bash
+        run: |
+          LAST_TAG="$(git describe --tags --abbrev=0 --match "v*" 2>/dev/null || true)"
+          if [ -n "$LAST_TAG" ]; then
+            FROM_REF="$LAST_TAG"
+          else
+            FROM_REF="$(git rev-list --max-parents=0 HEAD | tail -n 1)"
+          fi
+
+          echo "from_ref=$FROM_REF" >> "$GITHUB_OUTPUT"
+          echo "to_ref=${{ github.sha }}" >> "$GITHUB_OUTPUT"
+
+      - name: Build Changelog
+        id: build_changelog
+        uses: mikepenz/release-changelog-builder-action@v5
+        with:
+          mode: "COMMIT"
+          fromTag: ${{ steps.changelog_range.outputs.from_ref }}
+          toTag: ${{ steps.changelog_range.outputs.to_ref }}
+          configurationJson: |
+            {
+              "template": "# Changelog\n\n#{{CHANGELOG}}\n\n<details>\n<summary>Other changes</summary>\n\n#{{UNCATEGORIZED}}\n</details>\n",
+              "categories": [
+                { "title": "## Features", "labels": ["feat", "feature"] },
+                { "title": "## Fixes", "labels": ["fix", "bug"] },
+                { "title": "## Performance", "labels": ["perf"] },
+                { "title": "## Refactors", "labels": ["refactor"] },
+                { "title": "## Documentation", "labels": ["docs"] },
+                { "title": "## Build / CI", "labels": ["build", "ci"] }
+              ],
+              "label_extractor": [
+                {
+                  "pattern": "^(build|chore|ci|docs|feat|fix|perf|refactor|revert|style|test){1}(\\([\\w\\-\\.]+\\))?(!)?:\\s+.*$",
+                  "on_property": "title",
+                  "target": "$1"
+                }
+              ]
+            }
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           
       - name: Create Release
         env:
@@ -129,9 +174,11 @@ jobs:
         run: |
           UNIVERSAL_APK=$(find downloaded_artifacts/ArchiveTune -name "*.apk")
           ABI_APKS=$(find downloaded_artifacts -path "*/app-*-release/*.apk")
+
+          printf "%s" "${{ steps.build_changelog.outputs.changelog }}" > release_notes.md
           
           gh release create "v${{ needs.check-version.outputs.new_version }}" \
             --title "${{ needs.check-version.outputs.new_version }}" \
-            --notes "Release of version ${{ needs.check-version.outputs.new_version }}" \
+            --notes-file release_notes.md \
             "$UNIVERSAL_APK" \
             $ABI_APKS
