@@ -18,6 +18,7 @@ import androidx.room.migration.AutoMigrationSpec
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import androidx.sqlite.db.SupportSQLiteOpenHelper
+import androidx.sqlite.db.framework.FrameworkSQLiteOpenHelperFactory
 import moe.koiverse.archivetune.db.entities.AlbumArtistMap
 import moe.koiverse.archivetune.db.entities.AlbumEntity
 import moe.koiverse.archivetune.db.entities.ArtistEntity
@@ -134,26 +135,60 @@ abstract class InternalDatabase : RoomDatabase() {
     companion object {
         const val DB_NAME = "song.db"
 
-        fun newInstance(context: Context): MusicDatabase =
-            MusicDatabase(
-                delegate = Room
+        fun newInstance(context: Context): MusicDatabase {
+            val universalMigrations =
+                (2 until CURRENT_VERSION)
+                    .map { from -> UniversalMigration(context, from, CURRENT_VERSION) }
+                    .toTypedArray()
+
+            fun build(): InternalDatabase =
+                Room
                     .databaseBuilder(context, InternalDatabase::class.java, DB_NAME)
                     .addMigrations(
                         MIGRATION_1_2,
-                        // Universal migrations - handle any version to current
-                        UniversalMigration(21, CURRENT_VERSION),
-                        UniversalMigration(22, CURRENT_VERSION),
-                        UniversalMigration(23, CURRENT_VERSION),
-                        UniversalMigration(24, CURRENT_VERSION),
-                        UniversalMigration(25, CURRENT_VERSION),
+                        *universalMigrations,
                     )
                     .addCallback(DatabaseCallback())
                     .fallbackToDestructiveMigration()
+                    .fallbackToDestructiveMigrationOnDowngrade()
                     .setJournalMode(JournalMode.WRITE_AHEAD_LOGGING)
                     .setTransactionExecutor(java.util.concurrent.Executors.newFixedThreadPool(4))
                     .setQueryExecutor(java.util.concurrent.Executors.newFixedThreadPool(4))
-                    .build(),
-            )
+                    .build()
+
+            fun shouldResetDb(t: Throwable): Boolean {
+                val msg = (t.message ?: "").lowercase()
+                return msg.contains("room cannot verify the data integrity") ||
+                    msg.contains("forgot to update the version number") ||
+                    msg.contains("migration didn't properly handle") ||
+                    msg.contains("room openhelper verification failed")
+            }
+
+            var db = build()
+            try {
+                db.openHelper.writableDatabase
+            } catch (t: Throwable) {
+                if (!shouldResetDb(t)) throw t
+                Log.e(TAG, "Database open failed, attempting schema repair", t)
+                runCatching { db.close() }
+
+                val repaired =
+                    runCatching { SchemaTools.repairDatabaseFile(context = context, name = DB_NAME) }
+                        .onFailure { Log.e(TAG, "Schema repair failed, recreating database", it) }
+                        .isSuccess
+
+                db = build()
+                runCatching { db.openHelper.writableDatabase }.getOrElse { openError ->
+                    Log.e(TAG, "Database still failed to open after schema repair=$repaired, recreating database", openError)
+                    runCatching { db.close() }
+                    runCatching { context.deleteDatabase(DB_NAME) }
+                    db = build()
+                    db.openHelper.writableDatabase
+                }
+            }
+
+            return MusicDatabase(delegate = db)
+        }
     }
 }
 
@@ -242,258 +277,274 @@ private class DatabaseCallback : RoomDatabase.Callback() {
  * Universal migration that properly handles schema changes for any source version.
  * Recreates tables with correct schema when needed to fix default value issues.
  */
-private class UniversalMigration(startVersion: Int, endVersion: Int) : Migration(startVersion, endVersion) {
-    
+private class UniversalMigration(
+    private val context: Context,
+    startVersion: Int,
+    endVersion: Int,
+) : Migration(startVersion, endVersion) {
+
     override fun migrate(db: SupportSQLiteDatabase) {
-        Log.i(TAG, "Running universal migration from $startVersion to $endVersion")
-        
+        val from = startVersion
+        val to = endVersion
+        Log.i(TAG, "Running universal migration from $from to $to")
+
+        val expectedDb = Room.inMemoryDatabaseBuilder(context, InternalDatabase::class.java).build()
         try {
-            db.execSQL("PRAGMA foreign_keys=OFF")
-            
-            migrateSongTable(db)
-            migratePlaylistTable(db)
-            migrateFormatTable(db)
-            migrateArtistTable(db)
-            migrateAlbumTable(db)
-            
-            db.execSQL("PRAGMA foreign_keys=ON")
+            val expected = expectedDb.openHelper.writableDatabase
+            SchemaTools.reconcileDatabase(db = db, expectedDb = expected)
             Log.i(TAG, "Migration completed successfully")
         } catch (e: Exception) {
             Log.e(TAG, "Migration failed", e)
             throw e
+        } finally {
+            expectedDb.close()
         }
     }
-    
-    private fun migrateSongTable(db: SupportSQLiteDatabase) {
-        val columns = getColumns(db, "song")
-        if (columns.isEmpty()) return
-        
-        val needsRecreation = !columns.containsKey("isLocal") || 
-            !columns.containsKey("explicit") ||
-            columns["isLocal"]?.defaultValue !in listOf("0", "'0'") ||
-            columns["explicit"]?.defaultValue !in listOf("0", "'0'")
-        
-        if (needsRecreation) {
-            val existing = columns.keys
-            db.execSQL("ALTER TABLE song RENAME TO _song_old")
-            
-            db.execSQL("""
-                CREATE TABLE song (
-                    id TEXT NOT NULL PRIMARY KEY,
-                    title TEXT NOT NULL,
-                    duration INTEGER NOT NULL,
-                    thumbnailUrl TEXT,
-                    albumId TEXT,
-                    albumName TEXT,
-                    explicit INTEGER NOT NULL DEFAULT 0,
-                    year INTEGER,
-                    date INTEGER,
-                    dateModified INTEGER,
-                    liked INTEGER NOT NULL,
-                    likedDate INTEGER,
-                    totalPlayTime INTEGER NOT NULL,
-                    inLibrary INTEGER,
-                    dateDownload INTEGER,
-                    isLocal INTEGER NOT NULL DEFAULT 0
+}
+
+private object SchemaTools {
+    private val IGNORED_TABLES = setOf("android_metadata", "room_master_table", "sqlite_sequence")
+
+    fun repairDatabaseFile(
+        context: Context,
+        name: String,
+    ) {
+        val expectedDb = Room.inMemoryDatabaseBuilder(context, InternalDatabase::class.java).build()
+        val fileHelper =
+            FrameworkSQLiteOpenHelperFactory()
+                .create(
+                    SupportSQLiteOpenHelper.Configuration
+                        .builder(context)
+                        .name(name)
+                        .callback(
+                            object : SupportSQLiteOpenHelper.Callback(CURRENT_VERSION) {
+                                override fun onCreate(db: SupportSQLiteDatabase) = Unit
+
+                                override fun onUpgrade(db: SupportSQLiteDatabase, oldVersion: Int, newVersion: Int) = Unit
+
+                                override fun onDowngrade(db: SupportSQLiteDatabase, oldVersion: Int, newVersion: Int) = Unit
+                            },
+                        ).build(),
                 )
-            """.trimIndent())
-            db.execSQL("CREATE INDEX IF NOT EXISTS index_song_albumId ON song (albumId)")
-            
-            val cols = listOf("id", "title", "duration", "thumbnailUrl", "albumId", "albumName",
-                "explicit", "year", "date", "dateModified", "liked", "likedDate", 
-                "totalPlayTime", "inLibrary", "dateDownload", "isLocal")
-            
-            val select = cols.map { c ->
-                when {
-                    c !in existing && c in listOf("explicit", "isLocal", "liked") -> "0"
-                    c !in existing && c == "totalPlayTime" -> "0"
-                    c !in existing && c == "duration" -> "-1"
-                    c !in existing -> "NULL"
-                    c in listOf("explicit", "isLocal") -> "COALESCE($c, 0)"
-                    else -> c
-                }
-            }
-            
-            db.execSQL("INSERT INTO song (${cols.joinToString()}) SELECT ${select.joinToString()} FROM _song_old")
-            db.execSQL("DROP TABLE _song_old")
-        }
-        
-        db.execSQL("UPDATE song SET explicit = 0 WHERE explicit IS NULL")
-        db.execSQL("UPDATE song SET isLocal = 0 WHERE isLocal IS NULL")
-    }
-    
-    private fun migratePlaylistTable(db: SupportSQLiteDatabase) {
-        val columns = getColumns(db, "playlist")
-        if (columns.isEmpty()) return
-        
-        cleanupDuplicatePlaylists(db)
-        
-        val needsRecreation = !columns.containsKey("isAutoSync") ||
-            !columns.containsKey("isLocal") ||
-            !columns.containsKey("isPinned") ||
-            !columns.containsKey("customOrder") ||
-            columns["isLocal"]?.defaultValue !in listOf("0", "'0'") ||
-            columns["isEditable"]?.defaultValue !in listOf("1", "'1'", "true", "'true'")
-        
-        if (needsRecreation) {
-            val existing = columns.keys
-            db.execSQL("ALTER TABLE playlist RENAME TO _playlist_old")
-            
-            db.execSQL("""
-                CREATE TABLE playlist (
-                    id TEXT NOT NULL PRIMARY KEY,
-                    name TEXT NOT NULL,
-                    browseId TEXT,
-                    createdAt INTEGER,
-                    lastUpdateTime INTEGER,
-                    isEditable INTEGER NOT NULL DEFAULT 1,
-                    bookmarkedAt INTEGER,
-                    remoteSongCount INTEGER,
-                    playEndpointParams TEXT,
-                    thumbnailUrl TEXT,
-                    shuffleEndpointParams TEXT,
-                    radioEndpointParams TEXT,
-                    isPinned INTEGER NOT NULL DEFAULT 0,
-                    customOrder INTEGER,
-                    isLocal INTEGER NOT NULL DEFAULT 0,
-                    isAutoSync INTEGER NOT NULL DEFAULT 0
-                )
-            """.trimIndent())
-            
-            val cols = listOf("id", "name", "browseId", "createdAt", "lastUpdateTime",
-                "isEditable", "bookmarkedAt", "remoteSongCount", "playEndpointParams",
-                "thumbnailUrl", "shuffleEndpointParams", "radioEndpointParams", "isPinned", "customOrder", "isLocal", "isAutoSync")
-            
-            val select = cols.map { c ->
-                when {
-                    c !in existing && c == "isEditable" -> "1"
-                    c !in existing && c in listOf("isLocal", "isAutoSync") -> "0"
-                    c !in existing && c == "isPinned" -> "0"
-                    c !in existing && c == "customOrder" -> "rowid"
-                    c !in existing -> "NULL"
-                    c == "isEditable" -> "COALESCE($c, 1)"
-                    c in listOf("isLocal", "isAutoSync") -> "COALESCE($c, 0)"
-                    c == "isPinned" -> "COALESCE($c, 0)"
-                    c == "customOrder" -> "COALESCE($c, rowid)"
-                    else -> c
-                }
-            }
-            
-            db.execSQL("INSERT INTO playlist (${cols.joinToString()}) SELECT ${select.joinToString()} FROM _playlist_old")
-            db.execSQL("DROP TABLE _playlist_old")
-        }
-        
-        db.execSQL("UPDATE playlist SET isAutoSync = 0 WHERE isAutoSync IS NULL")
-        db.execSQL("UPDATE playlist SET isLocal = 0 WHERE isLocal IS NULL")
-        db.execSQL("UPDATE playlist SET isEditable = 1 WHERE isEditable IS NULL")
-        db.execSQL("UPDATE playlist SET isPinned = 0 WHERE isPinned IS NULL")
-        db.execSQL("UPDATE playlist SET customOrder = rowid WHERE customOrder IS NULL")
-        
-        db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_playlist_browseId ON playlist (browseId) WHERE browseId IS NOT NULL")
-    }
-    
-    private fun cleanupDuplicatePlaylists(db: SupportSQLiteDatabase) {
+
         try {
-            db.execSQL("""
-                DELETE FROM playlist_song_map WHERE playlistId IN (
-                    SELECT p1.id FROM playlist p1
-                    WHERE p1.browseId IS NOT NULL
-                    AND EXISTS (
-                        SELECT 1 FROM playlist p2 
-                        WHERE p2.browseId = p1.browseId 
-                        AND p2.id != p1.id
-                        AND (
-                            (SELECT COUNT(*) FROM playlist_song_map WHERE playlistId = p2.id) >
-                            (SELECT COUNT(*) FROM playlist_song_map WHERE playlistId = p1.id)
-                            OR (
-                                (SELECT COUNT(*) FROM playlist_song_map WHERE playlistId = p2.id) =
-                                (SELECT COUNT(*) FROM playlist_song_map WHERE playlistId = p1.id)
-                                AND p2.rowid < p1.rowid
-                            )
-                        )
-                    )
-                )
-            """.trimIndent())
-            
-            db.execSQL("""
-                DELETE FROM playlist WHERE id IN (
-                    SELECT p1.id FROM playlist p1
-                    WHERE p1.browseId IS NOT NULL
-                    AND EXISTS (
-                        SELECT 1 FROM playlist p2 
-                        WHERE p2.browseId = p1.browseId 
-                        AND p2.id != p1.id
-                        AND (
-                            (SELECT COUNT(*) FROM playlist_song_map WHERE playlistId = p2.id) >
-                            (SELECT COUNT(*) FROM playlist_song_map WHERE playlistId = p1.id)
-                            OR (
-                                (SELECT COUNT(*) FROM playlist_song_map WHERE playlistId = p2.id) =
-                                (SELECT COUNT(*) FROM playlist_song_map WHERE playlistId = p1.id)
-                                AND p2.rowid < p1.rowid
-                            )
-                        )
-                    )
-                )
-            """.trimIndent())
-            
-            Log.i(TAG, "Duplicate playlist cleanup completed")
-        } catch (e: Exception) {
-            Log.e(TAG, "Error cleaning up duplicate playlists", e)
+            val expected = expectedDb.openHelper.writableDatabase
+            val identityHash = readIdentityHash(expected)
+            val db = fileHelper.writableDatabase
+
+            reconcileDatabase(db = db, expectedDb = expected)
+            if (identityHash != null) {
+                updateIdentityHash(db = db, identityHash = identityHash)
+            }
+        } finally {
+            runCatching { fileHelper.close() }
+            runCatching { expectedDb.close() }
         }
     }
-    
-    private fun migrateFormatTable(db: SupportSQLiteDatabase) {
-        val columns = getColumns(db, "format")
-        if (columns.isEmpty()) return
-        
-        if (!columns.containsKey("perceptualLoudnessDb")) {
-            db.execSQL("ALTER TABLE format ADD COLUMN perceptualLoudnessDb REAL DEFAULT NULL")
+
+    fun reconcileDatabase(
+        db: SupportSQLiteDatabase,
+        expectedDb: SupportSQLiteDatabase,
+    ) {
+        val expectedMaster = readMasterEntries(expectedDb)
+        val expectedTables = expectedMaster.filter { it.type == "table" && it.name !in IGNORED_TABLES }
+        val expectedIndices =
+            expectedMaster.filter { it.type == "index" && it.sql != null && it.tblName !in IGNORED_TABLES }
+        val expectedViews = expectedMaster.filter { it.type == "view" && it.sql != null }
+        val expectedTriggers = expectedMaster.filter { it.type == "trigger" && it.sql != null }
+
+        db.execSQL("PRAGMA foreign_keys=OFF")
+        dropNonTableObjects(db)
+
+        expectedTables.forEach { table ->
+            ensureTableSchema(db = db, expectedDb = expectedDb, table = table, expectedIndices = expectedIndices)
         }
+
+        expectedViews.forEach { db.execSQL(it.sql!!) }
+        expectedTriggers.forEach { db.execSQL(it.sql!!) }
+
+        db.execSQL("PRAGMA foreign_keys=ON")
     }
-    
-    private fun migrateArtistTable(db: SupportSQLiteDatabase) {
-        val columns = getColumns(db, "artist")
-        if (columns.isEmpty()) return
-        
-        if (!columns.containsKey("isLocal")) {
-            db.execSQL("ALTER TABLE artist ADD COLUMN isLocal INTEGER NOT NULL DEFAULT 0")
-        }
-        db.execSQL("UPDATE artist SET isLocal = 0 WHERE isLocal IS NULL")
+
+    private fun readIdentityHash(db: SupportSQLiteDatabase): String? =
+        runCatching {
+            db.query("SELECT identity_hash FROM room_master_table WHERE id = 42").use { cursor ->
+                if (!cursor.moveToFirst()) return null
+                cursor.getString(0)
+            }
+        }.getOrNull()
+
+    private fun updateIdentityHash(
+        db: SupportSQLiteDatabase,
+        identityHash: String,
+    ) {
+        db.execSQL("CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)")
+        db.execSQL(
+            "INSERT OR REPLACE INTO room_master_table (id, identity_hash) VALUES (42, ?)",
+            arrayOf(identityHash),
+        )
     }
-    
-    private fun migrateAlbumTable(db: SupportSQLiteDatabase) {
-        val columns = getColumns(db, "album")
-        if (columns.isEmpty()) return
-        
-        if (!columns.containsKey("isLocal")) {
-            db.execSQL("ALTER TABLE album ADD COLUMN isLocal INTEGER NOT NULL DEFAULT 0")
+
+    private fun ensureTableSchema(
+        db: SupportSQLiteDatabase,
+        expectedDb: SupportSQLiteDatabase,
+        table: MasterEntry,
+        expectedIndices: List<MasterEntry>,
+    ) {
+        val expectedColumns = readColumns(expectedDb, table.name)
+        if (expectedColumns.isEmpty()) return
+
+        val existing = tableExists(db, table.name)
+        if (!existing) {
+            db.execSQL(table.sql!!)
+            expectedIndices.filter { it.tblName == table.name }.forEach { db.execSQL(it.sql!!) }
+            return
         }
-        if (!columns.containsKey("explicit")) {
-            db.execSQL("ALTER TABLE album ADD COLUMN explicit INTEGER NOT NULL DEFAULT 0")
+
+        val actualColumns = readColumns(db, table.name)
+        if (!schemaMismatch(expectedColumns, actualColumns)) {
+            expectedIndices.filter { it.tblName == table.name }.forEach { db.execSQL(it.sql!!) }
+            return
         }
-        db.execSQL("UPDATE album SET isLocal = 0 WHERE isLocal IS NULL")
-        db.execSQL("UPDATE album SET explicit = 0 WHERE explicit IS NULL")
-    }
-    
-    private data class ColInfo(val defaultValue: String?)
-    
-    private fun getColumns(db: SupportSQLiteDatabase, table: String): Map<String, ColInfo> {
-        val cols = mutableMapOf<String, ColInfo>()
-        try {
-            db.query("PRAGMA table_info($table)").use { cursor ->
-                val nameIdx = cursor.getColumnIndex("name")
-                val defaultIdx = cursor.getColumnIndex("dflt_value")
-                while (cursor.moveToNext()) {
-                    val name = cursor.getString(nameIdx)
-                    val default = if (cursor.isNull(defaultIdx)) null else cursor.getString(defaultIdx)
-                    cols[name] = ColInfo(default)
+
+        val oldTable = "_old_${table.name}"
+        db.execSQL("ALTER TABLE `${table.name}` RENAME TO `$oldTable`")
+        db.execSQL(table.sql!!)
+
+        val expectedOrdered = expectedColumns.values.sortedBy { it.cid }
+        val insertColumns = expectedOrdered.joinToString(",") { "`${it.name}`" }
+        val selectExpr =
+            expectedOrdered.joinToString(",") { col ->
+                val old = actualColumns[col.name]
+                when {
+                    old != null -> "`${col.name}`"
+                    col.defaultValue != null -> col.defaultValue
+                    col.notNull -> defaultLiteral(col.type)
+                    else -> "NULL"
                 }
             }
-        } catch (e: Exception) {
-            Log.e(TAG, "Error reading table info: $table", e)
+
+        db.execSQL("INSERT INTO `${table.name}` ($insertColumns) SELECT $selectExpr FROM `$oldTable`")
+        db.execSQL("DROP TABLE `$oldTable`")
+        expectedIndices.filter { it.tblName == table.name }.forEach { db.execSQL(it.sql!!) }
+
+        if (table.sql.orEmpty().uppercase().contains("AUTOINCREMENT")) {
+            val idColumn = expectedColumns.values.firstOrNull { it.name.equals("id", ignoreCase = true) }?.name ?: "id"
+            runCatching {
+                db.execSQL("DELETE FROM sqlite_sequence WHERE name = ?", arrayOf(table.name))
+                db.execSQL(
+                    "INSERT INTO sqlite_sequence(name, seq) SELECT ?, IFNULL(MAX(`$idColumn`), 0) FROM `${table.name}`",
+                    arrayOf(table.name),
+                )
+            }
+        }
+    }
+
+    private fun defaultLiteral(type: String?): String {
+        val t = normalizeType(type)
+        return when {
+            t.contains("INT") -> "0"
+            t.contains("CHAR") || t.contains("CLOB") || t.contains("TEXT") -> "''"
+            t.contains("BLOB") -> "X''"
+            t.contains("REAL") || t.contains("FLOA") || t.contains("DOUB") -> "0.0"
+            else -> "NULL"
+        }
+    }
+
+    private fun dropNonTableObjects(db: SupportSQLiteDatabase) {
+        db.query("SELECT type, name FROM sqlite_master WHERE sql IS NOT NULL").use { cursor ->
+            val typeIdx = cursor.getColumnIndex("type")
+            val nameIdx = cursor.getColumnIndex("name")
+            while (cursor.moveToNext()) {
+                val type = cursor.getString(typeIdx)
+                val name = cursor.getString(nameIdx)
+                if (type == "view") db.execSQL("DROP VIEW IF EXISTS `$name`")
+                if (type == "trigger") db.execSQL("DROP TRIGGER IF EXISTS `$name`")
+                if (type == "index") db.execSQL("DROP INDEX IF EXISTS `$name`")
+            }
+        }
+    }
+
+    private fun schemaMismatch(
+        expected: Map<String, ColumnInfo>,
+        actual: Map<String, ColumnInfo>,
+    ): Boolean {
+        if (expected.keys != actual.keys) return true
+        expected.forEach { (name, e) ->
+            val a = actual[name] ?: return true
+            if (normalizeType(e.type) != normalizeType(a.type)) return true
+            if (e.notNull != a.notNull) return true
+            val ed = e.defaultValue?.trim()
+            val ad = a.defaultValue?.trim()
+            if (ed != ad) return true
+        }
+        return false
+    }
+
+    private fun normalizeType(type: String?): String =
+        (type ?: "").trim().uppercase().substringBefore(' ')
+
+    private fun tableExists(db: SupportSQLiteDatabase, name: String): Boolean =
+        db.query("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?", arrayOf(name)).use { it.moveToFirst() }
+
+    private fun readColumns(db: SupportSQLiteDatabase, table: String): Map<String, ColumnInfo> {
+        val cols = linkedMapOf<String, ColumnInfo>()
+        db.query("PRAGMA table_info(`$table`)").use { cursor ->
+            val cidIdx = cursor.getColumnIndex("cid")
+            val nameIdx = cursor.getColumnIndex("name")
+            val typeIdx = cursor.getColumnIndex("type")
+            val notNullIdx = cursor.getColumnIndex("notnull")
+            val defaultIdx = cursor.getColumnIndex("dflt_value")
+            while (cursor.moveToNext()) {
+                val name = cursor.getString(nameIdx)
+                cols[name] =
+                    ColumnInfo(
+                        cid = cursor.getInt(cidIdx),
+                        name = name,
+                        type = cursor.getString(typeIdx),
+                        notNull = cursor.getInt(notNullIdx) == 1,
+                        defaultValue = if (cursor.isNull(defaultIdx)) null else cursor.getString(defaultIdx),
+                    )
+            }
         }
         return cols
     }
+
+    private fun readMasterEntries(db: SupportSQLiteDatabase): List<MasterEntry> {
+        val items = mutableListOf<MasterEntry>()
+        db.query("SELECT type, name, tbl_name, sql FROM sqlite_master WHERE sql IS NOT NULL").use { cursor ->
+            val typeIdx = cursor.getColumnIndex("type")
+            val nameIdx = cursor.getColumnIndex("name")
+            val tblIdx = cursor.getColumnIndex("tbl_name")
+            val sqlIdx = cursor.getColumnIndex("sql")
+            while (cursor.moveToNext()) {
+                items.add(
+                    MasterEntry(
+                        type = cursor.getString(typeIdx),
+                        name = cursor.getString(nameIdx),
+                        tblName = cursor.getString(tblIdx),
+                        sql = cursor.getString(sqlIdx),
+                    ),
+                )
+            }
+        }
+        return items
+    }
+
+    private data class MasterEntry(
+        val type: String,
+        val name: String,
+        val tblName: String,
+        val sql: String?,
+    )
+
+    private data class ColumnInfo(
+        val cid: Int,
+        val name: String,
+        val type: String?,
+        val notNull: Boolean,
+        val defaultValue: String?,
+    )
 }
 
 // =============================================================================
