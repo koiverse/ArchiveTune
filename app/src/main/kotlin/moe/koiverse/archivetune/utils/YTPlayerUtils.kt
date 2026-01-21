@@ -241,23 +241,61 @@ object YTPlayerUtils {
         val isMetered = networkMetered ?: connectivityManager.isActiveNetworkMetered
         Timber.tag(logTag).i("Finding format with audioQuality: $audioQuality, network metered: $isMetered")
 
-        val audioFormats = playerResponse.streamingData?.adaptiveFormats?.filter { it.isAudio }
+        val audioFormats =
+            playerResponse.streamingData?.adaptiveFormats?.filter { it.isAudio && it.contentLength != null && it.bitrate > 0 }
         if (audioFormats.isNullOrEmpty()) {
             Timber.tag(logTag).w("No audio formats available")
             return null
         }
 
-        // Log available formats for debugging
-        Timber.tag(logTag).v("Available audio formats: ${audioFormats.map { "${it.mimeType} @ ${it.bitrate}bps" }}")
+        Timber.tag(logTag)
+            .v(
+                "Available audio formats: ${
+                    audioFormats.map {
+                        val codec = extractCodec(it.mimeType)
+                        "${it.mimeType} (codec=${codec ?: "unknown"}) @ ${it.bitrate}bps"
+                    }
+                }"
+            )
 
-        val format = audioFormats.maxByOrNull {
-                it.bitrate * when (audioQuality) {
-                    AudioQuality.AUTO -> if (isMetered) -1 else 1
-                    AudioQuality.HIGH -> 1
-                    AudioQuality.VERY_HIGH -> 2
-                    AudioQuality.HIGHEST -> 3
-                    AudioQuality.LOW -> -1
-                } + (if (it.mimeType.startsWith("audio/webm")) 10240 else 0) // prefer opus stream
+        val effectiveQuality =
+            when (audioQuality) {
+                AudioQuality.AUTO -> if (isMetered) AudioQuality.HIGH else AudioQuality.HIGHEST
+                else -> audioQuality
+            }
+
+        val targetBitrateBps =
+            when (effectiveQuality) {
+                AudioQuality.LOW -> 70_000
+                AudioQuality.HIGH -> 160_000
+                AudioQuality.VERY_HIGH -> 256_000
+                AudioQuality.HIGHEST -> null
+                AudioQuality.AUTO -> null
+            }
+
+        val format =
+            if (targetBitrateBps == null) {
+                audioFormats.maxWithOrNull(
+                    compareBy<PlayerResponse.StreamingData.Format> { it.bitrate }
+                        .thenBy { codecRank(extractCodec(it.mimeType)) }
+                        .thenBy { it.audioSampleRate ?: 0 }
+                )
+            } else {
+                val belowOrEqual = audioFormats.filter { it.bitrate <= targetBitrateBps }
+                if (belowOrEqual.isNotEmpty()) {
+                    belowOrEqual.maxWithOrNull(
+                        compareBy<PlayerResponse.StreamingData.Format> { it.bitrate }
+                            .thenBy { codecRank(extractCodec(it.mimeType)) }
+                            .thenBy { it.audioSampleRate ?: 0 }
+                    )
+                } else {
+                    val above = audioFormats.filter { it.bitrate >= targetBitrateBps }
+                    above.minWithOrNull(
+                        compareBy<PlayerResponse.StreamingData.Format> { it.bitrate }
+                            .thenByDescending { codecRank(extractCodec(it.mimeType)) }
+                            .thenByDescending { it.audioSampleRate ?: 0 }
+                    )
+                }
             }
 
         if (format != null) {
@@ -268,6 +306,19 @@ object YTPlayerUtils {
 
         return format
     }
+
+    private fun extractCodec(mimeType: String): String? {
+        val match = Regex("""codecs="([^"]+)"""").find(mimeType) ?: return null
+        return match.groupValues.getOrNull(1)?.split(",")?.firstOrNull()?.trim()
+    }
+
+    private fun codecRank(codec: String?): Int =
+        when {
+            codec.isNullOrBlank() -> 0
+            codec.contains("opus", ignoreCase = true) -> 3
+            codec.contains("mp4a", ignoreCase = true) -> 2
+            else -> 1
+        }
     /**
      * Checks if the stream url returns a successful status.
      * If this returns true the url is likely to work.
