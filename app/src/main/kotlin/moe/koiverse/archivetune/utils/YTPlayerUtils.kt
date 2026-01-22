@@ -19,7 +19,7 @@ import timber.log.Timber
 
 object YTPlayerUtils {
     private const val logTag = "YTPlayerUtils"
-    
+
     private val httpClient = OkHttpClient.Builder()
         .proxy(YouTube.proxy)
         .build()
@@ -131,23 +131,36 @@ object YTPlayerUtils {
             if (streamPlayerResponse?.playabilityStatus?.status == "OK") {
                 Timber.tag(logTag).i("Player response status OK for client: ${if (clientIndex == -1) MAIN_CLIENT.clientName else STREAM_FALLBACK_CLIENTS[clientIndex].clientName}")
 
-                format =
-                    findFormat(
+                val isMetered = networkMetered ?: connectivityManager.isActiveNetworkMetered
+                val candidates =
+                    selectAudioFormatCandidates(
                         streamPlayerResponse,
                         audioQuality,
-                        connectivityManager,
-                        networkMetered = networkMetered,
+                        isMetered,
                         avoidCodecs = avoidCodecs,
                     )
 
-                if (format == null) {
+                if (candidates.isEmpty()) {
                     Timber.tag(logTag).v("No suitable format found for client: ${if (clientIndex == -1) MAIN_CLIENT.clientName else STREAM_FALLBACK_CLIENTS[clientIndex].clientName}")
                     continue
                 }
 
-                Timber.tag(logTag).i("Format found: ${format.mimeType}, bitrate: ${format.bitrate}")
+                var selectedFormat: PlayerResponse.StreamingData.Format? = null
+                streamUrl = null
+                for (candidate in candidates.asSequence().take(8)) {
+                    val candidateUrl = findUrlOrNull(candidate, videoId)
+                    if (candidateUrl != null) {
+                        selectedFormat = candidate
+                        streamUrl = candidateUrl
+                        break
+                    }
+                }
 
-                streamUrl = findUrlOrNull(format, videoId)
+                format = selectedFormat
+                if (format != null) {
+                    Timber.tag(logTag).i("Format found: ${format.mimeType}, bitrate: ${format.bitrate}")
+                }
+
                 if (streamUrl == null) {
                     Timber.tag(logTag).w("Stream URL not found for format")
                     continue
@@ -242,35 +255,39 @@ object YTPlayerUtils {
         avoidCodecs: Set<String> = emptySet(),
     ): PlayerResponse.StreamingData.Format? {
         val isMetered = networkMetered ?: connectivityManager.isActiveNetworkMetered
-        Timber.tag(logTag).i("Finding format with audioQuality: $audioQuality, network metered: $isMetered")
+        return selectAudioFormatCandidates(
+            playerResponse,
+            audioQuality,
+            isMetered,
+            avoidCodecs = avoidCodecs,
+        ).firstOrNull()
+    }
+
+    private fun selectAudioFormatCandidates(
+        playerResponse: PlayerResponse,
+        audioQuality: AudioQuality,
+        networkMetered: Boolean,
+        avoidCodecs: Set<String> = emptySet(),
+    ): List<PlayerResponse.StreamingData.Format> {
+        Timber.tag(logTag).i("Finding format with audioQuality: $audioQuality, network metered: $networkMetered")
 
         val audioFormats =
             playerResponse.streamingData?.adaptiveFormats
                 ?.asSequence()
-                ?.filter { it.isAudio && it.contentLength != null && it.bitrate > 0 }
+                ?.filter { it.isAudio && it.bitrate > 0 }
+                ?.filter { it.url != null || it.signatureCipher != null || it.cipher != null }
                 ?.filter { format ->
                     val codec = extractCodec(format.mimeType)?.lowercase()
                     codec == null || codec !in avoidCodecs
                 }
                 ?.toList()
-        if (audioFormats.isNullOrEmpty()) {
-            Timber.tag(logTag).w("No audio formats available")
-            return null
-        }
+                .orEmpty()
 
-        Timber.tag(logTag)
-            .v(
-                "Available audio formats: ${
-                    audioFormats.map {
-                        val codec = extractCodec(it.mimeType)
-                        "${it.mimeType} (codec=${codec ?: "unknown"}) @ ${it.bitrate}bps"
-                    }
-                }"
-            )
+        if (audioFormats.isEmpty()) return emptyList()
 
         val effectiveQuality =
             when (audioQuality) {
-                AudioQuality.AUTO -> if (isMetered) AudioQuality.HIGH else AudioQuality.HIGHEST
+                AudioQuality.AUTO -> if (networkMetered) AudioQuality.HIGH else AudioQuality.HIGHEST
                 else -> audioQuality
             }
 
@@ -283,38 +300,44 @@ object YTPlayerUtils {
                 AudioQuality.AUTO -> null
             }
 
-        val format =
+        val preferHigher =
+            compareByDescending<PlayerResponse.StreamingData.Format> { it.url != null }
+                .thenByDescending { it.bitrate }
+                .thenByDescending { codecRank(extractCodec(it.mimeType)) }
+                .thenByDescending { it.audioSampleRate ?: 0 }
+
+        val preferLowerAboveTarget =
+            compareByDescending<PlayerResponse.StreamingData.Format> { it.url != null }
+                .thenBy { it.bitrate }
+                .thenByDescending { codecRank(extractCodec(it.mimeType)) }
+                .thenByDescending { it.audioSampleRate ?: 0 }
+
+        val candidates =
             if (targetBitrateBps == null) {
-                audioFormats.maxWithOrNull(
-                    compareBy<PlayerResponse.StreamingData.Format> { it.bitrate }
-                        .thenBy { codecRank(extractCodec(it.mimeType)) }
-                        .thenBy { it.audioSampleRate ?: 0 }
-                )
+                audioFormats.sortedWith(preferHigher)
             } else {
                 val belowOrEqual = audioFormats.filter { it.bitrate <= targetBitrateBps }
                 if (belowOrEqual.isNotEmpty()) {
-                    belowOrEqual.maxWithOrNull(
-                        compareBy<PlayerResponse.StreamingData.Format> { it.bitrate }
-                            .thenBy { codecRank(extractCodec(it.mimeType)) }
-                            .thenBy { it.audioSampleRate ?: 0 }
-                    )
+                    belowOrEqual.sortedWith(preferHigher)
                 } else {
-                    val above = audioFormats.filter { it.bitrate >= targetBitrateBps }
-                    above.minWithOrNull(
-                        compareBy<PlayerResponse.StreamingData.Format> { it.bitrate }
-                            .thenByDescending { codecRank(extractCodec(it.mimeType)) }
-                            .thenByDescending { it.audioSampleRate ?: 0 }
-                    )
+                    val aboveOrEqual = audioFormats.filter { it.bitrate >= targetBitrateBps }
+                    if (aboveOrEqual.isNotEmpty()) aboveOrEqual.sortedWith(preferLowerAboveTarget)
+                    else audioFormats.sortedWith(preferHigher)
                 }
             }
 
-        if (format != null) {
-            Timber.tag(logTag).i("Selected format: ${format.mimeType}, bitrate: ${format.bitrate}bps (itag: ${format.itag})")
-        } else {
-            Timber.tag(logTag).w("No suitable audio format found")
-        }
+        Timber.tag(logTag)
+            .v(
+                "Available audio formats: ${
+                    candidates.take(12).map {
+                        val codec = extractCodec(it.mimeType)
+                        val direct = if (it.url != null) "direct" else "cipher"
+                        "${it.mimeType} ($direct, codec=${codec ?: "unknown"}) @ ${it.bitrate}bps"
+                    }
+                }"
+            )
 
-        return format
+        return candidates
     }
 
     private fun extractCodec(mimeType: String): String? {
