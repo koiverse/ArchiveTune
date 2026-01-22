@@ -1,9 +1,7 @@
 package moe.koiverse.archivetune.ui.screens.settings
 
 import android.Manifest
-import android.content.Intent
 import android.content.pm.PackageManager
-import android.net.Uri
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -38,7 +36,6 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -64,13 +61,9 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.ContextCompat
-import androidx.core.content.FileProvider
 import androidx.navigation.NavController
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import moe.koiverse.archivetune.BuildConfig
 import moe.koiverse.archivetune.LocalPlayerAwareWindowInsets
 import moe.koiverse.archivetune.R
@@ -87,15 +80,9 @@ import moe.koiverse.archivetune.utils.UpdateNotificationManager
 import moe.koiverse.archivetune.utils.Updater
 import moe.koiverse.archivetune.utils.rememberEnumPreference
 import moe.koiverse.archivetune.utils.rememberPreference
-import java.io.File
-import java.io.FileInputStream
-import java.io.FileOutputStream
-import java.net.HttpURLConnection
-import java.net.URL
 import java.text.SimpleDateFormat
 import java.util.Locale
 import java.util.TimeZone
-import java.util.zip.ZipInputStream
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -106,6 +93,7 @@ fun UpdateScreen(
     val context = LocalContext.current
     val uriHandler = LocalUriHandler.current
     val coroutineScope = rememberCoroutineScope()
+    val nightlyInstallUrl = "https://nightly.link/koiverse/ArchiveTune/workflows/build/dev/app-universal-release"
 
     val (enableUpdateNotification, onEnableUpdateNotificationChange) = rememberPreference(
         EnableUpdateNotificationKey,
@@ -120,11 +108,6 @@ fun UpdateScreen(
     var isLoadingCommits by remember { mutableStateOf(true) }
     var latestVersion by remember { mutableStateOf<String?>(null) }
     var isExpanded by remember { mutableStateOf(true) }
-    var showNightlyInstallConfirm by remember { mutableStateOf(false) }
-    var showNightlyInstallProgress by remember { mutableStateOf(false) }
-    var nightlyInstallProgress by remember { mutableStateOf<Float?>(null) }
-    var nightlyInstallStage by remember { mutableStateOf("") }
-    var nightlyInstallError by remember { mutableStateOf<String?>(null) }
     var hasNotificationPermission by remember {
         mutableStateOf(
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -332,7 +315,7 @@ fun UpdateScreen(
                             )
                             Spacer(modifier = Modifier.height(14.dp))
                             Button(
-                                onClick = { showNightlyInstallConfirm = true },
+                                onClick = { uriHandler.openUri(nightlyInstallUrl) },
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 Text("Install")
@@ -427,121 +410,6 @@ fun UpdateScreen(
             }
         }
     }
-
-    if (showNightlyInstallConfirm) {
-        AlertDialog(
-            onDismissRequest = { showNightlyInstallConfirm = false },
-            title = { Text("Install Nightly Build") },
-            text = {
-                Text(
-                    "Download and install the latest dev build now? This may contain experimental changes."
-                )
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        showNightlyInstallConfirm = false
-                        nightlyInstallError = null
-                        showNightlyInstallProgress = true
-                        nightlyInstallStage = "Downloading"
-                        nightlyInstallProgress = 0f
-
-                        coroutineScope.launch {
-                            runCatching {
-                                val (zipFile, apkFile) = withContext(Dispatchers.IO) {
-                                    val artifactName =
-                                        if (BuildConfig.ARCHITECTURE == "universal") {
-                                            "app-universal-release"
-                                        } else {
-                                            "app-${BuildConfig.ARCHITECTURE}-release"
-                                        }
-
-                                    val downloadUrl =
-                                        "https://nightly.link/koiverse/ArchiveTune/workflows/build.yml/dev/$artifactName.zip"
-
-                                    val outputZip = File(context.cacheDir, "nightly_build.zip")
-                                    val outputApk = File(context.cacheDir, "nightly_build.apk")
-
-                                    downloadToFileWithProgress(
-                                        url = downloadUrl,
-                                        outputFile = outputZip,
-                                        onProgress = { progress ->
-                                            coroutineScope.launch {
-                                                nightlyInstallProgress = progress
-                                            }
-                                        }
-                                    )
-
-                                    coroutineScope.launch {
-                                        nightlyInstallStage = "Unzipping"
-                                        nightlyInstallProgress = null
-                                    }
-
-                                    val extractedApk = extractFirstApkFromZip(outputZip, outputApk)
-                                    outputZip to extractedApk
-                                }
-
-                                withContext(Dispatchers.Main) {
-                                    showNightlyInstallProgress = false
-                                    launchApkInstall(context, apkFile)
-                                }
-
-                                withContext(Dispatchers.IO) {
-                                    zipFile.delete()
-                                }
-                            }.onFailure { e ->
-                                nightlyInstallError = e.message ?: "Failed to install nightly build"
-                                showNightlyInstallProgress = false
-                            }
-                        }
-                    }
-                ) {
-                    Text("Continue")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showNightlyInstallConfirm = false }) {
-                    Text("Cancel")
-                }
-            }
-        )
-    }
-
-    if (showNightlyInstallProgress) {
-        AlertDialog(
-            onDismissRequest = {},
-            properties = DialogProperties(dismissOnBackPress = false, dismissOnClickOutside = false),
-            title = { Text("Installing") },
-            text = {
-                Column {
-                    Text(nightlyInstallStage)
-                    Spacer(modifier = Modifier.height(12.dp))
-                    val value = nightlyInstallProgress
-                    if (value == null) {
-                        LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-                    } else {
-                        LinearProgressIndicator(progress = { value }, modifier = Modifier.fillMaxWidth())
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text("${(value * 100).toInt()}%")
-                    }
-                }
-            },
-            confirmButton = {}
-        )
-    }
-
-    nightlyInstallError?.let { error ->
-        AlertDialog(
-            onDismissRequest = { nightlyInstallError = null },
-            title = { Text("Nightly Install Failed") },
-            text = { Text(error) },
-            confirmButton = {
-                TextButton(onClick = { nightlyInstallError = null }) {
-                    Text("OK")
-                }
-            }
-        )
-    }
 }
 
 @Composable
@@ -634,88 +502,6 @@ private fun CommitItem(
             )
         }
     }
-}
-
-private fun downloadToFileWithProgress(
-    url: String,
-    outputFile: File,
-    onProgress: (Float?) -> Unit,
-) {
-    val connection = (URL(url).openConnection() as HttpURLConnection).apply {
-        instanceFollowRedirects = true
-        connectTimeout = 15_000
-        readTimeout = 30_000
-        requestMethod = "GET"
-    }
-
-    connection.connect()
-    if (connection.responseCode !in 200..299) {
-        throw IllegalStateException("HTTP ${connection.responseCode}")
-    }
-
-    val totalBytes = connection.contentLengthLong.takeIf { it > 0L }
-    outputFile.parentFile?.mkdirs()
-
-    var downloaded = 0L
-    var lastEmitTime = 0L
-
-    connection.inputStream.use { input ->
-        FileOutputStream(outputFile).use { output ->
-            val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
-            while (true) {
-                val read = input.read(buffer)
-                if (read <= 0) break
-                output.write(buffer, 0, read)
-                downloaded += read.toLong()
-
-                val now = System.currentTimeMillis()
-                if (now - lastEmitTime >= 80L) {
-                    val progress =
-                        if (totalBytes == null) null else (downloaded.toFloat() / totalBytes.toFloat()).coerceIn(0f, 1f)
-                    onProgress(progress)
-                    lastEmitTime = now
-                }
-            }
-            output.flush()
-        }
-    }
-
-    onProgress(1f)
-    connection.disconnect()
-}
-
-private fun extractFirstApkFromZip(zipFile: File, outputApk: File): File {
-    ZipInputStream(FileInputStream(zipFile)).use { zis ->
-        while (true) {
-            val entry = zis.nextEntry ?: break
-            val name = entry.name
-            if (!entry.isDirectory && name.endsWith(".apk", ignoreCase = true)) {
-                outputApk.parentFile?.mkdirs()
-                FileOutputStream(outputApk).use { out ->
-                    val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
-                    while (true) {
-                        val read = zis.read(buffer)
-                        if (read <= 0) break
-                        out.write(buffer, 0, read)
-                    }
-                    out.flush()
-                }
-                return outputApk
-            }
-        }
-    }
-    throw IllegalStateException("No APK found in downloaded zip")
-}
-
-private fun launchApkInstall(context: android.content.Context, apkFile: File) {
-    val authority = "${context.packageName}.FileProvider"
-    val apkUri = FileProvider.getUriForFile(context, authority, apkFile)
-    val intent = Intent(Intent.ACTION_VIEW).apply {
-        setDataAndType(apkUri, "application/vnd.android.package-archive")
-        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-    }
-    context.startActivity(intent)
 }
 
 private fun formatCommitDate(isoDate: String): String {
