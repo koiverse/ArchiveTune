@@ -12,6 +12,7 @@ hilt = "2.57.1"
 ktor = "3.3.0"
 ksp = "2.2.20-2.0.3"
 jsoup = "1.21.2"
+re2j = "1.8"
 coil = "3.3.0"
 guava = "33.5.0-jre"
 coroutinesGuava = "1.10.2"
@@ -89,6 +90,7 @@ ktor-client-encoding = { module = "io.ktor:ktor-client-encoding", version.ref = 
 ktor-serialization-json = { module = "io.ktor:ktor-serialization-kotlinx-json", version.ref = "ktor" }
 
 jsoup = { module = "org.jsoup:jsoup", version.ref = "jsoup" }
+re2j = { module = "com.google.re2j:re2j", version.ref = "re2j" }
 
 json = { module = "org.json:json", version.ref = "json" }
 

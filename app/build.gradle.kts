@@ -199,6 +199,7 @@ dependencies {
 
     implementation(libs.hilt)
     implementation(libs.jsoup)
+    implementation(libs.re2j)
     kapt(libs.hilt.compiler)
 
     implementation(project(":innertube"))
