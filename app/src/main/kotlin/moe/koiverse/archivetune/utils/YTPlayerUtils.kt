@@ -64,6 +64,7 @@ object YTPlayerUtils {
         connectivityManager: ConnectivityManager,
         // if provided, this preference overrides ConnectivityManager.isActiveNetworkMetered
         networkMetered: Boolean? = null,
+        avoidCodecs: Set<String> = emptySet(),
     ): Result<PlaybackData> = runCatching {
     Timber.tag(logTag).i("Fetching player response for videoId: $videoId, playlistId: $playlistId")
         /**
@@ -136,6 +137,7 @@ object YTPlayerUtils {
                         audioQuality,
                         connectivityManager,
                         networkMetered = networkMetered,
+                        avoidCodecs = avoidCodecs,
                     )
 
                 if (format == null) {
@@ -237,12 +239,20 @@ object YTPlayerUtils {
         connectivityManager: ConnectivityManager,
         // optional override from user preference; if non-null, use this instead of ConnectivityManager
         networkMetered: Boolean? = null,
+        avoidCodecs: Set<String> = emptySet(),
     ): PlayerResponse.StreamingData.Format? {
         val isMetered = networkMetered ?: connectivityManager.isActiveNetworkMetered
         Timber.tag(logTag).i("Finding format with audioQuality: $audioQuality, network metered: $isMetered")
 
         val audioFormats =
-            playerResponse.streamingData?.adaptiveFormats?.filter { it.isAudio && it.contentLength != null && it.bitrate > 0 }
+            playerResponse.streamingData?.adaptiveFormats
+                ?.asSequence()
+                ?.filter { it.isAudio && it.contentLength != null && it.bitrate > 0 }
+                ?.filter { format ->
+                    val codec = extractCodec(format.mimeType)?.lowercase()
+                    codec == null || codec !in avoidCodecs
+                }
+                ?.toList()
         if (audioFormats.isNullOrEmpty()) {
             Timber.tag(logTag).w("No audio formats available")
             return null
@@ -328,12 +338,14 @@ object YTPlayerUtils {
         Timber.tag(logTag).v("Validating stream URL status")
         try {
             val requestBuilder = okhttp3.Request.Builder()
-                .head()
+                .get()
+                .header("Range", "bytes=0-0")
                 .url(url)
-            val response = httpClient.newCall(requestBuilder.build()).execute()
-            val isSuccessful = response.isSuccessful
-            Timber.tag(logTag).i("Stream URL validation result: ${if (isSuccessful) "Success" else "Failed"} (${response.code})")
-            return isSuccessful
+            return httpClient.newCall(requestBuilder.build()).execute().use { response ->
+                val isSuccessful = response.isSuccessful
+                Timber.tag(logTag).i("Stream URL validation result: ${if (isSuccessful) "Success" else "Failed"} (${response.code})")
+                isSuccessful
+            }
         } catch (e: Exception) {
             Timber.tag(logTag).e(e, "Stream URL validation failed with exception")
             reportException(e)
