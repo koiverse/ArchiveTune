@@ -39,9 +39,12 @@ private class NewPipeDownloaderImpl(proxy: Proxy?) : Downloader() {
         val requestBuilder = okhttp3.Request.Builder()
             .method(httpMethod, dataToSend?.toRequestBody())
             .url(url)
-            .addHeader("User-Agent", YouTubeClient.USER_AGENT_WEB)
 
+        var hasUserAgent = false
         headers.forEach { (headerName, headerValueList) ->
+            if (headerName.equals("User-Agent", ignoreCase = true) && headerValueList.isNotEmpty()) {
+                hasUserAgent = true
+            }
             if (headerValueList.size > 1) {
                 requestBuilder.removeHeader(headerName)
                 headerValueList.forEach { headerValue ->
@@ -50,6 +53,10 @@ private class NewPipeDownloaderImpl(proxy: Proxy?) : Downloader() {
             } else if (headerValueList.size == 1) {
                 requestBuilder.header(headerName, headerValueList[0])
             }
+        }
+
+        if (!hasUserAgent) {
+            requestBuilder.header("User-Agent", YouTubeClient.USER_AGENT_WEB)
         }
 
         val response = client.newCall(requestBuilder.build()).execute()
