@@ -6,7 +6,7 @@
     <string name="albums">Альбомы</string>
     <string name="playlists">Плейлисты</string>
     <plurals name="n_selected">
-        <item quantity="one"></item>
+        <item quantity="one"/>
         <item quantity="few">%d выбрано</item>
         <item quantity="many">%d выбрано</item>
         <item quantity="other">%d выбрано</item>
@@ -96,4 +96,15 @@
     <string name="tempo_and_pitch">Темп и тон</string>
     <string name="sort_by_create_date">По дате добавления</string>
     <string name="sort_by_name">Имя</string>
+    <string name="sort_by_artist">Исполнитель</string>
+    <string name="sort_by_year">Год</string>
+    <string name="sort_by_song_count">Количество песен</string>
+    <string name="sort_by_length">Длина</string>
+    <string name="sort_by_play_time">Время прослушивания</string>
+    <string name="sort_by_custom">Пользовательская</string>
+    <string name="media_id">Идентификатор медиа</string>
+    <string name="mime_type">Тип MIME</string>
+    <string name="codecs">Кодеки</string>
+    <string name="bitrate">Битрейт</string>
+    <string name="sample_rate">Частота дискретизации</string>
 </resources>
