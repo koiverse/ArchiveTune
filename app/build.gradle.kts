@@ -170,7 +170,7 @@ dependencies {
     implementation(libs.compose.foundation)
     implementation(libs.compose.ui)
     implementation(libs.compose.ui.util)
-    implementation(libs.compose.ui.tooling)
+    debugImplementation(libs.compose.ui.tooling)
     implementation(libs.compose.animation)
     implementation(libs.compose.reorderable)
 
@@ -243,4 +243,15 @@ tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach 
         // Suppress warnings
         suppressWarnings.set(true)
     }
+}
+
+configurations.configureEach {
+    resolutionStrategy.force(
+        "androidx.compose.runtime:runtime:${libs.versions.compose.get()}",
+        "androidx.compose.foundation:foundation:${libs.versions.compose.get()}",
+        "androidx.compose.ui:ui:${libs.versions.compose.get()}",
+        "androidx.compose.ui:ui-util:${libs.versions.compose.get()}",
+        "androidx.compose.ui:ui-tooling:${libs.versions.compose.get()}",
+        "androidx.compose.animation:animation-graphics:${libs.versions.compose.get()}",
+    )
 }
