@@ -194,33 +194,40 @@ object YouTube {
             ?.musicResponsiveHeaderRenderer
             ?: throw IllegalStateException("Missing album header for $browseId")
         val playlistId = response.microformat?.microformatDataRenderer?.urlCanonical?.substringAfterLast('=')!!
+        val albumTitle = header.title.runs?.firstOrNull()?.text
+            ?: throw IllegalStateException("Missing album title for $browseId")
+        val albumArtists = (header.straplineTextOne ?: throw IllegalStateException("Missing album artists for $browseId"))
+            .runs
+            ?.oddElements()
+            ?.map {
+                Artist(
+                    name = it.text,
+                    id = it.navigationEndpoint?.browseEndpoint?.browseId
+                )
+            }
+            ?: throw IllegalStateException("Missing album artists runs for $browseId")
+        val albumYear = header.subtitle.runs?.lastOrNull()?.text?.toIntOrNull()
+        val albumThumbnail = (header.thumbnail ?: throw IllegalStateException("Missing album thumbnail for $browseId"))
+            .musicThumbnailRenderer
+            ?.getThumbnailUrl()
+            ?: throw IllegalStateException("Missing album thumbnail url for $browseId")
         AlbumPage(
             album = AlbumItem(
                 browseId = browseId,
                 playlistId = playlistId,
-                title = header.title?.runs?.firstOrNull()?.text!!,
-                artists = header.straplineTextOne?.runs?.oddElements()?.map {
-                    Artist(
-                        name = it.text,
-                        id = it.navigationEndpoint?.browseEndpoint?.browseId
-                    )
-                }!!,
-                year = header.subtitle?.runs?.lastOrNull()?.text?.toIntOrNull(),
-                thumbnail = header.thumbnail?.musicThumbnailRenderer?.thumbnail?.thumbnails?.lastOrNull()?.url!!,
+                title = albumTitle,
+                artists = albumArtists,
+                year = albumYear,
+                thumbnail = albumThumbnail,
                 explicit = false, // TODO: Extract explicit badge for albums from YouTube response
             ),
             songs = if (withSongs) albumSongs(playlistId, AlbumItem(
                 browseId = browseId,
                 playlistId = playlistId,
-                title = header.title?.runs?.firstOrNull()?.text!!,
-                artists = header.straplineTextOne?.runs?.oddElements()?.map {
-                    Artist(
-                        name = it.text,
-                        id = it.navigationEndpoint?.browseEndpoint?.browseId
-                    )
-                }!!,
-                year = header.subtitle?.runs?.lastOrNull()?.text?.toIntOrNull(),
-                thumbnail = header.thumbnail?.musicThumbnailRenderer?.thumbnail?.thumbnails?.lastOrNull()?.url!!,
+                title = albumTitle,
+                artists = albumArtists,
+                year = albumYear,
+                thumbnail = albumThumbnail,
                 explicit = false
             )).getOrThrow() else emptyList(),
             otherVersions = twoColumn.secondaryContents?.sectionListRenderer?.contents?.getOrNull(1)?.musicCarouselShelfRenderer?.contents
