@@ -194,7 +194,7 @@ jobs:
 
       - name: Build Changelog
         id: build_changelog
-        uses: mikepenz/release-changelog-builder-action@v5
+        uses: mikepenz/release-changelog-builder-action@v6
         with:
           mode: "COMMIT"
           fromTag: ${{ steps.changelog_range.outputs.from_ref }}
