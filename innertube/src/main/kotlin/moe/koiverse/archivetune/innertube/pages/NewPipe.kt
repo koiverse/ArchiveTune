@@ -5,11 +5,11 @@ import moe.koiverse.archivetune.innertube.models.response.PlayerResponse
 import io.ktor.http.URLBuilder
 import io.ktor.http.parseQueryString
 import okhttp3.OkHttpClient
-import okhttp3.Request
+import okhttp3.Request as OkHttpRequest
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.schabi.newpipe.extractor.NewPipe
 import org.schabi.newpipe.extractor.downloader.Downloader
-import org.schabi.newpipe.extractor.downloader.Request
+import org.schabi.newpipe.extractor.downloader.Request as NewPipeRequest
 import org.schabi.newpipe.extractor.downloader.Response
 import org.schabi.newpipe.extractor.exceptions.ParsingException
 import org.schabi.newpipe.extractor.exceptions.ReCaptchaException
@@ -32,7 +32,7 @@ private class NewPipeDownloaderImpl(proxy: Proxy?) : Downloader() {
         .build()
 
     @Throws(IOException::class, ReCaptchaException::class)
-    override fun execute(request: Request): Response {
+    override fun execute(request: NewPipeRequest): Response {
         val httpMethod = request.httpMethod()
         val url = request.url()
         val headers = request.headers()
@@ -287,7 +287,7 @@ private object SignatureDecipherFallback {
 
     private fun fetchText(url: String): String {
         val request =
-            Request.Builder()
+            OkHttpRequest.Builder()
                 .get()
                 .url(url)
                 .header("User-Agent", YouTubeClient.USER_AGENT_WEB)
