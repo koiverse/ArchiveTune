@@ -127,10 +127,6 @@ object YTPlayerUtils {
                     Timber.tag(logTag).w("Skipping client ${client.clientName} - requires login but user is not logged in")
                     continue
                 }
-                if (isLoggedIn && !client.loginSupported) {
-                    Timber.tag(logTag).w("Skipping client ${client.clientName} - does not support login for authenticated session")
-                    continue
-                }
             }
 
             streamPlayerResponse =
