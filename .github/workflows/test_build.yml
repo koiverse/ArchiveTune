@@ -3,7 +3,7 @@ name: Test Build
 on:
   workflow_dispatch:
   push:
-    branches: ["**"]
+    branches: [ "main", "dev" ]
     paths-ignore:
       - "README.md"
       - "fastlane/**"
@@ -29,10 +29,30 @@ jobs:
           java-version: "21"
           distribution: "temurin"
 
+      - name: Prepare Gradle cache encryption key
+        shell: bash
+        env:
+          RAW_KEY: ${{ secrets.GRADLE_CACHE_KEY }}
+        run: |
+          python3 - <<'PY' >> "$GITHUB_ENV"
+          import os, base64
+          raw = (os.environ.get("RAW_KEY") or "").strip()
+          if not raw:
+              raise SystemExit(0)
+          candidate = raw.replace("-", "+").replace("_", "/")
+          candidate += "=" * (-len(candidate) % 4)
+          try:
+              base64.b64decode(candidate, validate=True)
+              out = candidate
+          except Exception:
+              out = base64.b64encode(raw.encode("utf-8")).decode("ascii")
+          print(f"GRADLE_CACHE_KEY_B64={out}")
+          PY
+
       - name: Set Up Gradle
         uses: gradle/actions/setup-gradle@v5
         with:
-          cache-encryption-key: ${{ secrets.GRADLE_CACHE_KEY }}
+          cache-encryption-key: ${{ env.GRADLE_CACHE_KEY_B64 }}
           cache-cleanup: on-success
 
       - name: Grant execute permission for gradlew
@@ -41,7 +61,7 @@ jobs:
       - name: Change Package Name for Test Build
         run: |
           # Change applicationId to test variant
-          sed -i 's/applicationId = "moe.koiverse.archivetune"/applicationId = "moe.koiverse.archivetune.testbuild"/' app/build.gradle.kts
+          sed -i 's/applicationId = "moe.koiverse.archivetune"/applicationId = "moe.koiverse.archivetune.test"/' app/build.gradle.kts
 
       - name: Build Universal Release APK (No Lint)
         run: ./gradlew --console=plain assembleUniversalFossRelease --warning-mode summary -x lint -x lintUniversalFossRelease
