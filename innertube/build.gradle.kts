@@ -16,5 +16,6 @@ dependencies {
     implementation(libs.brotli)
     implementation(libs.newpipe.extractor)
     implementation(libs.re2j)
+    implementation(libs.rhino)
     testImplementation(libs.junit)
 }
