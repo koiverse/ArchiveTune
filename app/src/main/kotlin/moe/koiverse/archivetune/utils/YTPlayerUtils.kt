@@ -16,6 +16,7 @@ import moe.koiverse.archivetune.innertube.models.YouTubeClient.Companion.WEB
 import moe.koiverse.archivetune.innertube.models.YouTubeClient.Companion.WEB_CREATOR
 import okhttp3.OkHttpClient
 import timber.log.Timber
+import java.util.concurrent.ConcurrentHashMap
 
 object YTPlayerUtils {
     private const val logTag = "YTPlayerUtils"
@@ -44,6 +45,12 @@ object YTPlayerUtils {
         WEB,
         WEB_CREATOR
     )
+    private data class CachedStreamUrl(
+        val url: String,
+        val expiresAtMs: Long,
+    )
+
+    private val streamUrlCache = ConcurrentHashMap<String, CachedStreamUrl>()
     data class PlaybackData(
         val audioConfig: PlayerResponse.PlayerConfig.AudioConfig?,
         val videoDetails: PlayerResponse.VideoDetails?,
@@ -160,11 +167,18 @@ object YTPlayerUtils {
             var selectedFormat: PlayerResponse.StreamingData.Format? = null
             var selectedUrl: String? = null
 
-            for (candidate in candidates.asSequence().take(12)) {
+            for (candidate in candidates.asSequence().take(6)) {
                 if (isLoggedIn && expectedDurationMs != null && isLikelyPreview(candidate, expectedDurationMs)) {
                     continue
                 }
-                val candidateUrl = findUrlOrNull(candidate, videoId) ?: continue
+                val cacheKey = buildCacheKey(videoId, candidate.itag)
+                val cached = streamUrlCache[cacheKey]
+                val candidateUrl =
+                    if (cached != null && cached.expiresAtMs > System.currentTimeMillis()) {
+                        cached.url
+                    } else {
+                        findUrlOrNull(candidate, videoId)
+                    } ?: continue
                 selectedFormat = candidate
                 selectedUrl = candidateUrl
                 break
@@ -181,12 +195,18 @@ object YTPlayerUtils {
             Timber.tag(logTag).i("Format found: ${format.mimeType}, bitrate: ${format.bitrate}")
             Timber.tag(logTag).v("Stream expires in: $streamExpiresInSeconds seconds")
 
+            streamUrlCache[buildCacheKey(videoId, format.itag)] =
+                CachedStreamUrl(
+                    url = streamUrl,
+                    expiresAtMs = System.currentTimeMillis() + (streamExpiresInSeconds * 1000L),
+                )
+
             if (isLast) {
                 Timber.tag(logTag).i("Using last client without validation: ${client.clientName}")
                 break
             }
 
-            if (validateStatus(streamUrl, client.userAgent)) {
+            if (isMain || validateStatus(streamUrl, client.userAgent)) {
                 Timber.tag(logTag).i("Stream validated successfully with client: ${client.clientName}")
                 break
             }
@@ -429,5 +449,9 @@ object YTPlayerUtils {
                 reportException(it)
             }
             .getOrNull()
+    }
+
+    private fun buildCacheKey(videoId: String, itag: Int): String {
+        return "$videoId:$itag"
     }
 }
