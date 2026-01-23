@@ -35,17 +35,24 @@ jobs:
           RAW_KEY: ${{ secrets.GRADLE_CACHE_KEY }}
         run: |
           python3 - <<'PY' >> "$GITHUB_ENV"
-          import os, base64
+          import os, base64, hashlib
           raw = (os.environ.get("RAW_KEY") or "").strip()
           if not raw:
               raise SystemExit(0)
           candidate = raw.replace("-", "+").replace("_", "/")
           candidate += "=" * (-len(candidate) % 4)
+          decoded = None
           try:
-              base64.b64decode(candidate, validate=True)
-              out = candidate
+              decoded = base64.b64decode(candidate, validate=True)
           except Exception:
-              out = base64.b64encode(raw.encode("utf-8")).decode("ascii")
+              decoded = None
+
+          if decoded is not None and len(decoded) in (16, 24, 32):
+              out = base64.b64encode(decoded).decode("ascii")
+          else:
+              derived = hashlib.sha256(raw.encode("utf-8")).digest()
+              out = base64.b64encode(derived).decode("ascii")
+
           print(f"GRADLE_CACHE_KEY_B64={out}")
           PY
 
