@@ -71,7 +71,7 @@ jobs:
           sed -i 's/applicationId = "moe.koiverse.archivetune"/applicationId = "moe.koiverse.archivetune.test"/' app/build.gradle.kts
 
       - name: Build Universal Release APK (No Lint)
-        run: ./gradlew --console=plain assembleUniversalRelease --warning-mode summary -x lint -x lintUniversalRelease
+        run: ./gradlew --console=plain assembleUniversalRelease --warning-mode summary -x lint -x lintUniversalRelease -x lintVitalReportUniversalRelease -x lintVitalUniversalRelease
         env:
           PULL_REQUEST: "false"
           GITHUB_EVENT_NAME: ${{ github.event_name }}
