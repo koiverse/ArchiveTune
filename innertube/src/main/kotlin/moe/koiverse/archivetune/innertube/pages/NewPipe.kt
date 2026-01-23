@@ -220,6 +220,7 @@ private object SignatureDecipherFallback {
             .callTimeout(45, TimeUnit.SECONDS)
             .build()
 
+    @Suppress("DEPRECATION")
     fun deobfuscateSignature(videoId: String, obfuscatedSignature: String): String {
         val scriptPrefix = getOrBuildScriptPrefix(videoId)
         val escaped = escapeJsString(obfuscatedSignature)
@@ -227,6 +228,7 @@ private object SignatureDecipherFallback {
 
         val ctx = Context.enter()
         ctx.optimizationLevel = -1
+        configureContextLanguage(ctx)
         return try {
             val scope = ctx.initStandardObjects()
             val result = ctx.evaluateString(scope, jsToEval, "archivetune_decipher", 1, null)
@@ -365,10 +367,10 @@ private object SignatureDecipherFallback {
 
         return buildString {
             if (objDef.isNotBlank()) {
-                append(objDef)
+                append(ensureTrailingSemicolon(objDef))
                 append('\n')
             }
-            append(functionDef)
+            append(ensureTrailingSemicolon(functionDef))
             append('\n')
             append("function __archivetune_decipher(s){return ")
             append(functionName)
@@ -451,6 +453,30 @@ private object SignatureDecipherFallback {
         while (end < playerJs.length && playerJs[end].isWhitespace()) end++
         if (end < playerJs.length && playerJs[end] == ';') end++
         return playerJs.substring(starts.range.first, end).trimStart(';', '\n')
+    }
+
+    private fun ensureTrailingSemicolon(script: String): String {
+        val trimmed = script.trimEnd()
+        return if (trimmed.endsWith(";")) script else "$script;"
+    }
+
+    private fun configureContextLanguage(ctx: Context) {
+        val versionNames =
+            listOf(
+                "VERSION_ES2021",
+                "VERSION_ES2020",
+                "VERSION_ES2019",
+                "VERSION_ES2018",
+                "VERSION_ES2017",
+                "VERSION_ES6",
+            )
+        for (name in versionNames) {
+            val version = runCatching { Context::class.java.getField(name).getInt(null) }.getOrNull()
+            if (version != null) {
+                ctx.languageVersion = version
+                return
+            }
+        }
     }
 
     private fun findHelperObjectNames(functionDef: String): List<String> {
