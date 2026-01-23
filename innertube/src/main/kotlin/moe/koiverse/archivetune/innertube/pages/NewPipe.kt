@@ -451,7 +451,9 @@ private object SignatureDecipherFallback {
             )
 
         return patterns.asSequence()
-            .flatMap { regex -> regex.findAll(playerJs).map { it.groupValues.getOrNull(1).orEmpty() } }
+            .map { regex -> regex.findAll(playerJs).asSequence() }
+            .flatten()
+            .map { match -> match.groupValues.getOrNull(1).orEmpty() }
             .filter { it.isNotBlank() }
             .toSet()
     }
