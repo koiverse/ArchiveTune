@@ -233,7 +233,7 @@ fun Thumbnail(
             error?.let { playbackError ->
                 PlaybackError(
                     error = playbackError,
-                    retry = playerConnection.player::prepare,
+                    retry = playerConnection.service::retryCurrentFromFreshStream,
                 )
             }
         }

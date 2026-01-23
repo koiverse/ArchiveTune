@@ -1,6 +1,7 @@
 package moe.koiverse.archivetune.playback
 
 import android.content.Context
+import android.media.MediaCodecList
 import android.net.ConnectivityManager
 import androidx.core.content.getSystemService
 import androidx.core.net.toUri
@@ -47,6 +48,9 @@ constructor(
     private val connectivityManager = context.getSystemService<ConnectivityManager>()!!
     private val audioQuality by enumPreference(context, AudioQualityKey, AudioQuality.AUTO)
     private val songUrlCache = HashMap<String, Pair<String, Long>>()
+    private val avoidStreamCodecs: Set<String> by lazy {
+        if (deviceSupportsMimeType("audio/opus")) emptySet() else setOf("opus")
+    }
 
     val downloads = MutableStateFlow<Map<String, Download>>(emptyMap())
 
@@ -83,6 +87,7 @@ constructor(
                     audioQuality = audioQuality,
                     connectivityManager = connectivityManager,
                     networkMetered = networkMeteredPref,
+                    avoidCodecs = avoidStreamCodecs,
                 )
             }.getOrThrow()
             val format = playbackData.format
@@ -121,9 +126,7 @@ constructor(
                 upsert(updatedSong)
             }
 
-            val streamUrl = playbackData.streamUrl.let {
-                "${it}&range=0-${format.contentLength ?: 10000000}"
-            }
+            val streamUrl = playbackData.streamUrl
 
             songUrlCache[mediaId] = streamUrl to (System.currentTimeMillis() + (playbackData.streamExpiresInSeconds * 1000L))
             dataSpec.withUri(streamUrl.toUri())
@@ -170,4 +173,13 @@ constructor(
     }
 
     fun getDownload(songId: String): Flow<Download?> = downloads.map { it[songId] }
+
+    private fun deviceSupportsMimeType(mimeType: String): Boolean {
+        return runCatching {
+            val codecList = MediaCodecList(MediaCodecList.ALL_CODECS)
+            codecList.codecInfos.any { info ->
+                !info.isEncoder && info.supportedTypes.any { it.equals(mimeType, ignoreCase = true) }
+            }
+        }.getOrDefault(false)
+    }
 }

@@ -11,7 +11,8 @@ room = "2.8.4"
 hilt = "2.58"
 ktor = "3.3.0"
 ksp = "2.3.4"
-jsoup = "1.22.1"
+jsoup = "1.21.2"
+re2j = "1.8"
 coil = "3.3.0"
 guava = "33.5.0-jre"
 coroutinesGuava = "1.10.2"
@@ -89,6 +90,7 @@ ktor-client-encoding = { module = "io.ktor:ktor-client-encoding", version.ref = 
 ktor-serialization-json = { module = "io.ktor:ktor-serialization-kotlinx-json", version.ref = "ktor" }
 
 jsoup = { module = "org.jsoup:jsoup", version.ref = "jsoup" }
+re2j = { module = "com.google.re2j:re2j", version.ref = "re2j" }
 
 json = { module = "org.json:json", version.ref = "json" }
 
@@ -100,9 +102,9 @@ junit = { module = "junit:junit", version.ref = "junit" }
 
 timber = { module = "com.jakewharton.timber:timber", version.ref = "timber" }
 
-#newpipe-extractor = { module = "com.github.libre-tube:NewPipeExtractor", version = "70abbdb" }
-#newpipe-extractor = { module = "com.github.TeamNewPipe:NewPipeExtractor", version = "dev-SNAPSHOT" }
-newpipe-extractor = { module = "com.github.mostafaalagamy:MetrolistExtractor", version.ref = "extractor" }
+#newpipe-extractor = { module = "com.github.teamnewpipe:NewPipeExtractor", version = "v0.25.0" }
+newpipe-extractor = { module = "com.github.libre-tube:NewPipeExtractor", version = "70be3a4" }
+#newpipe-extractor = { module = "com.github.mostafaalagamy:MetrolistExtractor", version.ref = "extractor" }
 
 kuromoji-ipadic = { module = "com.atilika.kuromoji:kuromoji-ipadic", version.ref = "kuromojiIpadic" }
 

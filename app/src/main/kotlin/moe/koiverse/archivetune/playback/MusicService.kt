@@ -14,6 +14,7 @@ import android.media.audiofx.AudioEffect
 import android.media.audiofx.BassBoost
 import android.media.audiofx.Equalizer
 import android.media.audiofx.LoudnessEnhancer
+import android.media.MediaCodecList
 import android.media.audiofx.Virtualizer
 import android.net.ConnectivityManager
 import android.os.Binder
@@ -37,6 +38,7 @@ import androidx.media3.common.audio.AudioProcessor
 import androidx.media3.common.audio.SonicAudioProcessor
 import androidx.media3.datasource.DataSource
 import androidx.media3.datasource.DefaultDataSource
+import androidx.media3.datasource.HttpDataSource
 import androidx.media3.datasource.ResolvingDataSource
 import androidx.media3.datasource.cache.CacheDataSource
 import androidx.media3.datasource.cache.CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR
@@ -186,6 +188,7 @@ import java.net.ConnectException
 import java.net.SocketTimeoutException
 import java.net.UnknownHostException
 import java.time.LocalDateTime
+import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import kotlin.math.min
 import kotlin.math.pow
@@ -237,6 +240,11 @@ class MusicService :
         AudioQualityKey,
         moe.koiverse.archivetune.constants.AudioQuality.AUTO
     )
+    private val playbackUrlCache = ConcurrentHashMap<String, Pair<String, Long>>()
+    private val streamRecoveryState = ConcurrentHashMap<String, Pair<Int, Long>>()
+    private val avoidStreamCodecs: Set<String> by lazy {
+        if (deviceSupportsMimeType("audio/opus")) emptySet() else setOf("opus")
+    }
 
     private var currentQueue: Queue = EmptyQueue
     var queueTitle: String? = null
@@ -1902,6 +1910,26 @@ class MusicService :
             return
         }
 
+        val currentMediaId = player.currentMediaItem?.mediaId
+        val httpStatusCode = error.httpStatusCodeOrNull()
+        val shouldAttemptStreamRefresh =
+            currentMediaId != null && (
+                error.errorCode == PlaybackException.ERROR_CODE_IO_BAD_HTTP_STATUS ||
+                    error.errorCode == PlaybackException.ERROR_CODE_IO_FILE_NOT_FOUND ||
+                    error.errorCode == PlaybackException.ERROR_CODE_IO_READ_POSITION_OUT_OF_RANGE ||
+                    httpStatusCode in setOf(403, 404, 410, 416, 429, 500, 502, 503)
+                )
+
+        if (shouldAttemptStreamRefresh && currentMediaId != null && markAndCheckRecoveryAllowance(currentMediaId)) {
+            Timber.tag("MusicService").w(
+                "Attempting stream refresh for $currentMediaId (http=$httpStatusCode, code=${error.errorCode})"
+            )
+            playbackUrlCache.remove(currentMediaId)
+            player.prepare()
+            player.playWhenReady = true
+            return
+        }
+
         val skipSilenceCurrentlyEnabled = dataStore.get(SkipSilenceKey, false)
         val causeText = (error.cause?.stackTraceToString() ?: error.stackTraceToString()).lowercase()
         val looksLikeSilenceProcessor = skipSilenceCurrentlyEnabled && (
@@ -1964,7 +1992,6 @@ class MusicService :
             .setFlags(FLAG_IGNORE_CACHE_ON_ERROR)
 
     private fun createDataSourceFactory(): DataSource.Factory {
-        val songUrlCache = HashMap<String, Pair<String, Long>>()
         return ResolvingDataSource.Factory(createCacheDataSource()) { dataSpec ->
             val mediaId = dataSpec.key ?: error("No media id")
 
@@ -1973,15 +2000,16 @@ class MusicService :
                     dataSpec.position,
                     if (dataSpec.length >= 0) dataSpec.length else 1
                 ) ||
-                playerCache.isCached(mediaId, dataSpec.position, CHUNK_LENGTH)
+                playerCache.isCached(mediaId, dataSpec.position, if (dataSpec.length >= 0) dataSpec.length else CHUNK_LENGTH)
             ) {
                 scope.launch(Dispatchers.IO) { recoverSong(mediaId) }
                 return@Factory dataSpec
             }
 
-            songUrlCache[mediaId]?.takeIf { it.second > System.currentTimeMillis() }?.let {
+            playbackUrlCache[mediaId]?.takeIf { it.second > System.currentTimeMillis() }?.let {
                 scope.launch(Dispatchers.IO) { recoverSong(mediaId) }
-                return@Factory dataSpec.withUri(it.first.toUri())
+                val length = if (dataSpec.length >= 0) minOf(dataSpec.length, CHUNK_LENGTH) else CHUNK_LENGTH
+                return@Factory dataSpec.withUri(it.first.toUri()).subrange(dataSpec.uriPositionOffset, length)
             }
 
             val playbackData = runBlocking(Dispatchers.IO) {
@@ -1989,6 +2017,7 @@ class MusicService :
                     mediaId,
                     audioQuality = audioQuality,
                     connectivityManager = connectivityManager,
+                    avoidCodecs = avoidStreamCodecs,
                 )
             }.getOrElse { throwable ->
                 when (throwable) {
@@ -2051,11 +2080,46 @@ class MusicService :
 
                 val streamUrl = nonNullPlayback.streamUrl
 
-                songUrlCache[mediaId] =
+                playbackUrlCache[mediaId] =
                     streamUrl to System.currentTimeMillis() + (nonNullPlayback.streamExpiresInSeconds * 1000L)
-                return@Factory dataSpec.withUri(streamUrl.toUri()).subrange(dataSpec.uriPositionOffset, CHUNK_LENGTH)
+                val length = if (dataSpec.length >= 0) minOf(dataSpec.length, CHUNK_LENGTH) else CHUNK_LENGTH
+                return@Factory dataSpec.withUri(streamUrl.toUri()).subrange(dataSpec.uriPositionOffset, length)
             }
         }
+    }
+
+    fun retryCurrentFromFreshStream() {
+        val mediaId = player.currentMediaItem?.mediaId ?: return
+        playbackUrlCache.remove(mediaId)
+        player.prepare()
+        player.playWhenReady = true
+    }
+
+    private fun PlaybackException.httpStatusCodeOrNull(): Int? {
+        var t: Throwable? = cause
+        while (t != null) {
+            if (t is HttpDataSource.InvalidResponseCodeException) return t.responseCode
+            t = t.cause
+        }
+        return null
+    }
+
+    private fun markAndCheckRecoveryAllowance(mediaId: String): Boolean {
+        val now = System.currentTimeMillis()
+        val (count, lastAt) = streamRecoveryState[mediaId] ?: (0 to 0L)
+        val nextCount = if (now - lastAt > 45_000L) 1 else count + 1
+        if (nextCount > 2) return false
+        streamRecoveryState[mediaId] = nextCount to now
+        return true
+    }
+
+    private fun deviceSupportsMimeType(mimeType: String): Boolean {
+        return runCatching {
+            val codecList = MediaCodecList(MediaCodecList.ALL_CODECS)
+            codecList.codecInfos.any { info ->
+                !info.isEncoder && info.supportedTypes.any { it.equals(mimeType, ignoreCase = true) }
+            }
+        }.getOrDefault(false)
     }
 
     private fun createMediaSourceFactory() =

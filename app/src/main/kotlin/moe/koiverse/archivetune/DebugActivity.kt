@@ -77,12 +77,14 @@ private fun CrashReportScreen(stack: String, activity: Activity) {
         stack.lineSequence().firstOrNull()?.take(100) ?: "Unknown error"
     }
     val clipboard = LocalClipboardManager.current
-    val timestampText = remember {
-        runCatching {
-            SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())
-        }.getOrDefault("")
+    val timestampText: String = remember {
+        try {
+            SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date()).orEmpty()
+        } catch (_: Throwable) {
+            ""
+        }
     }
-    val reportText = remember(stack) { buildCrashReport(context, timestampText, stack) }
+    val reportText = remember(stack, timestampText) { buildCrashReport(context, timestampText, stack) }
     val deviceInfo = remember { buildDeviceInfo(context) }
 
     Surface(
