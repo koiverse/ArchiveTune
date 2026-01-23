@@ -123,11 +123,15 @@ object NewPipeUtils {
                 url.toString()
             }
 
+            if (!hasThrottlingParameter(url)) {
+                return@runCatching url
+            }
+
             runCatching {
                 retryWithBackoff(
-                    maxAttempts = 3,
-                    initialDelayMs = 250L,
-                    maxDelayMs = 2_000L
+                    maxAttempts = 2,
+                    initialDelayMs = 200L,
+                    maxDelayMs = 1_200L
                 ) {
                     YoutubeJavaScriptPlayerManager.getUrlWithThrottlingParameterDeobfuscated(videoId, url)
                 }
@@ -165,6 +169,14 @@ object NewPipeUtils {
             }
         }
         throw lastError ?: IllegalStateException("Retry attempts exhausted")
+    }
+
+    private fun hasThrottlingParameter(url: String): Boolean {
+        return runCatching {
+            URLBuilder(url).parameters.contains("n")
+        }.getOrElse {
+            url.contains("n=")
+        }
     }
 
 }
@@ -339,19 +351,17 @@ private object SignatureDecipherFallback {
         val functionName = functionMatch.first
         val functionDef = functionMatch.second
 
-        val objName =
-            Regex("""(?:^|[;,{])([$\w]{2,})\.[\w$]{2,}\(""")
-                .find(functionDef)
-                ?.groupValues
-                ?.getOrNull(1)
-
+        val helperNames = findHelperObjectNames(functionDef)
+        val inlineHelperNames = helperNames.filter { hasInlineObjectDefinition(functionDef, it) }.toSet()
         val objDef =
-            if (objName != null) {
-                extractObjectDefinition(playerJs, objName)
-                    ?: throw ParsingException("Could not locate signature decipher helper object in player JS")
-            } else {
-                ""
-            }
+            helperNames.asSequence()
+                .filterNot { it in inlineHelperNames }
+                .mapNotNull { extractObjectDefinition(playerJs, it) }
+                .firstOrNull()
+                .orEmpty()
+        if (objDef.isBlank() && helperNames.isNotEmpty() && inlineHelperNames.isEmpty()) {
+            throw ParsingException("Could not locate signature decipher helper object in player JS")
+        }
 
         return buildString {
             if (objDef.isNotBlank()) {
@@ -441,6 +451,32 @@ private object SignatureDecipherFallback {
         while (end < playerJs.length && playerJs[end].isWhitespace()) end++
         if (end < playerJs.length && playerJs[end] == ';') end++
         return playerJs.substring(starts.range.first, end).trimStart(';', '\n')
+    }
+
+    private fun findHelperObjectNames(functionDef: String): List<String> {
+        val patterns =
+            listOf(
+                Regex("""(?:^|[;,{]\s*)\s*([$\w]{2,})\.[\w$]{2,}\("""),
+                Regex("""(?:^|[;,{]\s*)\s*([$\w]{2,})\s*\[\s*["'][^"']+["']\s*]\s*\("""),
+            )
+        return patterns.asSequence()
+            .flatMap { regex -> regex.findAll(functionDef).asSequence() }
+            .map { match -> match.groupValues.getOrNull(1).orEmpty() }
+            .filter { it.isNotBlank() }
+            .distinct()
+            .toList()
+    }
+
+    private fun hasInlineObjectDefinition(functionDef: String, objName: String): Boolean {
+        val escaped = Regex.escape(objName)
+        val patterns =
+            listOf(
+                Regex("""(?m)(?:^|[;,{]\s*)\s*var\s+$escaped\s*=\s*\{"""),
+                Regex("""(?m)(?:^|[;,{]\s*)\s*let\s+$escaped\s*=\s*\{"""),
+                Regex("""(?m)(?:^|[;,{]\s*)\s*const\s+$escaped\s*=\s*\{"""),
+                Regex("""(?m)(?:^|[;,{]\s*)\s*$escaped\s*=\s*\{"""),
+            )
+        return patterns.any { it.containsMatchIn(functionDef) }
     }
 
     private fun findDecipherNamesFromCallsites(playerJs: String): Set<String> {
