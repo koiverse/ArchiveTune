@@ -3,6 +3,7 @@
   "extends": [
     "config:recommended"
   ],
+  "baseBranches": ["dev"],
   "ignoreUnstable": true,
   "respectLatest": true,
   "separateMajorMinor": true,
