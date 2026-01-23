@@ -432,12 +432,13 @@ object YouTube {
             setLogin = true
         ).body<BrowseResponse>()
 
-        val mainContents: List<MusicShelfRenderer.Content> =
+        val mainContents: List<MusicShelfRenderer.Content> = buildList {
             response.continuationContents?.sectionListContinuation?.contents
                 .orEmpty()
-                .flatMap { content ->
-                    content.musicPlaylistShelfRenderer?.contents ?: emptyList()
+                .forEach { sectionContent ->
+                    addAll(sectionContent.musicPlaylistShelfRenderer?.contents.orEmpty())
                 }
+        }
 
         val appendedContents = response.onResponseReceivedActions
             ?.firstOrNull()
