@@ -181,37 +181,48 @@ object YouTube {
 
     suspend fun album(browseId: String, withSongs: Boolean = true): Result<AlbumPage> = runCatching {
         val response = innerTube.browse(WEB_REMIX, browseId).body<BrowseResponse>()
+        val contents = response.contents ?: throw IllegalStateException("Missing browse contents for $browseId")
+        val twoColumn = contents.twoColumnBrowseResultsRenderer
+            ?: throw IllegalStateException("Missing twoColumnBrowseResultsRenderer for $browseId")
+        val header = twoColumn.tabs.firstOrNull()
+            ?.tabRenderer
+            ?.content
+            ?.sectionListRenderer
+            ?.contents
+            ?.firstOrNull()
+            ?.musicResponsiveHeaderRenderer
+            ?: throw IllegalStateException("Missing album header for $browseId")
         val playlistId = response.microformat?.microformatDataRenderer?.urlCanonical?.substringAfterLast('=')!!
         AlbumPage(
             album = AlbumItem(
                 browseId = browseId,
                 playlistId = playlistId,
-                title = response.contents.twoColumnBrowseResultsRenderer?.tabs?.firstOrNull()?.tabRenderer?.content?.sectionListRenderer?.contents?.firstOrNull()?.musicResponsiveHeaderRenderer?.title?.runs?.firstOrNull()?.text!!,
-                artists = response.contents.twoColumnBrowseResultsRenderer.tabs.firstOrNull()?.tabRenderer?.content?.sectionListRenderer?.contents?.firstOrNull()?.musicResponsiveHeaderRenderer?.straplineTextOne?.runs?.oddElements()?.map {
+                title = header.title?.runs?.firstOrNull()?.text!!,
+                artists = header.straplineTextOne?.runs?.oddElements()?.map {
                     Artist(
                         name = it.text,
                         id = it.navigationEndpoint?.browseEndpoint?.browseId
                     )
                 }!!,
-                year = response.contents.twoColumnBrowseResultsRenderer.tabs.firstOrNull()?.tabRenderer?.content?.sectionListRenderer?.contents?.firstOrNull()?.musicResponsiveHeaderRenderer?.subtitle?.runs?.lastOrNull()?.text?.toIntOrNull(),
-                thumbnail = response.contents.twoColumnBrowseResultsRenderer.tabs.firstOrNull()?.tabRenderer?.content?.sectionListRenderer?.contents?.firstOrNull()?.musicResponsiveHeaderRenderer?.thumbnail?.musicThumbnailRenderer?.thumbnail?.thumbnails?.lastOrNull()?.url!!,
+                year = header.subtitle?.runs?.lastOrNull()?.text?.toIntOrNull(),
+                thumbnail = header.thumbnail?.musicThumbnailRenderer?.thumbnail?.thumbnails?.lastOrNull()?.url!!,
                 explicit = false, // TODO: Extract explicit badge for albums from YouTube response
             ),
             songs = if (withSongs) albumSongs(playlistId, AlbumItem(
                 browseId = browseId,
                 playlistId = playlistId,
-                title = response.contents.twoColumnBrowseResultsRenderer?.tabs?.firstOrNull()?.tabRenderer?.content?.sectionListRenderer?.contents?.firstOrNull()?.musicResponsiveHeaderRenderer?.title?.runs?.firstOrNull()?.text!!,
-                artists = response.contents.twoColumnBrowseResultsRenderer.tabs.firstOrNull()?.tabRenderer?.content?.sectionListRenderer?.contents?.firstOrNull()?.musicResponsiveHeaderRenderer?.straplineTextOne?.runs?.oddElements()?.map {
+                title = header.title?.runs?.firstOrNull()?.text!!,
+                artists = header.straplineTextOne?.runs?.oddElements()?.map {
                     Artist(
                         name = it.text,
                         id = it.navigationEndpoint?.browseEndpoint?.browseId
                     )
                 }!!,
-                year = response.contents.twoColumnBrowseResultsRenderer.tabs.firstOrNull()?.tabRenderer?.content?.sectionListRenderer?.contents?.firstOrNull()?.musicResponsiveHeaderRenderer?.subtitle?.runs?.lastOrNull()?.text?.toIntOrNull(),
-                thumbnail = response.contents.twoColumnBrowseResultsRenderer.tabs.firstOrNull()?.tabRenderer?.content?.sectionListRenderer?.contents?.firstOrNull()?.musicResponsiveHeaderRenderer?.thumbnail?.musicThumbnailRenderer?.thumbnail?.thumbnails?.lastOrNull()?.url!!,
+                year = header.subtitle?.runs?.lastOrNull()?.text?.toIntOrNull(),
+                thumbnail = header.thumbnail?.musicThumbnailRenderer?.thumbnail?.thumbnails?.lastOrNull()?.url!!,
                 explicit = false
             )).getOrThrow() else emptyList(),
-            otherVersions = response.contents.twoColumnBrowseResultsRenderer.secondaryContents?.sectionListRenderer?.contents?.getOrNull(1)?.musicCarouselShelfRenderer?.contents
+            otherVersions = twoColumn.secondaryContents?.sectionListRenderer?.contents?.getOrNull(1)?.musicCarouselShelfRenderer?.contents
                 ?.mapNotNull { it.musicTwoRowItemRenderer }
                 ?.mapNotNull(NewReleaseAlbumPage::fromMusicTwoRowItemRenderer)
                 .orEmpty()
