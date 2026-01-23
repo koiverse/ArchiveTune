@@ -184,7 +184,8 @@ object YouTube {
         val contents = response.contents ?: throw IllegalStateException("Missing browse contents for $browseId")
         val twoColumn = contents.twoColumnBrowseResultsRenderer
             ?: throw IllegalStateException("Missing twoColumnBrowseResultsRenderer for $browseId")
-        val header = twoColumn.tabs.firstOrNull()
+        val tabs = twoColumn.tabs ?: throw IllegalStateException("Missing tabs for $browseId")
+        val header = tabs.firstOrNull()
             ?.tabRenderer
             ?.content
             ?.sectionListRenderer
