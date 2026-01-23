@@ -298,13 +298,13 @@ private object SignatureDecipherFallback {
 
         httpClient.newCall(request).execute().use { response ->
             if (!response.isSuccessful) {
-                val body = response.body?.string().orEmpty()
+                val body = response.body.string()
                 if (response.code == 429 || body.contains("captcha", ignoreCase = true)) {
                     throw ReCaptchaException("reCaptcha Challenge requested", url)
                 }
                 throw IOException("HTTP ${response.code} for $url")
             }
-            return response.body?.string().orEmpty()
+            return response.body.string()
         }
     }
 
