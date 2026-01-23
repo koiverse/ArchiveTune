@@ -141,7 +141,7 @@ object NewPipeUtils {
                     Thread.sleep(delayMs)
                 } catch (_: InterruptedException) {
                     Thread.currentThread().interrupt()
-                    throw lastError ?: e
+                    throw e
                 }
                 delayMs = (delayMs * 2).coerceAtMost(maxDelayMs)
                 attempt++
