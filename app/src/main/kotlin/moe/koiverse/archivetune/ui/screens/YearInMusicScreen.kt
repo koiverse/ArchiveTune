@@ -4,12 +4,18 @@ import android.content.Intent
 import android.graphics.Bitmap
 import android.view.View
 import android.view.ViewTreeObserver
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -21,11 +27,11 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -43,6 +49,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -55,22 +62,22 @@ import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
@@ -81,6 +88,7 @@ import moe.koiverse.archivetune.LocalPlayerAwareWindowInsets
 import moe.koiverse.archivetune.LocalPlayerConnection
 import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.constants.DisableBlurKey
+import moe.koiverse.archivetune.db.entities.Album
 import moe.koiverse.archivetune.db.entities.Artist
 import moe.koiverse.archivetune.db.entities.SongWithStats
 import moe.koiverse.archivetune.extensions.togglePlayPause
@@ -88,10 +96,7 @@ import moe.koiverse.archivetune.innertube.models.WatchEndpoint
 import moe.koiverse.archivetune.models.toMediaMetadata
 import moe.koiverse.archivetune.playback.queues.YouTubeQueue
 import moe.koiverse.archivetune.ui.component.IconButton
-import moe.koiverse.archivetune.ui.component.ItemThumbnail
-import moe.koiverse.archivetune.ui.component.ListItem
 import moe.koiverse.archivetune.ui.component.LocalMenuState
-import moe.koiverse.archivetune.ui.component.NavigationTitle
 import moe.koiverse.archivetune.ui.menu.ArtistMenu
 import moe.koiverse.archivetune.ui.menu.SongMenu
 import moe.koiverse.archivetune.ui.utils.backToMain
@@ -254,140 +259,22 @@ fun YearInMusicScreen(
             }
 
             item {
-                YearInMusicHeroSection(
+                YearInMusicStoryPager(
                     year = selectedYear,
                     totalListeningTime = totalListeningTime,
-                    totalSongsPlayed = totalSongsPlayed
+                    totalSongsPlayed = totalSongsPlayed,
+                    topSongsStats = topSongsStats,
+                    topSongs = topSongs,
+                    topArtists = topArtists,
+                    topAlbums = topAlbums,
+                    isPlaying = isPlaying,
+                    mediaMetadataId = mediaMetadata?.id,
+                    navController = navController,
+                    menuState = menuState,
+                    haptic = haptic,
+                    playerConnection = playerConnection,
+                    coroutineScope = coroutineScope
                 )
-            }
-
-            if (topSongsStats.isNotEmpty()) {
-                item {
-                    NavigationTitle(
-                        title = stringResource(R.string.top_songs),
-                        modifier = Modifier.padding(top = 16.dp)
-                    )
-                }
-
-                itemsIndexed(
-                    items = topSongsStats.take(5),
-                    key = { _, song -> "song_${song.id}" }
-                ) { index, song ->
-                    ListItem(
-                        title = "${index + 1}. ${song.title}",
-                        subtitle = joinByBullet(
-                            pluralStringResource(
-                                R.plurals.n_time,
-                                song.songCountListened,
-                                song.songCountListened
-                            ),
-                            makeTimeString(song.timeListened)
-                        ),
-                        thumbnailContent = {
-                            ItemThumbnail(
-                                thumbnailUrl = song.thumbnailUrl,
-                                isActive = song.id == mediaMetadata?.id,
-                                isPlaying = isPlaying,
-                                shape = RoundedCornerShape(8.dp),
-                                modifier = Modifier.size(56.dp)
-                            )
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .combinedClickable(
-                                onClick = {
-                                    if (song.id == mediaMetadata?.id) {
-                                        playerConnection.player.togglePlayPause()
-                                    } else {
-                                        val songEntity = topSongs.getOrNull(index)
-                                        if (songEntity != null) {
-                                            playerConnection.playQueue(
-                                                YouTubeQueue(
-                                                    endpoint = WatchEndpoint(song.id),
-                                                    preloadItem = songEntity.toMediaMetadata()
-                                                )
-                                            )
-                                        }
-                                    }
-                                },
-                                onLongClick = {
-                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    val songEntity = topSongs.getOrNull(index)
-                                    if (songEntity != null) {
-                                        menuState.show {
-                                            SongMenu(
-                                                originalSong = songEntity,
-                                                navController = navController,
-                                                onDismiss = menuState::dismiss
-                                            )
-                                        }
-                                    }
-                                }
-                            )
-                            .animateItem()
-                    )
-                }
-            }
-
-            // Top Artists Section
-            if (topArtists.isNotEmpty()) {
-                item {
-                    NavigationTitle(
-                        title = stringResource(R.string.top_artists),
-                        modifier = Modifier.padding(top = 16.dp)
-                    )
-                }
-
-                itemsIndexed(
-                    items = topArtists.take(5).chunked(2),
-                    key = { _, rowArtists -> "artists_${rowArtists.first().id}" }
-                ) { _, rowArtists ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 12.dp),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        rowArtists.forEach { artist ->
-                            YearInMusicArtistCard(
-                                artist = artist,
-                                onClick = { navController.navigate("artist/${artist.id}") },
-                                onLongClick = {
-                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    menuState.show {
-                                        ArtistMenu(
-                                            originalArtist = artist,
-                                            coroutineScope = coroutineScope,
-                                            onDismiss = menuState::dismiss
-                                        )
-                                    }
-                                },
-                                modifier = Modifier.weight(1f)
-                            )
-                        }
-                        repeat(2 - rowArtists.size) {
-                            Spacer(modifier = Modifier.weight(1f))
-                        }
-                    }
-                }
-            }
-
-            if (topSongsStats.isEmpty() && topArtists.isEmpty()) {
-                item {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(32.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = stringResource(R.string.no_listening_data),
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            textAlign = TextAlign.Center
-                        )
-                    }
-                }
             }
 
             item {
@@ -395,7 +282,7 @@ fun YearInMusicScreen(
             }
         }
 
-        if (topSongsStats.isNotEmpty() || topArtists.isNotEmpty()) {
+        if (topSongsStats.isNotEmpty() || topArtists.isNotEmpty() || topAlbums.isNotEmpty()) {
             if (!isShareCaptureMode) {
                 FloatingActionButton(
                     onClick = {
@@ -520,121 +407,576 @@ private suspend fun awaitNextPreDraw(view: View) {
 }
 
 @Composable
-private fun YearInMusicHeroSection(
+private fun YearInMusicStoryPager(
+    year: Int,
+    totalListeningTime: Long,
+    totalSongsPlayed: Long,
+    topSongsStats: List<SongWithStats>,
+    topSongs: List<moe.koiverse.archivetune.db.entities.Song>,
+    topArtists: List<Artist>,
+    topAlbums: List<Album>,
+    isPlaying: Boolean,
+    mediaMetadataId: String?,
+    navController: NavController,
+    menuState: moe.koiverse.archivetune.ui.component.MenuState,
+    haptic: androidx.compose.ui.hapticfeedback.HapticFeedback,
+    playerConnection: moe.koiverse.archivetune.playback.PlayerConnection,
+    coroutineScope: kotlinx.coroutines.CoroutineScope,
+    modifier: Modifier = Modifier
+) {
+    val pages = remember(topSongsStats, topArtists, topAlbums) {
+        buildList {
+            add(YearInMusicStoryPage.Hero)
+            if (topSongsStats.isNotEmpty()) add(YearInMusicStoryPage.TopSong)
+            if (topArtists.isNotEmpty()) add(YearInMusicStoryPage.TopArtist)
+            if (topAlbums.isNotEmpty()) add(YearInMusicStoryPage.TopAlbum)
+            add(YearInMusicStoryPage.Summary)
+        }
+    }
+
+    val listState = rememberLazyListState()
+
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(top = 8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        BoxWithConstraints(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(540.dp)
+        ) {
+            val pageWidth = maxWidth - 32.dp
+            val pageWidthPx = with(LocalDensity.current) { pageWidth.toPx() }
+            val currentPage by remember {
+                derivedStateOf {
+                    val index = listState.firstVisibleItemIndex
+                    val offset = listState.firstVisibleItemScrollOffset
+                    if (pageWidthPx <= 0f) {
+                        index
+                    } else {
+                        val adjusted = if (offset > pageWidthPx / 2f) index + 1 else index
+                        adjusted.coerceIn(0, pages.lastIndex)
+                    }
+                }
+            }
+
+            LazyRow(
+                state = listState,
+                flingBehavior = rememberSnapFlingBehavior(listState),
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                items(pages.size, key = { pages[it].name }) { index ->
+                    val isSelected = index == currentPage
+                    val scale by animateFloatAsState(
+                        targetValue = if (isSelected) 1f else 0.92f,
+                        animationSpec = tween(durationMillis = 280, easing = FastOutSlowInEasing),
+                        label = "storyScale"
+                    )
+                    val alpha by animateFloatAsState(
+                        targetValue = if (isSelected) 1f else 0.65f,
+                        animationSpec = tween(durationMillis = 220),
+                        label = "storyAlpha"
+                    )
+
+                    Box(
+                        modifier = Modifier
+                            .width(pageWidth)
+                            .height(520.dp)
+                            .graphicsLayer {
+                                scaleX = scale
+                                scaleY = scale
+                                this.alpha = alpha
+                            }
+                    ) {
+                        when (pages[index]) {
+                            YearInMusicStoryPage.Hero -> {
+                                YearInMusicHeroStoryCard(
+                                    year = year,
+                                    totalListeningTime = totalListeningTime,
+                                    totalSongsPlayed = totalSongsPlayed
+                                )
+                            }
+
+                            YearInMusicStoryPage.TopSong -> {
+                                val topSong = topSongsStats.firstOrNull()
+                                val topSongEntity = topSongs.firstOrNull()
+                                if (topSong != null) {
+                                    YearInMusicTopSongStoryCard(
+                                        song = topSong,
+                                        onClick = {
+                                            if (topSong.id == mediaMetadataId) {
+                                                playerConnection.player.togglePlayPause()
+                                            } else if (topSongEntity != null) {
+                                                playerConnection.playQueue(
+                                                    YouTubeQueue(
+                                                        endpoint = WatchEndpoint(topSong.id),
+                                                        preloadItem = topSongEntity.toMediaMetadata()
+                                                    )
+                                                )
+                                            }
+                                        },
+                                        onLongClick = {
+                                            if (topSongEntity != null) {
+                                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                menuState.show {
+                                                    SongMenu(
+                                                        originalSong = topSongEntity,
+                                                        navController = navController,
+                                                        onDismiss = menuState::dismiss
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    )
+                                }
+                            }
+
+                            YearInMusicStoryPage.TopArtist -> {
+                                val topArtist = topArtists.firstOrNull()
+                                if (topArtist != null) {
+                                    YearInMusicTopArtistStoryCard(
+                                        artist = topArtist,
+                                        onClick = { navController.navigate("artist/${topArtist.id}") },
+                                        onLongClick = {
+                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                            menuState.show {
+                                                ArtistMenu(
+                                                    originalArtist = topArtist,
+                                                    coroutineScope = coroutineScope,
+                                                    onDismiss = menuState::dismiss
+                                                )
+                                            }
+                                        }
+                                    )
+                                }
+                            }
+
+                            YearInMusicStoryPage.TopAlbum -> {
+                                val topAlbum = topAlbums.firstOrNull()
+                                if (topAlbum != null) {
+                                    YearInMusicTopAlbumStoryCard(
+                                        album = topAlbum,
+                                        onClick = { navController.navigate("album/${topAlbum.id}") }
+                                    )
+                                }
+                            }
+
+                            YearInMusicStoryPage.Summary -> {
+                                YearInMusicSummaryStoryCard(
+                                    year = year,
+                                    totalListeningTime = totalListeningTime,
+                                    totalSongsPlayed = totalSongsPlayed,
+                                    topSong = topSongsStats.firstOrNull(),
+                                    topArtist = topArtists.firstOrNull(),
+                                    topAlbum = topAlbums.firstOrNull()
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        val indicatorPage by remember {
+            derivedStateOf { minOf(listState.firstVisibleItemIndex, pages.lastIndex) }
+        }
+
+        YearInMusicStoryDotsIndicator(
+            totalDots = pages.size,
+            currentPage = indicatorPage,
+            selectedColor = MaterialTheme.colorScheme.primary
+        )
+    }
+}
+
+@Composable
+private fun YearInMusicHeroStoryCard(
     year: Int,
     totalListeningTime: Long,
     totalSongsPlayed: Long
 ) {
+    val gradient = Brush.linearGradient(
+        colors = listOf(
+            MaterialTheme.colorScheme.primary.copy(alpha = 0.9f),
+            MaterialTheme.colorScheme.secondary.copy(alpha = 0.7f),
+            MaterialTheme.colorScheme.tertiary.copy(alpha = 0.6f)
+        )
+    )
+
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(16.dp),
-        shape = RoundedCornerShape(24.dp),
+        modifier = Modifier.fillMaxSize(),
+        shape = RoundedCornerShape(32.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f)
+            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.2f)
         )
     ) {
-        Column(
+        Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+                .fillMaxSize()
+                .background(gradient)
+                .padding(28.dp)
         ) {
-            Text(
-                text = stringResource(R.string.your_year_in_music, year),
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onPrimaryContainer
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Text(
-                text = makeTimeString(totalListeningTime),
-                style = MaterialTheme.typography.displayMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary
-            )
-
-            Text(
-                text = stringResource(R.string.total_listening_time),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Text(
-                text = pluralStringResource(R.plurals.n_song, totalSongsPlayed.toInt(), totalSongsPlayed.toInt()) +
-                        " " + stringResource(R.string.played),
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
-            )
+            Column(
+                modifier = Modifier.align(Alignment.BottomStart),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text(
+                    text = stringResource(R.string.your_year_in_music, year),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onPrimary
+                )
+                Text(
+                    text = makeTimeString(totalListeningTime),
+                    style = MaterialTheme.typography.displaySmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onPrimary
+                )
+                Text(
+                    text = joinByBullet(
+                        stringResource(R.string.total_listening_time),
+                        pluralStringResource(
+                            R.plurals.n_song,
+                            totalSongsPlayed.toInt(),
+                            totalSongsPlayed.toInt()
+                        ) + " " + stringResource(R.string.played)
+                    ),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.85f)
+                )
+            }
         }
     }
 }
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun YearInMusicArtistCard(
-    artist: Artist,
+private fun YearInMusicTopSongStoryCard(
+    song: SongWithStats,
     onClick: () -> Unit,
-    onLongClick: () -> Unit,
-    modifier: Modifier = Modifier
+    onLongClick: () -> Unit
 ) {
     Card(
-        modifier = modifier
-            .padding(vertical = 6.dp)
-            .combinedClickable(
-                onClick = onClick,
-                onLongClick = onLongClick
-            ),
-        shape = RoundedCornerShape(16.dp),
+        modifier = Modifier
+            .fillMaxSize()
+            .combinedClickable(onClick = onClick, onLongClick = onLongClick),
+        shape = RoundedCornerShape(32.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+            containerColor = MaterialTheme.colorScheme.surface
+        )
+    ) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            AsyncImage(
+                model = song.thumbnailUrl,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
+            )
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                Color.Transparent,
+                                MaterialTheme.colorScheme.surface.copy(alpha = 0.2f),
+                                MaterialTheme.colorScheme.surface.copy(alpha = 0.8f),
+                                MaterialTheme.colorScheme.surface
+                            )
+                        )
+                    )
+            )
+            Column(
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .padding(24.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Text(
+                    text = stringResource(R.string.top_songs),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    text = song.title,
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = joinByBullet(
+                        pluralStringResource(
+                            R.plurals.n_time,
+                            song.songCountListened,
+                            song.songCountListened
+                        ),
+                        makeTimeString(song.timeListened)
+                    ),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun YearInMusicTopArtistStoryCard(
+    artist: Artist,
+    onClick: () -> Unit,
+    onLongClick: () -> Unit
+) {
+    val gradient = Brush.linearGradient(
+        colors = listOf(
+            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.9f),
+            MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.8f),
+            MaterialTheme.colorScheme.surface.copy(alpha = 0.6f)
+        )
+    )
+
+    Card(
+        modifier = Modifier
+            .fillMaxSize()
+            .combinedClickable(onClick = onClick, onLongClick = onLongClick),
+        shape = RoundedCornerShape(32.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(gradient)
+                .padding(24.dp)
+        ) {
+            Column(
+                modifier = Modifier.align(Alignment.Center),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text(
+                    text = stringResource(R.string.top_artists),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
+                )
+                AsyncImage(
+                    model = artist.artist.thumbnailUrl,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .size(140.dp)
+                        .clip(CircleShape)
+                )
+                Text(
+                    text = artist.artist.name,
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    textAlign = TextAlign.Center
+                )
+                Text(
+                    text = joinByBullet(
+                        pluralStringResource(
+                            R.plurals.n_time,
+                            artist.songCount,
+                            artist.songCount
+                        ),
+                        makeTimeString(artist.timeListened?.toLong())
+                    ),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    textAlign = TextAlign.Center
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun YearInMusicTopAlbumStoryCard(
+    album: Album,
+    onClick: () -> Unit
+) {
+    val artistNames = album.artists.take(2).joinToString(" • ") { it.name }
+    val artistDisplay = artistNames.takeIf { it.isNotBlank() }
+
+    Card(
+        modifier = Modifier
+            .fillMaxSize()
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(32.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(24.dp),
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(
+                    text = stringResource(R.string.albums),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                AsyncImage(
+                    model = album.thumbnailUrl,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .size(200.dp)
+                        .clip(RoundedCornerShape(24.dp))
+                )
+            }
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    text = album.album.title,
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = joinByBullet(
+                        artistDisplay,
+                        album.songCountListened?.let {
+                            pluralStringResource(R.plurals.n_time, it, it)
+                        },
+                        makeTimeString(album.timeListened)
+                    ),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun YearInMusicSummaryStoryCard(
+    year: Int,
+    totalListeningTime: Long,
+    totalSongsPlayed: Long,
+    topSong: SongWithStats?,
+    topArtist: Artist?,
+    topAlbum: Album?
+) {
+    Card(
+        modifier = Modifier.fillMaxSize(),
+        shape = RoundedCornerShape(32.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
         )
     ) {
         Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+                .fillMaxSize()
+                .padding(24.dp),
+            verticalArrangement = Arrangement.SpaceBetween
         ) {
-            AsyncImage(
-                model = artist.artist.thumbnailUrl,
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(
+                    text = stringResource(R.string.year_in_music),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text(
+                    text = year.toString(),
+                    style = MaterialTheme.typography.displaySmall,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = makeTimeString(totalListeningTime),
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text(
+                    text = pluralStringResource(
+                        R.plurals.n_song,
+                        totalSongsPlayed.toInt(),
+                        totalSongsPlayed.toInt()
+                    ) + " " + stringResource(R.string.played),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text(
+                    text = joinByBullet(
+                        topSong?.title,
+                        topArtist?.artist?.name,
+                        topAlbum?.album?.title
+                    ).ifEmpty { stringResource(R.string.no_listening_data) },
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = stringResource(R.string.share_summary),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun YearInMusicStoryDotsIndicator(
+    totalDots: Int,
+    currentPage: Int,
+    selectedColor: Color,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier.height(10.dp),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        repeat(totalDots) { index ->
+            val isSelected = index == currentPage
+            val dotScale by animateFloatAsState(
+                targetValue = if (isSelected) 1.6f else 1f,
+                animationSpec = tween(durationMillis = 220, easing = FastOutSlowInEasing),
+                label = "dotScale"
+            )
+            val dotColor by animateColorAsState(
+                targetValue = if (isSelected) selectedColor else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f),
+                animationSpec = tween(durationMillis = 220),
+                label = "dotColor"
+            )
+            Box(
                 modifier = Modifier
-                    .size(80.dp)
+                    .padding(horizontal = 3.dp)
+                    .size(6.dp)
+                    .graphicsLayer {
+                        scaleX = dotScale
+                        scaleY = dotScale
+                    }
                     .clip(CircleShape)
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Text(
-                text = artist.artist.name,
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.SemiBold,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                textAlign = TextAlign.Center
-            )
-
-            Text(
-                text = joinByBullet(
-                    pluralStringResource(
-                        R.plurals.n_time,
-                        artist.songCount,
-                        artist.songCount
-                    ),
-                    makeTimeString(artist.timeListened?.toLong())
-                ),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                textAlign = TextAlign.Center
+                    .background(dotColor)
             )
         }
     }
+}
+
+private enum class YearInMusicStoryPage {
+    Hero,
+    TopSong,
+    TopArtist,
+    TopAlbum,
+    Summary
 }
