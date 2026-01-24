@@ -20,18 +20,20 @@ import io.ktor.client.request.*
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
-import io.ktor.util.encodeBase64
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
 import java.net.Proxy
 import java.io.IOException
 import kotlinx.coroutines.delay
 import java.util.*
+import kotlin.io.encoding.Base64
+import kotlin.io.encoding.ExperimentalEncodingApi
 
 /**
  * Provide access to InnerTube endpoints.
  * For making HTTP requests, not parsing response.
  */
+@OptIn(ExperimentalEncodingApi::class)
 class InnerTube {
     private var httpClient = createClient()
 
@@ -308,7 +310,9 @@ class InnerTube {
             setBody(
                 GetTranscriptBody(
                     context = client.toContext(locale, null, null),
-                    params = "\n${11.toChar()}$videoId".encodeBase64()
+                    params = Base64.Default.encode(
+                        "\n${11.toChar()}$videoId".encodeToByteArray()
+                    )
                 )
             )
         }
