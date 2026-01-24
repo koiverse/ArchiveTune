@@ -202,7 +202,7 @@ private fun Throwable.isSignaturePatternMissing(): Boolean {
 }
 
 private object SignatureDecipherFallback {
-    private const val cacheTtlMs: Long = 6 * 60 * 60 * 1000L
+    private const val cacheTtlMs: Long = 2 * 60 * 60 * 1000L
     private val lock = Any()
 
     private var cachedPlayerJsUrl: String? = null
@@ -291,6 +291,9 @@ private object SignatureDecipherFallback {
         val signatureTimestamp = extractSignatureTimestamp(watchHtml)
 
         synchronized(lock) {
+            if (cachedPlayerJsUrl != null && cachedPlayerJsUrl != playerJsUrl) {
+                cachedScriptPrefix = null
+            }
             cachedPlayerJsUrl = playerJsUrl
             cachedSignatureTimestamp = signatureTimestamp
             cachedAtMs = System.currentTimeMillis()
