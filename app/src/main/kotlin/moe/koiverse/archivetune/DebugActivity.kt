@@ -64,15 +64,16 @@ class DebugActivity : ComponentActivity() {
 
         setContent {
             ArchiveTuneTheme {
-                CrashReportScreen(stack = stack, activity = this)
+                CrashReportScreen(stack = stack)
             }
         }
     }
 }
 
 @Composable
-private fun CrashReportScreen(stack: String, activity: Activity) {
+private fun CrashReportScreen(stack: String) {
     val context = LocalContext.current
+    val activity = context as? Activity
     val previewText = remember(stack) {
         stack.lineSequence().firstOrNull()?.take(100) ?: "Unknown error"
     }
@@ -106,13 +107,13 @@ private fun CrashReportScreen(stack: String, activity: Activity) {
             },
             onRestart = {
                 runCatching {
-                    val intent = Intent(activity, MainActivity::class.java).apply {
+                    val intent = Intent(context, MainActivity::class.java).apply {
                         addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
                     }
-                    activity.startActivity(intent)
+                    context.startActivity(intent)
                 }
             },
-            onClose = { activity.finish() },
+            onClose = { activity?.finish() },
         )
     }
 }
