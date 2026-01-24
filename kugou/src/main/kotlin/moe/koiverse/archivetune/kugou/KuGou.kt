@@ -14,10 +14,11 @@ import io.ktor.client.request.parameter
 import io.ktor.http.ContentType
 import io.ktor.http.encodeURLParameter
 import io.ktor.serialization.kotlinx.json.json
-import io.ktor.util.decodeBase64String
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
 import java.lang.Integer.min
+import kotlin.io.encoding.Base64
+import kotlin.io.encoding.ExperimentalEncodingApi
 import kotlin.math.abs
 
 @OptIn(ExperimentalSerializationApi::class)
@@ -54,6 +55,7 @@ private const val HEAD_CUT_LIMIT = 30
  * KuGou Lyrics Library
  * Modified from [ViMusic](https://github.com/vfsfitvnm/ViMusic)
  */
+@OptIn(ExperimentalEncodingApi::class)
 object KuGou {
     var useTraditionalChinese: Boolean = false
 
@@ -61,8 +63,9 @@ object KuGou {
         runCatching {
             val keyword = generateKeyword(title, artist)
             getLyricsCandidate(keyword, duration)?.let { candidate ->
-                downloadLyrics(candidate.id, candidate.accesskey).content.decodeBase64String()
-                    .normalize()
+                Base64.Default.decode(
+                    downloadLyrics(candidate.id, candidate.accesskey).content
+                ).decodeToString().normalize()
             } ?: throw IllegalStateException("No lyrics candidate")
         }
 
@@ -73,14 +76,16 @@ object KuGou {
         searchSongs(keyword).data.info.forEach {
             if (duration == -1 || abs(it.duration - duration) <= DURATION_TOLERANCE) {
                 searchLyricsByHash(it.hash).candidates.firstOrNull()?.let { candidate ->
-                    downloadLyrics(candidate.id, candidate.accesskey).content.decodeBase64String()
-                        .normalize().let(callback)
+                    Base64.Default.decode(
+                        downloadLyrics(candidate.id, candidate.accesskey).content
+                    ).decodeToString().normalize().let(callback)
                 }
             }
         }
         searchLyricsByKeyword(keyword, duration).candidates.forEach { candidate ->
-            downloadLyrics(candidate.id, candidate.accesskey).content.decodeBase64String()
-                .normalize().let(callback)
+            Base64.Default.decode(
+                downloadLyrics(candidate.id, candidate.accesskey).content
+            ).decodeToString().normalize().let(callback)
         }
     }
 
