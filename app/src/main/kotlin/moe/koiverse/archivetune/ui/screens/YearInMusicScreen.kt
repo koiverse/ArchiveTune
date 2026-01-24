@@ -4,23 +4,32 @@ import android.content.Intent
 import android.graphics.Bitmap
 import android.view.View
 import android.view.ViewTreeObserver
-import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsetsSides
-import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -28,16 +37,17 @@ import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.weight
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -45,11 +55,12 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -62,7 +73,6 @@ import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.boundsInRoot
@@ -121,7 +131,6 @@ fun YearInMusicScreen(
     val isPlaying by playerConnection.isPlaying.collectAsState()
     val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
     val coroutineScope = rememberCoroutineScope()
-    val lazyListState = rememberLazyListState()
 
     val availableYears by viewModel.availableYears.collectAsState()
     val selectedYear by viewModel.selectedYear.collectAsState()
@@ -135,6 +144,9 @@ fun YearInMusicScreen(
     var isGeneratingImage by remember { mutableStateOf(false) }
     var isShareCaptureMode by remember { mutableStateOf(false) }
     var shareBounds by remember { mutableStateOf<androidx.compose.ui.geometry.Rect?>(null) }
+    var isYearPickerOpen by remember { mutableStateOf(false) }
+    var recapCurrentPage by remember { mutableStateOf(0) }
+    var recapLastPage by remember { mutableStateOf(0) }
 
     val (disableBlur) = rememberPreference(DisableBlurKey, false)
     val color1 = MaterialTheme.colorScheme.primary
@@ -223,69 +235,36 @@ fun YearInMusicScreen(
             )
         }
 
-        LazyColumn(
-            state = lazyListState,
-            contentPadding = LocalPlayerAwareWindowInsets.current
-                .only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom)
-                .asPaddingValues(),
-            modifier = Modifier.windowInsetsPadding(
-                LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Top)
-            )
-        ) {
-            // Year selector chips
-            item {
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp)
-                ) {
-                    items(availableYears) { year ->
-                        FilterChip(
-                            selected = year == selectedYear,
-                            onClick = { viewModel.selectedYear.value = year },
-                            label = {
-                                Text(
-                                    text = year.toString(),
-                                    fontWeight = if (year == selectedYear) FontWeight.Bold else FontWeight.Normal
-                                )
-                            },
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                                selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
-                            )
-                        )
-                    }
-                }
-            }
-
-            item {
-                YearInMusicStoryPager(
-                    year = selectedYear,
-                    totalListeningTime = totalListeningTime,
-                    totalSongsPlayed = totalSongsPlayed,
-                    topSongsStats = topSongsStats,
-                    topSongs = topSongs,
-                    topArtists = topArtists,
-                    topAlbums = topAlbums,
-                    isPlaying = isPlaying,
-                    mediaMetadataId = mediaMetadata?.id,
-                    navController = navController,
-                    menuState = menuState,
-                    haptic = haptic,
-                    playerConnection = playerConnection,
-                    coroutineScope = coroutineScope
+        YearInMusicStoryPager(
+            year = selectedYear,
+            totalListeningTime = totalListeningTime,
+            totalSongsPlayed = totalSongsPlayed,
+            topSongsStats = topSongsStats,
+            topSongs = topSongs,
+            topArtists = topArtists,
+            topAlbums = topAlbums,
+            isPlaying = isPlaying,
+            mediaMetadataId = mediaMetadata?.id,
+            navController = navController,
+            menuState = menuState,
+            haptic = haptic,
+            playerConnection = playerConnection,
+            coroutineScope = coroutineScope,
+            isShareCaptureMode = isShareCaptureMode,
+            onPagerStateChanged = { current, last ->
+                recapCurrentPage = current
+                recapLastPage = last
+            },
+            modifier = Modifier
+                .fillMaxSize()
+                .windowInsetsPadding(
+                    LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Bottom)
                 )
-            }
-
-            item {
-                Spacer(modifier = Modifier.height(80.dp))
-            }
-        }
+        )
 
         if (topSongsStats.isNotEmpty() || topArtists.isNotEmpty() || topAlbums.isNotEmpty()) {
             if (!isShareCaptureMode) {
-                FloatingActionButton(
+                if (recapCurrentPage == recapLastPage) FloatingActionButton(
                     onClick = {
                         if (!isGeneratingImage) {
                             isGeneratingImage = true
@@ -380,10 +359,33 @@ fun YearInMusicScreen(
                         )
                     }
                 },
+                actions = {
+                    IconButton(
+                        onClick = { isYearPickerOpen = true },
+                        onLongClick = {},
+                    ) {
+                        Icon(
+                            painterResource(R.drawable.calendar_today),
+                            contentDescription = null
+                        )
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = Color.Transparent,
                     scrolledContainerColor = Color.Transparent
                 )
+            )
+        }
+
+        if (!isShareCaptureMode && isYearPickerOpen) {
+            YearInMusicYearPickerDialog(
+                availableYears = availableYears,
+                selectedYear = selectedYear,
+                onSelectYear = { year ->
+                    viewModel.selectedYear.value = year
+                    isYearPickerOpen = false
+                },
+                onDismiss = { isYearPickerOpen = false }
             )
         }
     }
@@ -423,6 +425,8 @@ private fun YearInMusicStoryPager(
     haptic: androidx.compose.ui.hapticfeedback.HapticFeedback,
     playerConnection: moe.koiverse.archivetune.playback.PlayerConnection,
     coroutineScope: kotlinx.coroutines.CoroutineScope,
+    isShareCaptureMode: Boolean,
+    onPagerStateChanged: (currentPage: Int, lastPage: Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val pages = remember(topSongsStats, topArtists, topAlbums) {
@@ -435,167 +439,320 @@ private fun YearInMusicStoryPager(
         }
     }
 
-    val listState = rememberLazyListState()
+    var currentPage by remember { mutableStateOf(0) }
+    val lastPage = pages.lastIndex.coerceAtLeast(0)
 
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(top = 8.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        BoxWithConstraints(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(540.dp)
-        ) {
-            val pageWidth = maxWidth - 32.dp
-            val pageWidthPx = with(LocalDensity.current) { pageWidth.toPx() }
-            val currentPage by remember {
-                derivedStateOf {
-                    val index = listState.firstVisibleItemIndex
-                    val offset = listState.firstVisibleItemScrollOffset
-                    if (pageWidthPx <= 0f) {
-                        index
-                    } else {
-                        val adjusted = if (offset > pageWidthPx / 2f) index + 1 else index
-                        adjusted.coerceIn(0, pages.lastIndex)
-                    }
-                }
-            }
+    LaunchedEffect(lastPage) {
+        currentPage = currentPage.coerceIn(0, lastPage)
+    }
 
-            LazyRow(
-                state = listState,
-                flingBehavior = rememberSnapFlingBehavior(listState),
-                contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                items(pages.size, key = { pages[it].name }) { index ->
-                    val isSelected = index == currentPage
-                    val scale by animateFloatAsState(
-                        targetValue = if (isSelected) 1f else 0.92f,
-                        animationSpec = tween(durationMillis = 280, easing = FastOutSlowInEasing),
-                        label = "storyScale"
-                    )
-                    val alpha by animateFloatAsState(
-                        targetValue = if (isSelected) 1f else 0.65f,
-                        animationSpec = tween(durationMillis = 220),
-                        label = "storyAlpha"
-                    )
+    LaunchedEffect(isShareCaptureMode, lastPage) {
+        if (isShareCaptureMode) currentPage = lastPage
+    }
 
+    LaunchedEffect(currentPage, lastPage) {
+        onPagerStateChanged(currentPage, lastPage)
+    }
+
+    fun navigateTo(page: Int) {
+        currentPage = page.coerceIn(0, lastPage)
+    }
+
+    Box(modifier = modifier.fillMaxSize()) {
+        AnimatedContent(
+            targetState = currentPage,
+            transitionSpec = {
+                val direction = if (targetState > initialState) 1 else -1
+                slideInHorizontally(
+                    animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+                    initialOffsetX = { it * direction }
+                ) + fadeIn(animationSpec = tween(180)) togetherWith
+                    slideOutHorizontally(
+                        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+                        targetOffsetX = { -it * direction }
+                    ) + fadeOut(animationSpec = tween(140))
+            },
+            label = "yearInMusicPage"
+        ) { pageIndex ->
+            when (pages.getOrNull(pageIndex)) {
+                YearInMusicStoryPage.Hero -> {
                     Box(
                         modifier = Modifier
-                            .width(pageWidth)
-                            .height(520.dp)
-                            .graphicsLayer {
-                                scaleX = scale
-                                scaleY = scale
-                                this.alpha = alpha
+                            .fillMaxSize()
+                            .clickable(enabled = !isShareCaptureMode && currentPage < lastPage) {
+                                navigateTo(currentPage + 1)
                             }
                     ) {
-                        when (pages[index]) {
-                            YearInMusicStoryPage.Hero -> {
-                                YearInMusicHeroStoryCard(
-                                    year = year,
-                                    totalListeningTime = totalListeningTime,
-                                    totalSongsPlayed = totalSongsPlayed
-                                )
-                            }
-
-                            YearInMusicStoryPage.TopSong -> {
-                                val topSong = topSongsStats.firstOrNull()
-                                val topSongEntity = topSongs.firstOrNull()
-                                if (topSong != null) {
-                                    YearInMusicTopSongStoryCard(
-                                        song = topSong,
-                                        onClick = {
-                                            if (topSong.id == mediaMetadataId) {
-                                                playerConnection.player.togglePlayPause()
-                                            } else if (topSongEntity != null) {
-                                                playerConnection.playQueue(
-                                                    YouTubeQueue(
-                                                        endpoint = WatchEndpoint(topSong.id),
-                                                        preloadItem = topSongEntity.toMediaMetadata()
-                                                    )
-                                                )
-                                            }
-                                        },
-                                        onLongClick = {
-                                            if (topSongEntity != null) {
-                                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                                menuState.show {
-                                                    SongMenu(
-                                                        originalSong = topSongEntity,
-                                                        navController = navController,
-                                                        onDismiss = menuState::dismiss
-                                                    )
-                                                }
-                                            }
-                                        }
-                                    )
-                                }
-                            }
-
-                            YearInMusicStoryPage.TopArtist -> {
-                                val topArtist = topArtists.firstOrNull()
-                                if (topArtist != null) {
-                                    YearInMusicTopArtistStoryCard(
-                                        artist = topArtist,
-                                        onClick = { navController.navigate("artist/${topArtist.id}") },
-                                        onLongClick = {
-                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                            menuState.show {
-                                                ArtistMenu(
-                                                    originalArtist = topArtist,
-                                                    coroutineScope = coroutineScope,
-                                                    onDismiss = menuState::dismiss
-                                                )
-                                            }
-                                        }
-                                    )
-                                }
-                            }
-
-                            YearInMusicStoryPage.TopAlbum -> {
-                                val topAlbum = topAlbums.firstOrNull()
-                                if (topAlbum != null) {
-                                    YearInMusicTopAlbumStoryCard(
-                                        album = topAlbum,
-                                        onClick = { navController.navigate("album/${topAlbum.id}") }
-                                    )
-                                }
-                            }
-
-                            YearInMusicStoryPage.Summary -> {
-                                YearInMusicSummaryStoryCard(
-                                    year = year,
-                                    totalListeningTime = totalListeningTime,
-                                    totalSongsPlayed = totalSongsPlayed,
-                                    topSong = topSongsStats.firstOrNull(),
-                                    topArtist = topArtists.firstOrNull(),
-                                    topAlbum = topAlbums.firstOrNull()
-                                )
-                            }
-                        }
+                        YearInMusicHeroStoryCard(
+                            year = year,
+                            totalListeningTime = totalListeningTime,
+                            totalSongsPlayed = totalSongsPlayed
+                        )
                     }
                 }
+
+                YearInMusicStoryPage.TopSong -> {
+                    val topSong = topSongsStats.firstOrNull()
+                    val topSongEntity = topSongs.firstOrNull()
+                    if (topSong != null) {
+                        YearInMusicTopSongStoryCard(
+                            song = topSong,
+                            onClick = {
+                                if (topSong.id == mediaMetadataId) {
+                                    playerConnection.player.togglePlayPause()
+                                } else if (topSongEntity != null) {
+                                    playerConnection.playQueue(
+                                        YouTubeQueue(
+                                            endpoint = WatchEndpoint(topSong.id),
+                                            preloadItem = topSongEntity.toMediaMetadata()
+                                        )
+                                    )
+                                }
+                            },
+                            onLongClick = {
+                                if (topSongEntity != null) {
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    menuState.show {
+                                        SongMenu(
+                                            originalSong = topSongEntity,
+                                            navController = navController,
+                                            onDismiss = menuState::dismiss
+                                        )
+                                    }
+                                }
+                            }
+                        )
+                    }
+                }
+
+                YearInMusicStoryPage.TopArtist -> {
+                    val topArtist = topArtists.firstOrNull()
+                    if (topArtist != null) {
+                        YearInMusicTopArtistStoryCard(
+                            artist = topArtist,
+                            onClick = { navController.navigate("artist/${topArtist.id}") },
+                            onLongClick = {
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                menuState.show {
+                                    ArtistMenu(
+                                        originalArtist = topArtist,
+                                        coroutineScope = coroutineScope,
+                                        onDismiss = menuState::dismiss
+                                    )
+                                }
+                            }
+                        )
+                    }
+                }
+
+                YearInMusicStoryPage.TopAlbum -> {
+                    val topAlbum = topAlbums.firstOrNull()
+                    if (topAlbum != null) {
+                        YearInMusicTopAlbumStoryCard(
+                            album = topAlbum,
+                            onClick = { navController.navigate("album/${topAlbum.id}") }
+                        )
+                    }
+                }
+
+                YearInMusicStoryPage.Summary -> {
+                    YearInMusicSummaryStoryCard(
+                        year = year,
+                        totalListeningTime = totalListeningTime,
+                        totalSongsPlayed = totalSongsPlayed,
+                        topSong = topSongsStats.firstOrNull(),
+                        topArtist = topArtists.firstOrNull(),
+                        topAlbum = topAlbums.firstOrNull()
+                    )
+                }
+
+                null -> Unit
             }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        if (!isShareCaptureMode) {
+            YearInMusicStoryProgressIndicator(
+                totalPages = pages.size,
+                currentPage = currentPage,
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .windowInsetsPadding(
+                        LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)
+                    )
+                    .padding(top = 12.dp)
+            )
 
-        val indicatorPage by remember {
-            derivedStateOf { minOf(listState.firstVisibleItemIndex, pages.lastIndex) }
+            YearInMusicStoryNavBar(
+                canGoBack = currentPage > 0,
+                canGoNext = currentPage < lastPage,
+                pageLabel = when (pages.getOrNull(currentPage)) {
+                    YearInMusicStoryPage.Hero -> stringResource(R.string.year_in_music)
+                    YearInMusicStoryPage.TopSong -> stringResource(R.string.top_songs)
+                    YearInMusicStoryPage.TopArtist -> stringResource(R.string.top_artists)
+                    YearInMusicStoryPage.TopAlbum -> stringResource(R.string.albums)
+                    YearInMusicStoryPage.Summary -> stringResource(R.string.share_summary)
+                    null -> ""
+                },
+                onBack = { navigateTo(currentPage - 1) },
+                onNext = { navigateTo(currentPage + 1) },
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .windowInsetsPadding(
+                        LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal)
+                    )
+                    .padding(horizontal = 16.dp, vertical = 16.dp)
+            )
         }
-
-        YearInMusicStoryDotsIndicator(
-            totalDots = pages.size,
-            currentPage = indicatorPage,
-            selectedColor = MaterialTheme.colorScheme.primary
-        )
     }
 }
 
+@Composable
+private fun YearInMusicYearPickerDialog(
+    availableYears: List<Int>,
+    selectedYear: Int,
+    onSelectYear: (Int) -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.year_in_music)) },
+        text = {
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                items(availableYears) { year ->
+                    FilterChip(
+                        selected = year == selectedYear,
+                        onClick = { onSelectYear(year) },
+                        label = {
+                            Text(
+                                text = year.toString(),
+                                fontWeight = if (year == selectedYear) FontWeight.Bold else FontWeight.Normal
+                            )
+                        },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                            selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.dismiss))
+            }
+        }
+    )
+}
+
+@Composable
+private fun YearInMusicStoryProgressIndicator(
+    totalPages: Int,
+    currentPage: Int,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        repeat(totalPages) { index ->
+            val activeAlpha by animateFloatAsState(
+                targetValue = when {
+                    index < currentPage -> 0.7f
+                    index == currentPage -> 1f
+                    else -> 0.12f
+                },
+                animationSpec = tween(durationMillis = 220),
+                label = "progressAlpha"
+            )
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(3.dp)
+                    .clip(RoundedCornerShape(99.dp))
+                    .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.15f))
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.onSurface.copy(alpha = activeAlpha))
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun YearInMusicStoryNavBar(
+    canGoBack: Boolean,
+    canGoNext: Boolean,
+    pageLabel: String,
+    onBack: () -> Unit,
+    onNext: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(28.dp))
+            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.7f))
+            .padding(horizontal = 12.dp, vertical = 10.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(
+                onClick = onBack,
+                onLongClick = {},
+                enabled = canGoBack,
+                colors = androidx.compose.material3.IconButtonDefaults.iconButtonColors(
+                    containerColor = Color.Transparent,
+                    contentColor = MaterialTheme.colorScheme.onSurface
+                )
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.skip_previous),
+                    contentDescription = null
+                )
+            }
+
+            Text(
+                text = pageLabel,
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+
+            Row(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(24.dp))
+                    .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.85f))
+                    .clickable(enabled = canGoNext, onClick = onNext)
+                    .padding(horizontal = 16.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = stringResource(R.string.next),
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+                Icon(
+                    painter = painterResource(R.drawable.skip_next),
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+            }
+        }
+    }
+}
 @Composable
 private fun YearInMusicHeroStoryCard(
     year: Int,
@@ -612,15 +769,54 @@ private fun YearInMusicHeroStoryCard(
 
     Card(
         modifier = Modifier.fillMaxSize(),
-        shape = RoundedCornerShape(32.dp),
+        shape = RoundedCornerShape(0.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.2f)
+            containerColor = Color.Transparent
         )
     ) {
+        val transition = rememberInfiniteTransition(label = "introGlow")
+        val phase by transition.animateFloat(
+            initialValue = 0f,
+            targetValue = 1f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 4200, easing = LinearEasing),
+                repeatMode = RepeatMode.Restart
+            ),
+            label = "introGlowPhase"
+        )
+
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(gradient)
+                .drawWithCache {
+                    val w = size.width
+                    val h = size.height
+                    val c1 = Offset(w * (0.15f + 0.7f * phase), h * (0.15f + 0.25f * phase))
+                    val c2 = Offset(w * (0.85f - 0.7f * phase), h * (0.45f + 0.35f * phase))
+                    val aura1 = Brush.radialGradient(
+                        colors = listOf(
+                            Color.White.copy(alpha = 0.16f),
+                            Color.White.copy(alpha = 0.06f),
+                            Color.Transparent
+                        ),
+                        center = c1,
+                        radius = w * 0.75f
+                    )
+                    val aura2 = Brush.radialGradient(
+                        colors = listOf(
+                            Color.White.copy(alpha = 0.10f),
+                            Color.Transparent
+                        ),
+                        center = c2,
+                        radius = w * 0.9f
+                    )
+
+                    onDrawBehind {
+                        drawRect(brush = aura1)
+                        drawRect(brush = aura2)
+                    }
+                }
                 .padding(28.dp)
         ) {
             Column(
@@ -651,6 +847,12 @@ private fun YearInMusicHeroStoryCard(
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.85f)
                 )
+                Text(
+                    text = stringResource(R.string.next),
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.85f)
+                )
             }
         }
     }
@@ -667,7 +869,7 @@ private fun YearInMusicTopSongStoryCard(
         modifier = Modifier
             .fillMaxSize()
             .combinedClickable(onClick = onClick, onLongClick = onLongClick),
-        shape = RoundedCornerShape(32.dp),
+        shape = RoundedCornerShape(0.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
         )
@@ -747,31 +949,53 @@ private fun YearInMusicTopArtistStoryCard(
         modifier = Modifier
             .fillMaxSize()
             .combinedClickable(onClick = onClick, onLongClick = onLongClick),
-        shape = RoundedCornerShape(32.dp),
+        shape = RoundedCornerShape(0.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(gradient)
-                .padding(24.dp)
-        ) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            AsyncImage(
+                model = artist.artist.thumbnailUrl,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
+            )
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(gradient)
+            )
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                Color.Transparent,
+                                MaterialTheme.colorScheme.surface.copy(alpha = 0.35f),
+                                MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
+                                MaterialTheme.colorScheme.surface
+                            )
+                        )
+                    )
+            )
             Column(
-                modifier = Modifier.align(Alignment.Center),
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .padding(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Text(
                     text = stringResource(R.string.top_artists),
                     style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
+                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f)
                 )
                 AsyncImage(
                     model = artist.artist.thumbnailUrl,
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
-                        .size(140.dp)
+                        .size(148.dp)
                         .clip(CircleShape)
                 )
                 Text(
@@ -814,31 +1038,41 @@ private fun YearInMusicTopAlbumStoryCard(
         modifier = Modifier
             .fillMaxSize()
             .clickable(onClick = onClick),
-        shape = RoundedCornerShape(32.dp),
+        shape = RoundedCornerShape(0.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(24.dp),
-            verticalArrangement = Arrangement.SpaceBetween
-        ) {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            AsyncImage(
+                model = album.thumbnailUrl,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
+            )
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                Color.Transparent,
+                                MaterialTheme.colorScheme.surface.copy(alpha = 0.25f),
+                                MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
+                                MaterialTheme.colorScheme.surface
+                            )
+                        )
+                    )
+            )
+            Column(
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .padding(24.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
                 Text(
                     text = stringResource(R.string.albums),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.primary
                 )
-                AsyncImage(
-                    model = album.thumbnailUrl,
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier
-                        .size(200.dp)
-                        .clip(RoundedCornerShape(24.dp))
-                )
-            }
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
                     text = album.album.title,
                     style = MaterialTheme.typography.headlineSmall,
@@ -875,7 +1109,7 @@ private fun YearInMusicSummaryStoryCard(
 ) {
     Card(
         modifier = Modifier.fillMaxSize(),
-        shape = RoundedCornerShape(32.dp),
+        shape = RoundedCornerShape(0.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
         )
@@ -931,45 +1165,6 @@ private fun YearInMusicSummaryStoryCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-        }
-    }
-}
-
-@Composable
-private fun YearInMusicStoryDotsIndicator(
-    totalDots: Int,
-    currentPage: Int,
-    selectedColor: Color,
-    modifier: Modifier = Modifier
-) {
-    Row(
-        modifier = modifier.height(10.dp),
-        horizontalArrangement = Arrangement.Center,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        repeat(totalDots) { index ->
-            val isSelected = index == currentPage
-            val dotScale by animateFloatAsState(
-                targetValue = if (isSelected) 1.6f else 1f,
-                animationSpec = tween(durationMillis = 220, easing = FastOutSlowInEasing),
-                label = "dotScale"
-            )
-            val dotColor by animateColorAsState(
-                targetValue = if (isSelected) selectedColor else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f),
-                animationSpec = tween(durationMillis = 220),
-                label = "dotColor"
-            )
-            Box(
-                modifier = Modifier
-                    .padding(horizontal = 3.dp)
-                    .size(6.dp)
-                    .graphicsLayer {
-                        scaleX = dotScale
-                        scaleY = dotScale
-                    }
-                    .clip(CircleShape)
-                    .background(dotColor)
-            )
         }
     }
 }
