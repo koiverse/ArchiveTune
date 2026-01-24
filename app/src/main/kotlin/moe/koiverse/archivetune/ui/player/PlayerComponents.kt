@@ -851,12 +851,31 @@ fun PlayerPlaybackControls(
         }
 
         PlayerDesignStyle.V4 -> {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
+            BoxWithConstraints(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = PlayerHorizontalPadding)
             ) {
+                val baseLarge = 56.dp
+                val baseSmall = 46.dp
+                val baseGap = 12.dp
+                val baseLargeIcon = 28.dp
+                val baseSmallIcon = 22.dp
+                val baseLargeRadius = 18.dp
+                val baseSmallRadius = 16.dp
+                val centerSize = 88.dp
+                val centerPadding = 40.dp
+                val sideTotal = (maxWidth - centerSize - centerPadding) / 2f
+                val scale =
+                    ((sideTotal - baseGap) / (baseLarge + baseSmall)).coerceAtMost(1f).coerceAtLeast(0.6f)
+                val large = baseLarge * scale
+                val small = baseSmall * scale
+                val gap = baseGap * scale
+                val largeIcon = baseLargeIcon * scale
+                val smallIcon = baseSmallIcon * scale
+                val largeRadius = baseLargeRadius * scale
+                val smallRadius = baseSmallRadius * scale
+
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
@@ -871,11 +890,11 @@ fun PlayerPlaybackControls(
                                 playerConnection.player.shuffleModeEnabled =
                                     !playerConnection.player.shuffleModeEnabled
                             },
-                            shape = RoundedCornerShape(16.dp),
+                            shape = RoundedCornerShape(smallRadius),
                             color = textBackgroundColor.copy(
                                 alpha = if (playerConnection.player.shuffleModeEnabled) 0.2f else 0.08f
                             ),
-                            modifier = Modifier.size(46.dp)
+                            modifier = Modifier.size(small)
                         ) {
                             Box(
                                 modifier = Modifier.fillMaxSize(),
@@ -887,19 +906,19 @@ fun PlayerPlaybackControls(
                                     tint = textBackgroundColor.copy(
                                         alpha = if (playerConnection.player.shuffleModeEnabled) 1f else 0.6f
                                     ),
-                                    modifier = Modifier.size(22.dp)
+                                    modifier = Modifier.size(smallIcon)
                                 )
                             }
                         }
 
-                        Spacer(modifier = Modifier.width(12.dp))
+                        Spacer(modifier = Modifier.width(gap))
 
                         Surface(
                             onClick = { playerConnection.seekToPrevious() },
                             enabled = canSkipPrevious,
-                            shape = RoundedCornerShape(18.dp),
+                            shape = RoundedCornerShape(largeRadius),
                             color = textBackgroundColor.copy(alpha = 0.15f),
-                            modifier = Modifier.size(56.dp)
+                            modifier = Modifier.size(large)
                         ) {
                             Box(
                                 modifier = Modifier.fillMaxSize(),
@@ -911,7 +930,7 @@ fun PlayerPlaybackControls(
                                     tint = textBackgroundColor.copy(
                                         alpha = if (canSkipPrevious) 1f else 0.4f
                                     ),
-                                    modifier = Modifier.size(28.dp)
+                                    modifier = Modifier.size(largeIcon)
                                 )
                             }
                         }
@@ -966,9 +985,9 @@ fun PlayerPlaybackControls(
                         Surface(
                             onClick = { playerConnection.seekToNext() },
                             enabled = canSkipNext,
-                            shape = RoundedCornerShape(18.dp),
+                            shape = RoundedCornerShape(largeRadius),
                             color = textBackgroundColor.copy(alpha = 0.15f),
-                            modifier = Modifier.size(56.dp)
+                            modifier = Modifier.size(large)
                         ) {
                             Box(
                                 modifier = Modifier.fillMaxSize(),
@@ -980,20 +999,20 @@ fun PlayerPlaybackControls(
                                     tint = textBackgroundColor.copy(
                                         alpha = if (canSkipNext) 1f else 0.4f
                                     ),
-                                    modifier = Modifier.size(28.dp)
+                                    modifier = Modifier.size(largeIcon)
                                 )
                             }
                         }
 
-                        Spacer(modifier = Modifier.width(12.dp))
+                        Spacer(modifier = Modifier.width(gap))
 
                         Surface(
                             onClick = { playerConnection.player.toggleRepeatMode() },
-                            shape = RoundedCornerShape(16.dp),
+                            shape = RoundedCornerShape(smallRadius),
                             color = textBackgroundColor.copy(
                                 alpha = if (repeatMode != Player.REPEAT_MODE_OFF) 0.2f else 0.08f
                             ),
-                            modifier = Modifier.size(46.dp)
+                            modifier = Modifier.size(small)
                         ) {
                             Box(
                                 modifier = Modifier.fillMaxSize(),
@@ -1010,7 +1029,7 @@ fun PlayerPlaybackControls(
                                     tint = textBackgroundColor.copy(
                                         alpha = if (repeatMode == Player.REPEAT_MODE_OFF) 0.6f else 1f
                                     ),
-                                    modifier = Modifier.size(22.dp)
+                                    modifier = Modifier.size(smallIcon)
                                 )
                             }
                         }
