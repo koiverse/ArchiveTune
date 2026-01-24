@@ -621,6 +621,8 @@ fun PlayerPlaybackControls(
     playerConnection: PlayerConnection,
     currentSongLiked: Boolean
 ) {
+    val shuffleModeEnabled by playerConnection.shuffleModeEnabled.collectAsState()
+
     when (playerDesignStyle) {
         PlayerDesignStyle.V2 -> {
             BoxWithConstraints(
@@ -736,8 +738,7 @@ fun PlayerPlaybackControls(
                             .size(40.dp)
                             .clip(RoundedCornerShape(10.dp))
                             .clickable {
-                                playerConnection.player.shuffleModeEnabled =
-                                    !playerConnection.player.shuffleModeEnabled
+                                playerConnection.player.shuffleModeEnabled = !shuffleModeEnabled
                             },
                         contentAlignment = Alignment.Center
                     ) {
@@ -745,7 +746,7 @@ fun PlayerPlaybackControls(
                             painter = painterResource(R.drawable.shuffle),
                             contentDescription = null,
                             tint = textBackgroundColor.copy(
-                                alpha = if (playerConnection.player.shuffleModeEnabled) 1f else 0.4f
+                                alpha = if (shuffleModeEnabled) 1f else 0.4f
                             ),
                             modifier = Modifier.size(22.dp)
                         )
@@ -887,12 +888,11 @@ fun PlayerPlaybackControls(
                     ) {
                         Surface(
                             onClick = {
-                                playerConnection.player.shuffleModeEnabled =
-                                    !playerConnection.player.shuffleModeEnabled
+                                playerConnection.player.shuffleModeEnabled = !shuffleModeEnabled
                             },
                             shape = RoundedCornerShape(smallRadius),
                             color = textBackgroundColor.copy(
-                                alpha = if (playerConnection.player.shuffleModeEnabled) 0.2f else 0.08f
+                                alpha = if (shuffleModeEnabled) 0.2f else 0.08f
                             ),
                             modifier = Modifier.size(small)
                         ) {
@@ -904,7 +904,7 @@ fun PlayerPlaybackControls(
                                     painter = painterResource(R.drawable.shuffle),
                                     contentDescription = null,
                                     tint = textBackgroundColor.copy(
-                                        alpha = if (playerConnection.player.shuffleModeEnabled) 1f else 0.6f
+                                        alpha = if (shuffleModeEnabled) 1f else 0.6f
                                     ),
                                     modifier = Modifier.size(smallIcon)
                                 )
