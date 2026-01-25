@@ -627,4 +627,7 @@
     <string name="eq_output_gain">Gain de sortie</string>
     <string name="eq_bass_boost">Amplification des basses</string>
     <string name="eq_virtualizer">Virtualiseur</string>
+    <string name="permanent_shuffle">Mode de lecture aléatoire permanent</string>
+    <string name="permanent_shuffle_desc">Gardez la lecture aléatoire activée lorsque vous démarrez un nouveau titre</string>
+    <string name="next_song">Titre Suivant</string>
 </resources>
