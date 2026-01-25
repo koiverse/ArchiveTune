@@ -241,18 +241,6 @@ fun PlayerSettings(
                 PlayerStreamClient.ANDROID_VR -> stringResource(R.string.player_stream_client_android_vr)
                 PlayerStreamClient.WEB_REMIX -> stringResource(R.string.player_stream_client_web_remix)
             },
-            content = {
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    text =
-                    when (playerStreamClient) {
-                        PlayerStreamClient.ANDROID_VR -> stringResource(R.string.player_stream_client_android_vr_desc)
-                        PlayerStreamClient.WEB_REMIX -> stringResource(R.string.player_stream_client_web_remix_desc)
-                    },
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.secondary,
-                )
-            },
             icon = { Icon(painterResource(R.drawable.integration), null) },
             onClick = { showPlayerStreamClientDialog = true }
         )
