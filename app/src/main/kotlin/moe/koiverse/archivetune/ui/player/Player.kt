@@ -104,6 +104,7 @@ import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.core.graphics.ColorUtils
 import androidx.core.graphics.drawable.toBitmap
 import androidx.media3.common.C
@@ -1512,7 +1513,7 @@ private fun LandscapeLikeBox(
 ) {
     Layout(
         content = content,
-        modifier = modifier.clipToBounds(),
+        modifier = modifier.graphicsLayer { clip = true },
     ) { measurables, constraints ->
         val measurable = measurables.firstOrNull()
         if (measurable == null) {
