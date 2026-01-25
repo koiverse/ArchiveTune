@@ -349,7 +349,7 @@ fun PlayerTopActions(
             }
         }
 
-        PlayerDesignStyle.V4, PlayerDesignStyle.V6 -> {
+        PlayerDesignStyle.V4 -> {
             Row(
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                 verticalAlignment = Alignment.CenterVertically
@@ -1038,7 +1038,7 @@ fun PlayerPlaybackControls(
             }
         }
 
-        PlayerDesignStyle.V1, PlayerDesignStyle.V5, PlayerDesignStyle.V6 -> {
+        PlayerDesignStyle.V1, PlayerDesignStyle.V5 -> {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier =

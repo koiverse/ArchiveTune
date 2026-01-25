@@ -454,7 +454,6 @@ fun AppearanceSettings(
                     PlayerDesignStyle.V3 -> stringResource(R.string.player_design_v3)
                     PlayerDesignStyle.V4 -> stringResource(R.string.player_design_v4)
                     PlayerDesignStyle.V5 -> stringResource(R.string.player_design_v5)
-                    PlayerDesignStyle.V6 -> stringResource(R.string.player_design_v6)
                 }
             },
         )

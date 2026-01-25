@@ -670,8 +670,9 @@ fun BottomSheetPlayer(
                         Box(
                             modifier =
                             Modifier
-                                .fillMaxHeight()
-                                .fillMaxWidth(progressFraction)
+                                .fillMaxWidth()
+                                .fillMaxHeight(progressFraction)
+                                .align(Alignment.TopStart)
                                 .background(progressOverlayColor),
                         )
                         Box(
@@ -711,49 +712,6 @@ fun BottomSheetPlayer(
                                     }
                                 )
                             }
-                        }
-                    }
-                } else if (playerDesignStyle == PlayerDesignStyle.V6) {
-                    Column(
-                        modifier =
-                        Modifier
-                            .fillMaxSize()
-                            .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Top))
-                            .padding(bottom = queueSheetState.collapsedBound + 48.dp),
-                    ) {
-                        mediaMetadata?.let { metadata ->
-                            FullPlayerContent(
-                                mediaMetadata = metadata,
-                                nextMediaMetadata = nextUpMetadata,
-                                sliderStyle = sliderStyle,
-                                sliderPosition = sliderPosition,
-                                position = position,
-                                duration = duration,
-                                playbackState = playbackState,
-                                isPlaying = isPlaying,
-                                isLoading = isLoading,
-                                repeatMode = repeatMode,
-                                canSkipPrevious = canSkipPrevious,
-                                canSkipNext = canSkipNext,
-                                textButtonColor = textButtonColor,
-                                iconButtonColor = iconButtonColor,
-                                textBackgroundColor = TextBackgroundColor,
-                                playerConnection = playerConnection,
-                                currentSongLiked = currentSongLiked,
-                                navController = navController,
-                                playerBottomSheetState = state,
-                                menuState = menuState,
-                                bottomSheetPageState = bottomSheetPageState,
-                                clipboardManager = clipboardManager,
-                                context = context,
-                                playerVolume = playerVolume.value,
-                                onVolumeChange = { playerConnection.service.playerVolume.value = it },
-                                onCollapse = state::collapseSoft,
-                                onExpandQueue = queueSheetState::expandSoft,
-                                onSliderValueChange = onSliderValueChange,
-                                onSliderValueChangeFinished = onSliderValueChangeFinished,
-                                modifier = Modifier.fillMaxSize(),
-                            )
                         }
                     }
                 } else {
@@ -814,8 +772,9 @@ fun BottomSheetPlayer(
                         Box(
                             modifier =
                             Modifier
-                                .fillMaxHeight()
-                                .fillMaxWidth(progressFraction)
+                                .fillMaxWidth()
+                                .fillMaxHeight(progressFraction)
+                                .align(Alignment.TopStart)
                                 .background(progressOverlayColor),
                         )
                         Box(
@@ -857,49 +816,6 @@ fun BottomSheetPlayer(
                                     )
                                 }
                             }
-                        }
-                    }
-                } else if (playerDesignStyle == PlayerDesignStyle.V6) {
-                    Column(
-                        modifier =
-                        Modifier
-                            .fillMaxSize()
-                            .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Top))
-                            .padding(bottom = queueSheetState.collapsedBound),
-                    ) {
-                        mediaMetadata?.let { metadata ->
-                            FullPlayerContent(
-                                mediaMetadata = metadata,
-                                nextMediaMetadata = nextUpMetadata,
-                                sliderStyle = sliderStyle,
-                                sliderPosition = sliderPosition,
-                                position = position,
-                                duration = duration,
-                                playbackState = playbackState,
-                                isPlaying = isPlaying,
-                                isLoading = isLoading,
-                                repeatMode = repeatMode,
-                                canSkipPrevious = canSkipPrevious,
-                                canSkipNext = canSkipNext,
-                                textButtonColor = textButtonColor,
-                                iconButtonColor = iconButtonColor,
-                                textBackgroundColor = TextBackgroundColor,
-                                playerConnection = playerConnection,
-                                currentSongLiked = currentSongLiked,
-                                navController = navController,
-                                playerBottomSheetState = state,
-                                menuState = menuState,
-                                bottomSheetPageState = bottomSheetPageState,
-                                clipboardManager = clipboardManager,
-                                context = context,
-                                playerVolume = playerVolume.value,
-                                onVolumeChange = { playerConnection.service.playerVolume.value = it },
-                                onCollapse = state::collapseSoft,
-                                onExpandQueue = queueSheetState::expandSoft,
-                                onSliderValueChange = onSliderValueChange,
-                                onSliderValueChangeFinished = onSliderValueChangeFinished,
-                                modifier = Modifier.fillMaxSize(),
-                            )
                         }
                     }
                 } else {
@@ -947,20 +863,10 @@ fun BottomSheetPlayer(
             playerBottomSheetState = state,
             navController = navController,
             backgroundColor =
-            if (playerDesignStyle == PlayerDesignStyle.V6) {
-                val base =
-                    if (useBlackBackground) {
-                        Color.Black
-                    } else {
-                        MaterialTheme.colorScheme.surfaceContainer
-                    }
-                base.copy(alpha = queueSheetState.progress.coerceIn(0f, 1f))
+            if (useBlackBackground) {
+                Color.Black
             } else {
-                if (useBlackBackground) {
-                    Color.Black
-                } else {
-                    MaterialTheme.colorScheme.surfaceContainer
-                }
+                MaterialTheme.colorScheme.surfaceContainer
             },
             onBackgroundColor = queueOnBackgroundColor,
             TextBackgroundColor = TextBackgroundColor,
@@ -995,320 +901,6 @@ fun BottomSheetPlayer(
                         navController = navController
                     )
                 }
-            }
-        }
-    }
-}
-
-@Composable
-private fun FullPlayerContent(
-    mediaMetadata: MediaMetadata,
-    nextMediaMetadata: MediaMetadata?,
-    sliderStyle: SliderStyle,
-    sliderPosition: Long?,
-    position: Long,
-    duration: Long,
-    playbackState: Int,
-    isPlaying: Boolean,
-    isLoading: Boolean,
-    repeatMode: Int,
-    canSkipPrevious: Boolean,
-    canSkipNext: Boolean,
-    textButtonColor: Color,
-    iconButtonColor: Color,
-    textBackgroundColor: Color,
-    playerConnection: PlayerConnection,
-    currentSongLiked: Boolean,
-    navController: NavController,
-    playerBottomSheetState: BottomSheetState,
-    menuState: MenuState,
-    bottomSheetPageState: BottomSheetPageState,
-    clipboardManager: ClipboardManager,
-    context: Context,
-    playerVolume: Float,
-    onVolumeChange: (Float) -> Unit,
-    onCollapse: () -> Unit,
-    onExpandQueue: () -> Unit,
-    onSliderValueChange: (Long) -> Unit,
-    onSliderValueChangeFinished: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val artistsText =
-        remember(mediaMetadata.artists) {
-            mediaMetadata.artists.joinToString(separator = ", ") { it.name }
-        }
-
-    val nextTitle = nextMediaMetadata?.title.orEmpty()
-    val nextArtistsText =
-        remember(nextMediaMetadata?.artists) {
-            nextMediaMetadata?.artists?.joinToString(separator = ", ") { it.name }.orEmpty()
-        }
-
-    val playPauseRoundness by animateDpAsState(
-        targetValue = if (isPlaying) 24.dp else 36.dp,
-        animationSpec = tween(durationMillis = 90, easing = LinearEasing),
-        label = "v6_playPauseRoundness",
-    )
-
-    Box(modifier = modifier.fillMaxSize()) {
-        AsyncImage(
-            model = mediaMetadata.thumbnailUrl,
-            contentDescription = null,
-            contentScale = ContentScale.Crop,
-            modifier = Modifier.fillMaxSize(),
-        )
-
-        Box(
-            modifier =
-                Modifier
-                    .fillMaxSize()
-                    .background(
-                        Brush.verticalGradient(
-                            0f to Color.Black.copy(alpha = 0.08f),
-                            0.45f to Color.Black.copy(alpha = 0.32f),
-                            1f to Color.Black.copy(alpha = 0.82f),
-                        ),
-                    ),
-        )
-
-        Column(
-            modifier =
-                Modifier
-                    .fillMaxSize()
-                    .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Bottom))
-                    .padding(horizontal = 22.dp, vertical = 10.dp),
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Icon(
-                    painter = painterResource(R.drawable.expand_more),
-                    contentDescription = null,
-                    tint = textBackgroundColor.copy(alpha = 0.92f),
-                    modifier =
-                        Modifier
-                            .size(28.dp)
-                            .clickable(
-                                interactionSource = remember { MutableInteractionSource() },
-                                indication = null,
-                                onClick = onCollapse,
-                            ),
-                )
-
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    Icon(
-                        painter = painterResource(R.drawable.queue_music),
-                        contentDescription = null,
-                        tint = textBackgroundColor.copy(alpha = 0.9f),
-                        modifier =
-                            Modifier
-                                .size(26.dp)
-                                .clickable(
-                                    interactionSource = remember { MutableInteractionSource() },
-                                    indication = null,
-                                    onClick = onExpandQueue,
-                                ),
-                    )
-
-                    Icon(
-                        painter = painterResource(R.drawable.more_vert),
-                        contentDescription = null,
-                        tint = textBackgroundColor.copy(alpha = 0.9f),
-                        modifier =
-                            Modifier
-                                .size(26.dp)
-                                .clickable(
-                                    interactionSource = remember { MutableInteractionSource() },
-                                    indication = null,
-                                    onClick = {
-                                        menuState.show {
-                                            PlayerMenu(
-                                                mediaMetadata = mediaMetadata,
-                                                navController = navController,
-                                                playerBottomSheetState = playerBottomSheetState,
-                                                onShowDetailsDialog = {
-                                                    bottomSheetPageState.show {
-                                                        ShowMediaInfo(mediaMetadata.id)
-                                                    }
-                                                },
-                                                onDismiss = menuState::dismiss,
-                                            )
-                                        }
-                                    },
-                                ),
-                    )
-                }
-            }
-
-            if (nextTitle.isNotBlank()) {
-                Spacer(Modifier.height(10.dp))
-                Column(
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .clickable(
-                                interactionSource = remember { MutableInteractionSource() },
-                                indication = null,
-                                onClick = playerConnection::seekToNext,
-                            ),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    Text(
-                        text = stringResource(R.string.play_next),
-                        color = textBackgroundColor.copy(alpha = 0.78f),
-                        style = MaterialTheme.typography.labelMedium,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    Spacer(Modifier.height(2.dp))
-                    Text(
-                        text = nextTitle,
-                        color = textBackgroundColor.copy(alpha = 0.92f),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.basicMarquee(),
-                    )
-                    if (nextArtistsText.isNotBlank()) {
-                        Spacer(Modifier.height(2.dp))
-                        Text(
-                            text = nextArtistsText,
-                            color = textBackgroundColor.copy(alpha = 0.68f),
-                            style = MaterialTheme.typography.bodySmall,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.basicMarquee(),
-                        )
-                    }
-                }
-            }
-
-            Spacer(Modifier.weight(1f))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.Bottom,
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = mediaMetadata.title,
-                        color = textBackgroundColor,
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.basicMarquee(),
-                    )
-                    if (artistsText.isNotBlank()) {
-                        Spacer(Modifier.height(4.dp))
-                        Text(
-                            text = artistsText,
-                            color = textBackgroundColor.copy(alpha = 0.74f),
-                            style = MaterialTheme.typography.bodyMedium,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.basicMarquee(),
-                        )
-                    }
-                }
-
-                Spacer(Modifier.width(12.dp))
-
-                PlayerTopActions(
-                    mediaMetadata = mediaMetadata,
-                    playerDesignStyle = PlayerDesignStyle.V6,
-                    textButtonColor = textButtonColor,
-                    iconButtonColor = iconButtonColor,
-                    textBackgroundColor = textBackgroundColor,
-                    playerConnection = playerConnection,
-                    navController = navController,
-                    menuState = menuState,
-                    state = playerBottomSheetState,
-                    bottomSheetPageState = bottomSheetPageState,
-                    context = context,
-                    currentSongLiked = currentSongLiked,
-                )
-            }
-
-            Spacer(Modifier.height(10.dp))
-
-            PlayerSlider(
-                sliderStyle = sliderStyle,
-                sliderPosition = sliderPosition,
-                position = position,
-                duration = duration,
-                isPlaying = isPlaying,
-                textButtonColor = textButtonColor,
-                onValueChange = onSliderValueChange,
-                onValueChangeFinished = onSliderValueChangeFinished,
-            )
-
-            Spacer(Modifier.height(4.dp))
-
-            PlayerTimeLabel(
-                sliderPosition = sliderPosition,
-                position = position,
-                duration = duration,
-                textBackgroundColor = textBackgroundColor.copy(alpha = 0.88f),
-            )
-
-            Spacer(Modifier.height(12.dp))
-
-            PlayerPlaybackControls(
-                playerDesignStyle = PlayerDesignStyle.V2,
-                playbackState = playbackState,
-                isPlaying = isPlaying,
-                isLoading = isLoading,
-                repeatMode = repeatMode,
-                canSkipPrevious = canSkipPrevious,
-                canSkipNext = canSkipNext,
-                textButtonColor = textButtonColor,
-                iconButtonColor = iconButtonColor,
-                textBackgroundColor = textBackgroundColor,
-                icBackgroundColor = iconButtonColor,
-                playPauseRoundness = playPauseRoundness,
-                playerConnection = playerConnection,
-                currentSongLiked = currentSongLiked,
-            )
-
-            Spacer(Modifier.height(14.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Icon(
-                    painter = painterResource(R.drawable.volume_off),
-                    contentDescription = null,
-                    modifier = Modifier.size(20.dp),
-                    tint = textBackgroundColor.copy(alpha = 0.9f),
-                )
-
-                BigSeekBar(
-                    progressProvider = { playerVolume.coerceIn(0f, 1f) },
-                    onProgressChange = { onVolumeChange(it.coerceIn(0f, 1f)) },
-                    color = textBackgroundColor,
-                    modifier =
-                        Modifier
-                            .weight(1f)
-                            .height(20.dp)
-                            .padding(horizontal = 16.dp),
-                )
-
-                Icon(
-                    painter = painterResource(R.drawable.volume_up),
-                    contentDescription = null,
-                    modifier = Modifier.size(20.dp),
-                    tint = textBackgroundColor.copy(alpha = 0.9f),
-                )
             }
         }
     }
