@@ -37,6 +37,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.guava.future
 import kotlinx.coroutines.plus
 import javax.inject.Inject
+import kotlin.math.min
 
 class MediaLibrarySessionCallback
 @Inject
@@ -49,6 +50,22 @@ constructor(
     var toggleLike: () -> Unit = {}
     var toggleStartRadio: () -> Unit = {}
     var toggleLibrary: () -> Unit = {}
+
+    private fun browsableExtras(
+        browsableHint: Int = CONTENT_STYLE_GRID_ITEM,
+        playableHint: Int = CONTENT_STYLE_LIST_ITEM,
+    ) = Bundle().apply {
+        putBoolean(EXTRA_CONTENT_STYLE_SUPPORTED, true)
+        putInt(EXTRA_CONTENT_STYLE_BROWSABLE_HINT, browsableHint)
+        putInt(EXTRA_CONTENT_STYLE_PLAYABLE_HINT, playableHint)
+    }
+
+    private fun playableExtras(
+        playableHint: Int = CONTENT_STYLE_LIST_ITEM,
+    ) = Bundle().apply {
+        putBoolean(EXTRA_CONTENT_STYLE_SUPPORTED, true)
+        putInt(EXTRA_CONTENT_STYLE_PLAYABLE_HINT, playableHint)
+    }
 
     override fun onConnect(
         session: MediaSession,
@@ -100,13 +117,105 @@ constructor(
                         MediaMetadata
                             .Builder()
                             .setIsPlayable(false)
-                            .setIsBrowsable(false)
+                            .setIsBrowsable(true)
                             .setMediaType(MediaMetadata.MEDIA_TYPE_FOLDER_MIXED)
+                            .setExtras(browsableExtras())
                             .build(),
                     ).build(),
                 params,
             ),
         )
+
+    override fun onSearch(
+        session: MediaLibrarySession,
+        browser: MediaSession.ControllerInfo,
+        query: String,
+        params: MediaLibraryService.LibraryParams?,
+    ): ListenableFuture<LibraryResult<Void>> =
+        Futures.immediateFuture(LibraryResult.ofVoid(params))
+
+    override fun onGetSearchResult(
+        session: MediaLibrarySession,
+        browser: MediaSession.ControllerInfo,
+        query: String,
+        page: Int,
+        pageSize: Int,
+        params: MediaLibraryService.LibraryParams?,
+    ): ListenableFuture<LibraryResult<ImmutableList<MediaItem>>> =
+        scope.future(Dispatchers.IO) {
+            val q = query.trim()
+            if (q.isBlank() || pageSize <= 0 || page < 0) {
+                return@future LibraryResult.ofItemList(emptyList(), params)
+            }
+
+            val requested = (page + 1) * pageSize
+            val items = ArrayList<MediaItem>(min(requested, 200))
+
+            val songs = database.searchSongs(q, previewSize = requested).first()
+            items += songs.map { it.toMediaItem(MusicService.SONG) }
+
+            if (items.size < requested) {
+                val remaining = requested - items.size
+
+                val artists = database.searchArtists(q, previewSize = remaining).first()
+                items +=
+                    artists.map { artist ->
+                        browsableMediaItem(
+                            "${MusicService.ARTIST}/${artist.id}",
+                            artist.title,
+                            context.resources.getQuantityString(
+                                R.plurals.n_song,
+                                artist.songCount,
+                                artist.songCount,
+                            ),
+                            artist.thumbnailUrl?.toUri(),
+                            MediaMetadata.MEDIA_TYPE_ARTIST,
+                        )
+                    }
+            }
+
+            if (items.size < requested) {
+                val remaining = requested - items.size
+
+                val albums = database.searchAlbums(q, previewSize = remaining).first()
+                items +=
+                    albums.map { album ->
+                        browsableMediaItem(
+                            "${MusicService.ALBUM}/${album.id}",
+                            album.title,
+                            album.artists.joinToString { it.name },
+                            album.thumbnailUrl?.toUri(),
+                            MediaMetadata.MEDIA_TYPE_ALBUM,
+                        )
+                    }
+            }
+
+            if (items.size < requested) {
+                val remaining = requested - items.size
+
+                val playlists = database.searchPlaylists(q, previewSize = remaining).first()
+                items +=
+                    playlists.map { playlist ->
+                        browsableMediaItem(
+                            "${MusicService.PLAYLIST}/${playlist.id}",
+                            playlist.title,
+                            context.resources.getQuantityString(
+                                R.plurals.n_song,
+                                playlist.songCount,
+                                playlist.songCount,
+                            ),
+                            playlist.thumbnails.firstOrNull()?.toUri(),
+                            MediaMetadata.MEDIA_TYPE_PLAYLIST,
+                        )
+                    }
+            }
+
+            val from = page * pageSize
+            if (from >= items.size) return@future LibraryResult.ofItemList(emptyList(), params)
+            val to = min(from + pageSize, items.size)
+
+            LibraryResult.ofItemList(items.subList(from, to), params)
+        }
 
     override fun onGetChildren(
         session: MediaLibrarySession,
@@ -284,9 +393,132 @@ constructor(
         mediaId: String,
     ): ListenableFuture<LibraryResult<MediaItem>> =
         scope.future(Dispatchers.IO) {
-            database.song(mediaId).first()?.toMediaItem()?.let {
-                LibraryResult.ofItem(it, null)
-            } ?: LibraryResult.ofError(SessionError.ERROR_UNKNOWN)
+            when {
+                mediaId == MusicService.ROOT ->
+                    LibraryResult.ofItem(
+                        MediaItem
+                            .Builder()
+                            .setMediaId(MusicService.ROOT)
+                            .setMediaMetadata(
+                                MediaMetadata
+                                    .Builder()
+                                    .setIsPlayable(false)
+                                    .setIsBrowsable(true)
+                                    .setMediaType(MediaMetadata.MEDIA_TYPE_FOLDER_MIXED)
+                                    .setExtras(browsableExtras())
+                                    .build(),
+                            ).build(),
+                        null,
+                    )
+
+                mediaId == MusicService.SONG ->
+                    LibraryResult.ofItem(
+                        browsableMediaItem(
+                            MusicService.SONG,
+                            context.getString(R.string.songs),
+                            null,
+                            drawableUri(R.drawable.music_note),
+                            MediaMetadata.MEDIA_TYPE_PLAYLIST,
+                        ),
+                        null,
+                    )
+
+                mediaId == MusicService.ARTIST ->
+                    LibraryResult.ofItem(
+                        browsableMediaItem(
+                            MusicService.ARTIST,
+                            context.getString(R.string.artists),
+                            null,
+                            drawableUri(R.drawable.artist),
+                            MediaMetadata.MEDIA_TYPE_FOLDER_ARTISTS,
+                        ),
+                        null,
+                    )
+
+                mediaId == MusicService.ALBUM ->
+                    LibraryResult.ofItem(
+                        browsableMediaItem(
+                            MusicService.ALBUM,
+                            context.getString(R.string.albums),
+                            null,
+                            drawableUri(R.drawable.album),
+                            MediaMetadata.MEDIA_TYPE_FOLDER_ALBUMS,
+                        ),
+                        null,
+                    )
+
+                mediaId == MusicService.PLAYLIST ->
+                    LibraryResult.ofItem(
+                        browsableMediaItem(
+                            MusicService.PLAYLIST,
+                            context.getString(R.string.playlists),
+                            null,
+                            drawableUri(R.drawable.queue_music),
+                            MediaMetadata.MEDIA_TYPE_FOLDER_PLAYLISTS,
+                        ),
+                        null,
+                    )
+
+                mediaId.startsWith("${MusicService.SONG}/") ->
+                    database.song(mediaId.removePrefix("${MusicService.SONG}/")).first()?.let {
+                        LibraryResult.ofItem(it.toMediaItem(MusicService.SONG), null)
+                    } ?: LibraryResult.ofError(SessionError.ERROR_UNKNOWN)
+
+                mediaId.startsWith("${MusicService.ARTIST}/") ->
+                    database.artist(mediaId.removePrefix("${MusicService.ARTIST}/")).first()?.let { artist ->
+                        LibraryResult.ofItem(
+                            browsableMediaItem(
+                                "${MusicService.ARTIST}/${artist.id}",
+                                artist.title,
+                                context.resources.getQuantityString(
+                                    R.plurals.n_song,
+                                    artist.songCount,
+                                    artist.songCount,
+                                ),
+                                artist.thumbnailUrl?.toUri(),
+                                MediaMetadata.MEDIA_TYPE_ARTIST,
+                            ),
+                            null,
+                        )
+                    } ?: LibraryResult.ofError(SessionError.ERROR_UNKNOWN)
+
+                mediaId.startsWith("${MusicService.ALBUM}/") ->
+                    database.album(mediaId.removePrefix("${MusicService.ALBUM}/")).first()?.let { album ->
+                        LibraryResult.ofItem(
+                            browsableMediaItem(
+                                "${MusicService.ALBUM}/${album.id}",
+                                album.title,
+                                album.artists.joinToString { it.name },
+                                album.thumbnailUrl?.toUri(),
+                                MediaMetadata.MEDIA_TYPE_ALBUM,
+                            ),
+                            null,
+                        )
+                    } ?: LibraryResult.ofError(SessionError.ERROR_UNKNOWN)
+
+                mediaId.startsWith("${MusicService.PLAYLIST}/") ->
+                    database.playlist(mediaId.removePrefix("${MusicService.PLAYLIST}/")).first()?.let { playlist ->
+                        LibraryResult.ofItem(
+                            browsableMediaItem(
+                                "${MusicService.PLAYLIST}/${playlist.id}",
+                                playlist.title,
+                                context.resources.getQuantityString(
+                                    R.plurals.n_song,
+                                    playlist.songCount,
+                                    playlist.songCount,
+                                ),
+                                playlist.thumbnails.firstOrNull()?.toUri(),
+                                MediaMetadata.MEDIA_TYPE_PLAYLIST,
+                            ),
+                            null,
+                        )
+                    } ?: LibraryResult.ofError(SessionError.ERROR_UNKNOWN)
+
+                else ->
+                    database.song(mediaId).first()?.toMediaItem()?.let {
+                        LibraryResult.ofItem(it, null)
+                    } ?: LibraryResult.ofError(SessionError.ERROR_UNKNOWN)
+            }
         }
 
     override fun onSetMediaItems(
@@ -300,9 +532,8 @@ constructor(
             // Play from Android Auto
             val defaultResult =
                 MediaSession.MediaItemsWithStartPosition(emptyList(), startIndex, startPositionMs)
-            val path =
-                mediaItems.firstOrNull()?.mediaId?.split("/")
-                    ?: return@future defaultResult
+            val firstItem = mediaItems.firstOrNull() ?: return@future defaultResult
+            val path = firstItem.mediaId.split("/").takeIf { it.isNotEmpty() }
             when (path.firstOrNull()) {
                 MusicService.SONG -> {
                     val songId = path.getOrNull(1) ?: return@future defaultResult
@@ -377,7 +608,19 @@ constructor(
                     )
                 }
 
-                else -> defaultResult
+                else -> {
+                    val query = firstItem.requestMetadata.searchQuery?.trim().orEmpty()
+                    if (query.isBlank()) return@future defaultResult
+
+                    val matchedSongs = database.searchSongs(query, previewSize = 50).first()
+                    val songId = matchedSongs.firstOrNull()?.id ?: return@future defaultResult
+                    val allSongs = database.songsByCreateDateAsc().first()
+                    MediaSession.MediaItemsWithStartPosition(
+                        allSongs.map { it.toMediaItem() },
+                        allSongs.indexOfFirst { it.id == songId }.takeIf { it != -1 } ?: 0,
+                        startPositionMs,
+                    )
+                }
             }
         }
 
@@ -410,6 +653,7 @@ constructor(
                 .setIsPlayable(false)
                 .setIsBrowsable(true)
                 .setMediaType(mediaType)
+                .setExtras(browsableExtras())
                 .build(),
         ).build()
 
@@ -427,6 +671,18 @@ constructor(
                     .setIsPlayable(true)
                     .setIsBrowsable(false)
                     .setMediaType(MediaMetadata.MEDIA_TYPE_MUSIC)
+                    .setExtras(playableExtras())
                     .build(),
             ).build()
+
+    companion object {
+        private const val EXTRA_CONTENT_STYLE_SUPPORTED = "android.media.browse.CONTENT_STYLE_SUPPORTED"
+        private const val EXTRA_CONTENT_STYLE_BROWSABLE_HINT =
+            "android.media.browse.CONTENT_STYLE_BROWSABLE_HINT"
+        private const val EXTRA_CONTENT_STYLE_PLAYABLE_HINT =
+            "android.media.browse.CONTENT_STYLE_PLAYABLE_HINT"
+
+        private const val CONTENT_STYLE_LIST_ITEM = 1
+        private const val CONTENT_STYLE_GRID_ITEM = 2
+    }
 }
