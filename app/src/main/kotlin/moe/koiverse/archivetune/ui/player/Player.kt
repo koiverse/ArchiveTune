@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.res.Configuration
 import android.graphics.drawable.BitmapDrawable
+import android.os.SystemClock
 import android.widget.Toast
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
@@ -16,9 +17,8 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
-import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
@@ -84,6 +84,7 @@ import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.Layout
@@ -683,51 +684,17 @@ fun BottomSheetPlayer(
                             modifier =
                             Modifier
                                 .fillMaxSize()
-                                .pointerInput(canSkipPrevious, canSkipNext) {
-                                    detectTapGestures(
-                                        onDoubleTap = { offset ->
-                                            val isLeftSide = offset.x < size.width / 2f
-                                            if (isLeftSide) {
-                                                if (canSkipPrevious) playerConnection.seekToPrevious()
-                                            } else {
-                                                if (canSkipNext) playerConnection.seekToNext()
-                                            }
-                                        },
-                                    )
-                                }
-                                .pointerInput(seekEnabled, duration, progressFraction) {
-                                    if (!seekEnabled) return@pointerInput
-                                    var isSeeking = false
-                                    detectDragGesturesAfterLongPress(
-                                        onDragStart = { offset ->
-                                            val minOverlayHeightPx = 24.dp.toPx()
-                                            val overlayHeightPx =
-                                                (progressFraction * size.height).coerceAtLeast(minOverlayHeightPx)
-                                            isSeeking = offset.y <= overlayHeightPx
-                                            if (isSeeking) {
-                                                val fraction = (offset.y / size.height).coerceIn(0f, 1f)
-                                                val targetMs =
-                                                    (duration.toDouble() * fraction.toDouble()).roundToLong().coerceIn(0L, duration)
-                                                updatedOnSliderValueChange(targetMs)
-                                            }
-                                        },
-                                        onDragEnd = {
-                                            if (isSeeking) updatedOnSliderValueChangeFinished()
-                                            isSeeking = false
-                                        },
-                                        onDragCancel = {
-                                            sliderPosition = null
-                                            isSeeking = false
-                                        },
-                                    ) { change, _ ->
-                                        if (!isSeeking) return@detectDragGesturesAfterLongPress
-                                        val fraction = (change.position.y / size.height).coerceIn(0f, 1f)
-                                        val targetMs =
-                                            (duration.toDouble() * fraction.toDouble()).roundToLong().coerceIn(0L, duration)
-                                        updatedOnSliderValueChange(targetMs)
-                                        change.consume()
-                                    }
-                                }
+                                .littlePlayerOverlayGestures(
+                                    seekEnabled = seekEnabled,
+                                    durationMs = duration,
+                                    progressFraction = progressFraction,
+                                    canSkipPrevious = canSkipPrevious,
+                                    canSkipNext = canSkipNext,
+                                    onSeekToPositionMs = updatedOnSliderValueChange,
+                                    onSeekFinished = updatedOnSliderValueChangeFinished,
+                                    onSkipPrevious = playerConnection::seekToPrevious,
+                                    onSkipNext = playerConnection::seekToNext,
+                                )
                                 .windowInsetsPadding(
                                     WindowInsets.systemBars.only(
                                         WindowInsetsSides.Horizontal + WindowInsetsSides.Top + WindowInsetsSides.Bottom
@@ -833,51 +800,17 @@ fun BottomSheetPlayer(
                             modifier =
                             Modifier
                                 .fillMaxSize()
-                                .pointerInput(canSkipPrevious, canSkipNext) {
-                                    detectTapGestures(
-                                        onDoubleTap = { offset ->
-                                            val isLeftSide = offset.x < size.width / 2f
-                                            if (isLeftSide) {
-                                                if (canSkipPrevious) playerConnection.seekToPrevious()
-                                            } else {
-                                                if (canSkipNext) playerConnection.seekToNext()
-                                            }
-                                        },
-                                    )
-                                }
-                                .pointerInput(seekEnabled, duration, progressFraction) {
-                                    if (!seekEnabled) return@pointerInput
-                                    var isSeeking = false
-                                    detectDragGesturesAfterLongPress(
-                                        onDragStart = { offset ->
-                                            val minOverlayHeightPx = 24.dp.toPx()
-                                            val overlayHeightPx =
-                                                (progressFraction * size.height).coerceAtLeast(minOverlayHeightPx)
-                                            isSeeking = offset.y <= overlayHeightPx
-                                            if (isSeeking) {
-                                                val fraction = (offset.y / size.height).coerceIn(0f, 1f)
-                                                val targetMs =
-                                                    (duration.toDouble() * fraction.toDouble()).roundToLong().coerceIn(0L, duration)
-                                                updatedOnSliderValueChange(targetMs)
-                                            }
-                                        },
-                                        onDragEnd = {
-                                            if (isSeeking) updatedOnSliderValueChangeFinished()
-                                            isSeeking = false
-                                        },
-                                        onDragCancel = {
-                                            sliderPosition = null
-                                            isSeeking = false
-                                        },
-                                    ) { change, _ ->
-                                        if (!isSeeking) return@detectDragGesturesAfterLongPress
-                                        val fraction = (change.position.y / size.height).coerceIn(0f, 1f)
-                                        val targetMs =
-                                            (duration.toDouble() * fraction.toDouble()).roundToLong().coerceIn(0L, duration)
-                                        updatedOnSliderValueChange(targetMs)
-                                        change.consume()
-                                    }
-                                }
+                                .littlePlayerOverlayGestures(
+                                    seekEnabled = seekEnabled,
+                                    durationMs = duration,
+                                    progressFraction = progressFraction,
+                                    canSkipPrevious = canSkipPrevious,
+                                    canSkipNext = canSkipNext,
+                                    onSeekToPositionMs = updatedOnSliderValueChange,
+                                    onSeekFinished = updatedOnSliderValueChangeFinished,
+                                    onSkipPrevious = playerConnection::seekToPrevious,
+                                    onSkipNext = playerConnection::seekToNext,
+                                )
                                 .windowInsetsPadding(
                                     WindowInsets.systemBars.only(
                                         WindowInsetsSides.Horizontal + WindowInsetsSides.Top + WindowInsetsSides.Bottom
@@ -1237,6 +1170,93 @@ private fun LandscapeLikeBox(
                     transformOrigin = TransformOrigin(0f, 0f)
                     rotationZ = 90f
                     translationX = placeable.height.toFloat()
+                }
+            }
+        }
+    }
+}
+
+private fun Modifier.littlePlayerOverlayGestures(
+    seekEnabled: Boolean,
+    durationMs: Long,
+    progressFraction: Float,
+    canSkipPrevious: Boolean,
+    canSkipNext: Boolean,
+    onSeekToPositionMs: (Long) -> Unit,
+    onSeekFinished: () -> Unit,
+    onSkipPrevious: () -> Unit,
+    onSkipNext: () -> Unit,
+): Modifier {
+    return pointerInput(seekEnabled, durationMs, canSkipPrevious, canSkipNext) {
+        var lastTapUptimeMs = 0L
+        var lastTapPosition: Offset? = null
+        val doubleTapTimeoutMs = viewConfiguration.doubleTapTimeoutMillis.toLong()
+        val touchSlop = viewConfiguration.touchSlop
+
+        awaitEachGesture {
+            val down = awaitFirstDown(requireUnconsumed = false)
+            val pointerId = down.id
+
+            var upPosition = down.position
+            val minOverlayHeightPx = 24.dp.toPx()
+            val overlayHeightPx =
+                (progressFraction * size.height).coerceAtLeast(minOverlayHeightPx)
+            val seekAllowedFromDown =
+                seekEnabled &&
+                    durationMs > 0L &&
+                    durationMs != C.TIME_UNSET &&
+                    down.position.y <= overlayHeightPx
+
+            var isSeeking = false
+
+            while (true) {
+                val event = awaitPointerEvent(PointerEventPass.Main)
+                val change = event.changes.firstOrNull { it.id == pointerId } ?: continue
+                upPosition = change.position
+
+                if (!change.pressed) break
+
+                if (!isSeeking && seekAllowedFromDown) {
+                    val distanceFromDown = (change.position - down.position).getDistance()
+                    if (distanceFromDown > touchSlop) isSeeking = true
+                }
+
+                if (isSeeking) {
+                    val fraction =
+                        if (size.height > 0) (change.position.y / size.height.toFloat()) else 0f
+                    val clampedFraction = fraction.coerceIn(0f, 1f)
+
+                    val targetMs =
+                        (durationMs.toDouble() * clampedFraction.toDouble()).roundToLong().coerceIn(0L, durationMs)
+                    onSeekToPositionMs(targetMs)
+                    change.consume()
+                }
+            }
+
+            if (isSeeking) {
+                onSeekFinished()
+                lastTapUptimeMs = 0L
+                lastTapPosition = null
+            } else {
+                val now = SystemClock.uptimeMillis()
+                val previousTapPosition = lastTapPosition
+                val isDoubleTap =
+                    previousTapPosition != null &&
+                            (now - lastTapUptimeMs) <= doubleTapTimeoutMs &&
+                            (upPosition - previousTapPosition).getDistance() <= (touchSlop * 2f)
+
+                if (isDoubleTap) {
+                    val isTopSide = upPosition.y < size.height / 2f
+                    if (isTopSide) {
+                        if (canSkipPrevious) onSkipPrevious()
+                    } else {
+                        if (canSkipNext) onSkipNext()
+                    }
+                    lastTapUptimeMs = 0L
+                    lastTapPosition = null
+                } else {
+                    lastTapUptimeMs = now
+                    lastTapPosition = upPosition
                 }
             }
         }
