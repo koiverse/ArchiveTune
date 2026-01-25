@@ -1030,7 +1030,7 @@ private fun YearInMusicTopAlbumStoryCard(
     album: Album,
     onClick: () -> Unit
 ) {
-    val artistNames = album.artists.take(2).joinToString(" • ") { it.name }
+    val artistNames = album.artists.take(2).joinToString(" • ") { artist -> artist.name }
     val artistDisplay = artistNames.takeIf { it.isNotBlank() }
 
     Card(

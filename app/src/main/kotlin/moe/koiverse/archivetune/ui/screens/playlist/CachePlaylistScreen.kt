@@ -140,7 +140,7 @@ fun CachePlaylistScreen(
             SongSortType.CREATE_DATE -> cachedSongs.sortedBy { it.song.dateDownload ?: LocalDateTime.MIN }
             SongSortType.NAME -> cachedSongs.sortedBy { it.song.title }
             SongSortType.ARTIST -> cachedSongs.sortedBy { song ->
-                song.artists.joinToString(separator = "") { it.name }
+                song.artists.joinToString(separator = "") { artist -> artist.name }
             }
             SongSortType.PLAY_TIME -> cachedSongs.sortedBy { it.song.totalPlayTime }
         }.let { if (sortDescending) it.reversed() else it }

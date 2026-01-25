@@ -1043,7 +1043,7 @@ private fun LittlePlayerContent(
         }
 
         val artistsText = remember(mediaMetadata.artists) {
-            mediaMetadata.artists.joinToString(separator = ", ") { it.name }
+            mediaMetadata.artists.joinToString(separator = ", ") { artist -> artist.name }
         }
 
         Column(

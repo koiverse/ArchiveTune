@@ -148,7 +148,7 @@ fun CurrentSongHeader(
                     color = onBackgroundColor
                 )
                 Text(
-                    text = mediaMetadata?.artists?.joinToString(",") { it.name } ?: "",
+                    text = mediaMetadata?.artists?.joinToString(",") { artist -> artist.name } ?: "",
                     style = MaterialTheme.typography.bodyMedium,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,

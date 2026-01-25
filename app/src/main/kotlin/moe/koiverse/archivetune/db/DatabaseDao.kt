@@ -101,14 +101,14 @@ interface DatabaseDao {
                 songs
                     .sortedWith(
                         compareBy(collator) { song ->
-                            song.artists.joinToString("") { it.name }
+                            song.artists.joinToString("") { artist -> artist.name }
                         },
                     ).groupBy { it.album?.title }
                     .flatMap { (_, songsByAlbum) ->
                         songsByAlbum.sortedBy { album ->
                             album.artists.joinToString(
                                 "",
-                            ) { it.name }
+                            ) { artist -> artist.name }
                         }
                     }
             }
@@ -151,14 +151,14 @@ interface DatabaseDao {
                 songs
                     .sortedWith(
                         compareBy(collator) { song ->
-                            song.artists.joinToString("") { it.name }
+                            song.artists.joinToString("") { artist -> artist.name }
                         },
                     ).groupBy { it.album?.title }
                     .flatMap { (_, songsByAlbum) ->
                         songsByAlbum.sortedBy { album ->
                             album.artists.joinToString(
                                 "",
-                            ) { it.name }
+                            ) { artist -> artist.name }
                         }
                     }
             }
@@ -758,7 +758,7 @@ interface DatabaseDao {
             albumsByCreateDateAsc().map { albums ->
                 val collator = Collator.getInstance(Locale.getDefault())
                 collator.strength = Collator.PRIMARY
-                albums.sortedWith(compareBy(collator) { album -> album.artists.joinToString("") { it.name } })
+                albums.sortedWith(compareBy(collator) { album -> album.artists.joinToString("") { artist -> artist.name } })
             }
 
         AlbumSortType.YEAR -> albumsByYearAsc()
@@ -783,7 +783,7 @@ interface DatabaseDao {
             albumsLikedByCreateDateAsc().map { albums ->
                 val collator = Collator.getInstance(Locale.getDefault())
                 collator.strength = Collator.PRIMARY
-                albums.sortedWith(compareBy(collator) { album -> album.artists.joinToString("") { it.name } })
+                albums.sortedWith(compareBy(collator) { album -> album.artists.joinToString("") { artist -> artist.name } })
             }
 
         AlbumSortType.YEAR -> albumsLikedByYearAsc()
@@ -854,7 +854,7 @@ interface DatabaseDao {
                 albumsByRowId(ids).map { albums ->
                     val collator = Collator.getInstance(java.util.Locale.getDefault())
                     collator.strength = Collator.PRIMARY
-                    albums.sortedWith(compareBy(collator) { album -> album.artists.joinToString("") { it.name } })
+                    albums.sortedWith(compareBy(collator) { album -> album.artists.joinToString("") { artist -> artist.name } })
                 }
             AlbumSortType.YEAR -> albumsByYear(ids)
             AlbumSortType.SONG_COUNT -> albumsBySongCount(ids)
@@ -1192,7 +1192,7 @@ interface DatabaseDao {
                     year = albumPage.album.year,
                     thumbnailUrl = albumPage.album.thumbnail,
                     songCount = albumPage.songs.size,
-                    duration = albumPage.songs.sumOf { it.duration ?: 0 },
+                    duration = albumPage.songs.sumOf { song -> song.duration ?: 0 },
                     explicit = albumPage.album.explicit || albumPage.songs.any { it.explicit },
                 ),
             ) == -1L
@@ -1309,7 +1309,7 @@ interface DatabaseDao {
                 year = albumPage.album.year,
                 thumbnailUrl = albumPage.album.thumbnail,
                 songCount = albumPage.songs.size,
-                duration = albumPage.songs.sumOf { it.duration ?: 0 },
+                duration = albumPage.songs.sumOf { song -> song.duration ?: 0 },
                 explicit = albumPage.album.explicit || albumPage.songs.any { it.explicit },
             ),
         )

@@ -102,13 +102,13 @@ class ScrobbleManager(
         scope.launch {
             try {
                 LastFM.scrobble(
-                    artist = metadata.artists.joinToString(", ") { it.name },
+                    artist = metadata.artists.joinToString(", ") { artist -> artist.name },
                     track = metadata.title,
                     duration = metadata.duration,
                     timestamp = songStartedAt,
                     album = metadata.album?.title,
                 )
-                Timber.tag("ScrobbleManager").d("Scrobbled: ${metadata.title} by ${metadata.artists.joinToString(", ") { it.name }}")
+                Timber.tag("ScrobbleManager").d("Scrobbled: ${metadata.title} by ${metadata.artists.joinToString(", ") { artist -> artist.name }}")
             } catch (e: Exception) {
                 Timber.tag("ScrobbleManager").e(e, "Failed to scrobble: ${metadata.title}")
             }
@@ -119,7 +119,7 @@ class ScrobbleManager(
         scope.launch {
             try {
                 LastFM.updateNowPlaying(
-                    artist = metadata.artists.joinToString(", ") { it.name },
+                    artist = metadata.artists.joinToString(", ") { artist -> artist.name },
                     track = metadata.title,
                     album = metadata.album?.title,
                     duration = metadata.duration
