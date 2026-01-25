@@ -476,7 +476,7 @@
     <string name="backup_create_failed">Impossibile creare il backup</string>
     <string name="restore_failed">Impossibile ripristinare il backup</string>
     <string name="discord_integration">Integrazione della discordia</string>
-    <string name="discord_information">ArchiveTune uses the KizzyRPC library to set your Discord account\\'s status. This involves using the Discord Gateway connection, which may be considered a violation of Discord\\'s TOS. However, there are no known cases of user accounts being suspended for this reason. Use at your own risk.
+    <string name="discord_information">ArchiveTune uses the KizzyRPC library to set your Discord account\'s status. This involves using the Discord Gateway connection, which may be considered a violation of Discord\'s TOS. However, there are no known cases of user accounts being suspended for this reason. Use at your own risk.
 ArchiveTune will only extract your token, and everything else is stored locally.</string>
     <string name="dismiss">Ignora</string>
     <string name="options">Opzioni</string>
