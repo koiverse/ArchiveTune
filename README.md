@@ -134,7 +134,7 @@ ArchiveTune belongs to everyone. Help us localize the experience for your region
 
 ### 🛠️ Development & Engineering
 Interested in building the project or contributing? ArchiveTune is built on a high-performance Kotlin stack.
-<a href="BUILDING.md"><b>Read the Build & Contribution Guide →</b></a>
+<a href="CONTRIBUTING.md"><b>Read the Build & Contribution Guide →</b></a>
 
 ---
 
