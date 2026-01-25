@@ -1,4 +1,4 @@
-﻿package moe.koiverse.archivetune.ui.player
+package moe.koiverse.archivetune.ui.player
 
 import android.content.ClipData
 import android.content.ClipboardManager
@@ -684,33 +684,31 @@ fun BottomSheetPlayer(
                                 ),
                         ) {
                             mediaMetadata?.let { metadata ->
-                                LandscapeLikeBox(modifier = Modifier.fillMaxSize()) {
-                                    LittlePlayerContent(
-                                        mediaMetadata = metadata,
-                                        positionMs = position,
-                                        durationMs = duration,
-                                        textColor = littleTextColor,
-                                        liked = currentSongLiked,
-                                        onCollapse = state::collapseSoft,
-                                        onToggleLike = playerConnection::toggleLike,
-                                        onExpandQueue = queueSheetState::expandSoft,
-                                        onMenuClick = {
-                                            menuState.show {
-                                                PlayerMenu(
-                                                    mediaMetadata = metadata,
-                                                    navController = navController,
-                                                    playerBottomSheetState = state,
-                                                    onShowDetailsDialog = {
-                                                        bottomSheetPageState.show {
-                                                            ShowMediaInfo(metadata.id)
-                                                        }
-                                                    },
-                                                    onDismiss = menuState::dismiss
-                                                )
-                                            }
+                                LittlePlayerContent(
+                                    mediaMetadata = metadata,
+                                    positionMs = position,
+                                    durationMs = duration,
+                                    textColor = littleTextColor,
+                                    liked = currentSongLiked,
+                                    onCollapse = state::collapseSoft,
+                                    onToggleLike = playerConnection::toggleLike,
+                                    onExpandQueue = queueSheetState::expandSoft,
+                                    onMenuClick = {
+                                        menuState.show {
+                                            PlayerMenu(
+                                                mediaMetadata = metadata,
+                                                navController = navController,
+                                                playerBottomSheetState = state,
+                                                onShowDetailsDialog = {
+                                                    bottomSheetPageState.show {
+                                                        ShowMediaInfo(metadata.id)
+                                                    }
+                                                },
+                                                onDismiss = menuState::dismiss
+                                            )
                                         }
-                                    )
-                                }
+                                    }
+                                )
                             }
                         }
                     }
@@ -726,8 +724,6 @@ fun BottomSheetPlayer(
                             FullPlayerContent(
                                 mediaMetadata = metadata,
                                 nextMediaMetadata = nextUpMetadata,
-                                showCodecOnPlayer = showCodecOnPlayer,
-                                currentFormat = currentFormat,
                                 sliderStyle = sliderStyle,
                                 sliderPosition = sliderPosition,
                                 position = position,
@@ -832,31 +828,33 @@ fun BottomSheetPlayer(
                                 ),
                         ) {
                             mediaMetadata?.let { metadata ->
-                                LittlePlayerContent(
-                                    mediaMetadata = metadata,
-                                    positionMs = position,
-                                    durationMs = duration,
-                                    textColor = littleTextColor,
-                                    liked = currentSongLiked,
-                                    onCollapse = state::collapseSoft,
-                                    onToggleLike = playerConnection::toggleLike,
-                                    onExpandQueue = queueSheetState::expandSoft,
-                                    onMenuClick = {
-                                        menuState.show {
-                                            PlayerMenu(
-                                                mediaMetadata = metadata,
-                                                navController = navController,
-                                                playerBottomSheetState = state,
-                                                onShowDetailsDialog = {
-                                                    bottomSheetPageState.show {
-                                                        ShowMediaInfo(metadata.id)
-                                                    }
-                                                },
-                                                onDismiss = menuState::dismiss
-                                            )
+                                LandscapeLikeBox(modifier = Modifier.fillMaxSize()) {
+                                    LittlePlayerContent(
+                                        mediaMetadata = metadata,
+                                        positionMs = position,
+                                        durationMs = duration,
+                                        textColor = littleTextColor,
+                                        liked = currentSongLiked,
+                                        onCollapse = state::collapseSoft,
+                                        onToggleLike = playerConnection::toggleLike,
+                                        onExpandQueue = queueSheetState::expandSoft,
+                                        onMenuClick = {
+                                            menuState.show {
+                                                PlayerMenu(
+                                                    mediaMetadata = metadata,
+                                                    navController = navController,
+                                                    playerBottomSheetState = state,
+                                                    onShowDetailsDialog = {
+                                                        bottomSheetPageState.show {
+                                                            ShowMediaInfo(metadata.id)
+                                                        }
+                                                    },
+                                                    onDismiss = menuState::dismiss
+                                                )
+                                            }
                                         }
-                                    }
-                                )
+                                    )
+                                }
                             }
                         }
                     }
@@ -872,8 +870,6 @@ fun BottomSheetPlayer(
                             FullPlayerContent(
                                 mediaMetadata = metadata,
                                 nextMediaMetadata = nextUpMetadata,
-                                showCodecOnPlayer = showCodecOnPlayer,
-                                currentFormat = currentFormat,
                                 sliderStyle = sliderStyle,
                                 sliderPosition = sliderPosition,
                                 position = position,
@@ -950,10 +946,20 @@ fun BottomSheetPlayer(
             playerBottomSheetState = state,
             navController = navController,
             backgroundColor =
-            if (useBlackBackground) {
-                Color.Black
+            if (playerDesignStyle == PlayerDesignStyle.V6) {
+                val base =
+                    if (useBlackBackground) {
+                        Color.Black
+                    } else {
+                        MaterialTheme.colorScheme.surfaceContainer
+                    }
+                base.copy(alpha = queueSheetState.progress.coerceIn(0f, 1f))
             } else {
-                MaterialTheme.colorScheme.surfaceContainer
+                if (useBlackBackground) {
+                    Color.Black
+                } else {
+                    MaterialTheme.colorScheme.surfaceContainer
+                }
             },
             onBackgroundColor = queueOnBackgroundColor,
             TextBackgroundColor = TextBackgroundColor,
@@ -997,8 +1003,6 @@ fun BottomSheetPlayer(
 private fun FullPlayerContent(
     mediaMetadata: MediaMetadata,
     nextMediaMetadata: MediaMetadata?,
-    showCodecOnPlayer: Boolean,
-    currentFormat: FormatEntity?,
     sliderStyle: SliderStyle,
     sliderPosition: Long?,
     position: Long,
@@ -1028,33 +1032,6 @@ private fun FullPlayerContent(
     onSliderValueChangeFinished: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val codecInfo =
-        remember(showCodecOnPlayer, currentFormat) {
-            if (!showCodecOnPlayer || currentFormat == null) return@remember null
-
-            val codec =
-                currentFormat.codecs
-                    .takeIf { it.isNotBlank() }
-                    ?: currentFormat.mimeType.substringAfter("/", missingDelimiterValue = currentFormat.mimeType).uppercase()
-
-            val bitrate = if (currentFormat.bitrate > 0) "${currentFormat.bitrate / 1000} kbps" else "Unknown"
-            val sampleRateText =
-                currentFormat.sampleRate?.takeIf { it > 0 }?.let { sampleRate ->
-                    val khz = (sampleRate / 100.0).roundToInt() / 10.0
-                    "$khz kHz"
-                }
-
-            val fileSize =
-                sampleRateText
-                    ?: if (currentFormat.contentLength > 0) {
-                        "${(currentFormat.contentLength / 1024.0 / 1024.0).roundToInt()} MB"
-                    } else {
-                        ""
-                    }
-
-            Triple(codec, bitrate, fileSize)
-        }
-
     val artistsText =
         remember(mediaMetadata.artists) {
             mediaMetadata.artists.joinToString(separator = ", ") { it.name }
@@ -1332,18 +1309,6 @@ private fun FullPlayerContent(
                     tint = textBackgroundColor.copy(alpha = 0.9f),
                 )
             }
-
-            codecInfo?.let { (codec, bitrate, fileSize) ->
-                CodecInfoRow(
-                    codec = codec,
-                    bitrate = bitrate,
-                    fileSize = fileSize,
-                    textColor = textBackgroundColor.copy(alpha = 0.78f),
-                    modifier = Modifier.padding(top = 8.dp),
-                )
-            }
-
-            Spacer(Modifier.height(10.dp))
         }
     }
 }
@@ -1547,7 +1512,7 @@ private fun LandscapeLikeBox(
 ) {
     Layout(
         content = content,
-        modifier = modifier,
+        modifier = modifier.clipToBounds(),
     ) { measurables, constraints ->
         val measurable = measurables.firstOrNull()
         if (measurable == null) {
