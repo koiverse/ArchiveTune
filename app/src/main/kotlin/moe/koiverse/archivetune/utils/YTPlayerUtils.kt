@@ -90,14 +90,6 @@ object YTPlayerUtils {
             if (isLoggedIn) YouTube.dataSyncId else YouTube.visitorData
         Timber.tag(logTag).v("Session authentication status: ${if (isLoggedIn) "Logged in" else "Not logged in"} (sessionId=${sessionId.orEmpty()})")
 
-        Timber.tag(logTag).i("Fetching metadata response using MAIN_CLIENT: ${MAIN_CLIENT.clientName}")
-        val metadataPlayerResponse =
-            YouTube.player(videoId, playlistId, MAIN_CLIENT, signatureTimestamp).getOrThrow()
-        val audioConfig = metadataPlayerResponse.playerConfig?.audioConfig
-        val videoDetails = metadataPlayerResponse.videoDetails
-        val playbackTracking = metadataPlayerResponse.playbackTracking
-        val expectedDurationMs = videoDetails?.lengthSeconds?.toLongOrNull()?.takeIf { it > 0 }?.times(1000L)
-
         var format: PlayerResponse.StreamingData.Format? = null
         var streamUrl: String? = null
         var streamExpiresInSeconds: Int? = null
@@ -119,11 +111,21 @@ object YTPlayerUtils {
                 PlayerStreamClient.WEB_REMIX -> WEB_REMIX
             }
 
+        val metadataClient = preferredYouTubeClient.takeIf { preferredStreamClient == PlayerStreamClient.ANDROID_VR } ?: MAIN_CLIENT
+
+        Timber.tag(logTag).i("Fetching metadata response using client: ${metadataClient.clientName}")
+        val metadataPlayerResponse =
+            YouTube.player(videoId, playlistId, metadataClient, signatureTimestamp).getOrThrow()
+        val audioConfig = metadataPlayerResponse.playerConfig?.audioConfig
+        val videoDetails = metadataPlayerResponse.videoDetails
+        val playbackTracking = metadataPlayerResponse.playbackTracking
+        val expectedDurationMs = videoDetails?.lengthSeconds?.toLongOrNull()?.takeIf { it > 0 }?.times(1000L)
+
         val streamClients =
             buildList {
                 add(preferredYouTubeClient)
-                add(MAIN_CLIENT)
                 addAll(orderedFallbackClients)
+                if (preferredYouTubeClient != MAIN_CLIENT) add(MAIN_CLIENT)
             }.distinct()
 
         for ((index, client) in streamClients.withIndex()) {
@@ -147,7 +149,7 @@ object YTPlayerUtils {
             }
 
             streamPlayerResponse =
-                if (isMain) {
+                if (client == metadataClient) {
                     metadataPlayerResponse
                 } else {
                     Timber.tag(logTag).i("Fetching player response for fallback client: ${client.clientName}")
