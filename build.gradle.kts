@@ -1,19 +1,12 @@
 plugins {
+    alias(libs.plugins.android.application) apply (false)
+    alias(libs.plugins.android.library) apply (false)
     alias(libs.plugins.hilt) apply (false)
-    kotlin("jvm") version libs.versions.kotlin.get() apply (false)
+    alias(libs.plugins.kotlin.android) apply (false)
+    alias(libs.plugins.kotlin.jvm) apply (false)
     alias(libs.plugins.kotlin.ksp) apply (false)
-}
-
-buildscript {
-    repositories {
-        google()
-        mavenCentral()
-        mavenLocal()
-        maven { setUrl("https://jitpack.io") }
-    }
-    dependencies {
-        classpath(libs.gradle)
-    }
+    alias(libs.plugins.kotlin.serialization) apply (false)
+    alias(libs.plugins.compose.compiler) apply (false)
 }
 
 tasks.register<Delete>("clean") {
