@@ -238,4 +238,11 @@
     <string name="theme_preview_primary_action">Action principale</string>
     <string name="theme_preview_secondary_action">Action secondaire</string>
     <string name="copy">Copier</string>
+    <string name="player_design_v5">Petit</string>
+    <string name="player_stream_client">Client de lecture</string>
+    <string name="player_stream_client_desc">Contrôle le client YouTube utilisé pour récupérer les flux</string>
+    <string name="player_stream_client_android_vr">Android VR</string>
+    <string name="player_stream_client_android_vr_desc">Diffusion directe sans décryptage de signature, pour une vitesse maximale. Convient à la majorité des utilisateurs.</string>
+    <string name="player_stream_client_web_remix">Remix Web</string>
+    <string name="player_stream_client_web_remix_desc">Prise en charge étendue des formats au détriment de la vitesse. Le décryptage des signatures JavaScript entraîne un délai de démarrage d\'environ 5 à 10 secondes.</string>
 </resources>
