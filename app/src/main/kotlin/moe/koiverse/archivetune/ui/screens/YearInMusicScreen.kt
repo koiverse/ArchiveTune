@@ -21,6 +21,7 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
@@ -1105,64 +1106,280 @@ private fun YearInMusicSummaryStoryCard(
     topArtist: Artist?,
     topAlbum: Album?
 ) {
+    val primary = MaterialTheme.colorScheme.primary
+    val secondary = MaterialTheme.colorScheme.secondary
+    val tertiary = MaterialTheme.colorScheme.tertiary
+    val surface = MaterialTheme.colorScheme.surface
+    val onSurface = MaterialTheme.colorScheme.onSurface
+    val onPrimary = MaterialTheme.colorScheme.onPrimary
+
+    val topSongTitle = topSong?.title
+    val topArtistName = topArtist?.artist?.name
+    val topAlbumTitle = topAlbum?.album?.title
+
     Card(
         modifier = Modifier.fillMaxSize(),
         shape = RoundedCornerShape(0.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
-        )
+        colors = CardDefaults.cardColors(containerColor = Color.Transparent)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(24.dp),
-            verticalArrangement = Arrangement.SpaceBetween
-        ) {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text(
-                    text = stringResource(R.string.year_in_music),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Text(
-                    text = year.toString(),
-                    style = MaterialTheme.typography.displaySmall,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    text = makeTimeString(totalListeningTime),
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Text(
-                    text = pluralStringResource(
-                        R.plurals.n_song,
-                        totalSongsPlayed.toInt(),
-                        totalSongsPlayed.toInt()
-                    ) + " " + stringResource(R.string.played),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
+        Box(modifier = Modifier.fillMaxSize()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.linearGradient(
+                            colors = listOf(
+                                primary.copy(alpha = 0.95f),
+                                secondary.copy(alpha = 0.85f),
+                                tertiary.copy(alpha = 0.75f)
+                            )
+                        )
+                    )
+            )
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                Color.Transparent,
+                                surface.copy(alpha = 0.28f),
+                                surface.copy(alpha = 0.8f),
+                                surface
+                            )
+                        )
+                    )
+            )
 
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text(
-                    text = joinByBullet(
-                        topSong?.title,
-                        topArtist?.artist?.name,
-                        topAlbum?.album?.title
-                    ).ifEmpty { stringResource(R.string.no_listening_data) },
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Text(
-                    text = stringResource(R.string.share_summary),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 22.dp, vertical = 22.dp),
+                verticalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(44.dp)
+                                .clip(CircleShape)
+                                .background(Color.White.copy(alpha = 0.14f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Image(
+                                painter = painterResource(R.drawable.app_icon_small),
+                                contentDescription = null,
+                                modifier = Modifier.size(22.dp)
+                            )
+                        }
+                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Text(
+                                text = "ArchiveTune",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = onPrimary
+                            )
+                            Text(
+                                text = joinByBullet(
+                                    stringResource(R.string.year_in_music),
+                                    year.toString()
+                                ),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = onPrimary.copy(alpha = 0.85f),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+
+                    Text(
+                        text = stringResource(R.string.share_summary),
+                        style = MaterialTheme.typography.displaySmall,
+                        fontWeight = FontWeight.Black,
+                        color = onPrimary
+                    )
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(24.dp))
+                                .background(Color.White.copy(alpha = 0.12f))
+                                .padding(16.dp)
+                        ) {
+                            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Text(
+                                    text = stringResource(R.string.total_listening_time),
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = onPrimary.copy(alpha = 0.85f),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                Text(
+                                    text = makeTimeString(totalListeningTime),
+                                    style = MaterialTheme.typography.headlineSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = onPrimary,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                        }
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(24.dp))
+                                .background(Color.White.copy(alpha = 0.12f))
+                                .padding(16.dp)
+                        ) {
+                            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Text(
+                                    text = stringResource(R.string.songs),
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = onPrimary.copy(alpha = 0.85f),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                Text(
+                                    text = totalSongsPlayed.toString(),
+                                    style = MaterialTheme.typography.headlineSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = onPrimary,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                Text(
+                                    text = stringResource(R.string.played),
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = onPrimary.copy(alpha = 0.85f),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                        }
+                    }
+                }
+
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    val hasAnyHighlight =
+                        !topSongTitle.isNullOrBlank() || !topArtistName.isNullOrBlank() || !topAlbumTitle.isNullOrBlank()
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(28.dp))
+                            .background(surface.copy(alpha = 0.72f))
+                            .padding(18.dp)
+                    ) {
+                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            Text(
+                                text = stringResource(R.string.year_in_music),
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.SemiBold,
+                                color = onSurface
+                            )
+
+                            if (!hasAnyHighlight) {
+                                Text(
+                                    text = stringResource(R.string.no_listening_data),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            } else {
+                                YearInMusicSummaryHighlightRow(
+                                    icon = R.drawable.ic_music,
+                                    label = stringResource(R.string.top_songs),
+                                    value = topSongTitle
+                                )
+                                YearInMusicSummaryHighlightRow(
+                                    icon = R.drawable.artist,
+                                    label = stringResource(R.string.top_artists),
+                                    value = topArtistName
+                                )
+                                YearInMusicSummaryHighlightRow(
+                                    icon = R.drawable.album,
+                                    label = stringResource(R.string.albums),
+                                    value = topAlbumTitle
+                                )
+                            }
+                        }
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = joinByBullet("ArchiveTune", year.toString()),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = onPrimary.copy(alpha = 0.7f),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Text(
+                            text = stringResource(R.string.share_summary),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = onPrimary.copy(alpha = 0.7f),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
             }
+        }
+    }
+}
+
+@Composable
+private fun YearInMusicSummaryHighlightRow(
+    icon: Int,
+    label: String,
+    value: String?
+) {
+    val displayValue = value?.takeIf { it.isNotBlank() } ?: "—"
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .clip(RoundedCornerShape(14.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                painter = painterResource(icon),
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurface
+            )
+        }
+
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Text(
+                text = displayValue,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
         }
     }
 }
