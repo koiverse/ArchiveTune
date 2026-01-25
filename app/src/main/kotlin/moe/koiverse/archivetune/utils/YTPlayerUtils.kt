@@ -3,6 +3,7 @@ package moe.koiverse.archivetune.utils
 import android.net.ConnectivityManager
 import androidx.media3.common.PlaybackException
 import moe.koiverse.archivetune.constants.AudioQuality
+import moe.koiverse.archivetune.constants.PlayerStreamClient
 import moe.koiverse.archivetune.innertube.NewPipeUtils
 import moe.koiverse.archivetune.innertube.YouTube
 import moe.koiverse.archivetune.innertube.models.YouTubeClient
@@ -69,6 +70,7 @@ object YTPlayerUtils {
         playlistId: String? = null,
         audioQuality: AudioQuality,
         connectivityManager: ConnectivityManager,
+        preferredStreamClient: PlayerStreamClient = PlayerStreamClient.ANDROID_VR,
         // if provided, this preference overrides ConnectivityManager.isActiveNetworkMetered
         networkMetered: Boolean? = null,
         avoidCodecs: Set<String> = emptySet(),
@@ -88,12 +90,12 @@ object YTPlayerUtils {
             if (isLoggedIn) YouTube.dataSyncId else YouTube.visitorData
         Timber.tag(logTag).v("Session authentication status: ${if (isLoggedIn) "Logged in" else "Not logged in"} (sessionId=${sessionId.orEmpty()})")
 
-        Timber.tag(logTag).i("Attempting to get player response using MAIN_CLIENT: ${MAIN_CLIENT.clientName}")
-        val mainPlayerResponse =
+        Timber.tag(logTag).i("Fetching metadata response using MAIN_CLIENT: ${MAIN_CLIENT.clientName}")
+        val metadataPlayerResponse =
             YouTube.player(videoId, playlistId, MAIN_CLIENT, signatureTimestamp).getOrThrow()
-        val audioConfig = mainPlayerResponse.playerConfig?.audioConfig
-        val videoDetails = mainPlayerResponse.videoDetails
-        val playbackTracking = mainPlayerResponse.playbackTracking
+        val audioConfig = metadataPlayerResponse.playerConfig?.audioConfig
+        val videoDetails = metadataPlayerResponse.videoDetails
+        val playbackTracking = metadataPlayerResponse.playbackTracking
         val expectedDurationMs = videoDetails?.lengthSeconds?.toLongOrNull()?.takeIf { it > 0 }?.times(1000L)
 
         var format: PlayerResponse.StreamingData.Format? = null
@@ -111,10 +113,18 @@ object YTPlayerUtils {
                 }
                 ).distinct()
 
-        val streamClients = buildList {
-            add(MAIN_CLIENT)
-            addAll(orderedFallbackClients)
-        }.distinct()
+        val preferredYouTubeClient =
+            when (preferredStreamClient) {
+                PlayerStreamClient.ANDROID_VR -> ANDROID_VR_NO_AUTH
+                PlayerStreamClient.WEB_REMIX -> WEB_REMIX
+            }
+
+        val streamClients =
+            buildList {
+                add(preferredYouTubeClient)
+                add(MAIN_CLIENT)
+                addAll(orderedFallbackClients)
+            }.distinct()
 
         for ((index, client) in streamClients.withIndex()) {
             format = null
@@ -138,7 +148,7 @@ object YTPlayerUtils {
 
             streamPlayerResponse =
                 if (isMain) {
-                    mainPlayerResponse
+                    metadataPlayerResponse
                 } else {
                     Timber.tag(logTag).i("Fetching player response for fallback client: ${client.clientName}")
                     YouTube.player(videoId, playlistId, client, signatureTimestamp).getOrNull()

@@ -16,6 +16,8 @@ import androidx.media3.exoplayer.offline.DownloadNotificationHelper
 import moe.koiverse.archivetune.innertube.YouTube
 import moe.koiverse.archivetune.constants.AudioQuality
 import moe.koiverse.archivetune.constants.AudioQualityKey
+import moe.koiverse.archivetune.constants.PlayerStreamClient
+import moe.koiverse.archivetune.constants.PlayerStreamClientKey
 import moe.koiverse.archivetune.db.MusicDatabase
 import moe.koiverse.archivetune.db.entities.FormatEntity
 import moe.koiverse.archivetune.db.entities.SongEntity
@@ -47,6 +49,7 @@ constructor(
 ) {
     private val connectivityManager = context.getSystemService<ConnectivityManager>()!!
     private val audioQuality by enumPreference(context, AudioQualityKey, AudioQuality.AUTO)
+    private val preferredStreamClient by enumPreference(context, PlayerStreamClientKey, PlayerStreamClient.ANDROID_VR)
     private val songUrlCache = HashMap<String, Pair<String, Long>>()
     private val avoidStreamCodecs: Set<String> by lazy {
         if (deviceSupportsMimeType("audio/opus")) emptySet() else setOf("opus")
@@ -85,6 +88,7 @@ constructor(
                 YTPlayerUtils.playerResponseForPlayback(
                     mediaId,
                     audioQuality = audioQuality,
+                    preferredStreamClient = preferredStreamClient,
                     connectivityManager = connectivityManager,
                     networkMetered = networkMeteredPref,
                     avoidCodecs = avoidStreamCodecs,

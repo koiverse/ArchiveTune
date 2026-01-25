@@ -97,6 +97,8 @@ import moe.koiverse.archivetune.constants.MediaSessionConstants.CommandToggleShu
 import moe.koiverse.archivetune.constants.PauseListenHistoryKey
 import moe.koiverse.archivetune.constants.PermanentShuffleKey
 import moe.koiverse.archivetune.constants.PersistentQueueKey
+import moe.koiverse.archivetune.constants.PlayerStreamClient
+import moe.koiverse.archivetune.constants.PlayerStreamClientKey
 import moe.koiverse.archivetune.constants.PlayerVolumeKey
 import moe.koiverse.archivetune.constants.RepeatModeKey
 import moe.koiverse.archivetune.constants.ShowLyricsKey
@@ -240,6 +242,11 @@ class MusicService :
         this,
         AudioQualityKey,
         moe.koiverse.archivetune.constants.AudioQuality.AUTO
+    )
+    private val preferredStreamClient by enumPreference(
+        this,
+        PlayerStreamClientKey,
+        PlayerStreamClient.ANDROID_VR
     )
     private val playbackUrlCache = ConcurrentHashMap<String, Pair<String, Long>>()
     private val streamRecoveryState = ConcurrentHashMap<String, Pair<Int, Long>>()
@@ -2038,6 +2045,7 @@ class MusicService :
                     mediaId,
                     audioQuality = audioQuality,
                     connectivityManager = connectivityManager,
+                    preferredStreamClient = preferredStreamClient,
                     avoidCodecs = avoidStreamCodecs,
                 )
             }.getOrElse { throwable ->
