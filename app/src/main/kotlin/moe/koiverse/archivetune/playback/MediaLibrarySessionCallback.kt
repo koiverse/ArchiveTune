@@ -533,7 +533,7 @@ constructor(
             val defaultResult =
                 MediaSession.MediaItemsWithStartPosition(emptyList(), startIndex, startPositionMs)
             val firstItem = mediaItems.firstOrNull() ?: return@future defaultResult
-            val path = firstItem.mediaId.split("/").takeIf { it.isNotEmpty() }
+            val path = firstItem.mediaId.split("/").filter { it.isNotBlank() }
             when (path.firstOrNull()) {
                 MusicService.SONG -> {
                     val songId = path.getOrNull(1) ?: return@future defaultResult
