@@ -671,6 +671,34 @@ fun BottomSheetPlayer(
                                 .align(Alignment.TopStart)
                                 .background(progressOverlayColor),
                         )
+                        Row(modifier = Modifier.fillMaxSize()) {
+                            Box(
+                                modifier =
+                                Modifier
+                                    .weight(1f)
+                                    .fillMaxHeight()
+                                    .combinedClickable(
+                                        enabled = canSkipPrevious,
+                                        interactionSource = remember { MutableInteractionSource() },
+                                        indication = null,
+                                        onClick = {},
+                                        onDoubleClick = playerConnection::seekToPrevious,
+                                    ),
+                            )
+                            Box(
+                                modifier =
+                                Modifier
+                                    .weight(1f)
+                                    .fillMaxHeight()
+                                    .combinedClickable(
+                                        enabled = canSkipNext,
+                                        interactionSource = remember { MutableInteractionSource() },
+                                        indication = null,
+                                        onClick = {},
+                                        onDoubleClick = playerConnection::seekToNext,
+                                    ),
+                            )
+                        }
                         Box(
                             modifier =
                             Modifier
@@ -684,8 +712,11 @@ fun BottomSheetPlayer(
                             mediaMetadata?.let { metadata ->
                                 LittlePlayerContent(
                                     mediaMetadata = metadata,
+                                    sliderStyle = sliderStyle,
+                                    sliderPosition = sliderPosition,
                                     positionMs = position,
                                     durationMs = duration,
+                                    isPlaying = isPlaying,
                                     textColor = littleTextColor,
                                     liked = currentSongLiked,
                                     onCollapse = state::collapseSoft,
@@ -705,7 +736,9 @@ fun BottomSheetPlayer(
                                                 onDismiss = menuState::dismiss
                                             )
                                         }
-                                    }
+                                    },
+                                    onSliderValueChange = onSliderValueChange,
+                                    onSliderValueChangeFinished = onSliderValueChangeFinished,
                                 )
                             }
                         }
@@ -773,6 +806,34 @@ fun BottomSheetPlayer(
                                 .align(Alignment.TopStart)
                                 .background(progressOverlayColor),
                         )
+                        Row(modifier = Modifier.fillMaxSize()) {
+                            Box(
+                                modifier =
+                                Modifier
+                                    .weight(1f)
+                                    .fillMaxHeight()
+                                    .combinedClickable(
+                                        enabled = canSkipPrevious,
+                                        interactionSource = remember { MutableInteractionSource() },
+                                        indication = null,
+                                        onClick = {},
+                                        onDoubleClick = playerConnection::seekToPrevious,
+                                    ),
+                            )
+                            Box(
+                                modifier =
+                                Modifier
+                                    .weight(1f)
+                                    .fillMaxHeight()
+                                    .combinedClickable(
+                                        enabled = canSkipNext,
+                                        interactionSource = remember { MutableInteractionSource() },
+                                        indication = null,
+                                        onClick = {},
+                                        onDoubleClick = playerConnection::seekToNext,
+                                    ),
+                            )
+                        }
                         Box(
                             modifier =
                             Modifier
@@ -787,8 +848,11 @@ fun BottomSheetPlayer(
                                 LandscapeLikeBox(modifier = Modifier.fillMaxSize()) {
                                     LittlePlayerContent(
                                         mediaMetadata = metadata,
+                                        sliderStyle = sliderStyle,
+                                        sliderPosition = sliderPosition,
                                         positionMs = position,
                                         durationMs = duration,
+                                        isPlaying = isPlaying,
                                         textColor = littleTextColor,
                                         liked = currentSongLiked,
                                         onCollapse = state::collapseSoft,
@@ -808,7 +872,9 @@ fun BottomSheetPlayer(
                                                     onDismiss = menuState::dismiss
                                                 )
                                             }
-                                        }
+                                        },
+                                        onSliderValueChange = onSliderValueChange,
+                                        onSliderValueChangeFinished = onSliderValueChangeFinished,
                                     )
                                 }
                             }
@@ -905,14 +971,19 @@ fun BottomSheetPlayer(
 @Composable
 private fun LittlePlayerContent(
     mediaMetadata: MediaMetadata,
+    sliderStyle: SliderStyle,
+    sliderPosition: Long?,
     positionMs: Long,
     durationMs: Long,
+    isPlaying: Boolean,
     textColor: Color,
     liked: Boolean,
     onCollapse: () -> Unit,
     onToggleLike: () -> Unit,
     onExpandQueue: () -> Unit,
     onMenuClick: () -> Unit,
+    onSliderValueChange: (Long) -> Unit,
+    onSliderValueChangeFinished: () -> Unit,
 ) {
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         val titleColor = textColor.copy(alpha = 0.95f)
@@ -930,8 +1001,10 @@ private fun LittlePlayerContent(
         val horizontalPadding = (18f * scale).dp
         val verticalPadding = (10f * scale).dp
 
-        val timeText = remember(positionMs, durationMs) {
-            val positionText = makeTimeString(positionMs)
+        val displayPositionMs = sliderPosition ?: positionMs
+
+        val timeText = remember(displayPositionMs, durationMs) {
+            val positionText = makeTimeString(displayPositionMs)
             val durationText = if (durationMs != C.TIME_UNSET) makeTimeString(durationMs) else ""
             if (durationText.isBlank()) positionText else "$positionText/$durationText"
         }
@@ -1021,6 +1094,66 @@ private fun LittlePlayerContent(
             }
 
             Spacer(Modifier.height((14f * scale).dp))
+
+            val seekEnabled = durationMs > 0L && durationMs != C.TIME_UNSET
+            val sliderValue =
+                if (seekEnabled) {
+                    displayPositionMs.coerceIn(0L, durationMs).toFloat()
+                } else {
+                    0f
+                }
+            val sliderValueRangeEnd = if (seekEnabled) durationMs.toFloat() else 0f
+
+            when (sliderStyle) {
+                SliderStyle.DEFAULT -> {
+                    Slider(
+                        value = sliderValue,
+                        valueRange = 0f..sliderValueRangeEnd,
+                        enabled = seekEnabled,
+                        onValueChange = { onSliderValueChange(it.toLong()) },
+                        onValueChangeFinished = onSliderValueChangeFinished,
+                        colors = PlayerSliderColors.defaultSliderColors(textColor),
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+
+                SliderStyle.SQUIGGLY -> {
+                    SquigglySlider(
+                        value = sliderValue,
+                        valueRange = 0f..sliderValueRangeEnd,
+                        enabled = seekEnabled,
+                        onValueChange = { onSliderValueChange(it.toLong()) },
+                        onValueChangeFinished = onSliderValueChangeFinished,
+                        colors = PlayerSliderColors.squigglySliderColors(textColor),
+                        modifier = Modifier.fillMaxWidth(),
+                        squigglesSpec =
+                        SquigglySlider.SquigglesSpec(
+                            amplitude = if (isPlaying) 2.dp else 0.dp,
+                            strokeWidth = 3.dp,
+                        ),
+                    )
+                }
+
+                SliderStyle.SLIM -> {
+                    Slider(
+                        value = sliderValue,
+                        valueRange = 0f..sliderValueRangeEnd,
+                        enabled = seekEnabled,
+                        onValueChange = { onSliderValueChange(it.toLong()) },
+                        onValueChangeFinished = onSliderValueChangeFinished,
+                        thumb = { Spacer(modifier = Modifier.size(0.dp)) },
+                        track = { sliderState ->
+                            PlayerSliderTrack(
+                                sliderState = sliderState,
+                                colors = PlayerSliderColors.slimSliderColors(textColor)
+                            )
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+            }
+
+            Spacer(Modifier.height((6f * scale).dp))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
