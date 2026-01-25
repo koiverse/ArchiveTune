@@ -31,6 +31,7 @@ import moe.koiverse.archivetune.constants.NetworkMeteredKey
 import moe.koiverse.archivetune.constants.AutoDownloadOnLikeKey
 import moe.koiverse.archivetune.constants.AutoLoadMoreKey
 import moe.koiverse.archivetune.constants.AutoSkipNextOnErrorKey
+import moe.koiverse.archivetune.constants.PermanentShuffleKey
 import moe.koiverse.archivetune.constants.PersistentQueueKey
 import moe.koiverse.archivetune.constants.SimilarContent
 import moe.koiverse.archivetune.constants.SkipSilenceKey
@@ -67,6 +68,10 @@ fun PlayerSettings(
     val (persistentQueue, onPersistentQueueChange) = rememberPreference(
         PersistentQueueKey,
         defaultValue = true
+    )
+    val (permanentShuffle, onPermanentShuffleChange) = rememberPreference(
+        PermanentShuffleKey,
+        defaultValue = false
     )
     val (skipSilence, onSkipSilenceChange) = rememberPreference(
         SkipSilenceKey,
@@ -214,6 +219,14 @@ fun PlayerSettings(
             icon = { Icon(painterResource(R.drawable.queue_music), null) },
             checked = persistentQueue,
             onCheckedChange = onPersistentQueueChange
+        )
+
+        SwitchPreference(
+            title = { Text(stringResource(R.string.permanent_shuffle)) },
+            description = stringResource(R.string.permanent_shuffle_desc),
+            icon = { Icon(painterResource(R.drawable.shuffle), null) },
+            checked = permanentShuffle,
+            onCheckedChange = onPermanentShuffleChange
         )
 
         SwitchPreference(
