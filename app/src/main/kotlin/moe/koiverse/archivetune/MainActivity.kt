@@ -184,6 +184,9 @@ import moe.koiverse.archivetune.playback.queues.YouTubeQueue
 import moe.koiverse.archivetune.ui.component.AccountSettingsDialog
 import moe.koiverse.archivetune.ui.component.BottomSheetMenu
 import moe.koiverse.archivetune.ui.component.BottomSheetPage
+import moe.koiverse.archivetune.ui.component.COLLAPSED_ANCHOR
+import moe.koiverse.archivetune.ui.component.DISMISSED_ANCHOR
+import moe.koiverse.archivetune.ui.component.EXPANDED_ANCHOR
 import moe.koiverse.archivetune.ui.component.IconButton
 import moe.koiverse.archivetune.ui.component.LocalBottomSheetPageState
 import moe.koiverse.archivetune.ui.component.LocalMenuState
@@ -741,7 +744,7 @@ class MainActivity : ComponentActivity() {
                             expandedBound = maxHeight,
                         )
 
-                    var yearInMusicSavedPlayerAnchor by rememberSaveable { mutableIntStateOf(-1) }
+                    var yearInMusicSavedPlayerAnchor by rememberSaveable { mutableStateOf(-1) }
 
                     LaunchedEffect(isYearInMusicScreen) {
                         val controller = WindowCompat.getInsetsController(window, window.decorView)
