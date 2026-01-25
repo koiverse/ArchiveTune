@@ -620,5 +620,6 @@ ArchiveTune will only extract your token, and everything else is stored locally.
     <string name="permission_status_all_granted">All required permissions are allowed. You are ready to start.</string>
     <string name="permission_status_required">Please allow all required permissions to continue.</string>
     <string name="next">Next</string>
+    <string name="next_song">Next Song</string>
     <string name="allow">Allow</string>
 </resources>

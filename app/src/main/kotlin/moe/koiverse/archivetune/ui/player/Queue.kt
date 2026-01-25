@@ -225,7 +225,7 @@ fun Queue(
         modifier = modifier,
         collapsedContent = {
             when (playerDesignStyle) {
-                PlayerDesignStyle.V2 -> {
+                PlayerDesignStyle.V2, PlayerDesignStyle.V6 -> {
                     QueueCollapsedContentV2(
                         showCodecOnPlayer = showCodecOnPlayer,
                         currentFormat = currentFormat,
@@ -267,6 +267,27 @@ fun Queue(
                 }
                 
                 PlayerDesignStyle.V3 -> {
+                    QueueCollapsedContentV3(
+                        showCodecOnPlayer = showCodecOnPlayer,
+                        currentFormat = currentFormat,
+                        textBackgroundColor = TextBackgroundColor,
+                        sleepTimerEnabled = sleepTimerEnabled,
+                        sleepTimerTimeLeft = sleepTimerTimeLeft,
+                        repeatMode = repeatMode,
+                        onExpandQueue = { state.expandSoft() },
+                        onSleepTimerClick = {
+                            if (sleepTimerEnabled) {
+                                playerConnection.service.sleepTimer.clear()
+                            } else {
+                                showSleepTimerDialog = true
+                            }
+                        },
+                        onShowLyrics = onShowLyrics,
+                        onRepeatModeClick = { playerConnection.player.toggleRepeatMode() }
+                    )
+                }
+
+                PlayerDesignStyle.V5 -> {
                     QueueCollapsedContentV3(
                         showCodecOnPlayer = showCodecOnPlayer,
                         currentFormat = currentFormat,

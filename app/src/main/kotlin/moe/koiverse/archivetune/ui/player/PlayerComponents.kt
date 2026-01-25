@@ -1,4 +1,4 @@
-﻿package moe.koiverse.archivetune.ui.player
+package moe.koiverse.archivetune.ui.player
 
 import android.content.ClipData
 import android.content.ClipboardManager
@@ -298,7 +298,7 @@ fun PlayerTopActions(
             }
         }
 
-        PlayerDesignStyle.V3 -> {
+        PlayerDesignStyle.V3, PlayerDesignStyle.V5 -> {
             Row(
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
                 verticalAlignment = Alignment.CenterVertically
@@ -349,7 +349,7 @@ fun PlayerTopActions(
             }
         }
 
-        PlayerDesignStyle.V4 -> {
+        PlayerDesignStyle.V4, PlayerDesignStyle.V6 -> {
             Row(
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                 verticalAlignment = Alignment.CenterVertically
@@ -1038,7 +1038,7 @@ fun PlayerPlaybackControls(
             }
         }
 
-        PlayerDesignStyle.V1 -> {
+        PlayerDesignStyle.V1, PlayerDesignStyle.V5, PlayerDesignStyle.V6 -> {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier =
