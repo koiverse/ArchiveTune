@@ -117,6 +117,8 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.core.net.toUri
 import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.datastore.preferences.core.edit
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.lifecycleScope
@@ -640,6 +642,8 @@ class MainActivity : ComponentActivity() {
                     val accountImageUrl by homeViewModel.accountImageUrl.collectAsState()
                     val navBackStackEntry by navController.currentBackStackEntryAsState()
                     val (previousTab) = rememberSaveable { mutableStateOf("home") }
+                    val currentRoute = navBackStackEntry?.destination?.route
+                    val isYearInMusicScreen = currentRoute == "year_in_music"
 
                     val navigationItems = remember { Screens.MainScreens }
                     val (slimNav) = rememberPreference(SlimNavBarKey, defaultValue = false)
@@ -736,6 +740,53 @@ class MainActivity : ComponentActivity() {
                             collapsedBound = bottomInset + getBottomNavPadding() + (if (useNewMiniPlayerDesign) MiniPlayerBottomSpacing else 0.dp) + MiniPlayerHeight,
                             expandedBound = maxHeight,
                         )
+
+                    var yearInMusicSavedPlayerAnchor by rememberSaveable { mutableIntStateOf(-1) }
+
+                    LaunchedEffect(isYearInMusicScreen) {
+                        val controller = WindowCompat.getInsetsController(window, window.decorView)
+                        if (isYearInMusicScreen) {
+                            controller.systemBarsBehavior =
+                                WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+                            controller.hide(WindowInsetsCompat.Type.statusBars())
+                        } else {
+                            controller.show(WindowInsetsCompat.Type.statusBars())
+                        }
+                    }
+
+                    LaunchedEffect(isYearInMusicScreen, playerConnection) {
+                        val player = playerConnection?.player ?: return@LaunchedEffect
+
+                        if (isYearInMusicScreen) {
+                            if (yearInMusicSavedPlayerAnchor == -1) {
+                                yearInMusicSavedPlayerAnchor =
+                                    when {
+                                        playerBottomSheetState.isExpanded -> EXPANDED_ANCHOR
+                                        playerBottomSheetState.isCollapsed -> COLLAPSED_ANCHOR
+                                        playerBottomSheetState.isDismissed -> DISMISSED_ANCHOR
+                                        else -> COLLAPSED_ANCHOR
+                                    }
+                            }
+
+                            if (!playerBottomSheetState.isDismissed) {
+                                playerBottomSheetState.dismiss()
+                            }
+                        } else if (yearInMusicSavedPlayerAnchor != -1) {
+                            val anchorToRestore = yearInMusicSavedPlayerAnchor
+                            yearInMusicSavedPlayerAnchor = -1
+
+                            if (player.currentMediaItem == null) {
+                                playerBottomSheetState.dismiss()
+                            } else {
+                                when (anchorToRestore) {
+                                    EXPANDED_ANCHOR -> playerBottomSheetState.expandSoft()
+                                    COLLAPSED_ANCHOR -> playerBottomSheetState.collapseSoft()
+                                    DISMISSED_ANCHOR -> playerBottomSheetState.dismiss()
+                                    else -> playerBottomSheetState.collapseSoft()
+                                }
+                            }
+                        }
+                    }
 
                     val playerAwareWindowInsets =
                         remember(
@@ -844,7 +895,7 @@ class MainActivity : ComponentActivity() {
                                 playerBottomSheetState.dismiss()
                             }
                         } else {
-                            if (playerBottomSheetState.isDismissed) {
+                            if (!isYearInMusicScreen && playerBottomSheetState.isDismissed) {
                                 playerBottomSheetState.collapseSoft()
                             }
                         }
@@ -861,7 +912,8 @@ class MainActivity : ComponentActivity() {
                                 ) {
                                     if (reason == Player.MEDIA_ITEM_TRANSITION_REASON_PLAYLIST_CHANGED &&
                                         mediaItem != null &&
-                                        playerBottomSheetState.isDismissed
+                                        playerBottomSheetState.isDismissed &&
+                                        !isYearInMusicScreen
                                     ) {
                                         playerBottomSheetState.collapseSoft()
                                     }
