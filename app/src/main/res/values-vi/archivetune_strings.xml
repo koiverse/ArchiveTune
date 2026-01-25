@@ -1,3 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="explore">Khám phá</string>
+    <string name="remote_history">Lịch sử nghe từ xa</string>
 </resources>
