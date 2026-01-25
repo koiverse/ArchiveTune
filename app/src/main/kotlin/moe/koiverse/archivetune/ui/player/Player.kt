@@ -84,7 +84,6 @@ import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.input.pointer.consume
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.Layout
@@ -741,6 +740,7 @@ fun BottomSheetPlayer(
                                     sliderPosition = sliderPosition,
                                     positionMs = position,
                                     durationMs = duration,
+                                    textColor = littleTextColor,
                                     liked = currentSongLiked,
                                     onCollapse = state::collapseSoft,
                                     onToggleLike = playerConnection::toggleLike,
