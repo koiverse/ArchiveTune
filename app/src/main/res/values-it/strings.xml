@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Upstream InnerTune strings --><!-- Do not add new features here --><!-- Try to re-use strings here, but be careful on its usage e.g. verb vs noun --><!-- "InnerTune" is replaced with "ArchiveTune" --><!-- Translators: Do not modify this file for translations, use InnerTune's Weblate instead. --><resources>
+<!-- Upstream InnerTune strings --><!-- Do not add new features here --><!-- Try to re-use strings here, but be careful on its usage e.g. verb vs noun --><!-- "InnerTune" is replaced with "ArchiveTune" --><!-- Translators: Do not modify this file for translations, use InnerTune\'s Weblate instead. --><resources>
     <!-- Bottom navigation -->
     <string name="home">Casa</string>
     <string name="songs">Canzoni</string>
@@ -64,7 +64,7 @@
     <string name="liked_songs">Canzoni piaciute</string>
     <string name="downloaded_songs">Canzoni scaricate</string>
     <string name="playlist_is_empty">La playlist è vuota</string>
-    <string name="remove_download_playlist_confirm">Vuoi davvero rimuovere tutti i brani della playlist \"%s\" dall'archivio Brani scaricati?</string>
+    <string name="remove_download_playlist_confirm">Vuoi davvero rimuovere tutti i brani della playlist \"%s\" dall\'archivio Brani scaricati?</string>
     <string name="delete_playlist_confirm">Vuoi veramente eliminare la playlist \"%s\"?</string>
     <!-- Button -->
     <string name="retry">Riprova</string>
@@ -90,7 +90,7 @@
     <string name="update_button">Aggiorna</string>
     <string name="add_to_playlist">Aggiungi alla playlist</string>
     <string name="view_artist">Visualizza artista</string>
-    <string name="view_album">Visualizza l'album</string>
+    <string name="view_album">Visualizza l\'album</string>
     <string name="view_all">Visualizza tutto</string>
     <string name="more">di più</string>
     <string name="refetch">Riprendi</string>
@@ -129,7 +129,7 @@
     <string name="song_title">Titolo della canzone</string>
     <string name="song_artists">Artisti della canzone</string>
     <string name="error_song_title_empty">Il titolo del brano non può essere vuoto.</string>
-    <string name="error_song_artist_empty">L'artista del brano non può essere vuoto.</string>
+    <string name="error_song_artist_empty">L\'artista del brano non può essere vuoto.</string>
     <string name="save">Salva</string>
     <string name="choose_playlist">Scegli la playlist</string>
     <string name="edit_playlist">Modifica playlist</string>
@@ -137,8 +137,8 @@
     <string name="playlist_name">Nome della playlist</string>
     <string name="error_playlist_name_empty">Il nome della playlist non può essere vuoto.</string>
     <string name="edit_artist">Modifica artista</string>
-    <string name="artist_name">Nome dell'artista</string>
-    <string name="error_artist_name_empty">Il nome dell'artista non può essere vuoto.</string>
+    <string name="artist_name">Nome dell\'artista</string>
+    <string name="error_artist_name_empty">Il nome dell\'artista non può essere vuoto.</string>
     <string name="duplicates">Duplicati</string>
     <string name="skip_duplicates">Salta i duplicati</string>
     <string name="add_anyway">Aggiungi comunque</string>
@@ -217,10 +217,10 @@
     <string name="theme">Tema</string>
     <string name="enable_dynamic_theme">Abilita tema dinamico</string>
     <string name="use_system_font">Utilizza il carattere di sistema</string>
-    <string name="use_system_font_desc">Utilizza il carattere del dispositivo anziché il carattere dell'app</string>
+    <string name="use_system_font_desc">Utilizza il carattere del dispositivo anziché il carattere dell\'app</string>
     <!-- Color Palette -->
     <string name="color_palette">Tavolozza dei colori</string>
-    <string name="customize_theme_colors">Scegli i colori del tema dell'app</string>
+    <string name="customize_theme_colors">Scegli i colori del tema dell\'app</string>
     <string name="selected_theme_color">Colore tema selezionato</string>
     <string name="theme_preview">Anteprima del tema</string>
     <string name="select_palette">Seleziona una tavolozza di colori</string>
@@ -244,7 +244,7 @@
     <string name="palette_sage_green">Saggio</string>
     <!-- Oranges & Yellows -->
     <string name="palette_sunset_orange">Tramonto</string>
-    <string name="palette_golden_hour">D'oro</string>
+    <string name="palette_golden_hour">D\'oro</string>
     <string name="palette_warm_amber">Ambra</string>
     <string name="palette_tangerine_blast">Mandarino</string>
     <string name="palette_peach">Pesca</string>
@@ -324,11 +324,11 @@
     <string name="dark_theme_on">Su</string>
     <string name="dark_theme_off">Spento</string>
     <string name="show_button">Mostra pulsante</string>
-    <string name="corner_radius">Raggio dell'angolo: %1$d</string>
-    <string name="adjust_radius">Regola il raggio dell'angolo</string>
+    <string name="corner_radius">Raggio dell\'angolo: %1$d</string>
+    <string name="adjust_radius">Regola il raggio dell\'angolo</string>
     <string name="cancel_button">Annulla</string>
     <string name="ok_button">Va bene</string>
-    <string name="custom_radius">Personalizza il raggio dell'angolo della miniatura</string>
+    <string name="custom_radius">Personalizza il raggio dell\'angolo della miniatura</string>
     <string name="custom">Personalizzato</string>
     <string name="customized_background">Sfondo personalizzato</string>
     <string name="customize_background_title">Personalizza lo sfondo</string>
@@ -345,7 +345,7 @@
     <string name="dark_theme_follow_system">Segui il sistema</string>
     <string name="pure_black">Nero puro</string>
     <string name="disable_blur">Disattiva gli effetti di sfocatura</string>
-    <string name="disable_blur_desc">Disabilita gli effetti di sfocatura in tutta l'app</string>
+    <string name="disable_blur_desc">Disabilita gli effetti di sfocatura in tutta l\'app</string>
     <string name="customize_navigation_tabs">Personalizza le schede di navigazione</string>
     <string name="player">Giocatore</string>
     <string name="player_text_alignment">Allineamento del testo del lettore</string>
@@ -376,7 +376,7 @@
     <string name="action_logout">Esci</string>
     <string name="action_login">Accedi</string>
     <string name="login">Accedi</string>
-    <string name="not_logged_in">Non effettuato l'accesso</string>
+    <string name="not_logged_in">Non effettuato l\'accesso</string>
     <string name="login_failed">Accesso non riuscito</string>
     <string name="content_language">Lingua del contenuto predefinita</string>
     <string name="content_country">Paese dei contenuti predefinito</string>
@@ -395,19 +395,19 @@
     <string name="audio_quality_highest">Il più alto</string>
     <string name="audio_quality_low">Basso</string>
     <string name="network_metered_title">Tratta la rete come a consumo</string>
-    <string name="network_metered_description">Se abilitata, l'app preferirà flussi di qualità inferiore su reti a consumo</string>
+    <string name="network_metered_description">Se abilitata, l\'app preferirà flussi di qualità inferiore su reti a consumo</string>
     <string name="queue">Coda</string>
     <string name="persistent_queue">Coda persistente</string>
-    <string name="persistent_queue_desc">Ripristina l'ultima coda all'avvio dell'app</string>
+    <string name="persistent_queue_desc">Ripristina l\'ultima coda all\'avvio dell\'app</string>
     <string name="permanent_shuffle">Modalità casuale permanente</string>
     <string name="permanent_shuffle_desc">Mantieni la riproduzione casuale abilitata quando inizi un nuovo brano</string>
     <string name="auto_load_more">Carica automaticamente più brani</string>
     <string name="auto_load_more_desc">Aggiungi automaticamente più brani quando viene raggiunta la fine della coda. Disabilitato quando la modalità di ripetizione è attiva</string>
     <string name="skip_silence">Salta il silenzio</string>
-    <string name="audio_normalization">Normalizzazione dell'audio</string>
+    <string name="audio_normalization">Normalizzazione dell\'audio</string>
     <string name="auto_skip_next_on_error">Passa automaticamente al brano successivo quando si verifica un errore</string>
     <string name="auto_skip_next_on_error_desc">Assicurati la tua esperienza di riproduzione continua</string>
-    <string name="stop_music_on_task_clear">Interrompi la musica durante l'attività</string>
+    <string name="stop_music_on_task_clear">Interrompi la musica durante l\'attività</string>
     <string name="artist_separators">Simboli per dividere gli artisti</string>
     <string name="artist_separators_desc">Simboli utilizzati per dividere più artisti</string>
     <string name="add_symbol">Aggiungi simbolo</string>
@@ -429,7 +429,7 @@
     <string name="eq_custom_profile">Profilo personalizzato</string>
     <string name="eq_import">Importa</string>
     <string name="eq_import_profiles">Importa profili</string>
-    <string name="eq_import_profiles_placeholder">Incolla i profili dell'equalizzatore JSON</string>
+    <string name="eq_import_profiles_placeholder">Incolla i profili dell\'equalizzatore JSON</string>
     <string name="eq_import_failed">Dati del profilo non validi</string>
     <string name="eq_imported_profile">Importato</string>
     <string name="eq_import_success">Profili %1$d importati</string>
@@ -461,9 +461,9 @@
     <string name="clear_search_history">Cancella la cronologia delle ricerche</string>
     <string name="clear_search_history_confirm">Sei sicuro di voler cancellare tutta la cronologia delle ricerche?</string>
     <string name="use_login_for_browse">Utilizza il login per sfogliare i contenuti</string>
-    <string name="use_login_for_browse_desc">Ciò può influenzare il contenuto che vedi e, ad esempio, mostrare gli album solo premium se hai effettuato l'accesso con un account Premium</string>
+    <string name="use_login_for_browse_desc">Ciò può influenzare il contenuto che vedi e, ad esempio, mostrare gli album solo premium se hai effettuato l\'accesso con un account Premium</string>
     <string name="disable_screenshot">Disabilita schermata</string>
-    <string name="disable_screenshot_desc">Quando questa opzione è attiva, gli screenshot e la visualizzazione dell'app in Recenti sono disabilitati.</string>
+    <string name="disable_screenshot_desc">Quando questa opzione è attiva, gli screenshot e la visualizzazione dell\'app in Recenti sono disabilitati.</string>
     <string name="enable_lrclib">Abilita il provider di testi LrcLib</string>
     <string name="enable_kugou">Abilita il provider di testi KuGou</string>
     <string name="hide_explicit">Nascondi contenuti espliciti</string>
@@ -476,7 +476,7 @@
     <string name="backup_create_failed">Impossibile creare il backup</string>
     <string name="restore_failed">Impossibile ripristinare il backup</string>
     <string name="discord_integration">Integrazione della discordia</string>
-    <string name="discord_information">ArchiveTune uses the KizzyRPC library to set your Discord account\'s status. This involves using the Discord Gateway connection, which may be considered a violation of Discord\'s TOS. However, there are no known cases of user accounts being suspended for this reason. Use at your own risk.
+    <string name="discord_information">ArchiveTune uses the KizzyRPC library to set your Discord account\\'s status. This involves using the Discord Gateway connection, which may be considered a violation of Discord\\'s TOS. However, there are no known cases of user accounts being suspended for this reason. Use at your own risk.
 ArchiveTune will only extract your token, and everything else is stored locally.</string>
     <string name="dismiss">Ignora</string>
     <string name="options">Opzioni</string>
@@ -492,16 +492,16 @@ ArchiveTune will only extract your token, and everything else is stored locally.
     <string name="scrobble_delay_percent">Percentuale ritardo scrobble</string>
     <string name="scrobble_delay_minutes">Ritardo Scrobble (secondi)</string>
     <string name="username">Nome utente</string>
-    <string name="password">Parola d'ordine</string>
+    <string name="password">Parola d\'ordine</string>
     <string name="logging_in">Accesso…</string>
     <!-- ListenBrainz -->
     <string name="listenbrainz_scrobbling">AscoltaBrainz che scrobbling</string>
-    <string name="listenbrainz_scrobbling_description">Abilita l'invio degli ascolti in riproduzione e finiti a ListenBrainz</string>
+    <string name="listenbrainz_scrobbling_description">Abilita l\'invio degli ascolti in riproduzione e finiti a ListenBrainz</string>
     <string name="set_listenbrainz_token">Imposta il token ListenBrainz</string>
     <string name="edit_listenbrainz_token">Modifica il token ListenBrainz</string>
     <!-- Discord activity customization -->
-    <string name="discord_activity_name">Nome dell'attività</string>
-    <string name="discord_activity_details">Dettagli dell'attività</string>
+    <string name="discord_activity_name">Nome dell\'attività</string>
+    <string name="discord_activity_details">Dettagli dell\'attività</string>
     <string name="discord_activity_state">Stato attività</string>
     <string name="discord_activity_button_1_url">Pulsante 1 Sorgente URL</string>
     <string name="discord_activity_button_2_url">Pulsante 2 Sorgente URL</string>
@@ -515,7 +515,7 @@ ArchiveTune will only extract your token, and everything else is stored locally.
     <string name="custom_large_text">Testo grande personalizzato</string>
     <string name="small_image">Piccola immagine</string>
     <string name="small_image_custom_url">URL personalizzato di piccola immagine</string>
-    <string name="activity_status">Stato dell'attività</string>
+    <string name="activity_status">Stato dell\'attività</string>
     <string name="platform_status">Piattaforma</string>
     <string name="update_interval">Intervallo di aggiornamento della presenza</string>
     <!--Discord Tranalstor Settings-->
@@ -545,10 +545,10 @@ ArchiveTune will only extract your token, and everything else is stored locally.
     <string name="refresh">Aggiorna</string>
     <string name="description_refresh">Aggiorna manualmente Discord Rich Presence</string>
     <string name="discord_show_when_paused">Mostra RPC quando in pausa</string>
-    <string name="discord_show_when_paused_desc">Se abilitato, Rich Presence rimarrà visibile durante la pausa con un'icona di pausa. Se disabilitato, RPC scomparirà durante la pausa.</string>
+    <string name="discord_show_when_paused_desc">Se abilitato, Rich Presence rimarrà visibile durante la pausa con un\'icona di pausa. Se disabilitato, RPC scomparirà durante la pausa.</string>
     <string name="discord_paused">In pausa</string>
     <string name="show_small_image">Mostra immagine piccola</string>
-    <string name="description_show_small_image">Se abilitato, una piccola immagine circolare viene mostrata nell'anteprima di Rich Presence e inviata a Discord se disponibile</string>
+    <string name="description_show_small_image">Se abilitato, una piccola immagine circolare viene mostrata nell\'anteprima di Rich Presence e inviata a Discord se disponibile</string>
     <string name="logout_confirm_title">Conferma la disconnessione</string>
     <string name="logout_confirm_message">Sei sicuro di voler uscire da Discord?.</string>
     <string name="logout_confirm_yes">Esci</string>
@@ -589,7 +589,7 @@ ArchiveTune will only extract your token, and everything else is stored locally.
     <string name="state_label">Stato</string>
     <string name="media_id_label">ID supporto</string>
     <string name="about">Circa</string>
-    <string name="app_version">Versione dell'app</string>
+    <string name="app_version">Versione dell\'app</string>
     <string name="new_version_available">Nuova versione disponibile</string>
     <string name="translation_models">Modelli di traduzione</string>
     <string name="clear_translation_models">Modelli di traduzione chiari</string>
@@ -604,8 +604,8 @@ ArchiveTune will only extract your token, and everything else is stored locally.
     <string name="channel_nightly">Notturno</string>
     <string name="commit_history">Sviluppo</string>
     <string name="recent_commits">Impegni recenti</string>
-    <string name="update_notification_channel_name">Aggiornamenti dell'app</string>
-    <string name="update_notification_channel_desc">Notifiche per nuovi aggiornamenti dell'app</string>
+    <string name="update_notification_channel_name">Aggiornamenti dell\'app</string>
+    <string name="update_notification_channel_desc">Notifiche per nuovi aggiornamenti dell\'app</string>
     <string name="update_notification_title">Aggiornamento disponibile</string>
     <string name="update_notification_text">ArchiveTune %s è ora disponibile</string>
     <string name="download">Scarica</string>

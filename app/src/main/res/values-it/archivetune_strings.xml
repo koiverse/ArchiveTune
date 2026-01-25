@@ -10,7 +10,7 @@
     <string name="unknown_item_type">Tipo di articolo sconosciuto</string>
     <string name="loading_charts">Caricamento grafici...</string>
     <string name="retry_button">Riprova</string>
-    <string name="album_cover_desc">Copertina dell'album</string>
+    <string name="album_cover_desc">Copertina dell\'album</string>
     <string name="top_music_videos">I migliori video musicali</string>
     <string name="trending">Tendenza</string>
     <string name="weeks">Settimane</string>
@@ -46,8 +46,8 @@
     <string name="manage_tags">Gestisci tag</string>
     <string name="add_tag">Aggiungi etichetta</string>
     <string name="edit_tag">Modifica etichetta</string>
-    <string name="tag_name">Nome dell'etichetta</string>
-    <string name="tag_color">Colore dell'etichetta</string>
+    <string name="tag_name">Nome dell\'etichetta</string>
+    <string name="tag_color">Colore dell\'etichetta</string>
     <string name="choose_color">Scegli il colore</string>
     <string name="tap_to_change_color">Tocca per cambiare colore</string>
     <string name="assign_tags">Assegna tag</string>
@@ -67,7 +67,7 @@
     <string name="minimum_volume">Volume minimo</string>
     <string name="maximum_volume">Volume massimo</string>
     <string name="hide_player_thumbnail">Nascondi la miniatura del giocatore</string>
-    <string name="hide_player_thumbnail_desc">Sostituisci la copertina dell'album con il logo dell'app nel lettore</string>
+    <string name="hide_player_thumbnail_desc">Sostituisci la copertina dell\'album con il logo dell\'app nel lettore</string>
     <string name="show_tags_in_library">Mostra i tag nella libreria</string>
     <string name="show_tags_in_library_desc">Mostra i chip di filtro dei tag nella libreria</string>
     <string name="already_in_playlist">Già nella playlist:</string>
@@ -125,18 +125,18 @@
     <string name="advanced_login">Accedi con gettone</string>
     <string name="token_hidden">Tocca per mostrare il token</string>
     <string name="token_shown">Tocca di nuovo per copiare o modificare</string>
-    <string name="token_adv_login_description">Questo è un metodo di accesso AVANZATO. In alternativa al portale web, puoi inserire o aggiornare direttamente il tuo token di accesso qui. Ciò può ad esempio velocizzare l'accesso su più dispositivi. Tieni presente che eventuali formati di token non validi che l'app non riesce ad analizzare non saranno accettati</string>
+    <string name="token_adv_login_description">Questo è un metodo di accesso AVANZATO. In alternativa al portale web, puoi inserire o aggiornare direttamente il tuo token di accesso qui. Ciò può ad esempio velocizzare l\'accesso su più dispositivi. Tieni presente che eventuali formati di token non validi che l\'app non riesce ad analizzare non saranno accettati</string>
     <string name="ytm_sync">Sincronizza automaticamente con il tuo account YouTube Music</string>
-    <string name="yt_sync">Sincronizzazione automatica con l'account</string>
+    <string name="yt_sync">Sincronizzazione automatica con l\'account</string>
     <string name="more_content">Più contenuti</string>
     <string name="general">Generale</string>
     <string name="proxy">Procura</string>
     <string name="default_lib_chips">Modifica il chip della libreria predefinito</string>
     <string name="set_quick_picks">Imposta scelte rapide</string>
-    <string name="last_song_listened">Basato sull'ultimo brano ascoltato</string>
-    <string name="app_language">Lingua dell'app</string>
-    <string name="configure_app_language">Configura le lingue dell'app</string>
-    <string name="intent_app_language_not_found">Impossibile trovare le impostazioni della lingua dell'app, configurale manualmente</string>
+    <string name="last_song_listened">Basato sull\'ultimo brano ascoltato</string>
+    <string name="app_language">Lingua dell\'app</string>
+    <string name="configure_app_language">Configura le lingue dell\'app</string>
+    <string name="intent_app_language_not_found">Impossibile trovare le impostazioni della lingua dell\'app, configurale manualmente</string>
     <string name="open_supported_links">Apri il collegamento supportato per impostazione predefinita</string>
     <string name="configure_supported_links">Configura i collegamenti supportati</string>
     <string name="intent_supported_links_not_found">Impossibile trovare le impostazioni dei collegamenti supportati, configurale manualmente</string>
@@ -150,7 +150,7 @@
     <string name="minimum_playback_duration">Durata minima della riproduzione</string>
     <string name="import_online">Importa una playlist \"m3u\".</string>
     <string name="import_csv">Importa una playlist \"csv\".</string>
-    <string name="playlist_add_local_to_synced_note">Nota: l'aggiunta di brani locali a playlist sincronizzate/remote non è supportata. Qualsiasi altra combinazione è valida</string>
+    <string name="playlist_add_local_to_synced_note">Nota: l\'aggiunta di brani locali a playlist sincronizzate/remote non è supportata. Qualsiasi altra combinazione è valida</string>
     <string name="auto_download_on_like">Download automatico su Mi piace</string>
     <string name="auto_download_on_like_desc">Scarica automaticamente i brani quando ti piacciono</string>
     <string name="swipe_sensitivity">Sensibilità di scorrimento del mini lettore</string>
@@ -161,15 +161,15 @@
     <string name="clear_downloads_dialog">  Sei sicuro di voler cancellare tutti i download?</string>
     <string name="disable">Disabilita</string>
     <string name="pause_remote_listen_history">Metti in pausa la cronologia di ascolto delle condivisioni con YouTube Music</string>
-    <string name="not_logged_in_youtube">Non hai effettuato l'accesso a YouTube</string>
+    <string name="not_logged_in_youtube">Non hai effettuato l\'accesso a YouTube</string>
     <string name="default_links">Apri collegamenti supportati</string>
-    <string name="open_app_settings_error">Impossibile aprire le impostazioni dell'app</string>
+    <string name="open_app_settings_error">Impossibile aprire le impostazioni dell\'app</string>
     <string name="release_notes">Note sulla versione</string>
     <string name="all_time">Tutto il tempo</string>
     <string name="past_24_hours">Ultime 24 ore</string>
     <string name="past_week">La settimana scorsa</string>
     <string name="past_month">Il mese scorso</string>
-    <string name="past_year">L'anno scorso</string>
+    <string name="past_year">L\'anno scorso</string>
     <string name="top_length">Lunghezza della mia lista principale</string>
     <string name="history_duration">Durata della storia</string>
     <string name="information">Informazioni</string>
@@ -210,7 +210,7 @@
     <string name="top_songs">Canzoni migliori</string>
     <string name="top_artists">I migliori artisti</string>
     <string name="share_summary">Condividi riepilogo</string>
-    <string name="no_listening_data">Nessun dato di ascolto per quest'anno</string>
+    <string name="no_listening_data">Nessun dato di ascolto per quest\'anno</string>
     <string name="played">giocato</string>
 
     <string name="custom_theme">Tema personalizzato</string>
@@ -220,7 +220,7 @@
     <string name="palette_custom">Personalizzato</string>
 
     <string name="theme_creator_title">Creatore di temi</string>
-    <string name="theme_creator_subtitle">Regola i colori, visualizza l'anteprima del risultato, quindi esporta o importa.</string>
+    <string name="theme_creator_subtitle">Regola i colori, visualizza l\'anteprima del risultato, quindi esporta o importa.</string>
 
     <string name="theme_meta_title">Dettagli sul tema</string>
     <string name="theme_name_optional">Nome (facoltativo)</string>

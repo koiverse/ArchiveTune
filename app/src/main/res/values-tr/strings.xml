@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Upstream InnerTune strings --><!-- Do not add new features here --><!-- Try to re-use strings here, but be careful on its usage e.g. verb vs noun --><!-- "InnerTune" is replaced with "ArchiveTune" --><!-- Translators: Do not modify this file for translations, use InnerTune's Weblate instead. --><resources>
+<!-- Upstream InnerTune strings --><!-- Do not add new features here --><!-- Try to re-use strings here, but be careful on its usage e.g. verb vs noun --><!-- "InnerTune" is replaced with "ArchiveTune" --><!-- Translators: Do not modify this file for translations, use InnerTune\'s Weblate instead. --><resources>
     <!-- Bottom navigation -->
     <string name="home">Ana sayfa</string>
     <string name="songs">Şarkılar</string>
@@ -35,7 +35,7 @@
     <string name="most_played_albums">En çok çalınan albümler</string>
     <!-- Search -->
     <string name="search">Ara</string>
-    <string name="search_yt_music">YouTube Müzik'te ara…</string>
+    <string name="search_yt_music">YouTube Müzik\'te ara…</string>
     <string name="search_library">Kütüphanede ara…</string>
     <string name="filter_library">Kütüphane</string>
     <string name="filter_liked">Beğendim</string>
@@ -115,7 +115,7 @@
     <!-- Dialog -->
     <string name="media_id">Medya kimliği</string>
     <string name="mime_type">MIME türü</string>
-    <string name="codecs">Codec'ler</string>
+    <string name="codecs">Codec\'ler</string>
     <string name="bitrate">Bit hızı</string>
     <string name="sample_rate">Örnekleme oranı</string>
     <string name="loudness">Ses yüksekliği</string>
@@ -174,7 +174,7 @@
         <item quantity="other">%d yıl</item>
     </plurals>
     <!-- Snackbar -->
-    <string name="added_to_playlist">%s'a eklendi</string>
+    <string name="added_to_playlist">%s\'a eklendi</string>
     <string name="added_n_songs_to_playlist">%2$s albümüne %1$d şarkı eklendi</string>
     <string name="added_to_n_playlists">%d oynatma listesine eklendi</string>
     <string name="added_n_songs_to_n_playlists">%2$d şarkı listesine %1$d şarkı eklendi</string>
@@ -339,8 +339,8 @@
     <string name="custom_value">Özel değer</string>
     <string name="new_library_design">Yeni kütüphane tasarımı</string>
     <string name="new_library_design_description">Yeni kitaplık tasarımını etkinleştirin (kararsız olabilir)</string>
-    <string name="show_button1_description">Discord Rich Presence'da düğme 1'in görünürlüğünü değiştir</string>
-    <string name="show_button2_description">Discord Rich Presence'da 2. düğmenin görünürlüğünü değiştir</string>
+    <string name="show_button1_description">Discord Rich Presence\'da düğme 1\'in görünürlüğünü değiştir</string>
+    <string name="show_button2_description">Discord Rich Presence\'da 2. düğmenin görünürlüğünü değiştir</string>
     <string name="discord_activity_type">Etkinlik türü</string>
     <string name="dark_theme_follow_system">Sistemi takip et</string>
     <string name="pure_black">Saf siyah</string>
@@ -381,11 +381,11 @@
     <string name="content_language">Varsayılan içerik dili</string>
     <string name="content_country">Varsayılan içerik ülkesi</string>
     <string name="system_default">Sistem varsayılanı</string>
-    <string name="enable_proxy">Proxy'yi etkinleştir</string>
+    <string name="enable_proxy">Proxy\'yi etkinleştir</string>
     <string name="proxy_type">Vekil türü</string>
-    <string name="proxy_url">Proxy URL'si</string>
+    <string name="proxy_url">Proxy URL\'si</string>
     <string name="restart_to_take_effect">Etkili olması için yeniden başlatın</string>
-    <string name="enable_betterlyrics">BetterLyrics'i etkinleştir</string>
+    <string name="enable_betterlyrics">BetterLyrics\'i etkinleştir</string>
     <string name="enable_simpmusic_lyrics">SimpMusic şarkı sözlerini etkinleştir</string>
     <string name="player_and_audio">Oynatıcı ve ses</string>
     <string name="audio_quality">Ses kalitesi</string>
@@ -463,7 +463,7 @@
     <string name="use_login_for_browse">İçeriğe göz atmak için giriş bilgilerini kullanın</string>
     <string name="use_login_for_browse_desc">Bu, göreceğiniz içeriği etkileyebilir ve örneğin Premium hesapla oturum açtıysanız yalnızca premium albümlerin gösterilmesini sağlayabilir.</string>
     <string name="disable_screenshot">Ekran görüntüsünü devre dışı bırak</string>
-    <string name="disable_screenshot_desc">Bu seçenek açıkken ekran görüntüleri ve uygulamanın Son Kullanılanlar'daki görünümü devre dışı bırakılır.</string>
+    <string name="disable_screenshot_desc">Bu seçenek açıkken ekran görüntüleri ve uygulamanın Son Kullanılanlar\'daki görünümü devre dışı bırakılır.</string>
     <string name="enable_lrclib">LrcLib şarkı sözü sağlayıcısını etkinleştir</string>
     <string name="enable_kugou">KuGou şarkı sözü sağlayıcısını etkinleştir</string>
     <string name="hide_explicit">Uygunsuz içeriği gizle</string>
@@ -476,7 +476,7 @@
     <string name="backup_create_failed">Yedekleme oluşturulamadı</string>
     <string name="restore_failed">Yedekleme geri yüklenemedi</string>
     <string name="discord_integration">Anlaşmazlık Entegrasyonu</string>
-    <string name="discord_information">ArchiveTune uses the KizzyRPC library to set your Discord account\'s status. This involves using the Discord Gateway connection, which may be considered a violation of Discord\'s TOS. However, there are no known cases of user accounts being suspended for this reason. Use at your own risk.
+    <string name="discord_information">ArchiveTune uses the KizzyRPC library to set your Discord account\\'s status. This involves using the Discord Gateway connection, which may be considered a violation of Discord\\'s TOS. However, there are no known cases of user accounts being suspended for this reason. Use at your own risk.
 ArchiveTune will only extract your token, and everything else is stored locally.</string>
     <string name="dismiss">Reddet</string>
     <string name="options">Seçenekler</string>
@@ -485,7 +485,7 @@ ArchiveTune will only extract your token, and everything else is stored locally.
     <!-- Last.fm -->
     <string name="scrobbling">Skrobling</string>
     <string name="lastfm_integration">Last.fm Entegrasyonu</string>
-    <string name="enable_scrobbling">Scrobbling'i Etkinleştir</string>
+    <string name="enable_scrobbling">Scrobbling\'i Etkinleştir</string>
     <string name="lastfm_now_playing">Güncelle Şimdi Yürütülüyor</string>
     <string name="scrobbling_configuration">Scrobbling Yapılandırması</string>
     <string name="scrobble_min_track_duration">Minimum Parça Süresi</string>
@@ -496,7 +496,7 @@ ArchiveTune will only extract your token, and everything else is stored locally.
     <string name="logging_in">Giriş yapılıyor…</string>
     <!-- ListenBrainz -->
     <string name="listenbrainz_scrobbling">ListenBrainz skrobling yapıyor</string>
-    <string name="listenbrainz_scrobbling_description">Şu anda çalınan ve biten dinlemelerin ListenBrainz'e gönderilmesini etkinleştirin</string>
+    <string name="listenbrainz_scrobbling_description">Şu anda çalınan ve biten dinlemelerin ListenBrainz\'e gönderilmesini etkinleştirin</string>
     <string name="set_listenbrainz_token">ListenBrainz jetonunu ayarla</string>
     <string name="edit_listenbrainz_token">ListenBrainz jetonunu düzenleyin</string>
     <!-- Discord activity customization -->
@@ -506,22 +506,22 @@ ArchiveTune will only extract your token, and everything else is stored locally.
     <string name="discord_activity_button_1_url">Düğme 1 URL Kaynağı</string>
     <string name="discord_activity_button_2_url">Düğme 2 URL Kaynağı</string>
     <string name="discord_activity_button1_label">Düğme 1 etiketi</string>
-    <string name="discord_activity_button1_url">Düğme 1 Özel URL'si</string>
+    <string name="discord_activity_button1_url">Düğme 1 Özel URL\'si</string>
     <string name="discord_activity_button2_label">Düğme 2 etiketi</string>
     <string name="discord_activity_button2_url">Düğme 2 Özel URL</string>
-    <string name="large_image_custom_url">Büyük resim özel URL'si</string>
+    <string name="large_image_custom_url">Büyük resim özel URL\'si</string>
     <string name="large_image">Büyük Resim</string>
     <string name="large_text">Büyük Metin</string>
     <string name="custom_large_text">Özel Büyük Metin</string>
     <string name="small_image">Küçük Resim</string>
-    <string name="small_image_custom_url">Küçük resim özel URL'si</string>
+    <string name="small_image_custom_url">Küçük resim özel URL\'si</string>
     <string name="activity_status">Etkinlik Durumu</string>
     <string name="platform_status">platformu</string>
     <string name="update_interval">Durum Güncelleme Aralığı</string>
     <!--Discord Tranalstor Settings-->
     <string name="translator_options">Çevirmen Seçenekleri</string>
     <string name="enable_translator">Çevirmeni Etkinleştir</string>
-    <string name="enable_translator_desc">Seçilen alanları Discord RPC'ye göndermeden önce çevirin</string>
+    <string name="enable_translator_desc">Seçilen alanları Discord RPC\'ye göndermeden önce çevirin</string>
     <string name="context_info">Bağlamlar (virgülle ayrılmış)</string>
     <string name="translator_info_usage">Örnek Kullanın: {şarkı}, {sanatçı}, {albüm}</string>
     <string name="target_language">Hedef Dil</string>
@@ -543,14 +543,14 @@ ArchiveTune will only extract your token, and everything else is stored locally.
     <string name="discord_button_options">Düğme Seçenekleri</string>
     <string name="discord_image_options">Görüntü Seçenekleri</string>
     <string name="refresh">Yenile</string>
-    <string name="description_refresh">Discord Rich Presence'ı manuel olarak yenileyin</string>
-    <string name="discord_show_when_paused">Duraklatıldığında RPC'yi göster</string>
+    <string name="description_refresh">Discord Rich Presence\'ı manuel olarak yenileyin</string>
+    <string name="discord_show_when_paused">Duraklatıldığında RPC\'yi göster</string>
     <string name="discord_show_when_paused_desc">Etkinleştirilirse, Zengin Durum duraklatıldığında bir duraklatma simgesiyle görünür durumda kalacaktır. Devre dışı bırakılırsa, duraklatıldığında RPC kaybolacaktır.</string>
     <string name="discord_paused">Duraklatıldı</string>
     <string name="show_small_image">Küçük resmi göster</string>
-    <string name="description_show_small_image">Etkinleştirildiğinde, Zengin Durum önizlemesinde küçük bir dairesel resim gösterilir ve varsa Discord'a gönderilir</string>
+    <string name="description_show_small_image">Etkinleştirildiğinde, Zengin Durum önizlemesinde küçük bir dairesel resim gösterilir ve varsa Discord\'a gönderilir</string>
     <string name="logout_confirm_title">Oturumu kapatmayı onaylayın</string>
-    <string name="logout_confirm_message">Discord'dan çıkış yapmak istediğinden emin misin?</string>
+    <string name="logout_confirm_message">Discord\'dan çıkış yapmak istediğinden emin misin?</string>
     <string name="logout_confirm_yes">Oturumu kapat</string>
     <string name="logout_confirm_no">İptal</string>
     <!--Misc settings additions-->
@@ -569,7 +569,7 @@ ArchiveTune will only extract your token, and everything else is stored locally.
     <string name="no_logs">Günlük Yok</string>
     <string name="show_nerd_stats">İnek istatistiklerini göster</string>
     <string name="description_show_nerd_stats">Gerçek zamanlı oynatma istatistiklerini görüntüleyin (codec, bit hızı, arabellek)</string>
-    <string name="display_codec_on_player">Codec'i Player'da Görüntüle</string>
+    <string name="display_codec_on_player">Codec\'i Player\'da Görüntüle</string>
     <string name="description_display_codec_on_player">Geçerli ses codec bileşeni bilgilerini oynatıcıda göster</string>
     <string name="nerd_stats">İnek İstatistikleri</string>
     <string name="track_label">Parça</string>
@@ -610,7 +610,7 @@ ArchiveTune will only extract your token, and everything else is stored locally.
     <string name="update_notification_text">ArchiveTune %s artık mevcut</string>
     <string name="download">İndir</string>
 
-    <string name="permissions_title">ArchiveTune'un en iyi şekilde çalışmasına izin verin</string>
+    <string name="permissions_title">ArchiveTune\'un en iyi şekilde çalışmasına izin verin</string>
     <string name="permissions_subtitle">Müziğinizi güvenilir bir şekilde oynatmak ve yönetmek için birkaç izin kullanıyoruz. Bunları istediğiniz zaman sistem ayarlarından değiştirebilirsiniz.</string>
     <string name="permission_storage_title">Depolama erişimi</string>
     <string name="permission_storage_desc">İndirdiğiniz ve yerel ses dosyalarınızı oynatmak üzere okumak için gereklidir.</string>
