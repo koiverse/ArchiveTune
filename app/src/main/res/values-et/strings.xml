@@ -300,4 +300,25 @@
     <string name="enable_scrobbling">Lülita kraasimine sisse</string>
     <string name="lastfm_now_playing">Uuenda hetkel esitamisel loo andmeid</string>
     <string name="scrobbling_configuration">Kraasimise seadistused</string>
+    <string name="new_library_design">Muusikakogu uus lahendus</string>
+    <string name="new_library_design_description">Kasuta muusikakogu uut lahendust (võib olla ebsastabiilne)</string>
+    <string name="added_to_playlist">Lisatud „%s“ esitusloendisse</string>
+    <string name="added_n_songs_to_playlist">%1$d lugu on isatud „%2$s“ esitusloendisse</string>
+    <string name="added_to_n_playlists">Lisatud %d-te esitusloendisse</string>
+    <string name="added_n_songs_to_n_playlists">%1$d lugu on isatud %2$d-te esitusloendisse</string>
+    <string name="use_system_font">Kasuta süsteemi kirjatüüpi</string>
+    <string name="use_system_font_desc">Rakenduse kirjatüübi asemel kasuta süsteemi vaikimisi kirjatüüpi</string>
+    <string name="palette_ocean_blue">Ookeanisinine</string>
+    <string name="palette_arctic_blue">Arktiline sinine</string>
+    <string name="palette_midnight_navy">Kesköine meri</string>
+    <string name="palette_sky_blue">Taevasinine</string>
+    <string name="palette_cobalt_blue">Koobaltsinine</string>
+    <string name="palette_electric_blue">Elektrisinine</string>
+    <string name="palette_emerald_green">Smaragdroheline</string>
+    <string name="palette_teal_wave">Sinakasroheline laine</string>
+    <string name="palette_forest_green">Metsaroheline</string>
+    <string name="palette_spotify_green">Spotifyroheline</string>
+    <string name="palette_mint_fresh">Mündiroheline</string>
+    <string name="palette_olive_garden">Oliiviaed</string>
+    <string name="palette_sage_green">Salveiroheline</string>
 </resources>
