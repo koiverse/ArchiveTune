@@ -1,5 +1,6 @@
 plugins {
     alias(libs.plugins.hilt) apply (false)
+    kotlin("jvm") version libs.versions.kotlin.get() apply (false)
     alias(libs.plugins.kotlin.ksp) apply (false)
 }
 
@@ -12,7 +13,6 @@ buildscript {
     }
     dependencies {
         classpath(libs.gradle)
-        classpath(kotlin("gradle-plugin", libs.versions.kotlin.get()))
     }
 }
 
