@@ -107,4 +107,74 @@
     <string name="codecs">Кодеки</string>
     <string name="bitrate">Битрейт</string>
     <string name="sample_rate">Частота дискретизации</string>
+    <string name="loudness">Громкость</string>
+    <string name="volume">Уровень громкости</string>
+    <string name="file_size">Размер файла</string>
+    <string name="unknown">Неизвестный</string>
+    <string name="copied">Скопировано в буфер обмена</string>
+    <string name="edit_lyrics">Изменить текст песни</string>
+    <string name="search_lyrics">Искать текст песни</string>
+    <string name="edit_song">Изменить песню</string>
+    <string name="song_title">Название песни</string>
+    <string name="song_artists">Исполнитель песни</string>
+    <string name="error_song_title_empty">Название песни не может быть пустым.</string>
+    <string name="error_song_artist_empty">Исполнитель песни не может быть пустым.</string>
+    <string name="save">Сохранить</string>
+    <string name="choose_playlist">Выбрать плейлист</string>
+    <string name="edit_playlist">Изменить плейлист</string>
+    <string name="create_playlist">Создать плейлист</string>
+    <string name="playlist_name">Название плейлиста</string>
+    <string name="error_playlist_name_empty">Название плейлиста не может быть пустым.</string>
+    <string name="edit_artist">Изменить исполнителя</string>
+    <string name="artist_name">Имя исполнителя</string>
+    <string name="error_artist_name_empty">Имя исполнителя не может быть пустым.</string>
+    <string name="duplicates">Дубликаты</string>
+    <string name="skip_duplicates">Пропустить дубликаты</string>
+    <string name="add_anyway">Добавить всё равно</string>
+    <string name="duplicates_description_single">Песня уже в вашем плейлисте</string>
+    <string name="duplicates_description_multiple">%d песен уже в вашем плейлисте</string>
+    <plurals name="n_song">
+        <item quantity="one">%d песня</item>
+        <item quantity="few">%d песни</item>
+        <item quantity="many">%d песен</item>
+        <item quantity="other">%d песен</item>
+    </plurals>
+    <plurals name="n_artist">
+        <item quantity="one">%d исполнитель</item>
+        <item quantity="few">%d исполнителя</item>
+        <item quantity="many">%d исполнителей</item>
+        <item quantity="other">%d исполнителей</item>
+    </plurals>
+    <plurals name="n_album">
+        <item quantity="one">%d альбом</item>
+        <item quantity="few">%d альбома</item>
+        <item quantity="many">%d альбомов</item>
+        <item quantity="other">%d альбомов</item>
+    </plurals>
+    <plurals name="n_playlist">
+        <item quantity="one">%d плейлист</item>
+        <item quantity="few">%d плейлиста</item>
+        <item quantity="many">%d плейлистов</item>
+        <item quantity="other">%d плейлистов</item>
+    </plurals>
+    <plurals name="n_week">
+        <item quantity="one">%d неделя</item>
+        <item quantity="few">%d недели</item>
+        <item quantity="many">%d недель</item>
+        <item quantity="other">%d недель</item>
+    </plurals>
+    <plurals name="n_month">
+        <item quantity="one">%d месяц</item>
+        <item quantity="few">%d месяца</item>
+        <item quantity="many">%d месяцев</item>
+        <item quantity="other">%d месяцев</item>
+    </plurals>
+    <plurals name="n_year">
+        <item quantity="one">%d год</item>
+        <item quantity="few">%d года</item>
+        <item quantity="many">%d лет</item>
+        <item quantity="other">%d лет</item>
+    </plurals>
+    <string name="added_to_playlist">Добавлено в %s</string>
+    <string name="added_n_songs_to_playlist">Добавлено %1$d песен в %2$s</string>
 </resources>
