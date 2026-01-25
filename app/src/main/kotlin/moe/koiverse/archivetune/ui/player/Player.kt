@@ -17,6 +17,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
@@ -64,6 +66,7 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -81,6 +84,7 @@ import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.input.pointer.consume
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.Layout
@@ -168,6 +172,7 @@ import kotlinx.coroutines.withContext
 import me.saket.squiggles.SquigglySlider
 import moe.koiverse.archivetune.playback.PlayerConnection
 import kotlin.math.roundToInt
+import kotlin.math.roundToLong
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -594,6 +599,9 @@ fun BottomSheetPlayer(
             }
             sliderPosition = null
         }
+        val seekEnabled = duration > 0L && duration != C.TIME_UNSET
+        val updatedOnSliderValueChange by rememberUpdatedState(onSliderValueChange)
+        val updatedOnSliderValueChangeFinished by rememberUpdatedState(onSliderValueChangeFinished)
 
         val nextUpMetadata =
             remember(queueWindows, currentWindowIndex) {
@@ -650,10 +658,11 @@ fun BottomSheetPlayer(
                 if (playerDesignStyle == PlayerDesignStyle.V5) {
                     val littleBackground = MaterialTheme.colorScheme.primaryContainer
                     val littleTextColor = MaterialTheme.colorScheme.onPrimaryContainer
+                    val displayPositionMs = sliderPosition ?: position
                     val progressFraction =
-                        remember(position, duration) {
+                        remember(displayPositionMs, duration) {
                             if (duration <= 0L || duration == C.TIME_UNSET) 0f
-                            else (position.toFloat() / duration.toFloat()).coerceIn(0f, 1f)
+                            else (displayPositionMs.toFloat() / duration.toFloat()).coerceIn(0f, 1f)
                         }
                     val progressOverlayColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.28f)
 
@@ -671,38 +680,55 @@ fun BottomSheetPlayer(
                                 .align(Alignment.TopStart)
                                 .background(progressOverlayColor),
                         )
-                        Row(modifier = Modifier.fillMaxSize()) {
-                            Box(
-                                modifier =
-                                Modifier
-                                    .weight(1f)
-                                    .fillMaxHeight()
-                                    .combinedClickable(
-                                        enabled = canSkipPrevious,
-                                        interactionSource = remember { MutableInteractionSource() },
-                                        indication = null,
-                                        onClick = {},
-                                        onDoubleClick = playerConnection::seekToPrevious,
-                                    ),
-                            )
-                            Box(
-                                modifier =
-                                Modifier
-                                    .weight(1f)
-                                    .fillMaxHeight()
-                                    .combinedClickable(
-                                        enabled = canSkipNext,
-                                        interactionSource = remember { MutableInteractionSource() },
-                                        indication = null,
-                                        onClick = {},
-                                        onDoubleClick = playerConnection::seekToNext,
-                                    ),
-                            )
-                        }
                         Box(
                             modifier =
                             Modifier
                                 .fillMaxSize()
+                                .pointerInput(canSkipPrevious, canSkipNext) {
+                                    detectTapGestures(
+                                        onDoubleTap = { offset ->
+                                            val isLeftSide = offset.x < size.width / 2f
+                                            if (isLeftSide) {
+                                                if (canSkipPrevious) playerConnection.seekToPrevious()
+                                            } else {
+                                                if (canSkipNext) playerConnection.seekToNext()
+                                            }
+                                        },
+                                    )
+                                }
+                                .pointerInput(seekEnabled, duration, progressFraction) {
+                                    if (!seekEnabled) return@pointerInput
+                                    var isSeeking = false
+                                    detectDragGesturesAfterLongPress(
+                                        onDragStart = { offset ->
+                                            val minOverlayHeightPx = 24.dp.toPx()
+                                            val overlayHeightPx =
+                                                (progressFraction * size.height).coerceAtLeast(minOverlayHeightPx)
+                                            isSeeking = offset.y <= overlayHeightPx
+                                            if (isSeeking) {
+                                                val fraction = (offset.y / size.height).coerceIn(0f, 1f)
+                                                val targetMs =
+                                                    (duration.toDouble() * fraction.toDouble()).roundToLong().coerceIn(0L, duration)
+                                                updatedOnSliderValueChange(targetMs)
+                                            }
+                                        },
+                                        onDragEnd = {
+                                            if (isSeeking) updatedOnSliderValueChangeFinished()
+                                            isSeeking = false
+                                        },
+                                        onDragCancel = {
+                                            sliderPosition = null
+                                            isSeeking = false
+                                        },
+                                    ) { change, _ ->
+                                        if (!isSeeking) return@detectDragGesturesAfterLongPress
+                                        val fraction = (change.position.y / size.height).coerceIn(0f, 1f)
+                                        val targetMs =
+                                            (duration.toDouble() * fraction.toDouble()).roundToLong().coerceIn(0L, duration)
+                                        updatedOnSliderValueChange(targetMs)
+                                        change.consume()
+                                    }
+                                }
                                 .windowInsetsPadding(
                                     WindowInsets.systemBars.only(
                                         WindowInsetsSides.Horizontal + WindowInsetsSides.Top + WindowInsetsSides.Bottom
@@ -712,12 +738,9 @@ fun BottomSheetPlayer(
                             mediaMetadata?.let { metadata ->
                                 LittlePlayerContent(
                                     mediaMetadata = metadata,
-                                    sliderStyle = sliderStyle,
                                     sliderPosition = sliderPosition,
                                     positionMs = position,
                                     durationMs = duration,
-                                    isPlaying = isPlaying,
-                                    textColor = littleTextColor,
                                     liked = currentSongLiked,
                                     onCollapse = state::collapseSoft,
                                     onToggleLike = playerConnection::toggleLike,
@@ -737,8 +760,6 @@ fun BottomSheetPlayer(
                                             )
                                         }
                                     },
-                                    onSliderValueChange = onSliderValueChange,
-                                    onSliderValueChangeFinished = onSliderValueChangeFinished,
                                 )
                             }
                         }
@@ -785,12 +806,14 @@ fun BottomSheetPlayer(
                 if (playerDesignStyle == PlayerDesignStyle.V5) {
                     val littleBackground = MaterialTheme.colorScheme.primaryContainer
                     val littleTextColor = MaterialTheme.colorScheme.onPrimaryContainer
+                    val displayPositionMs = sliderPosition ?: position
                     val progressFraction =
-                        remember(position, duration) {
+                        remember(displayPositionMs, duration) {
                             if (duration <= 0L || duration == C.TIME_UNSET) 0f
-                            else (position.toFloat() / duration.toFloat()).coerceIn(0f, 1f)
+                            else (displayPositionMs.toFloat() / duration.toFloat()).coerceIn(0f, 1f)
                         }
                     val progressOverlayColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.28f)
+                    val seekEnabled = duration > 0L && duration != C.TIME_UNSET
 
                     Box(
                         modifier =
@@ -806,38 +829,55 @@ fun BottomSheetPlayer(
                                 .align(Alignment.TopStart)
                                 .background(progressOverlayColor),
                         )
-                        Row(modifier = Modifier.fillMaxSize()) {
-                            Box(
-                                modifier =
-                                Modifier
-                                    .weight(1f)
-                                    .fillMaxHeight()
-                                    .combinedClickable(
-                                        enabled = canSkipPrevious,
-                                        interactionSource = remember { MutableInteractionSource() },
-                                        indication = null,
-                                        onClick = {},
-                                        onDoubleClick = playerConnection::seekToPrevious,
-                                    ),
-                            )
-                            Box(
-                                modifier =
-                                Modifier
-                                    .weight(1f)
-                                    .fillMaxHeight()
-                                    .combinedClickable(
-                                        enabled = canSkipNext,
-                                        interactionSource = remember { MutableInteractionSource() },
-                                        indication = null,
-                                        onClick = {},
-                                        onDoubleClick = playerConnection::seekToNext,
-                                    ),
-                            )
-                        }
                         Box(
                             modifier =
                             Modifier
                                 .fillMaxSize()
+                                .pointerInput(canSkipPrevious, canSkipNext) {
+                                    detectTapGestures(
+                                        onDoubleTap = { offset ->
+                                            val isLeftSide = offset.x < size.width / 2f
+                                            if (isLeftSide) {
+                                                if (canSkipPrevious) playerConnection.seekToPrevious()
+                                            } else {
+                                                if (canSkipNext) playerConnection.seekToNext()
+                                            }
+                                        },
+                                    )
+                                }
+                                .pointerInput(seekEnabled, duration, progressFraction) {
+                                    if (!seekEnabled) return@pointerInput
+                                    var isSeeking = false
+                                    detectDragGesturesAfterLongPress(
+                                        onDragStart = { offset ->
+                                            val minOverlayHeightPx = 24.dp.toPx()
+                                            val overlayHeightPx =
+                                                (progressFraction * size.height).coerceAtLeast(minOverlayHeightPx)
+                                            isSeeking = offset.y <= overlayHeightPx
+                                            if (isSeeking) {
+                                                val fraction = (offset.y / size.height).coerceIn(0f, 1f)
+                                                val targetMs =
+                                                    (duration.toDouble() * fraction.toDouble()).roundToLong().coerceIn(0L, duration)
+                                                updatedOnSliderValueChange(targetMs)
+                                            }
+                                        },
+                                        onDragEnd = {
+                                            if (isSeeking) updatedOnSliderValueChangeFinished()
+                                            isSeeking = false
+                                        },
+                                        onDragCancel = {
+                                            sliderPosition = null
+                                            isSeeking = false
+                                        },
+                                    ) { change, _ ->
+                                        if (!isSeeking) return@detectDragGesturesAfterLongPress
+                                        val fraction = (change.position.y / size.height).coerceIn(0f, 1f)
+                                        val targetMs =
+                                            (duration.toDouble() * fraction.toDouble()).roundToLong().coerceIn(0L, duration)
+                                        updatedOnSliderValueChange(targetMs)
+                                        change.consume()
+                                    }
+                                }
                                 .windowInsetsPadding(
                                     WindowInsets.systemBars.only(
                                         WindowInsetsSides.Horizontal + WindowInsetsSides.Top + WindowInsetsSides.Bottom
@@ -848,11 +888,9 @@ fun BottomSheetPlayer(
                                 LandscapeLikeBox(modifier = Modifier.fillMaxSize()) {
                                     LittlePlayerContent(
                                         mediaMetadata = metadata,
-                                        sliderStyle = sliderStyle,
                                         sliderPosition = sliderPosition,
                                         positionMs = position,
                                         durationMs = duration,
-                                        isPlaying = isPlaying,
                                         textColor = littleTextColor,
                                         liked = currentSongLiked,
                                         onCollapse = state::collapseSoft,
@@ -873,8 +911,6 @@ fun BottomSheetPlayer(
                                                 )
                                             }
                                         },
-                                        onSliderValueChange = onSliderValueChange,
-                                        onSliderValueChangeFinished = onSliderValueChangeFinished,
                                     )
                                 }
                             }
@@ -972,19 +1008,15 @@ fun BottomSheetPlayer(
 @Composable
 private fun LittlePlayerContent(
     mediaMetadata: MediaMetadata,
-    sliderStyle: SliderStyle,
     sliderPosition: Long?,
     positionMs: Long,
     durationMs: Long,
-    isPlaying: Boolean,
     textColor: Color,
     liked: Boolean,
     onCollapse: () -> Unit,
     onToggleLike: () -> Unit,
     onExpandQueue: () -> Unit,
     onMenuClick: () -> Unit,
-    onSliderValueChange: (Long) -> Unit,
-    onSliderValueChangeFinished: () -> Unit,
 ) {
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         val titleColor = textColor.copy(alpha = 0.95f)
@@ -1095,64 +1127,6 @@ private fun LittlePlayerContent(
             }
 
             Spacer(Modifier.height((14f * scale).dp))
-
-            val seekEnabled = durationMs > 0L && durationMs != C.TIME_UNSET
-            val sliderValue =
-                if (seekEnabled) {
-                    displayPositionMs.coerceIn(0L, durationMs).toFloat()
-                } else {
-                    0f
-                }
-            val sliderValueRangeEnd = if (seekEnabled) durationMs.toFloat() else 0f
-
-            when (sliderStyle) {
-                SliderStyle.DEFAULT -> {
-                    Slider(
-                        value = sliderValue,
-                        valueRange = 0f..sliderValueRangeEnd,
-                        enabled = seekEnabled,
-                        onValueChange = { onSliderValueChange(it.toLong()) },
-                        onValueChangeFinished = onSliderValueChangeFinished,
-                        colors = PlayerSliderColors.defaultSliderColors(textColor),
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                }
-
-                SliderStyle.SQUIGGLY -> {
-                    SquigglySlider(
-                        value = sliderValue,
-                        valueRange = 0f..sliderValueRangeEnd,
-                        enabled = seekEnabled,
-                        onValueChange = { onSliderValueChange(it.toLong()) },
-                        onValueChangeFinished = onSliderValueChangeFinished,
-                        colors = PlayerSliderColors.squigglySliderColors(textColor),
-                        modifier = Modifier.fillMaxWidth(),
-                        squigglesSpec =
-                        SquigglySlider.SquigglesSpec(
-                            amplitude = if (isPlaying) 2.dp else 0.dp,
-                            strokeWidth = 3.dp,
-                        ),
-                    )
-                }
-
-                SliderStyle.SLIM -> {
-                    Slider(
-                        value = sliderValue,
-                        valueRange = 0f..sliderValueRangeEnd,
-                        enabled = seekEnabled,
-                        onValueChange = { onSliderValueChange(it.toLong()) },
-                        onValueChangeFinished = onSliderValueChangeFinished,
-                        thumb = { Spacer(modifier = Modifier.size(0.dp)) },
-                        track = { sliderState ->
-                            PlayerSliderTrack(
-                                sliderState = sliderState,
-                                colors = PlayerSliderColors.slimSliderColors(textColor)
-                            )
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                }
-            }
 
             Spacer(Modifier.height((6f * scale).dp))
 
