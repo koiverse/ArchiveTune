@@ -228,4 +228,10 @@
     <string name="theme_preview_primary_action">Ação Primária</string>
     <string name="theme_preview_secondary_action">Ação Secundária</string>
     <string name="copy">Copiar</string>
+    <string name="player_stream_client">Cliente de reprodução</string>
+    <string name="player_stream_client_desc">Controla qual cliente do YouTube é usado para buscar transmissões</string>
+    <string name="player_stream_client_android_vr">Android VR</string>
+    <string name="player_stream_client_android_vr_desc">Transmite dados diretamente, sem descriptografia de assinatura, proporcionando velocidade máxima. Adequado para a maioria dos usuários.</string>
+    <string name="player_stream_client_web_remix">Remix da Web</string>
+    <string name="player_stream_client_web_remix_desc">Suporte a formatos estendidos, porém com perda de velocidade. A descriptografia de assinaturas em JavaScript introduz um atraso de inicialização de aproximadamente 5 a 10 segundos.</string>
 </resources>
