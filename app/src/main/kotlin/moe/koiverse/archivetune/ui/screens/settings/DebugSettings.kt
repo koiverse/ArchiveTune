@@ -95,6 +95,7 @@ import moe.koiverse.archivetune.ui.component.PreferenceGroupTitle
 import moe.koiverse.archivetune.ui.component.SwitchPreference
 import moe.koiverse.archivetune.ui.utils.backToMain
 import moe.koiverse.archivetune.utils.GlobalLog
+import moe.koiverse.archivetune.utils.LogEntry
 import moe.koiverse.archivetune.utils.makeTimeString
 import moe.koiverse.archivetune.utils.rememberPreference
 import kotlin.math.roundToInt
@@ -713,7 +714,7 @@ private fun EmptyLogPlaceholder() {
 
 @Composable
 private fun LogEntryItem(
-    entry: GlobalLog.Entry,
+    entry: LogEntry,
     clipboard: androidx.compose.ui.platform.ClipboardManager,
     coroutineScope: kotlinx.coroutines.CoroutineScope
 ) {
