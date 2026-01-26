@@ -234,7 +234,7 @@ fun SettingsScreen(
                     PremiumSettingsItem(
                         icon = painterResource(R.drawable.security),
                         title = stringResource(R.string.privacy),
-                        subtitle = stringResource(R.string.incognito_mode),
+                        subtitle = stringResource(R.string.pause_listen_history),
                         onClick = { navController.navigate("settings/privacy") }
                     )
                 )
@@ -254,7 +254,7 @@ fun SettingsScreen(
                     PremiumSettingsItem(
                         icon = painterResource(R.drawable.restore),
                         title = stringResource(R.string.backup_restore),
-                        subtitle = stringResource(R.string.backup),
+                        subtitle = stringResource(R.string.action_backup),
                         onClick = { navController.navigate("settings/backup_restore") }
                     )
                 )

@@ -1202,7 +1202,7 @@ private fun PremiumHeroStoryCard(
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
-                                painter = painterResource(R.drawable.schedule),
+                                painter = painterResource(R.drawable.timer),
                                 contentDescription = null,
                                 tint = SoftWhite,
                                 modifier = Modifier.size(24.dp)
@@ -1367,12 +1367,12 @@ private fun PremiumTopSongStoryCard(
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 StatChip(
-                    icon = R.drawable.play_arrow,
+                    icon = R.drawable.play,
                     value = pluralStringResource(R.plurals.n_time, song.songCountListened, song.songCountListened),
                     color = NeonPink
                 )
                 StatChip(
-                    icon = R.drawable.schedule,
+                    icon = R.drawable.timer,
                     value = makeTimeString(song.timeListened),
                     color = VibrantBlue
                 )
@@ -1493,12 +1493,12 @@ private fun PremiumTopArtistStoryCard(
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 StatChip(
-                    icon = R.drawable.play_arrow,
+                    icon = R.drawable.play,
                     value = pluralStringResource(R.plurals.n_time, artist.songCount, artist.songCount),
                     color = ElectricPurple
                 )
                 StatChip(
-                    icon = R.drawable.schedule,
+                    icon = R.drawable.timer,
                     value = makeTimeString(artist.timeListened?.toLong()),
                     color = NeonGreen
                 )
@@ -1608,13 +1608,13 @@ private fun PremiumTopAlbumStoryCard(
             ) {
                 album.songCountListened?.let {
                     StatChip(
-                        icon = R.drawable.play_arrow,
+                        icon = R.drawable.play,
                         value = pluralStringResource(R.plurals.n_time, it, it),
                         color = SunsetOrange
                     )
                 }
                 StatChip(
-                    icon = R.drawable.schedule,
+                    icon = R.drawable.timer,
                     value = makeTimeString(album.timeListened),
                     color = GoldenYellow
                 )
