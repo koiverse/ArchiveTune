@@ -629,4 +629,26 @@
     <string name="permanent_shuffle">Mode de lecture aléatoire permanent</string>
     <string name="permanent_shuffle_desc">Gardez la lecture aléatoire activée lorsque vous démarrez un nouveau titre</string>
     <string name="next_song">Titre Suivant</string>
+    <string name="status_active">ACTIF</string>
+    <string name="status_inactive">INACTIF</string>
+    <string name="last_start">Dernier Démarrage</string>
+    <string name="last_end">Dernière Fin</string>
+    <string name="debug_logs">Journaux de débogage</string>
+    <string name="log_level_verbose">Détaillé</string>
+    <string name="log_level_debug">Débogage</string>
+    <string name="log_level_info">Informations</string>
+    <string name="log_level_warning">Avertissement</string>
+    <string name="log_level_error">Erreur</string>
+    <string name="filter_discord_only">Discord</string>
+    <string name="filter_all_logs">Tout</string>
+    <string name="clear">Effacer</string>
+    <string name="logs_empty_message">Les journaux apparaîtront ici lorsqu\'ils seront disponibles.</string>
+    <string name="real_time_playback_stats">Statistiques de lecture en temps réel</string>
+    <string name="copied_to_clipboard">Journal copié dans le presse-papiers</string>
+    <string name="playback_state_idle">INACTIF</string>
+    <string name="playback_state_buffering">MISE EN MÉMOIRE TAMPON</string>
+    <string name="playback_state_ready">PRÊT</string>
+    <string name="playback_state_ended">TERMINÉ</string>
+    <string name="playback_state_unknown">INCONNU</string>
+    <string name="share_logs">Partager les journaux</string>
 </resources>
