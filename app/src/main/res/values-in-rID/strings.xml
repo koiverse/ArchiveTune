@@ -611,26 +611,4 @@
     <string name="next">Selanjutnya</string>
     <string name="next_song">Lagu selanjutnya</string>
     <string name="allow">Setujui</string>
-    <string name="copied_to_clipboard"></string>
-    <string name="log_level_info"></string>
-    <string name="status_inactive"></string>
-    <string name="log_level_verbose"></string>
-    <string name="logs_empty_message"></string>
-    <string name="clear"></string>
-    <string name="playback_state_buffering"></string>
-    <string name="last_start"></string>
-    <string name="playback_state_ended"></string>
-    <string name="filter_all_logs"></string>
-    <string name="status_active"></string>
-    <string name="log_level_error"></string>
-    <string name="log_level_debug"></string>
-    <string name="real_time_playback_stats"></string>
-    <string name="debug_logs"></string>
-    <string name="playback_state_unknown"></string>
-    <string name="playback_state_idle"></string>
-    <string name="filter_discord_only"></string>
-    <string name="last_end"></string>
-    <string name="share_logs"></string>
-    <string name="playback_state_ready"></string>
-    <string name="log_level_warning"></string>
 </resources>
