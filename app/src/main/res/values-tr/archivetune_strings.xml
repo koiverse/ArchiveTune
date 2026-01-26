@@ -145,7 +145,7 @@
     <string name="enable_similar_content">Benzer içeriği etkinleştir</string>
     <string name="similar_content_desc">Sıranın sonuna gelindiğinde otomatik olarak daha fazla benzer şarkı ekleyin</string>
     <string name="min_playback_duration_title">Minimum oynatma süresi</string>
-    <string name="min_playback_duration_description">Bir şarkının "çalındı" olarak kabul edilmesi için çalınması gereken minimum şarkı miktarı</string>
+    <string name="min_playback_duration_description">Bir şarkının çalındı olarak kabul edilmesi için çalınması gereken minimum şarkı miktarı</string>
     <string name="percentage_format">%d%%</string>
     <string name="minimum_playback_duration">Minimum oynatma süresi</string>
     <string name="import_online">\"m3u\" çalma listelerini içe aktar</string>
@@ -156,9 +156,9 @@
     <string name="swipe_sensitivity">Mini oynatıcı kaydırma hassasiyeti</string>
     <string name="swipe_sensitivity_desc">Şarkıları değiştirirken kaydırma hareketlerinin ne kadar hassas olacağını ayarlayın</string>
     <string name="sensitivity_percentage">%1$d%%</string>
-    <string name="clear_song_cache_dialog">  Önbelleğe alınmış tüm şarkıları temizlemek istediğinizden emin misiniz?</string>
-    <string name="clear_image_cache_dialog">  Önbelleğe alınmış tüm görselleri temizlemek istediğinizden emin misiniz?</string>
-    <string name="clear_downloads_dialog">  Tüm indirilenleri temizlemek istediğinizden emin misiniz?</string>
+    <string name="clear_song_cache_dialog">Önbelleğe alınmış tüm şarkıları temizlemek istediğinizden emin misiniz?</string>
+    <string name="clear_image_cache_dialog">Önbelleğe alınmış tüm görselleri temizlemek istediğinizden emin misiniz?</string>
+    <string name="clear_downloads_dialog">Tüm indirilenleri temizlemek istediğinizden emin misiniz?</string>
     <string name="disable">Devre dışı bırak</string>
     <string name="pause_remote_listen_history">YouTube Music ile dinleme geçmişini paylaşmayı duraklatın</string>
     <string name="not_logged_in_youtube">YouTube\'a giriş yapmadınız</string>
@@ -212,41 +212,32 @@
     <string name="share_summary">Özeti Paylaş</string>
     <string name="no_listening_data">Bu yıl için dinleme verisi yok</string>
     <string name="played">oynandı</string>
-
     <string name="custom_theme">Özel Tema</string>
     <string name="import_theme">Temayı İçe Aktar</string>
     <string name="export_theme">İhracat Teması</string>
-
     <string name="palette_custom">Özel</string>
-
     <string name="theme_creator_title">Tema Oluşturucu</string>
     <string name="theme_creator_subtitle">Renkleri ayarlayın, sonucu önizleyin, ardından dışa aktarın veya içe aktarın.</string>
-
     <string name="theme_meta_title">Tema Detayları</string>
     <string name="theme_name_optional">Ad (isteğe bağlı)</string>
     <string name="theme_apply_button">Temayı Uygula</string>
-
     <string name="theme_applied">Tema uygulandı</string>
     <string name="theme_export_success">Tema dışa aktarıldı</string>
     <string name="theme_export_failed">Dışa aktarma başarısız oldu</string>
     <string name="theme_import_success">Tema içe aktarıldı</string>
     <string name="theme_import_failed">İçe aktarma başarısız oldu</string>
     <string name="theme_import_failed_title">Tema içe aktarılamıyor</string>
-
     <string name="theme_seed_colors">Tohum Renkleri</string>
     <string name="theme_seed_primary">Birincil</string>
     <string name="theme_seed_secondary">İkincil</string>
     <string name="theme_seed_tertiary">Üçüncül</string>
     <string name="theme_seed_neutral">Nötr</string>
-
     <string name="theme_editor_title">%1$s Renk</string>
     <string name="theme_editor_hex">Altıgen</string>
     <string name="theme_editor_hex_input">Onaltılı değer (#RRGGBB veya #AARRGGBB)</string>
     <string name="theme_presets_title">Ön ayarlar</string>
-
     <string name="theme_preview_trackline">Birinci sınıf bir önizleme kartı</string>
     <string name="theme_preview_primary_action">Birincil Eylem</string>
     <string name="theme_preview_secondary_action">İkincil Eylem</string>
-
     <string name="copy">Kopyala</string>
 </resources>
