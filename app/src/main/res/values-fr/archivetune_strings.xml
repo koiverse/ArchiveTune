@@ -57,12 +57,12 @@
     <string name="already_in_playlist">Déjà dans la playlist :</string>
     <plurals name="n_element">
         <item quantity="one">%d élément</item>
-        <item quantity="many"/>
+        <item quantity="many"></item>
         <item quantity="other">%d éléments</item>
     </plurals>
     <plurals name="n_time">
         <item quantity="one">%d fois</item>
-        <item quantity="many"/>
+        <item quantity="many"></item>
         <item quantity="other">%d fois</item>
     </plurals>
     <string name="seek_backward">5 secondes en arrière</string>
@@ -172,7 +172,7 @@
     <string name="empty_playlist_desc">Cette playlist ne contient aucun titre.</string>
     <plurals name="seconds">
         <item quantity="one">1 seconde</item>
-        <item quantity="many"/>
+        <item quantity="many"></item>
         <item quantity="other">%d secondes</item>
     </plurals>
     <!-- Player Settings -->
