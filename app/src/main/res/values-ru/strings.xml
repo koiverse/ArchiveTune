@@ -6,7 +6,7 @@
     <string name="albums">Альбомы</string>
     <string name="playlists">Плейлисты</string>
     <plurals name="n_selected">
-        <item quantity="one"/>
+        <item quantity="one"></item>
         <item quantity="few">%d выбрано</item>
         <item quantity="many">%d выбрано</item>
         <item quantity="other">%d выбрано</item>
