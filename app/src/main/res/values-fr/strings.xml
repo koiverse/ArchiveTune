@@ -8,8 +8,8 @@
     <string name="playlists">Playlists</string>
     <!-- Top bar -->
     <plurals name="n_selected">
-        <item quantity="one"/>
-        <item quantity="many"/>
+        <item quantity="one"></item>
+        <item quantity="many"></item>
         <item quantity="other">%d sélectionnés</item>
     </plurals>
     <!-- Home -->
@@ -149,37 +149,37 @@
     <!-- Noun -->
     <plurals name="n_song">
         <item quantity="one">%d titre</item>
-        <item quantity="many"/>
+        <item quantity="many"></item>
         <item quantity="other">%d titres</item>
     </plurals>
     <plurals name="n_artist">
         <item quantity="one">%d artiste</item>
-        <item quantity="many"/>
+        <item quantity="many"></item>
         <item quantity="other">%d artistes</item>
     </plurals>
     <plurals name="n_album">
         <item quantity="one">%d album</item>
-        <item quantity="many"/>
+        <item quantity="many"></item>
         <item quantity="other">%d albums</item>
     </plurals>
     <plurals name="n_playlist">
         <item quantity="one">%d playlist</item>
-        <item quantity="many"/>
+        <item quantity="many"></item>
         <item quantity="other">%d playlists</item>
     </plurals>
     <plurals name="n_week">
         <item quantity="one">%d semaine</item>
-        <item quantity="many"/>
+        <item quantity="many"></item>
         <item quantity="other">%d semaines</item>
     </plurals>
     <plurals name="n_month">
         <item quantity="one">%d mois</item>
-        <item quantity="many"/>
+        <item quantity="many"></item>
         <item quantity="other">%d mois</item>
     </plurals>
     <plurals name="n_year">
         <item quantity="one">%d an</item>
-        <item quantity="many"/>
+        <item quantity="many"></item>
         <item quantity="other">%d ans</item>
     </plurals>
     <!-- Snackbar -->
@@ -193,7 +193,7 @@
     <string name="end_of_song">Fin du titre</string>
     <plurals name="minute">
         <item quantity="one">1 minute</item>
-        <item quantity="many"/>
+        <item quantity="many"></item>
         <item quantity="other">%d minutes</item>
     </plurals>
     <string name="error_no_stream">Aucun flux disponible</string>
@@ -630,4 +630,26 @@
     <string name="permanent_shuffle">Mode de lecture aléatoire permanent</string>
     <string name="permanent_shuffle_desc">Gardez la lecture aléatoire activée lorsque vous démarrez un nouveau titre</string>
     <string name="next_song">Titre Suivant</string>
+    <string name="copied_to_clipboard"></string>
+    <string name="log_level_info"></string>
+    <string name="status_inactive"></string>
+    <string name="log_level_verbose"></string>
+    <string name="logs_empty_message"></string>
+    <string name="clear"></string>
+    <string name="playback_state_buffering"></string>
+    <string name="last_start"></string>
+    <string name="playback_state_ended"></string>
+    <string name="filter_all_logs"></string>
+    <string name="status_active"></string>
+    <string name="log_level_error"></string>
+    <string name="log_level_debug"></string>
+    <string name="real_time_playback_stats"></string>
+    <string name="debug_logs"></string>
+    <string name="playback_state_unknown"></string>
+    <string name="playback_state_idle"></string>
+    <string name="filter_discord_only"></string>
+    <string name="last_end"></string>
+    <string name="share_logs"></string>
+    <string name="playback_state_ready"></string>
+    <string name="log_level_warning"></string>
 </resources>
