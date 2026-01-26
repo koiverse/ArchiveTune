@@ -309,7 +309,7 @@ private fun DiscordDebugSection() {
                                 )
                         )
                         Text(
-                            text = if (isRunning) "ACTIVE" else "INACTIVE",
+                            text = if (isRunning) stringResource(R.string.status_active) else stringResource(R.string.status_inactive),
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
                             color = if (isRunning) Color(0xFF43B581) else MaterialTheme.colorScheme.error
@@ -325,12 +325,12 @@ private fun DiscordDebugSection() {
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
                 DebugTimestampItem(
-                    label = "Last Start",
+                    label = stringResource(R.string.last_start),
                     value = lastStart,
                     icon = R.drawable.play
                 )
                 DebugTimestampItem(
-                    label = "Last End",
+                    label = stringResource(R.string.last_end),
                     value = lastEnd,
                     icon = R.drawable.pause
                 )
@@ -438,7 +438,7 @@ private fun LogViewerPanel() {
                         tint = MaterialTheme.colorScheme.primary
                     )
                     Text(
-                        text = "Debug Logs",
+                        text = stringResource(R.string.debug_logs),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold
                     )
@@ -471,7 +471,7 @@ private fun LogViewerPanel() {
                         onDismissRequest = { levelsMenuExpanded = false }
                     ) {
                         LogLevelMenuItem(
-                            label = "Verbose",
+                            label = stringResource(R.string.log_level_verbose),
                             level = Log.VERBOSE,
                             selectedLevels = selectedLevels,
                             onToggle = { level ->
@@ -482,7 +482,7 @@ private fun LogViewerPanel() {
                             }
                         )
                         LogLevelMenuItem(
-                            label = "Debug",
+                            label = stringResource(R.string.log_level_debug),
                             level = Log.DEBUG,
                             selectedLevels = selectedLevels,
                             onToggle = { level ->
@@ -493,7 +493,7 @@ private fun LogViewerPanel() {
                             }
                         )
                         LogLevelMenuItem(
-                            label = "Info",
+                            label = stringResource(R.string.log_level_info),
                             level = Log.INFO,
                             selectedLevels = selectedLevels,
                             onToggle = { level ->
@@ -504,7 +504,7 @@ private fun LogViewerPanel() {
                             }
                         )
                         LogLevelMenuItem(
-                            label = "Warning",
+                            label = stringResource(R.string.log_level_warning),
                             level = Log.WARN,
                             selectedLevels = selectedLevels,
                             onToggle = { level ->
@@ -515,7 +515,7 @@ private fun LogViewerPanel() {
                             }
                         )
                         LogLevelMenuItem(
-                            label = "Error",
+                            label = stringResource(R.string.log_level_error),
                             level = Log.ERROR,
                             selectedLevels = selectedLevels,
                             onToggle = { level ->
@@ -558,7 +558,7 @@ private fun LogViewerPanel() {
                     shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
                     icon = { }
                 ) {
-                    Text("Discord Only")
+                    Text(stringResource(R.string.filter_discord_only))
                 }
                 SegmentedButton(
                     selected = filterMode == 1,
@@ -566,7 +566,7 @@ private fun LogViewerPanel() {
                     shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
                     icon = { }
                 ) {
-                    Text("All Logs")
+                    Text(stringResource(R.string.filter_all_logs))
                 }
             }
 
@@ -614,7 +614,7 @@ private fun LogViewerPanel() {
                         modifier = Modifier.size(18.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Clear")
+                    Text(stringResource(R.string.clear))
                 }
 
                 FilledTonalButton(
@@ -626,7 +626,7 @@ private fun LogViewerPanel() {
                             type = "text/plain"
                             putExtra(Intent.EXTRA_TEXT, sb.toString())
                         }
-                        context.startActivity(Intent.createChooser(send, "Share logs"))
+                        context.startActivity(Intent.createChooser(send, context.getString(R.string.share_logs)))
                     },
                     enabled = filtered.isNotEmpty(),
                     modifier = Modifier.weight(1f)
@@ -703,7 +703,7 @@ private fun EmptyLogPlaceholder() {
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Text(
-                text = "Logs will appear here when available",
+                text = stringResource(R.string.logs_empty_message),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                 textAlign = TextAlign.Center
@@ -719,6 +719,7 @@ private fun LogEntryItem(
     coroutineScope: kotlinx.coroutines.CoroutineScope
 ) {
     var isExpanded by remember { mutableStateOf(false) }
+    val copiedMessage = stringResource(R.string.copied_to_clipboard)
     val levelColor = when (entry.level) {
         Log.ERROR -> MaterialTheme.colorScheme.error
         Log.WARN -> MaterialTheme.colorScheme.tertiary
@@ -737,7 +738,7 @@ private fun LogEntryItem(
                 onLongClick = {
                     clipboard.setText(AnnotatedString(entry.message))
                     coroutineScope.launch {
-                        GlobalLog.append(Log.INFO, "DebugSettings", "Copied log to clipboard")
+                        GlobalLog.append(Log.INFO, "DebugSettings", copiedMessage)
                     }
                 }
             )
@@ -881,7 +882,7 @@ private fun NerdStatsSection(playerConnection: moe.koiverse.archivetune.playback
                         fontWeight = FontWeight.SemiBold
                     )
                     Text(
-                        text = "Real-time playback statistics",
+                        text = stringResource(R.string.real_time_playback_stats),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -1014,11 +1015,11 @@ private fun NerdStatsSection(playerConnection: moe.koiverse.archivetune.playback
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     val playbackStateText = when (player.playbackState) {
-                        Player.STATE_IDLE -> "IDLE"
-                        Player.STATE_BUFFERING -> "BUFFERING"
-                        Player.STATE_READY -> "READY"
-                        Player.STATE_ENDED -> "ENDED"
-                        else -> "UNKNOWN"
+                        Player.STATE_IDLE -> stringResource(R.string.playback_state_idle)
+                        Player.STATE_BUFFERING -> stringResource(R.string.playback_state_buffering)
+                        Player.STATE_READY -> stringResource(R.string.playback_state_ready)
+                        Player.STATE_ENDED -> stringResource(R.string.playback_state_ended)
+                        else -> stringResource(R.string.playback_state_unknown)
                     }
 
                     val stateColor = when (player.playbackState) {
