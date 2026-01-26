@@ -559,7 +559,6 @@ ArchiveTune will only extract your token, and everything else is stored locally.
     <string name="enable_discord_debug_lines">Enable debug settings lines</string>
     <string name="presence_manager_running">Presence manager: running</string>
     <string name="presence_manager_stopped">Presence manager: stopped</string>
-    <string name="debug_last_rpc_times">Last RPC start: %1$s  end: %2$s</string>
     <string name="filter_levels">Filter levels</string>
     <string name="experimental_features">Experimental Features</string>
     <string name="experimental_features_description">Advanced or experimental Discord options (moved to separate screen)</string>
@@ -598,8 +597,8 @@ ArchiveTune will only extract your token, and everything else is stored locally.
     <string name="log_level_info">Info</string>
     <string name="log_level_warning">Warning</string>
     <string name="log_level_error">Error</string>
-    <string name="filter_discord_only">Discord Only</string>
-    <string name="filter_all_logs">All Logs</string>
+    <string name="filter_discord_only">Discord</string>
+    <string name="filter_all_logs">All</string>
     <string name="clear">Clear</string>
     <string name="logs_empty_message">Logs will appear here when available</string>
     <string name="real_time_playback_stats">Real-time playback statistics</string>

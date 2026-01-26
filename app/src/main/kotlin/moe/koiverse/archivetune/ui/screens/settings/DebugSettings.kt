@@ -131,11 +131,6 @@ fun DebugSettings(
                             text = stringResource(R.string.experiment_settings),
                             style = MaterialTheme.typography.titleLarge
                         )
-                        Text(
-                            text = stringResource(R.string.experimental_feature),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
                     }
                 },
                 navigationIcon = {
