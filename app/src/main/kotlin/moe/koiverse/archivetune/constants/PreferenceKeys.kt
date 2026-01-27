@@ -425,6 +425,7 @@ val LanguageCodeToName =
         "en" to "English (US)",
         "ja" to "日本語",
         "ko" to "한국어",
+        "vi" to "Tiếng Việt",
     )
 
 val CountryCodeToName =
