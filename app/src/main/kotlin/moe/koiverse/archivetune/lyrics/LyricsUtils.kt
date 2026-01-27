@@ -110,9 +110,28 @@ object LyricsUtils {
                 trimmed.contains("http://www.w3.org/ns/ttml", ignoreCase = true)
     }
 
-    fun parseTtml(lyrics: String): List<LyricsEntry> {
+    fun parseTtml(lyrics: String, durationSeconds: Int? = null): List<LyricsEntry> {
         val parsedLines = TTMLParser.parseTTML(lyrics)
         if (parsedLines.isEmpty()) return emptyList()
+
+        val trackDurationSec = durationSeconds?.takeIf { it > 0 }?.toDouble()
+        val lyricsEndSec = parsedLines.maxOf { line ->
+            maxOf(
+                line.endTime,
+                line.words.maxOfOrNull { it.endTime } ?: 0.0,
+            )
+        }.takeIf { it > 0.0 }
+
+        val scale = if (trackDurationSec != null && lyricsEndSec != null) {
+            val fraction = lyricsEndSec / trackDurationSec
+            when {
+                fraction < 0.85 || fraction > 1.2 -> 1.0
+                kotlin.math.abs(1.0 - fraction) < 0.04 -> 1.0
+                else -> trackDurationSec / lyricsEndSec
+            }
+        } else {
+            1.0
+        }
 
         return parsedLines.map { line ->
             val words =
@@ -121,14 +140,14 @@ object LyricsUtils {
                     .map { word ->
                         WordTimestamp(
                             text = word.text,
-                            startTime = word.startTime,
-                            endTime = word.endTime,
+                            startTime = word.startTime * scale,
+                            endTime = word.endTime * scale,
                             isBackground = word.isBackground,
                         )
                     }.takeIf { it.isNotEmpty() }
 
             LyricsEntry(
-                time = (line.startTime * 1000.0).toLong(),
+                time = (line.startTime * scale * 1000.0).toLong(),
                 text = line.text,
                 words = words,
             )
