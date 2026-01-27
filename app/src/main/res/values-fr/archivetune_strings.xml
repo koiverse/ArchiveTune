@@ -57,12 +57,12 @@
     <string name="already_in_playlist">Déjà dans la playlist :</string>
     <plurals name="n_element">
         <item quantity="one">%d élément</item>
-        <item quantity="many"/>
+        <item quantity="many"></item>
         <item quantity="other">%d éléments</item>
     </plurals>
     <plurals name="n_time">
         <item quantity="one">%d fois</item>
-        <item quantity="many"/>
+        <item quantity="many"></item>
         <item quantity="other">%d fois</item>
     </plurals>
     <string name="seek_backward">5 secondes en arrière</string>
@@ -172,7 +172,7 @@
     <string name="empty_playlist_desc">Cette playlist ne contient aucun titre.</string>
     <plurals name="seconds">
         <item quantity="one">1 seconde</item>
-        <item quantity="many"/>
+        <item quantity="many"></item>
         <item quantity="other">%d secondes</item>
     </plurals>
     <!-- Player Settings -->
@@ -208,4 +208,41 @@
     <string name="share_summary">Partager le résumé</string>
     <string name="no_listening_data">Aucune donnée d\'écoute pour cette année</string>
     <string name="played">joués</string>
+    <string name="pin">Épingler</string>
+    <string name="unpin">Détacher</string>
+    <string name="custom_theme">Thème personnalisé</string>
+    <string name="import_theme">Importer un thème</string>
+    <string name="export_theme">Exporter le thème</string>
+    <string name="palette_custom">Personnalisé</string>
+    <string name="theme_creator_title">Créateur de thèmes</string>
+    <string name="theme_creator_subtitle">Ajustez les couleurs, prévisualisez le résultat, puis exportez ou importez.</string>
+    <string name="theme_meta_title">Détails du thème</string>
+    <string name="theme_name_optional">Nom (facultatif)</string>
+    <string name="theme_apply_button">Appliquer le thème</string>
+    <string name="theme_applied">Thème appliqué</string>
+    <string name="theme_export_success">Thème exporté</string>
+    <string name="theme_export_failed">Échec de l\'exportation</string>
+    <string name="theme_import_success">Thème importé</string>
+    <string name="theme_import_failed">Échec de l\'importation</string>
+    <string name="theme_import_failed_title">Impossible d\'importer le thème</string>
+    <string name="theme_seed_colors">Couleurs des graines</string>
+    <string name="theme_seed_primary">Primaire</string>
+    <string name="theme_seed_secondary">Secondaire</string>
+    <string name="theme_seed_tertiary">Tertiaire</string>
+    <string name="theme_seed_neutral">Neutre</string>
+    <string name="theme_editor_title">%1$s Couleur</string>
+    <string name="theme_editor_hex">Hex</string>
+    <string name="theme_editor_hex_input">Valeur hexadécimale (#RRGGBB ou #AARRGGBB)</string>
+    <string name="theme_presets_title">Préréglages</string>
+    <string name="theme_preview_trackline">Carte d\'aperçu premium</string>
+    <string name="theme_preview_primary_action">Action principale</string>
+    <string name="theme_preview_secondary_action">Action secondaire</string>
+    <string name="copy">Copier</string>
+    <string name="player_design_v5">Petit</string>
+    <string name="player_stream_client">Client de lecture</string>
+    <string name="player_stream_client_desc">Contrôle le client YouTube utilisé pour récupérer les flux</string>
+    <string name="player_stream_client_android_vr">Android VR</string>
+    <string name="player_stream_client_android_vr_desc">Diffusion directe sans décryptage de signature, pour une vitesse maximale. Convient à la majorité des utilisateurs.</string>
+    <string name="player_stream_client_web_remix">Remix Web</string>
+    <string name="player_stream_client_web_remix_desc">Prise en charge étendue des formats au détriment de la vitesse. Le décryptage des signatures JavaScript entraîne un délai de démarrage d\'environ 5 à 10 secondes.</string>
 </resources>

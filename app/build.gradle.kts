@@ -2,9 +2,7 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import java.util.Properties
 
 plugins {
-    id("com.android.application")
-    kotlin("android")
-    kotlin("kapt")
+    alias(libs.plugins.android.application)
     alias(libs.plugins.hilt)
     alias(libs.plugins.kotlin.ksp)
     alias(libs.plugins.kotlin.serialization)
@@ -104,15 +102,6 @@ android {
         targetCompatibility = JavaVersion.VERSION_21
     }
 
-    kotlin {
-        jvmToolchain(21)
-
-        compilerOptions {
-            freeCompilerArgs.add("-Xannotation-default-target=param-property")
-            jvmTarget.set(JvmTarget.JVM_21)
-        }
-    }
-
     buildFeatures {
         compose = true
         buildConfig = true
@@ -149,6 +138,10 @@ android {
             excludes += "META-INF/LICENSE.md"
         }
     }
+}
+
+kotlin {
+    jvmToolchain(21)
 }
 
 ksp {
@@ -202,7 +195,7 @@ dependencies {
     implementation(libs.hilt)
     implementation(libs.jsoup)
     implementation(libs.re2j)
-    kapt(libs.hilt.compiler)
+    ksp(libs.hilt.compiler)
 
     implementation(project(":innertube"))
     implementation(project(":kugou"))
@@ -226,18 +219,10 @@ dependencies {
     implementation("androidx.compose.material3.adaptive:adaptive:1.2.0")
 }
 
-kapt {
-    correctErrorTypes = true
-    useBuildCache = true
-    arguments {
-        arg("dagger.fastInit", "enabled")
-        arg("dagger.formatGeneratedSource", "disabled")
-        // dagger.gradle.incremental is deprecated in newer versions
-    }
-}
-
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
     compilerOptions {
+        jvmTarget.set(JvmTarget.JVM_21)
+        freeCompilerArgs.add("-Xannotation-default-target=param-property")
         freeCompilerArgs.addAll(
             "-opt-in=kotlin.RequiresOptIn",
             "-Xcontext-receivers"

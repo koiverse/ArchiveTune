@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="explore">Explorar</string>
+    <string name="local_history">Local</string>
+    <string name="charts">Rankings</string>
+    <string name="back_button_desc">Atrás</string>
+    <string name="no_title">Sin título</string>
+    <string name="unknown_artist">Artista desconocido</string>
+    <string name="loading_charts">Cargando rankings...</string>
+    <string name="retry_button">Reintentar</string>
+    <string name="album_cover_desc">Carátula</string>
+    <string name="top_music_videos">Top de vídeos musicales</string>
+    <string name="trending">Tendencias</string>
+    <string name="weeks">Semanas</string>
+    <string name="months">Meses</string>
+    <string name="years">Años</string>
+    <string name="liked">Favorito</string>
+    <string name="offline">Descargado</string>
+    <string name="my_top">Mi top</string>
+    <string name="cached_playlist">En caché</string>
+    <string name="sync_playlist">Playlist sincronizada</string>
+    <string name="sync_disabled">Sincronización deshabilitada</string>
+</resources>

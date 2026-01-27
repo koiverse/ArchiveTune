@@ -38,27 +38,30 @@
 
 <hr />
 
-**ArchiveTune** isn't just a wrapper—it's a precision-engineered music ecosystem. We believe your music library should be private, beautiful, and powerful. Designed for power users who refuse to compromise on audio quality or UI aesthetics.
+**ArchiveTune** is more than just another YouTube Music client—it's a complete music experience built from the ground up. Your music library deserves to be private, look stunning, and work exactly how you want it to. If you care about audio quality and a polished interface, this one's for you.
 
 ---
 
 ### 🚀 Core Experience
-* **Ad-Free Core:** A pure, uninterrupted listening experience.
-* **Deep Library Sync:** Instant access to your Liked Songs, Playlists, and Subscriptions.
-* **Smart Caching:** High-speed playback with intelligent data management.
-* **Background Mastery:** Optimized background playback that respects your battery.
+* **Ad-Free Core:** Enjoy your music without interruptions—no ads, ever.
+* **Deep Library Sync:** All your Liked Songs, Playlists, and Subscriptions are right there when you need them.
+* **Smart Caching:** Fast playback that's smart about how it uses your data.
+* **Background Mastery:** Keeps playing in the background without draining your battery.
 
 ### 🎚️ Professional Audio Suite
-* **Loudness Normalization:** Industry-standard volume leveling (EBU R128).
-* **Precision Control:** On-the-fly **Tempo & Pitch** manipulation for musicians and DJs.
-* **The "Gapless" Flow:** Integrated **Crossfade** and **Silence Skipping**.
-* **System EQ Bridge:** Seamlessly integrates with system-level equalizers and spatial audio.
+* **Loudness Normalization:** Keep your volume consistent across tracks with industry-standard EBU R128 leveling.
+* **Precision Control:** Tweak tempo and pitch on the fly—perfect for musicians and DJs who need that extra flexibility.
+* **The "Gapless" Flow:** Crossfade between songs and skip those awkward silences for a seamless listening experience.
+* **System EQ Bridge:** Works hand-in-hand with your system's equalizer and spatial audio settings.
 
 ### 🎨 Visual & Identity
-* **Material You (MD3E):** The UI breathes through your wallpaper’s color palette.
-* **Synced Lyrics:** Beautiful, word-by-word playback with translation & romanization.
-* **Music Insights:** Native "Year in Review" and real-time listening statistics.
-* **Discord RPC:** Show the world your vibe with high-quality Rich Presence.
+* **Material You (MD3E):** Your UI adapts to your album's color palette, making it feel truly yours.
+* **Synced Lyrics:** Follow along with word-by-word lyrics, complete with translations and romanization when you need them.
+* **Music Insights:** Check out your personalized "Year in Review" and see your listening stats in real time.
+
+### ⚙️ Integration
+* **Scrobbling:** Sync your listening history with last.fm and listenbrainz.
+* **Discord Rich Presence:** Show Customizable Rich Presence into discord.
 
 ---
 
@@ -134,7 +137,7 @@ ArchiveTune belongs to everyone. Help us localize the experience for your region
 
 ### 🛠️ Development & Engineering
 Interested in building the project or contributing? ArchiveTune is built on a high-performance Kotlin stack.
-<a href="BUILDING.md"><b>Read the Build & Contribution Guide →</b></a>
+<a href="CONTRIBUTING.md"><b>Read the Build & Contribution Guide →</b></a>
 
 ---
 

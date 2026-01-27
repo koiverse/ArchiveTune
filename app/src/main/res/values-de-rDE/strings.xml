@@ -519,7 +519,6 @@
     <string name="enable_discord_debug_lines">Debug-Einstellungszeilen aktivieren</string>
     <string name="presence_manager_running">Präsenzmanager: läuft</string>
     <string name="presence_manager_stopped">Präsenzmanager: gestoppt</string>
-    <string name="debug_last_rpc_times">Letzter RPC-Start: %1$s Ende: %2$s</string>
     <string name="filter_levels">Filterstufen</string>
     <string name="experimental_features">Experimentelle Funktionen</string>
     <string name="experimental_features_description">Erweiterte oder experimentelle Discord-Optionen (in separaten Bildschirm verschoben)</string>

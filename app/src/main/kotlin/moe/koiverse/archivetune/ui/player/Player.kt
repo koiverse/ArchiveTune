@@ -1,4 +1,4 @@
-﻿package moe.koiverse.archivetune.ui.player
+package moe.koiverse.archivetune.ui.player
 
 import android.content.ClipData
 import android.content.ClipboardManager
@@ -6,11 +6,9 @@ import android.content.Context
 import android.content.Intent
 import android.content.res.Configuration
 import android.graphics.drawable.BitmapDrawable
+import android.os.SystemClock
 import android.widget.Toast
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
@@ -19,7 +17,8 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
@@ -41,6 +40,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.ui.draw.blur
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
@@ -65,6 +66,7 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -78,11 +80,14 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ColorMatrix
+import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.Layout
 import android.net.Uri
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
@@ -93,11 +98,14 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.core.graphics.ColorUtils
 import androidx.core.graphics.drawable.toBitmap
 import androidx.media3.common.C
@@ -108,7 +116,6 @@ import androidx.media3.common.Player.STATE_READY
 import androidx.palette.graphics.Palette
 import androidx.navigation.NavController
 import coil3.ImageLoader
-import coil3.compose.AsyncImage
 import coil3.imageLoader
 import coil3.request.ImageRequest
 import coil3.request.allowHardware
@@ -138,11 +145,16 @@ import moe.koiverse.archivetune.constants.SliderStyle
 import moe.koiverse.archivetune.constants.SliderStyleKey
 import moe.koiverse.archivetune.extensions.togglePlayPause
 import moe.koiverse.archivetune.extensions.toggleRepeatMode
+import moe.koiverse.archivetune.db.entities.FormatEntity
+import moe.koiverse.archivetune.extensions.metadata
 import moe.koiverse.archivetune.models.MediaMetadata
 import moe.koiverse.archivetune.ui.component.BottomSheet
+import moe.koiverse.archivetune.ui.component.BigSeekBar
 import moe.koiverse.archivetune.ui.component.BottomSheetState
 import moe.koiverse.archivetune.ui.component.LocalBottomSheetPageState
 import moe.koiverse.archivetune.ui.component.LocalMenuState
+import moe.koiverse.archivetune.ui.component.BottomSheetPageState
+import moe.koiverse.archivetune.ui.component.MenuState
 import moe.koiverse.archivetune.ui.component.PlayerSliderTrack
 import moe.koiverse.archivetune.ui.component.ResizableIconButton
 import moe.koiverse.archivetune.ui.component.rememberBottomSheetState
@@ -158,7 +170,9 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
 import me.saket.squiggles.SquigglySlider
+import moe.koiverse.archivetune.playback.PlayerConnection
 import kotlin.math.roundToInt
+import kotlin.math.roundToLong
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -247,6 +261,12 @@ fun BottomSheetPlayer(
     val playbackState by playerConnection.playbackState.collectAsState()
     val isPlaying by playerConnection.isPlaying.collectAsState()
     val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
+    val currentSong by playerConnection.currentSong.collectAsState(initial = null)
+    val currentSongLiked = currentSong?.song?.liked == true
+    val currentFormat by playerConnection.currentFormat.collectAsState(initial = null)
+    val queueWindows by playerConnection.queueWindows.collectAsState()
+    val currentWindowIndex by playerConnection.currentWindowIndex.collectAsState()
+    val playerVolume = playerConnection.service.playerVolume.collectAsState()
 
     val automix by playerConnection.service.automixItems.collectAsState()
     val repeatMode by playerConnection.repeatMode.collectAsState()
@@ -493,7 +513,14 @@ fun BottomSheetPlayer(
         }
     }
 
-    val dynamicQueuePeekHeight = if (showCodecOnPlayer) 88.dp else QueuePeekHeight
+    val dynamicQueuePeekHeight =
+        if (playerDesignStyle == PlayerDesignStyle.V5) {
+            0.dp
+        } else if (showCodecOnPlayer) {
+            88.dp
+        } else {
+            QueuePeekHeight
+        }
 
     val dismissedBound = dynamicQueuePeekHeight + WindowInsets.systemBars.asPaddingValues().calculateBottomPadding()
 
@@ -564,6 +591,23 @@ fun BottomSheetPlayer(
             )
         },
     ) {
+        val onSliderValueChange: (Long) -> Unit = { sliderPosition = it }
+        val onSliderValueChangeFinished: () -> Unit = {
+            sliderPosition?.let {
+                playerConnection.player.seekTo(it)
+                position = it
+            }
+            sliderPosition = null
+        }
+        val seekEnabled = duration > 0L && duration != C.TIME_UNSET
+        val updatedOnSliderValueChange by rememberUpdatedState(onSliderValueChange)
+        val updatedOnSliderValueChangeFinished by rememberUpdatedState(onSliderValueChangeFinished)
+
+        val nextUpMetadata =
+            remember(queueWindows, currentWindowIndex) {
+                queueWindows.getOrNull(currentWindowIndex + 1)?.mediaItem?.metadata
+            }
+
         val controlsContent: @Composable ColumnScope.(MediaMetadata) -> Unit = { mediaMetadata ->
             PlayerControlsContent(
                 mediaMetadata = mediaMetadata,
@@ -589,21 +633,12 @@ fun BottomSheetPlayer(
                 bottomSheetPageState = bottomSheetPageState,
                 clipboardManager = clipboardManager,
                 context = context,
-                onSliderValueChange = {
-                    sliderPosition = it
-                },
-                onSliderValueChangeFinished = {
-                    sliderPosition?.let {
-                        playerConnection.player.seekTo(it)
-                        position = it
-                    }
-                    sliderPosition = null
-                }
+                onSliderValueChange = onSliderValueChange,
+                onSliderValueChangeFinished = onSliderValueChangeFinished,
             )
         }
 
-        // Background Layer - Previous background as base layer during transitions
-        if (!state.isCollapsed) {
+        if (!state.isCollapsed && playerDesignStyle != PlayerDesignStyle.V5) {
             PlayerBackground(
                 playerBackground = playerBackground,
                 mediaMetadata = mediaMetadata,
@@ -620,66 +655,225 @@ fun BottomSheetPlayer(
 
         when (LocalConfiguration.current.orientation) {
             Configuration.ORIENTATION_LANDSCAPE -> {
-                Row(
-                    modifier =
-                    Modifier
-                        .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal))
-                        .padding(bottom = queueSheetState.collapsedBound + 48.dp),
-                ) {
+                if (playerDesignStyle == PlayerDesignStyle.V5) {
+                    val littleBackground = MaterialTheme.colorScheme.primaryContainer
+                    val littleTextColor = MaterialTheme.colorScheme.onPrimaryContainer
+                    val displayPositionMs = sliderPosition ?: position
+                    val progressFraction =
+                        remember(displayPositionMs, duration) {
+                            if (duration <= 0L || duration == C.TIME_UNSET) 0f
+                            else (displayPositionMs.toFloat() / duration.toFloat()).coerceIn(0f, 1f)
+                        }
+                    val progressOverlayColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.28f)
+
                     Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier.weight(1f),
-                    ) {
-                        val screenWidth = LocalConfiguration.current.screenWidthDp
-                        val thumbnailSize = (screenWidth * 0.4).dp
-                        Thumbnail(
-                            sliderPositionProvider = { sliderPosition },
-                            modifier = Modifier.size(thumbnailSize),
-                            isPlayerExpanded = state.isExpanded // Pass player state
-                        )
-                    }
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
                         modifier =
                         Modifier
-                            .weight(1f)
-                            .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Top)),
+                            .fillMaxSize()
+                            .background(littleBackground),
                     ) {
-                        Spacer(Modifier.weight(1f))
-
-                        mediaMetadata?.let {
-                            controlsContent(it)
+                        Box(
+                            modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .fillMaxHeight(progressFraction)
+                                .align(Alignment.TopStart)
+                                .background(progressOverlayColor),
+                        )
+                        Box(
+                            modifier =
+                            Modifier
+                                .fillMaxSize()
+                                .littlePlayerOverlayGestures(
+                                    seekEnabled = seekEnabled,
+                                    durationMs = duration,
+                                    progressFraction = progressFraction,
+                                    canSkipPrevious = canSkipPrevious,
+                                    canSkipNext = canSkipNext,
+                                    onSeekToPositionMs = updatedOnSliderValueChange,
+                                    onSeekFinished = updatedOnSliderValueChangeFinished,
+                                    onSkipPrevious = playerConnection::seekToPrevious,
+                                    onSkipNext = playerConnection::seekToNext,
+                                )
+                                .windowInsetsPadding(
+                                    WindowInsets.systemBars.only(
+                                        WindowInsetsSides.Horizontal + WindowInsetsSides.Top + WindowInsetsSides.Bottom
+                                    )
+                                ),
+                        ) {
+                            mediaMetadata?.let { metadata ->
+                                LittlePlayerContent(
+                                    mediaMetadata = metadata,
+                                    sliderPosition = sliderPosition,
+                                    positionMs = position,
+                                    durationMs = duration,
+                                    textColor = littleTextColor,
+                                    liked = currentSongLiked,
+                                    onCollapse = state::collapseSoft,
+                                    onToggleLike = playerConnection::toggleLike,
+                                    onExpandQueue = queueSheetState::expandSoft,
+                                    onMenuClick = {
+                                        menuState.show {
+                                            PlayerMenu(
+                                                mediaMetadata = metadata,
+                                                navController = navController,
+                                                playerBottomSheetState = state,
+                                                onShowDetailsDialog = {
+                                                    bottomSheetPageState.show {
+                                                        ShowMediaInfo(metadata.id)
+                                                    }
+                                                },
+                                                onDismiss = menuState::dismiss
+                                            )
+                                        }
+                                    },
+                                )
+                            }
                         }
+                    }
+                } else {
+                    Row(
+                        modifier =
+                        Modifier
+                            .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal))
+                            .padding(bottom = queueSheetState.collapsedBound + 48.dp),
+                    ) {
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier.weight(1f),
+                        ) {
+                            val screenWidth = LocalConfiguration.current.screenWidthDp
+                            val thumbnailSize = (screenWidth * 0.4).dp
+                            Thumbnail(
+                                sliderPositionProvider = { sliderPosition },
+                                modifier = Modifier.size(thumbnailSize),
+                                isPlayerExpanded = state.isExpanded
+                            )
+                        }
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier =
+                            Modifier
+                                .weight(1f)
+                                .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Top)),
+                        ) {
+                            Spacer(Modifier.weight(1f))
 
-                        Spacer(Modifier.weight(1f))
+                            mediaMetadata?.let {
+                                controlsContent(it)
+                            }
+
+                            Spacer(Modifier.weight(1f))
+                        }
                     }
                 }
             }
 
             else -> {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier =
-                    Modifier
-                        .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal))
-                        .padding(bottom = queueSheetState.collapsedBound),
-                ) {
+                if (playerDesignStyle == PlayerDesignStyle.V5) {
+                    val littleBackground = MaterialTheme.colorScheme.primaryContainer
+                    val littleTextColor = MaterialTheme.colorScheme.onPrimaryContainer
+                    val displayPositionMs = sliderPosition ?: position
+                    val progressFraction =
+                        remember(displayPositionMs, duration) {
+                            if (duration <= 0L || duration == C.TIME_UNSET) 0f
+                            else (displayPositionMs.toFloat() / duration.toFloat()).coerceIn(0f, 1f)
+                        }
+                    val progressOverlayColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.28f)
+                    val seekEnabled = duration > 0L && duration != C.TIME_UNSET
+
                     Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier.weight(1f),
+                        modifier =
+                        Modifier
+                            .fillMaxSize()
+                            .background(littleBackground),
                     ) {
-                        Thumbnail(
-                            sliderPositionProvider = { sliderPosition },
-                            modifier = Modifier.nestedScroll(state.preUpPostDownNestedScrollConnection),
-                            isPlayerExpanded = state.isExpanded // Pass player state
+                        Box(
+                            modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .fillMaxHeight(progressFraction)
+                                .align(Alignment.TopStart)
+                                .background(progressOverlayColor),
                         )
+                        Box(
+                            modifier =
+                            Modifier
+                                .fillMaxSize()
+                                .littlePlayerOverlayGestures(
+                                    seekEnabled = seekEnabled,
+                                    durationMs = duration,
+                                    progressFraction = progressFraction,
+                                    canSkipPrevious = canSkipPrevious,
+                                    canSkipNext = canSkipNext,
+                                    onSeekToPositionMs = updatedOnSliderValueChange,
+                                    onSeekFinished = updatedOnSliderValueChangeFinished,
+                                    onSkipPrevious = playerConnection::seekToPrevious,
+                                    onSkipNext = playerConnection::seekToNext,
+                                )
+                                .windowInsetsPadding(
+                                    WindowInsets.systemBars.only(
+                                        WindowInsetsSides.Horizontal + WindowInsetsSides.Top + WindowInsetsSides.Bottom
+                                    )
+                                ),
+                        ) {
+                            mediaMetadata?.let { metadata ->
+                                LandscapeLikeBox(modifier = Modifier.fillMaxSize()) {
+                                    LittlePlayerContent(
+                                        mediaMetadata = metadata,
+                                        sliderPosition = sliderPosition,
+                                        positionMs = position,
+                                        durationMs = duration,
+                                        textColor = littleTextColor,
+                                        liked = currentSongLiked,
+                                        onCollapse = state::collapseSoft,
+                                        onToggleLike = playerConnection::toggleLike,
+                                        onExpandQueue = queueSheetState::expandSoft,
+                                        onMenuClick = {
+                                            menuState.show {
+                                                PlayerMenu(
+                                                    mediaMetadata = metadata,
+                                                    navController = navController,
+                                                    playerBottomSheetState = state,
+                                                    onShowDetailsDialog = {
+                                                        bottomSheetPageState.show {
+                                                            ShowMediaInfo(metadata.id)
+                                                        }
+                                                    },
+                                                    onDismiss = menuState::dismiss
+                                                )
+                                            }
+                                        },
+                                    )
+                                }
+                            }
+                        }
                     }
+                } else {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier =
+                        Modifier
+                            .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal))
+                            .padding(bottom = queueSheetState.collapsedBound),
+                    ) {
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier.weight(1f),
+                        ) {
+                            Thumbnail(
+                                sliderPositionProvider = { sliderPosition },
+                                modifier = Modifier.nestedScroll(state.preUpPostDownNestedScrollConnection),
+                                isPlayerExpanded = state.isExpanded
+                            )
+                        }
 
-                    mediaMetadata?.let {
-                        controlsContent(it)
+                        mediaMetadata?.let {
+                            controlsContent(it)
+                        }
+
+                        Spacer(Modifier.height(30.dp))
                     }
-
-                    Spacer(Modifier.height(30.dp))
                 }
             }
         }
@@ -737,6 +931,332 @@ fun BottomSheetPlayer(
                         onBackClick = { lyricsSheetState.collapseSoft() },
                         navController = navController
                     )
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun LittlePlayerContent(
+    mediaMetadata: MediaMetadata,
+    sliderPosition: Long?,
+    positionMs: Long,
+    durationMs: Long,
+    textColor: Color,
+    liked: Boolean,
+    onCollapse: () -> Unit,
+    onToggleLike: () -> Unit,
+    onExpandQueue: () -> Unit,
+    onMenuClick: () -> Unit,
+) {
+    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+        val titleColor = textColor.copy(alpha = 0.95f)
+        val secondaryColor = textColor.copy(alpha = 0.6f)
+        val timeColor = textColor.copy(alpha = 0.85f)
+
+        val scale =
+            minOf(maxWidth / 420.dp, maxHeight / 260.dp)
+                .coerceIn(0.78f, 1.15f)
+
+        val titleSize = (56f * scale).sp
+        val timeSize = (44f * scale).sp
+        val iconSize = (26f * scale).dp
+        val collapseIconSize = (28f * scale).dp
+        val horizontalPadding = (18f * scale).dp
+        val verticalPadding = (10f * scale).dp
+
+        val displayPositionMs = sliderPosition ?: positionMs
+
+        val timeText = remember(displayPositionMs, durationMs) {
+            val positionText = makeTimeString(displayPositionMs)
+            val durationText = if (durationMs != C.TIME_UNSET) makeTimeString(durationMs) else ""
+            if (durationText.isBlank()) positionText else "$positionText/$durationText"
+        }
+
+        val artistsText = remember(mediaMetadata.artists) {
+            mediaMetadata.artists.joinToString(separator = ", ") { artist -> artist.name }
+        }
+
+        Column(
+            modifier =
+            Modifier
+                .fillMaxSize()
+                .padding(horizontal = horizontalPadding, vertical = verticalPadding),
+        ) {
+            Spacer(Modifier.weight(1f))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.Top,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    AnimatedContent(
+                        targetState = mediaMetadata.title,
+                        transitionSpec = { fadeIn() togetherWith fadeOut() },
+                        label = "little_title",
+                    ) { title ->
+                        Text(
+                            text = title,
+                            color = titleColor,
+                            fontSize = titleSize,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.basicMarquee(),
+                        )
+                    }
+
+                    Spacer(Modifier.height((10f * scale).dp))
+
+                    mediaMetadata.album?.title?.takeIf { it.isNotBlank() }?.let { albumTitle ->
+                        AnimatedContent(
+                            targetState = albumTitle,
+                            transitionSpec = { fadeIn() togetherWith fadeOut() },
+                            label = "little_album",
+                        ) { album ->
+                            Text(
+                                text = album,
+                                color = secondaryColor,
+                                style = MaterialTheme.typography.bodyMedium,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.basicMarquee(),
+                            )
+                        }
+                    }
+
+                    artistsText.takeIf { it.isNotBlank() }?.let { artists ->
+                        AnimatedContent(
+                            targetState = artists,
+                            transitionSpec = { fadeIn() togetherWith fadeOut() },
+                            label = "little_artists",
+                        ) { artistLine ->
+                            Text(
+                                text = "by - $artistLine",
+                                color = secondaryColor,
+                                style = MaterialTheme.typography.bodyMedium,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.basicMarquee(),
+                            )
+                        }
+                    }
+                }
+
+                Spacer(Modifier.width((16f * scale).dp))
+
+                Text(
+                    text = timeText,
+                    color = timeColor,
+                    fontSize = timeSize,
+                    fontWeight = FontWeight.Medium,
+                    textAlign = TextAlign.End,
+                    maxLines = 1,
+                    modifier = Modifier.widthIn(min = (140f * scale).dp),
+                )
+            }
+
+            Spacer(Modifier.height((14f * scale).dp))
+
+            Spacer(Modifier.height((6f * scale).dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.expand_more),
+                    contentDescription = null,
+                    tint = textColor.copy(alpha = 0.8f),
+                    modifier =
+                    Modifier
+                        .size(collapseIconSize)
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                            onClick = onCollapse,
+                        ),
+                )
+
+                Spacer(Modifier.weight(1f))
+
+                Icon(
+                    painter = painterResource(if (liked) R.drawable.favorite else R.drawable.favorite_border),
+                    contentDescription = null,
+                    tint =
+                    if (liked) MaterialTheme.colorScheme.error.copy(alpha = 0.9f)
+                    else textColor.copy(alpha = 0.78f),
+                    modifier =
+                    Modifier
+                        .size(iconSize)
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                            onClick = onToggleLike,
+                        ),
+                )
+
+                Spacer(Modifier.width((18f * scale).dp))
+
+                Icon(
+                    painter = painterResource(R.drawable.queue_music),
+                    contentDescription = null,
+                    tint = textColor.copy(alpha = 0.78f),
+                    modifier =
+                    Modifier
+                        .size(iconSize)
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                            onClick = onExpandQueue,
+                        ),
+                )
+
+                Spacer(Modifier.width((18f * scale).dp))
+
+                Icon(
+                    painter = painterResource(R.drawable.more_vert),
+                    contentDescription = null,
+                    tint = textColor.copy(alpha = 0.78f),
+                    modifier =
+                    Modifier
+                        .size(iconSize)
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                            onClick = onMenuClick,
+                        ),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun LandscapeLikeBox(
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit,
+) {
+    Layout(
+        content = content,
+        modifier = modifier.graphicsLayer { clip = true },
+    ) { measurables, constraints ->
+        val measurable = measurables.firstOrNull()
+        if (measurable == null) {
+            layout(constraints.minWidth, constraints.minHeight) {}
+        } else {
+            val swappedConstraints =
+                Constraints(
+                    minWidth = constraints.minHeight,
+                    maxWidth = constraints.maxHeight,
+                    minHeight = constraints.minWidth,
+                    maxHeight = constraints.maxWidth,
+                )
+
+            val placeable = measurable.measure(swappedConstraints)
+            val width = constraints.maxWidth
+            val height = constraints.maxHeight
+            val rotatedWidth = placeable.height
+            val rotatedHeight = placeable.width
+
+            val x = ((width - rotatedWidth) / 2).coerceAtLeast(0)
+            val y = ((height - rotatedHeight) / 2).coerceAtLeast(0)
+
+            layout(width, height) {
+                placeable.placeWithLayer(x, y) {
+                    transformOrigin = TransformOrigin(0f, 0f)
+                    rotationZ = 90f
+                    translationX = placeable.height.toFloat()
+                }
+            }
+        }
+    }
+}
+
+private fun Modifier.littlePlayerOverlayGestures(
+    seekEnabled: Boolean,
+    durationMs: Long,
+    progressFraction: Float,
+    canSkipPrevious: Boolean,
+    canSkipNext: Boolean,
+    onSeekToPositionMs: (Long) -> Unit,
+    onSeekFinished: () -> Unit,
+    onSkipPrevious: () -> Unit,
+    onSkipNext: () -> Unit,
+): Modifier {
+    return pointerInput(seekEnabled, durationMs, canSkipPrevious, canSkipNext) {
+        var lastTapUptimeMs = 0L
+        var lastTapPosition: Offset? = null
+        val doubleTapTimeoutMs = viewConfiguration.doubleTapTimeoutMillis.toLong()
+        val touchSlop = viewConfiguration.touchSlop
+
+        awaitEachGesture {
+            val down = awaitFirstDown(requireUnconsumed = false)
+            val pointerId = down.id
+
+            var upPosition = down.position
+            val minOverlayHeightPx = 24.dp.toPx()
+            val overlayHeightPx =
+                (progressFraction * size.height).coerceAtLeast(minOverlayHeightPx)
+            val seekAllowedFromDown =
+                seekEnabled &&
+                    durationMs > 0L &&
+                    durationMs != C.TIME_UNSET &&
+                    down.position.y <= overlayHeightPx
+
+            var isSeeking = false
+
+            while (true) {
+                val event = awaitPointerEvent(PointerEventPass.Main)
+                val change = event.changes.firstOrNull { it.id == pointerId } ?: continue
+                upPosition = change.position
+
+                if (!change.pressed) break
+
+                if (!isSeeking && seekAllowedFromDown) {
+                    val distanceFromDown = (change.position - down.position).getDistance()
+                    if (distanceFromDown > touchSlop) isSeeking = true
+                }
+
+                if (isSeeking) {
+                    val fraction =
+                        if (size.height > 0) (change.position.y / size.height.toFloat()) else 0f
+                    val clampedFraction = fraction.coerceIn(0f, 1f)
+
+                    val targetMs =
+                        (durationMs.toDouble() * clampedFraction.toDouble()).roundToLong().coerceIn(0L, durationMs)
+                    onSeekToPositionMs(targetMs)
+                    change.consume()
+                }
+            }
+
+            if (isSeeking) {
+                onSeekFinished()
+                lastTapUptimeMs = 0L
+                lastTapPosition = null
+            } else {
+                val now = SystemClock.uptimeMillis()
+                val previousTapPosition = lastTapPosition
+                val isDoubleTap =
+                    previousTapPosition != null &&
+                            (now - lastTapUptimeMs) <= doubleTapTimeoutMs &&
+                            (upPosition - previousTapPosition).getDistance() <= (touchSlop * 2f)
+
+                if (isDoubleTap) {
+                    val isTopSide = upPosition.y < size.height / 2f
+                    if (isTopSide) {
+                        if (canSkipPrevious) onSkipPrevious()
+                    } else {
+                        if (canSkipNext) onSkipNext()
+                    }
+                    lastTapUptimeMs = 0L
+                    lastTapPosition = null
+                } else {
+                    lastTapUptimeMs = now
+                    lastTapPosition = upPosition
                 }
             }
         }

@@ -1,6 +1,5 @@
 package moe.koiverse.archivetune
 
-import android.app.Activity
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
@@ -35,7 +34,6 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
@@ -61,31 +59,48 @@ class DebugActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         val stack = intent.getStringExtra(EXTRA_STACK_TRACE) ?: "No stack trace available"
+        val previewText = stack.lineSequence().firstOrNull()?.take(100) ?: "Unknown error"
+        val timestampText = runCatching {
+            SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())
+        }.getOrDefault("")
+        val reportText = buildCrashReport(this, timestampText, stack)
+        val deviceInfo = buildDeviceInfo(this)
 
         setContent {
             ArchiveTuneTheme {
-                CrashReportScreen(stack = stack, activity = this)
+                CrashReportScreen(
+                    previewText = previewText,
+                    timestampText = timestampText,
+                    deviceInfo = deviceInfo,
+                    stack = stack,
+                    reportText = reportText,
+                    onRestart = {
+                        runCatching {
+                            val intent = Intent(this, MainActivity::class.java).apply {
+                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+                            }
+                            startActivity(intent)
+                        }
+                    },
+                    onClose = { finish() },
+                )
             }
         }
     }
 }
 
 @Composable
-private fun CrashReportScreen(stack: String, activity: Activity) {
+private fun CrashReportScreen(
+    previewText: String,
+    timestampText: String,
+    deviceInfo: List<Pair<String, String>>,
+    stack: String,
+    reportText: String,
+    onRestart: () -> Unit,
+    onClose: () -> Unit,
+) {
     val context = LocalContext.current
-    val previewText = remember(stack) {
-        stack.lineSequence().firstOrNull()?.take(100) ?: "Unknown error"
-    }
     val clipboard = LocalClipboardManager.current
-    val timestampText: String = remember {
-        try {
-            SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date()).orEmpty()
-        } catch (_: Throwable) {
-            ""
-        }
-    }
-    val reportText = remember(stack, timestampText) { buildCrashReport(context, timestampText, stack) }
-    val deviceInfo = remember { buildDeviceInfo(context) }
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -104,15 +119,8 @@ private fun CrashReportScreen(stack: String, activity: Activity) {
                 }
                 context.startActivity(Intent.createChooser(share, "Share crash log"))
             },
-            onRestart = {
-                runCatching {
-                    val intent = Intent(activity, MainActivity::class.java).apply {
-                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
-                    }
-                    activity.startActivity(intent)
-                }
-            },
-            onClose = { activity.finish() },
+            onRestart = onRestart,
+            onClose = onClose,
         )
     }
 }

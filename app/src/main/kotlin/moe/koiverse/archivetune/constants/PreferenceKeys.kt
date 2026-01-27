@@ -73,7 +73,15 @@ enum class AudioQuality {
     LOW,
 }
 
+val PlayerStreamClientKey = stringPreferencesKey("playerStreamClient")
+
+enum class PlayerStreamClient {
+    ANDROID_VR,
+    WEB_REMIX,
+}
+
 val PersistentQueueKey = booleanPreferencesKey("persistentQueue")
+val PermanentShuffleKey = booleanPreferencesKey("permanentShuffle")
 val SkipSilenceKey = booleanPreferencesKey("skipSilence")
 val AudioNormalizationKey = booleanPreferencesKey("audioNormalization")
 val AudioOffload = booleanPreferencesKey("audioOffload")
@@ -347,6 +355,7 @@ enum class PlayerDesignStyle {
     V2,
     V3,
     V4,
+    V5,
 }
 
 enum class PlayerBackgroundStyle {

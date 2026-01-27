@@ -1,17 +1,17 @@
 [versions]
-androidGradlePlugin = "8.13.2"
+androidGradlePlugin = "9.0.0"
 annotation = "1.9.1"
 json = "20250517"
-kotlin = "2.3.0"
+kotlin = "2.2.20"
 compose = "1.10.1"
 lifecycle = "2.10.0"
 material3 = "1.5.0-alpha09"
-media3 = "1.8.0"
+media3 = "1.9.1"
 room = "2.8.4"
-hilt = "2.58"
-ktor = "3.3.0"
+hilt = "2.59"
+ktor = "3.4.0"
 ksp = "2.3.4"
-jsoup = "1.21.2"
+jsoup = "1.22.1"
 re2j = "1.8"
 coil = "3.3.0"
 guava = "33.5.0-jre"
@@ -33,6 +33,7 @@ junit = "4.13.2"
 timber = "5.0.1"
 kuromojiIpadic = "0.9.0"
 extractor = "2d2d9ed"
+rhino = "1.9.0"
 
 [libraries]
 annotation = { module = "androidx.annotation:annotation", version.ref = "annotation" }
@@ -95,6 +96,7 @@ re2j = { module = "com.google.re2j:re2j", version.ref = "re2j" }
 json = { module = "org.json:json", version.ref = "json" }
 
 brotli = { module = "org.brotli:dec", version.ref = "brotli" }
+rhino = { module = "org.mozilla:rhino", version.ref = "rhino" }
 
 desugaring = { module = "com.android.tools:desugar_jdk_libs", version.ref = "desugaring" }
 
@@ -103,13 +105,18 @@ junit = { module = "junit:junit", version.ref = "junit" }
 timber = { module = "com.jakewharton.timber:timber", version.ref = "timber" }
 
 #newpipe-extractor = { module = "com.github.teamnewpipe:NewPipeExtractor", version = "v0.25.0" }
-newpipe-extractor = { module = "com.github.libre-tube:NewPipeExtractor", version = "70be3a4" }
+#newpipe-extractor = { module = "com.github.libre-tube:NewPipeExtractor", version = "70be3a4" }
+newpipe-extractor = { module = "com.github.teamnewpipe:NewPipeExtractor", version = "master-SNAPSHOT" }
 #newpipe-extractor = { module = "com.github.mostafaalagamy:MetrolistExtractor", version.ref = "extractor" }
 
 kuromoji-ipadic = { module = "com.atilika.kuromoji:kuromoji-ipadic", version.ref = "kuromojiIpadic" }
 
 [plugins]
+android-application = { id = "com.android.application", version.ref = "androidGradlePlugin" }
+android-library = { id = "com.android.library", version.ref = "androidGradlePlugin" }
 compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
+kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 kotlin-ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }

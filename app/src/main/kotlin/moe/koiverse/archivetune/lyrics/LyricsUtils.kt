@@ -110,25 +110,47 @@ object LyricsUtils {
                 trimmed.contains("http://www.w3.org/ns/ttml", ignoreCase = true)
     }
 
-    fun parseTtml(lyrics: String): List<LyricsEntry> {
+    fun parseTtml(lyrics: String, durationSeconds: Int? = null): List<LyricsEntry> {
         val parsedLines = TTMLParser.parseTTML(lyrics)
         if (parsedLines.isEmpty()) return emptyList()
+
+        val trackDurationSec = durationSeconds?.takeIf { it > 0 }?.toDouble()
+        val lyricsEndSec = parsedLines.maxOf { line ->
+            maxOf(
+                line.endTime,
+                line.words.maxOfOrNull { it.endTime } ?: 0.0,
+            )
+        }.takeIf { it > 0.0 }
+
+        val scale = if (trackDurationSec != null && lyricsEndSec != null) {
+            val endDeltaSec = kotlin.math.abs(trackDurationSec - lyricsEndSec)
+            val rawScale = trackDurationSec / lyricsEndSec
+
+            when {
+                trackDurationSec < 30.0 -> 1.0
+                endDeltaSec < 1.5 -> 1.0
+                rawScale < 0.90 || rawScale > 1.10 -> 1.0
+                else -> rawScale
+            }
+        } else {
+            1.0
+        }
 
         return parsedLines.map { line ->
             val words =
                 line.words
-                    .filter { it.text.isNotEmpty() }
+                    .filter { it.text.isNotBlank() }
                     .map { word ->
                         WordTimestamp(
                             text = word.text,
-                            startTime = word.startTime,
-                            endTime = word.endTime,
+                            startTime = word.startTime * scale,
+                            endTime = word.endTime * scale,
                             isBackground = word.isBackground,
                         )
                     }.takeIf { it.isNotEmpty() }
 
             LyricsEntry(
-                time = (line.startTime * 1000.0).toLong(),
+                time = (line.startTime * scale * 1000.0).toLong(),
                 text = line.text,
                 words = words,
             )
@@ -174,10 +196,11 @@ object LyricsUtils {
     fun findCurrentLineIndex(
         lines: List<LyricsEntry>,
         position: Long,
+        leadMs: Long = 300L,
     ): Int {
         if (lines.isEmpty()) return -1
 
-        val target = position + 300L
+        val target = position + leadMs
         var low = 0
         var high = lines.lastIndex
 

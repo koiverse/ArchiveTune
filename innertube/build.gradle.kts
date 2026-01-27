@@ -1,6 +1,6 @@
 plugins {
     alias(libs.plugins.kotlin.serialization)
-    kotlin("jvm")
+    alias(libs.plugins.kotlin.jvm)
 }
 
 kotlin {
@@ -16,5 +16,6 @@ dependencies {
     implementation(libs.brotli)
     implementation(libs.newpipe.extractor)
     implementation(libs.re2j)
+    implementation(libs.rhino)
     testImplementation(libs.junit)
 }

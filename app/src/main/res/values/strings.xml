@@ -399,6 +399,8 @@
     <string name="queue">Queue</string>
     <string name="persistent_queue">Persistent queue</string>
     <string name="persistent_queue_desc">Restore your last queue when the app starts</string>
+    <string name="permanent_shuffle">Permanent shuffle mode</string>
+    <string name="permanent_shuffle_desc">Keep shuffle enabled when you start a new song</string>
     <string name="auto_load_more">Auto load more songs</string>
     <string name="auto_load_more_desc">Automatically add more songs when the end of the queue is reached. Disabled when repeat mode is active</string>
     <string name="skip_silence">Skip silence</string>
@@ -557,7 +559,6 @@ ArchiveTune will only extract your token, and everything else is stored locally.
     <string name="enable_discord_debug_lines">Enable debug settings lines</string>
     <string name="presence_manager_running">Presence manager: running</string>
     <string name="presence_manager_stopped">Presence manager: stopped</string>
-    <string name="debug_last_rpc_times">Last RPC start: %1$s  end: %2$s</string>
     <string name="filter_levels">Filter levels</string>
     <string name="experimental_features">Experimental Features</string>
     <string name="experimental_features_description">Advanced or experimental Discord options (moved to separate screen)</string>
@@ -586,6 +587,28 @@ ArchiveTune will only extract your token, and everything else is stored locally.
     <string name="playback_speed_label">Playback Speed</string>
     <string name="state_label">State</string>
     <string name="media_id_label">Media ID</string>
+    <string name="status_active">ACTIVE</string>
+    <string name="status_inactive">INACTIVE</string>
+    <string name="last_start">Last Start</string>
+    <string name="last_end">Last End</string>
+    <string name="debug_logs">Debug Logs</string>
+    <string name="log_level_verbose">Verbose</string>
+    <string name="log_level_debug">Debug</string>
+    <string name="log_level_info">Info</string>
+    <string name="log_level_warning">Warning</string>
+    <string name="log_level_error">Error</string>
+    <string name="filter_discord_only">Discord</string>
+    <string name="filter_all_logs">All</string>
+    <string name="clear">Clear</string>
+    <string name="logs_empty_message">Logs will appear here when available</string>
+    <string name="real_time_playback_stats">Real-time playback statistics</string>
+    <string name="copied_to_clipboard">Copied log to clipboard</string>
+    <string name="playback_state_idle">IDLE</string>
+    <string name="playback_state_buffering">BUFFERING</string>
+    <string name="playback_state_ready">READY</string>
+    <string name="playback_state_ended">ENDED</string>
+    <string name="playback_state_unknown">UNKNOWN</string>
+    <string name="share_logs">Share logs</string>
     <string name="about">About</string>
     <string name="app_version">App version</string>
     <string name="new_version_available">New version available</string>
@@ -618,5 +641,6 @@ ArchiveTune will only extract your token, and everything else is stored locally.
     <string name="permission_status_all_granted">All required permissions are allowed. You are ready to start.</string>
     <string name="permission_status_required">Please allow all required permissions to continue.</string>
     <string name="next">Next</string>
+    <string name="next_song">Next Song</string>
     <string name="allow">Allow</string>
 </resources>

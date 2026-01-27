@@ -511,7 +511,6 @@
     <string name="enable_discord_debug_lines">디버그 UI 표시+--+디버그 설정 라인 활성화</string>
     <string name="presence_manager_running">프레즌스 관리자: 실행 중</string>
     <string name="presence_manager_stopped">프레즌스 관리자: 중지됨</string>
-    <string name="debug_last_rpc_times">마지막 RPC 시작: %1$s 종료: %2$s</string>
     <string name="filter_levels">필터 수준</string>
     <string name="experimental_features">실험적 기능</string>
     <string name="experimental_features_description">고급 또는 실험적 Discord 옵션(별도의 화면으로 이동됨)</string>

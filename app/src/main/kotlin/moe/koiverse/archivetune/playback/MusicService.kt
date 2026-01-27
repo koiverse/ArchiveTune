@@ -95,7 +95,10 @@ import moe.koiverse.archivetune.constants.MediaSessionConstants.CommandToggleSta
 import moe.koiverse.archivetune.constants.MediaSessionConstants.CommandToggleRepeatMode
 import moe.koiverse.archivetune.constants.MediaSessionConstants.CommandToggleShuffle
 import moe.koiverse.archivetune.constants.PauseListenHistoryKey
+import moe.koiverse.archivetune.constants.PermanentShuffleKey
 import moe.koiverse.archivetune.constants.PersistentQueueKey
+import moe.koiverse.archivetune.constants.PlayerStreamClient
+import moe.koiverse.archivetune.constants.PlayerStreamClientKey
 import moe.koiverse.archivetune.constants.PlayerVolumeKey
 import moe.koiverse.archivetune.constants.RepeatModeKey
 import moe.koiverse.archivetune.constants.ShowLyricsKey
@@ -239,6 +242,11 @@ class MusicService :
         this,
         AudioQualityKey,
         moe.koiverse.archivetune.constants.AudioQuality.AUTO
+    )
+    private val preferredStreamClient by enumPreference(
+        this,
+        PlayerStreamClientKey,
+        PlayerStreamClient.ANDROID_VR
     )
     private val playbackUrlCache = ConcurrentHashMap<String, Pair<String, Long>>()
     private val streamRecoveryState = ConcurrentHashMap<String, Pair<Int, Long>>()
@@ -1067,7 +1075,10 @@ class MusicService :
         ensureScopesActive()
         currentQueue = queue
         queueTitle = null
-        player.shuffleModeEnabled = false
+        val permanentShuffle = dataStore.get(PermanentShuffleKey, false)
+        if (!permanentShuffle) {
+            player.shuffleModeEnabled = false
+        }
         
         // Clear old automix items when starting a new queue
         // This ensures recommendations are based on the new context
@@ -1097,6 +1108,9 @@ class MusicService :
                         initialStatus.items.size
                     )
                 )
+                if (player.shuffleModeEnabled) {
+                    applyCurrentFirstShuffleOrder()
+                }
             } else {
                 val items = initialStatus.items
                 val index = initialStatus.mediaItemIndex
@@ -1116,6 +1130,9 @@ class MusicService :
                 )
                 player.prepare()
                 player.playWhenReady = playWhenReady
+                if (player.shuffleModeEnabled) {
+                    applyCurrentFirstShuffleOrder()
+                }
                 
                 // Defer loading the rest of the queue
                 if (items.size > initialChunk.size) {
@@ -1135,6 +1152,10 @@ class MusicService :
                                 val endChunk = items.subList(windowEnd, items.size)
                                 player.addMediaItems(endChunk)
                             }
+
+                            if (player.shuffleModeEnabled) {
+                                applyCurrentFirstShuffleOrder()
+                            }
                         } catch (e: Exception) {
                             Timber.e(e, "Failed to load deferred queue items")
                         }
@@ -1142,6 +1163,19 @@ class MusicService :
                 }
             }
         }
+    }
+
+    private fun applyCurrentFirstShuffleOrder() {
+        if (player.mediaItemCount <= 1) return
+        val currentIndex = player.currentMediaItemIndex.coerceIn(0, player.mediaItemCount - 1)
+        val shuffledIndices = IntArray(player.mediaItemCount) { it }
+        shuffledIndices.shuffle()
+        val currentPos = shuffledIndices.indexOf(currentIndex)
+        if (currentPos >= 0) {
+            shuffledIndices[currentPos] = shuffledIndices[0]
+        }
+        shuffledIndices[0] = currentIndex
+        player.setShuffleOrder(DefaultShuffleOrder(shuffledIndices, System.currentTimeMillis()))
     }
 
     fun startRadioSeamlessly() {
@@ -1867,13 +1901,7 @@ class MusicService :
     override fun onShuffleModeEnabledChanged(shuffleModeEnabled: Boolean) {
         updateNotification()
         if (shuffleModeEnabled) {
-            // Always put current playing item at first
-            val shuffledIndices = IntArray(player.mediaItemCount) { it }
-            shuffledIndices.shuffle()
-            shuffledIndices[shuffledIndices.indexOf(player.currentMediaItemIndex)] =
-                shuffledIndices[0]
-            shuffledIndices[0] = player.currentMediaItemIndex
-            player.setShuffleOrder(DefaultShuffleOrder(shuffledIndices, System.currentTimeMillis()))
+            applyCurrentFirstShuffleOrder()
         }
         
         // Save state when shuffle mode changes - must be on Main thread to access player
@@ -2017,6 +2045,7 @@ class MusicService :
                     mediaId,
                     audioQuality = audioQuality,
                     connectivityManager = connectivityManager,
+                    preferredStreamClient = preferredStreamClient,
                     avoidCodecs = avoidStreamCodecs,
                 )
             }.getOrElse { throwable ->

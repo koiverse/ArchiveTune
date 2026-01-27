@@ -58,44 +58,38 @@ fun ArchiveTuneTheme(
         if (useSystemFont) SystemTypography else AppTypography
     }
 
-    if (useSystemDynamicColor) {
-        val baseColorScheme =
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        val colorScheme = remember(baseColorScheme, pureBlack, darkTheme) {
-            if (darkTheme && pureBlack) baseColorScheme.pureBlack(true) else baseColorScheme
-        }
-
-        MaterialExpressiveTheme(
-            colorScheme = colorScheme,
-            typography = typography,
-            content = content
-        )
-    } else {
-        val baseColorScheme =
-            remember(seedPalette, themeColor, darkTheme) {
-                if (seedPalette != null) {
-                    exactPaletteColorScheme(
-                        palette = seedPalette,
-                        isDark = darkTheme,
-                    )
-                } else {
-                    m3DynamicColorScheme(
-                        seedPalette = null,
-                        keyColor = themeColor,
-                        isDark = darkTheme,
-                    )
-                }
+    val appColorScheme =
+        remember(seedPalette, themeColor, darkTheme) {
+            if (seedPalette != null) {
+                exactPaletteColorScheme(
+                    palette = seedPalette,
+                    isDark = darkTheme,
+                )
+            } else {
+                m3DynamicColorScheme(
+                    seedPalette = null,
+                    keyColor = themeColor,
+                    isDark = darkTheme,
+                )
             }
-        val colorScheme = remember(baseColorScheme, pureBlack, darkTheme) {
-            if (darkTheme && pureBlack) baseColorScheme.pureBlack(true) else baseColorScheme
         }
 
-        MaterialExpressiveTheme(
-            colorScheme = colorScheme,
-            typography = typography,
-            content = content
-        )
+    val baseColorScheme =
+        if (useSystemDynamicColor) {
+            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+        } else {
+            appColorScheme
+        }
+
+    val colorScheme = remember(baseColorScheme, pureBlack, darkTheme) {
+        if (darkTheme && pureBlack) baseColorScheme.pureBlack(true) else baseColorScheme
     }
+
+    MaterialExpressiveTheme(
+        colorScheme = colorScheme,
+        typography = typography,
+        content = content
+    )
 }
 
 private fun exactPaletteColorScheme(

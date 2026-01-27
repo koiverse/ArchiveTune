@@ -21,7 +21,9 @@
       ],
       "enabled": false,
       "matchPackageNames": [
-        "/^com\\.github\\.libre\\-tube:NewPipeExtractor$/"
+        "/^com\\.github\\.libre\\-tube:NewPipeExtractor$/",
+        "/^com\\.android\\.tools\\.build:gradle$/",
+        "/^org\\.jetbrains\\.kotlin:kotlin\\-gradle\\-plugin$/"
       ]
     },
     {

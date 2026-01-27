@@ -58,6 +58,9 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import moe.koiverse.archivetune.LocalDatabase
 import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.db.entities.LyricsEntity
+import moe.koiverse.archivetune.lyrics.LyricsUtils.isTtml
+import moe.koiverse.archivetune.lyrics.LyricsUtils.parseLyrics
+import moe.koiverse.archivetune.lyrics.LyricsUtils.parseTtml
 import moe.koiverse.archivetune.models.MediaMetadata
 import moe.koiverse.archivetune.ui.component.DefaultDialog
 import moe.koiverse.archivetune.ui.component.ListDialog
@@ -238,8 +241,17 @@ fun LyricsMenu(
                     Column(
                         modifier = Modifier.weight(1f),
                     ) {
+                        val displayLyrics = remember(result.lyrics) {
+                            val raw = result.lyrics.trim()
+                            when {
+                                isTtml(raw) -> parseTtml(raw).joinToString("\n") { it.text }.trim()
+                                raw.startsWith("[") -> parseLyrics(raw).joinToString("\n") { it.text }.trim()
+                                else -> raw
+                            }
+                        }
+
                         Text(
-                            text = result.lyrics,
+                            text = displayLyrics,
                             style = MaterialTheme.typography.bodyMedium,
                             maxLines = if (index == expandedItemIndex) Int.MAX_VALUE else 2,
                             overflow = TextOverflow.Ellipsis,
@@ -255,7 +267,7 @@ fun LyricsMenu(
                                 color = MaterialTheme.colorScheme.secondary,
                                 maxLines = 1,
                             )
-                            if (result.lyrics.startsWith("[")) {
+                            if (result.lyrics.startsWith("[") || isTtml(result.lyrics)) {
                                 Icon(
                                     painter = painterResource(R.drawable.sync),
                                     contentDescription = null,

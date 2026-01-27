@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="home">Inicio</string>
+    <string name="songs">Canciones</string>
+    <string name="artists">Artistas</string>
+    <string name="albums">Álbumes</string>
+    <string name="playlists">Playlists</string>
+    <plurals name="n_selected">
+        <item quantity="one">Barra superior</item>
+        <item quantity="many">Barras superiores</item>
+        <item quantity="other">Barras superiores</item>
+    </plurals>
+    <string name="history">Historial</string>
+    <string name="stats">Estadísticas</string>
+    <string name="mood_and_genres">Géneros</string>
+    <string name="account">Cuenta</string>
+    <string name="quick_picks">Selecciones rápidas</string>
+    <string name="quick_picks_empty">Escucha canciones para generar tus selecciones rápidas</string>
+    <string name="forgotten_favorites">Tus favoritos del pasado</string>
+    <string name="keep_listening">Sigue escuchando</string>
+    <string name="your_youtube_playlists">Tus playlists de YouTube</string>
+    <string name="similar_to">Similar a</string>
+    <string name="new_release_albums">Nuevos lanzamientos</string>
+    <string name="select_playlist_to_sync">Selecciona playlist para sincronizar</string>
+    <string name="today">Hoy</string>
+    <string name="yesterday">Ayer</string>
+    <string name="this_week">Esta semana</string>
+    <string name="last_week">Última semana</string>
+    <string name="most_played_songs">Canciones más escuchadas</string>
+    <string name="most_played_artists">Artistas más escuchados</string>
+</resources>

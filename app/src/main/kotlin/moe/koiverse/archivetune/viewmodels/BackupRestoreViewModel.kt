@@ -50,15 +50,18 @@ class BackupRestoreViewModel @Inject constructor(
                         writeSettingsToXml(context, zipStream)
                         zipStream.closeEntry()
 
-                        // 2. Backup Database
-                        // Ensure checkpoint
                         database.checkpoint()
-                        
-                        // Copy DB file
+
                         val dbFile = context.getDatabasePath(InternalDatabase.DB_NAME)
-                        if (dbFile.exists()) {
-                            zipStream.putNextEntry(ZipEntry(InternalDatabase.DB_NAME))
-                            FileInputStream(dbFile).use { input ->
+                        val dbFiles = listOf(
+                            dbFile,
+                            dbFile.resolveSibling("${InternalDatabase.DB_NAME}-wal"),
+                            dbFile.resolveSibling("${InternalDatabase.DB_NAME}-shm"),
+                            dbFile.resolveSibling("${InternalDatabase.DB_NAME}-journal"),
+                        )
+                        dbFiles.filter { it.exists() }.forEach { file ->
+                            zipStream.putNextEntry(ZipEntry(file.name))
+                            FileInputStream(file).use { input ->
                                 input.copyTo(zipStream)
                             }
                             zipStream.closeEntry()
@@ -117,11 +120,16 @@ class BackupRestoreViewModel @Inject constructor(
                                         zip.copyTo(out)
                                     }
                                 }
-                                InternalDatabase.DB_NAME -> {
-                                    // Restore DB
+                                InternalDatabase.DB_NAME,
+                                "${InternalDatabase.DB_NAME}-wal",
+                                "${InternalDatabase.DB_NAME}-shm",
+                                "${InternalDatabase.DB_NAME}-journal" -> {
                                     database.checkpoint()
                                     database.close()
-                                    val dbFile = context.getDatabasePath(InternalDatabase.DB_NAME)
+                                    val dbFile = context.getDatabasePath(entry.name)
+                                    if (dbFile.exists()) {
+                                        dbFile.delete()
+                                    }
                                     FileOutputStream(dbFile).use { out ->
                                         zip.copyTo(out)
                                     }

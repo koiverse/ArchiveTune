@@ -1,14 +1,22 @@
 package moe.koiverse.archivetune.ui.screens.settings
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarScrollBehavior
@@ -20,6 +28,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import moe.koiverse.archivetune.LocalPlayerAwareWindowInsets
 import moe.koiverse.archivetune.R
@@ -31,16 +40,20 @@ import moe.koiverse.archivetune.constants.NetworkMeteredKey
 import moe.koiverse.archivetune.constants.AutoDownloadOnLikeKey
 import moe.koiverse.archivetune.constants.AutoLoadMoreKey
 import moe.koiverse.archivetune.constants.AutoSkipNextOnErrorKey
+import moe.koiverse.archivetune.constants.PermanentShuffleKey
 import moe.koiverse.archivetune.constants.PersistentQueueKey
 import moe.koiverse.archivetune.constants.SimilarContent
 import moe.koiverse.archivetune.constants.SkipSilenceKey
 import moe.koiverse.archivetune.constants.StopMusicOnTaskClearKey
 import moe.koiverse.archivetune.constants.HistoryDuration
+import moe.koiverse.archivetune.constants.PlayerStreamClient
+import moe.koiverse.archivetune.constants.PlayerStreamClientKey
 import moe.koiverse.archivetune.constants.SeekExtraSeconds
 import moe.koiverse.archivetune.ui.component.ArtistSeparatorsDialog
 import moe.koiverse.archivetune.ui.component.TagsManagementDialog
 import moe.koiverse.archivetune.ui.component.EnumListPreference
 import moe.koiverse.archivetune.ui.component.IconButton
+import moe.koiverse.archivetune.ui.component.ListDialog
 import moe.koiverse.archivetune.ui.component.PreferenceEntry
 import moe.koiverse.archivetune.ui.component.PreferenceGroupTitle
 import moe.koiverse.archivetune.ui.component.SliderPreference
@@ -60,6 +73,10 @@ fun PlayerSettings(
         AudioQualityKey,
         defaultValue = AudioQuality.AUTO
     )
+    val (playerStreamClient, onPlayerStreamClientChange) = rememberEnumPreference(
+        PlayerStreamClientKey,
+        defaultValue = PlayerStreamClient.ANDROID_VR
+    )
     val (networkMetered, onNetworkMeteredChange) = rememberPreference(
         NetworkMeteredKey,
         defaultValue = true
@@ -67,6 +84,10 @@ fun PlayerSettings(
     val (persistentQueue, onPersistentQueueChange) = rememberPreference(
         PersistentQueueKey,
         defaultValue = true
+    )
+    val (permanentShuffle, onPermanentShuffleChange) = rememberPreference(
+        PermanentShuffleKey,
+        defaultValue = false
     )
     val (skipSilence, onSkipSilenceChange) = rememberPreference(
         SkipSilenceKey,
@@ -114,6 +135,7 @@ fun PlayerSettings(
 
     var showArtistSeparatorsDialog by remember { mutableStateOf(false) }
     var showTagsManagementDialog by remember { mutableStateOf(false) }
+    var showPlayerStreamClientDialog by remember { mutableStateOf(false) }
     val database = LocalDatabase.current
 
     if (showArtistSeparatorsDialog) {
@@ -132,6 +154,51 @@ fun PlayerSettings(
             database = database,
             onDismiss = { showTagsManagementDialog = false }
         )
+    }
+
+    if (showPlayerStreamClientDialog) {
+        ListDialog(
+            onDismiss = { showPlayerStreamClientDialog = false },
+            modifier = Modifier.padding(horizontal = 8.dp),
+        ) {
+            items(listOf(PlayerStreamClient.ANDROID_VR, PlayerStreamClient.WEB_REMIX)) { value ->
+                Row(
+                    modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            onPlayerStreamClientChange(value)
+                            showPlayerStreamClientDialog = false
+                        }.padding(horizontal = 16.dp, vertical = 12.dp),
+                ) {
+                    RadioButton(
+                        selected = value == playerStreamClient,
+                        onClick = null,
+                    )
+
+                    Column(modifier = Modifier.padding(start = 16.dp)) {
+                        Text(
+                            text =
+                            when (value) {
+                                PlayerStreamClient.ANDROID_VR -> stringResource(R.string.player_stream_client_android_vr)
+                                PlayerStreamClient.WEB_REMIX -> stringResource(R.string.player_stream_client_web_remix)
+                            },
+                            style = MaterialTheme.typography.bodyLarge,
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            text =
+                            when (value) {
+                                PlayerStreamClient.ANDROID_VR -> stringResource(R.string.player_stream_client_android_vr_desc)
+                                PlayerStreamClient.WEB_REMIX -> stringResource(R.string.player_stream_client_web_remix_desc)
+                            },
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.secondary,
+                        )
+                    }
+                }
+            }
+        }
     }
 
     Column(
@@ -165,6 +232,17 @@ fun PlayerSettings(
                     AudioQuality.LOW -> stringResource(R.string.audio_quality_low)
                 }
             }
+        )
+
+        PreferenceEntry(
+            title = { Text(stringResource(R.string.player_stream_client)) },
+            description =
+            when (playerStreamClient) {
+                PlayerStreamClient.ANDROID_VR -> stringResource(R.string.player_stream_client_android_vr)
+                PlayerStreamClient.WEB_REMIX -> stringResource(R.string.player_stream_client_web_remix)
+            },
+            icon = { Icon(painterResource(R.drawable.integration), null) },
+            onClick = { showPlayerStreamClientDialog = true }
         )
 
         SwitchPreference(
@@ -214,6 +292,14 @@ fun PlayerSettings(
             icon = { Icon(painterResource(R.drawable.queue_music), null) },
             checked = persistentQueue,
             onCheckedChange = onPersistentQueueChange
+        )
+
+        SwitchPreference(
+            title = { Text(stringResource(R.string.permanent_shuffle)) },
+            description = stringResource(R.string.permanent_shuffle_desc),
+            icon = { Icon(painterResource(R.drawable.shuffle), null) },
+            checked = permanentShuffle,
+            onCheckedChange = onPermanentShuffleChange
         )
 
         SwitchPreference(
