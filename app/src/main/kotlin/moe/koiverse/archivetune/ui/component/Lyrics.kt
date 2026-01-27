@@ -409,7 +409,7 @@ fun Lyrics(
         if (darkTheme == DarkMode.AUTO) isSystemInDarkTheme else darkTheme == DarkMode.ON
     }
 
-    val lines = remember(lyrics, scope) {
+    val lines = remember(lyrics, scope, mediaMetadata.id, mediaMetadata.duration) {
         if (lyrics == null || lyrics == LYRICS_NOT_FOUND) {
             emptyList()
         } else if (lyrics.startsWith("[")) {
@@ -443,7 +443,7 @@ fun Lyrics(
                 listOf(LyricsEntry.HEAD_LYRICS_ENTRY) + it
             }
         } else if (isTtml(lyrics)) {
-            val parsedLines = parseTtml(lyrics)
+            val parsedLines = parseTtml(lyrics, mediaMetadata.duration)
             parsedLines.map { entry ->
                 val newEntry = LyricsEntry(entry.time, entry.text, entry.words)
                 if (romanizeJapaneseLyrics) {
