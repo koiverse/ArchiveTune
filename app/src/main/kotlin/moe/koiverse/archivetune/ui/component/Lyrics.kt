@@ -514,7 +514,9 @@ fun Lyrics(
     val wordSyncLeadMs = remember(lyrics) {
         if (lyrics != null && isTtml(lyrics)) 0L else LyricsWordSyncLeadMs
     }
-    val lineSyncLeadMs = LyricsWordSyncLeadMs
+    val lineSyncLeadMs = remember(lyrics) {
+        if (lyrics != null && isTtml(lyrics)) 0L else LyricsWordSyncLeadMs
+    }
 
     var currentLineIndex by remember {
         mutableIntStateOf(-1)

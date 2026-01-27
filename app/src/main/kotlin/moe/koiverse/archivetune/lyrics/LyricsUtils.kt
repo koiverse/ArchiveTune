@@ -113,28 +113,7 @@ object LyricsUtils {
     fun parseTtml(lyrics: String, durationSeconds: Int? = null): List<LyricsEntry> {
         val parsedLines = TTMLParser.parseTTML(lyrics)
         if (parsedLines.isEmpty()) return emptyList()
-
-        val trackDurationSec = durationSeconds?.takeIf { it > 0 }?.toDouble()
-        val lyricsEndSec = parsedLines.maxOf { line ->
-            maxOf(
-                line.endTime,
-                line.words.maxOfOrNull { it.endTime } ?: 0.0,
-            )
-        }.takeIf { it > 0.0 }
-
-        val scale = if (trackDurationSec != null && lyricsEndSec != null) {
-            val endDeltaSec = kotlin.math.abs(trackDurationSec - lyricsEndSec)
-            val rawScale = trackDurationSec / lyricsEndSec
-
-            when {
-                trackDurationSec < 30.0 -> 1.0
-                endDeltaSec < 1.5 -> 1.0
-                rawScale < 0.90 || rawScale > 1.10 -> 1.0
-                else -> rawScale
-            }
-        } else {
-            1.0
-        }
+        val scale = 1.0
 
         return parsedLines.map { line ->
             val words =
