@@ -510,7 +510,6 @@
     <string name="enable_discord_debug_lines">Aktifkan baris pengaturan debug</string>
     <string name="presence_manager_running">Manajer kehadiran: berjalan</string>
     <string name="presence_manager_stopped">Pengelola kehadiran: dihentikan</string>
-    <string name="debug_last_rpc_times">Permulaan RPC terakhir: %1$s berakhir: %2$s</string>
     <string name="filter_levels">Level filter</string>
     <string name="experimental_features">Fitur Eksperimental</string>
     <string name="experimental_features_description">Opsi Discord lanjutan atau eksperimental (dipindahkan ke layar terpisah)</string>

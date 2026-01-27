@@ -510,7 +510,6 @@
     <string name="enable_discord_debug_lines">デバッグ設定行を有効にする</string>
     <string name="presence_manager_running">プレゼンス マネージャー: 実行中</string>
     <string name="presence_manager_stopped">プレゼンス マネージャー: 停止中</string>
-    <string name="debug_last_rpc_times">最後の RPC 開始: %1$s 終了: %2$s</string>
     <string name="filter_levels">フィルター レベル</string>
     <string name="experimental_features">実験的機能</string>
     <string name="experimental_features_description">高度または実験的な Discord オプション (別の画面に移動)</string>

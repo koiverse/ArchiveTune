@@ -530,7 +530,6 @@
     <string name="enable_discord_debug_lines">Activer les lignes de paramètres de débogage</string>
     <string name="presence_manager_running">Gestionnaire de présence : en cours d\'exécution</string>
     <string name="presence_manager_stopped">Gestionnaire de présence : arrêté</string>
-    <string name="debug_last_rpc_times">Dernière RPC début : %1$s fin : %2$s</string>
     <string name="filter_levels">Niveaux de filtre</string>
     <string name="experimental_features">Fonctionnalités expérimentales</string>
     <string name="experimental_features_description">Options Discord avancées ou expérimentales (déplacées sur un écran séparé)</string>

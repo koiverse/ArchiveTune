@@ -559,7 +559,6 @@
     <string name="enable_discord_debug_lines">Hata ayıklama ayarları satırlarını etkinleştir</string>
     <string name="presence_manager_running">Durum yöneticisi: koşuyor</string>
     <string name="presence_manager_stopped">Durum yöneticisi: durduruldu</string>
-    <string name="debug_last_rpc_times">Son RPC başlangıcı: %1$s bitiş: %2$s</string>
     <string name="filter_levels">Filtre seviyeleri</string>
     <string name="experimental_features">Deneysel Özellikler</string>
     <string name="experimental_features_description">Gelişmiş veya deneysel Discord seçenekleri (ayrı ekrana taşındı)</string>

@@ -568,7 +568,6 @@
     <string name="enable_discord_debug_lines">Abilita le righe delle impostazioni di debug</string>
     <string name="presence_manager_running">Gestore delle presenze: in corsa</string>
     <string name="presence_manager_stopped">Gestore della presenza: interrotto</string>
-    <string name="debug_last_rpc_times">Inizio ultimo RPC: %1$s fine: %2$s</string>
     <string name="filter_levels">Livelli di filtro</string>
     <string name="experimental_features">Funzionalità sperimentali</string>
     <string name="experimental_features_description">Opzioni Discord avanzate o sperimentali (spostate in una schermata separata)</string>

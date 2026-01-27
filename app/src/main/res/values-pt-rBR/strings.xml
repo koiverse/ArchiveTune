@@ -494,7 +494,6 @@
     <string name="enable_discord_debug_lines">Ativar linhas de configurações de depuração</string>
     <string name="presence_manager_running">Gerenciador do Presence: em execução</string>
     <string name="presence_manager_stopped">Gerenciador do Presence: parou</string>
-    <string name="debug_last_rpc_times">Último RPC - Início: %1$s - Fim: %2$s</string>
     <string name="filter_levels">Níveis de filtro</string>
     <string name="experimental_features">Funções experimentais</string>
     <string name="experimental_features_description">Opções avançadas ou experimentais do Discord (movidas para uma tela separada)</string>
