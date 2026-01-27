@@ -22,6 +22,11 @@ object TTMLParser {
         val isBackground: Boolean = false
     )
 
+    private data class TimingContext(
+        val tickRate: Double,
+        val frameRate: Double,
+    )
+
     private fun isCjk(text: String): Boolean {
         return text.any { c ->
             Character.UnicodeBlock.of(c) in setOf(
@@ -47,6 +52,7 @@ object TTMLParser {
             factory.isNamespaceAware = true
             val builder = factory.newDocumentBuilder()
             val doc = builder.parse(ttml.byteInputStream())
+            val timingContext = readTimingContext(doc.documentElement)
             
             // Find all elements ending with "div" which contain elements ending with "p"
             val divElements = doc.getElementsByTagName("*") // Get all elements first
@@ -64,15 +70,20 @@ object TTMLParser {
                     
                     val begin = pElement.getAttribute("begin")
                     val end = pElement.getAttribute("end")
+                    val dur = pElement.getAttribute("dur")
                     if (begin.isNullOrEmpty()) continue
                     
-                    val startTime = parseTime(begin)
-                    val endTime = if (end.isNotEmpty()) parseTime(end) else startTime + 5.0
+                    val startTime = parseTime(begin, timingContext)
+                    val endTime = when {
+                        end.isNotEmpty() -> parseTime(end, timingContext)
+                        dur.isNotEmpty() -> startTime + parseTime(dur, timingContext)
+                        else -> startTime + 5.0
+                    }
                     val words = mutableListOf<ParsedWord>()
                     val lineText = StringBuilder()
                     
                     // Recursively parse all span elements including nested ones (for background vocals)
-                    parseSpanElements(pElement, words, lineText, startTime, endTime, false)
+                    parseSpanElements(pElement, words, lineText, startTime, endTime, false, timingContext)
                     
                     // If words list is empty but we have text, we need to generate fallback word timings
                     if (words.isEmpty() && lineText.isNotEmpty()) {
@@ -204,14 +215,19 @@ object TTMLParser {
                     
                     val begin = pElement.getAttribute("begin")
                     val end = pElement.getAttribute("end")
+                    val dur = pElement.getAttribute("dur")
                     if (begin.isNullOrEmpty()) continue
                     
-                    val startTime = parseTime(begin)
-                    val endTime = if (end.isNotEmpty()) parseTime(end) else startTime + 5.0
+                    val startTime = parseTime(begin, timingContext)
+                    val endTime = when {
+                        end.isNotEmpty() -> parseTime(end, timingContext)
+                        dur.isNotEmpty() -> startTime + parseTime(dur, timingContext)
+                        else -> startTime + 5.0
+                    }
                     val words = mutableListOf<ParsedWord>()
                     val lineText = StringBuilder()
                     
-                    parseSpanElements(pElement, words, lineText, startTime, endTime, false)
+                    parseSpanElements(pElement, words, lineText, startTime, endTime, false, timingContext)
                     
                     if (words.isEmpty() && lineText.isNotEmpty()) {
                         val directText = lineText.toString()
@@ -342,7 +358,8 @@ object TTMLParser {
         lineText: StringBuilder,
         lineStartTime: Double,
         lineEndTime: Double,
-        isBackground: Boolean
+        isBackground: Boolean,
+        timingContext: TimingContext,
     ) {
         val childNodes = element.childNodes
         
@@ -359,12 +376,13 @@ object TTMLParser {
                         
                         val wordBegin = childElement.getAttribute("begin")
                         val wordEnd = childElement.getAttribute("end")
+                        val wordDur = childElement.getAttribute("dur")
                         
                         // Check if this span has nested spans (for word-level timing within bg)
                         val nestedSpans = childElement.getElementsByTagName("*")
                         if (nestedSpans.length > 0 && hasDirectSpanChildren(childElement)) {
                             // Parse nested spans recursively
-                            parseSpanElements(childElement, words, lineText, lineStartTime, lineEndTime, isBgSpan)
+                            parseSpanElements(childElement, words, lineText, lineStartTime, lineEndTime, isBgSpan, timingContext)
                         } else {
                             // This is a leaf span with text
                             val wordText = getDirectTextContent(childElement)
@@ -381,9 +399,26 @@ object TTMLParser {
                                         !wordText.startsWith(" ")
 
                                 lineText.append(wordText)
-                                
-                                val wordStartTime = if (wordBegin.isNotEmpty()) parseTime(wordBegin) else lineStartTime
-                                val wordEndTime = if (wordEnd.isNotEmpty()) parseTime(wordEnd) else lineEndTime
+
+                                val rawWordStart = wordBegin.takeIf { it.isNotEmpty() }?.let { parseTime(it, timingContext) }
+                                val rawWordEnd = when {
+                                    wordEnd.isNotEmpty() -> parseTime(wordEnd, timingContext)
+                                    wordDur.isNotEmpty() && rawWordStart != null -> rawWordStart + parseTime(wordDur, timingContext)
+                                    else -> null
+                                }
+
+                                val wordStartTime = normalizeChildTime(
+                                    raw = rawWordStart,
+                                    lineStartTime = lineStartTime,
+                                    lineEndTime = lineEndTime,
+                                    fallback = lineStartTime,
+                                )
+                                val wordEndTime = normalizeChildTime(
+                                    raw = rawWordEnd,
+                                    lineStartTime = lineStartTime,
+                                    lineEndTime = lineEndTime,
+                                    fallback = lineEndTime,
+                                ).coerceAtLeast(wordStartTime)
                                 
                                 if (shouldMerge) {
                                     val lastWord = words.removeAt(words.lastIndex)
@@ -467,36 +502,106 @@ object TTMLParser {
         
         return textBuilder.toString()
     }
+
+    private fun normalizeChildTime(
+        raw: Double?,
+        lineStartTime: Double,
+        lineEndTime: Double,
+        fallback: Double,
+    ): Double {
+        if (raw == null || raw.isNaN() || raw.isInfinite()) return fallback
+        val lineDuration = (lineEndTime - lineStartTime).coerceAtLeast(0.0)
+        val isProbablyRelative =
+            raw < (lineStartTime - 0.25) && raw <= (lineDuration + 1.0)
+        val adjusted = if (isProbablyRelative) lineStartTime + raw else raw
+        return adjusted.coerceIn(lineStartTime.coerceAtLeast(0.0), lineEndTime.coerceAtLeast(lineStartTime))
+    }
+
+    private fun readTimingContext(root: Element): TimingContext {
+        fun getAttrBySuffix(suffix: String): String? {
+            val attrs = root.attributes ?: return null
+            for (i in 0 until attrs.length) {
+                val node = attrs.item(i) ?: continue
+                if (node.nodeName.endsWith(suffix, ignoreCase = true)) {
+                    val v = node.nodeValue?.trim()
+                    if (!v.isNullOrEmpty()) return v
+                }
+            }
+            return null
+        }
+
+        val baseFrameRate = getAttrBySuffix("frameRate")?.toDoubleOrNull() ?: 30.0
+        val frameRateMultiplierRaw = getAttrBySuffix("frameRateMultiplier")
+        val frameRateMultiplier = frameRateMultiplierRaw
+            ?.split(Regex("\\s+"))
+            ?.mapNotNull { it.toDoubleOrNull() }
+            ?.takeIf { it.size == 2 && it[1] != 0.0 }
+            ?.let { it[0] / it[1] }
+            ?: 1.0
+        val frameRate = (baseFrameRate * frameRateMultiplier).coerceAtLeast(1.0)
+
+        val tickRate = getAttrBySuffix("tickRate")?.toDoubleOrNull()
+            ?: (frameRate * 1.0).coerceAtLeast(1.0)
+
+        return TimingContext(
+            tickRate = tickRate,
+            frameRate = frameRate,
+        )
+    }
     
     /**
      * Parse TTML time format
      * Supports: "9.731", "1:23.456", "1:23:45.678", "00:01:23.456"
      */
-    private fun parseTime(timeStr: String): Double {
+    private fun parseTime(timeStr: String, timingContext: TimingContext): Double {
         return try {
-            val cleanTime = timeStr.trim()
-            when {
-                cleanTime.contains(":") -> {
-                    val parts = cleanTime.split(":")
-                    when (parts.size) {
-                        2 -> {
-                            // MM:SS.mmm format
-                            val minutes = parts[0].toDoubleOrNull() ?: 0.0
-                            val seconds = parts[1].toDoubleOrNull() ?: 0.0
-                            minutes * 60 + seconds
-                        }
-                        3 -> {
-                            // HH:MM:SS.mmm format
-                            val hours = parts[0].toDoubleOrNull() ?: 0.0
-                            val minutes = parts[1].toDoubleOrNull() ?: 0.0
-                            val seconds = parts[2].toDoubleOrNull() ?: 0.0
-                            hours * 3600 + minutes * 60 + seconds
-                        }
-                        else -> cleanTime.toDoubleOrNull() ?: 0.0
-                    }
+            val raw = timeStr.trim()
+            if (raw.isEmpty()) return 0.0
+
+            val offsetRegex = Regex("""^([0-9]+(?:\.[0-9]+)?)(h|ms|m|s|f|t)$""", RegexOption.IGNORE_CASE)
+            offsetRegex.matchEntire(raw)?.let { m ->
+                val value = m.groupValues[1].toDoubleOrNull() ?: return 0.0
+                return when (m.groupValues[2].lowercase()) {
+                    "h" -> value * 3600.0
+                    "m" -> value * 60.0
+                    "s" -> value
+                    "ms" -> value / 1000.0
+                    "f" -> value / timingContext.frameRate
+                    "t" -> value / timingContext.tickRate
+                    else -> value
                 }
-                else -> cleanTime.toDoubleOrNull() ?: 0.0
             }
+
+            val cleanClock = raw
+                .replace(';', ':')
+                .trimEnd { it.isLetter() }
+
+            if (cleanClock.contains(":")) {
+                val parts = cleanClock.split(":")
+                return when (parts.size) {
+                    2 -> {
+                        val minutes = parts[0].toDoubleOrNull() ?: 0.0
+                        val seconds = parts[1].toDoubleOrNull() ?: 0.0
+                        minutes * 60.0 + seconds
+                    }
+                    3 -> {
+                        val hours = parts[0].toDoubleOrNull() ?: 0.0
+                        val minutes = parts[1].toDoubleOrNull() ?: 0.0
+                        val seconds = parts[2].toDoubleOrNull() ?: 0.0
+                        hours * 3600.0 + minutes * 60.0 + seconds
+                    }
+                    4 -> {
+                        val hours = parts[0].toDoubleOrNull() ?: 0.0
+                        val minutes = parts[1].toDoubleOrNull() ?: 0.0
+                        val seconds = parts[2].toDoubleOrNull() ?: 0.0
+                        val frames = parts[3].toDoubleOrNull() ?: 0.0
+                        hours * 3600.0 + minutes * 60.0 + seconds + (frames / timingContext.frameRate)
+                    }
+                    else -> cleanClock.toDoubleOrNull() ?: 0.0
+                }
+            }
+
+            raw.toDoubleOrNull() ?: 0.0
         } catch (e: Exception) {
             0.0
         }
