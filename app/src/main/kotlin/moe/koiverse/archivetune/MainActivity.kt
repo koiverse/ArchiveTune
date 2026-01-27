@@ -606,7 +606,11 @@ class MainActivity : ComponentActivity() {
                             }
                         }
                     } else {
-                        themeColor = DefaultThemeColor
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                            themeColor = DefaultThemeColor
+                        } else {
+                            themeColor = customThemeColor
+                        }
                     }
                 }
             }
