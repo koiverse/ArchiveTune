@@ -2,7 +2,6 @@ package moe.koiverse.archivetune.betterlyrics
 
 import moe.koiverse.archivetune.betterlyrics.models.TTMLResponse
 import io.ktor.client.HttpClient
-import io.ktor.client.call.body
 import io.ktor.client.engine.okhttp.OkHttp
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.defaultRequest
@@ -17,6 +16,7 @@ import kotlinx.serialization.json.Json
 
 object BetterLyrics {
     private const val API_BASE_URL = "https://lyrics-api.boidu.dev/"
+    private const val GET_LYRICS_PATH = "/getLyrics"
     private val jsonFormat by lazy {
         Json {
             isLenient = true
@@ -51,27 +51,53 @@ object BetterLyrics {
     private suspend fun fetchTTML(
         artist: String,
         title: String,
+        album: String?,
+        durationSeconds: Int,
     ): String? {
-        val urlBuilder = StringBuilder("/ttml/getLyrics")
-        urlBuilder.append("?s=$title&a=$artist")
-        
-        logger?.invoke("Sending Request to: $API_BASE_URL${urlBuilder.toString().trimStart('/')}")
+        val cleanTitle = title.trim()
+        val cleanArtist = artist.trim()
+        val cleanAlbum = album?.trim().orEmpty()
+
+        if (cleanTitle.isBlank() || cleanArtist.isBlank()) return null
+
+        logger?.invoke(
+            buildString {
+                append("Sending Request to: ")
+                append(API_BASE_URL.trimEnd('/'))
+                append(GET_LYRICS_PATH)
+                append(" (s=")
+                append(cleanTitle)
+                append(", a=")
+                append(cleanArtist)
+                if (cleanAlbum.isNotBlank()) {
+                    append(", al=")
+                    append(cleanAlbum)
+                }
+                if (durationSeconds > 0) {
+                    append(", d=")
+                    append(durationSeconds)
+                }
+                append(")")
+            }
+        )
         
         return try {
-            val response: HttpResponse = client.get("/ttml/getLyrics") {
-                parameter("s", title)
-                parameter("a", artist)
+            val response: HttpResponse = client.get(GET_LYRICS_PATH) {
+                parameter("s", cleanTitle)
+                parameter("a", cleanArtist)
+                if (cleanAlbum.isNotBlank()) parameter("al", cleanAlbum)
+                if (durationSeconds > 0) parameter("d", durationSeconds)
             }
             
             logger?.invoke("Response Status: ${response.status}")
     
+            val responseText = response.bodyAsText()
+            logger?.invoke("Raw Response: $responseText")
+
             if (!response.status.isSuccess()) {
                 logger?.invoke("Request failed with status: ${response.status}")
                 return null
             }
-            
-            val responseText = response.bodyAsText()
-            logger?.invoke("Raw Response: $responseText")
 
             val ttmlResponse = try {
                 jsonFormat.decodeFromString<TTMLResponse>(responseText)
@@ -99,8 +125,16 @@ object BetterLyrics {
     suspend fun getLyrics(
         title: String,
         artist: String,
+        album: String? = null,
+        durationSeconds: Int = -1,
     ) = runCatching {
-        val ttml = fetchTTML(artist, title)
+        require(title.isNotBlank() && artist.isNotBlank()) { "Song title and artist are required" }
+        val ttml = fetchTTML(
+            artist = artist,
+            title = title,
+            album = album,
+            durationSeconds = durationSeconds,
+        )
             ?: throw IllegalStateException("Lyrics unavailable")
         ttml
     }
@@ -109,9 +143,16 @@ object BetterLyrics {
     suspend fun getAllLyrics(
         title: String,
         artist: String,
+        album: String? = null,
+        durationSeconds: Int = -1,
         callback: (String) -> Unit,
     ) {
-        val result = getLyrics(title, artist)
+        val result = getLyrics(
+            title = title,
+            artist = artist,
+            album = album,
+            durationSeconds = durationSeconds,
+        )
         result.onSuccess { ttml ->
             callback(ttml)
         }
