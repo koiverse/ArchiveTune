@@ -123,11 +123,14 @@ object LyricsUtils {
         }.takeIf { it > 0.0 }
 
         val scale = if (trackDurationSec != null && lyricsEndSec != null) {
-            val fraction = lyricsEndSec / trackDurationSec
+            val endDeltaSec = kotlin.math.abs(trackDurationSec - lyricsEndSec)
+            val rawScale = trackDurationSec / lyricsEndSec
+
             when {
-                fraction < 0.85 || fraction > 1.2 -> 1.0
-                kotlin.math.abs(1.0 - fraction) < 0.04 -> 1.0
-                else -> trackDurationSec / lyricsEndSec
+                trackDurationSec < 30.0 -> 1.0
+                endDeltaSec < 1.5 -> 1.0
+                rawScale < 0.90 || rawScale > 1.10 -> 1.0
+                else -> rawScale
             }
         } else {
             1.0
@@ -136,7 +139,7 @@ object LyricsUtils {
         return parsedLines.map { line ->
             val words =
                 line.words
-                    .filter { it.text.isNotEmpty() }
+                    .filter { it.text.isNotBlank() }
                     .map { word ->
                         WordTimestamp(
                             text = word.text,
@@ -193,10 +196,11 @@ object LyricsUtils {
     fun findCurrentLineIndex(
         lines: List<LyricsEntry>,
         position: Long,
+        leadMs: Long = 300L,
     ): Int {
         if (lines.isEmpty()) return -1
 
-        val target = position + 300L
+        val target = position + leadMs
         var low = 0
         var high = lines.lastIndex
 
