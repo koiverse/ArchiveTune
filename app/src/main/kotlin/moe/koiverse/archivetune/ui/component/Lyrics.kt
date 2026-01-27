@@ -199,6 +199,7 @@ private fun KaraokeWord(
     inactiveAlpha: Float,
     fontWeight: FontWeight = FontWeight.ExtraBold,
     isBackground: Boolean = false,
+    nudgeEnabled: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     val duration = endTime - startTime
@@ -233,7 +234,7 @@ private fun KaraokeWord(
                 val decayDuration = 400L // Increased from 200L
                 val totalImpulseTime = attackDuration + decayDuration
                 
-                val shift = if (currentTime >= startTime && currentTime < startTime + totalImpulseTime) {
+                val shift = if (nudgeEnabled && currentTime >= startTime && currentTime < startTime + totalImpulseTime) {
                     val timeSinceStart = currentTime - startTime
                     if (timeSinceStart < attackDuration) {
                         // Attack: 0 -> max
@@ -510,6 +511,11 @@ fun Lyrics(
     val lyricsGlowColor = if (useDarkTheme || playerBackground != PlayerBackgroundStyle.DEFAULT) Color.White else Color.Black
     val textColor = lyricsBaseColor
 
+    val wordSyncLeadMs = remember(lyrics) {
+        if (lyrics != null && isTtml(lyrics)) 0L else LyricsWordSyncLeadMs
+    }
+    val lineSyncLeadMs = wordSyncLeadMs
+
     var currentLineIndex by remember {
         mutableIntStateOf(-1)
     }
@@ -625,11 +631,11 @@ fun Lyrics(
                 isSeeking = seekingNow
             }
             val position = sliderPosition ?: playerConnection.player.currentPosition
-            val syncedPosition = (position + LyricsWordSyncLeadMs).coerceAtLeast(0L)
+            val syncedPosition = (position + wordSyncLeadMs).coerceAtLeast(0L)
             if (currentPlaybackPosition != syncedPosition) {
                 currentPlaybackPosition = syncedPosition
             }
-            val newLineIndex = findCurrentLineIndex(lines, position)
+            val newLineIndex = findCurrentLineIndex(lines, position, leadMs = lineSyncLeadMs)
             if (currentLineIndex != newLineIndex) {
                 currentLineIndex = newLineIndex
             }
@@ -999,26 +1005,26 @@ fun Lyrics(
                             isManualScrolling || isSelectionModeActive
 
                         if (effectiveAnimationStyle == LyricsAnimationStyle.KARAOKE) {
-                            if (!isActiveLine || reduceMotionDuringScroll) {
-                                Text(
-                                    text = item.text,
-                                    fontSize = lyricsTextSize.sp,
-                                    color = lineColor,
-                                    textAlign = alignment,
-                                    fontWeight = if (hasRomanization) FontWeight.Bold else FontWeight.Medium,
-                                    lineHeight = (lyricsTextSize * lyricsLineSpacing).sp
-                                )
-                            } else {
-                            val isCjk = isJapanese(item.text)
+                            val isCjk = remember(item.text) {
+                                isChinese(item.text) || isJapanese(item.text) || isKorean(item.text)
+                            }
 
                             val wordsToRender = remember(item.words, item.text, item.time, lines.size, index) {
                                 if (hasWordTimings && item.words != null) {
-                                    item.words.map { 
+                                    val baseWords = item.words.filter { it.text.isNotBlank() }
+                                    baseWords.mapIndexed { idx, word ->
+                                        val nextText = baseWords.getOrNull(idx + 1)?.text
+                                        val displayText =
+                                            if (!isCjk && nextText != null && shouldAppendWordSpace(word.text, nextText)) {
+                                                "${word.text} "
+                                            } else {
+                                                word.text
+                                            }
                                         Triple(
-                                            it.text, 
-                                            (it.startTime * 1000).toLong() to (it.endTime * 1000).toLong(),
-                                            it.isBackground
-                                        ) 
+                                            displayText,
+                                            (word.startTime * 1000).toLong() to (word.endTime * 1000).toLong(),
+                                            word.isBackground,
+                                        )
                                     }
                                 } else {
                                     // Simulate word timings - cache this computation
@@ -1028,23 +1034,30 @@ fun Lyrics(
                                     val splitWords = if (isCjk) {
                                         item.text.map { it.toString() }
                                     } else {
-                                        item.text.split(" ")
+                                        item.text.trim().split(Regex("\\s+")).filter { it.isNotBlank() }
                                     }
-                                    val totalLength = item.text.length.coerceAtLeast(1)
+                                    val lengths = splitWords.mapIndexed { idx, wordText ->
+                                        val nextText = splitWords.getOrNull(idx + 1)
+                                        val includeSpace = !isCjk && nextText != null && shouldAppendWordSpace(wordText, nextText)
+                                        wordText.length + if (includeSpace) 1 else 0
+                                    }
+                                    val totalLength = lengths.sum().coerceAtLeast(1)
                                     
                                     var currentOffset = 0L
                                     splitWords.mapIndexed { idx, wordText ->
-                                        // Include space in length calculation except for last word
-                                        // For CJK, we don't assume spaces between characters
-                                        val lengthWithSpace = if (!isCjk && idx < splitWords.size - 1) wordText.length + 1 else wordText.length
-                                        val wordDuration = (lineDuration * (lengthWithSpace.toDouble() / totalLength)).toLong()
+                                        val wordDuration = (lineDuration * (lengths[idx].toDouble() / totalLength)).toLong()
                                         
                                         val startTime = item.time + currentOffset
                                         val endTime = startTime + wordDuration
                                         currentOffset += wordDuration
                                         
-                                        // Include space in the text for natural spacing, similar to standard TTML
-                                        val displayText = if (!isCjk && idx < splitWords.size - 1) "$wordText " else wordText
+                                        val nextText = splitWords.getOrNull(idx + 1)
+                                        val displayText =
+                                            if (!isCjk && nextText != null && shouldAppendWordSpace(wordText, nextText)) {
+                                                "$wordText "
+                                            } else {
+                                                wordText
+                                            }
                                         
                                         Triple(displayText, startTime to endTime, false)
                                     }
@@ -1052,6 +1065,9 @@ fun Lyrics(
                             }
 
                             val horizontalSpacing = 0.dp // Reduced to 0dp, relying on padding and text spaces
+                            val karaokeCurrentTimeProvider: () -> Long = {
+                                if (isActiveLine && !reduceMotionDuringScroll) currentPlaybackPosition else Long.MIN_VALUE
+                            }
 
                             FlowRow(
                                 modifier = Modifier
@@ -1073,15 +1089,19 @@ fun Lyrics(
                                         text = text,
                                         startTime = wordStartMs,
                                         endTime = wordEndMs,
-                                        currentTimeProvider = { currentPlaybackPosition },
+                                        currentTimeProvider = karaokeCurrentTimeProvider,
                                         fontSize = lyricsTextSize.sp,
                                         textColor = lyricsBaseColor,
-                                        inactiveAlpha = if (isUpcoming && isActiveLine) 0.3f else if (!isActiveLine) 0.5f else 0.3f,
+                                        inactiveAlpha = if (isActiveLine) {
+                                            if (isUpcoming) 0.3f else 0.3f
+                                        } else {
+                                            0.7f
+                                        },
                                         fontWeight = if (hasRomanization) FontWeight.Bold else FontWeight.ExtraBold,
-                                        isBackground = isBg
+                                        isBackground = isBg,
+                                        nudgeEnabled = isActiveLine && !reduceMotionDuringScroll,
                                     )
                                 }
-                            }
                             }
                         } else if (hasWordTimings && item.words != null && effectiveAnimationStyle == LyricsAnimationStyle.APPLE) {
                             if (!isActiveLine || reduceMotionDuringScroll) {
@@ -2382,3 +2402,14 @@ private const val ArchiveTune_FAST_SEEK_DURATION = 600L
 private const val LyricsWordSyncLeadMs = 300L
 
 val LyricsPreviewTime = 2.seconds
+
+private val NoSpaceAfterChars: Set<Char> = setOf('(', '[', '{', '«', '‹', '“', '‘')
+
+private fun shouldAppendWordSpace(current: String, next: String): Boolean {
+    if (current.isEmpty() || next.isEmpty()) return false
+    val last = current.last()
+    val first = next.first()
+    if (last.isWhitespace() || first.isWhitespace()) return false
+    if (!first.isLetterOrDigit()) return false
+    return last !in NoSpaceAfterChars
+}
