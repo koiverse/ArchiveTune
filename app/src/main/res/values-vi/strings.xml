@@ -338,7 +338,6 @@
     <string name="brightness">Độ sáng</string>
     <string name="custom_value">Giá trị tùy chỉnh</string>
     <string name="new_library_design">Thiết kế thư viện mới</string>
-    <string name="new_library_description">Bật thiết kế thư viện mới (có thể không ổn định)</string>
     <string name="show_button1_description">Bật/tắt hiển thị nút 1 trong Discord Rich Presence</string>
     <string name="show_button2_description">Bật/tắt hiển thị nút 2 trong Discord Rich Presence</string>
     <string name="discord_activity_type">Loại hoạt động</string>
@@ -557,7 +556,6 @@ ArchiveTune sẽ chỉ trích xuất token của bạn, và mọi thứ khác đ
     <string name="enable_discord_debug_lines">Bật các dòng cài đặt debug</string>
     <string name="presence_manager_running">Quản lý presence: đang chạy</string>
     <string name="presence_manager_stopped">Quản lý presence: đã dừng</string>
-    <string name="debug_last_rpc_times">Bắt đầu RPC lần cuối: %1$s kết thúc: %2$s</string>
     <string name="filter_levels">Mức độ lọc</string>
     <string name="experimental_features">Tính năng Thử nghiệm</string>
     <string name="experimental_features_description">Tùy chọn Discord nâng cao hoặc thử nghiệm (đã chuyển đến màn hình riêng)</string>
