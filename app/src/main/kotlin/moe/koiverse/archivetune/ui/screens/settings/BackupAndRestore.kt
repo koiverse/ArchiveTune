@@ -42,6 +42,20 @@ import kotlinx.coroutines.delay
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
+private val CSV_MIME_TYPES =
+    arrayOf(
+        "text/csv",
+        "text/x-csv",
+        "text/comma-separated-values",
+        "text/x-comma-separated-values",
+        "application/csv",
+        "application/x-csv",
+        "application/vnd.ms-excel",
+        "text/plain",
+        "text/*",
+        "application/octet-stream",
+    )
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BackupAndRestore(
@@ -141,7 +155,7 @@ fun BackupAndRestore(
             title = { Text(stringResource(R.string.import_csv)) },
             icon = { Icon(painterResource(R.drawable.playlist_add), null) },
             onClick = {
-                importPlaylistFromCsv.launch(arrayOf("text/csv"))
+                importPlaylistFromCsv.launch(CSV_MIME_TYPES)
             }
         )
     }
