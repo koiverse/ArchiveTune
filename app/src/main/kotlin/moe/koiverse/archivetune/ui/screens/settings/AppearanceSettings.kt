@@ -390,7 +390,7 @@ fun AppearanceSettings(
             onCheckedChange = onDynamicThemeChange,
         )
 
-        AnimatedVisibility(visible = !dynamicTheme) {
+        AnimatedVisibility(visible = !dynamicTheme || Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
             PreferenceEntry(
                 title = { Text(stringResource(R.string.color_palette)) },
                 description = stringResource(R.string.customize_theme_colors),
