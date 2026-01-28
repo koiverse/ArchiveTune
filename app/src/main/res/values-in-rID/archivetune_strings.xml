@@ -175,7 +175,7 @@
     <string name="settings_section_ui">Antarmuka Pengguna</string>
     <string name="settings_section_privacy">Privasi &amp; Keamanan</string>
     <string name="settings_section_player">Pemain &amp; Media</string>
-    <string name="settings_section_player_content">Konten Pemain &amp;</string>
+    <string name="settings_section_player_content">Konten &amp; Pemain</string>
     <string name="settings_section_storage">Penyimpanan &amp; Data</string>
     <string name="settings_section_system">Sistem &amp; Tentang</string>
     <string name="manage_tags">Kelola Tag</string>
