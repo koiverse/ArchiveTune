@@ -29,7 +29,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -39,11 +41,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AssistChip
+import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Button
@@ -51,7 +53,6 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -59,8 +60,10 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarScrollBehavior
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -69,18 +72,19 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.navigation.NavController
 import kotlinx.coroutines.delay
@@ -88,6 +92,7 @@ import moe.koiverse.archivetune.BuildConfig
 import moe.koiverse.archivetune.LocalPlayerAwareWindowInsets
 import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.ui.component.IconButton
+import moe.koiverse.archivetune.ui.component.TopSearch
 import moe.koiverse.archivetune.ui.utils.backToMain
 
 data class SettingsQuickAction(
@@ -111,6 +116,33 @@ data class PremiumSettingsItem(
     val onClick: () -> Unit
 )
 
+private fun filterQuickActions(
+    actions: List<SettingsQuickAction>,
+    query: String
+): List<SettingsQuickAction> {
+    if (query.isBlank()) return actions
+    return actions.filter { it.label.contains(query, ignoreCase = true) }
+}
+
+private fun filterSettingsCategories(
+    categories: List<SettingsCategory>,
+    query: String
+): List<SettingsCategory> {
+    if (query.isBlank()) return categories
+    return categories.mapNotNull { category ->
+        if (category.title.contains(query, ignoreCase = true)) {
+            category
+        } else {
+            val filteredItems = category.items.filter { item ->
+                item.title.contains(query, ignoreCase = true) ||
+                    (item.subtitle?.contains(query, ignoreCase = true) == true) ||
+                    (item.badge?.contains(query, ignoreCase = true) == true)
+            }
+            if (filteredItems.isEmpty()) null else category.copy(items = filteredItems)
+        }
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
@@ -119,8 +151,19 @@ fun SettingsScreen(
     latestVersionName: String,
 ) {
     val context = LocalContext.current
+    val focusManager = LocalFocusManager.current
     val isAndroid12OrLater = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
     val listState = rememberLazyListState()
+
+    var isSearching by remember { mutableStateOf(false) }
+    var query by remember { mutableStateOf(TextFieldValue()) }
+    val focusRequester = remember { FocusRequester() }
+
+    LaunchedEffect(isSearching) {
+        if (isSearching) {
+            focusRequester.requestFocus()
+        }
+    }
 
     val storagePermission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
         Manifest.permission.READ_MEDIA_AUDIO
@@ -191,6 +234,12 @@ fun SettingsScreen(
             accentColor = MaterialTheme.colorScheme.error
         )
     )
+
+    val resetSearch: () -> Unit = {
+        isSearching = false
+        query = TextFieldValue()
+        focusManager.clearFocus()
+    }
 
     val settingsCategories = buildList {
         add(
@@ -332,127 +381,431 @@ fun SettingsScreen(
         )
     }
 
+    val wrappedQuickActions = quickActions.map { action ->
+        val originalOnClick = action.onClick
+        action.copy(onClick = { resetSearch(); originalOnClick() })
+    }
+
+    val wrappedCategories = settingsCategories.map { category ->
+        category.copy(
+            items = category.items.map { item ->
+                val originalOnClick = item.onClick
+                item.copy(onClick = { resetSearch(); originalOnClick() })
+            }
+        )
+    }
+
+    val queryText = query.text.trim()
+    val showSearchBar = isSearching || queryText.isNotBlank()
+
+    val filteredQuickActions = filterQuickActions(wrappedQuickActions, queryText)
+    val filteredCategories = filterSettingsCategories(wrappedCategories, queryText)
+
+    val hasSearchResults by remember(filteredQuickActions, filteredCategories) {
+        derivedStateOf { filteredQuickActions.isNotEmpty() || filteredCategories.isNotEmpty() }
+    }
+
     Box(modifier = Modifier.fillMaxSize()) {
-        LazyColumn(
-            state = listState,
-            modifier = Modifier
-                .fillMaxSize()
-                .windowInsetsPadding(
-                    LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom)
-                ),
-            contentPadding = PaddingValues(bottom = 32.dp)
-        ) {
-            item {
-                Spacer(
-                    Modifier.windowInsetsPadding(
-                        LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Top)
-                    )
-                )
-            }
-
-            item {
-                AnimatedVisibility(
-                    visible = isVisible && shouldShowPermissionHint,
-                    enter = fadeIn(tween(400)) + expandVertically(tween(400)),
-                    exit = fadeOut(tween(300)) + shrinkVertically(tween(300))
-                ) {
-                    PremiumPermissionCard(
-                        onRequestPermission = {
-                            val toRequest = buildList {
-                                if (!isStorageGranted) add(storagePermission)
-                                if (!isNotificationGranted && notificationPermission != null) {
-                                    add(notificationPermission)
-                                }
-                            }
-                            if (toRequest.isNotEmpty()) {
-                                permissionLauncher.launch(toRequest.toTypedArray())
-                            }
-                        },
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
-                    )
-                }
-            }
-
-            item {
-                AnimatedVisibility(
-                    visible = isVisible && hasUpdate,
-                    enter = fadeIn(tween(500, 100)) + expandVertically(tween(500, 100)),
-                    exit = fadeOut(tween(300)) + shrinkVertically(tween(300))
-                ) {
-                    PremiumUpdateCard(
-                        latestVersion = latestVersionName,
-                        onClick = { navController.navigate("settings/update") },
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                    )
-                }
-            }
-
-            item {
-                AnimatedVisibility(
-                    visible = isVisible,
-                    enter = fadeIn(tween(400, 150))
-                ) {
-                    Column(modifier = Modifier.padding(top = 16.dp)) {
-                        Text(
-                            text = stringResource(R.string.quick_picks),
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
+        if (!showSearchBar) {
+            LazyColumn(
+                state = listState,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .windowInsetsPadding(
+                        LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom)
+                    ),
+                contentPadding = PaddingValues(bottom = 32.dp)
+            ) {
+                item {
+                    Spacer(
+                        Modifier.windowInsetsPadding(
+                            LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Top)
                         )
-                        QuickActionsRow(
-                            actions = quickActions,
-                            modifier = Modifier.padding(vertical = 8.dp)
+                    )
+                }
+
+                item {
+                    AnimatedVisibility(
+                        visible = isVisible,
+                        enter = fadeIn(tween(350, 80))
+                    ) {
+                        SettingsHeroHeader(
+                            title = stringResource(R.string.settings),
+                            versionName = BuildConfig.VERSION_NAME,
+                            modifier = Modifier
+                                .padding(horizontal = 16.dp)
+                                .padding(top = 8.dp, bottom = 12.dp)
                         )
                     }
                 }
-            }
 
-            items(settingsCategories.size) { index ->
-                val category = settingsCategories[index]
-                AnimatedVisibility(
-                    visible = isVisible,
-                    enter = fadeIn(tween(400, 200 + (index * 50)))
-                ) {
-                    PremiumSettingsSection(
-                        category = category,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                    )
+                if (queryText.isBlank()) {
+                    item {
+                        AnimatedVisibility(
+                            visible = isVisible && shouldShowPermissionHint,
+                            enter = fadeIn(tween(400)) + expandVertically(tween(400)),
+                            exit = fadeOut(tween(300)) + shrinkVertically(tween(300))
+                        ) {
+                            PremiumPermissionCard(
+                                onRequestPermission = {
+                                    val toRequest = buildList {
+                                        if (!isStorageGranted) add(storagePermission)
+                                        if (!isNotificationGranted && notificationPermission != null) {
+                                            add(notificationPermission)
+                                        }
+                                    }
+                                    if (toRequest.isNotEmpty()) {
+                                        permissionLauncher.launch(toRequest.toTypedArray())
+                                    }
+                                },
+                                modifier = Modifier
+                                    .padding(horizontal = 16.dp)
+                                    .padding(top = 4.dp, bottom = 12.dp)
+                            )
+                        }
+                    }
+
+                    item {
+                        AnimatedVisibility(
+                            visible = isVisible && hasUpdate,
+                            enter = fadeIn(tween(500, 100)) + expandVertically(tween(500, 100)),
+                            exit = fadeOut(tween(300)) + shrinkVertically(tween(300))
+                        ) {
+                            PremiumUpdateCard(
+                                latestVersion = latestVersionName,
+                                onClick = { navController.navigate("settings/update") },
+                                modifier = Modifier
+                                    .padding(horizontal = 16.dp)
+                                    .padding(top = 0.dp, bottom = 16.dp)
+                            )
+                        }
+                    }
                 }
-            }
 
-            item {
-                Spacer(modifier = Modifier.height(24.dp))
-                AnimatedVisibility(
-                    visible = isVisible,
-                    enter = fadeIn(tween(600, 400))
-                ) {
-                    AppVersionFooter()
+                if (queryText.isBlank() || filteredQuickActions.isNotEmpty()) {
+                    item {
+                        AnimatedVisibility(
+                            visible = isVisible,
+                            enter = fadeIn(tween(400, 150))
+                        ) {
+                            val actionsToShow = if (queryText.isBlank()) wrappedQuickActions else filteredQuickActions
+                            SettingsQuickActionsGrid(
+                                title = stringResource(R.string.quick_picks),
+                                actions = actionsToShow,
+                                modifier = Modifier
+                                    .padding(horizontal = 16.dp)
+                                    .padding(top = 0.dp, bottom = 12.dp)
+                            )
+                        }
+                    }
+                }
+
+                if (queryText.isNotBlank() && !hasSearchResults) {
+                    item {
+                        Spacer(modifier = Modifier.height(24.dp))
+                        EmptyResultsCard(
+                            title = stringResource(R.string.no_results_found),
+                            modifier = Modifier.padding(horizontal = 16.dp)
+                        )
+                    }
+                } else {
+                    val categoriesToShow = if (queryText.isBlank()) wrappedCategories else filteredCategories
+                    items(categoriesToShow.size) { index ->
+                        val category = categoriesToShow[index]
+                        AnimatedVisibility(
+                            visible = isVisible,
+                            enter = fadeIn(tween(400, 200 + (index * 50)))
+                        ) {
+                            PremiumSettingsSection(
+                                category = category,
+                                modifier = Modifier
+                                    .padding(horizontal = 16.dp)
+                                    .padding(top = 0.dp, bottom = 12.dp)
+                            )
+                        }
+                    }
+                }
+
+                item {
+                    Spacer(modifier = Modifier.height(24.dp))
+                    AnimatedVisibility(
+                        visible = isVisible,
+                        enter = fadeIn(tween(600, 400))
+                    ) {
+                        AppVersionFooter(modifier = Modifier.padding(horizontal = 16.dp))
+                    }
                 }
             }
         }
 
-        TopAppBar(
-            title = {
-                Text(
-                    text = stringResource(R.string.settings),
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.SemiBold
+        if (!showSearchBar) {
+            TopAppBar(
+                title = {
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(
+                            text = stringResource(R.string.settings),
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(
+                            text = "ArchiveTune",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                },
+                navigationIcon = {
+                    IconButton(
+                        onClick = navController::navigateUp,
+                        onLongClick = navController::backToMain
+                    ) {
+                        Icon(
+                            painterResource(R.drawable.arrow_back),
+                            contentDescription = null
+                        )
+                    }
+                },
+                actions = {
+                    IconButton(
+                        onClick = { isSearching = true },
+                        onLongClick = {}
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.search),
+                            contentDescription = null
+                        )
+                    }
+                },
+                scrollBehavior = scrollBehavior,
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
+                    scrolledContainerColor = MaterialTheme.colorScheme.surface
                 )
-            },
-            navigationIcon = {
-                IconButton(
-                    onClick = navController::navigateUp,
-                    onLongClick = navController::backToMain
+            )
+        }
+
+        AnimatedVisibility(
+            visible = showSearchBar,
+            enter = fadeIn(tween(durationMillis = 220)),
+            exit = fadeOut(tween(durationMillis = 160))
+        ) {
+            TopSearch(
+                query = query,
+                onQueryChange = { query = it },
+                onSearch = {
+                    focusManager.clearFocus()
+                },
+                active = showSearchBar,
+                onActiveChange = { active ->
+                    if (active) {
+                        isSearching = true
+                    } else {
+                        resetSearch()
+                    }
+                },
+                placeholder = { Text(text = stringResource(R.string.search)) },
+                leadingIcon = {
+                    IconButton(
+                        onClick = {
+                            resetSearch()
+                        },
+                        onLongClick = {
+                            if (queryText.isBlank()) {
+                                navController.backToMain()
+                            }
+                        }
+                    ) {
+                        Icon(
+                            painterResource(R.drawable.arrow_back),
+                            contentDescription = null
+                        )
+                    }
+                },
+                trailingIcon = {
+                    Row {
+                        if (query.text.isNotBlank()) {
+                            IconButton(
+                                onClick = { query = TextFieldValue() },
+                                onLongClick = {}
+                            ) {
+                                Icon(
+                                    painter = painterResource(R.drawable.close),
+                                    contentDescription = null
+                                )
+                            }
+                        }
+                    }
+                },
+                focusRequester = focusRequester,
+            ) {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .windowInsetsPadding(
+                            LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom)
+                        ),
+                    contentPadding = PaddingValues(bottom = 32.dp)
+                ) {
+                    if (queryText.isNotBlank() && !hasSearchResults) {
+                        item {
+                            Spacer(modifier = Modifier.height(24.dp))
+                            EmptyResultsCard(
+                                title = stringResource(R.string.no_results_found),
+                                modifier = Modifier.padding(horizontal = 16.dp)
+                            )
+                        }
+                    } else {
+                        item {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            SettingsQuickActionsGrid(
+                                title = stringResource(R.string.quick_picks),
+                                actions = filteredQuickActions,
+                                modifier = Modifier
+                                    .padding(horizontal = 16.dp)
+                                    .padding(top = 8.dp, bottom = 12.dp)
+                            )
+                        }
+
+                        items(filteredCategories.size) { index ->
+                            val category = filteredCategories[index]
+                            PremiumSettingsSection(
+                                category = category,
+                                modifier = Modifier
+                                    .padding(horizontal = 16.dp)
+                                    .padding(top = 0.dp, bottom = 12.dp)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SettingsHeroHeader(
+    title: String,
+    versionName: String,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(28.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(
+                    Brush.linearGradient(
+                        colors = listOf(
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.18f),
+                            MaterialTheme.colorScheme.tertiary.copy(alpha = 0.10f),
+                            MaterialTheme.colorScheme.surfaceContainerLow
+                        )
+                    )
+                )
+                .padding(20.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(56.dp)
+                        .clip(RoundedCornerShape(18.dp))
+                        .background(MaterialTheme.colorScheme.surfaceContainerHighest),
+                    contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        painterResource(R.drawable.arrow_back),
-                        contentDescription = null
+                        painter = painterResource(R.drawable.app_icon_small),
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(34.dp)
                     )
                 }
-            },
-            scrollBehavior = scrollBehavior
-        )
+
+                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                        AssistChip(
+                            onClick = {},
+                            enabled = false,
+                            label = { Text(text = "v$versionName") },
+                            colors = AssistChipDefaults.assistChipColors(
+                                disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                                disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
+                            ),
+                            border = null
+                        )
+                        AssistChip(
+                            onClick = {},
+                            enabled = false,
+                            label = { Text(text = BuildConfig.ARCHITECTURE) },
+                            colors = AssistChipDefaults.assistChipColors(
+                                disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                                disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
+                            ),
+                            border = null
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun EmptyResultsCard(
+    title: String,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(18.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(44.dp)
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(MaterialTheme.colorScheme.surfaceContainerHighest),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.search),
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(22.dp)
+                )
+            }
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = stringResource(R.string.search),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
     }
 }
 
@@ -464,79 +817,74 @@ private fun PremiumPermissionCard(
     Card(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(28.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f)
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
-        Column(
-            modifier = Modifier.padding(24.dp)
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(
+                    Brush.horizontalGradient(
+                        colors = listOf(
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.18f),
+                            MaterialTheme.colorScheme.surfaceContainerLow
+                        )
+                    )
+                )
+                .padding(18.dp)
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+            Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                 Box(
                     modifier = Modifier
-                        .size(48.dp)
-                        .clip(CircleShape)
-                        .background(
-                            Brush.linearGradient(
-                                colors = listOf(
-                                    MaterialTheme.colorScheme.primary,
-                                    MaterialTheme.colorScheme.tertiary
-                                )
-                            )
-                        ),
+                        .size(44.dp)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(MaterialTheme.colorScheme.surfaceContainerHighest),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         painter = painterResource(R.drawable.security),
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onPrimary,
-                        modifier = Modifier.size(24.dp)
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(22.dp)
                     )
                 }
 
-                Spacer(modifier = Modifier.width(16.dp))
-
-                Column(modifier = Modifier.weight(1f)) {
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text(
                         text = stringResource(R.string.permissions_title),
                         style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface
                     )
-                    Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = stringResource(R.string.permissions_subtitle),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
-                        lineHeight = 18.sp
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-            }
 
-            Spacer(modifier = Modifier.height(20.dp))
-
-            Button(
-                onClick = onRequestPermission,
-                modifier = Modifier.align(Alignment.End),
-                shape = RoundedCornerShape(16.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary
-                ),
-                contentPadding = PaddingValues(horizontal = 24.dp, vertical = 12.dp)
-            ) {
-                Icon(
-                    painter = painterResource(R.drawable.check),
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = stringResource(R.string.allow),
-                    fontWeight = FontWeight.SemiBold
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    Button(
+                        onClick = onRequestPermission,
+                        shape = RoundedCornerShape(16.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp)
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.check),
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = stringResource(R.string.allow),
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                }
             }
         }
     }
@@ -566,10 +914,8 @@ private fun PremiumUpdateCard(
                 onClick = onClick
             ),
         shape = RoundedCornerShape(28.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = Color.Transparent
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Box(
             modifier = Modifier
@@ -577,12 +923,13 @@ private fun PremiumUpdateCard(
                 .background(
                     Brush.horizontalGradient(
                         colors = listOf(
-                            MaterialTheme.colorScheme.tertiary,
-                            MaterialTheme.colorScheme.primary
+                            MaterialTheme.colorScheme.tertiary.copy(alpha = 0.22f),
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.18f),
+                            MaterialTheme.colorScheme.surfaceContainerLow
                         )
                     )
                 )
-                .padding(24.dp)
+                .padding(18.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -590,16 +937,16 @@ private fun PremiumUpdateCard(
             ) {
                 Box(
                     modifier = Modifier
-                        .size(56.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.2f)),
+                        .size(44.dp)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(MaterialTheme.colorScheme.surfaceContainerHighest),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         painter = painterResource(R.drawable.update),
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onPrimary,
-                        modifier = Modifier.size(28.dp)
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(22.dp)
                     )
                 }
 
@@ -609,20 +956,20 @@ private fun PremiumUpdateCard(
                     Text(
                         text = stringResource(R.string.new_version_available),
                         style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onPrimary
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
                         text = "v$latestVersion",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.9f)
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
 
                 Icon(
                     painter = painterResource(R.drawable.arrow_forward),
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(24.dp)
                 )
             }
@@ -631,23 +978,65 @@ private fun PremiumUpdateCard(
 }
 
 @Composable
-private fun QuickActionsRow(
+private fun SettingsQuickActionsGrid(
+    title: String,
     actions: List<SettingsQuickAction>,
     modifier: Modifier = Modifier
 ) {
-    LazyRow(
+    if (actions.isEmpty()) return
+
+    Card(
         modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        contentPadding = PaddingValues(horizontal = 16.dp)
+        shape = RoundedCornerShape(28.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
-        items(actions) { action ->
-            QuickActionChip(action = action)
+        Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Box(
+                    modifier = Modifier
+                        .size(34.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(MaterialTheme.colorScheme.surfaceContainerHighest),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.star),
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+
+            val rows = actions.chunked(2)
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                rows.forEach { rowActions ->
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+                        rowActions.forEach { action ->
+                            SettingsQuickActionTile(
+                                action = action,
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                        if (rowActions.size == 1) {
+                            Spacer(modifier = Modifier.weight(1f))
+                        }
+                    }
+                }
+            }
         }
     }
 }
 
 @Composable
-private fun QuickActionChip(
+private fun SettingsQuickActionTile(
     action: SettingsQuickAction,
     modifier: Modifier = Modifier
 ) {
@@ -662,41 +1051,52 @@ private fun QuickActionChip(
     Surface(
         modifier = modifier
             .scale(scale)
-            .shadow(
-                elevation = if (isPressed) 2.dp else 6.dp,
-                shape = RoundedCornerShape(20.dp),
-                spotColor = action.accentColor.copy(alpha = 0.3f)
-            ),
-        shape = RoundedCornerShape(20.dp),
-        color = MaterialTheme.colorScheme.surface,
+            .aspectRatio(1.8f),
+        shape = RoundedCornerShape(22.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerHighest,
         onClick = action.onClick,
         interactionSource = interactionSource
     ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.linearGradient(
+                        colors = listOf(
+                            action.accentColor.copy(alpha = 0.14f),
+                            MaterialTheme.colorScheme.surfaceContainerHighest
+                        )
+                    )
+                )
+                .padding(14.dp)
         ) {
-            Box(
-                modifier = Modifier
-                    .size(36.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(action.accentColor.copy(alpha = 0.15f)),
-                contentAlignment = Alignment.Center
+            Column(
+                modifier = Modifier.fillMaxHeight(),
+                verticalArrangement = Arrangement.SpaceBetween
             ) {
-                Icon(
-                    painter = action.icon,
-                    contentDescription = null,
-                    tint = action.accentColor,
-                    modifier = Modifier.size(20.dp)
+                Box(
+                    modifier = Modifier
+                        .size(38.dp)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(action.accentColor.copy(alpha = 0.16f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        painter = action.icon,
+                        contentDescription = null,
+                        tint = action.accentColor,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+                Text(
+                    text = action.label,
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
-            Spacer(modifier = Modifier.width(10.dp))
-            Text(
-                text = action.label,
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onSurface
-            )
         }
     }
 }
@@ -706,31 +1106,54 @@ private fun PremiumSettingsSection(
     category: SettingsCategory,
     modifier: Modifier = Modifier
 ) {
-    Column(modifier = modifier) {
-        Text(
-            text = category.title,
-            style = MaterialTheme.typography.labelLarge,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.primary,
-            letterSpacing = 0.5.sp,
-            modifier = Modifier.padding(start = 8.dp, bottom = 12.dp, top = 8.dp)
-        )
-
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(28.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-            ),
-            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-        ) {
-            Column {
-                category.items.forEachIndexed { index, item ->
-                    PremiumSettingsItemRow(
-                        item = item,
-                        showDivider = index < category.items.size - 1
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(28.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    ) {
+        Column(modifier = Modifier.padding(vertical = 8.dp)) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 18.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(34.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(MaterialTheme.colorScheme.surfaceContainerHighest),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.tune),
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(18.dp)
                     )
                 }
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = category.title,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = "${category.items.size} items",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            category.items.forEachIndexed { index, item ->
+                PremiumSettingsItemRow(
+                    item = item,
+                    showDivider = index < category.items.size - 1
+                )
             }
         }
     }
@@ -753,20 +1176,20 @@ private fun PremiumSettingsItemRow(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(16.dp))
+                .clip(RoundedCornerShape(18.dp))
                 .clickable(
                     interactionSource = interactionSource,
                     indication = null,
                     onClick = item.onClick
                 )
                 .graphicsLayer { this.alpha = alpha }
-                .padding(horizontal = 20.dp, vertical = 18.dp),
+                .padding(horizontal = 18.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
                 modifier = Modifier
-                    .size(48.dp)
-                    .clip(RoundedCornerShape(14.dp))
+                    .size(44.dp)
+                    .clip(RoundedCornerShape(16.dp))
                     .background(
                         if (item.showUpdateIndicator) {
                             Brush.linearGradient(
@@ -799,7 +1222,7 @@ private fun PremiumSettingsItemRow(
                             painter = item.icon,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(24.dp)
+                            modifier = Modifier.size(22.dp)
                         )
                     }
                 } else {
@@ -807,7 +1230,7 @@ private fun PremiumSettingsItemRow(
                         painter = item.icon,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(24.dp)
+                        modifier = Modifier.size(22.dp)
                     )
                 }
             }
@@ -817,15 +1240,15 @@ private fun PremiumSettingsItemRow(
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = item.title,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 item.subtitle?.let { subtitle ->
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
                         text = subtitle,
-                        style = MaterialTheme.typography.bodySmall,
+                        style = MaterialTheme.typography.bodyMedium,
                         color = if (item.showUpdateIndicator) {
                             MaterialTheme.colorScheme.primary
                         } else {
@@ -839,17 +1262,16 @@ private fun PremiumSettingsItemRow(
 
             item.badge?.let { badge ->
                 Spacer(modifier = Modifier.width(8.dp))
-                Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = MaterialTheme.colorScheme.primaryContainer
-                ) {
-                    Text(
-                        text = badge,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                    )
-                }
+                AssistChip(
+                    onClick = {},
+                    enabled = false,
+                    label = { Text(text = badge) },
+                    colors = AssistChipDefaults.assistChipColors(
+                        disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                        disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
+                    ),
+                    border = null
+                )
             }
 
             Spacer(modifier = Modifier.width(8.dp))
@@ -864,7 +1286,7 @@ private fun PremiumSettingsItemRow(
 
         if (showDivider) {
             HorizontalDivider(
-                modifier = Modifier.padding(start = 84.dp, end = 20.dp),
+                modifier = Modifier.padding(start = 78.dp, end = 18.dp),
                 thickness = 0.5.dp,
                 color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
             )
@@ -876,73 +1298,96 @@ private fun PremiumSettingsItemRow(
 private fun AppVersionFooter(
     modifier: Modifier = Modifier
 ) {
-    Column(
+    Card(
         modifier = modifier.fillMaxWidth(),
-        horizontalAlignment = Alignment.CenterHorizontally
+        shape = RoundedCornerShape(28.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Box(
             modifier = Modifier
-                .size(64.dp)
-                .clip(RoundedCornerShape(20.dp))
+                .fillMaxWidth()
                 .background(
                     Brush.linearGradient(
                         colors = listOf(
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                            MaterialTheme.colorScheme.tertiary.copy(alpha = 0.1f)
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.14f),
+                            MaterialTheme.colorScheme.tertiary.copy(alpha = 0.08f),
+                            MaterialTheme.colorScheme.surfaceContainerLow
                         )
                     )
-                ),
-            contentAlignment = Alignment.Center
+                )
+                .padding(18.dp)
         ) {
-            Icon(
-                painter = painterResource(R.drawable.app_icon_small),
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(36.dp)
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(52.dp)
+                        .clip(RoundedCornerShape(18.dp))
+                        .background(MaterialTheme.colorScheme.surfaceContainerHighest),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.app_icon_small),
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(32.dp)
+                    )
+                }
+
+                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(
+                        text = "ArchiveTune",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = "v${BuildConfig.VERSION_NAME}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                        AssistChip(
+                            onClick = {},
+                            enabled = false,
+                            label = { Text(text = "Koiverse") },
+                            colors = AssistChipDefaults.assistChipColors(
+                                disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                                disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
+                            ),
+                            border = null
+                        )
+                        AssistChip(
+                            onClick = {},
+                            enabled = false,
+                            label = { Text(text = BuildConfig.ARCHITECTURE) },
+                            colors = AssistChipDefaults.assistChipColors(
+                                disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                                disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
+                            ),
+                            border = null
+                        )
+                    }
+                }
+
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(MaterialTheme.colorScheme.surfaceContainerHighest),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.favorite),
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
         }
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        Text(
-            text = "ArchiveTune",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onSurface
-        )
-
-        Spacer(modifier = Modifier.height(4.dp))
-
-        Text(
-            text = "v${BuildConfig.VERSION_NAME}",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        FilledTonalButton(
-            onClick = {},
-            shape = RoundedCornerShape(12.dp),
-            colors = ButtonDefaults.filledTonalButtonColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainerHighest
-            ),
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
-        ) {
-            Icon(
-                painter = painterResource(R.drawable.favorite),
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.error,
-                modifier = Modifier.size(16.dp)
-            )
-            Spacer(modifier = Modifier.width(6.dp))
-            Text(
-                text = "Made with love by Koiverse",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-
-        Spacer(modifier = Modifier.height(32.dp))
     }
 }
