@@ -162,16 +162,8 @@ fun BackupAndRestore(
                     )
                 ),
             verticalArrangement = Arrangement.spacedBy(16.dp),
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 16.dp),
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 16.dp),
         ) {
-            item {
-                Spacer(
-                    Modifier.windowInsetsPadding(
-                        LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Top)
-                    )
-                )
-            }
-
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
