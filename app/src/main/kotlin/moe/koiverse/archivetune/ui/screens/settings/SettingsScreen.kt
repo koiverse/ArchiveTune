@@ -424,21 +424,6 @@ fun SettingsScreen(
                     )
                 }
 
-                item {
-                    AnimatedVisibility(
-                        visible = isVisible,
-                        enter = fadeIn(tween(350, 80))
-                    ) {
-                        SettingsHeroHeader(
-                            title = stringResource(R.string.settings),
-                            versionName = BuildConfig.VERSION_NAME,
-                            modifier = Modifier
-                                .padding(horizontal = 16.dp)
-                                .padding(top = 8.dp, bottom = 12.dp)
-                        )
-                    }
-                }
-
                 if (queryText.isBlank()) {
                     item {
                         AnimatedVisibility(
@@ -525,16 +510,6 @@ fun SettingsScreen(
                         }
                     }
                 }
-
-                item {
-                    Spacer(modifier = Modifier.height(24.dp))
-                    AnimatedVisibility(
-                        visible = isVisible,
-                        enter = fadeIn(tween(600, 400))
-                    ) {
-                        AppVersionFooter(modifier = Modifier.padding(horizontal = 16.dp))
-                    }
-                }
             }
         }
 
@@ -546,11 +521,6 @@ fun SettingsScreen(
                             text = stringResource(R.string.settings),
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.SemiBold
-                        )
-                        Text(
-                            text = "ArchiveTune",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 },
@@ -675,86 +645,6 @@ fun SettingsScreen(
                                     .padding(top = 0.dp, bottom = 12.dp)
                             )
                         }
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun SettingsHeroHeader(
-    title: String,
-    versionName: String,
-    modifier: Modifier = Modifier
-) {
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(28.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(
-                    Brush.linearGradient(
-                        colors = listOf(
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.18f),
-                            MaterialTheme.colorScheme.tertiary.copy(alpha = 0.10f),
-                            MaterialTheme.colorScheme.surfaceContainerLow
-                        )
-                    )
-                )
-                .padding(20.dp)
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(56.dp)
-                        .clip(RoundedCornerShape(18.dp))
-                        .background(MaterialTheme.colorScheme.surfaceContainerHighest),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        painter = painterResource(R.drawable.app_icon_small),
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(34.dp)
-                    )
-                }
-
-                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(
-                        text = title,
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                        AssistChip(
-                            onClick = {},
-                            enabled = false,
-                            label = { Text(text = "v$versionName") },
-                            colors = AssistChipDefaults.assistChipColors(
-                                disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-                                disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
-                            ),
-                            border = null
-                        )
-                        AssistChip(
-                            onClick = {},
-                            enabled = false,
-                            label = { Text(text = BuildConfig.ARCHITECTURE) },
-                            colors = AssistChipDefaults.assistChipColors(
-                                disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-                                disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
-                            ),
-                            border = null
-                        )
                     }
                 }
             }
@@ -1120,20 +1010,6 @@ private fun PremiumSettingsSection(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(34.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(MaterialTheme.colorScheme.surfaceContainerHighest),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        painter = painterResource(R.drawable.tune),
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(18.dp)
-                    )
-                }
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = category.title,
@@ -1290,104 +1166,6 @@ private fun PremiumSettingsItemRow(
                 thickness = 0.5.dp,
                 color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
             )
-        }
-    }
-}
-
-@Composable
-private fun AppVersionFooter(
-    modifier: Modifier = Modifier
-) {
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(28.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(
-                    Brush.linearGradient(
-                        colors = listOf(
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.14f),
-                            MaterialTheme.colorScheme.tertiary.copy(alpha = 0.08f),
-                            MaterialTheme.colorScheme.surfaceContainerLow
-                        )
-                    )
-                )
-                .padding(18.dp)
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(52.dp)
-                        .clip(RoundedCornerShape(18.dp))
-                        .background(MaterialTheme.colorScheme.surfaceContainerHighest),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        painter = painterResource(R.drawable.app_icon_small),
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(32.dp)
-                    )
-                }
-
-                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text(
-                        text = "ArchiveTune",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Text(
-                        text = "v${BuildConfig.VERSION_NAME}",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                        AssistChip(
-                            onClick = {},
-                            enabled = false,
-                            label = { Text(text = "Koiverse") },
-                            colors = AssistChipDefaults.assistChipColors(
-                                disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-                                disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
-                            ),
-                            border = null
-                        )
-                        AssistChip(
-                            onClick = {},
-                            enabled = false,
-                            label = { Text(text = BuildConfig.ARCHITECTURE) },
-                            colors = AssistChipDefaults.assistChipColors(
-                                disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-                                disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
-                            ),
-                            border = null
-                        )
-                    }
-                }
-
-                Box(
-                    modifier = Modifier
-                        .size(40.dp)
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(MaterialTheme.colorScheme.surfaceContainerHighest),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        painter = painterResource(R.drawable.favorite),
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
-            }
         }
     }
 }
