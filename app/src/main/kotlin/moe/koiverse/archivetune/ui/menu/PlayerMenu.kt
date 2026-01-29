@@ -528,7 +528,7 @@ fun PlayerMenu(
                         )
                     },
                     supportingContent = {
-                        val playbackParameters = playerConnection.player.playbackParameters
+                        val playbackParameters by playerConnection.playbackParameters.collectAsState()
                         Text(
                             text = "x${formatMultiplier(playbackParameters.speed)} • x${formatMultiplier(playbackParameters.pitch)}",
                             maxLines = 1,
