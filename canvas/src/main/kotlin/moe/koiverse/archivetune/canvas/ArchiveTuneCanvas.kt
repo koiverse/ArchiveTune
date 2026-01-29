@@ -53,7 +53,7 @@ object ArchiveTuneCanvas {
     )
 
     private val cache = ConcurrentHashMap<String, CacheEntry>()
-    private val ttlMs = 6.hours.toLong(DurationUnit.MILLISECONDS)
+    private val ttlMs = 60_000L
 
     suspend fun getBySongArtist(
         song: String,
