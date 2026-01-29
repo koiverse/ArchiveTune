@@ -85,8 +85,10 @@ import moe.koiverse.archivetune.constants.HidePlayerThumbnailKey
 import moe.koiverse.archivetune.extensions.metadata
 import moe.koiverse.archivetune.utils.rememberEnumPreference
 import moe.koiverse.archivetune.utils.rememberPreference
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.util.Locale
 import kotlin.math.abs
 import android.view.ViewGroup.LayoutParams.MATCH_PARENT
@@ -323,10 +325,10 @@ fun Thumbnail(
                             val shouldAnimateCanvas =
                                 archiveTuneCanvasEnabled && isPlaying && item == currentMediaItem
                             var canvasArtwork by remember(item.mediaId) { mutableStateOf<CanvasArtwork?>(null) }
+                            var canvasFetchedAtMs by remember(item.mediaId) { mutableLongStateOf(0L) }
 
                             LaunchedEffect(shouldAnimateCanvas, item.mediaId) {
                                 if (!shouldAnimateCanvas) return@LaunchedEffect
-                                if (canvasArtwork != null) return@LaunchedEffect
 
                                 val songTitle =
                                     itemMetadata?.title
@@ -341,12 +343,23 @@ fun Thumbnail(
                                         ?: item.mediaMetadata.subtitle?.toString()
                                         ?: ""
 
-                                canvasArtwork =
-                                    ArchiveTuneCanvas.getBySongArtist(
-                                        song = songTitle,
-                                        artist = artistName,
-                                        storefront = storefront,
-                                    )
+                                val now = System.currentTimeMillis()
+                                val shouldRefresh =
+                                    canvasArtwork?.preferredAnimationUrl.isNullOrBlank() ||
+                                        (now - canvasFetchedAtMs) >= 55_000L
+
+                                if (!shouldRefresh) return@LaunchedEffect
+
+                                val fetched =
+                                    withContext(Dispatchers.IO) {
+                                        ArchiveTuneCanvas.getBySongArtist(
+                                            song = songTitle,
+                                            artist = artistName,
+                                            storefront = storefront,
+                                        )
+                                    }
+                                canvasArtwork = fetched
+                                canvasFetchedAtMs = now
                             }
 
                             Box(
