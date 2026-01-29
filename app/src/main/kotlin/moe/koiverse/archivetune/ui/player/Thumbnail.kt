@@ -62,10 +62,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.util.fastForEach
 import androidx.media3.common.C
+import androidx.media3.common.AudioAttributes
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MimeTypes
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
+import androidx.media3.datasource.DefaultDataSource
+import androidx.media3.datasource.okhttp.OkHttpDataSource
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
 import coil3.compose.AsyncImage
@@ -83,12 +87,14 @@ import moe.koiverse.archivetune.constants.ArchiveTuneCanvasKey
 import moe.koiverse.archivetune.constants.ThumbnailCornerRadiusKey
 import moe.koiverse.archivetune.constants.HidePlayerThumbnailKey
 import moe.koiverse.archivetune.extensions.metadata
+import moe.koiverse.archivetune.innertube.YouTube
 import moe.koiverse.archivetune.utils.rememberEnumPreference
 import moe.koiverse.archivetune.utils.rememberPreference
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import okhttp3.OkHttpClient
 import java.util.Locale
 import kotlin.math.abs
 import android.view.ViewGroup.LayoutParams.MATCH_PARENT
@@ -342,13 +348,13 @@ fun Thumbnail(
                             LaunchedEffect(shouldAnimateCanvas, item.mediaId) {
                                 if (!shouldAnimateCanvas) return@LaunchedEffect
 
-                                val songTitle =
+                                val songTitleRaw =
                                     itemMetadata?.title
                                         ?.takeIf { it.isNotBlank() }
                                         ?: item.mediaMetadata.title?.toString()
                                         ?: return@LaunchedEffect
 
-                                val artistName =
+                                val artistNameRaw =
                                     itemMetadata?.artists?.firstOrNull()?.name
                                         ?.takeIf { it.isNotBlank() }
                                         ?: item.mediaMetadata.artist?.toString()
@@ -361,11 +367,26 @@ fun Thumbnail(
 
                                 val fetched =
                                     withContext(Dispatchers.IO) {
-                                        ArchiveTuneCanvas.getBySongArtist(
-                                            song = songTitle,
-                                            artist = artistName,
-                                            storefront = storefront,
-                                        )
+                                        val songTitle = normalizeCanvasSongTitle(songTitleRaw)
+                                        val artistName = normalizeCanvasArtistName(artistNameRaw)
+                                        val candidates =
+                                            linkedSetOf(
+                                                songTitle to artistName,
+                                                songTitleRaw to artistName,
+                                                songTitle to artistNameRaw,
+                                                songTitleRaw to artistNameRaw,
+                                            ).filter { (song, artist) ->
+                                                song.isNotBlank() && artist.isNotBlank()
+                                            }
+
+                                        candidates.firstNotNullOfOrNull { (song, artist) ->
+                                            ArchiveTuneCanvas
+                                                .getBySongArtist(
+                                                    song = song,
+                                                    artist = artist,
+                                                    storefront = storefront,
+                                                )?.takeIf { !it.preferredAnimationUrl.isNullOrBlank() }
+                                        }
                                     }
                                 canvasArtwork = fetched
                                 canvasFetchedAtMs = now
@@ -517,11 +538,38 @@ private fun CanvasArtworkPlayer(
     val fallback = fallbackUrl?.takeIf { it.isNotBlank() }
     val initial = primary ?: fallback ?: return
     var currentUrl by remember(initial) { mutableStateOf(initial) }
+    val okHttpClient =
+        remember {
+            OkHttpClient
+                .Builder()
+                .proxy(YouTube.proxy)
+                .build()
+        }
+    val mediaSourceFactory =
+        remember(okHttpClient) {
+            DefaultMediaSourceFactory(
+                DefaultDataSource.Factory(
+                    context,
+                    OkHttpDataSource.Factory(okHttpClient),
+                ),
+            )
+        }
     val exoPlayer =
         remember(initial) {
-            ExoPlayer.Builder(context).build().apply {
+            ExoPlayer.Builder(context)
+                .setMediaSourceFactory(mediaSourceFactory)
+                .build()
+                .apply {
+                setAudioAttributes(
+                    AudioAttributes
+                        .Builder()
+                        .setUsage(C.USAGE_MEDIA)
+                        .setContentType(C.AUDIO_CONTENT_TYPE_MOVIE)
+                        .build(),
+                    false,
+                )
                 volume = 0f
-                repeatMode = Player.REPEAT_MODE_ALL
+                repeatMode = Player.REPEAT_MODE_ONE
                 playWhenReady = true
             }
         }
@@ -544,21 +592,22 @@ private fun CanvasArtworkPlayer(
 
     LaunchedEffect(currentUrl, exoPlayer) {
         val normalized = currentUrl.trim()
-        val lower = normalized.lowercase(Locale.ROOT)
         val mimeType =
             when {
-                lower.contains(".m3u8") -> MimeTypes.APPLICATION_M3U8
-                lower.contains(".mp4") -> MimeTypes.VIDEO_MP4
-                else -> null
+                primary != null && currentUrl == primary -> MimeTypes.APPLICATION_M3U8
+                fallback != null && currentUrl == fallback -> MimeTypes.VIDEO_MP4
+                normalized.lowercase(Locale.ROOT).contains("m3u8") -> MimeTypes.APPLICATION_M3U8
+                normalized.lowercase(Locale.ROOT).contains("mp4") -> MimeTypes.VIDEO_MP4
+                else -> MimeTypes.APPLICATION_M3U8
             }
 
         val mediaItem =
-            if (mimeType == null) {
-                MediaItem.fromUri(normalized)
-            } else {
-                MediaItem.Builder().setUri(normalized).setMimeType(mimeType).build()
-            }
+            MediaItem.Builder()
+                .setUri(normalized)
+                .setMimeType(mimeType)
+                .build()
 
+        exoPlayer.stop()
         exoPlayer.setMediaItem(mediaItem)
         exoPlayer.prepare()
         exoPlayer.playWhenReady = true
@@ -584,6 +633,54 @@ private fun CanvasArtworkPlayer(
         },
         modifier = modifier,
     )
+}
+
+private fun normalizeCanvasSongTitle(raw: String): String {
+    val stripped =
+        raw
+            .replace(Regex("\\s*\\[[^]]*]"), "")
+            .replace(
+                Regex(
+                    "\\s*\\((?:feat\\.?|ft\\.?|featuring|with)\\b[^)]*\\)",
+                    RegexOption.IGNORE_CASE,
+                ),
+                "",
+            )
+            .replace(
+                Regex(
+                    "\\s*\\((?:official\\s*)?(?:music\\s*)?(?:video|mv|lyrics?|audio|visualizer|live|remaster(?:ed)?|version|edit|mix|remix)[^)]*\\)",
+                    RegexOption.IGNORE_CASE,
+                ),
+                "",
+            )
+            .replace(
+                Regex(
+                    "\\s*-\\s*(?:official\\s*)?(?:music\\s*)?(?:video|mv|lyrics?|audio|visualizer|live|remaster(?:ed)?|version|edit|mix|remix)\\b.*$",
+                    RegexOption.IGNORE_CASE,
+                ),
+                "",
+            )
+            .replace(Regex("\\s+"), " ")
+            .trim()
+
+    return stripped
+        .trim('-')
+        .replace(Regex("\\s+"), " ")
+        .trim()
+}
+
+private fun normalizeCanvasArtistName(raw: String): String {
+    val first =
+        raw
+            .split(
+                Regex(
+                    "(?:\\s*,\\s*|\\s*&\\s*|\\s+×\\s+|\\s+x\\s+|\\bfeat\\.?\\b|\\bft\\.?\\b|\\bfeaturing\\b|\\bwith\\b)",
+                    RegexOption.IGNORE_CASE,
+                ),
+                limit = 2,
+            ).firstOrNull().orEmpty()
+
+    return first.replace(Regex("\\s+"), " ").trim()
 }
 
 /*

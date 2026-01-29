@@ -51,7 +51,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -98,7 +97,6 @@ import moe.koiverse.archivetune.ui.component.MenuState
 import moe.koiverse.archivetune.ui.component.PlayerSliderTrack
 import moe.koiverse.archivetune.ui.component.ResizableIconButton
 import moe.koiverse.archivetune.ui.menu.PlayerMenu
-import moe.koiverse.archivetune.ui.menu.TempoPitchDialog
 import moe.koiverse.archivetune.ui.theme.PlayerBackgroundColorUtils
 import moe.koiverse.archivetune.ui.theme.PlayerSliderColors
 import moe.koiverse.archivetune.ui.utils.ShowMediaInfo
@@ -232,11 +230,6 @@ fun PlayerTopActions(
     context: Context,
     currentSongLiked: Boolean
 ) {
-    var showTempoPitchDialog by rememberSaveable { mutableStateOf(false) }
-    if (showTempoPitchDialog) {
-        TempoPitchDialog(onDismiss = { showTempoPitchDialog = false })
-    }
-
     when (playerDesignStyle) {
         PlayerDesignStyle.V2 -> {
             val shareShape = RoundedCornerShape(
@@ -253,22 +246,6 @@ fun PlayerTopActions(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(42.dp)
-                        .clip(RoundedCornerShape(14.dp))
-                        .background(textButtonColor)
-                        .clickable { showTempoPitchDialog = true },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Image(
-                        painter = painterResource(R.drawable.speed),
-                        contentDescription = null,
-                        colorFilter = ColorFilter.tint(iconButtonColor),
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-
                 Box(
                     modifier = Modifier
                         .size(42.dp)
@@ -330,20 +307,6 @@ fun PlayerTopActions(
                     modifier = Modifier
                         .size(36.dp)
                         .clip(RoundedCornerShape(12.dp))
-                        .clickable { showTempoPitchDialog = true },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        painter = painterResource(R.drawable.speed),
-                        contentDescription = null,
-                        tint = textBackgroundColor.copy(alpha = 0.7f),
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
-                Box(
-                    modifier = Modifier
-                        .size(36.dp)
-                        .clip(RoundedCornerShape(12.dp))
                         .clickable {
                             val intent = Intent().apply {
                                 action = Intent.ACTION_SEND
@@ -391,24 +354,6 @@ fun PlayerTopActions(
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Surface(
-                    onClick = { showTempoPitchDialog = true },
-                    shape = RoundedCornerShape(14.dp),
-                    color = textBackgroundColor.copy(alpha = 0.12f),
-                    modifier = Modifier
-                        .height(44.dp)
-                        .width(44.dp)
-                ) {
-                    Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                        Icon(
-                            painter = painterResource(R.drawable.speed),
-                            contentDescription = null,
-                            tint = textBackgroundColor,
-                            modifier = Modifier.size(22.dp)
-                        )
-                    }
-                }
-
                 Surface(
                     onClick = {
                         val intent = Intent().apply {
@@ -500,25 +445,6 @@ fun PlayerTopActions(
         }
 
         PlayerDesignStyle.V1 -> {
-            Box(
-                modifier =
-                Modifier
-                    .size(40.dp)
-                    .clip(RoundedCornerShape(24.dp))
-                    .background(textButtonColor)
-                    .clickable { showTempoPitchDialog = true },
-                contentAlignment = Alignment.Center
-            ) {
-                Image(
-                    painter = painterResource(R.drawable.speed),
-                    contentDescription = null,
-                    colorFilter = ColorFilter.tint(iconButtonColor),
-                    modifier = Modifier.size(24.dp),
-                )
-            }
-
-            Spacer(modifier = Modifier.size(12.dp))
-
             Box(
                 modifier =
                 Modifier
