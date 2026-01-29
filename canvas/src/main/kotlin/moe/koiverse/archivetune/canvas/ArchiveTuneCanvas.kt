@@ -173,5 +173,5 @@ data class CanvasArtwork(
     val videoUrl: String? = null,
 ) {
     val preferredAnimationUrl: String?
-        get() = videoUrl ?: animated
+        get() = animated ?: videoUrl
 }
