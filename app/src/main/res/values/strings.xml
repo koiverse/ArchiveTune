@@ -103,6 +103,10 @@
     <string name="action_sync">Sync</string>
     <string name="advanced">Advanced</string>
     <string name="tempo_and_pitch">Tempo and Pitch</string>
+    <string name="tempo">Tempo</string>
+    <string name="pitch">Pitch</string>
+    <string name="pitch_mode_semitones_short">st</string>
+    <string name="pitch_mode_multiplier_short">x</string>
     <!-- Sort menu -->
     <string name="sort_by_create_date">Date added</string>
     <string name="sort_by_name">Name</string>
