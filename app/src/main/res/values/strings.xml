@@ -339,9 +339,6 @@
     <string name="custom_value">Custom value</string>
     <string name="new_library_design">New library design</string>
     <string name="new_library_design_description">Enable the new library design (may be unstable)</string>
-    <string name="hide_player_thumbnail">Hide player thumbnail</string>
-    <string name="hide_player_thumbnail_desc">Replace the player artwork with the app logo</string>
-    <string name="enable_swipe_thumbnail">Swipe to change song</string>
     <string name="archivetune_canvas">ArchiveTune Canvas</string>
     <string name="archivetune_canvas_desc">Animate album artwork while playing (Powered by BetterLyrics)</string>
     <string name="show_button1_description">Toggle visibility of button 1 in Discord Rich Presence</string>
