@@ -323,9 +323,21 @@ fun Thumbnail(
                                     if (country.length == 2) country.lowercase(Locale.ROOT) else "us"
                                 }
                             val shouldAnimateCanvas =
-                                archiveTuneCanvasEnabled && isPlaying && item == currentMediaItem
+                                archiveTuneCanvasEnabled &&
+                                    isPlaying &&
+                                    item.mediaId.isNotBlank() &&
+                                    item.mediaId == currentMediaItem?.mediaId
                             var canvasArtwork by remember(item.mediaId) { mutableStateOf<CanvasArtwork?>(null) }
                             var canvasFetchedAtMs by remember(item.mediaId) { mutableLongStateOf(0L) }
+                            var canvasFetchInFlight by remember(item.mediaId) { mutableStateOf(false) }
+
+                            LaunchedEffect(shouldAnimateCanvas) {
+                                if (!shouldAnimateCanvas) {
+                                    canvasArtwork = null
+                                    canvasFetchedAtMs = 0L
+                                    canvasFetchInFlight = false
+                                }
+                            }
 
                             LaunchedEffect(shouldAnimateCanvas, item.mediaId) {
                                 if (!shouldAnimateCanvas) return@LaunchedEffect
@@ -344,11 +356,8 @@ fun Thumbnail(
                                         ?: ""
 
                                 val now = System.currentTimeMillis()
-                                val shouldRefresh =
-                                    canvasArtwork?.preferredAnimationUrl.isNullOrBlank() ||
-                                        (now - canvasFetchedAtMs) >= 55_000L
-
-                                if (!shouldRefresh) return@LaunchedEffect
+                                if (canvasFetchInFlight) return@LaunchedEffect
+                                canvasFetchInFlight = true
 
                                 val fetched =
                                     withContext(Dispatchers.IO) {
@@ -360,6 +369,7 @@ fun Thumbnail(
                                     }
                                 canvasArtwork = fetched
                                 canvasFetchedAtMs = now
+                                canvasFetchInFlight = false
                             }
 
                             Box(
