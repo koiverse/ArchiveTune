@@ -63,6 +63,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.util.fastForEach
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
+import androidx.media3.common.MimeTypes
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.AspectRatioFrameLayout
@@ -429,10 +430,12 @@ fun Thumbnail(
                                         )
 
                                         // Main image
-                                        val canvasUrl = canvasArtwork?.preferredAnimationUrl
-                                        if (shouldAnimateCanvas && !canvasUrl.isNullOrBlank()) {
+                                        val primaryCanvasUrl = canvasArtwork?.animated
+                                        val fallbackCanvasUrl = canvasArtwork?.videoUrl
+                                        if (shouldAnimateCanvas && (!primaryCanvasUrl.isNullOrBlank() || !fallbackCanvasUrl.isNullOrBlank())) {
                                             CanvasArtworkPlayer(
-                                                url = canvasUrl,
+                                                primaryUrl = primaryCanvasUrl,
+                                                fallbackUrl = fallbackCanvasUrl,
                                                 modifier = Modifier.fillMaxSize(),
                                             )
                                         } else {
@@ -482,12 +485,17 @@ fun Thumbnail(
 
 @Composable
 private fun CanvasArtworkPlayer(
-    url: String,
+    primaryUrl: String?,
+    fallbackUrl: String?,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
+    val primary = primaryUrl?.takeIf { it.isNotBlank() }
+    val fallback = fallbackUrl?.takeIf { it.isNotBlank() }
+    val initial = primary ?: fallback ?: return
+    var currentUrl by remember(initial) { mutableStateOf(initial) }
     val exoPlayer =
-        remember(url) {
+        remember(initial) {
             ExoPlayer.Builder(context).build().apply {
                 volume = 0f
                 repeatMode = Player.REPEAT_MODE_ALL
@@ -495,8 +503,40 @@ private fun CanvasArtworkPlayer(
             }
         }
 
-    LaunchedEffect(url, exoPlayer) {
-        exoPlayer.setMediaItem(MediaItem.fromUri(url))
+    DisposableEffect(exoPlayer, primary, fallback) {
+        val listener =
+            object : Player.Listener {
+                override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
+                    val next =
+                        when (currentUrl) {
+                            primary -> fallback
+                            else -> null
+                        }
+                    if (!next.isNullOrBlank()) currentUrl = next
+                }
+            }
+        exoPlayer.addListener(listener)
+        onDispose { exoPlayer.removeListener(listener) }
+    }
+
+    LaunchedEffect(currentUrl, exoPlayer) {
+        val normalized = currentUrl.trim()
+        val lower = normalized.lowercase(Locale.ROOT)
+        val mimeType =
+            when {
+                lower.contains(".m3u8") -> MimeTypes.APPLICATION_M3U8
+                lower.contains(".mp4") -> MimeTypes.VIDEO_MP4
+                else -> null
+            }
+
+        val mediaItem =
+            if (mimeType == null) {
+                MediaItem.fromUri(normalized)
+            } else {
+                MediaItem.Builder().setUri(normalized).setMimeType(mimeType).build()
+            }
+
+        exoPlayer.setMediaItem(mediaItem)
         exoPlayer.prepare()
         exoPlayer.playWhenReady = true
     }
