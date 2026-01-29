@@ -21,7 +21,7 @@ import kotlin.time.Duration.Companion.hours
 import kotlin.time.DurationUnit
 
 object ArchiveTuneCanvas {
-    private const val BASE_URL = "https://artwork.boidu.dev/"
+    private const val BASE_URL = "https://artwork-archivetune.koiiverse.cloud/"
 
     private val json = Json {
         ignoreUnknownKeys = true
