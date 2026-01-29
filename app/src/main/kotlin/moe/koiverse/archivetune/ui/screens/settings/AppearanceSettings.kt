@@ -90,6 +90,7 @@ import moe.koiverse.archivetune.constants.SwipeThumbnailKey
 import moe.koiverse.archivetune.constants.SwipeSensitivityKey
 import moe.koiverse.archivetune.constants.SwipeToSongKey
 import moe.koiverse.archivetune.constants.HidePlayerThumbnailKey
+import moe.koiverse.archivetune.constants.ArchiveTuneCanvasKey
 import moe.koiverse.archivetune.constants.ThumbnailCornerRadiusKey
 import moe.koiverse.archivetune.constants.DisableBlurKey
 import moe.koiverse.archivetune.ui.component.DefaultDialog
@@ -136,6 +137,10 @@ fun AppearanceSettings(
     )
     val (hidePlayerThumbnail, onHidePlayerThumbnailChange) = rememberPreference(
         HidePlayerThumbnailKey,
+        defaultValue = false
+    )
+    val (archiveTuneCanvasEnabled, onArchiveTuneCanvasEnabledChange) = rememberPreference(
+        ArchiveTuneCanvasKey,
         defaultValue = false
     )
     val (thumbnailCornerRadius, onThumbnailCornerRadiusChange) = rememberPreference(
@@ -507,6 +512,14 @@ fun AppearanceSettings(
             icon = { Icon(painterResource(R.drawable.hide_image), null) },
             checked = hidePlayerThumbnail,
             onCheckedChange = onHidePlayerThumbnailChange
+        )
+
+        SwitchPreference(
+            title = { Text(stringResource(R.string.archivetune_canvas)) },
+            description = stringResource(R.string.archivetune_canvas_desc),
+            icon = { Icon(painterResource(R.drawable.motion_photos_on), null) },
+            checked = archiveTuneCanvasEnabled,
+            onCheckedChange = onArchiveTuneCanvasEnabledChange
         )
       
 

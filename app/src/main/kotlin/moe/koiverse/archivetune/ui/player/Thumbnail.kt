@@ -62,23 +62,34 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.util.fastForEach
 import androidx.media3.common.C
+import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
+import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.ui.AspectRatioFrameLayout
+import androidx.media3.ui.PlayerView
 import coil3.compose.AsyncImage
 import androidx.compose.material3.Icon
 import moe.koiverse.archivetune.LocalPlayerConnection
 import moe.koiverse.archivetune.R
+import moe.koiverse.archivetune.canvas.ArchiveTuneCanvas
+import moe.koiverse.archivetune.canvas.CanvasArtwork
 import moe.koiverse.archivetune.constants.PlayerBackgroundStyle
 import moe.koiverse.archivetune.constants.PlayerBackgroundStyleKey
 import moe.koiverse.archivetune.constants.PlayerHorizontalPadding
 import moe.koiverse.archivetune.constants.SeekExtraSeconds
 import moe.koiverse.archivetune.constants.SwipeThumbnailKey
+import moe.koiverse.archivetune.constants.ArchiveTuneCanvasKey
 import moe.koiverse.archivetune.constants.ThumbnailCornerRadiusKey
 import moe.koiverse.archivetune.constants.HidePlayerThumbnailKey
+import moe.koiverse.archivetune.extensions.metadata
 import moe.koiverse.archivetune.utils.rememberEnumPreference
 import moe.koiverse.archivetune.utils.rememberPreference
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import java.util.Locale
 import kotlin.math.abs
+import android.view.ViewGroup.LayoutParams.MATCH_PARENT
+import androidx.compose.ui.viewinterop.AndroidView
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -94,11 +105,13 @@ fun Thumbnail(
 
     // States
     val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
+    val isPlaying by playerConnection.isPlaying.collectAsState()
     val error by playerConnection.error.collectAsState()
     val queueTitle by playerConnection.queueTitle.collectAsState()
 
     val swipeThumbnail by rememberPreference(SwipeThumbnailKey, true)
     val hidePlayerThumbnail by rememberPreference(HidePlayerThumbnailKey, false)
+    val archiveTuneCanvasEnabled by rememberPreference(ArchiveTuneCanvasKey, false)
     val (thumbnailCornerRadius, _) = rememberPreference(
         key = ThumbnailCornerRadiusKey,
         defaultValue = 16f
@@ -300,6 +313,40 @@ fun Thumbnail(
                             val incrementalSeekSkipEnabled by rememberPreference(SeekExtraSeconds, defaultValue = false)
                             var skipMultiplier by remember { mutableStateOf(1) }
                             var lastTapTime by remember { mutableLongStateOf(0L) }
+                            val itemMetadata = remember(item) { item.metadata }
+                            val storefront =
+                                remember {
+                                    val country = Locale.getDefault().country
+                                    if (country.length == 2) country.lowercase(Locale.ROOT) else "us"
+                                }
+                            val shouldAnimateCanvas =
+                                archiveTuneCanvasEnabled && isPlaying && item == currentMediaItem
+                            var canvasArtwork by remember(item.mediaId) { mutableStateOf<CanvasArtwork?>(null) }
+
+                            LaunchedEffect(shouldAnimateCanvas, item.mediaId) {
+                                if (!shouldAnimateCanvas) return@LaunchedEffect
+                                if (canvasArtwork != null) return@LaunchedEffect
+
+                                val songTitle =
+                                    itemMetadata?.title
+                                        ?.takeIf { it.isNotBlank() }
+                                        ?: item.mediaMetadata.title?.toString()
+                                        ?: return@LaunchedEffect
+
+                                val artistName =
+                                    itemMetadata?.artists?.firstOrNull()?.name
+                                        ?.takeIf { it.isNotBlank() }
+                                        ?: item.mediaMetadata.artist?.toString()
+                                        ?: item.mediaMetadata.subtitle?.toString()
+                                        ?: ""
+
+                                canvasArtwork =
+                                    ArchiveTuneCanvas.getBySongArtist(
+                                        song = songTitle,
+                                        artist = artistName,
+                                        storefront = storefront,
+                                    )
+                            }
 
                             Box(
                                 modifier = Modifier
@@ -382,12 +429,20 @@ fun Thumbnail(
                                         )
 
                                         // Main image
-                                        AsyncImage(
-                                            model = item.mediaMetadata.artworkUri?.toString(),
-                                            contentDescription = null,
-                                            contentScale = ContentScale.Fit,
-                                            modifier = Modifier.fillMaxSize()
-                                        )
+                                        val canvasUrl = canvasArtwork?.preferredAnimationUrl
+                                        if (shouldAnimateCanvas && !canvasUrl.isNullOrBlank()) {
+                                            CanvasArtworkPlayer(
+                                                url = canvasUrl,
+                                                modifier = Modifier.fillMaxSize(),
+                                            )
+                                        } else {
+                                            AsyncImage(
+                                                model = item.mediaMetadata.artworkUri?.toString(),
+                                                contentDescription = null,
+                                                contentScale = ContentScale.Fit,
+                                                modifier = Modifier.fillMaxSize()
+                                            )
+                                        }
                                     }
                                 }
                             }
@@ -423,6 +478,49 @@ fun Thumbnail(
             )
         }
     }
+}
+
+@Composable
+private fun CanvasArtworkPlayer(
+    url: String,
+    modifier: Modifier = Modifier,
+) {
+    val context = LocalContext.current
+    val exoPlayer =
+        remember(url) {
+            ExoPlayer.Builder(context).build().apply {
+                volume = 0f
+                repeatMode = Player.REPEAT_MODE_ALL
+                playWhenReady = true
+            }
+        }
+
+    LaunchedEffect(url, exoPlayer) {
+        exoPlayer.setMediaItem(MediaItem.fromUri(url))
+        exoPlayer.prepare()
+        exoPlayer.playWhenReady = true
+    }
+
+    DisposableEffect(exoPlayer) {
+        onDispose {
+            exoPlayer.release()
+        }
+    }
+
+    AndroidView(
+        factory = { viewContext ->
+            PlayerView(viewContext).apply {
+                layoutParams = android.view.ViewGroup.LayoutParams(MATCH_PARENT, MATCH_PARENT)
+                player = exoPlayer
+                useController = false
+                resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
+            }
+        },
+        update = { view ->
+            if (view.player !== exoPlayer) view.player = exoPlayer
+        },
+        modifier = modifier,
+    )
 }
 
 /*
