@@ -81,19 +81,46 @@ jobs:
           LASTFM_SECRET: ${{ secrets.LASTFM_SECRET }}
         run: |
           set -euo pipefail
+
+          locate_universal_apk() {
+            local metadata
+            local output_file
+            local base_dir
+            local apk
+
+            metadata="$(find app/build/outputs/apk -type f -name "output-metadata.json" | grep -iE "(^|/)universal(/|Release/).*/release/output-metadata\.json$" | head -n 1 || true)"
+            if [ -n "${metadata:-}" ]; then
+              output_file="$(grep -oP '"outputFile"\s*:\s*"\K[^"]+' "$metadata" | head -n 1 || true)"
+              if [ -n "${output_file:-}" ]; then
+                base_dir="$(dirname "$metadata")"
+                apk="$base_dir/$output_file"
+                if [ -f "$apk" ]; then
+                  echo "$apk"
+                  return 0
+                fi
+              fi
+            fi
+
+            find app/build/outputs/apk -type f -name "*.apk" ! -name "*signed*.apk" | grep -i "universal" | head -n 1 || true
+          }
+
           ./gradlew clean assembleUniversalRelease
-          APK_1="$(find app/build/outputs/apk/universal/release -maxdepth 1 -type f -name "*.apk" ! -name "*signed*.apk" | head -n 1)"
-          if [ -z "${APK_1:-}" ]; then
+          APK_1="$(locate_universal_apk)"
+          if [ -z "${APK_1:-}" ] || [ ! -f "$APK_1" ]; then
             echo "Could not find unsigned universal release APK (first build)."
+            echo "APK outputs:"
+            find app/build/outputs/apk -maxdepth 6 -type f -print || true
             exit 1
           fi
           SHA_1="$(sha256sum "$APK_1" | awk '{print $1}')"
           cp "$APK_1" /tmp/universal-1.apk
 
           ./gradlew clean assembleUniversalRelease
-          APK_2="$(find app/build/outputs/apk/universal/release -maxdepth 1 -type f -name "*.apk" ! -name "*signed*.apk" | head -n 1)"
-          if [ -z "${APK_2:-}" ]; then
+          APK_2="$(locate_universal_apk)"
+          if [ -z "${APK_2:-}" ] || [ ! -f "$APK_2" ]; then
             echo "Could not find unsigned universal release APK (second build)."
+            echo "APK outputs:"
+            find app/build/outputs/apk -maxdepth 6 -type f -print || true
             exit 1
           fi
           SHA_2="$(sha256sum "$APK_2" | awk '{print $1}')"
@@ -136,10 +163,37 @@ jobs:
           LASTFM_API_KEY: ${{ secrets.LASTFM_API_KEY }}
           LASTFM_SECRET: ${{ secrets.LASTFM_SECRET }}
 
+      - name: Resolve release output directory
+        id: release_dir
+        shell: bash
+        run: |
+          set -euo pipefail
+          ABI="${{ matrix.abi }}"
+          CANDIDATES=(
+            "app/build/outputs/apk/${ABI}/release"
+            "app/build/outputs/apk/${ABI}Release/release"
+          )
+          for d in "${CANDIDATES[@]}"; do
+            if [ -d "$d" ]; then
+              echo "release_dir=$d" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+          done
+
+          FOUND_METADATA="$(find app/build/outputs/apk -type f -name "output-metadata.json" | grep -iE "(^|/)${ABI}(/|Release/).*/release/output-metadata\.json$" | head -n 1 || true)"
+          if [ -n "${FOUND_METADATA:-}" ]; then
+            echo "release_dir=$(dirname "$FOUND_METADATA")" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "Could not resolve APK release output directory for ABI=$ABI"
+          find app/build/outputs/apk -maxdepth 6 -type d -print || true
+          exit 1
+
       - name: Sign APK
         uses: ilharp/sign-android-release@v2.0.0
         with:
-          releaseDir: app/build/outputs/apk/${{ matrix.abi }}/release/
+          releaseDir: ${{ steps.release_dir.outputs.release_dir }}/
           signingKey: ${{ secrets.KEYSTORE }}
           keyAlias: ${{ secrets.KEY_ALIAS }}
           keyStorePassword: ${{ secrets.KEYSTORE_PASSWORD }}
@@ -148,18 +202,19 @@ jobs:
       
       - name: Move and rename signed APKs
         run: |
-          mkdir -p app/build/outputs/apk/${{ matrix.abi }}/release/out
+          RELEASE_DIR="${{ steps.release_dir.outputs.release_dir }}"
+          mkdir -p "$RELEASE_DIR/out"
           if [ "${{ matrix.abi }}" = "universal" ]; then
-            find app/build/outputs/apk/${{ matrix.abi }}/release/ -name "*-signed.apk" -o -name "*-unsigned-signed.apk" | xargs -I{} mv {} app/build/outputs/apk/${{ matrix.abi }}/release/out/ArchiveTune.apk
+            find "$RELEASE_DIR" -name "*-signed.apk" -o -name "*-unsigned-signed.apk" | xargs -I{} mv {} "$RELEASE_DIR/out/ArchiveTune.apk"
           else
-            find app/build/outputs/apk/${{ matrix.abi }}/release/ -name "*-signed.apk" -o -name "*-unsigned-signed.apk" | xargs -I{} mv {} app/build/outputs/apk/${{ matrix.abi }}/release/out/app-${{ matrix.abi }}-release.apk
+            find "$RELEASE_DIR" -name "*-signed.apk" -o -name "*-unsigned-signed.apk" | xargs -I{} mv {} "$RELEASE_DIR/out/app-${{ matrix.abi }}-release.apk"
           fi
   
       - name: Upload Signed APKs
         uses: actions/upload-artifact@v6
         with:
           name: ${{ matrix.abi == 'universal' && 'ArchiveTune' || format('app-{0}-release', matrix.abi) }}
-          path: app/build/outputs/apk/${{ matrix.abi }}/release/out/${{ matrix.abi == 'universal' && 'ArchiveTune.apk' || format('app-{0}-release.apk', matrix.abi) }}
+          path: ${{ steps.release_dir.outputs.release_dir }}/out/${{ matrix.abi == 'universal' && 'ArchiveTune.apk' || format('app-{0}-release.apk', matrix.abi) }}
 
   create-release:
     needs: [check-version, build]
