@@ -281,7 +281,11 @@ fun StorageSettings(
         CacheCard(
             icon = R.drawable.image,
             title = stringResource(R.string.image_cache),
-            description = "${formatFileSize(imageCacheSize)} / ${formatFileSize(imageDiskCache.maxSize)}",
+            description = if (maxImageCacheSize > 0) {
+                "${formatFileSize(imageCacheSize)} / ${formatFileSize(imageDiskCache.maxSize)}"
+            } else {
+                stringResource(R.string.disable)
+            },
             progress = if (maxImageCacheSize > 0) imageCacheProgress else null,
             actions = {
                 ListPreference(
