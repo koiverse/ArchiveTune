@@ -54,6 +54,8 @@
     <string name="maximum_volume">最大音量</string>
     <string name="hide_player_thumbnail">プレーヤーのサムネイルを非表示にする</string>
     <string name="hide_player_thumbnail_desc">プレーヤーでアルバムのアートワークをアプリのロゴに置き換える</string>
+    <string name="crop_thumbnail_to_square">サムネイルを1:1にトリミング</string>
+    <string name="crop_thumbnail_to_square_desc">YouTubeサムネイルを16:9ではなく正方形で表示</string>
     <string name="already_in_playlist">すでにプレイリストにあります:</string>
     <plurals name="n_element">
         <item quantity="other">%d 要素</item>

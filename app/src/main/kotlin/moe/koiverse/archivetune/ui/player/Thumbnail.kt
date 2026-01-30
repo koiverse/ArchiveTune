@@ -85,6 +85,7 @@ import moe.koiverse.archivetune.constants.SeekExtraSeconds
 import moe.koiverse.archivetune.constants.SwipeThumbnailKey
 import moe.koiverse.archivetune.constants.ArchiveTuneCanvasKey
 import moe.koiverse.archivetune.constants.ThumbnailCornerRadiusKey
+import moe.koiverse.archivetune.constants.CropThumbnailToSquareKey
 import moe.koiverse.archivetune.constants.HidePlayerThumbnailKey
 import moe.koiverse.archivetune.extensions.metadata
 import moe.koiverse.archivetune.innertube.YouTube
@@ -125,6 +126,7 @@ fun Thumbnail(
         key = ThumbnailCornerRadiusKey,
         defaultValue = 16f
     )
+    val cropThumbnailToSquare by rememberPreference(CropThumbnailToSquareKey, false)
     val canSkipPrevious by playerConnection.canSkipPrevious.collectAsState()
     val canSkipNext by playerConnection.canSkipNext.collectAsState()
     
@@ -460,13 +462,14 @@ fun Thumbnail(
                                             )
                                         }
                                     } else {
-                                        // Blurred 
+                                        // Blurred
                                         AsyncImage(
                                             model = item.mediaMetadata.artworkUri?.toString(),
                                             contentDescription = null,
                                             contentScale = ContentScale.FillBounds,
                                             modifier = Modifier
                                                 .fillMaxSize()
+                                                .let { if (cropThumbnailToSquare) it.aspectRatio(1f) else it }
                                                 .graphicsLayer(
                                                     renderEffect = BlurEffect(radiusX = 60f, radiusY = 60f),
                                                     alpha = 0.6f
@@ -486,8 +489,10 @@ fun Thumbnail(
                                             AsyncImage(
                                                 model = item.mediaMetadata.artworkUri?.toString(),
                                                 contentDescription = null,
-                                                contentScale = ContentScale.Fit,
-                                                modifier = Modifier.fillMaxSize()
+                                                contentScale = if (cropThumbnailToSquare) ContentScale.Crop else ContentScale.Fit,
+                                                modifier = Modifier
+                                                    .fillMaxSize()
+                                                    .let { if (cropThumbnailToSquare) it.aspectRatio(1f) else it }
                                             )
                                         }
                                     }
