@@ -323,6 +323,8 @@
     <string name="custom_value">カスタム値</string>
     <string name="new_library_design">新しいライブラリのデザイン</string>
     <string name="new_library_design_description">新しいライブラリのデザインを有効にする(不安定な可能性があります)</string>
+    <string name="archivetune_canvas">ArchiveTune Canvas</string>
+    <string name="archivetune_canvas_desc">再生中にアルバムアートワークをアニメーション化 (BetterLyrics提供)</string>
     <string name="show_button1_description">Discord Richのボタン1の表示を切り替え プレゼンス</string>
     <string name="show_button2_description">Discord のボタン 2 の表示を切り替えます リッチ プレゼンス</string>
     <string name="discord_activity_type">アクティビティ タイプ</string>
