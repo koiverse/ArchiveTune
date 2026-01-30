@@ -175,6 +175,7 @@ import moe.koiverse.archivetune.db.entities.SearchHistory
 import moe.koiverse.archivetune.innertube.YouTube
 import moe.koiverse.archivetune.innertube.models.SongItem
 import moe.koiverse.archivetune.innertube.models.WatchEndpoint
+import moe.koiverse.archivetune.models.MediaMetadata
 import moe.koiverse.archivetune.models.toMediaMetadata
 import moe.koiverse.archivetune.playback.DownloadUtil
 import moe.koiverse.archivetune.playback.MusicService
@@ -240,6 +241,7 @@ class MainActivity : ComponentActivity() {
 
     private lateinit var navController: NavHostController
     private var pendingIntent: Intent? = null
+    private var pendingYouTubeQueue: PendingYouTubeQueue? = null
     private var latestVersionName by mutableStateOf(BuildConfig.VERSION_NAME)
 
     private var playerConnection by mutableStateOf<PlayerConnection?>(null)
@@ -255,6 +257,7 @@ class MainActivity : ComponentActivity() {
                 if (service is MusicBinder) {
                     playerConnection =
                         PlayerConnection(this@MainActivity, service, database, lifecycleScope)
+                    playPendingYouTubeQueueIfReady()
                 }
             }
 
@@ -265,6 +268,18 @@ class MainActivity : ComponentActivity() {
             }
         }
 
+    private data class PendingYouTubeQueue(
+        val endpoint: WatchEndpoint,
+        val preloadItem: MediaMetadata?,
+    )
+
+    private fun playPendingYouTubeQueueIfReady() {
+        val pending = pendingYouTubeQueue ?: return
+        val connection = playerConnection ?: return
+        pendingYouTubeQueue = null
+        connection.playQueue(YouTubeQueue(pending.endpoint, pending.preloadItem))
+    }
+
     override fun onStart() {
         super.onStart()
         startMusicServiceSafely()
@@ -274,6 +289,7 @@ class MainActivity : ComponentActivity() {
                 serviceConnection,
                 Context.BIND_AUTO_CREATE
             )
+        playPendingYouTubeQueueIfReady()
     }
 
     private fun safeUnbindMusicService() {
@@ -1660,26 +1676,17 @@ class MainActivity : ComponentActivity() {
                         }
 
                         result.onSuccess { queued ->
-                            coroutineScope.launch {
-                                val timeoutMs = 3000L
-                                var waited = 0L
-                                val step = 100L
-                                while (playerConnection == null && waited < timeoutMs) {
-                                    delay(step)
-                                    waited += step
-                                }
-
-                                if (playerConnection != null) {
-                                    playerConnection?.playQueue(
-                                        YouTubeQueue(
-                                            WatchEndpoint(videoId = queued.firstOrNull()?.id, playlistId = playlistId),
-                                            queued.firstOrNull()?.toMediaMetadata()
-                                        )
-                                    )
-                                } else {
-                                    startMusicServiceSafely()
-                                }
-                            }
+                            val firstItem = queued.firstOrNull()
+                            pendingYouTubeQueue =
+                                PendingYouTubeQueue(
+                                    endpoint = WatchEndpoint(
+                                        videoId = firstItem?.id ?: vid,
+                                        playlistId = playlistId,
+                                    ),
+                                    preloadItem = firstItem?.toMediaMetadata(),
+                                )
+                            startMusicServiceSafely()
+                            playPendingYouTubeQueueIfReady()
                         }.onFailure {
                             reportException(it)
                         }
