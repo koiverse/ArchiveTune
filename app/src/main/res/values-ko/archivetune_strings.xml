@@ -54,6 +54,8 @@
     <string name="maximum_volume">최대 볼륨</string>
     <string name="hide_player_thumbnail">플레이어 썸네일 숨기기</string>
     <string name="hide_player_thumbnail_desc">플레이어의 앨범 아트워크를 앱 로고로 교체</string>
+    <string name="crop_thumbnail_to_square">썸네일을 1:1로 자르기</string>
+    <string name="crop_thumbnail_to_square_desc">YouTube 썸네일을 16:9 대신 정사각형으로 표시</string>
     <string name="already_in_playlist">이미 재생목록에 있음:</string>
     <plurals name="n_element">
         <item quantity="other">%d 요소</item>

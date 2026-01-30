@@ -92,6 +92,7 @@ import moe.koiverse.archivetune.constants.SwipeToSongKey
 import moe.koiverse.archivetune.constants.HidePlayerThumbnailKey
 import moe.koiverse.archivetune.constants.ArchiveTuneCanvasKey
 import moe.koiverse.archivetune.constants.ThumbnailCornerRadiusKey
+import moe.koiverse.archivetune.constants.CropThumbnailToSquareKey
 import moe.koiverse.archivetune.constants.DisableBlurKey
 import moe.koiverse.archivetune.ui.component.DefaultDialog
 import moe.koiverse.archivetune.ui.component.EnumListPreference
@@ -146,6 +147,10 @@ fun AppearanceSettings(
     val (thumbnailCornerRadius, onThumbnailCornerRadiusChange) = rememberPreference(
         key = ThumbnailCornerRadiusKey,
         defaultValue = 16f // default dp
+    )
+    val (cropThumbnailToSquare, onCropThumbnailToSquareChange) = rememberPreference(
+        CropThumbnailToSquareKey,
+        defaultValue = false
     )
     val (playerBackground, onPlayerBackgroundChange) =
         rememberEnumPreference(
@@ -528,6 +533,14 @@ fun AppearanceSettings(
             onRadiusSelected = { selectedRadius ->
                 Timber.tag("Thumbnail").d("Radius Selector: $selectedRadius")
             }
+        )
+
+        SwitchPreference(
+            title = { Text(stringResource(R.string.crop_thumbnail_to_square)) },
+            description = stringResource(R.string.crop_thumbnail_to_square_desc),
+            icon = { Icon(painterResource(R.drawable.image), null) },
+            checked = cropThumbnailToSquare,
+            onCheckedChange = onCropThumbnailToSquareChange
         )
 
 
