@@ -174,6 +174,7 @@ dependencies {
 
     implementation(libs.material3)
     implementation(libs.palette)
+    implementation(libs.multiplatform.markdown)
 
     implementation(libs.coil)
     implementation(libs.coil.network.okhttp)

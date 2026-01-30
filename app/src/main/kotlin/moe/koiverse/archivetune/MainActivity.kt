@@ -191,6 +191,7 @@ import moe.koiverse.archivetune.ui.component.IconButton
 import moe.koiverse.archivetune.ui.component.LocalBottomSheetPageState
 import moe.koiverse.archivetune.ui.component.LocalMenuState
 import moe.koiverse.archivetune.ui.component.StarDialog
+import com.mikepenz.markdown.m3.Markdown
 import moe.koiverse.archivetune.ui.component.TopSearch
 import moe.koiverse.archivetune.ui.component.rememberBottomSheetState
 import moe.koiverse.archivetune.ui.component.shimmer.ShimmerTheme
@@ -481,22 +482,11 @@ class MainActivity : ComponentActivity() {
                         ) {
                             val notes = releaseNotesState.value
                             if (notes != null && notes.isNotBlank()) {
-                                val lines = notes.lines()
-                                Column(modifier = Modifier.padding(end = 8.dp)) {
-                                    lines.forEach { line ->
-                                        when {
-                                            line.startsWith("# ") -> Text(line.removePrefix("# ").trim(), style = MaterialTheme.typography.titleLarge)
-                                            line.startsWith("## ") -> Text(line.removePrefix("## ").trim(), style = MaterialTheme.typography.titleMedium)
-                                            line.startsWith("### ") -> Text(line.removePrefix("### ").trim(), style = MaterialTheme.typography.titleSmall)
-                                            line.startsWith("- ") -> Row {
-                                                Text("• ", style = MaterialTheme.typography.bodyLarge)
-                                                Text(line.removePrefix("- ").trim(), style = MaterialTheme.typography.bodyLarge)
-                                            }
-                                            else -> Text(line, style = MaterialTheme.typography.bodyMedium)
-                                        }
-                                        Spacer(Modifier.height(6.dp))
-                                    }
-                                }
+                                Markdown(
+                                    content = notes,
+                                    modifier = Modifier
+                                        .fillMaxWidth().padding(end = 8.dp)
+                                )
                             } else {
                                 Text(
                                     text = stringResource(R.string.release_notes_unavailable),
