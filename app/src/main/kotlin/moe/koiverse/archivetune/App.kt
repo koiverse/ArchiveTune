@@ -44,11 +44,13 @@ import kotlin.system.exitProcess
 import timber.log.Timber
 import java.net.Proxy
 import java.util.*
+import java.util.concurrent.atomic.AtomicBoolean
 
 @HiltAndroidApp
 class App : Application(), SingletonImageLoader.Factory {
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     @Volatile private var isInitialized = false
+    private val didRunImageCacheTrim = AtomicBoolean(false)
 
     private fun currentProcessName(): String? {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
@@ -222,21 +224,8 @@ class App : Application(), SingletonImageLoader.Factory {
             .maxSizeBytes(imageCacheConfig.maxSizeBytes)
             .build()
 
-        if (smartTrimmer && imageCacheConfig.policy == CachePolicy.ENABLED) {
-            Thread {
-                try {
-                    val dir = java.io.File(diskCache.directory.toString())
-                    val files = dir.listFiles()?.sortedBy { it.lastModified() } ?: emptyList<java.io.File>()
-                    val limit = diskCache.maxSize
-                    var currentSize = files.sumOf { it.length() }
-                    if (currentSize <= limit) return@Thread
-                    for (file in files) {
-                        if (currentSize <= limit) break
-                        val size = file.length()
-                        if (file.delete()) currentSize -= size
-                    }
-                } catch (_: Exception) {}
-            }.start()
+        if (smartTrimmer && imageCacheConfig.policy == CachePolicy.ENABLED && didRunImageCacheTrim.compareAndSet(false, true)) {
+            applicationScope.launch(Dispatchers.IO) { trimImageDiskCache(diskCache) }
         }
 
         return ImageLoader.Builder(this)
@@ -245,6 +234,27 @@ class App : Application(), SingletonImageLoader.Factory {
             .diskCache(diskCache)
             .diskCachePolicy(imageCacheConfig.policy)
             .build()
+    }
+
+    private fun trimImageDiskCache(diskCache: DiskCache) {
+        try {
+            val limitBytes = diskCache.maxSize
+            if (limitBytes <= 0L || limitBytes == Long.MAX_VALUE) return
+
+            val dir = java.io.File(diskCache.directory.toString())
+            if (!dir.exists()) return
+
+            val files = dir.walkTopDown().filter { it.isFile }.sortedBy { it.lastModified() }.toList()
+            var currentSize = files.sumOf { it.length() }
+            if (currentSize <= limitBytes) return
+
+            for (file in files) {
+                if (currentSize <= limitBytes) break
+                val size = file.length()
+                if (runCatching { file.delete() }.getOrDefault(false)) currentSize -= size
+            }
+        } catch (_: Exception) {
+        }
     }
 
     companion object {
@@ -273,7 +283,8 @@ internal data class ImageDiskCacheConfig(
 
 internal fun resolveImageDiskCacheConfig(maxImageCacheSizeMb: Int?): ImageDiskCacheConfig {
     val sizeMb = maxImageCacheSizeMb ?: 512
-    if (sizeMb <= 0) return ImageDiskCacheConfig(policy = CachePolicy.DISABLED, maxSizeBytes = 1L)
+    if (sizeMb == 0) return ImageDiskCacheConfig(policy = CachePolicy.DISABLED, maxSizeBytes = 1L)
+    if (sizeMb < 0) return ImageDiskCacheConfig(policy = CachePolicy.ENABLED, maxSizeBytes = Long.MAX_VALUE)
     val bytesPerMb = 1024L * 1024L
     val safeSizeMb = sizeMb.toLong().coerceAtMost(Long.MAX_VALUE / bytesPerMb)
     return ImageDiskCacheConfig(policy = CachePolicy.ENABLED, maxSizeBytes = safeSizeMb * bytesPerMb)
