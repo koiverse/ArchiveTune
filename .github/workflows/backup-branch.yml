@@ -1,0 +1,74 @@
+name: Create Backup Branch (Native)
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch-name:
+        description: 'Backup branch name'
+        required: true
+        type: string
+      sha:
+        description: 'SHA commit (leaving this blank will use the latest SHA)'
+        required: false
+        type: string
+      source-branch:
+        description: 'Source branch (leaving it blank will use the default branch)'
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  create-backup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Get default branch if not specified
+        if: ${{ !inputs.source-branch }}
+        id: default-branch
+        run: |
+          DEFAULT_BRANCH=$(gh repo view --json defaultBranch --jq .defaultBranch)
+          echo "branch=$DEFAULT_BRANCH" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Determine source branch
+        id: source-branch
+        run: |
+          if [ -z "${{ inputs.source-branch }}" ]; then
+            echo "branch=${{ steps.default-branch.outputs.branch }}" >> $GITHUB_OUTPUT
+          else
+            echo "branch=${{ inputs.source-branch }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Get SHA
+        id: get-sha
+        run: |
+          if [ -z "${{ inputs.sha }}" ]; then
+            # Fetch the source branch
+            git fetch origin ${{ steps.source-branch.outputs.branch }}
+            # Get the latest SHA from the source branch
+            SHA=$(git rev-parse origin/${{ steps.source-branch.outputs.branch }})
+            echo "sha=$SHA" >> $GITHUB_OUTPUT
+          else
+            echo "sha=${{ inputs.sha }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create and push backup branch
+        run: |
+          # Create branch from the specified SHA
+          git checkout -b ${{ inputs.branch-name }} ${{ steps.get-sha.outputs.sha }}
+          
+          # Push to remote
+          git push origin ${{ inputs.branch-name }}
+          
+          echo "✅ Backup branch created: ${{ inputs.branch-name }}"
+          echo "📝 SHA: ${{ steps.get-sha.outputs.sha }}"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
