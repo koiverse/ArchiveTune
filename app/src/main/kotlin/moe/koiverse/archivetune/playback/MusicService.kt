@@ -104,6 +104,8 @@ import moe.koiverse.archivetune.constants.RepeatModeKey
 import moe.koiverse.archivetune.constants.ShowLyricsKey
 import moe.koiverse.archivetune.constants.SimilarContent
 import moe.koiverse.archivetune.constants.SkipSilenceKey
+import moe.koiverse.archivetune.constants.MaxSongCacheSizeKey
+import moe.koiverse.archivetune.constants.SmartTrimmerKey
 import moe.koiverse.archivetune.constants.StopMusicOnTaskClearKey
 import moe.koiverse.archivetune.db.MusicDatabase
 import moe.koiverse.archivetune.db.entities.Event
@@ -120,6 +122,7 @@ import moe.koiverse.archivetune.extensions.SilentHandler
 import moe.koiverse.archivetune.extensions.collect
 import moe.koiverse.archivetune.extensions.collectLatest
 import moe.koiverse.archivetune.extensions.currentMetadata
+import moe.koiverse.archivetune.extensions.directorySizeBytes
 import moe.koiverse.archivetune.extensions.findNextMediaItemById
 import moe.koiverse.archivetune.extensions.mediaItems
 import moe.koiverse.archivetune.extensions.metadata
@@ -620,6 +623,21 @@ class MusicService :
                 } else {
                     try { DiscordPresenceManager.stop() } catch (_: Exception) {}
                 }
+            }
+
+        dataStore.data
+            .map { prefs ->
+                (prefs[SmartTrimmerKey] ?: false) to (prefs[MaxSongCacheSizeKey] ?: 1024)
+            }
+            .debounce(300)
+            .distinctUntilChanged()
+            .collectLatest(ioScope) { (enabled, maxSongCacheSizeMb) ->
+                if (!enabled) return@collectLatest
+                if (maxSongCacheSizeMb <= 0 || maxSongCacheSizeMb == -1) return@collectLatest
+                val bytesPerMb = 1024L * 1024L
+                val safeSizeMb = maxSongCacheSizeMb.toLong().coerceAtMost(Long.MAX_VALUE / bytesPerMb)
+                val limitBytes = safeSizeMb * bytesPerMb
+                trimPlayerCacheToBytes(limitBytes)
             }
 
         // Last.fm ScrobbleManager setup
@@ -1994,6 +2012,43 @@ class MusicService :
             skipOnError()
         } else {
             stopOnError()
+        }
+    }
+
+    private suspend fun trimPlayerCacheToBytes(limitBytes: Long) {
+        if (limitBytes <= 0L) return
+
+        withContext(Dispatchers.IO) {
+            val cacheDir = filesDir.resolve("exoplayer")
+            val currentSpace = runCatching { playerCache.cacheSpace }.getOrNull() ?: 0L
+            var totalBytes = if (currentSpace > 0L) currentSpace else cacheDir.directorySizeBytes()
+            if (totalBytes <= limitBytes) return@withContext
+
+            data class Candidate(
+                val key: String,
+                val lastTouchTimestamp: Long,
+                val sizeBytes: Long,
+            )
+
+            val candidates =
+                runCatching {
+                    playerCache.keys.mapNotNull { key ->
+                        runCatching {
+                            val spans = playerCache.getCachedSpans(key)
+                            if (spans.isEmpty()) return@runCatching null
+                            val oldestTouch = spans.minOf { it.lastTouchTimestamp }
+                            val sizeBytes = spans.sumOf { it.length }
+                            Candidate(key = key, lastTouchTimestamp = oldestTouch, sizeBytes = sizeBytes)
+                        }.getOrNull()
+                    }.sortedBy { it.lastTouchTimestamp }
+                }.getOrNull().orEmpty()
+
+            for (candidate in candidates) {
+                if (totalBytes <= limitBytes) break
+                val removedSize = candidate.sizeBytes.coerceAtLeast(0L)
+                runCatching { playerCache.removeResource(candidate.key) }
+                totalBytes -= removedSize
+            }
         }
     }
 
