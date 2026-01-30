@@ -34,6 +34,7 @@ timber = "5.0.1"
 kuromojiIpadic = "0.9.0"
 extractor = "2d2d9ed"
 rhino = "1.9.0"
+multiplatformMarkdown = "0.39.0"
 
 [libraries]
 annotation = { module = "androidx.annotation:annotation", version.ref = "annotation" }
@@ -110,6 +111,8 @@ newpipe-extractor = { module = "com.github.teamnewpipe:NewPipeExtractor", versio
 #newpipe-extractor = { module = "com.github.mostafaalagamy:MetrolistExtractor", version.ref = "extractor" }
 
 kuromoji-ipadic = { module = "com.atilika.kuromoji:kuromoji-ipadic", version.ref = "kuromojiIpadic" }
+
+multiplatform-markdown = { module = "com.mikepenz:multiplatform-markdown-renderer-m3", version.ref = "multiplatformMarkdown" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "androidGradlePlugin" }

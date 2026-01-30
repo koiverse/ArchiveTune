@@ -482,7 +482,11 @@ class MainActivity : ComponentActivity() {
                         ) {
                             val notes = releaseNotesState.value
                             if (notes != null && notes.isNotBlank()) {
-                                MarkdownText(text = notes)
+                                Markdown(
+                                    content = notes,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                )
                             } else {
                                 Text(
                                     text = stringResource(R.string.release_notes_unavailable),
