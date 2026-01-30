@@ -324,6 +324,8 @@
     <string name="custom_value">사용자 지정 값</string>
     <string name="new_library_design">썸네일 모서리 반경 사용자 지정</string>
     <string name="new_library_design_description">새 라이브러리 디자인</string>
+    <string name="archivetune_canvas">ArchiveTune Canvas</string>
+    <string name="archivetune_canvas_desc">재생 중 앨범 아트워크 애니메이션 (BetterLyrics 제공)</string>
     <string name="show_button1_description">새 라이브러리 디자인 활성화(불안정할 수 있음)</string>
     <string name="show_button2_description">Discord Rich의 버튼 1 가시성 전환 현재 상태</string>
     <string name="discord_activity_type">Discord Rich Presence에서 버튼 2의 가시성 전환</string>
