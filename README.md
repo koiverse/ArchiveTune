@@ -112,7 +112,7 @@
     </td>
     <td align="center">
       <a href="https://m.doyo.cn/app/539242.html">
-        <img src="https://raw.githubusercontent.com/koiverse/ArchiveTune/refs/heads/dev/assets/badge_doyo.png" height="60" alt="Get it on Doyo.cn">
+        <img src="https://raw.githubusercontent.com/koiverse/ArchiveTune/refs/heads/dev/assets/badge_doyo.png" height="40" alt="Get it on Doyo.cn">
       </a>
     </td>
   </tr>
