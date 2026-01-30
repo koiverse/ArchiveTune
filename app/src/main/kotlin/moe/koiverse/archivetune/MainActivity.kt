@@ -485,7 +485,7 @@ class MainActivity : ComponentActivity() {
                                 Markdown(
                                     content = notes,
                                     modifier = Modifier
-                                        .fillMaxWidth()
+                                        .fillMaxWidth().padding(end = 8.dp)
                                 )
                             } else {
                                 Text(
