@@ -64,8 +64,8 @@
     <string name="liked_songs">Bài hát đã thích</string>
     <string name="downloaded_songs">Bài hát đã tải xuống</string>
     <string name="playlist_is_empty">Danh sách phát trống</string>
-    <string name="remove_download_playlist_confirm">Bạn có thực sự muốn xóa tất cả các bài hát của danh sách phát \"%s\" khỏi bộ nhớ Bài hát đã tải xuống không?</string>
-    <string name="delete_playlist_confirm">Bạn có thực sự muốn xóa danh sách phát \"%s\" không?</string>
+    <string name="remove_download_playlist_confirm">Bạn có muốn xóa tất cả bài hát của \"%s\" khỏi mục đã tải xuống không?</string>
+    <string name="delete_playlist_confirm">Bạn có muốn xóa danh sách phát \"%s\" không?</string>
     <!-- Button -->
     <string name="retry">Thử lại</string>
     <string name="radio">Radio</string>
@@ -115,9 +115,9 @@
     <!-- Dialog -->
     <string name="media_id">ID phương tiện</string>
     <string name="mime_type">Loại MIME</string>
-    <string name="codecs">Codecs</string>
+    <string name="codecs">Codec</string>
     <string name="bitrate">Bitrate</string>
-    <string name="sample_rate">Sample rate</string>
+    <string name="sample_rate">Tần số mẫu</string>
     <string name="loudness">Độ to</string>
     <string name="volume">Âm lượng</string>
     <string name="file_size">Kích thước file</string>
@@ -199,11 +199,11 @@
     <string name="action_like_all">Thích tất cả</string>
     <string name="action_remove_like">Bỏ thích</string>
     <string name="action_remove_like_all">Bỏ thích tất cả</string>
-    <string name="action_shuffle_on">Xáo trộn bật</string>
-    <string name="action_shuffle_off">Xáo trộn tắt</string>
-    <string name="repeat_mode_off">Chế độ lặp tắt</string>
-    <string name="repeat_mode_one">Lặp bài hát hiện tại</string>
-    <string name="repeat_mode_all">Lặp hàng đợi</string>
+    <string name="action_shuffle_on">Bật xáo trộn</string>
+    <string name="action_shuffle_off">Tắt xáo trộn</string>
+    <string name="repeat_mode_off">Lặp lại: Tắt</string>
+    <string name="repeat_mode_one">Lặp 1 bài</string>
+    <string name="repeat_mode_all">Lặp tất cả</string>
     <!-- Queue Title -->
     <string name="queue_all_songs">Tất cả bài hát</string>
     <string name="queue_searched_songs">Bài hát đã tìm kiếm</string>
@@ -228,47 +228,47 @@
     <!-- Palette Names -->
     <string name="palette_default">Mặc định</string>
     <!-- Blues -->
-    <string name="palette_ocean_blue">Xanh dương đại dương</string>
+    <string name="palette_ocean_blue">Xanh Đại Dương</string>
     <string name="palette_arctic_blue">Bắc cực</string>
     <string name="palette_midnight_navy">Đêm khuya</string>
     <string name="palette_sky_blue">Xanh trời</string>
-    <string name="palette_cobalt_blue">Xanh cô ban</string>
-    <string name="palette_electric_blue">Xanh điện</string>
+    <string name="palette_cobalt_blue">Cobalt</string>
+    <string name="palette_electric_blue">Xanh Điện</string>
     <!-- Greens -->
-    <string name="palette_emerald_green">Xanh ngọc bích</string>
-    <string name="palette_teal_wave">Sóng xanh lơ</string>
+    <string name="palette_emerald_green">Xanh Ngọc</string>
+    <string name="palette_teal_wave">Xanh Teal</string>
     <string name="palette_forest_green">Xanh rừng</string>
     <string name="palette_spotify_green">Xanh Spotify</string>
     <string name="palette_mint_fresh">Xanh bạc hà</string>
     <string name="palette_olive_garden">Ô liu</string>
-    <string name="palette_sage_green">Xanh xô thơm</string>
+    <string name="palette_sage_green">Xanh Sage</string>
     <!-- Oranges & Yellows -->
-    <string name="palette_sunset_orange">Cam hoàng hôn</string>
+    <string name="palette_sunset_orange">Cam Hoàng Hôn</string>
     <string name="palette_golden_hour">Giờ vàng</string>
-    <string name="palette_warm_amber">Hổ phách ấm</string>
-    <string name="palette_tangerine_blast">Quýt nổ</string>
+    <string name="palette_warm_amber">Hổ Phách</string>
+    <string name="palette_tangerine_blast">Quýt</string>
     <string name="palette_peach">Đào</string>
     <string name="palette_mango">Xoài</string>
     <!-- Purples -->
-    <string name="palette_royal_purple">Tím hoàng gia</string>
-    <string name="palette_lavender_dream">Tím oải hương</string>
+    <string name="palette_royal_purple">Tím Hoàng Gia</string>
+    <string name="palette_lavender_dream">Oải Hương</string>
     <string name="palette_grape_purple">Tím nho</string>
     <string name="palette_violet">Tím</string>
-    <string name="palette_amethyst">Thạch anh tím</string>
-    <string name="palette_ultra_violet">Cực tím</string>
+    <string name="palette_amethyst">Amethyst</string>
+    <string name="palette_ultra_violet">Tím Cực</string>
     <!-- Pinks -->
-    <string name="palette_cherry_blossom">Hoa anh đào</string>
-    <string name="palette_rose_quartz">Thạch anh hồng</string>
-    <string name="palette_magenta_pop">Đỏ sẫm</string>
-    <string name="palette_hot_pink">Hồng nóng</string>
-    <string name="palette_blush">Thẹn thùng</string>
+    <string name="palette_cherry_blossom">Anh Đào</string>
+    <string name="palette_rose_quartz">Thạch Anh Hồng</string>
+    <string name="palette_magenta_pop">Magenta</string>
+    <string name="palette_hot_pink">Hồng Nóng</string>
+    <string name="palette_blush">Hồng Thẹn</string>
     <string name="palette_coral">San hô</string>
     <string name="palette_bubblegum">Kẹo cao su</string>
     <!-- Reds -->
-    <string name="palette_crimson_red">Đỏ thẫm</string>
+    <string name="palette_crimson_red">Crimson</string>
     <string name="palette_youtube_red">Đỏ YouTube</string>
     <string name="palette_wine_red">Đỏ rượu vang</string>
-    <string name="palette_ruby_red">Đỏ hồng ngọc</string>
+    <string name="palette_ruby_red">Ruby</string>
     <string name="palette_scarlet">Đỏ tươi</string>
     <!-- Neutrals -->
     <string name="palette_charcoal">Than đá</string>
@@ -430,13 +430,13 @@
     <string name="eq_import_failed">Dữ liệu hồ sơ không hợp lệ</string>
     <string name="eq_imported_profile">Đã nhập</string>
     <string name="eq_import_success">Đã nhập %1$d hồ sơ</string>
-    <string name="eq_bands">Dải</string>
+    <string name="eq_bands">Dải tần</string>
     <string name="eq_output_gain">Tăng âm lượng đầu ra</string>
-    <string name="eq_bass_boost">Tăng âm trầm</string>
-    <string name="eq_virtualizer">Bộ tạo âm ảo</string>
+    <string name="eq_bass_boost">Bass Boost</string>
+    <string name="eq_virtualizer">Virtualizer</string>
     <string name="storage">Lưu trữ</string>
     <string name="smart_trimmer">Bộ cắt thông minh</string>
-    <string name="smart_trimmer_description">Bộ cắt thông minh quản lý động cache hình ảnh và cache bài hát, loại bỏ các mục cũ để tiết kiệm dung lượng đĩa.</string>
+    <string name="smart_trimmer_description">Bộ cắt thông minh tự động quản lý cache hình ảnh và bài hát, xóa các mục cũ để tiết kiệm dung lượng.</string>
     <string name="cache">Cache</string>
     <string name="image_cache">Cache hình ảnh</string>
     <string name="song_cache">Cache bài hát</string>
@@ -458,7 +458,7 @@
     <string name="clear_search_history">Xóa lịch sử tìm kiếm</string>
     <string name="clear_search_history_confirm">Bạn có chắc chắn muốn xóa tất cả lịch sử tìm kiếm không?</string>
     <string name="use_login_for_browse">Sử dụng đăng nhập để duyệt nội dung</string>
-    <string name="use_login_for_browse_desc">Điều này có thể ảnh hưởng đến nội dung bạn thấy và ví dụ hiển thị album chỉ dành cho premium nếu bạn đăng nhập bằng tài khoản Premium</string>
+    <string name="use_login_for_browse_desc">Điều này có thể ảnh hưởng đến nội dung bạn thấy, ví dụ như hiển thị album premium khi đăng nhập bằng tài khoản Premium</string>
     <string name="disable_screenshot">Tắt chụp màn hình</string>
     <string name="disable_screenshot_desc">Khi tùy chọn này được bật, chụp màn hình và chế độ xem ứng dụng trong Ứng dụng gần đây sẽ bị tắt.</string>
     <string name="enable_lrclib">Bật nhà cung cấp lời bài hát LrcLib</string>
@@ -547,7 +547,7 @@ ArchiveTune sẽ chỉ trích xuất token của bạn, và mọi thứ khác đ
     <string name="show_small_image">Hiển thị hình ảnh nhỏ</string>
     <string name="description_show_small_image">Khi được bật, một hình ảnh tròn nhỏ được hiển thị trong bản xem trước Rich Presence và gửi đến Discord nếu có</string>
     <string name="logout_confirm_title">Xác nhận đăng xuất</string>
-    <string name="logout_confirm_message">Bạn có chắc chắn muốn đăng xuất Discord không?.</string>
+    <string name="logout_confirm_message">Bạn có chắc chắn muốn đăng xuất Discord không?</string>
     <string name="logout_confirm_yes">Đăng xuất</string>
     <string name="logout_confirm_no">Hủy</string>
     <!--Misc settings additions-->
