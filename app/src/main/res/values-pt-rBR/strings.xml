@@ -361,8 +361,6 @@
     <string name="audio_quality">Qualidade do Áudio</string>
     <string name="audio_quality_auto">Automático</string>
     <string name="audio_quality_high">Alto</string>
-    <string name="audio_quality_very_high">Muito alto</string>
-    <string name="audio_quality_highest">Mais alto</string>
     <string name="audio_quality_low">Baixo</string>
     <string name="network_metered_title">Tratar a rede como tarifada</string>
     <string name="network_metered_description">Quando ativada, a aplicação dará preferência a transmissões de qualidade inferior em redes com tarifação limitada</string>

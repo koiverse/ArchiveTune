@@ -392,8 +392,6 @@
     <string name="audio_quality">Ses kalitesi</string>
     <string name="audio_quality_auto">Otomatik</string>
     <string name="audio_quality_high">Yüksek</string>
-    <string name="audio_quality_very_high">Çok Yüksek</string>
-    <string name="audio_quality_highest">En yüksek</string>
     <string name="audio_quality_low">Düşük</string>
     <string name="network_metered_title">Ağı ölçülü olarak değerlendir</string>
     <string name="network_metered_description">Etkinleştirildiğinde uygulama, ölçülü ağlarda daha düşük kaliteli akışları tercih eder</string>
