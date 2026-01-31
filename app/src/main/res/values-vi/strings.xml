@@ -617,4 +617,36 @@ ArchiveTune sẽ chỉ trích xuất token của bạn, và mọi thứ khác đ
     <string name="permission_status_required">Vui lòng cho phép tất cả quyền cần thiết để tiếp tục.</string>
     <string name="next">Tiếp theo</string>
     <string name="allow">Cho phép</string>
+
+    <string name="tempo">Nhịp độ</string>
+    <string name="pitch">Cao độ</string>
+    <string name="pitch_mode_semitones_short">st</string>
+    <string name="pitch_mode_multiplier_short">x</string>
+    <string name="new_library_design_description">Bật thiết kế thư viện mới (có thể không ổn định)</string>
+    <string name="permanent_shuffle">Chế độ xáo trộn vĩnh viễn</string>
+    <string name="permanent_shuffle_desc">Luôn bật xáo trộn khi bạn bắt đầu một bài hát mới</string>
+    <string name="restore_success">Khôi phục sao lưu thành công</string>
+    <string name="status_active">ĐANG HOẠT ĐỘNG</string>
+    <string name="status_inactive">KHÔNG HOẠT ĐỘNG</string>
+    <string name="last_start">Lần bắt đầu cuối</string>
+    <string name="last_end">Lần kết thúc cuối</string>
+    <string name="debug_logs">Nhật ký gỡ lỗi</string>
+    <string name="log_level_verbose">Verbose</string>
+    <string name="log_level_debug">Debug</string>
+    <string name="log_level_info">Info</string>
+    <string name="log_level_warning">Warning</string>
+    <string name="log_level_error">Error</string>
+    <string name="filter_discord_only">Discord</string>
+    <string name="filter_all_logs">Tất cả</string>
+    <string name="clear">Xóa</string>
+    <string name="logs_empty_message">Nhật ký sẽ xuất hiện ở đây khi có sẵn</string>
+    <string name="real_time_playback_stats">Thống kê phát nhạc thời gian thực</string>
+    <string name="copied_to_clipboard">Đã sao chép nhật ký vào clipboard</string>
+    <string name="playback_state_idle">NGHỈ</string>
+    <string name="playback_state_buffering">ĐANG ĐỆM</string>
+    <string name="playback_state_ready">SẴN SÀNG</string>
+    <string name="playback_state_ended">ĐÃ KẾT THÚC</string>
+    <string name="playback_state_unknown">KHÔNG XÁC ĐỊNH</string>
+    <string name="share_logs">Chia sẻ nhật ký</string>
+    <string name="next_song">Bài hát tiếp theo</string>
 </resources>
