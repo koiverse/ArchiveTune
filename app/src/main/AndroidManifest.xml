@@ -32,6 +32,7 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="false"
         android:theme="@style/Theme.ArchiveTune"
+        android:extractNativeLibs="true"
         tools:targetApi="tiramisu">
         <uses-library
             android:name="org.apache.http.legacy"

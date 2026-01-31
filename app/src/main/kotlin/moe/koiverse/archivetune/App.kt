@@ -15,6 +15,9 @@ import coil3.disk.directory
 import coil3.request.CachePolicy
 import coil3.request.allowHardware
 import coil3.request.crossfade
+import com.yausername.youtubedl_android.FFmpeg
+import com.yausername.youtubedl_android.YoutubeDL
+import com.yausername.youtubedl_android.YoutubeDLException
 import moe.koiverse.archivetune.constants.*
 import moe.koiverse.archivetune.extensions.*
 import moe.koiverse.archivetune.utils.dataStore
@@ -77,6 +80,13 @@ class App : Application(), SingletonImageLoader.Factory {
         try {
             Timber.plant(moe.koiverse.archivetune.utils.GlobalLogTree())
         } catch (_: Exception) {}
+
+        try {
+            YoutubeDL.getInstance().init(this)
+            FFmpeg.getInstance().init(this)
+        } catch (e: YoutubeDLException) {
+            Timber.e(e, "Failed to initialize youtubedl-android")
+        }
 
         initializeCriticalSync()
         initializeDeferredAsync()

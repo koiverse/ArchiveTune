@@ -9,6 +9,8 @@ plugins {
     alias(libs.plugins.compose.compiler)
 }
 
+val youtubedlAndroid = "0.18.1"
+
 val localProperties = Properties()
 val localPropertiesFile = rootProject.file("local.properties")
 if (localPropertiesFile.exists()) {
@@ -209,6 +211,8 @@ dependencies {
     implementation(project(":simpmusic"))
     implementation(project(":canvas"))
     implementation("com.github.Kyant0:m3color:2025.4")
+    implementation("io.github.junkfood02.youtubedl-android:library:$youtubedlAndroid")
+    implementation("io.github.junkfood02.youtubedl-android:ffmpeg:$youtubedlAndroid")
 
     implementation(libs.ktor.client.core)
     implementation(libs.ktor.serialization.json)

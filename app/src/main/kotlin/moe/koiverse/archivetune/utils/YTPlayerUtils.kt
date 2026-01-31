@@ -2,6 +2,11 @@ package moe.koiverse.archivetune.utils
 
 import android.net.ConnectivityManager
 import androidx.media3.common.PlaybackException
+import com.yausername.youtubedl_android.YoutubeDL
+import com.yausername.youtubedl_android.YoutubeDLException
+import com.yausername.youtubedl_android.YoutubeDLRequest
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import moe.koiverse.archivetune.constants.AudioQuality
 import moe.koiverse.archivetune.constants.PlayerStreamClient
 import moe.koiverse.archivetune.innertube.NewPipeUtils
@@ -255,12 +260,18 @@ object YTPlayerUtils {
         }
 
         Timber.tag(logTag).i("Successfully obtained playback data with format: ${format.mimeType}, bitrate: ${format.bitrate}")
+        val finalStreamUrl =
+            if (audioQuality == AudioQuality.HIGHEST) {
+                resolveMaxQualityStreamUrl(videoId, streamUrl)
+            } else {
+                streamUrl
+            }
         PlaybackData(
             audioConfig,
             videoDetails,
             playbackTracking,
             format,
-            streamUrl,
+            finalStreamUrl,
             streamExpiresInSeconds,
         )
     }
@@ -383,6 +394,39 @@ object YTPlayerUtils {
             codec.contains("mp4a", ignoreCase = true) -> 2
             else -> 1
         }
+
+    private suspend fun resolveMaxQualityStreamUrl(
+        videoId: String,
+        fallbackUrl: String,
+    ): String {
+        return withContext(Dispatchers.IO) {
+            val youtubeUrl = "https://www.youtube.com/watch?v=$videoId"
+            val request =
+                YoutubeDLRequest(youtubeUrl).apply {
+                    addOption("-f", "bestaudio/best")
+                    addOption("--no-playlist")
+                    addOption("--get-url")
+                    addOption("--quiet")
+                    addOption("--no-warnings")
+                }
+            runCatching {
+                val output = YoutubeDL.getInstance().execute(request)
+                val resolved =
+                    output
+                        .lineSequence()
+                        .map { it.trim() }
+                        .firstOrNull { it.startsWith("http") }
+                if (resolved.isNullOrEmpty()) fallbackUrl else resolved
+            }.getOrElse { throwable ->
+                if (throwable is YoutubeDLException) {
+                    Timber.tag(logTag).e(throwable, "yt-dlp failed to resolve max-quality audio stream")
+                } else {
+                    Timber.tag(logTag).e(throwable, "Unexpected error while resolving max-quality audio stream")
+                }
+                fallbackUrl
+            }
+        }
+    }
     private fun isLikelyPreview(
         format: PlayerResponse.StreamingData.Format,
         expectedDurationMs: Long,
