@@ -1,4 +1,4 @@
-name: Bebug Build Commit
+name: Debug Build Commit
 
 on:
   workflow_dispatch:
