@@ -50,6 +50,7 @@ class BackupRestoreViewModel @Inject constructor(
                         writeSettingsToXml(context, zipStream)
                         zipStream.closeEntry()
 
+                        database.awaitIdle()
                         database.checkpoint()
 
                         val dbFile = context.getDatabasePath(InternalDatabase.DB_NAME)
