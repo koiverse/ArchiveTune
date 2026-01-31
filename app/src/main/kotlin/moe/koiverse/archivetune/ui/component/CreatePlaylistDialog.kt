@@ -31,7 +31,6 @@ import moe.koiverse.archivetune.extensions.isSyncEnabled
 import moe.koiverse.archivetune.utils.rememberPreference
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import java.time.LocalDateTime
 import java.util.logging.Logger
 
@@ -63,14 +62,14 @@ fun CreatePlaylistDialog(
                     return@launch
                 } else null
 
-                database.query {
+                database.withTransaction {
                     insert(
                         PlaylistEntity(
                             name = playlistName,
                             browseId = browseId,
                             bookmarkedAt = LocalDateTime.now(),
                             isEditable = true,
-                        )
+                        ),
                     )
                 }
             }
