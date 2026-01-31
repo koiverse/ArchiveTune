@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.media3.exoplayer.offline.Download
 import moe.koiverse.archivetune.constants.HideExplicitKey
+import moe.koiverse.archivetune.constants.HideVideoKey
 import moe.koiverse.archivetune.constants.SongSortDescendingKey
 import moe.koiverse.archivetune.constants.SongSortType
 import moe.koiverse.archivetune.constants.SongSortTypeKey
@@ -48,17 +49,18 @@ constructor(
     val likedSongs =
         context.dataStore.data
             .map {
-                Pair(
+                Triple(
                     it[SongSortTypeKey].toEnum(SongSortType.CREATE_DATE) to (it[SongSortDescendingKey]
                         ?: true),
-                    it[HideExplicitKey] ?: false
+                    it[HideExplicitKey] ?: false,
+                    it[HideVideoKey] ?: false,
                 )
             }
             .distinctUntilChanged()
-            .flatMapLatest { (sortDesc, hideExplicit) ->
+            .flatMapLatest { (sortDesc, hideExplicit, hideVideo) ->
                 val (sortType, descending) = sortDesc
                 when (playlist) {
-                    "liked" -> database.likedSongs(sortType, descending).map { it.filterExplicit(hideExplicit) }
+                    "liked" -> database.likedSongs(sortType, descending, hideVideo).map { it.filterExplicit(hideExplicit) }
                     "downloaded" -> downloadUtil.downloads.flatMapLatest { downloads ->
                         database.allSongs()
                             .flowOn(Dispatchers.IO)
