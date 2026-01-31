@@ -4,7 +4,15 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
+import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.floatPreferencesKey
+import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.longPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.stringSetPreferencesKey
+import androidx.datastore.preferences.core.edit
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import moe.koiverse.archivetune.MainActivity
 import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.db.InternalDatabase
@@ -18,103 +26,216 @@ import moe.koiverse.archivetune.extensions.zipInputStream
 import moe.koiverse.archivetune.extensions.zipOutputStream
 import moe.koiverse.archivetune.playback.MusicService
 import moe.koiverse.archivetune.playback.MusicService.Companion.PERSISTENT_QUEUE_FILE
+import moe.koiverse.archivetune.utils.dataStore
 import moe.koiverse.archivetune.utils.reportException
 import dagger.hilt.android.lifecycle.HiltViewModel
-import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import java.io.FileInputStream
 import java.io.FileOutputStream
+import java.io.StringReader
 import java.util.zip.ZipEntry
 import javax.inject.Inject
 import kotlin.system.exitProcess
-import moe.koiverse.archivetune.utils.dataStore
+import kotlin.math.roundToInt
+import org.xmlpull.v1.XmlPullParser
 
-import androidx.datastore.preferences.core.edit
-import kotlinx.coroutines.flow.first
+data class BackupRestoreProgressUi(
+    val title: String,
+    val step: String,
+    val percent: Int,
+    val indeterminate: Boolean,
+)
 
 @HiltViewModel
 class BackupRestoreViewModel @Inject constructor(
     val database: MusicDatabase,
 ) : ViewModel() {
+    private val _backupRestoreProgress = MutableStateFlow<BackupRestoreProgressUi?>(null)
+    val backupRestoreProgress: StateFlow<BackupRestoreProgressUi?> = _backupRestoreProgress.asStateFlow()
+
+    private fun emitProgress(
+        title: String,
+        step: String,
+        percent: Int,
+        indeterminate: Boolean,
+    ) {
+        _backupRestoreProgress.value =
+            BackupRestoreProgressUi(
+                title = title,
+                step = step,
+                percent = percent.coerceIn(0, 100),
+                indeterminate = indeterminate,
+            )
+    }
 
     fun backup(context: Context, uri: Uri) {
         viewModelScope.launch(Dispatchers.IO) {
-            runCatching {
+            val title = context.getString(R.string.backup_in_progress)
+            try {
+                val dbFile = context.getDatabasePath(InternalDatabase.DB_NAME)
+                val dbFiles =
+                    listOf(
+                        dbFile,
+                        dbFile.resolveSibling("${InternalDatabase.DB_NAME}-wal"),
+                        dbFile.resolveSibling("${InternalDatabase.DB_NAME}-shm"),
+                        dbFile.resolveSibling("${InternalDatabase.DB_NAME}-journal"),
+                    ).filter { it.exists() }
+
+                val totalUnits = 2 + dbFiles.size
+                val unitSpan = 100f / totalUnits.coerceAtLeast(1)
+                var completedUnits = 0
+                var lastPercent = -1
+                var lastStep = ""
+
+                fun emit(step: String, unitFraction: Float = 0f, indeterminate: Boolean = false) {
+                    val p =
+                        ((completedUnits + unitFraction.coerceIn(0f, 1f)) * unitSpan)
+                            .roundToInt()
+                            .coerceIn(0, 100)
+                    if (p != lastPercent || step != lastStep) {
+                        lastPercent = p
+                        lastStep = step
+                        emitProgress(
+                            title = title,
+                            step = step,
+                            percent = p,
+                            indeterminate = indeterminate,
+                        )
+                    }
+                }
+
                 context.applicationContext.contentResolver.openOutputStream(uri)?.use { outputStream ->
                     outputStream.buffered().zipOutputStream().use { zipStream ->
-                        // 1. Backup Settings to XML
+                        emit(context.getString(R.string.backup_step_export_settings), indeterminate = true)
                         zipStream.putNextEntry(ZipEntry(SETTINGS_XML_FILENAME))
                         writeSettingsToXml(context, zipStream)
                         zipStream.closeEntry()
+                        completedUnits++
 
+                        emit(context.getString(R.string.backup_step_checkpoint_database), indeterminate = true)
                         database.awaitIdle()
                         database.checkpoint()
+                        completedUnits++
 
-                        val dbFile = context.getDatabasePath(InternalDatabase.DB_NAME)
-                        val dbFiles = listOf(
-                            dbFile,
-                            dbFile.resolveSibling("${InternalDatabase.DB_NAME}-wal"),
-                            dbFile.resolveSibling("${InternalDatabase.DB_NAME}-shm"),
-                            dbFile.resolveSibling("${InternalDatabase.DB_NAME}-journal"),
-                        )
-                        dbFiles.filter { it.exists() }.forEach { file ->
+                        val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
+                        dbFiles.forEach { file ->
+                            val fileSize = file.length().coerceAtLeast(1L)
+                            var bytesCopied = 0L
+                            emit(
+                                context.getString(R.string.backup_step_copying_file, file.name),
+                                unitFraction = 0f,
+                                indeterminate = false,
+                            )
                             zipStream.putNextEntry(ZipEntry(file.name))
                             FileInputStream(file).use { input ->
-                                input.copyTo(zipStream)
+                                while (true) {
+                                    val read = input.read(buffer)
+                                    if (read <= 0) break
+                                    zipStream.write(buffer, 0, read)
+                                    bytesCopied += read
+                                    emit(
+                                        context.getString(R.string.backup_step_copying_file, file.name),
+                                        unitFraction = bytesCopied.toFloat() / fileSize.toFloat(),
+                                        indeterminate = false,
+                                    )
+                                }
                             }
                             zipStream.closeEntry()
+                            completedUnits++
                         }
                     }
                 } ?: throw IllegalStateException("Failed to open output stream")
-            }.onSuccess {
+
                 withContext(Dispatchers.Main) {
                     Toast.makeText(context, R.string.backup_create_success, Toast.LENGTH_SHORT).show()
                 }
-            }.onFailure { exception ->
+            } catch (exception: Exception) {
                 reportException(exception)
                 withContext(Dispatchers.Main) {
                     val msg = exception.message ?: context.getString(R.string.backup_create_failed)
                     Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
                 }
+            } finally {
+                _backupRestoreProgress.value = null
             }
         }
     }
 
     fun restore(context: Context, uri: Uri) {
         viewModelScope.launch(Dispatchers.IO) {
-            runCatching {
-                // Verify file first
+            val title = context.getString(R.string.restore_in_progress)
+            try {
+                emitProgress(
+                    title = title,
+                    step = context.getString(R.string.restore_step_verifying),
+                    percent = 0,
+                    indeterminate = true,
+                )
+
+                val entryNames = ArrayList<String>()
+                var hasDb = false
                 context.applicationContext.contentResolver.openInputStream(uri)?.use { stream ->
-                    var hasSettings = false
-                    var hasDb = false
                     stream.zipInputStream().use { zip ->
                         var entry = zip.nextEntry
                         while (entry != null) {
-                            when (entry.name) {
-                                SETTINGS_XML_FILENAME, SETTINGS_FILENAME -> hasSettings = true
-                                InternalDatabase.DB_NAME -> hasDb = true
-                            }
+                            entryNames.add(entry.name)
+                            if (entry.name == InternalDatabase.DB_NAME) hasDb = true
                             entry = zip.nextEntry
                         }
                     }
-                    if (!hasDb) throw IllegalStateException("Backup missing database")
+                }
+                if (!hasDb) throw IllegalStateException("Backup missing database")
+
+                val restoreEntries =
+                    entryNames.filter { name ->
+                        name == SETTINGS_XML_FILENAME ||
+                            name == SETTINGS_FILENAME ||
+                            name == InternalDatabase.DB_NAME ||
+                            name == "${InternalDatabase.DB_NAME}-wal" ||
+                            name == "${InternalDatabase.DB_NAME}-shm" ||
+                            name == "${InternalDatabase.DB_NAME}-journal"
+                    }
+
+                val totalUnits = 1 + 1 + restoreEntries.size
+                val unitSpan = 100f / totalUnits.coerceAtLeast(1)
+                var completedUnits = 0
+
+                fun emit(step: String, indeterminate: Boolean) {
+                    val p = (completedUnits * unitSpan).roundToInt().coerceIn(0, 100)
+                    emitProgress(title = title, step = step, percent = p, indeterminate = indeterminate)
                 }
 
-                // Perform restore
+                completedUnits++
+                emit(context.getString(R.string.restore_step_stopping_playback), indeterminate = true)
+                runCatching { context.stopService(Intent(context, MusicService::class.java)) }
+                runCatching { database.awaitIdle() }
+                runCatching { database.checkpoint() }
+                runCatching { database.close() }
+                completedUnits++
+
                 context.applicationContext.contentResolver.openInputStream(uri)?.use { stream ->
                     stream.zipInputStream().use { zip ->
                         var entry = zip.nextEntry
                         while (entry != null) {
-                            when (entry.name) {
+                            val name = entry.name
+                            if (name !in restoreEntries) {
+                                entry = zip.nextEntry
+                                continue
+                            }
+                            when (name) {
                                 SETTINGS_XML_FILENAME -> {
-                                    // Parse XML and update DataStore
+                                    emit(context.getString(R.string.restore_step_restoring_settings), indeterminate = true)
                                     restoreSettingsFromXml(context, zip)
                                 }
                                 SETTINGS_FILENAME -> {
-                                    // Legacy binary restore
+                                    emit(context.getString(R.string.restore_step_restoring_settings), indeterminate = true)
                                     val settingsDir = context.filesDir / "datastore"
                                     if (!settingsDir.exists()) settingsDir.mkdirs()
                                     (settingsDir / SETTINGS_FILENAME).outputStream().use { out ->
@@ -125,9 +246,8 @@ class BackupRestoreViewModel @Inject constructor(
                                 "${InternalDatabase.DB_NAME}-wal",
                                 "${InternalDatabase.DB_NAME}-shm",
                                 "${InternalDatabase.DB_NAME}-journal" -> {
-                                    database.checkpoint()
-                                    database.close()
-                                    val dbFile = context.getDatabasePath(entry.name)
+                                    emit(context.getString(R.string.restore_step_restoring_file, name), indeterminate = true)
+                                    val dbFile = context.getDatabasePath(name)
                                     if (dbFile.exists()) {
                                         dbFile.delete()
                                     }
@@ -136,28 +256,35 @@ class BackupRestoreViewModel @Inject constructor(
                                     }
                                 }
                             }
+                            completedUnits++
                             entry = zip.nextEntry
                         }
                     }
                 }
 
-                // Restart logic
+                emitProgress(
+                    title = title,
+                    step = context.getString(R.string.restore_step_restarting),
+                    percent = 100,
+                    indeterminate = true,
+                )
+
                 withContext(Dispatchers.Main) {
-                   Toast.makeText(context, "Restore successful", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, R.string.restore_success, Toast.LENGTH_SHORT).show()
                 }
-                
-                // Cleanup
-                try { context.stopService(Intent(context, MusicService::class.java)) } catch (_: Exception) {}
+
                 try { context.filesDir.resolve(PERSISTENT_QUEUE_FILE).delete() } catch (_: Exception) {}
-                
-             }.onSuccess {
-                 context.startActivity(Intent(context, MainActivity::class.java))
-                 exitProcess(0)
-             }.onFailure { e ->
+
+                _backupRestoreProgress.value = null
+                context.startActivity(Intent(context, MainActivity::class.java))
+                exitProcess(0)
+            } catch (e: Exception) {
                 reportException(e)
                 withContext(Dispatchers.Main) {
                     Toast.makeText(context, e.message ?: context.getString(R.string.restore_failed), Toast.LENGTH_LONG).show()
                 }
+            } finally {
+                _backupRestoreProgress.value = null
             }
         }
     }
@@ -203,67 +330,100 @@ class BackupRestoreViewModel @Inject constructor(
     }
 
     private suspend fun restoreSettingsFromXml(context: Context, inputStream: java.io.InputStream) {
-        // Read full content to avoid ZipInputStream issues with XmlPullParser
-        val content = inputStream.bufferedReader().use { it.readText() }
-        if (content.isEmpty()) return
+        val content = inputStream.readBytes().toString(Charsets.UTF_8)
+        if (content.isBlank()) return
 
         val parser = android.util.Xml.newPullParser()
-        parser.setInput(java.io.StringReader(content))
-        
+        parser.setInput(StringReader(content))
+
         var eventType = parser.eventType
-        // Track restored count for debugging/verification (could be logged or toasted)
-        var restoredCount = 0
-        
-        while (eventType != org.xmlpull.v1.XmlPullParser.END_DOCUMENT) {
-            if (eventType == org.xmlpull.v1.XmlPullParser.START_TAG) {
+        val booleans = LinkedHashMap<String, Boolean>()
+        val ints = LinkedHashMap<String, Int>()
+        val longs = LinkedHashMap<String, Long>()
+        val floats = LinkedHashMap<String, Float>()
+        val strings = LinkedHashMap<String, String>()
+        val stringSets = LinkedHashMap<String, Set<String>>()
+
+        while (eventType != XmlPullParser.END_DOCUMENT) {
+            if (eventType == XmlPullParser.START_TAG) {
                 val name = parser.name
                 val keyName = parser.getAttributeValue(null, "name")
-                
+
                 if (keyName != null) {
                     when (name) {
                         "boolean" -> {
                             val value = parser.getAttributeValue(null, "value")?.toBoolean()
                             if (value != null) {
-                                context.dataStore.edit { it[androidx.datastore.preferences.core.booleanPreferencesKey(keyName)] = value }
-                                restoredCount++
+                                booleans[keyName] = value
                             }
                         }
                         "int" -> {
                             val value = parser.getAttributeValue(null, "value")?.toIntOrNull()
                             if (value != null) {
-                                context.dataStore.edit { it[androidx.datastore.preferences.core.intPreferencesKey(keyName)] = value }
-                                restoredCount++
+                                ints[keyName] = value
                             }
                         }
                         "long" -> {
                             val value = parser.getAttributeValue(null, "value")?.toLongOrNull()
                             if (value != null) {
-                                context.dataStore.edit { it[androidx.datastore.preferences.core.longPreferencesKey(keyName)] = value }
-                                restoredCount++
+                                longs[keyName] = value
                             }
                         }
                         "float" -> {
                             val value = parser.getAttributeValue(null, "value")?.toFloatOrNull()
                             if (value != null) {
-                                context.dataStore.edit { it[androidx.datastore.preferences.core.floatPreferencesKey(keyName)] = value }
-                                restoredCount++
+                                floats[keyName] = value
                             }
                         }
                         "string" -> {
                             val value = parser.getAttributeValue(null, "value")
                             if (value != null) {
-                                context.dataStore.edit { it[androidx.datastore.preferences.core.stringPreferencesKey(keyName)] = value }
-                                restoredCount++
+                                strings[keyName] = value
                             }
+                        }
+                        "string-set" -> {
+                            val values = LinkedHashSet<String>()
+                            while (true) {
+                                val next = parser.next()
+                                if (next == XmlPullParser.START_TAG && parser.name == "item") {
+                                    values.add(parser.nextText())
+                                    continue
+                                }
+                                if (next == XmlPullParser.END_TAG && parser.name == "string-set") {
+                                    break
+                                }
+                                if (next == XmlPullParser.END_DOCUMENT) {
+                                    break
+                                }
+                            }
+                            stringSets[keyName] = values
                         }
                     }
                 }
             }
             eventType = parser.next()
         }
-    }
 
-    // Keep existing import logic
+        if (
+            booleans.isEmpty() &&
+            ints.isEmpty() &&
+            longs.isEmpty() &&
+            floats.isEmpty() &&
+            strings.isEmpty() &&
+            stringSets.isEmpty()
+        ) {
+            return
+        }
+
+        context.dataStore.edit { prefs ->
+            booleans.forEach { (k, v) -> prefs[booleanPreferencesKey(k)] = v }
+            ints.forEach { (k, v) -> prefs[intPreferencesKey(k)] = v }
+            longs.forEach { (k, v) -> prefs[longPreferencesKey(k)] = v }
+            floats.forEach { (k, v) -> prefs[floatPreferencesKey(k)] = v }
+            strings.forEach { (k, v) -> prefs[stringPreferencesKey(k)] = v }
+            stringSets.forEach { (k, v) -> prefs[stringSetPreferencesKey(k)] = v }
+        }
+    }
     fun importPlaylistFromCsv(context: Context, uri: Uri): ArrayList<Song> {
         val songs = arrayListOf<Song>()
         runCatching {

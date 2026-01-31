@@ -251,4 +251,14 @@
     <string name="theme_preview_secondary_action">Secondary Action</string>
 
     <string name="copy">Copy</string>
+    <string name="backup_in_progress">Backup in progress</string>
+    <string name="restore_in_progress">Restore in progress</string>
+    <string name="backup_step_export_settings">Backing up settings</string>
+    <string name="backup_step_checkpoint_database">Preparing database</string>
+    <string name="backup_step_copying_file">Copying %1$s</string>
+    <string name="restore_step_verifying">Verifying backup</string>
+    <string name="restore_step_stopping_playback">Stopping playback</string>
+    <string name="restore_step_restoring_settings">Restoring settings</string>
+    <string name="restore_step_restoring_file">Restoring %1$s</string>
+    <string name="restore_step_restarting">Restarting app</string>
 </resources>

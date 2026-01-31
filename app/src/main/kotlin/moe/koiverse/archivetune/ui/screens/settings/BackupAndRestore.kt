@@ -32,6 +32,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
@@ -97,6 +98,7 @@ fun BackupAndRestore(
     var progressPercentage by rememberSaveable {
         mutableIntStateOf(0)
     }
+    val backupRestoreProgress by viewModel.backupRestoreProgress.collectAsState()
     val context = LocalContext.current
     val backupLauncher =
         rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/octet-stream")) { uri ->
@@ -347,7 +349,10 @@ fun BackupAndRestore(
     }
 
     LoadingScreen(
-        isVisible = isProgressStarted,
-        value = progressPercentage,
+        isVisible = backupRestoreProgress != null || isProgressStarted,
+        value = backupRestoreProgress?.percent ?: progressPercentage,
+        title = backupRestoreProgress?.title,
+        stepText = backupRestoreProgress?.step,
+        indeterminate = backupRestoreProgress?.indeterminate ?: false,
     )
 }
