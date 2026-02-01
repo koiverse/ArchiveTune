@@ -79,6 +79,7 @@ val PlayerStreamClientKey = stringPreferencesKey("playerStreamClient")
 enum class PlayerStreamClient {
     ANDROID_VR,
     WEB_REMIX,
+    PROXY,
 }
 
 val PersistentQueueKey = booleanPreferencesKey("persistentQueue")

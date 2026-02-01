@@ -161,7 +161,7 @@ fun PlayerSettings(
             onDismiss = { showPlayerStreamClientDialog = false },
             modifier = Modifier.padding(horizontal = 8.dp),
         ) {
-            items(listOf(PlayerStreamClient.ANDROID_VR, PlayerStreamClient.WEB_REMIX)) { value ->
+            items(listOf(PlayerStreamClient.ANDROID_VR, PlayerStreamClient.WEB_REMIX, PlayerStreamClient.PROXY)) { value ->
                 Row(
                     modifier =
                     Modifier
@@ -182,6 +182,7 @@ fun PlayerSettings(
                             when (value) {
                                 PlayerStreamClient.ANDROID_VR -> stringResource(R.string.player_stream_client_android_vr)
                                 PlayerStreamClient.WEB_REMIX -> stringResource(R.string.player_stream_client_web_remix)
+                                PlayerStreamClient.PROXY -> stringResource(R.string.player_stream_client_proxy)
                             },
                             style = MaterialTheme.typography.bodyLarge,
                         )
@@ -191,6 +192,7 @@ fun PlayerSettings(
                             when (value) {
                                 PlayerStreamClient.ANDROID_VR -> stringResource(R.string.player_stream_client_android_vr_desc)
                                 PlayerStreamClient.WEB_REMIX -> stringResource(R.string.player_stream_client_web_remix_desc)
+                                PlayerStreamClient.PROXY -> stringResource(R.string.player_stream_client_proxy_desc)
                             },
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.secondary,
@@ -239,6 +241,7 @@ fun PlayerSettings(
             when (playerStreamClient) {
                 PlayerStreamClient.ANDROID_VR -> stringResource(R.string.player_stream_client_android_vr)
                 PlayerStreamClient.WEB_REMIX -> stringResource(R.string.player_stream_client_web_remix)
+                PlayerStreamClient.PROXY -> stringResource(R.string.player_stream_client_proxy)
             },
             icon = { Icon(painterResource(R.drawable.integration), null) },
             onClick = { showPlayerStreamClientDialog = true }

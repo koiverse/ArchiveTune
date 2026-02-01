@@ -15,12 +15,30 @@ import moe.koiverse.archivetune.innertube.models.YouTubeClient.Companion.ANDROID
 import moe.koiverse.archivetune.innertube.models.YouTubeClient.Companion.MOBILE
 import moe.koiverse.archivetune.innertube.models.YouTubeClient.Companion.WEB
 import moe.koiverse.archivetune.innertube.models.YouTubeClient.Companion.WEB_CREATOR
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
+import okhttp3.HttpUrl
 import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import timber.log.Timber
 import java.util.concurrent.ConcurrentHashMap
 
 object YTPlayerUtils {
     private const val logTag = "YTPlayerUtils"
+    private const val ytdlProxyHost = "stream-proxy.koiiverse.cloud"
+
+    private val json = Json {
+        ignoreUnknownKeys = true
+        isLenient = true
+    }
 
     private val httpClient = OkHttpClient.Builder()
         .proxy(YouTube.proxy)
@@ -105,13 +123,12 @@ object YTPlayerUtils {
                 }
                 ).distinct()
 
-        val preferredYouTubeClient =
+        val metadataClient =
             when (preferredStreamClient) {
                 PlayerStreamClient.ANDROID_VR -> ANDROID_VR_NO_AUTH
-                PlayerStreamClient.WEB_REMIX -> WEB_REMIX
+                PlayerStreamClient.WEB_REMIX -> MAIN_CLIENT
+                PlayerStreamClient.PROXY -> MAIN_CLIENT
             }
-
-        val metadataClient = preferredYouTubeClient.takeIf { preferredStreamClient == PlayerStreamClient.ANDROID_VR } ?: MAIN_CLIENT
 
         Timber.tag(logTag).i("Fetching metadata response using client: ${metadataClient.clientName}")
         val metadataPlayerResponse =
@@ -120,6 +137,37 @@ object YTPlayerUtils {
         val videoDetails = metadataPlayerResponse.videoDetails
         val playbackTracking = metadataPlayerResponse.playbackTracking
         val expectedDurationMs = videoDetails?.lengthSeconds?.toLongOrNull()?.takeIf { it > 0 }?.times(1000L)
+
+        if (preferredStreamClient == PlayerStreamClient.PROXY) {
+            val selectedFormat =
+                findFormat(
+                    playerResponse = metadataPlayerResponse,
+                    audioQuality = audioQuality,
+                    connectivityManager = connectivityManager,
+                    networkMetered = networkMetered,
+                    avoidCodecs = avoidCodecs,
+                ) ?: throw Exception("Could not find format for quality: $audioQuality")
+
+            val proxyStreamUrl = fetchYtdlProxyStreamUrl(videoId, YouTube.cookie)
+            val proxyExpiresInSeconds = inferExpiresInSecondsFromStreamUrl(proxyStreamUrl)
+
+            Timber.tag(logTag).i("Using YT-DLP proxy stream for videoId: $videoId")
+            PlaybackData(
+                audioConfig,
+                videoDetails,
+                playbackTracking,
+                selectedFormat,
+                proxyStreamUrl,
+                proxyExpiresInSeconds,
+            )
+        }
+
+        val preferredYouTubeClient =
+            when (preferredStreamClient) {
+                PlayerStreamClient.ANDROID_VR -> ANDROID_VR_NO_AUTH
+                PlayerStreamClient.WEB_REMIX -> WEB_REMIX
+                PlayerStreamClient.PROXY -> MAIN_CLIENT
+            }
 
         val streamClients =
             buildList {
@@ -464,5 +512,111 @@ object YTPlayerUtils {
 
     private fun buildCacheKey(videoId: String, itag: Int): String {
         return "$videoId:$itag"
+    }
+
+    private fun fetchYtdlProxyStreamUrl(videoId: String, rawCookie: String?): String {
+        val cookieParam = rawCookie?.let(::normalizeCookieParam)?.takeIf { it.isNotBlank() }
+        val url = buildYtdlProxyUrl(videoId = videoId, cookiesParam = cookieParam)
+        val request = Request.Builder().get().url(url).build()
+
+        val responseBody =
+            httpClient.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) throw Exception("Proxy request failed (${response.code})")
+                response.body?.string()?.trim().orEmpty()
+            }
+
+        if (responseBody.isBlank()) throw Exception("Proxy returned empty response")
+        responseBody.toHttpUrlOrNull()?.let { return it.toString() }
+
+        val element = runCatching { json.parseToJsonElement(responseBody) }.getOrNull()
+            ?: throw Exception("Proxy response is not a URL or JSON")
+
+        return extractUrlFromProxyJson(element)
+            ?.takeIf { it.toHttpUrlOrNull() != null }
+            ?: throw Exception("Proxy JSON does not contain a usable URL")
+    }
+
+    private fun buildYtdlProxyUrl(videoId: String, cookiesParam: String?): HttpUrl {
+        val watchUrl = "https://youtube.com/watch?v=$videoId"
+        return HttpUrl.Builder()
+            .scheme("https")
+            .host(ytdlProxyHost)
+            .addQueryParameter("url", watchUrl)
+            .apply {
+                if (!cookiesParam.isNullOrBlank()) addQueryParameter("cookies", cookiesParam)
+            }
+            .build()
+    }
+
+    private fun normalizeCookieParam(rawCookie: String): String {
+        val parts =
+            rawCookie
+                .trim()
+                .split(';')
+                .asSequence()
+                .map { it.trim() }
+                .filter { it.isNotBlank() }
+                .toList()
+        return if (parts.isEmpty()) "" else parts.joinToString(separator = ";", postfix = ";")
+    }
+
+    private fun inferExpiresInSecondsFromStreamUrl(streamUrl: String): Int {
+        val nowSec = System.currentTimeMillis() / 1000L
+        val expireEpochSec = streamUrl.toHttpUrlOrNull()?.queryParameter("expire")?.toLongOrNull()
+        val inferred = expireEpochSec?.let { (it - nowSec).toInt() }
+        return (inferred ?: 21_600).coerceIn(60, 86_400)
+    }
+
+    private fun extractUrlFromProxyJson(element: JsonElement): String? {
+        val primitive = element as? JsonPrimitive
+        if (primitive != null) return primitive.contentOrNull
+
+        val obj = element as? JsonObject ?: return null
+
+        listOf("streamUrl", "url", "audioUrl", "directUrl").forEach { key ->
+            obj[key]?.jsonPrimitive?.contentOrNull?.let { return it }
+        }
+
+        obj["data"]?.let { extractUrlFromProxyJson(it) }?.let { return it }
+        obj["result"]?.let { extractUrlFromProxyJson(it) }?.let { return it }
+
+        val formats = obj["formats"] as? JsonArray ?: obj["requested_formats"] as? JsonArray
+        if (formats != null) {
+            selectBestFormatUrl(formats)?.let { return it }
+        }
+
+        return null
+    }
+
+    private fun selectBestFormatUrl(formats: JsonArray): String? {
+        var bestUrl: String? = null
+        var bestScore: Long = Long.MIN_VALUE
+
+        for (formatElement in formats) {
+            val obj = formatElement as? JsonObject ?: continue
+            val url = obj["url"]?.jsonPrimitive?.contentOrNull ?: continue
+            if (url.toHttpUrlOrNull() == null) continue
+
+            val vcodec = obj["vcodec"]?.jsonPrimitive?.contentOrNull
+            val acodec = obj["acodec"]?.jsonPrimitive?.contentOrNull
+            val isAudioOnly = vcodec == "none" && (acodec == null || acodec != "none")
+
+            val abr = obj["abr"]?.asDoubleOrNull()
+            val tbr = obj["tbr"]?.asDoubleOrNull()
+            val bitrateKbps = abr ?: tbr ?: 0.0
+            val score = (if (isAudioOnly) 1_000_000L else 0L) + (bitrateKbps * 1000.0).toLong()
+
+            if (score > bestScore) {
+                bestScore = score
+                bestUrl = url
+            }
+        }
+
+        return bestUrl
+    }
+
+    private fun JsonElement.asDoubleOrNull(): Double? {
+        val primitive = this as? JsonPrimitive ?: return null
+        return primitive.contentOrNull?.toDoubleOrNull()
     }
 }
