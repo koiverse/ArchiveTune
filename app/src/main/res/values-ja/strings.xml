@@ -635,4 +635,32 @@
     <string name="next">次</string>
     <string name="next_song">次の曲</string>
     <string name="allow">許可する</string>
+
+    <string name="tempo">テンポ</string>
+    <string name="pitch">ピッチ</string>
+    <string name="pitch_mode_semitones_short">st</string>
+    <string name="pitch_mode_multiplier_short">x</string>
+    <string name="restore_success">バックアップが正常に復元されました</string>
+    <string name="status_active">アクティブ</string>
+    <string name="status_inactive">非アクティブ</string>
+    <string name="last_start">最後の開始</string>
+    <string name="last_end">最後の終了</string>
+    <string name="debug_logs">デバッグログ</string>
+    <string name="log_level_verbose">Verbose</string>
+    <string name="log_level_debug">Debug</string>
+    <string name="log_level_info">Info</string>
+    <string name="log_level_warning">Warning</string>
+    <string name="log_level_error">Error</string>
+    <string name="filter_discord_only">Discord</string>
+    <string name="filter_all_logs">すべて</string>
+    <string name="clear">消去</string>
+    <string name="logs_empty_message">利用可能なログがここに表示されます</string>
+    <string name="real_time_playback_stats">リアルタイム再生統計</string>
+    <string name="copied_to_clipboard">ログをクリップボードにコピーしました</string>
+    <string name="playback_state_idle">アイドル</string>
+    <string name="playback_state_buffering">バッファリング中</string>
+    <string name="playback_state_ready">準備完了</string>
+    <string name="playback_state_ended">終了</string>
+    <string name="playback_state_unknown">不明</string>
+    <string name="share_logs">ログを共有</string>
 </resources>
