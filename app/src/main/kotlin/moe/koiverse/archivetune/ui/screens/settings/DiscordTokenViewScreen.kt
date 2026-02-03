@@ -11,6 +11,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.material3.IconButton as M3IconButton
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -114,7 +115,7 @@ fun DiscordTokenViewScreen(navController: NavController) {
                             style = MaterialTheme.typography.labelLarge,
                             color = MaterialTheme.colorScheme.primary
                         )
-                        IconButton(
+                        M3IconButton(
                             onClick = { tokenVisible = !tokenVisible }
                         ) {
                             Icon(
