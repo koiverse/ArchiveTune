@@ -36,7 +36,7 @@ jobs:
           fi
       
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ github.event.issue.pull_request.head.ref }}
           token: ${{ secrets.GITHUB_TOKEN }}
