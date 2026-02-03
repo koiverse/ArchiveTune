@@ -27,10 +27,10 @@
     <!-- History -->
     <string name="today">今日</string>
     <string name="yesterday">昨日</string>
-    <string name="this_week">これ週</string>
+    <string name="this_week">今週</string>
     <string name="last_week">先週</string>
     <!-- Stats -->
-    <string name="most_played_songs">最も再生された回数 曲</string>
+    <string name="most_played_songs">最も再生された曲</string>
     <string name="most_played_artists">最も再生されたアーティスト</string>
     <string name="most_played_albums">最も再生されたアルバム</string>
     <!-- Search -->
@@ -52,9 +52,9 @@
     <string name="filter_bookmarked">ブックマーク</string>
     <string name="no_results_found">結果が見つかりません</string>
     <!-- Library -->
-    <string name="library_song_empty">ライブラリここに曲が表示されます</string>
-    <string name="library_artist_empty">ライブラリ アーティストがここに表示されます</string>
-    <string name="library_album_empty">ライブラリ アルバムがここに表示されます</string>
+    <string name="library_song_empty">ライブラリの曲がここに表示されます</string>
+    <string name="library_artist_empty">ライブラリのアーティストがここに表示されます</string>
+    <string name="library_album_empty">ライブラリのアルバムがここに表示されます</string>
     <string name="library_playlist_empty">プレイリストがここに表示されます</string>
     <!-- Artist screen -->
     <string name="from_your_library">ライブラリから</string>
@@ -88,7 +88,7 @@
     <string name="import_playlist">プレイリストをインポート</string>
     <string name="import_failed">インポート失敗</string>
     <string name="update_button">更新</string>
-    <string name="add_to_playlist">追加 プレイリスト</string>
+    <string name="add_to_playlist">プレイリストに追加</string>
     <string name="view_artist">アーティストの表示</string>
     <string name="view_album">アルバムの表示</string>
     <string name="view_all">すべて表示</string>
@@ -132,8 +132,8 @@
     <string name="error_song_artist_empty">曲アーティストを空にすることはできません。</string>
     <string name="save">保存</string>
     <string name="choose_playlist">プレイリストを選択</string>
-    <string name="edit_playlist">編集プレイリスト</string>
-    <string name="create_playlist">作成 プレイリスト</string>
+    <string name="edit_playlist">プレイリストを編集</string>
+    <string name="create_playlist">プレイリストを作成</string>
     <string name="playlist_name">プレイリスト名</string>
     <string name="error_playlist_name_empty">プレイリスト名は空欄にできません。</string>
     <string name="edit_artist">アーティストを編集</string>
@@ -325,8 +325,8 @@
     <string name="new_library_design_description">新しいライブラリのデザインを有効にする(不安定な可能性があります)</string>
     <string name="archivetune_canvas">ArchiveTune Canvas</string>
     <string name="archivetune_canvas_desc">再生中にアルバムアートワークをアニメーション化 (BetterLyrics提供)</string>
-    <string name="show_button1_description">Discord Richのボタン1の表示を切り替え プレゼンス</string>
-    <string name="show_button2_description">Discord のボタン 2 の表示を切り替えます リッチ プレゼンス</string>
+    <string name="show_button1_description">Discordリッチプレゼンスのボタン1の表示を切り替えます</string>
+    <string name="show_button2_description">Discordリッチプレゼンスのボタン2の表示を切り替えます</string>
     <string name="discord_activity_type">アクティビティ タイプ</string>
     <string name="dark_theme_follow_system">システムをフォロー</string>
     <string name="pure_black">ピュア ブラック</string>
@@ -368,7 +368,7 @@
     <string name="enable_proxy">プロキシを有効にする</string>
     <string name="proxy_type">プロキシの種類</string>
     <string name="proxy_url">プロキシURL</string>
-    <string name="restart_to_take_effect">再起動して撮影 効果</string>
+    <string name="restart_to_take_effect">再起動すると有効になります</string>
     <string name="enable_betterlyrics">BetterLyricsを有効にする</string>
     <string name="player_and_audio">プレーヤーとオーディオ</string>
     <string name="audio_quality">音質</string>
@@ -406,7 +406,7 @@
     <string name="size_used">%s使用</string>
     <string name="privacy">プライバシー</string>
     <string name="listen_history">再生履歴</string>
-    <string name="pause_listen_history">再生を一時停止 履歴</string>
+    <string name="pause_listen_history">再生履歴を一時停止</string>
     <string name="clear_listen_history">再生履歴をクリア</string>
     <string name="clear_listen_history_confirm">すべての再生履歴をクリアしてもよろしいですか?</string>
     <string name="search_history">検索履歴</string>

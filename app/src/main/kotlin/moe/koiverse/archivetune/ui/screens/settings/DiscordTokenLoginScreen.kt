@@ -10,6 +10,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.material3.IconButton as M3IconButton
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -35,6 +36,7 @@ import moe.koiverse.archivetune.utils.rememberPreference
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DiscordTokenLoginScreen(navController: NavController) {
+    val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -50,7 +52,7 @@ fun DiscordTokenLoginScreen(navController: NavController) {
 
     fun validateAndLogin() {
         if (tokenInput.isBlank()) {
-            errorMessage = "Token cannot be empty"
+            errorMessage = context.getString(R.string.discord_token_cannot_be_empty)
             return
         }
 
@@ -70,13 +72,13 @@ fun DiscordTokenLoginScreen(navController: NavController) {
                     discordName = userInfo.name
                     isValidating = false
                     navController.navigateUp()
-                }.onFailure { exception ->
-                    errorMessage = "Token validation failed. Please check your token."
+                }.onFailure {
+                    errorMessage = stringResource(R.string.discord_token_validation_failed)
                     isValidating = false
                 }
             } catch (e: Exception) {
-                Log.e("DiscordTokenLogin", "Token validation failed", e)
-                errorMessage = "Network error: ${e.message ?: "Please try again."}"
+                Log.e("DiscordTokenLogin", "Token validation failed")
+                errorMessage = stringResource(R.string.discord_network_error_retry)
                 isValidating = false
             }
         }
@@ -93,7 +95,7 @@ fun DiscordTokenLoginScreen(navController: NavController) {
                     ) {
                         Icon(
                             painterResource(R.drawable.arrow_back),
-                            contentDescription = null
+                            contentDescription = stringResource(R.string.back)
                         )
                     }
                 }
@@ -151,7 +153,7 @@ fun DiscordTokenLoginScreen(navController: NavController) {
                             painter = painterResource(
                                 if (passwordVisible) R.drawable.visibility_off else R.drawable.visibility
                             ),
-                            contentDescription = if (passwordVisible) "Hide token" else "Show token"
+                            contentDescription = if (passwordVisible) stringResource(R.string.discord_hide_token) else stringResource(R.string.discord_show_token)
                         )
                     }
                 },
@@ -180,7 +182,7 @@ fun DiscordTokenLoginScreen(navController: NavController) {
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                 }
-                Text(if (isValidating) "Validating..." else stringResource(R.string.action_login))
+                Text(if (isValidating) stringResource(R.string.discord_validating) else stringResource(R.string.action_login))
             }
         }
     }

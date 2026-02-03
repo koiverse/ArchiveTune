@@ -3,6 +3,8 @@ package moe.koiverse.archivetune.ui.screens.settings
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.content.pm.PackageManager
+import android.os.Build
 import android.util.Log
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -56,10 +58,23 @@ fun DiscordTokenViewScreen(navController: NavController) {
 
     fun copyToClipboard() {
         val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-        val clip = ClipData.newPlainText("Discord Token", discordToken)
+        val clip = ClipData.newPlainText("", discordToken)
+        
+        // On API 33+, mark clipboard content as sensitive to hide from preview
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            clip.description.extras = android.os.PersistableBundle().apply {
+                putBoolean(ClipDescription.EXTRA_IS_SENSITIVE, true)
+            }
+        }
+        
         clipboard.setPrimaryClip(clip)
+        
         scope.launch {
             snackbarHostState.showSnackbar(context.getString(R.string.discord_token_copied))
+            
+            // Clear clipboard after 30 seconds
+            kotlinx.coroutines.delay(30000)
+            clipboard.setPrimaryClip(ClipData.newPlainText("", ""))
         }
     }
 

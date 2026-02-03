@@ -572,7 +572,7 @@ ArchiveTune sẽ chỉ trích xuất token của bạn, và mọi thứ khác đ
     <string name="show_small_image">Hiển thị hình ảnh nhỏ</string>
     <string name="description_show_small_image">Khi được bật, một hình ảnh tròn nhỏ được hiển thị trong bản xem trước Rich Presence và gửi đến Discord nếu có</string>
     <string name="logout_confirm_title">Xác nhận đăng xuất</string>
-    <string name="logout_confirm_message">Bạn có chắc chắn muốn đăng xuất Discord không?.</string>
+    <string name="logout_confirm_message">Bạn có chắc chắn muốn đăng xuất Discord không?</string>
     <string name="logout_confirm_yes">Đăng xuất</string>
     <string name="logout_confirm_no">Hủy</string>
     <!--Misc settings additions-->
