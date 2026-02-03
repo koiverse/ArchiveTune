@@ -321,4 +321,13 @@
     <string name="palette_mint_fresh">Mündiroheline</string>
     <string name="palette_olive_garden">Oliiviaed</string>
     <string name="palette_sage_green">Salveiroheline</string>
+    <string name="palette_sunset_orange">Päikeseloojang</string>
+    <string name="palette_golden_hour">Kuldne</string>
+    <string name="palette_warm_amber">Merevaik</string>
+    <string name="palette_tangerine_blast">Mandariin</string>
+    <string name="palette_peach">Virsik</string>
+    <string name="palette_mango">Mango</string>
+    <string name="palette_royal_purple">Kuninglik purpur</string>
+    <string name="palette_lavender_dream">Lavendel</string>
+    <string name="palette_grape_purple">Viinamari</string>
 </resources>
