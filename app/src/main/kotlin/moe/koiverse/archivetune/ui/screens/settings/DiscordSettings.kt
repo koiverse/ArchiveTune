@@ -203,17 +203,27 @@ fun DiscordSettings(
             icon = { Icon(painterResource(R.drawable.discord), null) },
             trailingContent = {
                 if (isLoggedIn) {
-                        OutlinedButton(onClick = { showLogoutConfirm = true }) { Text(stringResource(R.string.action_logout)) }
-                    } else {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    Column(
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        OutlinedButton(onClick = {
-                            navController.navigate("settings/discord/login")
-                        }) { Text(stringResource(R.string.discord_login_with_browser)) }
-                        OutlinedButton(onClick = {
-                            navController.navigate("settings/discord/token-login")
-                        }) { Text(stringResource(R.string.discord_login_with_token)) }
+                        OutlinedButton(
+                            onClick = { showLogoutConfirm = true },
+                            modifier = Modifier.fillMaxWidth()
+                        ) { Text(stringResource(R.string.action_logout)) }
+                    }
+                } else {
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        OutlinedButton(
+                            onClick = { navController.navigate("settings/discord/login") },
+                            modifier = Modifier.fillMaxWidth()
+                        ) { Text(stringResource(R.string.discord_login_with_browser)) }
+                        OutlinedButton(
+                            onClick = { navController.navigate("settings/discord/token-login") },
+                            modifier = Modifier.fillMaxWidth()
+                        ) { Text(stringResource(R.string.discord_login_with_token)) }
                     }
                 }
             },
