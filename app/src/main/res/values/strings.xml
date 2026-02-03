@@ -487,11 +487,11 @@ ArchiveTune will only extract your token, and everything else is stored locally.
     <string name="options">Options</string>
     <string name="preview">Preview</string>
     <string name="enable_discord_rpc">Enable Rich Presence</string>
-    <string name="discord_login_with_browser">Login with Browser</string>
-    <string name="discord_login_with_token">Login with Token</string>
-    <string name="discord_token_login_title">Login with Discord Token</string>
-    <string name="discord_token_view_title">Discord Token</string>
-    <string name="discord_view_edit_token">View/Edit Token</string>
+    <string name="discord_login_with_browser">Log in with browser</string>
+    <string name="discord_login_with_token">Log in with token</string>
+    <string name="discord_token_login_title">Log in with Discord token</string>
+    <string name="discord_token_view_title">Discord token</string>
+    <string name="discord_view_edit_token">View/edit token</string>
     <string name="discord_view_edit_token_desc">Manage your Discord token</string>
     <string name="discord_token_input_hint">Enter your Discord token</string>
     <string name="discord_token_invalid">Invalid token format</string>
