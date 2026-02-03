@@ -492,6 +492,18 @@ ArchiveTune sẽ chỉ trích xuất token của bạn, và mọi thứ khác đ
     <string name="discord_token_copied">Đã sao chép token vào clipboard</string>
     <string name="discord_delete_token">Xóa Token</string>
     <string name="discord_delete_token_confirm">Bạn có chắc chắn muốn xóa Discord token của mình không?</string>
+    <string name="discord_token_cannot_be_empty">Token không được để trống</string>
+    <string name="discord_token_label">Token</string>
+    <string name="discord_hide_token">Ẩn token</string>
+    <string name="discord_show_token">Hiện token</string>
+    <string name="discord_copy_token">Sao chép</string>
+    <string name="discord_edit_token_title">Chỉnh sửa Discord Token</string>
+    <string name="discord_token_updated_success">Đã cập nhật token thành công</string>
+    <string name="discord_invalid_token_error">Token không hợp lệ</string>
+    <string name="discord_validating">Đang xác thực...</string>
+    <string name="discord_network_error">Lỗi mạng</string>
+    <string name="discord_network_error_retry">Lỗi mạng. Vui lòng thử lại.</string>
+    <string name="discord_delete_button">Xóa</string>
     <!-- Last.fm -->
     <string name="scrobbling">Scrobbling</string>
     <string name="lastfm_integration">Tích hợp Last.fm</string>

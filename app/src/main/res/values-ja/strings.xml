@@ -446,6 +446,18 @@
     <string name="discord_token_copied">トークンをクリップボードにコピーしました</string>
     <string name="discord_delete_token">トークンを削除</string>
     <string name="discord_delete_token_confirm">Discord トークンを削除してもよろしいですか？</string>
+    <string name="discord_token_cannot_be_empty">トークンを空にすることはできません</string>
+    <string name="discord_token_label">トークン</string>
+    <string name="discord_hide_token">トークンを隠す</string>
+    <string name="discord_show_token">トークンを表示</string>
+    <string name="discord_copy_token">コピー</string>
+    <string name="discord_edit_token_title">Discord トークンを編集</string>
+    <string name="discord_token_updated_success">トークンが正常に更新されました</string>
+    <string name="discord_invalid_token_error">無効なトークン</string>
+    <string name="discord_validating">検証中...</string>
+    <string name="discord_network_error">ネットワークエラー</string>
+    <string name="discord_network_error_retry">ネットワークエラー。もう一度お試しください。</string>
+    <string name="discord_delete_button">削除</string>
     <!-- Last.fm -->
     <string name="scrobbling">スクロブリング</string>
     <string name="lastfm_integration">Last.fm 連携</string>
