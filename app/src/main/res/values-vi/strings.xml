@@ -479,6 +479,19 @@ ArchiveTune sẽ chỉ trích xuất token của bạn, và mọi thứ khác đ
     <string name="options">Tùy chọn</string>
     <string name="preview">Xem trước</string>
     <string name="enable_discord_rpc">Bật Rich Presence</string>
+    <string name="discord_login_with_browser">Đăng nhập bằng trình duyệt</string>
+    <string name="discord_login_with_token">Đăng nhập bằng Token</string>
+    <string name="discord_token_login_title">Đăng nhập bằng Discord Token</string>
+    <string name="discord_token_view_title">Discord Token</string>
+    <string name="discord_view_edit_token">Xem/Chỉnh sửa Token</string>
+    <string name="discord_view_edit_token_desc">Quản lý Discord token của bạn</string>
+    <string name="discord_token_input_hint">Nhập Discord token của bạn</string>
+    <string name="discord_token_invalid">Định dạng token không hợp lệ</string>
+    <string name="discord_token_validation_failed">Xác thực token thất bại. Vui lòng kiểm tra token của bạn.</string>
+    <string name="discord_token_info">Bạn có thể lấy Discord token từ công cụ dành cho nhà phát triển của Discord. Đây là tính năng nâng cao - sử dụng cẩn thận.</string>
+    <string name="discord_token_copied">Đã sao chép token vào clipboard</string>
+    <string name="discord_delete_token">Xóa Token</string>
+    <string name="discord_delete_token_confirm">Bạn có chắc chắn muốn xóa Discord token của mình không?</string>
     <!-- Last.fm -->
     <string name="scrobbling">Scrobbling</string>
     <string name="lastfm_integration">Tích hợp Last.fm</string>

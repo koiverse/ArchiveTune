@@ -339,6 +339,12 @@ fun NavGraphBuilder.navigationBuilder(
     composable("settings/discord/login") {
         DiscordLoginScreen(navController)
     }
+    composable("settings/discord/token-login") {
+        DiscordTokenLoginScreen(navController)
+    }
+    composable("settings/discord/token-view") {
+        DiscordTokenViewScreen(navController)
+    }
     composable("settings/about") {
         AboutScreen(navController, scrollBehavior)
     }

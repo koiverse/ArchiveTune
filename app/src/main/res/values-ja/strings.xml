@@ -433,6 +433,19 @@
     <string name="options">オプション</string>
     <string name="preview">プレビュー</string>
     <string name="enable_discord_rpc">リッチ プレゼンスを有効にする</string>
+    <string name="discord_login_with_browser">ブラウザでログイン</string>
+    <string name="discord_login_with_token">トークンでログイン</string>
+    <string name="discord_token_login_title">Discord トークンでログイン</string>
+    <string name="discord_token_view_title">Discord トークン</string>
+    <string name="discord_view_edit_token">トークンを表示/編集</string>
+    <string name="discord_view_edit_token_desc">Discord トークンを管理</string>
+    <string name="discord_token_input_hint">Discord トークンを入力</string>
+    <string name="discord_token_invalid">無効なトークン形式</string>
+    <string name="discord_token_validation_failed">トークンの検証に失敗しました。トークンを確認してください。</string>
+    <string name="discord_token_info">Discord トークンは Discord の開発者ツールから取得できます。これは高度な機能です - 注意して使用してください。</string>
+    <string name="discord_token_copied">トークンをクリップボードにコピーしました</string>
+    <string name="discord_delete_token">トークンを削除</string>
+    <string name="discord_delete_token_confirm">Discord トークンを削除してもよろしいですか？</string>
     <!-- Last.fm -->
     <string name="scrobbling">スクロブリング</string>
     <string name="lastfm_integration">Last.fm 連携</string>
