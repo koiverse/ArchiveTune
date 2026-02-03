@@ -68,6 +68,7 @@ fun DiscordTokenLoginScreen(navController: NavController) {
                     discordToken = tokenInput.trim()
                     discordUsername = userInfo.username
                     discordName = userInfo.name
+                    isValidating = false
                     navController.navigateUp()
                 }.onFailure { exception ->
                     errorMessage = "Token validation failed. Please check your token."
