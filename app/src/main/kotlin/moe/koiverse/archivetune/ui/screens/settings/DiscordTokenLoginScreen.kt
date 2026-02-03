@@ -1,5 +1,6 @@
 package moe.koiverse.archivetune.ui.screens.settings
 
+import android.util.Log
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
@@ -8,6 +9,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.material3.IconButton as M3IconButton
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -72,7 +74,8 @@ fun DiscordTokenLoginScreen(navController: NavController) {
                     isValidating = false
                 }
             } catch (e: Exception) {
-                errorMessage = "Network error. Please try again."
+                Log.e("DiscordTokenLogin", "Token validation failed", e)
+                errorMessage = "Network error: ${e.message ?: "Please try again."}"
                 isValidating = false
             }
         }
@@ -140,13 +143,13 @@ fun DiscordTokenLoginScreen(navController: NavController) {
                 placeholder = { Text(stringResource(R.string.discord_token_input_hint)) },
                 visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                 trailingIcon = {
-                    IconButton(
                     M3IconButton(
+                        onClick = { passwordVisible = !passwordVisible }
                     ) {
                         Icon(
                             painter = painterResource(
                                 if (passwordVisible) R.drawable.visibility_off else R.drawable.visibility
-                                if (passwordVisible) R.drawable.close else R.drawable.visibility
+                            ),
                             contentDescription = if (passwordVisible) "Hide token" else "Show token"
                         )
                     }

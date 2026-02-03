@@ -3,6 +3,7 @@ package moe.koiverse.archivetune.ui.screens.settings
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.util.Log
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.selection.SelectionContainer
@@ -214,7 +215,8 @@ fun DiscordTokenViewScreen(navController: NavController) {
                             isValidating = false
                         }
                     } catch (e: Exception) {
-                        validationError = "Network error"
+                        Log.e("DiscordTokenView", "Token validation failed", e)
+                        validationError = "Network error: ${e.message ?: "Unknown error"}"
                         isValidating = false
                     }
                 }
