@@ -201,33 +201,29 @@ fun DiscordSettings(
             },
             description = if (discordUsername.isNotEmpty()) "@$discordUsername" else null,
             icon = { Icon(painterResource(R.drawable.discord), null) },
-            trailingContent = {
-                if (isLoggedIn) {
-                    Column(
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        OutlinedButton(
-                            onClick = { showLogoutConfirm = true },
-                            modifier = Modifier.fillMaxWidth()
-                        ) { Text(stringResource(R.string.action_logout)) }
-                    }
-                } else {
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        OutlinedButton(
-                            onClick = { navController.navigate("settings/discord/login") },
-                            modifier = Modifier.fillMaxWidth()
-                        ) { Text(stringResource(R.string.discord_login_with_browser)) }
-                        OutlinedButton(
-                            onClick = { navController.navigate("settings/discord/token-login") },
-                            modifier = Modifier.fillMaxWidth()
-                        ) { Text(stringResource(R.string.discord_login_with_token)) }
-                    }
-                }
-            },
         )
+
+        // Login/Logout buttons in a separate row below the account status
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            if (isLoggedIn) {
+                OutlinedButton(
+                    onClick = { showLogoutConfirm = true },
+                    modifier = Modifier.fillMaxWidth()
+                ) { Text(stringResource(R.string.action_logout)) }
+            } else {
+                OutlinedButton(
+                    onClick = { navController.navigate("settings/discord/login") },
+                    modifier = Modifier.fillMaxWidth()
+                ) { Text(stringResource(R.string.discord_login_with_browser)) }
+                OutlinedButton(
+                    onClick = { navController.navigate("settings/discord/token-login") },
+                    modifier = Modifier.fillMaxWidth()
+                ) { Text(stringResource(R.string.discord_login_with_token)) }
+            }
+        }
 
         if (isLoggedIn) {
             PreferenceEntry(
