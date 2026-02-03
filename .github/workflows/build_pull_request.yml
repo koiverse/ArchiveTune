@@ -5,6 +5,10 @@ on:
     branches:
       - "**"
 
+permissions:
+  pull-requests: write
+  actions: read
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -43,7 +47,15 @@ jobs:
           fi
 
       - name: Build and Lint Universal Debug APK
-        run: ./gradlew --console=plain assembleUniversalDebug :app:lintUniversalDebug --warning-mode summary
+        id: build
+        run: |
+          ./gradlew --console=plain assembleUniversalDebug :app:lintUniversalDebug --warning-mode summary > build_output.txt 2>&1
+          exit_code=$?
+          echo "EXIT_CODE=$exit_code" >> $GITHUB_ENV
+          if [ $exit_code -ne 0 ]; then
+            echo "BUILD_FAILED=true" >> $GITHUB_ENV
+          fi
+          exit $exit_code
         env:
           GITHUB_EVENT_NAME: ${{ github.event_name }}
           PULL_REQUEST: "true"
@@ -51,7 +63,49 @@ jobs:
           LASTFM_SECRET: ${{ secrets.LASTFM_SECRET }}
 
       - name: Upload APK
+        if: env.BUILD_FAILED != 'true'
         uses: actions/upload-artifact@v6
         with:
           name: app-universal-debug-pr-${{ github.event.number }}
           path: app/build/outputs/apk/universal/debug/*.apk
+
+      - name: Post Failure Comment
+        if: env.BUILD_FAILED == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+            
+            const buildLogPath = path.join(process.env.GITHUB_WORKSPACE, 'build_output.txt');
+            let buildLog = 'No build log available';
+            
+            try {
+              if (fs.existsSync(buildLogPath)) {
+                buildLog = fs.readFileSync(buildLogPath, 'utf8');
+              }
+            } catch (e) {
+              buildLog = 'Error reading build log: ' + e.message;
+            }
+            
+            // Truncate log if too long (GitHub comment limit is ~65536 chars)
+            if (buildLog.length > 50000) {
+              buildLog = buildLog.substring(0, 50000) + '\n\n... (log truncated for comment length limit)';
+            }
+            
+            const failedStep = 'Build and Lint Universal Debug APK';
+            
+            const message = 'Hey, your pull request check failed in ' + failedStep + ', please check this failed step log:\n\n' +
+              '<details>\n' +
+              '<summary>📝 Log</summary>\n\n' +
+              '```bash\n' +
+              buildLog + '\n' +
+              '```\n\n' +
+              '</details>';
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: message
+            });
