@@ -1,0 +1,79 @@
+name: PR Empty Commit
+
+on:
+  issue_comment:
+    types: [created]
+
+jobs:
+  empty-commit:
+    if: |
+      github.event.issue.pull_request &&
+      (
+        github.event.comment.body == '/empty' ||
+        github.event.comment.body == '/rebase' ||
+        startsWith(github.event.comment.body, '/empty ') ||
+        startsWith(github.event.comment.body, '/rebase ')
+      )
+    
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    
+    steps:
+      - name: Check permissions
+        env:
+          COMMENT_AUTHOR: ${{ github.event.comment.user.login }}
+          PR_AUTHOR: ${{ github.event.issue.user.login }}
+          COLLABORATORS: ${{ toJSON(github.event.repository.collaborators) }}
+        run: |
+          # Check if the commenter has permissions
+          ALLOWED_USERS=("$PR_AUTHOR" "admin1" "admin2")
+          
+          if [[ ! " ${ALLOWED_USERS[@]} " =~ " ${COMMENT_AUTHOR} " ]]; then
+            echo "User $COMMENT_AUTHOR is not authorized to trigger empty commit"
+            exit 1
+          fi
+      
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.issue.pull_request.head.ref }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Parse commit message
+        id: parse-msg
+        run: |
+          COMMENT="${{ github.event.comment.body }}"
+          DEFAULT_MSG="Empty commit triggered via PR comment"
+          
+          if [[ $COMMENT == /empty* ]]; then
+            MSG="${COMMENT#/empty }"
+          elif [[ $COMMENT == /rebase* ]]; then
+            MSG="${COMMENT#/rebase }"
+          fi
+          
+          if [[ -z "$MSG" || "$MSG" == "$COMMENT" ]]; then
+            MSG="$DEFAULT_MSG"
+          fi
+          
+          echo "message=$MSG" >> $GITHUB_OUTPUT
+      
+      - name: Create empty commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          git commit --allow-empty -m "${{ steps.parse-msg.outputs.message }}"
+          git push
+      
+      - name: Add confirmation comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `✅ Empty commit đã được tạo bởi @${{ github.event.comment.user.login }}`
+            })
