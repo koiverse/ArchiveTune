@@ -152,7 +152,7 @@ fun DiscordTokenViewScreen(navController: NavController) {
                             modifier = Modifier.weight(1f)
                         ) {
                             Icon(
-                                painter = painterResource(R.drawable.content_copy),
+                                painter = painterResource(R.drawable.share),
                                 contentDescription = null,
                                 modifier = Modifier.size(18.dp)
                             )

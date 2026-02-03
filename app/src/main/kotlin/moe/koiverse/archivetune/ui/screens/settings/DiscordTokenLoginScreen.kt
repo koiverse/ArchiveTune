@@ -141,12 +141,12 @@ fun DiscordTokenLoginScreen(navController: NavController) {
                 visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                 trailingIcon = {
                     IconButton(
-                        onClick = { passwordVisible = !passwordVisible }
+                    M3IconButton(
                     ) {
                         Icon(
                             painter = painterResource(
                                 if (passwordVisible) R.drawable.visibility_off else R.drawable.visibility
-                            ),
+                                if (passwordVisible) R.drawable.close else R.drawable.visibility
                             contentDescription = if (passwordVisible) "Hide token" else "Show token"
                         )
                     }
