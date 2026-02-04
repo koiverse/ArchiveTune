@@ -203,6 +203,15 @@ fun DiscordSettings(
             icon = { Icon(painterResource(R.drawable.discord), null) },
         )
 
+        if (isLoggedIn) {
+            PreferenceEntry(
+                title = { Text(stringResource(R.string.discord_view_edit_token)) },
+                description = stringResource(R.string.discord_view_edit_token_desc),
+                icon = { Icon(painterResource(R.drawable.lock), null) },
+                onClick = { navController.navigate("settings/discord/token-view") }
+            )
+        }
+
         // Login/Logout buttons in a separate row below the account status
         Column(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
@@ -223,15 +232,6 @@ fun DiscordSettings(
                     modifier = Modifier.fillMaxWidth()
                 ) { Text(stringResource(R.string.discord_login_with_token)) }
             }
-        }
-
-        if (isLoggedIn) {
-            PreferenceEntry(
-                title = { Text(stringResource(R.string.discord_view_edit_token)) },
-                description = stringResource(R.string.discord_view_edit_token_desc),
-                icon = { Icon(painterResource(R.drawable.lock), null) },
-                onClick = { navController.navigate("settings/discord/token-view") }
-            )
         }
 
             if (showLogoutConfirm) {
