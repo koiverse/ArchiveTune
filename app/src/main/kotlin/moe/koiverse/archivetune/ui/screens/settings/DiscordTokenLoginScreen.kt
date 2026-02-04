@@ -73,12 +73,12 @@ fun DiscordTokenLoginScreen(navController: NavController) {
                     isValidating = false
                     navController.navigateUp()
                 }.onFailure {
-                    errorMessage = stringResource(R.string.discord_token_validation_failed)
+                    errorMessage = context.getString(R.string.discord_token_validation_failed)
                     isValidating = false
                 }
             } catch (e: Exception) {
                 Log.e("DiscordTokenLogin", "Token validation failed")
-                errorMessage = stringResource(R.string.discord_network_error_retry)
+                errorMessage = context.getString(R.string.discord_network_error_retry)
                 isValidating = false
             }
         }

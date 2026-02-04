@@ -1,9 +1,9 @@
 package moe.koiverse.archivetune.ui.screens.settings
 
 import android.content.ClipData
+import android.content.ClipDescription
 import android.content.ClipboardManager
 import android.content.Context
-import android.content.pm.PackageManager
 import android.os.Build
 import android.util.Log
 import androidx.compose.foundation.layout.*
@@ -89,7 +89,7 @@ fun DiscordTokenViewScreen(navController: NavController) {
                     ) {
                         Icon(
                             painterResource(R.drawable.arrow_back),
-                            contentDescription = null
+                            contentDescription = stringResource(R.string.back)
                         )
                     }
                 }
@@ -126,7 +126,7 @@ fun DiscordTokenViewScreen(navController: NavController) {
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "Token",
+                            text = stringResource(R.string.discord_token_label),
                             style = MaterialTheme.typography.labelLarge,
                             color = MaterialTheme.colorScheme.primary
                         )
@@ -137,7 +137,7 @@ fun DiscordTokenViewScreen(navController: NavController) {
                                 painter = painterResource(
                                     if (tokenVisible) R.drawable.visibility_off else R.drawable.visibility
                                 ),
-                                contentDescription = if (tokenVisible) "Hide token" else "Show token"
+                                contentDescription = if (tokenVisible) stringResource(R.string.discord_hide_token) else stringResource(R.string.discord_show_token)
                             )
                         }
                     }
@@ -174,7 +174,7 @@ fun DiscordTokenViewScreen(navController: NavController) {
                                 modifier = Modifier.size(18.dp)
                             )
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text("Copy")
+                            Text(stringResource(R.string.discord_copy_token))
                         }
 
                         OutlinedButton(
@@ -187,7 +187,7 @@ fun DiscordTokenViewScreen(navController: NavController) {
                                 modifier = Modifier.size(18.dp)
                             )
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text("Edit")
+                            Text(stringResource(R.string.edit))
                         }
                     }
                 }
@@ -206,7 +206,7 @@ fun DiscordTokenViewScreen(navController: NavController) {
         var validationError by remember { mutableStateOf<String?>(null) }
 
         TextFieldDialog(
-            title = { Text("Edit Discord Token") },
+            title = { Text(stringResource(R.string.discord_edit_token_title)) },
             initialTextFieldValue = TextFieldValue(discordToken),
             singleLine = false,
             maxLines = 3,
@@ -225,14 +225,14 @@ fun DiscordTokenViewScreen(navController: NavController) {
                             discordName = userInfo.name
                             showEditDialog = false
                             isValidating = false
-                            snackbarHostState.showSnackbar("Token updated successfully")
+                            snackbarHostState.showSnackbar(context.getString(R.string.discord_token_updated_success))
                         }.onFailure {
-                            validationError = "Invalid token"
+                            validationError = context.getString(R.string.discord_invalid_token_error)
                             isValidating = false
                         }
                     } catch (e: Exception) {
                         Log.e("DiscordTokenView", "Token validation failed", e)
-                        validationError = "Network error: ${e.message ?: "Unknown error"}"
+                        validationError = context.getString(R.string.discord_network_error_retry)
                         isValidating = false
                     }
                 }
@@ -253,7 +253,7 @@ fun DiscordTokenViewScreen(navController: NavController) {
                     ) {
                         CircularProgressIndicator(modifier = Modifier.size(24.dp))
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Validating...")
+                        Text(stringResource(R.string.discord_validating))
                     }
                 }
                 validationError?.let { error ->
@@ -283,7 +283,7 @@ fun DiscordTokenViewScreen(navController: NavController) {
                         navController.navigateUp()
                     }
                 ) {
-                    Text("Delete", color = MaterialTheme.colorScheme.error)
+                    Text(stringResource(R.string.discord_delete_button), color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
