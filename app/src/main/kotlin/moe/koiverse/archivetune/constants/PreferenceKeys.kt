@@ -468,7 +468,7 @@ val LanguageCodeToName =
         "sk" to "Slovenčina",
         "bg" to "Български",
         "hr" to "Hrvatski",
-        "sr" to "Срpsки",
+        "sr" to "Српски",
         "lt" to "Lietuvių",
         "lv" to "Latviešu",
         "et" to "Eesti",

@@ -201,16 +201,38 @@ fun DiscordSettings(
             },
             description = if (discordUsername.isNotEmpty()) "@$discordUsername" else null,
             icon = { Icon(painterResource(R.drawable.discord), null) },
-            trailingContent = {
-                if (isLoggedIn) {
-                        OutlinedButton(onClick = { showLogoutConfirm = true }) { Text(stringResource(R.string.action_logout)) }
-                    } else {
-                    OutlinedButton(onClick = {
-                        navController.navigate("settings/discord/login")
-                    }) { Text(stringResource(R.string.action_login)) }
-                }
-            },
         )
+
+        if (isLoggedIn) {
+            PreferenceEntry(
+                title = { Text(stringResource(R.string.discord_view_edit_token)) },
+                description = stringResource(R.string.discord_view_edit_token_desc),
+                icon = { Icon(painterResource(R.drawable.lock), null) },
+                onClick = { navController.navigate("settings/discord/token-view") }
+            )
+        }
+
+        // Login/Logout buttons in a separate row below the account status
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            if (isLoggedIn) {
+                OutlinedButton(
+                    onClick = { showLogoutConfirm = true },
+                    modifier = Modifier.fillMaxWidth()
+                ) { Text(stringResource(R.string.action_logout)) }
+            } else {
+                OutlinedButton(
+                    onClick = { navController.navigate("settings/discord/login") },
+                    modifier = Modifier.fillMaxWidth()
+                ) { Text(stringResource(R.string.discord_login_with_browser)) }
+                OutlinedButton(
+                    onClick = { navController.navigate("settings/discord/token-login") },
+                    modifier = Modifier.fillMaxWidth()
+                ) { Text(stringResource(R.string.discord_login_with_token)) }
+            }
+        }
 
             if (showLogoutConfirm) {
                 AlertDialog(
