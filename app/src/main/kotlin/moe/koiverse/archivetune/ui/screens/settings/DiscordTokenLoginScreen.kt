@@ -1,6 +1,6 @@
 package moe.koiverse.archivetune.ui.screens.settings
 
-import android.util.Log
+import timber.log.Timber
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions

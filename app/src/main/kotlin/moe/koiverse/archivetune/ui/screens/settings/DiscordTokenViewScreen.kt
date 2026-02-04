@@ -52,6 +52,8 @@ fun DiscordTokenViewScreen(navController: NavController) {
     var showEditDialog by remember { mutableStateOf(false) }
     var showDeleteConfirmDialog by remember { mutableStateOf(false) }
 
+    var clipboardClearJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
+
     val maskedToken = remember(discordToken) {
         "•".repeat(minOf(discordToken.length, 40))
     }
@@ -69,12 +71,24 @@ fun DiscordTokenViewScreen(navController: NavController) {
         
         clipboard.setPrimaryClip(clip)
         
+        // Cancel any pending clipboard clear operation
+        clipboardClearJob?.cancel()
+        
+        // Capture the token value that was copied
+        val copiedToken = discordToken
+        
         scope.launch {
             snackbarHostState.showSnackbar(context.getString(R.string.discord_token_copied))
-            
-            // Clear clipboard after 30 seconds
+        }
+        
+        // Start a new clipboard clear job
+        clipboardClearJob = scope.launch {
             kotlinx.coroutines.delay(30000)
-            clipboard.setPrimaryClip(ClipData.newPlainText("", ""))
+            // Only clear if the clipboard still contains our token
+            val currentClip = clipboard.primaryClip?.getItemAt(0)?.text?.toString()
+            if (currentClip == copiedToken) {
+                clipboard.setPrimaryClip(ClipData.newPlainText("", ""))
+            }
         }
     }
 
