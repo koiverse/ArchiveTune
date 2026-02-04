@@ -5,7 +5,6 @@ import android.content.ClipDescription
 import android.content.ClipboardManager
 import android.content.Context
 import android.os.Build
-import android.util.Log
 import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.foundation.rememberScrollState
