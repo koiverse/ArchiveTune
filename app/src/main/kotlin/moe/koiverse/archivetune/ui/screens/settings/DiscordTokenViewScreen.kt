@@ -7,6 +7,7 @@ import android.content.Context
 import android.os.Build
 import android.util.Log
 import androidx.compose.foundation.layout.*
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
@@ -26,6 +27,7 @@ import com.my.kizzy.rpc.KizzyRPC
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import timber.log.Timber
 import moe.koiverse.archivetune.LocalPlayerAwareWindowInsets
 import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.constants.DiscordNameKey
@@ -53,6 +55,13 @@ fun DiscordTokenViewScreen(navController: NavController) {
     var showDeleteConfirmDialog by remember { mutableStateOf(false) }
 
     var clipboardClearJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            // Cancel any pending clipboard clear job when the composable is disposed
+            clipboardClearJob?.cancel()
+        }
+    }
 
     val maskedToken = remember(discordToken) {
         "•".repeat(minOf(discordToken.length, 40))
@@ -84,10 +93,22 @@ fun DiscordTokenViewScreen(navController: NavController) {
         // Start a new clipboard clear job
         clipboardClearJob = scope.launch {
             kotlinx.coroutines.delay(30000)
-            // Only clear if the clipboard still contains our token
-            val currentClip = clipboard.primaryClip?.getItemAt(0)?.text?.toString()
-            if (currentClip == copiedToken) {
-                clipboard.setPrimaryClip(ClipData.newPlainText("", ""))
+            
+            // For API 33+, EXTRA_IS_SENSITIVE handles sensitive content; for older APIs, clear unconditionally
+            // to avoid SecurityException when reading clipboard while backgrounded on API 29+
+            try {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    // On Android 13+, only clear if clipboard still contains our token
+                    val currentClip = clipboard.primaryClip?.getItemAt(0)?.text?.toString()
+                    if (currentClip == copiedToken) {
+                        clipboard.setPrimaryClip(ClipData.newPlainText("", ""))
+                    }
+                } else {
+                    // On older versions, clear unconditionally to avoid backgrounded read issues
+                    clipboard.setPrimaryClip(ClipData.newPlainText("", ""))
+                }
+            } catch (e: SecurityException) {
+                Timber.tag("DiscordTokenView").w(e, "Failed to clear clipboard - app may be backgrounded")
             }
         }
     }
