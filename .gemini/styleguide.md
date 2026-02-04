@@ -171,15 +171,15 @@ fun rememberPlayerState(): PlayerState {
     return rememberSaveable { PlayerState() }
 }
 
-// ✅ CORRECT - Use derivedStateOf for expensive computations
 @Composable
 fun rememberVisibleSongs(
     songs: List<Song>,
     visibleRange: IntRange
 ): List<Song> {
-    return remember(visibleRange) {
+    val visibleSongs by remember(songs, visibleRange) {
         derivedStateOf { songs.subList(visibleRange.first, visibleRange.last) }
     }
+    return visibleSongs
 }
 ```
 
@@ -406,7 +406,10 @@ object DatabaseModule {
             MusicDatabase::class.java,
             "archivetune.db"
         )
-            .fallbackToDestructiveMigration()
+            // For production, implement proper migrations
+            // .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+            // For development/testing only:
+            // .fallbackToDestructiveMigration()
             .build()
     }
 
@@ -499,7 +502,7 @@ fun getSongs(): Flow<List<Song>> {
         .map { entities -> entities.map { it.toDomain() } }
         .catch { e ->
             emit(emptyList())
-            log("ErrorFailed to load songs", e)
+            log("Error: Failed to load songs", e)
         }
 }
 
