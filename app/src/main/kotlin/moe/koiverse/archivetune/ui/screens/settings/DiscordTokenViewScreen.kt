@@ -231,7 +231,7 @@ fun DiscordTokenViewScreen(navController: NavController) {
                             isValidating = false
                         }
                     } catch (e: Exception) {
-                        Log.e("DiscordTokenView", "Token validation failed", e)
+                        Timber.tag("DiscordTokenView").e(e, "Token validation failed")
                         validationError = context.getString(R.string.discord_network_error_retry)
                         isValidating = false
                     }
