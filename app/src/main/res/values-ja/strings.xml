@@ -454,7 +454,7 @@
     <string name="discord_edit_token_title">Discord トークンを編集</string>
     <string name="discord_token_updated_success">トークンが正常に更新されました</string>
     <string name="discord_invalid_token_error">無効なトークン</string>
-    <string name="discord_validating">検証中...</string>
+    <string name="discord_validating">検証中…</string>
     <string name="discord_network_error">ネットワークエラー</string>
     <string name="discord_network_error_retry">ネットワークエラー。もう一度お試しください。</string>
     <string name="discord_delete_button">削除</string>
