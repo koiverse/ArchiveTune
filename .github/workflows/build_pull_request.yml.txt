@@ -1,0 +1,77 @@
+name: Build Pull Request
+
+on:
+  pull_request:
+    branches:
+      - "**"
+
+permissions:
+  pull-requests: write
+  actions: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v5
+        with:
+          java-version: 21
+          distribution: "temurin"
+
+      - name: Set Up Gradle
+        uses: gradle/actions/setup-gradle@v5
+        with:
+          cache-read-only: true
+          cache-cleanup: on-success
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Generate debug.keystore if not exists
+        run: |
+          mkdir -p ~/.android
+          if [ ! -f ~/.android/debug.keystore ]; then
+            keytool -genkey -v \
+              -keystore ~/.android/debug.keystore \
+              -storepass android \
+              -alias androiddebugkey \
+              -keypass android \
+              -keyalg RSA \
+              -keysize 2048 \
+              -validity 10000 \
+              -dname "CN=Android Debug,O=Android,C=US"
+          fi
+
+      - name: Build and Lint Universal Debug APK
+        id: build
+        run: |
+          ./gradlew --console=plain assembleUniversalDebug :app:lintUniversalDebug --warning-mode summary > build_output.txt 2>&1
+          exit_code=$?
+          echo "EXIT_CODE=$exit_code" >> $GITHUB_ENV
+          if [ $exit_code -ne 0 ]; then
+            echo "BUILD_FAILED=true" >> $GITHUB_ENV
+          fi
+          exit $exit_code
+        env:
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
+          PULL_REQUEST: "true"
+          LASTFM_API_KEY: ${{ secrets.LASTFM_API_KEY }}
+          LASTFM_SECRET: ${{ secrets.LASTFM_SECRET }}
+
+      - name: Upload APK
+        if: env.BUILD_FAILED != 'true'
+        uses: actions/upload-artifact@v6
+        with:
+          name: app-universal-debug-pr-${{ github.event.number }}
+          path: app/build/outputs/apk/universal/debug/*.apk
+
+      - name: Post Failure Comment
+        if: env.BUILD_FAILED == 'true'
+        uses: peter-evans/create-or-update-comment@v5
+        with:
+          issue-number: ${{ github.event.number }}
+          body-path: build_output.txt
