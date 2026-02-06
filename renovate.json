@@ -3,7 +3,9 @@
   "extends": [
     "config:recommended"
   ],
-  "baseBranches": ["dev"],
+  "baseBranchPatterns": [
+    "dev"
+  ],
   "ignoreUnstable": true,
   "respectLatest": true,
   "separateMajorMinor": true,
@@ -28,7 +30,9 @@
     },
     {
       "description": "Ignore all pre-release versions (alpha, beta, rc, dev, snapshot)",
-      "matchPackageNames": ["*"],
+      "matchPackageNames": [
+        "*"
+      ],
       "allowedVersions": "!/-(alpha|beta|rc|dev|snapshot|SNAPSHOT|Alpha|Beta|RC|Dev)/i"
     }
   ]
