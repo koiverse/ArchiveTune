@@ -1,4 +1,4 @@
-name: Trigger Build on Comment for [skip ci]
+name: Trigger Build on Comment
 
 on:
   issue_comment:
@@ -6,7 +6,7 @@ on:
 
 jobs:
   trigger-build:
-    if: github.event.issue.pull_request && contains(github.event.comment.body, '/run')
+    if: github.event.issue.pull_request && (contains(github.event.comment.body, '/run') || contains(github.event.comment.body, '/remove-trigger'))
     runs-on: ubuntu-latest
     
     permissions:
@@ -20,29 +20,81 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           ref: ${{ github.event.issue.pull_request.head.ref }}
           
-      - name: Create temp.txt file
+      - name: Determine action
+        id: determine-action
         run: |
-          echo "Triggering build via comment at $(date)" > temp.txt
+          COMMENT="${{ github.event.comment.body }}"
+          if [[ "$COMMENT" == *"/remove-trigger"* ]]; then
+            echo "action=remove-trigger" >> $GITHUB_OUTPUT
+            echo "command=/remove-trigger" >> $GITHUB_OUTPUT
+          elif [[ "$COMMENT" == *"/run"* ]]; then
+            echo "action=run-build" >> $GITHUB_OUTPUT
+            echo "command=/run" >> $GITHUB_OUTPUT
+          fi
           
-      - name: Commit and push temp.txt
+      - name: Handle /run command
+        if: steps.determine-action.outputs.action == 'run-build'
         run: |
+          echo "Triggering build via /run command at $(date)" > temp.txt
+          
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add temp.txt
-          git commit -m "Trigger build: ${{ github.event.comment.body }} [comment by @${{ github.event.comment.user.login }}]"
+          git commit -m "Trigger build via /run command [by @${{ github.event.comment.user.login }}]"
           git push
           
-      - name: Delete temp.txt file
-        run: rm -f temp.txt
-          
-      - name: Commit and push removal
-        run: |
+          rm -f temp.txt
           git add temp.txt
           git commit -m "Cleanup: Remove temp.txt after triggering build" || echo "No changes to commit"
           git push || echo "Nothing to push"
+          
+      - name: Handle /remove-trigger command
+        if: steps.determine-action.outputs.action == 'remove-trigger'
+        run: |
+          # Check if the trigger workflow file exists
+          if [ ! -f .github/workflows/trigger_build_pr.yml ]; then
+            echo "Trigger workflow file not found - nothing to remove"
+            echo "already-removed=true" >> $GITHUB_OUTPUT
+          else
+            # Remove the trigger workflow file
+            rm -f .github/workflows/trigger_build_pr.yml
+            echo "already-removed=false" >> $GITHUB_OUTPUT
+            
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            
+            # Commit and push the removal
+            git add .github/workflows/trigger_build_pr.yml
+            git commit -m "Remove trigger workflow via /remove-trigger command [by @${{ github.event.comment.user.login }}]"
+            git push
+          fi
           
       - name: Add reaction to comment
         uses: peter-evans/create-or-update-comment@v3
         with:
           comment-id: ${{ github.event.comment.id }}
           reactions: '+1'
+          
+      - name: Add success comment
+        if: steps.determine-action.outputs.action == 'run-build'
+        uses: peter-evans/create-or-update-comment@v3
+        with:
+          issue-number: ${{ github.event.issue.number }}
+          body: |
+            ✅ Build triggered successfully by @${{ github.event.comment.user.login }}!
+            
+            The build process has been initiated via the `/run` command. Check the status in the "Actions" tab.
+            
+      - name: Add removal comment
+        if: steps.determine-action.outputs.action == 'remove-trigger'
+        uses: peter-evans/create-or-update-comment@v3
+        with:
+          issue-number: ${{ github.event.issue.number }}
+          body: |
+            @${{ github.event.comment.user.login }} 
+            
+            ${{ fromJSON(steps.determine-action.outputs.already-removed == 'true' && 'The trigger workflow file was already removed from this PR branch.' || '✅ The trigger workflow has been successfully removed from this PR branch.') }}
+            
+            **File removed:** `.github/workflows/trigger_build_pr.yml`
+            
+            **Note:** This removal only affects this PR branch. The workflow file remains in the main repository.
