@@ -112,7 +112,7 @@ fun PlaylistSuggestionSection(
                         Spacer(modifier = Modifier.height(8.dp))
                         IconButton(onClick = onRetry) {
                             Icon(
-                                painter = painterResource(R.drawable.retry),
+                                painter = painterResource(R.drawable.sync),
                                 contentDescription = stringResource(R.string.retry)
                             )
                         }
@@ -233,12 +233,14 @@ private fun SuggestedSongItem(
                     if (songItem.id == mediaMetadata?.id) {
                         playerConnection.player.togglePlayPause()
                     } else {
-                        playerConnection.playQueue(
-                            YouTubeQueue(
-                                songItem.endpoint,
-                                songItem.toMediaMetadata()
+                        songItem.endpoint?.let { endpoint ->
+                            playerConnection.playQueue(
+                                YouTubeQueue(
+                                    endpoint,
+                                    songItem.toMediaMetadata()
+                                )
                             )
-                        )
+                        }
                     }
                 },
                 onLongClick = onShowMenu
@@ -252,8 +254,7 @@ private fun SuggestedSongItem(
 @Composable
 private fun rememberSongFromItem(songItem: SongItem): Song {
     return Song(
-        id = songItem.id,
-        song = moe.koiverse.archivetune.db.entities.SongEntity(
+        moe.koiverse.archivetune.db.entities.SongEntity(
             id = songItem.id,
             title = songItem.title,
             duration = -1, // Duration not always available from search
