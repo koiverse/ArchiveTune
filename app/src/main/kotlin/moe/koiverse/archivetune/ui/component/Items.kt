@@ -1180,7 +1180,7 @@ fun ItemThumbnail(
     ) {
         val (cropThumbnailToSquare, _) = rememberPreference(CropThumbnailToSquareKey, false)
         val isYouTubeThumb = thumbnailUrl?.contains("ytimg.com", ignoreCase = true) == true
-        val shouldApplySquareCrop = cropThumbnailToSquare && isYouTubeThumb && thumbnailRatio == 1f
+        val shouldApplySquareCrop = cropThumbnailToSquare && isYouTubeThumb && kotlin.math.abs(thumbnailRatio - 1f) < 0.001f
         val widthPx = if (maxWidth == Dp.Infinity) null else with(density) { maxWidth.roundToPx().coerceAtLeast(1) }
         val heightPx = if (maxHeight == Dp.Infinity) null else with(density) { maxHeight.roundToPx().coerceAtLeast(1) }
 
