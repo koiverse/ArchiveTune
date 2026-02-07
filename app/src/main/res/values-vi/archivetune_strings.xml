@@ -244,4 +244,21 @@
     <string name="theme_preview_secondary_action">Hành động Phụ</string>
 
     <string name="copy">Sao chép</string>
+    <string name="player_design_v5">Nhỏ nhắn</string>
+    <string name="player_stream_client">Client phát nhạc</string>
+    <string name="player_stream_client_desc">Kiểm soát client YouTube nào được sử dụng để lấy luồng phát</string>
+    <string name="player_stream_client_android_vr">Android VR</string>
+    <string name="player_stream_client_android_vr_desc">Phát trực tiếp mà không cần giải mã chữ ký, cung cấp tốc độ tối đa. Thích hợp cho đại đa số người dùng.</string>
+    <string name="player_stream_client_web_remix">Web Remix</string>
+    <string name="player_stream_client_web_remix_desc">Hỗ trợ định dạng mở rộng với chi phí là tốc độ. Giải mã chữ ký JavaScript gây ra độ trễ khởi động ~5–10 giây.</string>
+    <string name="backup_in_progress">Đang tiến hành sao lưu</string>
+    <string name="restore_in_progress">Đang tiến hành khôi phục</string>
+    <string name="backup_step_export_settings">Đang sao lưu cài đặt</string>
+    <string name="backup_step_checkpoint_database">Đang chuẩn bị cơ sở dữ liệu</string>
+    <string name="backup_step_copying_file">Đang sao chép %1$s</string>
+    <string name="restore_step_verifying">Đang xác minh bản sao lưu</string>
+    <string name="restore_step_stopping_playback">Đang dừng phát nhạc</string>
+    <string name="restore_step_restoring_settings">Đang khôi phục cài đặt</string>
+    <string name="restore_step_restoring_file">Đang khôi phục %1$s</string>
+    <string name="restore_step_restarting">Đang khởi động lại ứng dụng</string>
 </resources>
