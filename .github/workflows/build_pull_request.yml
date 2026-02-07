@@ -56,6 +56,7 @@ jobs:
         uses: peter-evans/create-or-update-comment@v3
         with:
           comment-id: ${{ steps.create-comment.outputs.comment-id }}
+          edit-mode: replace
           body: |
             @${{ github.event.comment.user.login }} 
             
@@ -148,7 +149,7 @@ jobs:
               -dname "CN=Android Debug,O=Android,C=US"
           fi
           
-      - name: Update comment - Building APK
+      - name: Update comment - Starting APK build
         uses: peter-evans/create-or-update-comment@v3
         with:
           comment-id: ${{ steps.create-comment.outputs.comment-id }}
@@ -163,30 +164,105 @@ jobs:
             **Branch:** \`${{ steps.extract-pr.outputs.head-ref }}\`
             **Triggered by:** @${{ github.event.comment.user.login }}
             
+            **Console:**
+            ```bash
+            Starting build process...
+            ```
+            
             ✅ All setup complete:
             - Java JDK 21 ✓
             - Gradle ✓  
             - Debug keystore ✓
-            
-            Now building Universal Debug APK...
 
-      - name: Build and Lint Universal Debug APK
+      - name: Build APK with live output capture
         id: build-apk
+        env:
+          COMMENT_ID: ${{ steps.create-comment.outputs.comment-id }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPOSITORY: ${{ github.repository }}
+          PR_NUMBER: ${{ steps.extract-pr.outputs.pr-number }}
+          HEAD_REF: ${{ steps.extract-pr.outputs.head-ref }}
+          USER_LOGIN: ${{ github.event.comment.user.login }}
         run: |
-          # Capture build output
-          BUILD_OUTPUT=$(./gradlew --console=plain assembleUniversalDebug :app:lintUniversalDebug --warning-mode summary 2>&1 | tail -50)
+          # Function to update comment with console output
+          update_comment_with_logs() {
+            local logs="$1"
+            local status="$2"
+            
+            # Escape JSON special characters
+            logs="${logs//$'\n'/\\n}"
+            logs="${logs//\"/\\\"}"
+            
+            # Create JSON payload
+            local json_payload=$(cat <<EOF
+            {
+              "body": "@$USER_LOGIN \n\n🚀 **Build triggered via /run command!**\n\n**Status:** 🏗️ Building APK...\n**PR:** #$PR_NUMBER\n**Branch:** \\\`$HEAD_REF\\\`\n**Triggered by:** @$USER_LOGIN\n\n**Console:**\n\`\`\`bash\n$logs\n\`\`\`\n\n✅ All setup complete:\n- Java JDK 21 ✓\n- Gradle ✓  \n- Debug keystore ✓"
+            }
+            EOF
+            )
+            
+            # Update comment via GitHub API
+            curl -s -X PATCH \
+              -H "Authorization: token $GITHUB_TOKEN" \
+              -H "Accept: application/vnd.github.v3+json" \
+              -H "Content-Type: application/json" \
+              "https://api.github.com/repos/$REPOSITORY/issues/comments/$COMMENT_ID" \
+              -d "$json_payload"
+          }
           
-          # Check if build was successful
-          if [ $? -eq 0 ]; then
+          # Create named pipe for build output
+          mkfifo build_output.pipe
+          
+          # Start build in background and pipe output
+          {
+            ./gradlew --console=plain assembleUniversalDebug :app:lintUniversalDebug --warning-mode summary 2>&1
+            echo $? > build_exit_code.txt
+          } | tee build_output.pipe > build_full_output.log &
+          
+          BUILD_PID=$!
+          
+          # Buffer to accumulate logs
+          LOG_BUFFER="Starting Gradle build...\n"
+          LAST_UPDATE=$(date +%s)
+          UPDATE_INTERVAL=10  # Update every 10 seconds
+          
+          # Read from pipe and update comment periodically
+          while read -r line; do
+            # Add line to buffer (limit to last 30 lines)
+            LOG_BUFFER="${LOG_BUFFER}${line}\n"
+            LOG_LINES=$(echo -e "$LOG_BUFFER" | wc -l)
+            
+            if [ $LOG_LINES -gt 30 ]; then
+              LOG_BUFFER=$(echo -e "$LOG_BUFFER" | tail -n 30)
+            fi
+            
+            # Update comment if interval has passed
+            CURRENT_TIME=$(date +%s)
+            if [ $((CURRENT_TIME - LAST_UPDATE)) -ge $UPDATE_INTERVAL ]; then
+              update_comment_with_logs "$(echo -e "$LOG_BUFFER" | tail -n 20)"
+              LAST_UPDATE=$CURRENT_TIME
+            fi
+          done < build_output.pipe
+          
+          # Wait for build to complete
+          wait $BUILD_PID
+          
+          # Get exit code
+          BUILD_EXIT_CODE=$(cat build_exit_code.txt)
+          
+          # Get final output (last 40 lines)
+          FINAL_OUTPUT=$(tail -n 40 build_full_output.log)
+          
+          # Clean up
+          rm -f build_output.pipe build_exit_code.txt
+          
+          # Set outputs
+          if [ $BUILD_EXIT_CODE -eq 0 ]; then
             echo "build-success=true" >> $GITHUB_OUTPUT
-            echo "Build successful!"
+            echo "final-output=$FINAL_OUTPUT" >> $GITHUB_OUTPUT
           else
             echo "build-success=false" >> $GITHUB_OUTPUT
-            echo "Build failed!"
-            echo "build-output<<EOF" >> $GITHUB_OUTPUT
-            echo "$BUILD_OUTPUT" >> $GITHUB_OUTPUT
-            echo "EOF" >> $GITHUB_OUTPUT
-            exit 1
+            echo "final-output=$FINAL_OUTPUT" >> $GITHUB_OUTPUT
           fi
         env:
           GITHUB_EVENT_NAME: ${{ github.event_name }}
@@ -209,6 +285,11 @@ jobs:
             **PR:** #${{ steps.extract-pr.outputs.pr-number }}
             **Branch:** \`${{ steps.extract-pr.outputs.head-ref }}\`
             **Triggered by:** @${{ github.event.comment.user.login }}
+            
+            **Final Console Output:**
+            ```bash
+            ${{ steps.build-apk.outputs.final-output }}
+            ```
             
             ✅ All steps completed:
             - Java JDK 21 ✓
@@ -235,12 +316,12 @@ jobs:
             **Branch:** \`${{ steps.extract-pr.outputs.head-ref }}\`
             **Triggered by:** @${{ github.event.comment.user.login }}
             
-            ❌ Build failed during APK compilation
+            **Final Console Output:**
+            ```bash
+            ${{ steps.build-apk.outputs.final-output }}
+            ```
             
-            **Last 50 lines of build output:**
-            ```
-            ${{ steps.build-apk.outputs.build-output }}
-            ```
+            ❌ Build failed during APK compilation
             
             Check the Actions tab for complete logs.
 
@@ -266,6 +347,11 @@ jobs:
             **PR:** #${{ steps.extract-pr.outputs.pr-number }}
             **Branch:** \`${{ steps.extract-pr.outputs.head-ref }}\`
             **Triggered by:** @${{ github.event.comment.user.login }}
+            
+            **Final Build Output:**
+            ```bash
+            ${{ steps.build-apk.outputs.final-output }}
+            ```
             
             🎉 **Build successful!** APK is ready for download.
             
