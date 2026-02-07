@@ -4,37 +4,298 @@ on:
   pull_request:
     branches:
       - "**"
-  workflow_dispatch:
-    inputs:
-      pr_number:
-        description: 'Pull Request Number'
-        required: true
-        type: string
-      branch_name:
-        description: 'Branch Name'
-        required: true
-        type: string
+  issue_comment:
+    types: [created]
 
 jobs:
+  handle-comment:
+    if: github.event_name == 'issue_comment' && github.event.issue.pull_request && contains(github.event.comment.body, '/run')
+    runs-on: ubuntu-latest
+    
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+    
+    steps:
+      - name: Extract PR information
+        id: extract-pr
+        run: |
+          PR_URL="${{ github.event.issue.pull_request.url }}"
+          
+          PR_JSON=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github.v3+json" \
+            "$PR_URL")
+          
+          HEAD_REF=$(echo "$PR_JSON" | jq -r '.head.ref')
+          HEAD_REPO_FULL_NAME=$(echo "$PR_JSON" | jq -r '.head.repo.full_name')
+          PR_NUMBER=$(echo "$PR_JSON" | jq -r '.number')
+          
+          echo "head-ref=$HEAD_REF" >> $GITHUB_OUTPUT
+          echo "head-repo=$HEAD_REPO_FULL_NAME" >> $GITHUB_OUTPUT
+          echo "pr-number=$PR_NUMBER" >> $GITHUB_OUTPUT
+          
+      - name: Create initial comment
+        id: create-comment
+        uses: peter-evans/create-or-update-comment@v3
+        with:
+          issue-number: ${{ steps.extract-pr.outputs.pr-number }}
+          body: |
+            @${{ github.event.comment.user.login }} 
+            
+            🚀 **Build triggered via /run command!**
+            
+            **Status:** ⏳ Starting build process...
+            **PR:** #${{ steps.extract-pr.outputs.pr-number }}
+            **Branch:** \`${{ steps.extract-pr.outputs.head-ref }}\`
+            **Triggered by:** @${{ github.event.comment.user.login }}
+            
+            I'll update this message as the build progresses.
+            
+      - name: Update comment - Building
+        uses: peter-evans/create-or-update-comment@v3
+        with:
+          comment-id: ${{ steps.create-comment.outputs.comment-id }}
+          body: |
+            @${{ github.event.comment.user.login }} 
+            
+            🚀 **Build triggered via /run command!**
+            
+            **Status:** 🔄 Building APK...
+            **PR:** #${{ steps.extract-pr.outputs.pr-number }}
+            **Branch:** \`${{ steps.extract-pr.outputs.head-ref }}\`
+            **Triggered by:** @${{ github.event.comment.user.login }}
+            
+            ⏳ Checking out code and setting up build environment...
+            
+      - name: Checkout PR branch
+        uses: actions/checkout@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          repository: ${{ steps.extract-pr.outputs.head-repo }}
+          ref: ${{ steps.extract-pr.outputs.head-ref }}
+          
+      - name: Update comment - Setting up environment
+        uses: peter-evans/create-or-update-comment@v3
+        with:
+          comment-id: ${{ steps.create-comment.outputs.comment-id }}
+          body: |
+            @${{ github.event.comment.user.login }} 
+            
+            🚀 **Build triggered via /run command!**
+            
+            **Status:** ⚙️ Setting up build environment...
+            **PR:** #${{ steps.extract-pr.outputs.pr-number }}
+            **Branch:** \`${{ steps.extract-pr.outputs.head-ref }}\`
+            **Triggered by:** @${{ github.event.comment.user.login }}
+            
+            ✅ Code checked out successfully
+            
+            Now setting up:
+            - Java JDK 21
+            - Gradle build system
+            - Android debug keystore
+            
+      - name: Set up JDK 21
+        uses: actions/setup-java@v5
+        with:
+          java-version: 21
+          distribution: "temurin"
+          
+      - name: Set Up Gradle
+        uses: gradle/actions/setup-gradle@v5
+        with:
+          cache-read-only: true
+          cache-cleanup: on-success
+          
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+        
+      - name: Update comment - Generating keystore
+        uses: peter-evans/create-or-update-comment@v3
+        with:
+          comment-id: ${{ steps.create-comment.outputs.comment-id }}
+          body: |
+            @${{ github.event.comment.user.login }} 
+            
+            🚀 **Build triggered via /run command!**
+            
+            **Status:** 🔑 Generating debug keystore...
+            **PR:** #${{ steps.extract-pr.outputs.pr-number }}
+            **Branch:** \`${{ steps.extract-pr.outputs.head-ref }}\`
+            **Triggered by:** @${{ github.event.comment.user.login }}
+            
+            ✅ Environment set up:
+            - Java JDK 21 ✓
+            - Gradle ✓
+            
+            Now generating Android debug keystore...
+
+      - name: Generate debug.keystore if not exists
+        run: |
+          mkdir -p ~/.android
+          if [ ! -f ~/.android/debug.keystore ]; then
+            keytool -genkey -v \
+              -keystore ~/.android/debug.keystore \
+              -storepass android \
+              -alias androiddebugkey \
+              -keypass android \
+              -keyalg RSA \
+              -keysize 2048 \
+              -validity 10000 \
+              -dname "CN=Android Debug,O=Android,C=US"
+          fi
+          
+      - name: Update comment - Building APK
+        uses: peter-evans/create-or-update-comment@v3
+        with:
+          comment-id: ${{ steps.create-comment.outputs.comment-id }}
+          body: |
+            @${{ github.event.comment.user.login }} 
+            
+            🚀 **Build triggered via /run command!**
+            
+            **Status:** 🏗️ Building APK...
+            **PR:** #${{ steps.extract-pr.outputs.pr-number }}
+            **Branch:** \`${{ steps.extract-pr.outputs.head-ref }}\`
+            **Triggered by:** @${{ github.event.comment.user.login }}
+            
+            ✅ All setup complete:
+            - Java JDK 21 ✓
+            - Gradle ✓  
+            - Debug keystore ✓
+            
+            Now building Universal Debug APK...
+
+      - name: Build and Lint Universal Debug APK
+        id: build-apk
+        run: |
+          # Capture build output
+          BUILD_OUTPUT=$(./gradlew --console=plain assembleUniversalDebug :app:lintUniversalDebug --warning-mode summary 2>&1 | tail -50)
+          
+          # Check if build was successful
+          if [ $? -eq 0 ]; then
+            echo "build-success=true" >> $GITHUB_OUTPUT
+            echo "Build successful!"
+          else
+            echo "build-success=false" >> $GITHUB_OUTPUT
+            echo "Build failed!"
+            echo "build-output<<EOF" >> $GITHUB_OUTPUT
+            echo "$BUILD_OUTPUT" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+        env:
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
+          PULL_REQUEST: "true"
+          LASTFM_API_KEY: ${{ secrets.LASTFM_API_KEY }}
+          LASTFM_SECRET: ${{ secrets.LASTFM_SECRET }}
+          
+      - name: Update comment - Build successful
+        if: steps.build-apk.outputs.build-success == 'true'
+        uses: peter-evans/create-or-update-comment@v3
+        with:
+          comment-id: ${{ steps.create-comment.outputs.comment-id }}
+          body: |
+            @${{ github.event.comment.user.login }} 
+            
+            🚀 **Build triggered via /run command!**
+            
+            **Status:** ✅ **BUILD SUCCESSFUL!**
+            **PR:** #${{ steps.extract-pr.outputs.pr-number }}
+            **Branch:** \`${{ steps.extract-pr.outputs.head-ref }}\`
+            **Triggered by:** @${{ github.event.comment.user.login }}
+            
+            ✅ All steps completed:
+            - Java JDK 21 ✓
+            - Gradle ✓  
+            - Debug keystore ✓
+            - APK build ✓
+            - Lint check ✓
+            
+            📦 Now uploading APK artifact...
+            
+      - name: Update comment - Build failed
+        if: steps.build-apk.outputs.build-success == 'false'
+        uses: peter-evans/create-or-update-comment@v3
+        with:
+          comment-id: ${{ steps.create-comment.outputs.comment-id }}
+          body: |
+            @${{ github.event.comment.user.login }} 
+            
+            🚀 **Build triggered via /run command!**
+            
+            **Status:** ❌ **BUILD FAILED!**
+            **PR:** #${{ steps.extract-pr.outputs.pr-number }}
+            **Branch:** \`${{ steps.extract-pr.outputs.head-ref }}\`
+            **Triggered by:** @${{ github.event.comment.user.login }}
+            
+            ❌ Build failed during APK compilation
+            
+            **Last 50 lines of build output:**
+            ```
+            ${{ steps.build-apk.outputs.build-output }}
+            ```
+            
+            Check the Actions tab for complete logs.
+
+      - name: Upload APK
+        if: steps.build-apk.outputs.build-success == 'true'
+        uses: actions/upload-artifact@v6
+        with:
+          name: app-universal-debug-pr-${{ steps.extract-pr.outputs.pr-number }}-run
+          path: app/build/outputs/apk/universal/debug/*.apk
+          
+      - name: Update comment - APK uploaded
+        if: steps.build-apk.outputs.build-success == 'true'
+        uses: peter-evans/create-or-update-comment@v3
+        with:
+          comment-id: ${{ steps.create-comment.outputs.comment-id }}
+          body: |
+            @${{ github.event.comment.user.login }} 
+            
+            🚀 **Build triggered via /run command!**
+            
+            **Status:** ✅ **BUILD COMPLETE!**
+            **PR:** #${{ steps.extract-pr.outputs.pr-number }}
+            **Branch:** \`${{ steps.extract-pr.outputs.head-ref }}\`
+            **Triggered by:** @${{ github.event.comment.user.login }}
+            
+            🎉 **Build successful!** APK is ready for download.
+            
+            ### 📥 Download APK:
+            **Artifact name:** \`app-universal-debug-pr-${{ steps.extract-pr.outputs.pr-number }}-run\`
+            
+            [Download APK from Actions Artifacts](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts)
+            
+            ### 🔧 Build Details:
+            - **JDK:** 21 (Temurin)
+            - **Build Type:** Universal Debug
+            - **Keystore:** Debug keystore (auto-generated)
+            - **Timestamp:** $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+            
+            ### 📋 Next Steps:
+            1. Download the APK above
+            2. Install on Android device/emulator
+            3. Test the changes
+            4. Report any issues in the PR
+            
+            ---
+            *This build was triggered by the \`/run\` command.*
+            
+      - name: Add reaction to original comment
+        uses: peter-evans/create-or-update-comment@v3
+        with:
+          comment-id: ${{ github.event.comment.id }}
+          reactions: 'rocket'
+
+  # Original PR build job (runs on regular PR events)
   build:
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
 
     steps:
-      - name: Determine PR information
-        id: pr-info
-        run: |
-          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
-            echo "PR_NUMBER=${{ github.event.inputs.pr_number }}" >> $GITHUB_OUTPUT
-            echo "BRANCH_NAME=${{ github.event.inputs.branch_name }}" >> $GITHUB_OUTPUT
-          else
-            echo "PR_NUMBER=${{ github.event.number }}" >> $GITHUB_OUTPUT
-            echo "BRANCH_NAME=${{ github.head_ref || github.ref_name }}" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Checkout code
-        uses: actions/checkout@v6
-        with:
-          ref: ${{ steps.pr-info.outputs.BRANCH_NAME }}
+      - uses: actions/checkout@v6
 
       - name: Set up JDK 21
         uses: actions/setup-java@v5
@@ -77,5 +338,5 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v6
         with:
-          name: app-universal-debug-pr-${{ steps.pr-info.outputs.PR_NUMBER }}
+          name: app-universal-debug-pr-${{ github.event.number }}
           path: app/build/outputs/apk/universal/debug/*.apk
