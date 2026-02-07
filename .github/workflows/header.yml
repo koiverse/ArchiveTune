@@ -1,0 +1,27 @@
+name: Dynamic Header
+on: workflow_dispatch
+
+jobs:
+  apply-header:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+
+      - run: go install github.com/google/addlicense@latest
+
+      - run: |
+          YEAR=$(date +%Y)
+          echo -e "ArchiveTune Project Original ($YEAR)\nKòi Natsuko\nLicensed Under GPL-3.0 | see git history for contributors" > banner.txt
+          export PATH=$PATH:$(go env GOPATH)/bin
+          addlicense -f banner.txt .
+          rm banner.txt
+
+      - uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: Dynamic Header
