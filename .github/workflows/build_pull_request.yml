@@ -196,6 +196,7 @@ jobs:
 
       - name: Build and Lint Universal Debug APK
         id: build-apk
+        continue-on-error: true # IMPORTANT: Keep running even if this step fails.
         run: |
           # Create temporary file to store complete log
           BUILD_LOG=$(mktemp)
@@ -206,49 +207,48 @@ jobs:
           BUILD_EXIT_CODE=${PIPESTATUS[0]}
           set -e
           
-          # Check exit code
+          # Read full build log
+          FULL_LOG=$(cat "$BUILD_LOG")
+          
+          # Limit log to avoid exceeding output variable size (approx 0.5MB)
+          # About 30000 lines or 500000 characters
+          TRIMMED_LOG=$(echo "$FULL_LOG" | tail -30000 | head -c 500000)
+          
+          # Escape special characters for JSON/Markdown
+          ESCAPED_LOG=$(echo "$TRIMMED_LOG" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g' -e 's/`/\\`/g' -e "s/'/\\'/g" -e 's/\$/\$/g')
+          
+          # Save trimmed log to output
+          echo "build-log<<EOF" >> $GITHUB_OUTPUT
+          echo "$ESCAPED_LOG" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+          
+          # Get last 50 lines for summary
+          LAST_50_LINES=$(tail -50 "$BUILD_LOG")
+          ESCAPED_LAST_50=$(echo "$LAST_50_LINES" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g' -e 's/`/\\`/g' -e 's/\$/\$/g')
+          
+          echo "build-output<<EOF" >> $GITHUB_OUTPUT
+          echo "$ESCAPED_LAST_50" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+          
+          # Get first error lines for quick display
+          ERROR_LINES=$(grep -i "error\|fail\|exception\|failed" "$BUILD_LOG" | head -10)
+          if [ -z "$ERROR_LINES" ]; then
+            ERROR_LINES="No specific error messages found. Check the full build log."
+          fi
+          ESCAPED_ERRORS=$(echo "$ERROR_LINES" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g' -e 's/`/\\`/g' -e 's/\$/\$/g')
+          
+          echo "error-lines<<EOF" >> $GITHUB_OUTPUT
+          echo "$ESCAPED_ERRORS" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+          
+          # Check exit code and set build-success accordingly
           if [ $BUILD_EXIT_CODE -eq 0 ]; then
             echo "build-success=true" >> $GITHUB_OUTPUT
             echo "Build successful!"
           else
             echo "build-success=false" >> $GITHUB_OUTPUT
-            echo "Build failed!"
-            
-            # Read full build log
-            FULL_LOG=$(cat "$BUILD_LOG")
-            
-            # Limit log to avoid exceeding output variable size (approx 0.5MB)
-            # About 30000 lines or 500000 characters
-            TRIMMED_LOG=$(echo "$FULL_LOG" | tail -30000 | head -c 500000)
-            
-            # Escape special characters for JSON/Markdown
-            ESCAPED_LOG=$(echo "$TRIMMED_LOG" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g' -e 's/`/\\`/g' -e "s/'/\\'/g" -e 's/\$/\$/g')
-            
-            # Save trimmed log to output
-            echo "build-log<<EOF" >> $GITHUB_OUTPUT
-            echo "$ESCAPED_LOG" >> $GITHUB_OUTPUT
-            echo "EOF" >> $GITHUB_OUTPUT
-            
-            # Get last 50 lines for summary
-            LAST_50_LINES=$(tail -50 "$BUILD_LOG")
-            ESCAPED_LAST_50=$(echo "$LAST_50_LINES" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g' -e 's/`/\\`/g' -e 's/\$/\$/g')
-            
-            echo "build-output<<EOF" >> $GITHUB_OUTPUT
-            echo "$ESCAPED_LAST_50" >> $GITHUB_OUTPUT
-            echo "EOF" >> $GITHUB_OUTPUT
-            
-            # Get first error lines for quick display
-            ERROR_LINES=$(grep -i "error\|fail\|exception\|failed" "$BUILD_LOG" | head -10)
-            if [ -z "$ERROR_LINES" ]; then
-              ERROR_LINES="No specific error messages found. Check the full build log."
-            fi
-            ESCAPED_ERRORS=$(echo "$ERROR_LINES" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g' -e 's/`/\\`/g' -e 's/\$/\$/g')
-            
-            echo "error-lines<<EOF" >> $GITHUB_OUTPUT
-            echo "$ESCAPED_ERRORS" >> $GITHUB_OUTPUT
-            echo "EOF" >> $GITHUB_OUTPUT
-            
-            exit 1
+            echo "Build failed with exit code: $BUILD_EXIT_CODE"
+            # KHÔNG exit 1 ở đây nữa vì đã có continue-on-error: true
           fi
           
           # Clean up temporary file
@@ -259,8 +259,20 @@ jobs:
           LASTFM_API_KEY: ${{ secrets.LASTFM_API_KEY }}
           LASTFM_SECRET: ${{ secrets.LASTFM_SECRET }}
           
+      # This step runs continuously, checking the build results and displaying them appropriately.
+      - name: Process build result and update comment
+        id: process-result
+        run: |
+          if [ "${{ steps.build-apk.outputs.build-success }}" = "true" ]; then
+            echo "Build was successful"
+            echo "is-success=true" >> $GITHUB_OUTPUT
+          else
+            echo "Build failed"
+            echo "is-success=false" >> $GITHUB_OUTPUT
+          fi
+          
       - name: Update original comment - Build successful
-        if: steps.build-apk.outputs.build-success == 'true'
+        if: steps.process-result.outputs.is-success == 'true'
         uses: peter-evans/create-or-update-comment@v3
         with:
           comment-id: ${{ github.event.comment.id }}
@@ -288,7 +300,7 @@ jobs:
             *Current step:* Uploading artifact to GitHub Actions...
 
       - name: Update original comment - Build failed
-        if: steps.build-apk.outputs.build-success == 'false'
+        if: steps.process-result.outputs.is-success == 'false'
         uses: peter-evans/create-or-update-comment@v3
         with:
           comment-id: ${{ github.event.comment.id }}
@@ -339,14 +351,14 @@ jobs:
             *Note: Log has been trimmed if it was too long. Check the Actions tab for complete logs.*
 
       - name: Upload APK
-        if: steps.build-apk.outputs.build-success == 'true'
+        if: steps.process-result.outputs.is-success == 'true'
         uses: actions/upload-artifact@v6
         with:
           name: app-universal-debug-pr-${{ steps.extract-pr.outputs.pr-number }}-run
           path: app/build/outputs/apk/universal/debug/*.apk
           
       - name: Update original comment - APK uploaded (Final Success)
-        if: steps.build-apk.outputs.build-success == 'true'
+        if: steps.process-result.outputs.is-success == 'true'
         uses: peter-evans/create-or-update-comment@v3
         with:
           comment-id: ${{ github.event.comment.id }}
@@ -389,7 +401,7 @@ jobs:
           comment-id: ${{ github.event.comment.id }}
           edit-mode: replace
           reactions: |
-            ${{ steps.build-apk.outputs.build-success == 'true' && '+1' || '-1' }}
+            ${{ steps.process-result.outputs.is-success == 'true' && '+1' || '-1' }}
 
   # Original PR build job (runs on regular PR events)
   build:
