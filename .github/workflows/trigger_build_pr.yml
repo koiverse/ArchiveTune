@@ -1,0 +1,48 @@
+name: Trigger Build on Comment for [skip ci]
+
+on:
+  issue_comment:
+    types: [created]
+
+jobs:
+  trigger-build:
+    if: github.event.issue.pull_request && contains(github.event.comment.body, '/run')
+    runs-on: ubuntu-latest
+    
+    permissions:
+      contents: write
+      pull-requests: write
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          ref: ${{ github.event.issue.pull_request.head.ref }}
+          
+      - name: Create temp.txt file
+        run: |
+          echo "Triggering build via comment at $(date)" > temp.txt
+          
+      - name: Commit and push temp.txt
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add temp.txt
+          git commit -m "Trigger build: ${{ github.event.comment.body }} [comment by @${{ github.event.comment.user.login }}]"
+          git push
+          
+      - name: Delete temp.txt file
+        run: rm -f temp.txt
+          
+      - name: Commit and push removal
+        run: |
+          git add temp.txt
+          git commit -m "Cleanup: Remove temp.txt after triggering build" || echo "No changes to commit"
+          git push || echo "Nothing to push"
+          
+      - name: Add reaction to comment
+        uses: peter-evans/create-or-update-comment@v3
+        with:
+          comment-id: ${{ github.event.comment.id }}
+          reactions: '+1'
