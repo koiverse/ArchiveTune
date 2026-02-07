@@ -1,86 +1,144 @@
 name: Trigger Build on Comment
 
 on:
-  pull_request_target:
-    types: [opened, synchronize, reopened]
   issue_comment:
     types: [created]
 
 jobs:
-  trigger-on-comment:
-    if: github.event_name == 'issue_comment' && github.event.issue.pull_request && (contains(github.event.comment.body, '/run') || contains(github.event.comment.body, '/remove-trigger'))
+  trigger-build:
+    if: github.event.issue.pull_request && (contains(github.event.comment.body, '/run') || contains(github.event.comment.body, '/remove-trigger'))
     runs-on: ubuntu-latest
     
     permissions:
       contents: write
       pull-requests: write
-      
+      issues: write
+    
     steps:
-      - name: Get PR information
-        id: pr-info
+      - name: Extract PR information
+        id: extract-pr
         run: |
+          # Get PR info from the webhook payload
+          PR_URL="${{ github.event.issue.pull_request.url }}"
+          
+          # Fetch detailed PR info using GitHub API
+          PR_JSON=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github.v3+json" \
+            "$PR_URL")
+          
+          # Extract head ref (PR branch name) and head repo
+          HEAD_REF=$(echo "$PR_JSON" | jq -r '.head.ref')
+          HEAD_REPO_FULL_NAME=$(echo "$PR_JSON" | jq -r '.head.repo.full_name')
+          BASE_REF=$(echo "$PR_JSON" | jq -r '.base.ref')
+          
+          echo "head-ref=$HEAD_REF" >> $GITHUB_OUTPUT
+          echo "head-repo=$HEAD_REPO_FULL_NAME" >> $GITHUB_OUTPUT
+          echo "base-ref=$BASE_REF" >> $GITHUB_OUTPUT
           echo "pr-number=${{ github.event.issue.number }}" >> $GITHUB_OUTPUT
-          echo "head-ref=${{ github.event.issue.pull_request.head.ref }}" >> $GITHUB_OUTPUT
-          echo "head-repo=${{ github.event.issue.pull_request.head.repo.full_name }}" >> $GITHUB_OUTPUT
+          
+          echo "PR Branch: $HEAD_REF"
+          echo "PR Repo: $HEAD_REPO_FULL_NAME"
+          echo "Base Branch: $BASE_REF"
           
       - name: Checkout PR branch
         uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          repository: ${{ steps.pr-info.outputs.head-repo }}
-          ref: ${{ steps.pr-info.outputs.head-ref }}
+          repository: ${{ steps.extract-pr.outputs.head-repo }}
+          ref: ${{ steps.extract-pr.outputs.head-ref }}
+          # Always fetch the specific branch
+          fetch-depth: 1
+          
+      - name: Verify current branch
+        run: |
+          echo "Current branch: $(git branch --show-current)"
+          echo "Expected branch: ${{ steps.extract-pr.outputs.head-ref }}"
+          echo "Git remote -v:"
+          git remote -v
+          
+      - name: Setup git identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
           
       - name: Determine action
         id: determine-action
         run: |
-          if [[ "${{ github.event.comment.body }}" == *"/remove-trigger"* ]]; then
+          COMMENT="${{ github.event.comment.body }}"
+          if [[ "$COMMENT" == *"/remove-trigger"* ]]; then
             echo "action=remove-trigger" >> $GITHUB_OUTPUT
-          elif [[ "${{ github.event.comment.body }}" == *"/run"* ]]; then
+          elif [[ "$COMMENT" == *"/run"* ]]; then
             echo "action=run-build" >> $GITHUB_OUTPUT
           fi
           
       - name: Handle /run command
         if: steps.determine-action.outputs.action == 'run-build'
         run: |
+          # Create temp file to trigger build
           echo "Triggering build via /run command at $(date)" > temp.txt
+          echo "PR: #${{ steps.extract-pr.outputs.pr-number }}" >> temp.txt
+          echo "Branch: ${{ steps.extract-pr.outputs.head-ref }}" >> temp.txt
           
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
+          # Add and commit
           git add temp.txt
           git commit -m "Trigger build via /run command [by @${{ github.event.comment.user.login }}]"
-          git push
           
+          # Push to the PR branch
+          git push origin HEAD:${{ steps.extract-pr.outputs.head-ref }}
+          
+          # Remove temp file and commit
           rm -f temp.txt
           git add temp.txt
           git commit -m "Cleanup: Remove temp.txt after triggering build" || echo "No changes to commit"
-          git push || echo "Nothing to push"
+          git push origin HEAD:${{ steps.extract-pr.outputs.head-ref }} || echo "Nothing to push"
           
       - name: Handle /remove-trigger command
         if: steps.determine-action.outputs.action == 'remove-trigger'
         run: |
-          # Check if the file exists
+          # Check if file exists
           if [ ! -f .github/workflows/trigger_build_pr.yml ]; then
             echo "already-removed=true" >> $GITHUB_ENV
           else
+            # Remove the file
             rm -f .github/workflows/trigger_build_pr.yml
             echo "already-removed=false" >> $GITHUB_ENV
             
-            git config user.name "github-actions[bot]"
-            git config user.email "github-actions[bot]@users.noreply.github.com"
+            # Add, commit and push
             git add .github/workflows/trigger_build_pr.yml
             git commit -m "Remove trigger workflow via /remove-trigger command [by @${{ github.event.comment.user.login }}]"
-            git push
+            git push origin HEAD:${{ steps.extract-pr.outputs.head-ref }}
           fi
           
-      - name: Add comment response
+      - name: Add reaction to comment
         uses: peter-evans/create-or-update-comment@v3
         with:
-          issue-number: ${{ steps.pr-info.outputs.pr-number }}
+          comment-id: ${{ github.event.comment.id }}
+          reactions: '+1'
+          
+      - name: Add success comment for /run
+        if: steps.determine-action.outputs.action == 'run-build'
+        uses: peter-evans/create-or-update-comment@v3
+        with:
+          issue-number: ${{ steps.extract-pr.outputs.pr-number }}
+          body: |
+            ✅ Build triggered successfully by @${{ github.event.comment.user.login }}!
+            
+            **PR Branch:** \`${{ steps.extract-pr.outputs.head-ref }}\`
+            **Base Branch:** \`${{ steps.extract-pr.outputs.base-ref }}\`
+            
+            The build process has been initiated via the \`/run\` command. Check the status in the "Actions" tab.
+            
+      - name: Add removal comment for /remove-trigger
+        if: steps.determine-action.outputs.action == 'remove-trigger'
+        uses: peter-evans/create-or-update-comment@v3
+        with:
+          issue-number: ${{ steps.extract-pr.outputs.pr-number }}
           body: |
             @${{ github.event.comment.user.login }} 
             
-            ${{ steps.determine-action.outputs.action == 'run-build' && '✅ Build triggered successfully!' || '' }}
-            ${{ steps.determine-action.outputs.action == 'remove-trigger' && (env.already-removed == 'true' && 'The trigger workflow file was already removed from this PR branch.' || '✅ The trigger workflow has been successfully removed from this PR branch.') || '' }}
+            ${{ env.already-removed == 'true' && 'The trigger workflow file was already removed from this PR branch.' || '✅ The trigger workflow has been successfully removed from this PR branch.' }}
             
-            **Branch:** \`${{ steps.pr-info.outputs.head-ref }}\`
-            ${{ steps.determine-action.outputs.action == 'remove-trigger' && '**File removed:** `.github/workflows/trigger_build_pr.yml`' || '' }}
+            **PR Branch:** \`${{ steps.extract-pr.outputs.head-ref }}\`
+            ${{ env.already-removed == 'false' && '**File removed:** `.github/workflows/trigger_build_pr.yml`' || '' }}
+            
+            **Note:** This removal only affects this PR branch. The workflow file remains in the main repository.
