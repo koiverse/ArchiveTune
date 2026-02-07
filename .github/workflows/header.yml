@@ -21,7 +21,7 @@ jobs:
           find . -type f -name "*.kt" -print0 | xargs -0 -r addlicense -v -f banner.txt
           rm banner.txt
 
-      - uses: stefanzweifel/git-auto-commit-action@v5
+      - uses: stefanzweifel/git-auto-commit-action@v7
         with:
           commit_message: Add Kotlin Header
           
