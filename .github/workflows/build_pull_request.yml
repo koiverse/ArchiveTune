@@ -9,7 +9,15 @@ on:
 
 jobs:
   handle-comment:
-    if: github.event_name == 'issue_comment' && github.event.issue.pull_request && contains(github.event.comment.body, '/run')
+    if: |
+      github.event_name == 'issue_comment' && 
+      github.event.issue.pull_request && 
+      (
+        github.event.comment.body == '/run' ||
+        github.event.comment.body == ' /run' ||
+        github.event.comment.body == '/run ' ||
+        github.event.comment.body == ' /run '
+      )
     runs-on: ubuntu-latest
     
     permissions:
@@ -18,39 +26,11 @@ jobs:
       issues: write
     
     steps:
-      - name: Validate /run command
-        id: validate-command
-        run: |
-          # Extract the comment content and remove leading and trailing spaces.
-          COMMENT=$(echo "${{ github.event.comment.body }}" | tr -d '\r')
-          TRIMMED_COMMENT=$(echo "$COMMENT" | xargs)
-          
-          echo "Original comment: '$COMMENT'"
-          echo "Trimmed comment: '$TRIMMED_COMMENT'"
-          
-          # Check if the comment is exactly "/run"
-          if [ "$TRIMMED_COMMENT" = "/run" ]; then
-            echo "✅ Valid /run command detected"
-            echo "is-valid-run=true" >> $GITHUB_OUTPUT
-          else
-            echo "❌ Invalid command: '$TRIMMED_COMMENT' (expected exactly '/run')"
-            echo "is-valid-run=false" >> $GITHUB_OUTPUT
-            
-            # Add a warning reaction for invalid comments.
-            curl -s -X POST \
-              -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-              -H "Accept: application/vnd.github.v3+json" \
-              -d '{"content":"-1"}' \
-              "https://api.github.com/repos/${{ github.repository }}/issues/comments/${{ github.event.comment.id }}/reactions"
-          fi
-          
-      # The job will only run if the command is valid.
-      - name: Exit if invalid command
-        if: steps.validate-command.outputs.is-valid-run != 'true'
-        run: |
-          echo "Skipping build due to invalid command format."
-          echo "Only '/run' (exactly) will trigger the build."
-          exit 0
+      - name: Add reaction to original comment
+        uses: peter-evans/create-or-update-comment@v3
+        with:
+          comment-id: ${{ github.event.comment.id }}
+          reactions: 'eyes'
           
       - name: Extract PR information
         id: extract-pr
@@ -68,12 +48,6 @@ jobs:
           echo "head-ref=$HEAD_REF" >> $GITHUB_OUTPUT
           echo "head-repo=$HEAD_REPO_FULL_NAME" >> $GITHUB_OUTPUT
           echo "pr-number=$PR_NUMBER" >> $GITHUB_OUTPUT
-          
-      - name: Add reaction to original comment
-        uses: peter-evans/create-or-update-comment@v3
-        with:
-          comment-id: ${{ github.event.comment.id }}
-          reactions: 'eyes'
           
       - name: Update original comment - Starting build
         uses: peter-evans/create-or-update-comment@v3
