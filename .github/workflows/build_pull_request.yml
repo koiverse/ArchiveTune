@@ -64,6 +64,8 @@ jobs:
             
             ⏳ I'll update this message as the build progresses.
             
+            [Click here for reload comment if not update after build APK](https://github.com/${{ github.repository }}/pull/${{ steps.extract-pr.outputs.pr-number }}#issuecomment-${{ github.event.comment.id }})
+            
             ---
             *Current step:* Initializing build environment...
             
@@ -81,6 +83,8 @@ jobs:
             **Triggered by:** @${{ github.event.comment.user.login }}
             
             ⏳ Checking out code and setting up build environment...
+            
+            [Click here for reload comment if not update after build APK](https://github.com/${{ github.repository }}/pull/${{ steps.extract-pr.outputs.pr-number }}#issuecomment-${{ github.event.comment.id }})
             
             ---
             *Current step:* Checking out PR branch...
@@ -112,6 +116,8 @@ jobs:
             - ⏳ Setting up Java JDK 21
             - ⏳ Setting up Gradle build system
             - ⏳ Generating Android debug keystore
+            
+            [Click here for reload comment if not update after build APK](https://github.com/${{ github.repository }}/pull/${{ steps.extract-pr.outputs.pr-number }}#issuecomment-${{ github.event.comment.id }})
             
             ---
             *Current step:* Configuring Java and Gradle...
@@ -151,6 +157,8 @@ jobs:
             
             **Current task:** Generating Android debug keystore...
             
+            [Click here for reload comment if not update after build APK](https://github.com/${{ github.repository }}/pull/${{ steps.extract-pr.outputs.pr-number }}#issuecomment-${{ github.event.comment.id }})
+            
             ---
             *Current step:* Creating debug signing key...
 
@@ -188,6 +196,8 @@ jobs:
             - ✅ Debug keystore
             
             **Now building:** Universal Debug APK...
+            
+            [Click here for reload comment if not update after build APK](https://github.com/${{ github.repository }}/pull/${{ steps.extract-pr.outputs.pr-number }}#issuecomment-${{ github.event.comment.id }})
             
             ---
             *Current step:* Running Gradle build and lint check...
@@ -374,7 +384,7 @@ jobs:
             - **JDK:** 21 (Temurin)
             - **Build Type:** Universal Debug
             - **Keystore:** Debug keystore (auto-generated)
-            - **Timestamp:** $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+            - **Timestamp:** $(date -u +"%Y-%m-d %H:%M:%S UTC")
             
             ### 📋 Next Steps:
             1. Download the APK above
