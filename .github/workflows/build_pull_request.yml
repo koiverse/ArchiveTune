@@ -47,8 +47,6 @@ jobs:
           comment-id: ${{ github.event.comment.id }}
           edit-mode: replace
           body: |
-            @${{ github.event.comment.user.login }} 
-            
             🚀 **Build triggered via /run command!**
             
             **Status:** ⏳ Starting build process...
@@ -67,8 +65,6 @@ jobs:
           comment-id: ${{ github.event.comment.id }}
           edit-mode: replace
           body: |
-            @${{ github.event.comment.user.login }} 
-            
             🚀 **Build triggered via /run command!**
             
             **Status:** 🔄 Building APK...
@@ -94,8 +90,6 @@ jobs:
           comment-id: ${{ github.event.comment.id }}
           edit-mode: replace
           body: |
-            @${{ github.event.comment.user.login }} 
-            
             🚀 **Build triggered via /run command!**
             
             **Status:** ⚙️ Setting up build environment...
@@ -135,8 +129,6 @@ jobs:
           comment-id: ${{ github.event.comment.id }}
           edit-mode: replace
           body: |
-            @${{ github.event.comment.user.login }} 
-            
             🚀 **Build triggered via /run command!**
             
             **Status:** 🔑 Generating debug keystore...
@@ -175,8 +167,6 @@ jobs:
           comment-id: ${{ github.event.comment.id }}
           edit-mode: replace
           body: |
-            @${{ github.event.comment.user.login }} 
-            
             🚀 **Build triggered via /run command!**
             
             **Status:** 🏗️ Building APK...
@@ -196,7 +186,7 @@ jobs:
 
       - name: Build and Lint Universal Debug APK
         id: build-apk
-        continue-on-error: true # IMPORTANT: Keep running even if this step fails.
+        continue-on-error: true
         run: |
           # Create temporary file to store complete log
           BUILD_LOG=$(mktemp)
@@ -210,16 +200,32 @@ jobs:
           # Read full build log
           FULL_LOG=$(cat "$BUILD_LOG")
           
-          # Limit log to avoid exceeding output variable size (approx 0.5MB)
-          # About 30000 lines or 500000 characters
+          # Extract specific error information for AI Agent prompt
+          # Get Kotlin compilation errors
+          KOTLIN_ERRORS=$(grep -A 2 -B 2 "Unresolved reference\|Smart cast to.*is impossible" "$BUILD_LOG" || true)
+          
+          # Get build failure section
+          FAILURE_SECTION=$(grep -A 10 -B 5 "FAILURE: Build failed with an exception" "$BUILD_LOG" || true)
+          
+          # Limit log to avoid exceeding output variable size
           TRIMMED_LOG=$(echo "$FULL_LOG" | tail -30000 | head -c 500000)
           
           # Escape special characters for JSON/Markdown
           ESCAPED_LOG=$(echo "$TRIMMED_LOG" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g' -e 's/`/\\`/g' -e "s/'/\\'/g" -e 's/\$/\$/g')
+          ESCAPED_KOTLIN_ERRORS=$(echo "$KOTLIN_ERRORS" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g' -e 's/`/\\`/g' -e 's/\$/\$/g')
+          ESCAPED_FAILURE=$(echo "$FAILURE_SECTION" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g' -e 's/`/\\`/g' -e 's/\$/\$/g')
           
-          # Save trimmed log to output
+          # Save to output
           echo "build-log<<EOF" >> $GITHUB_OUTPUT
           echo "$ESCAPED_LOG" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+          
+          echo "kotlin-errors<<EOF" >> $GITHUB_OUTPUT
+          echo "$ESCAPED_KOTLIN_ERRORS" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+          
+          echo "failure-section<<EOF" >> $GITHUB_OUTPUT
+          echo "$ESCAPED_FAILURE" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
           
           # Get last 50 lines for summary
@@ -230,17 +236,6 @@ jobs:
           echo "$ESCAPED_LAST_50" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
           
-          # Get first error lines for quick display
-          ERROR_LINES=$(grep -i "error\|fail\|exception\|failed" "$BUILD_LOG" | head -10)
-          if [ -z "$ERROR_LINES" ]; then
-            ERROR_LINES="No specific error messages found. Check the full build log."
-          fi
-          ESCAPED_ERRORS=$(echo "$ERROR_LINES" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g' -e 's/`/\\`/g' -e 's/\$/\$/g')
-          
-          echo "error-lines<<EOF" >> $GITHUB_OUTPUT
-          echo "$ESCAPED_ERRORS" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-          
           # Check exit code and set build-success accordingly
           if [ $BUILD_EXIT_CODE -eq 0 ]; then
             echo "build-success=true" >> $GITHUB_OUTPUT
@@ -248,7 +243,6 @@ jobs:
           else
             echo "build-success=false" >> $GITHUB_OUTPUT
             echo "Build failed with exit code: $BUILD_EXIT_CODE"
-            # KHÔNG exit 1 ở đây nữa vì đã có continue-on-error: true
           fi
           
           # Clean up temporary file
@@ -259,15 +253,12 @@ jobs:
           LASTFM_API_KEY: ${{ secrets.LASTFM_API_KEY }}
           LASTFM_SECRET: ${{ secrets.LASTFM_SECRET }}
           
-      # This step runs continuously, checking the build results and displaying them appropriately.
-      - name: Process build result and update comment
+      - name: Process build result
         id: process-result
         run: |
           if [ "${{ steps.build-apk.outputs.build-success }}" = "true" ]; then
-            echo "Build was successful"
             echo "is-success=true" >> $GITHUB_OUTPUT
           else
-            echo "Build failed"
             echo "is-success=false" >> $GITHUB_OUTPUT
           fi
           
@@ -278,8 +269,6 @@ jobs:
           comment-id: ${{ github.event.comment.id }}
           edit-mode: replace
           body: |
-            @${{ github.event.comment.user.login }} 
-            
             🚀 **Build triggered via /run command!**
             
             **Status:** ✅ **BUILD SUCCESSFUL!**
@@ -306,8 +295,6 @@ jobs:
           comment-id: ${{ github.event.comment.id }}
           edit-mode: replace
           body: |
-            @${{ github.event.comment.user.login }} 
-            
             🚀 **Build triggered via /run command!**
             
             **Status:** ❌ **BUILD FAILED!**
@@ -319,7 +306,7 @@ jobs:
             
             **🔥 First errors found:**
             ```bash
-            ${{ steps.build-apk.outputs.error-lines }}
+            ${{ steps.build-apk.outputs.kotlin-errors || steps.build-apk.outputs.failure-section || 'No specific error messages found.' }}
             ```
             
             <details>
@@ -340,10 +327,48 @@ jobs:
             
             </details>
             
+            <details>
+            <summary>🤖 Fix build issue with AI Agent</summary>
+            
+            ```md
+            This is a failed build run on GitHub Actions. I need help fixing the compilation errors.
+            
+            ## Build Information
+            - **Repository:** ${{ github.repository }}
+            - **PR:** #${{ steps.extract-pr.outputs.pr-number }}
+            - **Branch:** ${{ steps.extract-pr.outputs.head-ref }}
+            - **Build Type:** Universal Debug
+            
+            ## Compilation Errors Detected
+            ```log
+            ${{ steps.build-apk.outputs.kotlin-errors || steps.build-apk.outputs.failure-section || 'No specific error messages extracted.' }}
+            ```
+            
+            ## Build Failure Summary
+            ```log
+            ${{ steps.build-apk.outputs.failure-section || 'No failure summary available.' }}
+            ```
+            
+            ## Context
+            This is an Android/Kotlin project building with Gradle. The build failed during Kotlin compilation.
+            
+            ## Request
+            Please analyze the error messages and suggest specific fixes for:
+            1. Missing references (like 'joinByBullet', 'systemBars')
+            2. Import statements that might be needed
+            3. Type casting issues
+            4. Any dependency or configuration problems
+            
+            Provide concrete code fixes or configuration changes to resolve these compilation errors.
+            ```
+            
+            </details>
+            
             🔍 **Debug tips:**
-            1. Check for syntax errors in your code
-            2. Verify all dependencies are correctly defined
-            3. Ensure API keys and secrets are properly set
+            1. Check for missing imports or dependencies
+            2. Verify Kotlin extension functions are available
+            3. Check for type compatibility issues
+            4. Ensure all required libraries are included in build.gradle
             
             📊 **Complete logs:** [View in Actions](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
             
@@ -364,8 +389,6 @@ jobs:
           comment-id: ${{ github.event.comment.id }}
           edit-mode: replace
           body: |
-            @${{ github.event.comment.user.login }} 
-            
             🚀 **Build triggered via /run command!**
             
             **Status:** ✅ **BUILD COMPLETE!**
@@ -402,8 +425,14 @@ jobs:
           edit-mode: replace
           reactions: |
             ${{ steps.process-result.outputs.is-success == 'true' && '+1' || '-1' }}
+          
+      - name: Fail job if build failed
+        if: steps.process-result.outputs.is-success == 'false'
+        run: |
+          echo "❌ Build failed. Marking workflow as failed."
+          echo "Check the comment above for detailed error logs and AI Agent fix suggestions."
+          exit 1
 
-  # Original PR build job (runs on regular PR events)
   build:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
