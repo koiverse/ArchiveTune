@@ -1384,6 +1384,9 @@ fun LocalPlaylistScreen(
                                 // If it's a YouTube playlist, add via API
                                 playlist?.playlist?.browseId?.let { browseId ->
                                     YouTube.addToPlaylist(browseId, songItem.id)
+
+                                // Fetch related songs based on the added song
+                                viewModel.fetchRelatedSongs(songItem.id)
                                 }
 
                                 // Show success message
@@ -1394,6 +1397,9 @@ fun LocalPlaylistScreen(
                                     )
                                 }
                             }
+                        },
+                        onLoadMore = {
+                            viewModel.loadMoreSuggestions()
                         },
                         onRetry = {
                             viewModel.refreshSuggestions()

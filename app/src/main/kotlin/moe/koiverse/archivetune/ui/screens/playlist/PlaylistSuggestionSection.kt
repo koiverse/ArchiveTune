@@ -4,16 +4,19 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -36,6 +39,7 @@ import moe.koiverse.archivetune.innertube.models.SongItem
 import moe.koiverse.archivetune.innertube.models.WatchEndpoint
 import moe.koiverse.archivetune.models.MediaMetadata
 import moe.koiverse.archivetune.models.PlaylistSuggestionsState
+import moe.koiverse.archivetune.models.SuggestionSource
 import moe.koiverse.archivetune.models.toMediaMetadata
 import moe.koiverse.archivetune.playback.PlayerConnection
 import moe.koiverse.archivetune.playback.queues.YouTubeQueue
@@ -48,7 +52,7 @@ import moe.koiverse.archivetune.ui.menu.YouTubeSongMenu
 
 /**
  * Section displaying song suggestions based on playlist name.
- * Shows a vertical list of songs with quick add functionality.
+ * Shows a vertical list of songs with quick add functionality and load more support.
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -62,6 +66,7 @@ fun PlaylistSuggestionSection(
     playerConnection: PlayerConnection,
     scope: CoroutineScope,
     onAddToPlaylist: (SongItem) -> Unit,
+    onLoadMore: () -> Unit,
     onRetry: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -70,12 +75,29 @@ fun PlaylistSuggestionSection(
 
     Column(modifier = modifier.fillMaxWidth()) {
         // Section title - smaller font like SortHeader
-        Text(
-            text = stringResource(R.string.you_might_like),
-            color = MaterialTheme.colorScheme.primary,
-            style = MaterialTheme.typography.labelLarge,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-        )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = stringResource(R.string.you_might_like),
+                color = MaterialTheme.colorScheme.primary,
+                style = MaterialTheme.typography.labelLarge,
+                modifier = Modifier.weight(1f)
+            )
+
+            // Show source indicator for related songs
+            if (state is PlaylistSuggestionsState.Success &&
+                state.suggestion.source == SuggestionSource.RELATED_SONGS) {
+                Text(
+                    text = stringResource(R.string.related_songs_indicator),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.secondary
+                )
+            }
+        }
 
         when (state) {
             is PlaylistSuggestionsState.Idle -> {
@@ -89,6 +111,15 @@ fun PlaylistSuggestionSection(
                         ListItemPlaceHolder()
                     }
                 }
+            }
+
+            is PlaylistSuggestionsState.LoadingMore -> {
+                // Show current suggestions with loading indicator at bottom
+                LinearProgressIndicator(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                )
             }
 
             is PlaylistSuggestionsState.Error -> {
@@ -163,13 +194,37 @@ fun PlaylistSuggestionSection(
                             )
                         }
 
-                        // Refresh button at the bottom
-                        Box(
+                        // Load More / Refresh buttons at the bottom
+                        Row(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(horizontal = 16.dp, vertical = 8.dp),
-                            contentAlignment = Alignment.Center
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
+                            if (state.canLoadMore) {
+                                Button(
+                                    onClick = onLoadMore,
+                                    modifier = Modifier.weight(1f),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                                    )
+                                ) {
+                                    Icon(
+                                        painter = painterResource(R.drawable.add),
+                                        contentDescription = null,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Spacer(modifier = Modifier.size(8.dp))
+                                    Text(
+                                        text = stringResource(R.string.load_more_suggestions),
+                                        style = MaterialTheme.typography.labelLarge
+                                    )
+                                }
+
+                                Spacer(modifier = Modifier.width(8.dp))
+                            }
+
                             Button(
                                 onClick = onRetry,
                                 colors = ButtonDefaults.buttonColors(
@@ -188,6 +243,22 @@ fun PlaylistSuggestionSection(
                                     style = MaterialTheme.typography.labelLarge
                                 )
                             }
+                        }
+
+                        // Show pagination info
+                        if (state.paginationState.allFetchedSongs.isNotEmpty()) {
+                            Text(
+                                text = stringResource(
+                                    R.string.suggestions_pagination_info,
+                                    state.paginationState.shownSongIds.size,
+                                    state.paginationState.allFetchedSongs.size
+                                ),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 4.dp)
+                            )
                         }
                     }
                 }

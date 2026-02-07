@@ -23,6 +23,9 @@
     <string name="similar_to">Similar to</string>
     <string name="you_might_like">You might like</string>
     <string name="no_suggestions_available">No suggestions available</string>
+    <string name="load_more_suggestions">Load more</string>
+    <string name="related_songs_indicator">Related</string>
+    <string name="suggestions_pagination_info">%1$d of %2$d shown</string>
     <string name="new_release_albums">New release albums</string>
     <string name="select_playlist_to_sync">Select Playlist To Sync</string>
     <string name="integration">Integration</string>
