@@ -1179,7 +1179,7 @@ fun ItemThumbnail(
     ) {
         val (cropThumbnailToSquare, _) = rememberPreference(CropThumbnailToSquareKey, false)
         val isYouTubeThumb = thumbnailUrl?.contains("ytimg.com", ignoreCase = true) == true
-        val shouldCropSquare = cropThumbnailToSquare && isYouTubeThumb
+        val shouldApplySquareCrop = cropThumbnailToSquare && isYouTubeThumb
         val widthPx = if (maxWidth == Dp.Infinity) null else with(density) { maxWidth.roundToPx().coerceAtLeast(1) }
         val heightPx = if (maxHeight == Dp.Infinity) null else with(density) { maxHeight.roundToPx().coerceAtLeast(1) }
 
@@ -1199,10 +1199,10 @@ fun ItemThumbnail(
                 AsyncImage(
                     model = request,
                     contentDescription = null,
-                    contentScale = ContentScale.Crop,
+                    contentScale = if (shouldApplySquareCrop) ContentScale.Crop else ContentScale.Fit,
                     modifier = Modifier
                         .fillMaxSize()
-                        .let { if (shouldCropSquare) it.aspectRatio(1f) else it }
+                        .let { if (shouldApplySquareCrop) it.aspectRatio(1f) else it }
                 )
             } else {
                 Box(
@@ -1281,7 +1281,7 @@ fun LocalThumbnail(
     ) {
         val (cropThumbnailToSquare, _) = rememberPreference(CropThumbnailToSquareKey, false)
         val isYouTubeThumb = thumbnailUrl?.contains("ytimg.com", ignoreCase = true) == true
-        val shouldCropSquare = cropThumbnailToSquare && isYouTubeThumb
+        val shouldApplySquareCrop = cropThumbnailToSquare && isYouTubeThumb
         val widthPx = if (maxWidth == Dp.Infinity) null else with(density) { maxWidth.roundToPx().coerceAtLeast(1) }
         val heightPx = if (maxHeight == Dp.Infinity) null else with(density) { maxHeight.roundToPx().coerceAtLeast(1) }
         val request = remember(thumbnailUrl, widthPx, heightPx) {
@@ -1298,8 +1298,8 @@ fun LocalThumbnail(
         AsyncImage(
             model = request,
             contentDescription = null,
-            contentScale = ContentScale.Crop,
-            modifier = Modifier.fillMaxSize().let { if (shouldCropSquare) it.aspectRatio(1f) else it }
+            contentScale = if (shouldApplySquareCrop) ContentScale.Crop else ContentScale.Fit,
+            modifier = Modifier.fillMaxSize().let { if (shouldApplySquareCrop) it.aspectRatio(1f) else it }
         )
 
         AnimatedVisibility(
