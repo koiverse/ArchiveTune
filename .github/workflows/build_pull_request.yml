@@ -359,6 +359,42 @@ jobs:
           name: app-universal-debug-pr-${{ steps.extract-pr.outputs.pr-number }}-run
           path: app/build/outputs/apk/universal/debug/*.apk
           
+      - name: Get artifact information
+        if: steps.process-result.outputs.is-success == 'true'
+        id: artifact-info
+        run: |
+          # Get artifact information from GitHub API
+          ARTIFACTS_URL="https://api.github.com/repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts"
+          
+          echo "Fetching artifacts from: $ARTIFACTS_URL"
+          
+          ARTIFACTS_JSON=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github.v3+json" \
+            "$ARTIFACTS_URL")
+          
+          echo "Artifacts response: $ARTIFACTS_JSON"
+          
+          # Find artifacts with matching names.
+          ARTIFACT_NAME="app-universal-debug-pr-${{ steps.extract-pr.outputs.pr-number }}-run"
+          ARTIFACT_ID=$(echo "$ARTIFACTS_JSON" | jq -r ".artifacts[] | select(.name == \"$ARTIFACT_NAME\") | .id")
+          
+          if [ -n "$ARTIFACT_ID" ] && [ "$ARTIFACT_ID" != "null" ]; then
+            echo "Found artifact ID: $ARTIFACT_ID"
+            echo "artifact-id=$ARTIFACT_ID" >> $GITHUB_OUTPUT
+            
+            # Create a direct download URL
+            ARTIFACT_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts/$ARTIFACT_ID"
+            echo "artifact-url=$ARTIFACT_URL" >> $GITHUB_OUTPUT
+          else
+            echo "Warning: Could not find artifact ID for '$ARTIFACT_NAME'"
+            echo "artifact-id=0" >> $GITHUB_OUTPUT
+            echo "artifact-url=https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts" >> $GITHUB_OUTPUT
+          fi
+          
+          # Get the current timestamp
+          CURRENT_TIMESTAMP=$(date -u +"%Y-%m-%d %H:%M:%S UTC")
+          echo "timestamp=$CURRENT_TIMESTAMP" >> $GITHUB_OUTPUT
+          
       - name: Update original comment - APK uploaded (Final Success)
         if: steps.process-result.outputs.is-success == 'true'
         uses: peter-evans/create-or-update-comment@v3
@@ -378,13 +414,13 @@ jobs:
             ### 📥 Download APK:
             **Artifact name:** `app-universal-debug-pr-${{ steps.extract-pr.outputs.pr-number }}-run`
             
-            [📦 Download APK from Actions Artifacts](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts)
+            [📦 Download APK from Actions Artifacts](${{ steps.artifact-info.outputs.artifact-url }})
             
             ### 🔧 Build Details:
             - **JDK:** 21 (Temurin)
             - **Build Type:** Universal Debug
             - **Keystore:** Debug keystore (auto-generated)
-            - **Timestamp:** $(date -u +"%Y-%m-d %H:%M:%S UTC")
+            - **Timestamp:** ${{ steps.artifact-info.outputs.timestamp }}
             
             ### 📋 Next Steps:
             1. Download the APK above
