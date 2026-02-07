@@ -26,7 +26,6 @@ jobs:
             -H "Accept: application/vnd.github.v3+json" \
             "$PR_URL")
           
-          # Extract head ref (PR branch name) and head repo
           HEAD_REF=$(echo "$PR_JSON" | jq -r '.head.ref')
           HEAD_REPO_FULL_NAME=$(echo "$PR_JSON" | jq -r '.head.repo.full_name')
           BASE_REF=$(echo "$PR_JSON" | jq -r '.base.ref')
@@ -36,25 +35,13 @@ jobs:
           echo "base-ref=$BASE_REF" >> $GITHUB_OUTPUT
           echo "pr-number=${{ github.event.issue.number }}" >> $GITHUB_OUTPUT
           
-          echo "PR Branch: $HEAD_REF"
-          echo "PR Repo: $HEAD_REPO_FULL_NAME"
-          echo "Base Branch: $BASE_REF"
-          
       - name: Checkout PR branch
         uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           repository: ${{ steps.extract-pr.outputs.head-repo }}
           ref: ${{ steps.extract-pr.outputs.head-ref }}
-          # Always fetch the specific branch
           fetch-depth: 1
-          
-      - name: Verify current branch
-        run: |
-          echo "Current branch: $(git branch --show-current)"
-          echo "Expected branch: ${{ steps.extract-pr.outputs.head-ref }}"
-          echo "Git remote -v:"
-          git remote -v
           
       - name: Setup git identity
         run: |
@@ -71,39 +58,161 @@ jobs:
             echo "action=run-build" >> $GITHUB_OUTPUT
           fi
           
-      - name: Handle /run command
+      - name: Handle /run command - Trigger Build
         if: steps.determine-action.outputs.action == 'run-build'
         run: |
-          # Create temp file to trigger build
           echo "Triggering build via /run command at $(date)" > temp.txt
           echo "PR: #${{ steps.extract-pr.outputs.pr-number }}" >> temp.txt
           echo "Branch: ${{ steps.extract-pr.outputs.head-ref }}" >> temp.txt
           
-          # Add and commit
           git add temp.txt
           git commit -m "Trigger build via /run command [by @${{ github.event.comment.user.login }}]"
-          
-          # Push to the PR branch
           git push origin HEAD:${{ steps.extract-pr.outputs.head-ref }}
           
-          # Remove temp file and commit
           rm -f temp.txt
           git add temp.txt
           git commit -m "Cleanup: Remove temp.txt after triggering build" || echo "No changes to commit"
           git push origin HEAD:${{ steps.extract-pr.outputs.head-ref }} || echo "Nothing to push"
           
+      - name: Handle /run command - Build APK
+        if: steps.determine-action.outputs.action == 'run-build'
+        run: |
+          echo "Waiting for build to start..."
+          sleep 10  # Wait for the PR build to start
+          
+      - name: Handle /run command - Wait for Build Completion
+        if: steps.determine-action.outputs.action == 'run-build'
+        id: wait-for-build
+        run: |
+          # Wait for the build to complete by checking workflow runs
+          PR_NUMBER="${{ steps.extract-pr.outputs.pr-number }}"
+          REPO="${{ github.repository }}"
+          MAX_WAIT=300  # 5 minutes
+          WAIT_INTERVAL=10
+          total_wait=0
+          
+          echo "Waiting for build to complete for PR #$PR_NUMBER..."
+          
+          while [ $total_wait -lt $MAX_WAIT ]; do
+            # Get the latest workflow run for this PR
+            RUNS_JSON=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+              -H "Accept: application/vnd.github.v3+json" \
+              "https://api.github.com/repos/$REPO/actions/runs?event=pull_request")
+            
+            # Find the most recent run for this PR
+            LATEST_RUN=$(echo "$RUNS_JSON" | jq -r --arg pr "$PR_NUMBER" '
+              .workflow_runs[] | 
+              select(.pull_requests[].number == ($pr|tonumber)) |
+              {id, status, conclusion, created_at} | 
+              @base64' | head -1)
+            
+            if [ -n "$LATEST_RUN" ]; then
+              RUN_DATA=$(echo "$LATEST_RUN" | base64 --decode)
+              STATUS=$(echo "$RUN_DATA" | jq -r '.status')
+              CONCLUSION=$(echo "$RUN_DATA" | jq -r '.conclusion')
+              
+              echo "Build status: $STATUS, conclusion: $CONCLUSION"
+              
+              if [ "$STATUS" = "completed" ]; then
+                if [ "$CONCLUSION" = "success" ]; then
+                  echo "Build completed successfully!"
+                  echo "build-result=success" >> $GITHUB_OUTPUT
+                  echo "artifacts-available=true" >> $GITHUB_OUTPUT
+                  break
+                else
+                  echo "Build failed with conclusion: $CONCLUSION"
+                  echo "build-result=failure" >> $GITHUB_OUTPUT
+                  break
+                fi
+              fi
+            fi
+            
+            echo "Waiting $WAIT_INTERVAL seconds..."
+            sleep $WAIT_INTERVAL
+            total_wait=$((total_wait + WAIT_INTERVAL))
+          done
+          
+          if [ $total_wait -ge $MAX_WAIT ]; then
+            echo "Timeout waiting for build completion"
+            echo "build-result=timeout" >> $GITHUB_OUTPUT
+          fi
+          
+      - name: Handle /run command - Download and Re-upload APK as comment
+        if: steps.determine-action.outputs.action == 'run-build' && steps.wait-for-build.outputs.build-result == 'success'
+        run: |
+          PR_NUMBER="${{ steps.extract-pr.outputs.pr-number }}"
+          REPO="${{ github.repository }}"
+          
+          # Get the latest successful workflow run
+          RUNS_JSON=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github.v3+json" \
+            "https://api.github.com/repos/$REPO/actions/runs?event=pull_request&status=success")
+          
+          RUN_ID=$(echo "$RUNS_JSON" | jq -r --arg pr "$PR_NUMBER" '
+            .workflow_runs[] | 
+            select(.pull_requests[].number == ($pr|tonumber)) |
+            .id' | head -1)
+          
+          if [ -z "$RUN_ID" ]; then
+            echo "Could not find successful workflow run"
+            exit 1
+          fi
+          
+          echo "Found successful workflow run: $RUN_ID"
+          
+          # Get artifacts for this run
+          ARTIFACTS_JSON=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github.v3+json" \
+            "https://api.github.com/repos/$REPO/actions/runs/$RUN_ID/artifacts")
+          
+          ARTIFACT_ID=$(echo "$ARTIFACTS_JSON" | jq -r '.artifacts[] | select(.name | startswith("app-universal-debug-pr-")) | .id' | head -1)
+          
+          if [ -z "$ARTIFACT_ID" ]; then
+            echo "Could not find APK artifact"
+            exit 1
+          fi
+          
+          echo "Found artifact ID: $ARTIFACT_ID"
+          
+          # Download the artifact
+          curl -L -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github.v3+json" \
+            -o artifact.zip \
+            "https://api.github.com/repos/$REPO/actions/artifacts/$ARTIFACT_ID/zip"
+          
+          # Extract the APK
+          unzip artifact.zip
+          
+          # Find the APK file
+          APK_FILE=$(find . -name "*.apk" -type f | head -1)
+          
+          if [ -z "$APK_FILE" ]; then
+            echo "Could not find APK file in artifact"
+            exit 1
+          fi
+          
+          echo "Found APK: $APK_FILE"
+          
+          # Upload APK as workflow artifact for this comment run
+          APK_NAME="app-universal-debug-pr-$PR_NUMBER-comment-${{ github.event.comment.id }}"
+          cp "$APK_FILE" "$APK_NAME.apk"
+          
+      - name: Handle /run command - Upload APK artifact
+        if: steps.determine-action.outputs.action == 'run-build' && steps.wait-for-build.outputs.build-result == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-universal-debug-pr-${{ steps.extract-pr.outputs.pr-number }}-comment
+          path: app-universal-debug-pr-${{ steps.extract-pr.outputs.pr-number }}-comment-${{ github.event.comment.id }}.apk
+          
       - name: Handle /remove-trigger command
         if: steps.determine-action.outputs.action == 'remove-trigger'
         run: |
-          # Check if file exists
           if [ ! -f .github/workflows/trigger_build_pr.yml ]; then
             echo "already-removed=true" >> $GITHUB_ENV
           else
-            # Remove the file
             rm -f .github/workflows/trigger_build_pr.yml
             echo "already-removed=false" >> $GITHUB_ENV
             
-            # Add, commit and push
             git add .github/workflows/trigger_build_pr.yml
             git commit -m "Remove trigger workflow via /remove-trigger command [by @${{ github.event.comment.user.login }}]"
             git push origin HEAD:${{ steps.extract-pr.outputs.head-ref }}
@@ -115,18 +224,25 @@ jobs:
           comment-id: ${{ github.event.comment.id }}
           reactions: '+1'
           
-      - name: Add success comment for /run
+      - name: Add comment response for /run
         if: steps.determine-action.outputs.action == 'run-build'
         uses: peter-evans/create-or-update-comment@v3
         with:
           issue-number: ${{ steps.extract-pr.outputs.pr-number }}
           body: |
-            ✅ Build triggered successfully by @${{ github.event.comment.user.login }}!
+            @${{ github.event.comment.user.login }} 
+            
+            ${{ steps.wait-for-build.outputs.build-result == 'success' && '✅ **Build completed successfully!**' || '' }}
+            ${{ steps.wait-for-build.outputs.build-result == 'failure' && '❌ **Build failed!** Check the Actions tab for details.' || '' }}
+            ${{ steps.wait-for-build.outputs.build-result == 'timeout' && '⏱️ **Build timeout!** The build took too long to complete.' || '' }}
+            ${{ !steps.wait-for-build.outputs.build-result && '🔄 **Build triggered!** Waiting for build to complete...' || '' }}
             
             **PR Branch:** \`${{ steps.extract-pr.outputs.head-ref }}\`
             **Base Branch:** \`${{ steps.extract-pr.outputs.base-ref }}\`
             
-            The build process has been initiated via the \`/run\` command. Check the status in the "Actions" tab.
+            ${{ steps.wait-for-build.outputs.build-result == 'success' && '**APK Download:** [app-universal-debug-pr-' || '' }}${{ steps.wait-for-build.outputs.build-result == 'success' && steps.extract-pr.outputs.pr-number || '' }}${{ steps.wait-for-build.outputs.build-result == 'success' && '-comment.zip](https://github.com/' || '' }}${{ steps.wait-for-build.outputs.build-result == 'success' && github.repository || '' }}${{ steps.wait-for-build.outputs.build-result == 'success' && '/actions/runs/' || '' }}${{ steps.wait-for-build.outputs.build-result == 'success' && github.run_id || '' }}${{ steps.wait-for-build.outputs.build-result == 'success' && '/artifacts)' || '' }}
+            
+            Check the [Actions tab](https://github.com/${{ github.repository }}/actions/runs) for detailed logs.
             
       - name: Add removal comment for /remove-trigger
         if: steps.determine-action.outputs.action == 'remove-trigger'
