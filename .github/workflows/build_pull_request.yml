@@ -4,18 +4,37 @@ on:
   pull_request:
     branches:
       - "**"
-  push:
-    branches:
-      - "**"
-    paths:
-      - 'temp.txt'
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'Pull Request Number'
+        required: true
+        type: string
+      branch_name:
+        description: 'Branch Name'
+        required: true
+        type: string
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v6
+      - name: Determine PR information
+        id: pr-info
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "PR_NUMBER=${{ github.event.inputs.pr_number }}" >> $GITHUB_OUTPUT
+            echo "BRANCH_NAME=${{ github.event.inputs.branch_name }}" >> $GITHUB_OUTPUT
+          else
+            echo "PR_NUMBER=${{ github.event.number }}" >> $GITHUB_OUTPUT
+            echo "BRANCH_NAME=${{ github.head_ref || github.ref_name }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ steps.pr-info.outputs.BRANCH_NAME }}
 
       - name: Set up JDK 21
         uses: actions/setup-java@v5
@@ -58,14 +77,5 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v6
         with:
-          name: app-universal-debug-pr-${{ github.event.number || github.ref_name }}
+          name: app-universal-debug-pr-${{ steps.pr-info.outputs.PR_NUMBER }}
           path: app/build/outputs/apk/universal/debug/*.apk
-
-      - name: Create build summary
-        if: always()
-        run: |
-          echo "## Build Summary" >> $GITHUB_STEP_SUMMARY
-          echo "- **Event:** ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **PR:** ${{ github.event.number || 'N/A' }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **APK Artifact:** app-universal-debug-pr-${{ github.event.number || github.ref_name }}" >> $GITHUB_STEP_SUMMARY
