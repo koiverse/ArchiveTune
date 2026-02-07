@@ -19,6 +19,9 @@ data class PlaylistSuggestion(
 sealed class PlaylistSuggestionsState {
     data object Idle : PlaylistSuggestionsState()
     data object Loading : PlaylistSuggestionsState()
-    data class Success(val suggestion: PlaylistSuggestion) : PlaylistSuggestionsState()
+    data class Success(
+        val suggestion: PlaylistSuggestion,
+        val shownSongIds: Set<String> = emptySet()
+    ) : PlaylistSuggestionsState()
     data class Error(val message: String) : PlaylistSuggestionsState()
 }

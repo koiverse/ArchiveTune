@@ -33,6 +33,7 @@ import moe.koiverse.archivetune.constants.ListItemHeight
 import moe.koiverse.archivetune.db.entities.Song
 import moe.koiverse.archivetune.extensions.togglePlayPause
 import moe.koiverse.archivetune.innertube.models.SongItem
+import moe.koiverse.archivetune.innertube.models.WatchEndpoint
 import moe.koiverse.archivetune.models.MediaMetadata
 import moe.koiverse.archivetune.models.PlaylistSuggestionsState
 import moe.koiverse.archivetune.models.toMediaMetadata
@@ -119,7 +120,6 @@ fun PlaylistSuggestionSection(
             is PlaylistSuggestionsState.Success -> {
                 val suggestions = state.suggestion.songs
                     .filter { it.id !in existingSongIds }
-                    .take(10) // Limit to 10 suggestions
 
                 if (suggestions.isEmpty()) {
                     // No suggestions available
@@ -253,14 +253,12 @@ private fun SuggestedSongItem(
                     if (songItem.id == mediaMetadata?.id) {
                         playerConnection.player.togglePlayPause()
                     } else {
-                        songItem.endpoint?.let { endpoint ->
-                            playerConnection.playQueue(
-                                YouTubeQueue(
-                                    endpoint,
-                                    songItem.toMediaMetadata()
-                                )
+                        playerConnection.playQueue(
+                            YouTubeQueue(
+                                WatchEndpoint(videoId = songItem.id),
+                                songItem.toMediaMetadata()
                             )
-                        }
+                        )
                     }
                 },
                 onLongClick = onShowMenu

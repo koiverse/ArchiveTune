@@ -92,60 +92,114 @@ constructor(
         }
     }
 
+    // Track all songs fetched from search for pagination on refresh
+    private var allFetchedSongs: List<moe.koiverse.archivetune.innertube.models.SongItem> = emptyList()
+    private var currentQuery: String = ""
+
     /**
      * Loads song suggestions based on the playlist name using YouTube search.
      *
      * @param playlistName The name of the playlist to use as search query
+     * @param resetShownSongs Whether to reset the shown songs tracking (true for new query, false for refresh)
      */
-    fun loadPlaylistSuggestions(playlistName: String) {
+    fun loadPlaylistSuggestions(playlistName: String, resetShownSongs: Boolean = true) {
         viewModelScope.launch {
             if (playlistName.isBlank()) {
                 _suggestionsState.value = PlaylistSuggestionsState.Idle
                 return@launch
             }
 
-            _suggestionsState.value = PlaylistSuggestionsState.Loading
+            // If this is a new query or we don't have cached songs, do a fresh search
+            if (resetShownSongs || playlistName != currentQuery || allFetchedSongs.isEmpty()) {
+                _suggestionsState.value = PlaylistSuggestionsState.Loading
+                currentQuery = playlistName
 
-            try {
-                val result = YouTube.search(
-                    query = playlistName,
-                    filter = YouTube.SearchFilter.FILTER_SONG
-                )
+                try {
+                    val result = YouTube.search(
+                        query = playlistName,
+                        filter = YouTube.SearchFilter.FILTER_SONG
+                    )
 
-                result.onSuccess { searchResult ->
-                    val songs = searchResult.items
-                        .filterIsInstance<moe.koiverse.archivetune.innertube.models.SongItem>()
+                    result.onSuccess { searchResult ->
+                        val songs = searchResult.items
+                            .filterIsInstance<moe.koiverse.archivetune.innertube.models.SongItem>()
 
-                    if (songs.isEmpty()) {
-                        _suggestionsState.value = PlaylistSuggestionsState.Error("No suggestions found")
-                    } else {
-                        _suggestionsState.value = PlaylistSuggestionsState.Success(
-                            PlaylistSuggestion(
-                                query = playlistName,
-                                songs = songs
+                        if (songs.isEmpty()) {
+                            allFetchedSongs = emptyList()
+                            _suggestionsState.value = PlaylistSuggestionsState.Error("No suggestions found")
+                        } else {
+                            allFetchedSongs = songs
+                            // Show first batch of songs (up to 10)
+                            val firstBatch = songs.take(10)
+                            _suggestionsState.value = PlaylistSuggestionsState.Success(
+                                suggestion = PlaylistSuggestion(
+                                    query = playlistName,
+                                    songs = firstBatch
+                                ),
+                                shownSongIds = firstBatch.map { it.id }.toSet()
                             )
+                        }
+                    }.onFailure { error ->
+                        _suggestionsState.value = PlaylistSuggestionsState.Error(
+                            error.message ?: "Failed to load suggestions"
                         )
                     }
-                }.onFailure { error ->
+                } catch (e: Exception) {
                     _suggestionsState.value = PlaylistSuggestionsState.Error(
-                        error.message ?: "Failed to load suggestions"
+                        e.message ?: "Failed to load suggestions"
                     )
                 }
-            } catch (e: Exception) {
-                _suggestionsState.value = PlaylistSuggestionsState.Error(
-                    e.message ?: "Failed to load suggestions"
-                )
+            } else {
+                // This is a refresh with the same query - show next batch
+                showNextBatch()
             }
         }
     }
 
     /**
-     * Refreshes the playlist suggestions with the current playlist name.
+     * Shows the next batch of songs that haven't been shown yet.
+     */
+    private fun showNextBatch() {
+        val currentState = _suggestionsState.value
+        if (currentState !is PlaylistSuggestionsState.Success) return
+
+        val shownIds = currentState.shownSongIds
+        val remainingSongs = allFetchedSongs.filter { it.id !in shownIds }
+
+        if (remainingSongs.isEmpty()) {
+            // All songs shown, start over from the beginning
+            val firstBatch = allFetchedSongs.take(10)
+            _suggestionsState.value = PlaylistSuggestionsState.Success(
+                suggestion = PlaylistSuggestion(
+                    query = currentQuery,
+                    songs = firstBatch
+                ),
+                shownSongIds = firstBatch.map { it.id }.toSet()
+            )
+        } else {
+            // Show next batch of remaining songs (up to 10)
+            val nextBatch = remainingSongs.take(10)
+            _suggestionsState.value = PlaylistSuggestionsState.Success(
+                suggestion = PlaylistSuggestion(
+                    query = currentQuery,
+                    songs = nextBatch
+                ),
+                shownSongIds = shownIds + nextBatch.map { it.id }.toSet()
+            )
+        }
+    }
+
+    /**
+     * Refreshes the playlist suggestions to show the next batch of songs.
      */
     fun refreshSuggestions() {
         viewModelScope.launch {
-            val currentPlaylist = playlist.value ?: return@launch
-            loadPlaylistSuggestions(currentPlaylist.playlist.name)
+            if (currentQuery.isNotBlank() && allFetchedSongs.isNotEmpty()) {
+                showNextBatch()
+            } else {
+                val playlistName = playlist.value?.playlist?.name ?: return@launch
+                loadPlaylistSuggestions(playlistName, resetShownSongs = true)
+            }
         }
     }
 }
