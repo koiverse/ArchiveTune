@@ -2,7 +2,7 @@ name: Kotlin Header
 on: workflow_dispatch
 
 jobs:
-  apply-kotlin-header:
+  kotlin-header:
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -17,11 +17,14 @@ jobs:
 
       - run: |
           YEAR=$(date +%Y)
-          echo -e "ArchiveTune Project Original ($YEAR)\nKòi Natsuko\nLicensed Under GPL-3.0 | see git history for contributors" > banner.txt
+          echo -e "ArchiveTune Project Original ($YEAR)\nKòi Natsuko (github.com/koiverse)\nLicensed Under GPL-3.0 | see git history for contributors" > banner.txt
+
+          find . -type f -name "*.kt" -exec grep -q "Licensed Under GPL-3.0" {} \; -exec sed -i '0,/\*\//d' {} \;
+
           find . -type f -name "*.kt" -print0 | xargs -0 -r addlicense -v -f banner.txt
           rm banner.txt
 
       - uses: stefanzweifel/git-auto-commit-action@v7
         with:
-          commit_message: Add Kotlin Header
+          commit_message: Kotlin Header
           
