@@ -79,6 +79,7 @@ jobs:
         uses: peter-evans/create-or-update-comment@v3
         with:
           comment-id: ${{ steps.create-comment.outputs.comment-id }}
+          edit-mode: replace
           body: |
             @${{ github.event.comment.user.login }} 
             
@@ -115,6 +116,7 @@ jobs:
         uses: peter-evans/create-or-update-comment@v3
         with:
           comment-id: ${{ steps.create-comment.outputs.comment-id }}
+          edit-mode: replace
           body: |
             @${{ github.event.comment.user.login }} 
             
@@ -150,6 +152,7 @@ jobs:
         uses: peter-evans/create-or-update-comment@v3
         with:
           comment-id: ${{ steps.create-comment.outputs.comment-id }}
+          edit-mode: replace
           body: |
             @${{ github.event.comment.user.login }} 
             
@@ -196,6 +199,7 @@ jobs:
         uses: peter-evans/create-or-update-comment@v3
         with:
           comment-id: ${{ steps.create-comment.outputs.comment-id }}
+          edit-mode: replace
           body: |
             @${{ github.event.comment.user.login }} 
             
@@ -220,6 +224,7 @@ jobs:
         uses: peter-evans/create-or-update-comment@v3
         with:
           comment-id: ${{ steps.create-comment.outputs.comment-id }}
+          edit-mode: replace
           body: |
             @${{ github.event.comment.user.login }} 
             
@@ -246,11 +251,12 @@ jobs:
           name: app-universal-debug-pr-${{ steps.extract-pr.outputs.pr-number }}-run
           path: app/build/outputs/apk/universal/debug/*.apk
           
-      - name: Update comment - APK uploaded
+      - name: Update comment - APK uploaded (Final)
         if: steps.build-apk.outputs.build-success == 'true'
         uses: peter-evans/create-or-update-comment@v3
         with:
           comment-id: ${{ steps.create-comment.outputs.comment-id }}
+          edit-mode: replace
           body: |
             @${{ github.event.comment.user.login }} 
             
