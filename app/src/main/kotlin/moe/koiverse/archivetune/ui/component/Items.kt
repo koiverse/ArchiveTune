@@ -1036,6 +1036,7 @@ fun YouTubeGridItem(
             isActive = isActive,
             isPlaying = isPlaying,
             shape = if (item is ArtistItem) CircleShape else RoundedCornerShape(ThumbnailCornerRadius),
+            thumbnailRatio = thumbnailRatio
         )
 
         if (item is SongItem && !isActive) {
