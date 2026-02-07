@@ -200,37 +200,51 @@ jobs:
           # Read full build log
           FULL_LOG=$(cat "$BUILD_LOG")
           
-          # Extract specific error information for AI Agent prompt
-          # Get Kotlin compilation errors
-          KOTLIN_ERRORS=$(grep -A 2 -B 2 "Unresolved reference\|Smart cast to.*is impossible" "$BUILD_LOG" || true)
+          # Extract specific error information
+          # Get Kotlin compilation errors only (lines starting with "e: ")
+          CLEAN_ERRORS=$(grep -E "^e: " "$BUILD_LOG" | head -10 || true)
           
-          # Get build failure section
-          FAILURE_SECTION=$(grep -A 10 -B 5 "FAILURE: Build failed with an exception" "$BUILD_LOG" || true)
+          if [ -z "$CLEAN_ERRORS" ]; then
+            # If no Kotlin errors, look for other error patterns
+            CLEAN_ERRORS=$(grep -E "error:|Error:|FAILED" "$BUILD_LOG" | head -10 || true)
+          fi
+          
+          # Get failure summary section
+          FAILURE_SECTION=$(grep -A 10 "FAILURE: Build failed with an exception" "$BUILD_LOG" || true)
+          
+          # Get "What went wrong" section
+          WHAT_WENT_WRONG=$(grep -A 5 "\* What went wrong:" "$BUILD_LOG" || true)
           
           # Limit log to avoid exceeding output variable size
           TRIMMED_LOG=$(echo "$FULL_LOG" | tail -30000 | head -c 500000)
           
-          # Escape special characters for JSON/Markdown
-          ESCAPED_LOG=$(echo "$TRIMMED_LOG" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g' -e 's/`/\\`/g' -e "s/'/\\'/g" -e 's/\$/\$/g')
-          ESCAPED_KOTLIN_ERRORS=$(echo "$KOTLIN_ERRORS" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g' -e 's/`/\\`/g' -e 's/\$/\$/g')
-          ESCAPED_FAILURE=$(echo "$FAILURE_SECTION" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g' -e 's/`/\\`/g' -e 's/\$/\$/g')
+          # Minimal escaping - only escape backslash
+          # Do not escape backticks to preserve markdown code blocks
+          ESCAPED_LOG=$(echo "$TRIMMED_LOG" | sed -e 's/\\/\\\\/g')
+          ESCAPED_CLEAN_ERRORS=$(echo "$CLEAN_ERRORS" | sed -e 's/\\/\\\\/g')
+          ESCAPED_FAILURE=$(echo "$FAILURE_SECTION" | sed -e 's/\\/\\\\/g')
+          ESCAPED_WHAT_WENT_WRONG=$(echo "$WHAT_WENT_WRONG" | sed -e 's/\\/\\\\/g')
           
           # Save to output
           echo "build-log<<EOF" >> $GITHUB_OUTPUT
           echo "$ESCAPED_LOG" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
           
-          echo "kotlin-errors<<EOF" >> $GITHUB_OUTPUT
-          echo "$ESCAPED_KOTLIN_ERRORS" >> $GITHUB_OUTPUT
+          echo "clean-errors<<EOF" >> $GITHUB_OUTPUT
+          echo "$ESCAPED_CLEAN_ERRORS" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
           
           echo "failure-section<<EOF" >> $GITHUB_OUTPUT
           echo "$ESCAPED_FAILURE" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
           
+          echo "what-went-wrong<<EOF" >> $GITHUB_OUTPUT
+          echo "$ESCAPED_WHAT_WENT_WRONG" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+          
           # Get last 50 lines for summary
           LAST_50_LINES=$(tail -50 "$BUILD_LOG")
-          ESCAPED_LAST_50=$(echo "$LAST_50_LINES" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g' -e 's/`/\\`/g' -e 's/\$/\$/g')
+          ESCAPED_LAST_50=$(echo "$LAST_50_LINES" | sed -e 's/\\/\\\\/g')
           
           echo "build-output<<EOF" >> $GITHUB_OUTPUT
           echo "$ESCAPED_LAST_50" >> $GITHUB_OUTPUT
@@ -306,7 +320,7 @@ jobs:
             
             **🔥 First errors found:**
             ```bash
-            ${{ steps.build-apk.outputs.kotlin-errors || steps.build-apk.outputs.failure-section || 'No specific error messages found.' }}
+            ${{ steps.build-apk.outputs.clean-errors || steps.build-apk.outputs.what-went-wrong || 'No specific error messages found.' }}
             ```
             
             <details>
@@ -330,7 +344,7 @@ jobs:
             <details>
             <summary>🤖 Fix build issue with AI Agent</summary>
             
-            ```md
+            ```markdown
             This is a failed build run on GitHub Actions. I need help fixing the compilation errors.
             
             ## Build Information
@@ -340,14 +354,14 @@ jobs:
             - **Build Type:** Universal Debug
             
             ## Compilation Errors Detected
-            ```log
-            ${{ steps.build-apk.outputs.kotlin-errors || steps.build-apk.outputs.failure-section || 'No specific error messages extracted.' }}
-            ```
+            ````log
+            ${{ steps.build-apk.outputs.clean-errors || steps.build-apk.outputs.what-went-wrong || 'No specific error messages extracted.' }}
+            ````
             
             ## Build Failure Summary
-            ```log
+            ````log
             ${{ steps.build-apk.outputs.failure-section || 'No failure summary available.' }}
-            ```
+            ````
             
             ## Context
             This is an Android/Kotlin project building with Gradle. The build failed during Kotlin compilation.
@@ -433,6 +447,7 @@ jobs:
           echo "Check the comment above for detailed error logs and AI Agent fix suggestions."
           exit 1
 
+  # Original PR build job (runs on regular PR events)
   build:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
