@@ -27,7 +27,7 @@ jobs:
     
     steps:
       - name: Add reaction to original comment
-        uses: peter-evans/create-or-update-comment@v3
+        uses: peter-evans/create-or-update-comment@v5
         with:
           comment-id: ${{ github.event.comment.id }}
           reactions: 'eyes'
@@ -50,7 +50,7 @@ jobs:
           echo "pr-number=$PR_NUMBER" >> $GITHUB_OUTPUT
           
       - name: Update original comment - Starting build
-        uses: peter-evans/create-or-update-comment@v3
+        uses: peter-evans/create-or-update-comment@v5
         with:
           comment-id: ${{ github.event.comment.id }}
           edit-mode: replace
@@ -70,7 +70,7 @@ jobs:
             *Current step:* Initializing build environment...
             
       - name: Update original comment - Building
-        uses: peter-evans/create-or-update-comment@v3
+        uses: peter-evans/create-or-update-comment@v5
         with:
           comment-id: ${{ github.event.comment.id }}
           edit-mode: replace
@@ -97,7 +97,7 @@ jobs:
           ref: ${{ steps.extract-pr.outputs.head-ref }}
           
       - name: Update original comment - Setting up environment
-        uses: peter-evans/create-or-update-comment@v3
+        uses: peter-evans/create-or-update-comment@v5
         with:
           comment-id: ${{ github.event.comment.id }}
           edit-mode: replace
@@ -138,7 +138,7 @@ jobs:
         run: chmod +x gradlew
         
       - name: Update original comment - Generating keystore
-        uses: peter-evans/create-or-update-comment@v3
+        uses: peter-evans/create-or-update-comment@v5
         with:
           comment-id: ${{ github.event.comment.id }}
           edit-mode: replace
@@ -178,7 +178,7 @@ jobs:
           fi
           
       - name: Update original comment - Building APK
-        uses: peter-evans/create-or-update-comment@v3
+        uses: peter-evans/create-or-update-comment@v5
         with:
           comment-id: ${{ github.event.comment.id }}
           edit-mode: replace
@@ -279,7 +279,7 @@ jobs:
           
       - name: Update original comment - Build successful
         if: steps.process-result.outputs.is-success == 'true'
-        uses: peter-evans/create-or-update-comment@v3
+        uses: peter-evans/create-or-update-comment@v5
         with:
           comment-id: ${{ github.event.comment.id }}
           edit-mode: replace
@@ -305,7 +305,7 @@ jobs:
 
       - name: Update original comment - Build failed
         if: steps.process-result.outputs.is-success == 'false'
-        uses: peter-evans/create-or-update-comment@v3
+        uses: peter-evans/create-or-update-comment@v5
         with:
           comment-id: ${{ github.event.comment.id }}
           edit-mode: replace
@@ -397,7 +397,7 @@ jobs:
           
       - name: Update original comment - APK uploaded (Final Success)
         if: steps.process-result.outputs.is-success == 'true'
-        uses: peter-evans/create-or-update-comment@v3
+        uses: peter-evans/create-or-update-comment@v5
         with:
           comment-id: ${{ github.event.comment.id }}
           edit-mode: replace
@@ -432,7 +432,7 @@ jobs:
             *✅ This build was triggered by the \`/run\` command from @${{ github.event.comment.user.login }}.*
 
       - name: Update reaction on original comment
-        uses: peter-evans/create-or-update-comment@v3
+        uses: peter-evans/create-or-update-comment@v5
         with:
           comment-id: ${{ github.event.comment.id }}
           edit-mode: replace
