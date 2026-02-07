@@ -18,6 +18,40 @@ jobs:
       issues: write
     
     steps:
+      - name: Validate /run command
+        id: validate-command
+        run: |
+          # Extract the comment content and remove leading and trailing spaces.
+          COMMENT=$(echo "${{ github.event.comment.body }}" | tr -d '\r')
+          TRIMMED_COMMENT=$(echo "$COMMENT" | xargs)
+          
+          echo "Original comment: '$COMMENT'"
+          echo "Trimmed comment: '$TRIMMED_COMMENT'"
+          
+          # Check if the comment is exactly "/run"
+          if [ "$TRIMMED_COMMENT" = "/run" ]; then
+            echo "✅ Valid /run command detected"
+            echo "is-valid-run=true" >> $GITHUB_OUTPUT
+          else
+            echo "❌ Invalid command: '$TRIMMED_COMMENT' (expected exactly '/run')"
+            echo "is-valid-run=false" >> $GITHUB_OUTPUT
+            
+            # Add a warning reaction for invalid comments.
+            curl -s -X POST \
+              -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+              -H "Accept: application/vnd.github.v3+json" \
+              -d '{"content":"-1"}' \
+              "https://api.github.com/repos/${{ github.repository }}/issues/comments/${{ github.event.comment.id }}/reactions"
+          fi
+          
+      # The job will only run if the command is valid.
+      - name: Exit if invalid command
+        if: steps.validate-command.outputs.is-valid-run != 'true'
+        run: |
+          echo "Skipping build due to invalid command format."
+          echo "Only '/run' (exactly) will trigger the build."
+          exit 0
+          
       - name: Extract PR information
         id: extract-pr
         run: |
@@ -200,54 +234,35 @@ jobs:
           # Read full build log
           FULL_LOG=$(cat "$BUILD_LOG")
           
-          # Extract specific error information
-          # Get Kotlin compilation errors only (lines starting with "e: ")
-          CLEAN_ERRORS=$(grep -E "^e: " "$BUILD_LOG" | head -10 || true)
-          
-          if [ -z "$CLEAN_ERRORS" ]; then
-            # If no Kotlin errors, look for other error patterns
-            CLEAN_ERRORS=$(grep -E "error:|Error:|FAILED" "$BUILD_LOG" | head -10 || true)
-          fi
-          
-          # Get failure summary section
-          FAILURE_SECTION=$(grep -A 10 "FAILURE: Build failed with an exception" "$BUILD_LOG" || true)
-          
-          # Get "What went wrong" section
-          WHAT_WENT_WRONG=$(grep -A 5 "\* What went wrong:" "$BUILD_LOG" || true)
-          
-          # Limit log to avoid exceeding output variable size
+          # Limit log to avoid exceeding output variable size (approx 0.5MB)
+          # About 30000 lines or 500000 characters
           TRIMMED_LOG=$(echo "$FULL_LOG" | tail -30000 | head -c 500000)
           
-          # Minimal escaping - only escape backslash
-          # Do not escape backticks to preserve markdown code blocks
-          ESCAPED_LOG=$(echo "$TRIMMED_LOG" | sed -e 's/\\/\\\\/g')
-          ESCAPED_CLEAN_ERRORS=$(echo "$CLEAN_ERRORS" | sed -e 's/\\/\\\\/g')
-          ESCAPED_FAILURE=$(echo "$FAILURE_SECTION" | sed -e 's/\\/\\\\/g')
-          ESCAPED_WHAT_WENT_WRONG=$(echo "$WHAT_WENT_WRONG" | sed -e 's/\\/\\\\/g')
+          # Escape special characters for JSON/Markdown
+          ESCAPED_LOG=$(echo "$TRIMMED_LOG" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g' -e 's/`/\\`/g' -e "s/'/\\'/g" -e 's/\$/\$/g')
           
-          # Save to output
+          # Save trimmed log to output
           echo "build-log<<EOF" >> $GITHUB_OUTPUT
           echo "$ESCAPED_LOG" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
           
-          echo "clean-errors<<EOF" >> $GITHUB_OUTPUT
-          echo "$ESCAPED_CLEAN_ERRORS" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-          
-          echo "failure-section<<EOF" >> $GITHUB_OUTPUT
-          echo "$ESCAPED_FAILURE" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-          
-          echo "what-went-wrong<<EOF" >> $GITHUB_OUTPUT
-          echo "$ESCAPED_WHAT_WENT_WRONG" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-          
           # Get last 50 lines for summary
           LAST_50_LINES=$(tail -50 "$BUILD_LOG")
-          ESCAPED_LAST_50=$(echo "$LAST_50_LINES" | sed -e 's/\\/\\\\/g')
+          ESCAPED_LAST_50=$(echo "$LAST_50_LINES" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g' -e 's/`/\\`/g' -e 's/\$/\$/g')
           
           echo "build-output<<EOF" >> $GITHUB_OUTPUT
           echo "$ESCAPED_LAST_50" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+          
+          # Get first error lines for quick display
+          ERROR_LINES=$(grep -i "error\|fail\|exception\|failed" "$BUILD_LOG" | head -10)
+          if [ -z "$ERROR_LINES" ]; then
+            ERROR_LINES="No specific error messages found. Check the full build log."
+          fi
+          ESCAPED_ERRORS=$(echo "$ERROR_LINES" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g' -e 's/`/\\`/g' -e 's/\$/\$/g')
+          
+          echo "error-lines<<EOF" >> $GITHUB_OUTPUT
+          echo "$ESCAPED_ERRORS" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
           
           # Check exit code and set build-success accordingly
@@ -267,12 +282,14 @@ jobs:
           LASTFM_API_KEY: ${{ secrets.LASTFM_API_KEY }}
           LASTFM_SECRET: ${{ secrets.LASTFM_SECRET }}
           
-      - name: Process build result
+      - name: Process build result and update comment
         id: process-result
         run: |
           if [ "${{ steps.build-apk.outputs.build-success }}" = "true" ]; then
+            echo "Build was successful"
             echo "is-success=true" >> $GITHUB_OUTPUT
           else
+            echo "Build failed"
             echo "is-success=false" >> $GITHUB_OUTPUT
           fi
           
@@ -320,7 +337,7 @@ jobs:
             
             **🔥 First errors found:**
             ```bash
-            ${{ steps.build-apk.outputs.clean-errors || steps.build-apk.outputs.what-went-wrong || 'No specific error messages found.' }}
+            ${{ steps.build-apk.outputs.error-lines }}
             ```
             
             <details>
@@ -341,48 +358,10 @@ jobs:
             
             </details>
             
-            <details>
-            <summary>🤖 Fix build issue with AI Agent</summary>
-            
-            ```markdown
-            This is a failed build run on GitHub Actions. I need help fixing the compilation errors.
-            
-            ## Build Information
-            - **Repository:** ${{ github.repository }}
-            - **PR:** #${{ steps.extract-pr.outputs.pr-number }}
-            - **Branch:** ${{ steps.extract-pr.outputs.head-ref }}
-            - **Build Type:** Universal Debug
-            
-            ## Compilation Errors Detected
-            ````log
-            ${{ steps.build-apk.outputs.clean-errors || steps.build-apk.outputs.what-went-wrong || 'No specific error messages extracted.' }}
-            ````
-            
-            ## Build Failure Summary
-            ````log
-            ${{ steps.build-apk.outputs.failure-section || 'No failure summary available.' }}
-            ````
-            
-            ## Context
-            This is an Android/Kotlin project building with Gradle. The build failed during Kotlin compilation.
-            
-            ## Request
-            Please analyze the error messages and suggest specific fixes for:
-            1. Missing references (like 'joinByBullet', 'systemBars')
-            2. Import statements that might be needed
-            3. Type casting issues
-            4. Any dependency or configuration problems
-            
-            Provide concrete code fixes or configuration changes to resolve these compilation errors.
-            ```
-            
-            </details>
-            
             🔍 **Debug tips:**
-            1. Check for missing imports or dependencies
-            2. Verify Kotlin extension functions are available
-            3. Check for type compatibility issues
-            4. Ensure all required libraries are included in build.gradle
+            1. Check for syntax errors in your code
+            2. Verify all dependencies are correctly defined
+            3. Ensure API keys and secrets are properly set
             
             📊 **Complete logs:** [View in Actions](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
             
@@ -430,8 +409,8 @@ jobs:
             4. Report any issues in the PR
             
             ---
-            *✅ This build was triggered by your \`/run\` command.*
-            
+            *✅ This build was triggered by the \`/run\` command from @${{ github.event.comment.user.login }}.*
+
       - name: Update reaction on original comment
         uses: peter-evans/create-or-update-comment@v3
         with:
@@ -444,10 +423,9 @@ jobs:
         if: steps.process-result.outputs.is-success == 'false'
         run: |
           echo "❌ Build failed. Marking workflow as failed."
-          echo "Check the comment above for detailed error logs and AI Agent fix suggestions."
+          echo "Check the comment above for detailed error logs."
           exit 1
 
-  # Original PR build job (runs on regular PR events)
   build:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
