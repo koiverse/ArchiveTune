@@ -21,6 +21,8 @@
     <string name="keep_listening">聴き続ける</string>
     <string name="your_youtube_playlists">YouTubeプレイリスト</string>
     <string name="similar_to">類似</string>
+    <string name="you_might_like">おすすめ</string>
+    <string name="no_suggestions_available">おすすめはありません</string>
     <string name="new_release_albums">ニューリリースアルバム</string>
     <string name="select_playlist_to_sync">同期するプレイリストを選択</string>
     <string name="integration">統合</string>

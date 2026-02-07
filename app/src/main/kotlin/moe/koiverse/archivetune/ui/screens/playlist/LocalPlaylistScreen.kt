@@ -130,6 +130,7 @@ import moe.koiverse.archivetune.extensions.togglePlayPause
 import moe.koiverse.archivetune.innertube.YouTube
 import moe.koiverse.archivetune.innertube.models.SongItem
 import moe.koiverse.archivetune.innertube.utils.completed
+import moe.koiverse.archivetune.models.PlaylistSuggestionsState
 import moe.koiverse.archivetune.models.toMediaMetadata
 import moe.koiverse.archivetune.playback.ExoDownloadService
 import moe.koiverse.archivetune.playback.queues.ListQueue
@@ -180,6 +181,7 @@ fun LocalPlaylistScreen(
 
     val playlist by viewModel.playlist.collectAsState()
     val songs by viewModel.playlistSongs.collectAsState()
+    val suggestionsState by viewModel.suggestionsState.collectAsState()
     val mutableSongs = remember { mutableStateListOf<PlaylistSong>() }
     val playlistLength = remember(songs) {
         songs.fastSumBy { it.song.song.duration }
@@ -275,6 +277,15 @@ fun LocalPlaylistScreen(
                 } else {
                     Download.STATE_STOPPED
                 }
+        }
+    }
+
+    // Load playlist suggestions when playlist name changes
+    LaunchedEffect(playlist?.playlist?.name) {
+        playlist?.playlist?.name?.let { name ->
+            if (name.isNotBlank()) {
+                viewModel.loadPlaylistSuggestions(name)
+            }
         }
     }
 
@@ -1330,6 +1341,64 @@ fun LocalPlaylistScreen(
                             }
                         }
                     }
+                }
+            }
+
+            // Playlist suggestions section
+            if (!selection && !isSearching && suggestionsState !is PlaylistSuggestionsState.Idle) {
+                item(key = "suggestions") {
+                    val existingSongIds = remember(songs) { songs.map { it.song.id }.toSet() }
+
+                    PlaylistSuggestionSection(
+                        state = suggestionsState,
+                        playlistName = playlist?.playlist?.name.orEmpty(),
+                        existingSongIds = existingSongIds,
+                        mediaMetadata = mediaMetadata,
+                        isPlaying = isPlaying,
+                        navController = navController,
+                        playerConnection = playerConnection,
+                        scope = coroutineScope,
+                        onAddToPlaylist = { songItem ->
+                            coroutineScope.launch(Dispatchers.IO) {
+                                // Check if song already exists
+                                if (songItem.id in existingSongIds) {
+                                    return@launch
+                                }
+
+                                // Insert song into database
+                                val songEntity = songItem.toMediaMetadata()
+                                database.insert(songEntity)
+
+                                // Get the next position
+                                val nextPosition = songs.size
+
+                                // Add to playlist
+                                val playlistSongMap = PlaylistSongMap(
+                                    songId = songItem.id,
+                                    playlistId = viewModel.playlistId,
+                                    position = nextPosition,
+                                    setVideoId = songItem.setVideoId
+                                )
+                                database.insert(playlistSongMap)
+
+                                // If it's a YouTube playlist, add via API
+                                playlist?.playlist?.browseId?.let { browseId ->
+                                    YouTube.addToPlaylist(browseId, songItem.id)
+                                }
+
+                                // Show success message
+                                withContext(Dispatchers.Main) {
+                                    snackbarHostState.showSnackbar(
+                                        message = context.getString(R.string.added_to_playlist, playlist?.playlist?.name.orEmpty()),
+                                        duration = SnackbarDuration.Short
+                                    )
+                                }
+                            }
+                        },
+                        onRetry = {
+                            viewModel.refreshSuggestions()
+                        }
+                    )
                 }
             }
         }

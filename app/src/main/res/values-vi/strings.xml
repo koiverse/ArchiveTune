@@ -21,6 +21,8 @@
     <string name="keep_listening">Tiếp tục nghe</string>
     <string name="your_youtube_playlists">Danh sách phát YouTube của bạn</string>
     <string name="similar_to">Tương tự như</string>
+    <string name="you_might_like">Có thể bạn sẽ thích</string>
+    <string name="no_suggestions_available">Không có gợi ý</string>
     <string name="new_release_albums">Album mới phát hành</string>
     <string name="select_playlist_to_sync">Chọn Danh sách phát để Đồng bộ</string>
     <string name="integration">Tích hợp</string>

@@ -11,11 +11,16 @@ import moe.koiverse.archivetune.db.MusicDatabase
 import moe.koiverse.archivetune.db.entities.PlaylistSong
 import moe.koiverse.archivetune.extensions.reversed
 import moe.koiverse.archivetune.extensions.toEnum
+import moe.koiverse.archivetune.innertube.YouTube
+import moe.koiverse.archivetune.models.PlaylistSuggestion
+import moe.koiverse.archivetune.models.PlaylistSuggestionsState
 import moe.koiverse.archivetune.utils.dataStore
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
@@ -31,7 +36,7 @@ class LocalPlaylistViewModel
 @Inject
 constructor(
     @ApplicationContext context: Context,
-    database: MusicDatabase,
+    val database: MusicDatabase,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
     val playlistId = savedStateHandle.get<String>("playlistId")!!
@@ -69,6 +74,10 @@ constructor(
             }.reversed(sortDescending && sortType != PlaylistSongSortType.CUSTOM)
         }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
+    // Playlist suggestions state
+    private val _suggestionsState = MutableStateFlow<PlaylistSuggestionsState>(PlaylistSuggestionsState.Idle)
+    val suggestionsState: StateFlow<PlaylistSuggestionsState> = _suggestionsState.asStateFlow()
+
     init {
         viewModelScope.launch {
             val sortedSongs =
@@ -80,6 +89,63 @@ constructor(
                     }
                 }
             }
+        }
+    }
+
+    /**
+     * Loads song suggestions based on the playlist name using YouTube search.
+     *
+     * @param playlistName The name of the playlist to use as search query
+     */
+    fun loadPlaylistSuggestions(playlistName: String) {
+        viewModelScope.launch {
+            if (playlistName.isBlank()) {
+                _suggestionsState.value = PlaylistSuggestionsState.Idle
+                return@launch
+            }
+
+            _suggestionsState.value = PlaylistSuggestionsState.Loading
+
+            try {
+                val result = YouTube.search(
+                    query = playlistName,
+                    filter = YouTube.SearchFilter.FILTER_SONG
+                )
+
+                result.onSuccess { searchResult ->
+                    val songs = searchResult.items
+                        .filterIsInstance<moe.koiverse.archivetune.innertube.models.SongItem>()
+
+                    if (songs.isEmpty()) {
+                        _suggestionsState.value = PlaylistSuggestionsState.Error("No suggestions found")
+                    } else {
+                        _suggestionsState.value = PlaylistSuggestionsState.Success(
+                            PlaylistSuggestion(
+                                query = playlistName,
+                                songs = songs
+                            )
+                        )
+                    }
+                }.onFailure { error ->
+                    _suggestionsState.value = PlaylistSuggestionsState.Error(
+                        error.message ?: "Failed to load suggestions"
+                    )
+                }
+            } catch (e: Exception) {
+                _suggestionsState.value = PlaylistSuggestionsState.Error(
+                    e.message ?: "Failed to load suggestions"
+                )
+            }
+        }
+    }
+
+    /**
+     * Refreshes the playlist suggestions with the current playlist name.
+     */
+    fun refreshSuggestions() {
+        viewModelScope.launch {
+            val currentPlaylist = playlist.value ?: return@launch
+            loadPlaylistSuggestions(currentPlaylist.playlist.name)
         }
     }
 }
