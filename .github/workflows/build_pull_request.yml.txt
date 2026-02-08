@@ -71,41 +71,7 @@ jobs:
 
       - name: Post Failure Comment
         if: env.BUILD_FAILED == 'true'
-        uses: actions/github-script@v8
+        uses: peter-evans/create-or-update-comment@v5
         with:
-          script: |
-            const fs = require('fs');
-            const path = require('path');
-            
-            const buildLogPath = path.join(process.env.GITHUB_WORKSPACE, 'build_output.txt');
-            let buildLog = 'No build log available';
-            
-            try {
-              if (fs.existsSync(buildLogPath)) {
-                buildLog = fs.readFileSync(buildLogPath, 'utf8');
-              }
-            } catch (e) {
-              buildLog = 'Error reading build log: ' + e.message;
-            }
-            
-            // Truncate log if too long (GitHub comment limit is ~65536 chars)
-            if (buildLog.length > 50000) {
-              buildLog = buildLog.substring(0, 50000) + '\n\n... (log truncated for comment length limit)';
-            }
-            
-            const failedStep = 'Build and Lint Universal Debug APK';
-            
-            const message = 'Hey, your pull request check failed in ' + failedStep + ', please check this failed step log:\n\n' +
-              '<details>\n' +
-              '<summary>📝 Log</summary>\n\n' +
-              '```bash\n' +
-              buildLog + '\n' +
-              '```\n\n' +
-              '</details>';
-            
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: message
-            });
+          issue-number: ${{ github.event.number }}
+          body-path: build_output.txt
