@@ -46,10 +46,6 @@ jobs:
             HEAD_REF=$(echo "$PR_JSON" | jq -r '.head.ref')
             HEAD_SHA=$(echo "$PR_JSON" | jq -r '.head.sha')
             HEAD_REPO_FULL_NAME=$(echo "$PR_JSON" | jq -r '.head.repo.full_name')
-            PR_TITLE=$(echo "$PR_JSON" | jq -r '.title')
-            
-            # Escape PR title for shell
-            ESCAPED_PR_TITLE=$(echo "$PR_TITLE" | sed "s/'/'\\\\''/g")
             
             BASE_REF="$TARGET_BRANCH"
             IS_MANUAL_TRIGGER="true"
@@ -60,11 +56,6 @@ jobs:
             HEAD_SHA="${{ github.event.pull_request.head.sha }}"
             HEAD_REPO_FULL_NAME="${{ github.event.pull_request.head.repo.full_name }}"
             BASE_REF="${{ github.event.pull_request.base.ref }}"
-            
-            # FIXED: Get PR title directly and properly escape it
-            PR_TITLE="${{ github.event.pull_request.title }}"
-            # Use jq to properly escape the string for JSON/shell
-            ESCAPED_PR_TITLE=$(echo "$PR_TITLE" | jq -Rs . | sed 's/^"//;s/"$//')
             
             IS_MANUAL_TRIGGER="false"
           fi
@@ -80,9 +71,6 @@ jobs:
           echo "head-repo=$HEAD_REPO_FULL_NAME" >> $GITHUB_OUTPUT
           echo "base-ref=$BASE_REF" >> $GITHUB_OUTPUT
           echo "manual-trigger=$IS_MANUAL_TRIGGER" >> $GITHUB_OUTPUT
-          
-          # Use printf to safely output the title
-          printf "pr-title=%s\n" "$ESCAPED_PR_TITLE" >> $GITHUB_OUTPUT
           
           # Create commit URL
           COMMIT_URL="https://github.com/${{ github.repository }}/pull/$PR_NUMBER/commits/$HEAD_SHA"
@@ -179,7 +167,7 @@ jobs:
             ${{ steps.extract-pr.outputs.manual-trigger == 'true' && '🔧 **Build triggered manually!**' || '🚀 **Build triggered by new commit!**' }}
             
             **Status:** ⏳ Starting build process...
-            **PR:** #${{ steps.extract-pr.outputs.pr-number }} - **${{ steps.extract-pr.outputs.pr-title }}**
+            **PR:** #${{ steps.extract-pr.outputs.pr-number }}
             **Branch:** `${{ steps.extract-pr.outputs.head-ref }}` → `${{ steps.extract-pr.outputs.base-ref }}`
             **Commit SHA:** [<code>${{ steps.extract-pr.outputs.short-sha }}</code>](${{ steps.extract-pr.outputs.commit-url }})
             
@@ -199,7 +187,7 @@ jobs:
             ${{ steps.extract-pr.outputs.manual-trigger == 'true' && '🔧 **Build triggered manually!**' || '🚀 **Build triggered by new commit!**' }}
             
             **Status:** 🔄 Building APK...
-            **PR:** #${{ steps.extract-pr.outputs.pr-number }} - **${{ steps.extract-pr.outputs.pr-title }}**
+            **PR:** #${{ steps.extract-pr.outputs.pr-number }}
             **Branch:** `${{ steps.extract-pr.outputs.head-ref }}` → `${{ steps.extract-pr.outputs.base-ref }}`
             **Commit SHA:** [<code>${{ steps.extract-pr.outputs.short-sha }}</code>](${{ steps.extract-pr.outputs.commit-url }})
             **Workflow:** ⏳ [Build Pull Request](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
@@ -227,7 +215,7 @@ jobs:
             ${{ steps.extract-pr.outputs.manual-trigger == 'true' && '🔧 **Build triggered manually!**' || '🚀 **Build triggered by new commit!**' }}
             
             **Status:** ⚙️ Setting up build environment...
-            **PR:** #${{ steps.extract-pr.outputs.pr-number }} - **${{ steps.extract-pr.outputs.pr-title }}**
+            **PR:** #${{ steps.extract-pr.outputs.pr-number }}
             **Branch:** `${{ steps.extract-pr.outputs.head-ref }}` → `${{ steps.extract-pr.outputs.base-ref }}`
             **Commit SHA:** [<code>${{ steps.extract-pr.outputs.short-sha }}</code>](${{ steps.extract-pr.outputs.commit-url }})
             **Workflow:** ⏳ [Build Pull Request](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
@@ -269,7 +257,7 @@ jobs:
             ${{ steps.extract-pr.outputs.manual-trigger == 'true' && '🔧 **Build triggered manually!**' || '🚀 **Build triggered by new commit!**' }}
             
             **Status:** 🔑 Generating debug keystore...
-            **PR:** #${{ steps.extract-pr.outputs.pr-number }} - **${{ steps.extract-pr.outputs.pr-title }}**
+            **PR:** #${{ steps.extract-pr.outputs.pr-number }}
             **Branch:** `${{ steps.extract-pr.outputs.head-ref }}` → `${{ steps.extract-pr.outputs.base-ref }}`
             **Commit SHA:** [<code>${{ steps.extract-pr.outputs.short-sha }}</code>](${{ steps.extract-pr.outputs.commit-url }})
             **Workflow:** ⏳ [Build Pull Request](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
@@ -310,7 +298,7 @@ jobs:
             ${{ steps.extract-pr.outputs.manual-trigger == 'true' && '🔧 **Build triggered manually!**' || '🚀 **Build triggered by new commit!**' }}
             
             **Status:** 🏗️ Building APK...
-            **PR:** #${{ steps.extract-pr.outputs.pr-number }} - **${{ steps.extract-pr.outputs.pr-title }}**
+            **PR:** #${{ steps.extract-pr.outputs.pr-number }}
             **Branch:** `${{ steps.extract-pr.outputs.head-ref }}` → `${{ steps.extract-pr.outputs.base-ref }}`
             **Commit SHA:** [<code>${{ steps.extract-pr.outputs.short-sha }}</code>](${{ steps.extract-pr.outputs.commit-url }})
             **Workflow:** ⏳ [Build Pull Request](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
@@ -413,7 +401,7 @@ jobs:
             ${{ steps.extract-pr.outputs.manual-trigger == 'true' && '🔧 **Build triggered manually!**' || '🚀 **Build triggered by new commit!**' }}
             
             **Status:** ✅ **BUILD SUCCESSFUL!**
-            **PR:** #${{ steps.extract-pr.outputs.pr-number }} - **${{ steps.extract-pr.outputs.pr-title }}**
+            **PR:** #${{ steps.extract-pr.outputs.pr-number }}
             **Branch:** `${{ steps.extract-pr.outputs.head-ref }}` → `${{ steps.extract-pr.outputs.base-ref }}`
             **Commit SHA:** [<code>${{ steps.extract-pr.outputs.short-sha }}</code>](${{ steps.extract-pr.outputs.commit-url }})
             **Workflow:** ✅ [Build Pull Request](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
@@ -443,7 +431,7 @@ jobs:
             ${{ steps.extract-pr.outputs.manual-trigger == 'true' && '🔧 **Build triggered manually!**' || '🚀 **Build triggered by new commit!**' }}
             
             **Status:** ❌ **BUILD FAILED!**
-            **PR:** #${{ steps.extract-pr.outputs.pr-number }} - **${{ steps.extract-pr.outputs.pr-title }}**
+            **PR:** #${{ steps.extract-pr.outputs.pr-number }}
             **Branch:** `${{ steps.extract-pr.outputs.head-ref }}` → `${{ steps.extract-pr.outputs.base-ref }}`
             **Commit SHA:** [<code>${{ steps.extract-pr.outputs.short-sha }}</code>](${{ steps.extract-pr.outputs.commit-url }})
             **Workflow:** ❌ [Build Pull Request](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
@@ -539,7 +527,7 @@ jobs:
             ${{ steps.extract-pr.outputs.manual-trigger == 'true' && '🔧 **Build triggered manually!**' || '🚀 **Build triggered by new commit!**' }}
             
             **Status:** ✅ **BUILD COMPLETE!**
-            **PR:** #${{ steps.extract-pr.outputs.pr-number }} - **${{ steps.extract-pr.outputs.pr-title }}**
+            **PR:** #${{ steps.extract-pr.outputs.pr-number }}
             **Branch:** `${{ steps.extract-pr.outputs.head-ref }}` → `${{ steps.extract-pr.outputs.base-ref }}`
             **Commit SHA:** [<code>${{ steps.extract-pr.outputs.short-sha }}</code>](${{ steps.extract-pr.outputs.commit-url }})
             **Workflow:** ✅ [Build Pull Request](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
@@ -592,7 +580,7 @@ jobs:
             ⚠️ **Build status update**
             
             **Status:** ${{ steps.process-result.outputs.is-success == 'true' && '✅ BUILD SUCCESSFUL' || '❌ BUILD FAILED' }}
-            **PR:** #${{ steps.extract-pr.outputs.pr-number }} - **${{ steps.extract-pr.outputs.pr-title }}**
+            **PR:** #${{ steps.extract-pr.outputs.pr-number }}
             **Branch:** `${{ steps.extract-pr.outputs.head-ref }}` → `${{ steps.extract-pr.outputs.base-ref }}`
             **Commit SHA:** [<code>${{ steps.extract-pr.outputs.short-sha }}</code>](${{ steps.extract-pr.outputs.commit-url }})
             **Workflow:** ${{ steps.process-result.outputs.is-success == 'true' && '✅' || '❌' }} [Build Pull Request](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
@@ -612,3 +600,4 @@ jobs:
           echo "❌ Build failed. Marking workflow as failed."
           echo "Check the comment above for detailed error logs."
           exit 1
+          
