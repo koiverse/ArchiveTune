@@ -85,7 +85,7 @@ fun PlaylistSuggestionsSection(
                         onLongClick = {}
                     ) {
                         Icon(
-                            painter = painterResource(R.drawable.refresh),
+                            painter = painterResource(R.drawable.sync),
                             contentDescription = stringResource(R.string.refresh_suggestions)
                         )
                     }
