@@ -34,6 +34,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.derivedStateOf
@@ -48,6 +49,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialogDefaults
 import androidx.compose.material3.BasicAlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
@@ -535,48 +537,61 @@ fun EditPlaylistDialog(
         },
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            PlaylistThumbnail(
-                thumbnails = previewThumbnails,
-                size = 140.dp,
-                placeHolder = {
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier.fillMaxSize(),
-                    ) {
+            Box {
+                PlaylistThumbnail(
+                    thumbnails = previewThumbnails,
+                    size = 140.dp,
+                    placeHolder = {
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier.fillMaxSize(),
+                        ) {
+                            Icon(
+                                painter = painterResource(R.drawable.queue_music),
+                                contentDescription = null,
+                                tint = LocalContentColor.current.copy(alpha = 0.8f),
+                                modifier = Modifier.size(64.dp),
+                            )
+                        }
+                    },
+                    shape = RoundedCornerShape(16.dp),
+                )
+
+                Surface(
+                    onClick = { pickCoverLauncher.launch(arrayOf("image/*")) },
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(8.dp)
+                        .size(48.dp),
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
                         Icon(
-                            painter = painterResource(R.drawable.queue_music),
-                            contentDescription = null,
-                            tint = LocalContentColor.current.copy(alpha = 0.8f),
-                            modifier = Modifier.size(64.dp),
+                            painter = painterResource(R.drawable.edit),
+                            contentDescription = stringResource(R.string.change_playlist_cover),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(22.dp),
                         )
-                    }
-                },
-                shape = RoundedCornerShape(16.dp),
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                TextButton(onClick = { pickCoverLauncher.launch(arrayOf("image/*")) }) {
-                    Text(text = stringResource(R.string.change_playlist_cover))
-                }
-                if (!thumbnailUrl.isNullOrBlank()) {
-                    TextButton(
-                        onClick = {
-                            releasePersistablePermissionIfPossible(thumbnailUrl)
-                            thumbnailUrl = null
-                        },
-                    ) {
-                        Text(text = stringResource(R.string.remove_playlist_cover))
                     }
                 }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
+
+            if (!thumbnailUrl.isNullOrBlank()) {
+                Button(
+                    onClick = {
+                        releasePersistablePermissionIfPossible(thumbnailUrl)
+                        thumbnailUrl = null
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(text = stringResource(R.string.remove_playlist_cover))
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+            }
 
             TextField(
                 value = nameField,
