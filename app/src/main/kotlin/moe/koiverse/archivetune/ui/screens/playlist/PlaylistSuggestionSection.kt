@@ -40,6 +40,7 @@ import androidx.hilt.lifecycle.compose.hiltViewModel
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.platform.LocalContext
 import android.widget.Toast
+import android.util.Log
 import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.innertube.models.SongItem
 import moe.koiverse.archivetune.models.PlaylistSuggestion
@@ -113,9 +114,17 @@ fun PlaylistSuggestionsSection(
                                             // Handle add to playlist
                                             coroutineScope.launch {
                                                 try {
+                                                    val songItem = song as? SongItem
+                                                    val browseId = viewModel.playlist.value?.playlist?.browseId
+                                                    
+                                                    if (songItem == null || browseId == null) {
+                                                        Toast.makeText(context, R.string.error, Toast.LENGTH_SHORT).show()
+                                                        return@launch
+                                                    }
+                                                    
                                                     val success = viewModel.addSongToPlaylist(
-                                                        song = song as SongItem,
-                                                        browseId = viewModel.playlist.value?.playlist?.browseId
+                                                        song = songItem,
+                                                        browseId = browseId
                                                     )
                                                     
                                                     if (success) {
@@ -130,6 +139,7 @@ fun PlaylistSuggestionsSection(
                                                         Toast.makeText(context, R.string.error, Toast.LENGTH_SHORT).show()
                                                     }
                                                 } catch (e: Exception) {
+                                                    Log.e("PlaylistSuggestions", "Error adding song to playlist", e)
                                                     Toast.makeText(context, R.string.error, Toast.LENGTH_SHORT).show()
                                                 }
                                             }

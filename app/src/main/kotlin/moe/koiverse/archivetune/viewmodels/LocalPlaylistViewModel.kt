@@ -137,13 +137,22 @@ constructor(
     
     // Playlist Suggestions Functions
     
-    fun loadPlaylistSuggestions() {
+    fun loadPlaylistSuggestions(forceReset: Boolean = false) {
         viewModelScope.launch {
             suggestionLoadMutex.withLock {
-                val currentPlaylist = playlist.first() ?: return@withLock
                 val currentSongs = playlistSongs.first()
+
+                if (forceReset) {
+                    _playlistSuggestions.value = null
+                    currentSuggestionQueryIndex.value = 0
+                    suggestedSongIds.value = currentSongs.map { it.song.id }.toSet()
+                    suggestionsCacheTimestamp.value = 0L
+                    currentSuggestionPage = null
+                }
+
+                val currentPlaylist = playlist.first() ?: return@withLock
                 
-                val shouldRefresh = PlaylistSuggestionQueryBuilder.shouldRefreshSuggestions(
+                val shouldRefresh = forceReset || PlaylistSuggestionQueryBuilder.shouldRefreshSuggestions(
                     suggestionsCacheTimestamp.value
                 )
                 
@@ -169,13 +178,15 @@ constructor(
                     
                 } catch (e: Exception) {
                     reportException(e)
-                    _playlistSuggestions.value = PlaylistSuggestion(
-                        items = emptyList(),
-                        continuation = null,
-                        currentQueryIndex = 0,
-                        totalQueries = 0,
-                        query = ""
-                    )
+                    if (_playlistSuggestions.value == null) {
+                        _playlistSuggestions.value = PlaylistSuggestion(
+                            items = emptyList(),
+                            continuation = null,
+                            currentQueryIndex = 0,
+                            totalQueries = 0,
+                            query = ""
+                        )
+                    }
                 } finally {
                     _isLoadingSuggestions.value = false
                 }
@@ -191,31 +202,30 @@ constructor(
                 val currentSuggestions = _playlistSuggestions.value ?: return@withLock
                 val queries = suggestionQueries.value
                 
-                // If we have a continuation, load more from current query
-                currentSuggestionPage?.continuation?.let { continuation ->
-                    loadMoreFromContinuation(continuation)
-                    return@withLock
-                }
-                
-                // Otherwise, move to next query
-                val nextIndex = currentSuggestionQueryIndex.value + 1
-                if (nextIndex < queries.size) {
-                    currentSuggestionQueryIndex.value = nextIndex
-                    loadNextSuggestionPage()
+                try {
+                    // If we have a continuation, load more from current query
+                    currentSuggestionPage?.continuation?.let { continuation ->
+                        _isLoadingSuggestions.value = true
+                        loadMoreFromContinuation(continuation)
+                        return@withLock
+                    }
+                    
+                    // Otherwise, move to next query
+                    val nextIndex = currentSuggestionQueryIndex.value + 1
+                    if (nextIndex < queries.size) {
+                        _isLoadingSuggestions.value = true
+                        currentSuggestionQueryIndex.value = nextIndex
+                        loadNextSuggestionPage()
+                    }
+                } finally {
+                    _isLoadingSuggestions.value = false
                 }
             }
         }
     }
     
     fun resetAndLoadPlaylistSuggestions() {
-        viewModelScope.launch {
-            _playlistSuggestions.value = null
-            currentSuggestionQueryIndex.value = 0
-            suggestedSongIds.value = playlistSongs.first().map { it.song.id }.toSet()
-            suggestionsCacheTimestamp.value = 0L
-            currentSuggestionPage = null
-            loadPlaylistSuggestions()
-        }
+        loadPlaylistSuggestions(forceReset = true)
     }
     
     suspend fun addSongToPlaylist(song: moe.koiverse.archivetune.innertube.models.SongItem, browseId: String?): Boolean {

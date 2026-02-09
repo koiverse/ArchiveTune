@@ -1342,7 +1342,7 @@ fun LocalPlaylistScreen(
             }
 
             // Playlist Suggestions Section
-            if (!selection) {
+            if (!selection && !isSearching) {
                 item {
                     PlaylistSuggestionsSection(
                         modifier = Modifier.padding(vertical = 16.dp)
