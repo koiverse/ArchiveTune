@@ -438,7 +438,7 @@ jobs:
             2. Verify all dependencies are correctly defined
             3. Ensure API keys and secrets are properly set
             
-            📊 **Complete logs:** [View in Actions](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+            📊 **Complete logs:** [View in Actions](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) • [View raw logs](https://github.com/${{ github.repository }}/commit/${{ steps.extract-pr.outputs.head-sha }}/checks/${{ github.run_id }}/logs)
             
             ---
             *Note: Log has been trimmed if it was too long. Check the Actions tab for complete logs.*
@@ -523,6 +523,8 @@ jobs:
             3. Test the changes
             4. Report any issues in the PR
             
+            📊 **Complete logs:** [View in Actions](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) • [View raw logs](https://github.com/${{ github.repository }}/commit/${{ steps.extract-pr.outputs.head-sha }}/checks/${{ github.run_id }}/logs)
+            
             ---
             ${{ steps.extract-pr.outputs.manual-trigger == 'true' && '*🔧 This build was manually triggered via workflow dispatch.*' || '*✅ This build was automatically triggered by new commit.*' }}
 
@@ -558,6 +560,8 @@ jobs:
             *Note: Original comment could not be created or updated.*
             
             ${{ steps.process-result.outputs.is-success == 'true' && '🎉 **Build successful!** APK is ready for download.' || '❌ **Build failed!** Check the workflow logs for details.' }}
+            
+            📊 **Complete logs:** [View in Actions](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) • [View raw logs](https://github.com/${{ github.repository }}/commit/${{ steps.extract-pr.outputs.head-sha }}/checks/${{ github.run_id }}/logs)
             
             ---
             *This is a backup comment created because the original comment could not be properly managed.*
