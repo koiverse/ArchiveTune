@@ -324,9 +324,9 @@ constructor(
             
             // If we got no new items after filtering, try to load more if available
             if (filteredItems.isEmpty() && (result.continuation != null || currentIndex < queries.size - 1)) {
-                if (result.continuation != null) {
-                    loadMoreFromContinuation(result.continuation)
-                } else {
+                result.continuation?.let { continuationValue ->
+                    loadMoreFromContinuation(continuationValue)
+                } ?: run {
                     currentSuggestionQueryIndex.value = currentIndex + 1
                     loadNextSuggestionPage()
                 }
@@ -390,15 +390,17 @@ constructor(
                 val queries = suggestionQueries.value
                 val currentIndex = currentSuggestionQueryIndex.value
                 
-                if (result.continuation != null) {
-                    loadMoreFromContinuation(result.continuation)
-                } else if (currentIndex < queries.size - 1) {
-                    currentSuggestionQueryIndex.value = currentIndex + 1
-                    loadNextSuggestionPage()
-                } else {
-                    // No more items and no more queries
-                    if (currentSuggestions != null) {
-                        _playlistSuggestions.value = currentSuggestions.copy(hasMore = false)
+                result.continuation?.let { continuationValue ->
+                    loadMoreFromContinuation(continuationValue)
+                } ?: run {
+                    if (currentIndex < queries.size - 1) {
+                        currentSuggestionQueryIndex.value = currentIndex + 1
+                        loadNextSuggestionPage()
+                    } else {
+                        // No more items and no more queries
+                        if (currentSuggestions != null) {
+                            _playlistSuggestions.value = currentSuggestions.copy(hasMore = false)
+                        }
                     }
                 }
                 return
