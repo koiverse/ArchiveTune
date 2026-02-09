@@ -61,9 +61,11 @@ jobs:
             HEAD_REPO_FULL_NAME="${{ github.event.pull_request.head.repo.full_name }}"
             BASE_REF="${{ github.event.pull_request.base.ref }}"
             
-            # Escape PR title for shell using jq to handle special characters
-            PR_TITLE_JSON=$(echo '"${{ github.event.pull_request.title }}"' | jq -r .)
-            ESCAPED_PR_TITLE="$PR_TITLE_JSON"
+            # FIXED: Get PR title directly and properly escape it
+            PR_TITLE="${{ github.event.pull_request.title }}"
+            # Use jq to properly escape the string for JSON/shell
+            ESCAPED_PR_TITLE=$(echo "$PR_TITLE" | jq -Rs . | sed 's/^"//;s/"$//')
+            
             IS_MANUAL_TRIGGER="false"
           fi
           
