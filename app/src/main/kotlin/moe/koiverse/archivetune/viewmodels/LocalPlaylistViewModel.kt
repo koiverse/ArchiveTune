@@ -298,11 +298,6 @@ constructor(
             // Update suggested song IDs to avoid duplicates
             suggestedSongIds.value = suggestedSongIds.value + song.id
             
-            // Auto-refresh suggestions after successful add
-            viewModelScope.launch {
-                kotlinx.coroutines.delay(1000) // Small delay to let the add complete
-                loadMoreSuggestions()
-            }
             true
         } catch (e: Exception) {
             reportException(e)
