@@ -343,7 +343,8 @@ constructor(
             )
 
             // Update suggested song IDs to avoid duplicates
-            suggestedSongIds.value = suggestedSongIds.value + filteredItems.map { it.id }.toSet()
+            val newIds = filteredItems.map { item: YTItem -> item.id }.toSet()
+            suggestedSongIds.value = suggestedSongIds.value + newIds
 
             // Update suggestions state
             val currentSuggestions = _playlistSuggestions.value
@@ -402,7 +403,8 @@ constructor(
             )
             
             // Update suggested song IDs to avoid duplicates
-            suggestedSongIds.value = suggestedSongIds.value + filteredItems.map { it.id }.toSet()
+            val moreIds = filteredItems.map { item: YTItem -> item.id }.toSet()
+            suggestedSongIds.value = suggestedSongIds.value + moreIds
             
             // Update suggestions state
             val currentSuggestions = _playlistSuggestions.value ?: return
@@ -411,7 +413,11 @@ constructor(
                 continuation = result.continuation,
                 hasMore = result.continuation != null || currentSuggestions.currentQueryIndex < suggestionQueries.value.size - 1
             )
-            
+        } catch (e: Exception) {
+            reportException(e)
+        }
+    }
+
     private suspend fun filterSuggestionItems(items: List<YTItem>): List<YTItem> {
         val hideExplicit = context.dataStore.data.first()[HideExplicitKey] ?: false
         val hideVideos = context.dataStore.data.first()[HideVideoKey] ?: false
