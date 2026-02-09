@@ -4,28 +4,198 @@ on:
   pull_request:
     branches:
       - "**"
+    types: [opened, synchronize, reopened]
 
 jobs:
-  build:
+  build-and-comment:
     runs-on: ubuntu-latest
-
+    
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+    
     steps:
-      - uses: actions/checkout@v6
-
+      - name: Extract PR information
+        id: extract-pr
+        run: |
+          PR_NUMBER=${{ github.event.pull_request.number }}
+          HEAD_REF="${{ github.event.pull_request.head.ref }}"
+          HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+          HEAD_REPO_FULL_NAME="${{ github.event.pull_request.head.repo.full_name }}"
+          BASE_REF="${{ github.event.pull_request.base.ref }}"
+          PR_TITLE="${{ github.event.pull_request.title }}"
+          
+          # Short SHA (7 characters)
+          SHORT_SHA="${HEAD_SHA:0:7}"
+          
+          echo "pr-number=$PR_NUMBER" >> $GITHUB_OUTPUT
+          echo "head-ref=$HEAD_REF" >> $GITHUB_OUTPUT
+          echo "head-sha=$HEAD_SHA" >> $GITHUB_OUTPUT
+          echo "short-sha=$SHORT_SHA" >> $GITHUB_OUTPUT
+          echo "head-repo=$HEAD_REPO_FULL_NAME" >> $GITHUB_OUTPUT
+          echo "base-ref=$BASE_REF" >> $GITHUB_OUTPUT
+          echo "pr-title=$PR_TITLE" >> $GITHUB_OUTPUT
+          
+          # Create commit URL
+          COMMIT_URL="https://github.com/${{ github.repository }}/pull/$PR_NUMBER/commits/$HEAD_SHA"
+          echo "commit-url=$COMMIT_URL" >> $GITHUB_OUTPUT
+          
+      - name: Check for existing comment
+        id: find-comment
+        run: |
+          PR_NUMBER=${{ steps.extract-pr.outputs.pr-number }}
+          REPO="${{ github.repository }}"
+          
+          # Get existing comments
+          COMMENTS_URL="https://api.github.com/repos/$REPO/issues/$PR_NUMBER/comments"
+          
+          COMMENTS_JSON=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github.v3+json" \
+            "$COMMENTS_URL")
+          
+          # Look for comment from GitHub Actions bot that contains "ArchiveTune Test Build"
+          COMMENT_ID=$(echo "$COMMENTS_JSON" | jq -r '.[] | select(.user.login == "github-actions[bot]") | select(.body | contains("ArchiveTune Test Build")) | .id' | head -1)
+          
+          if [ -n "$COMMENT_ID" ] && [ "$COMMENT_ID" != "null" ]; then
+            echo "Found existing comment ID: $COMMENT_ID"
+            echo "comment-id=$COMMENT_ID" >> $GITHUB_OUTPUT
+            echo "comment-exists=true" >> $GITHUB_OUTPUT
+            
+            # Get the full comment body to check if it's for the current SHA
+            COMMENT_BODY=$(echo "$COMMENTS_JSON" | jq -r ".[] | select(.id == $COMMENT_ID) | .body")
+            CURRENT_SHA="${{ steps.extract-pr.outputs.head-sha }}"
+            
+            if echo "$COMMENT_BODY" | grep -q "$CURRENT_SHA"; then
+              echo "Comment already exists for this SHA"
+              echo "same-sha=true" >> $GITHUB_OUTPUT
+            else
+              echo "Comment exists but for different SHA"
+              echo "same-sha=false" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "No existing comment found"
+            echo "comment-exists=false" >> $GITHUB_OUTPUT
+            echo "same-sha=false" >> $GITHUB_OUTPUT
+          fi
+          
+      - name: Create or update comment - Starting build
+        id: initial-comment
+        uses: peter-evans/create-or-update-comment@v5
+        with:
+          comment-id: ${{ steps.find-comment.outputs.comment-id }}
+          issue-number: ${{ steps.extract-pr.outputs.pr-number }}
+          edit-mode: ${{ steps.find-comment.outputs.same-sha == 'true' && 'replace' || steps.find-comment.outputs.comment-exists == 'true' && 'replace' || 'create' }}
+          body: |
+            # <img src="https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/icon.png" width="50" height="50" alt="ArchiveTune Logo" style="border-radius: 22%"> ArchiveTune Test Build
+            
+            🚀 **Build triggered by new commit!**
+            
+            **Status:** ⏳ Starting build process...
+            **PR:** #${{ steps.extract-pr.outputs.pr-number }} - **${{ steps.extract-pr.outputs.pr-title }}**
+            **Branch:** `${{ steps.extract-pr.outputs.head-ref }}` → `${{ steps.extract-pr.outputs.base-ref }}`
+            **Commit SHA:** [<code>${{ steps.extract-pr.outputs.short-sha }}</code>](${{ steps.extract-pr.outputs.commit-url }})
+            
+            ⏳ I'll update this message as the build progresses.
+            
+            ---
+            *Current step:* Initializing build environment...
+            
+      - name: Update comment - Building
+        uses: peter-evans/create-or-update-comment@v5
+        with:
+          comment-id: ${{ steps.initial-comment.outputs.comment-id }}
+          edit-mode: replace
+          body: |
+            # <img src="https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/icon.png" width="50" height="50" alt="ArchiveTune Logo" style="border-radius: 22%"> ArchiveTune Test Build
+            
+            🚀 **Build triggered by new commit!**
+            
+            **Status:** 🔄 Building APK...
+            **PR:** #${{ steps.extract-pr.outputs.pr-number }} - **${{ steps.extract-pr.outputs.pr-title }}**
+            **Branch:** `${{ steps.extract-pr.outputs.head-ref }}` → `${{ steps.extract-pr.outputs.base-ref }}`
+            **Commit SHA:** [<code>${{ steps.extract-pr.outputs.short-sha }}</code>](${{ steps.extract-pr.outputs.commit-url }})
+            **Workflow:** ⏳ [Build Pull Request](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+            
+            ⏳ Checking out code and setting up build environment...
+            
+            ---
+            *Current step:* Checking out PR branch...
+            
+      - name: Checkout PR branch
+        uses: actions/checkout@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          repository: ${{ steps.extract-pr.outputs.head-repo }}
+          ref: ${{ steps.extract-pr.outputs.head-ref }}
+          
+      - name: Update comment - Setting up environment
+        uses: peter-evans/create-or-update-comment@v5
+        with:
+          comment-id: ${{ steps.initial-comment.outputs.comment-id }}
+          edit-mode: replace
+          body: |
+            # <img src="https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/icon.png" width="50" height="50" alt="ArchiveTune Logo" style="border-radius: 22%"> ArchiveTune Test Build
+            
+            🚀 **Build triggered by new commit!**
+            
+            **Status:** ⚙️ Setting up build environment...
+            **PR:** #${{ steps.extract-pr.outputs.pr-number }} - **${{ steps.extract-pr.outputs.pr-title }}**
+            **Branch:** `${{ steps.extract-pr.outputs.head-ref }}` → `${{ steps.extract-pr.outputs.base-ref }}`
+            **Commit SHA:** [<code>${{ steps.extract-pr.outputs.short-sha }}</code>](${{ steps.extract-pr.outputs.commit-url }})
+            **Workflow:** ⏳ [Build Pull Request](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+            
+            ✅ Code checked out successfully
+            
+            **Current setup:**
+            - ✅ Code checkout completed
+            - ⏳ Setting up Java JDK 21
+            - ⏳ Setting up Gradle build system
+            - ⏳ Generating Android debug keystore
+            
+            ---
+            *Current step:* Configuring Java and Gradle...
+            
       - name: Set up JDK 21
         uses: actions/setup-java@v5
         with:
           java-version: 21
           distribution: "temurin"
-
+          
       - name: Set Up Gradle
         uses: gradle/actions/setup-gradle@v5
         with:
           cache-read-only: true
           cache-cleanup: on-success
-
+          
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
+        
+      - name: Update comment - Generating keystore
+        uses: peter-evans/create-or-update-comment@v5
+        with:
+          comment-id: ${{ steps.initial-comment.outputs.comment-id }}
+          edit-mode: replace
+          body: |
+            # <img src="https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/icon.png" width="50" height="50" alt="ArchiveTune Logo" style="border-radius: 22%"> ArchiveTune Test Build
+            
+            🚀 **Build triggered by new commit!**
+            
+            **Status:** 🔑 Generating debug keystore...
+            **PR:** #${{ steps.extract-pr.outputs.pr-number }} - **${{ steps.extract-pr.outputs.pr-title }}**
+            **Branch:** `${{ steps.extract-pr.outputs.head-ref }}` → `${{ steps.extract-pr.outputs.base-ref }}`
+            **Commit SHA:** [<code>${{ steps.extract-pr.outputs.short-sha }}</code>](${{ steps.extract-pr.outputs.commit-url }})
+            **Workflow:** ⏳ [Build Pull Request](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+            
+            ✅ Environment set up:
+            - ✅ Java JDK 21
+            - ✅ Gradle configured
+            - ✅ Build permissions set
+            
+            **Current task:** Generating Android debug keystore...
+            
+            ---
+            *Current step:* Creating debug signing key...
 
       - name: Generate debug.keystore if not exists
         run: |
@@ -41,17 +211,298 @@ jobs:
               -validity 10000 \
               -dname "CN=Android Debug,O=Android,C=US"
           fi
+          
+      - name: Update comment - Building APK
+        uses: peter-evans/create-or-update-comment@v5
+        with:
+          comment-id: ${{ steps.initial-comment.outputs.comment-id }}
+          edit-mode: replace
+          body: |
+            # <img src="https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/icon.png" width="50" height="50" alt="ArchiveTune Logo" style="border-radius: 22%"> ArchiveTune Test Build
+            
+            🚀 **Build triggered by new commit!**
+            
+            **Status:** 🏗️ Building APK...
+            **PR:** #${{ steps.extract-pr.outputs.pr-number }} - **${{ steps.extract-pr.outputs.pr-title }}**
+            **Branch:** `${{ steps.extract-pr.outputs.head-ref }}` → `${{ steps.extract-pr.outputs.base-ref }}`
+            **Commit SHA:** [<code>${{ steps.extract-pr.outputs.short-sha }}</code>](${{ steps.extract-pr.outputs.commit-url }})
+            **Workflow:** ⏳ [Build Pull Request](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+            
+            ✅ All setup complete:
+            - ✅ Java JDK 21
+            - ✅ Gradle  
+            - ✅ Debug keystore
+            
+            **Now building:** Universal Debug APK...
+            
+            ---
+            *Current step:* Running Gradle build and lint check...
 
       - name: Build and Lint Universal Debug APK
-        run: ./gradlew --console=plain assembleUniversalDebug :app:lintUniversalDebug --warning-mode summary
+        id: build-apk
+        continue-on-error: true
+        run: |
+          # Create temporary file to store complete log
+          BUILD_LOG=$(mktemp)
+          
+          # Run gradle build and save all output to file
+          set +e
+          ./gradlew --console=plain assembleUniversalDebug :app:lintUniversalDebug --warning-mode summary 2>&1 | tee "$BUILD_LOG"
+          BUILD_EXIT_CODE=${PIPESTATUS[0]}
+          set -e
+          
+          # Read full build log
+          FULL_LOG=$(cat "$BUILD_LOG")
+          
+          # Limit log to avoid exceeding output variable size (approx 0.5MB)
+          # About 30000 lines or 500000 characters
+          TRIMMED_LOG=$(echo "$FULL_LOG" | tail -30000 | head -c 500000)
+          
+          # Escape special characters for JSON/Markdown
+          ESCAPED_LOG=$(echo "$TRIMMED_LOG" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g' -e 's/`/\\`/g' -e "s/'/\\'/g" -e 's/\$/\$/g')
+          
+          # Save trimmed log to output
+          echo "build-log<<EOF" >> $GITHUB_OUTPUT
+          echo "$ESCAPED_LOG" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+          
+          # Get last 50 lines for summary
+          LAST_50_LINES=$(tail -50 "$BUILD_LOG")
+          ESCAPED_LAST_50=$(echo "$LAST_50_LINES" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g' -e 's/`/\\`/g' -e 's/\$/\$/g')
+          
+          echo "build-output<<EOF" >> $GITHUB_OUTPUT
+          echo "$ESCAPED_LAST_50" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+          
+          # Get first error lines for quick display
+          ERROR_LINES=$(grep -i "error\|fail\|exception\|failed" "$BUILD_LOG" | head -10)
+          if [ -z "$ERROR_LINES" ]; then
+            ERROR_LINES="No specific error messages found. Check the full build log."
+          fi
+          ESCAPED_ERRORS=$(echo "$ERROR_LINES" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g' -e 's/`/\\`/g' -e 's/\$/\$/g')
+          
+          echo "error-lines<<EOF" >> $GITHUB_OUTPUT
+          echo "$ESCAPED_ERRORS" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+          
+          # Check exit code and set build-success accordingly
+          if [ $BUILD_EXIT_CODE -eq 0 ]; then
+            echo "build-success=true" >> $GITHUB_OUTPUT
+            echo "Build successful!"
+          else
+            echo "build-success=false" >> $GITHUB_OUTPUT
+            echo "Build failed with exit code: $BUILD_EXIT_CODE"
+          fi
+          
+          # Clean up temporary file
+          rm -f "$BUILD_LOG"
         env:
           GITHUB_EVENT_NAME: ${{ github.event_name }}
           PULL_REQUEST: "true"
           LASTFM_API_KEY: ${{ secrets.LASTFM_API_KEY }}
           LASTFM_SECRET: ${{ secrets.LASTFM_SECRET }}
+          
+      - name: Process build result and update comment
+        id: process-result
+        run: |
+          if [ "${{ steps.build-apk.outputs.build-success }}" = "true" ]; then
+            echo "Build was successful"
+            echo "is-success=true" >> $GITHUB_OUTPUT
+          else
+            echo "Build failed"
+            echo "is-success=false" >> $GITHUB_OUTPUT
+          fi
+          
+      - name: Update comment - Build successful
+        if: steps.process-result.outputs.is-success == 'true'
+        uses: peter-evans/create-or-update-comment@v5
+        with:
+          comment-id: ${{ steps.initial-comment.outputs.comment-id }}
+          edit-mode: replace
+          body: |
+            # <img src="https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/icon.png" width="50" height="50" alt="ArchiveTune Logo" style="border-radius: 22%"> ArchiveTune Test Build
+            
+            🚀 **Build triggered by new commit!**
+            
+            **Status:** ✅ **BUILD SUCCESSFUL!**
+            **PR:** #${{ steps.extract-pr.outputs.pr-number }} - **${{ steps.extract-pr.outputs.pr-title }}**
+            **Branch:** `${{ steps.extract-pr.outputs.head-ref }}` → `${{ steps.extract-pr.outputs.base-ref }}`
+            **Commit SHA:** [<code>${{ steps.extract-pr.outputs.short-sha }}</code>](${{ steps.extract-pr.outputs.commit-url }})
+            **Workflow:** ✅ [Build Pull Request](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+            
+            ✅ All steps completed successfully:
+            - ✅ Java JDK 21
+            - ✅ Gradle build system  
+            - ✅ Debug keystore
+            - ✅ APK compilation
+            - ✅ Lint check
+            
+            **Current task:** Uploading APK artifact...
+            
+            ---
+            *Current step:* Uploading artifact to GitHub Actions...
+
+      - name: Update comment - Build failed
+        if: steps.process-result.outputs.is-success == 'false'
+        uses: peter-evans/create-or-update-comment@v5
+        with:
+          comment-id: ${{ steps.initial-comment.outputs.comment-id }}
+          edit-mode: replace
+          body: |
+            # <img src="https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/icon.png" width="50" height="50" alt="ArchiveTune Logo" style="border-radius: 22%"> ArchiveTune Build Result
+            
+            🚀 **Build triggered by new commit!**
+            
+            **Status:** ❌ **BUILD FAILED!**
+            **PR:** #${{ steps.extract-pr.outputs.pr-number }} - **${{ steps.extract-pr.outputs.pr-title }}**
+            **Branch:** `${{ steps.extract-pr.outputs.head-ref }}` → `${{ steps.extract-pr.outputs.base-ref }}`
+            **Commit SHA:** [<code>${{ steps.extract-pr.outputs.short-sha }}</code>](${{ steps.extract-pr.outputs.commit-url }})
+            **Workflow:** ❌ [Build Pull Request](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+            
+            ❌ Build failed during APK compilation
+            
+            **🔥 First errors found:**
+            ```bash
+            ${{ steps.build-apk.outputs.error-lines }}
+            ```
+            
+            <details>
+            <summary>📋 Log Summary (Last 50 lines)</summary>
+            
+            ```bash
+            ${{ steps.build-apk.outputs.build-output }}
+            ```
+            
+            </details>
+            
+            <details>
+            <summary>📋 Full Build Log (Trimmed)</summary>
+            
+            ```bash
+            ${{ steps.build-apk.outputs.build-log }}
+            ```
+            
+            </details>
+            
+            🔍 **Debug tips:**
+            1. Check for syntax errors in your code
+            2. Verify all dependencies are correctly defined
+            3. Ensure API keys and secrets are properly set
+            
+            📊 **Complete logs:** [View in Actions](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+            
+            ---
+            *Note: Log has been trimmed if it was too long. Check the Actions tab for complete logs.*
 
       - name: Upload APK
+        if: steps.process-result.outputs.is-success == 'true'
         uses: actions/upload-artifact@v6
         with:
-          name: app-universal-debug-pr-${{ github.event.number }}
+          name: app-universal-debug-pr-${{ steps.extract-pr.outputs.pr-number }}
           path: app/build/outputs/apk/universal/debug/*.apk
+          
+      - name: Get artifact information
+        if: steps.process-result.outputs.is-success == 'true'
+        id: artifact-info
+        run: |
+          # Get artifact information from GitHub API
+          ARTIFACTS_URL="https://api.github.com/repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts"
+          
+          echo "Fetching artifacts from: $ARTIFACTS_URL"
+          
+          ARTIFACTS_JSON=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github.v3+json" \
+            "$ARTIFACTS_URL")
+          
+          echo "Artifacts response: $ARTIFACTS_JSON"
+          
+          # Find artifacts with matching names.
+          ARTIFACT_NAME="app-universal-debug-pr-${{ steps.extract-pr.outputs.pr-number }}"
+          ARTIFACT_ID=$(echo "$ARTIFACTS_JSON" | jq -r ".artifacts[] | select(.name == \"$ARTIFACT_NAME\") | .id")
+          
+          if [ -n "$ARTIFACT_ID" ] && [ "$ARTIFACT_ID" != "null" ]; then
+            echo "Found artifact ID: $ARTIFACT_ID"
+            echo "artifact-id=$ARTIFACT_ID" >> $GITHUB_OUTPUT
+            
+            # Create a direct download URL
+            ARTIFACT_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts/$ARTIFACT_ID"
+            echo "artifact-url=$ARTIFACT_URL" >> $GITHUB_OUTPUT
+          else
+            echo "Warning: Could not find artifact ID for '$ARTIFACT_NAME'"
+            echo "artifact-id=0" >> $GITHUB_OUTPUT
+            echo "artifact-url=https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts" >> $GITHUB_OUTPUT
+          fi
+          
+          # Get the current timestamp
+          CURRENT_TIMESTAMP=$(date -u +"%Y-%m-%d %H:%M:%S UTC")
+          echo "timestamp=$CURRENT_TIMESTAMP" >> $GITHUB_OUTPUT
+          
+      - name: Update comment - APK uploaded (Final Success)
+        if: steps.process-result.outputs.is-success == 'true'
+        uses: peter-evans/create-or-update-comment@v5
+        with:
+          comment-id: ${{ steps.initial-comment.outputs.comment-id }}
+          edit-mode: replace
+          body: |
+            # <img src="https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/icon.png" width="50" height="50" alt="ArchiveTune Logo" style="border-radius: 22%"> ArchiveTune Test Build
+            
+            🚀 **Build triggered by new commit!**
+            
+            **Status:** ✅ **BUILD COMPLETE!**
+            **PR:** #${{ steps.extract-pr.outputs.pr-number }} - **${{ steps.extract-pr.outputs.pr-title }}**
+            **Branch:** `${{ steps.extract-pr.outputs.head-ref }}` → `${{ steps.extract-pr.outputs.base-ref }}`
+            **Commit SHA:** [<code>${{ steps.extract-pr.outputs.short-sha }}</code>](${{ steps.extract-pr.outputs.commit-url }})
+            **Workflow:** ✅ [Build Pull Request](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+            
+            🎉 **Build successful!** APK is ready for download.
+            
+            ### 📥 Download APK:
+            **Artifact name:** `app-universal-debug-pr-${{ steps.extract-pr.outputs.pr-number }}`
+            
+            [📦 Download APK from Actions Artifacts](${{ steps.artifact-info.outputs.artifact-url }})
+            
+            ### 🔧 Build Details:
+            - **JDK:** 21 (Temurin)
+            - **Build Type:** Universal Debug
+            - **Keystore:** Debug keystore (auto-generated)
+            - **Timestamp:** ${{ steps.artifact-info.outputs.timestamp }}
+            
+            ### 📋 Next Steps:
+            1. Download the APK above
+            2. Install on Android device/emulator
+            3. Test the changes
+            4. Report any issues in the PR
+            
+            ---
+            *✅ This build was automatically triggered by new commit.*
+
+      - name: Handle comment error and create new comment if needed
+        if: always()
+        uses: peter-evans/create-or-update-comment@v5
+        with:
+          issue-number: ${{ steps.extract-pr.outputs.pr-number }}
+          edit-mode: create
+          body: |
+            # <img src="https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/icon.png" width="50" height="50" alt="ArchiveTune Logo" style="border-radius: 22%"> ArchiveTune Build Result
+            
+            ⚠️ **Build status update**
+            
+            **Status:** ${{ steps.process-result.outputs.is-success == 'true' && '✅ BUILD SUCCESSFUL' || '❌ BUILD FAILED' }}
+            **PR:** #${{ steps.extract-pr.outputs.pr-number }} - **${{ steps.extract-pr.outputs.pr-title }}**
+            **Branch:** `${{ steps.extract-pr.outputs.head-ref }}` → `${{ steps.extract-pr.outputs.base-ref }}`
+            **Commit SHA:** [<code>${{ steps.extract-pr.outputs.short-sha }}</code>](${{ steps.extract-pr.outputs.commit-url }})
+            **Workflow:** ${{ steps.process-result.outputs.is-success == 'true' && '✅' || '❌' }} [Build Pull Request](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+            
+            *Note: Previous comment may have been deleted or inaccessible. This is a new comment for the current build.*
+            
+            ${{ steps.process-result.outputs.is-success == 'true' && '🎉 **Build successful!** APK is ready for download.' || '❌ **Build failed!** Check the workflow logs for details.' }}
+            
+            ---
+            *This comment was created because the original comment could not be updated.*
+
+      - name: Fail job if build failed
+        if: steps.process-result.outputs.is-success == 'false'
+        run: |
+          echo "❌ Build failed. Marking workflow as failed."
+          echo "Check the comment above for detailed error logs."
+          exit 1
