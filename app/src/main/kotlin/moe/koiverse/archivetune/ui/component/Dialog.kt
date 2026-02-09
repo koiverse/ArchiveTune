@@ -7,6 +7,10 @@
 
 package moe.koiverse.archivetune.ui.component
 
+import android.content.Intent
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -24,6 +28,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -58,6 +63,8 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -66,6 +73,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextOverflow
@@ -77,6 +85,7 @@ import androidx.navigation.NavController
 import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.ui.screens.settings.AccountSettings
 import kotlinx.coroutines.delay
+import androidx.compose.ui.platform.LocalContext
 
 @Composable
 fun DefaultDialog(
@@ -445,6 +454,147 @@ fun TextFieldDialog(
             }
 
             extraContent?.invoke()
+        }
+    }
+}
+
+@Composable
+fun EditPlaylistDialog(
+    initialName: String,
+    initialThumbnailUrl: String?,
+    fallbackThumbnails: List<String>,
+    onDismiss: () -> Unit,
+    onSave: (name: String, thumbnailUrl: String?) -> Unit,
+) {
+    val context = LocalContext.current
+    val keyboardController = LocalSoftwareKeyboardController.current
+
+    var nameField by rememberSaveable(stateSaver = TextFieldValue.Saver) {
+        mutableStateOf(TextFieldValue(initialName, TextRange(initialName.length)))
+    }
+    var thumbnailUrl by rememberSaveable { mutableStateOf(initialThumbnailUrl) }
+
+    val previewThumbnails by remember(thumbnailUrl, fallbackThumbnails) {
+        derivedStateOf {
+            val custom = thumbnailUrl
+            if (!custom.isNullOrBlank()) listOf(custom) else fallbackThumbnails
+        }
+    }
+
+    fun releasePersistablePermissionIfPossible(uriString: String?) {
+        if (uriString.isNullOrBlank()) return
+        val uri = runCatching { Uri.parse(uriString) }.getOrNull() ?: return
+        if (uri.scheme != "content") return
+        runCatching {
+            context.contentResolver.releasePersistableUriPermission(
+                uri,
+                Intent.FLAG_GRANT_READ_URI_PERMISSION
+            )
+        }
+    }
+
+    val pickCoverLauncher =
+        rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+            if (uri == null) return@rememberLauncherForActivityResult
+            val old = thumbnailUrl
+            runCatching {
+                context.contentResolver.takePersistableUriPermission(
+                    uri,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION
+                )
+            }
+            if (old != null && old != uri.toString()) {
+                releasePersistablePermissionIfPossible(old)
+            }
+            thumbnailUrl = uri.toString()
+        }
+
+    val canSave by remember {
+        derivedStateOf { nameField.text.isNotBlank() }
+    }
+
+    DefaultDialog(
+        onDismiss = onDismiss,
+        icon = { Icon(painter = painterResource(R.drawable.edit), contentDescription = null) },
+        title = { Text(text = stringResource(R.string.edit_playlist)) },
+        contentScrollable = true,
+        buttons = {
+            TextButton(onClick = onDismiss) {
+                Text(text = stringResource(android.R.string.cancel))
+            }
+            TextButton(
+                enabled = canSave,
+                onClick = {
+                    keyboardController?.hide()
+                    onSave(nameField.text.trim(), thumbnailUrl?.takeUnless { it.isBlank() })
+                    onDismiss()
+                },
+            ) {
+                Text(text = stringResource(R.string.save))
+            }
+        },
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            PlaylistThumbnail(
+                thumbnails = previewThumbnails,
+                size = 140.dp,
+                placeHolder = {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier.fillMaxSize(),
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.queue_music),
+                            contentDescription = null,
+                            tint = LocalContentColor.current.copy(alpha = 0.8f),
+                            modifier = Modifier.size(64.dp),
+                        )
+                    }
+                },
+                shape = RoundedCornerShape(16.dp),
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                TextButton(onClick = { pickCoverLauncher.launch(arrayOf("image/*")) }) {
+                    Text(text = stringResource(R.string.change_playlist_cover))
+                }
+                if (!thumbnailUrl.isNullOrBlank()) {
+                    TextButton(
+                        onClick = {
+                            releasePersistablePermissionIfPossible(thumbnailUrl)
+                            thumbnailUrl = null
+                        },
+                    ) {
+                        Text(text = stringResource(R.string.remove_playlist_cover))
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            TextField(
+                value = nameField,
+                onValueChange = { nameField = it },
+                placeholder = { Text(text = stringResource(R.string.playlist_name)) },
+                singleLine = true,
+                colors = OutlinedTextFieldDefaults.colors(),
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                keyboardActions = KeyboardActions(
+                    onDone = {
+                        if (!canSave) return@KeyboardActions
+                        keyboardController?.hide()
+                        onSave(nameField.text.trim(), thumbnailUrl?.takeUnless { it.isBlank() })
+                        onDismiss()
+                    },
+                ),
+                modifier = Modifier.fillMaxWidth(),
+            )
         }
     }
 }
