@@ -79,7 +79,8 @@ object PlaylistSuggestionQueryBuilder {
         queries.add(PlaylistSuggestionQuery(timeQuery, 7))
         
         // Priority 7: Fallback queries
-        fallbackQueries.forEachIndexed { index, query ->
+        val shuffledFallbacks = fallbackQueries.shuffled()
+        shuffledFallbacks.forEachIndexed { index, query ->
             queries.add(PlaylistSuggestionQuery(query, 8 + index))
         }
         
@@ -111,6 +112,7 @@ object PlaylistSuggestionQueryBuilder {
             .map { it.key }
             .filter { it.isNotBlank() }
             .distinct()
+            .shuffled()
             .take(5)
     }
     

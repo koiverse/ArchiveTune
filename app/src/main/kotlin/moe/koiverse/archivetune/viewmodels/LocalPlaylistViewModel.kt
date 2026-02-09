@@ -48,6 +48,7 @@ import moe.koiverse.archivetune.utils.dataStore
 import moe.koiverse.archivetune.utils.reportException
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import moe.koiverse.archivetune.models.toMediaMetadata
 import java.text.Collator
 import java.util.Locale
 import javax.inject.Inject
@@ -97,7 +98,12 @@ constructor(
     
     // Playlist Suggestions State
     private val _playlistSuggestions = MutableStateFlow<PlaylistSuggestion?>(null)
-    val playlistSuggestions = _playlistSuggestions.asStateFlow()
+    val playlistSuggestions = combine(_playlistSuggestions, playlistSongs) { suggestions, songs ->
+        val songIds = songs.map { it.song.id }.toSet()
+        suggestions?.copy(
+            items = suggestions.items.filter { it.id !in songIds }
+        )
+    }.stateIn(viewModelScope, SharingStarted.Lazily, null)
     
     private val _isLoadingSuggestions = MutableStateFlow(false)
     val isLoadingSuggestions = _isLoadingSuggestions.asStateFlow()
@@ -159,7 +165,9 @@ constructor(
                 // Clear state for refresh
                 _playlistSuggestions.value = null
                 currentSuggestionQueryIndex.value = 0
-                suggestedSongIds.value = currentSongs.map { it.song.id }.toSet()
+                // Keep previously suggested IDs to avoid showing them again on refresh
+                // but ensure songs already in playlist are always included in the filter
+                suggestedSongIds.value = suggestedSongIds.value + currentSongs.map { it.song.id }.toSet()
                 suggestionsCacheTimestamp.value = 0L
                 currentSuggestionPage = null
                 
@@ -244,28 +252,29 @@ constructor(
     }
     
     suspend fun addSongToPlaylist(song: moe.koiverse.archivetune.innertube.models.SongItem, browseId: String?): Boolean {
-        val currentPlaylist = playlist.first() ?: return false
-        
         return try {
-            withContext(Dispatchers.IO) {
-                if (browseId != null) {
-                    // Add to YouTube playlist
+            if (browseId != null) {
+                // Add to YouTube playlist
+                withContext(Dispatchers.IO) {
                     YouTube.addToPlaylist(browseId, song.id)
-                } else {
-                    // Add to local playlist
-                    database.transaction {
-                        val maxPosition = maxPlaylistSongPosition(playlistId)
-                        val position = (maxPosition ?: -1) + 1
-                        insert(
-                            moe.koiverse.archivetune.db.entities.PlaylistSongMap(
-                                songId = song.id,
-                                playlistId = playlistId,
-                                position = position,
-                                setVideoId = null
-                            )
-                        )
-                    }
                 }
+            }
+            
+            database.withTransaction {
+                // First, ensure the song and its artists are in the database
+                insert(song.toMediaMetadata())
+                
+                // Add to local playlist
+                val maxPosition = maxPlaylistSongPosition(playlistId)
+                val position = (maxPosition ?: -1) + 1
+                insert(
+                    moe.koiverse.archivetune.db.entities.PlaylistSongMap(
+                        songId = song.id,
+                        playlistId = playlistId,
+                        position = position,
+                        setVideoId = null
+                    )
+                )
             }
             
             // Update suggested song IDs to avoid duplicates
@@ -311,6 +320,17 @@ constructor(
             
             if (hideVideos) {
                 filteredItems = filteredItems.filterVideo()
+            }
+            
+            // If we got no new items after filtering, try to load more if available
+            if (filteredItems.isEmpty() && (result.continuation != null || currentIndex < queries.size - 1)) {
+                if (result.continuation != null) {
+                    loadMoreFromContinuation(result.continuation)
+                } else {
+                    currentSuggestionQueryIndex.value = currentIndex + 1
+                    loadNextSuggestionPage()
+                }
+                return
             }
             
             currentSuggestionPage = PlaylistSuggestionPage(
@@ -362,6 +382,26 @@ constructor(
             
             if (hideVideos) {
                 filteredItems = filteredItems.filterVideo()
+            }
+            
+            // If we got no new items after filtering, try to move to next query if available
+            if (filteredItems.isEmpty()) {
+                val currentSuggestions = _playlistSuggestions.value
+                val queries = suggestionQueries.value
+                val currentIndex = currentSuggestionQueryIndex.value
+                
+                if (result.continuation != null) {
+                    loadMoreFromContinuation(result.continuation)
+                } else if (currentIndex < queries.size - 1) {
+                    currentSuggestionQueryIndex.value = currentIndex + 1
+                    loadNextSuggestionPage()
+                } else {
+                    // No more items and no more queries
+                    if (currentSuggestions != null) {
+                        _playlistSuggestions.value = currentSuggestions.copy(hasMore = false)
+                    }
+                }
+                return
             }
             
             currentSuggestionPage = PlaylistSuggestionPage(
