@@ -5,6 +5,17 @@ on:
     branches:
       - "**"
     types: [opened, synchronize, reopened]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'Pull Request Number'
+        required: true
+        type: string
+      target_branch:
+        description: 'Target Branch (default: dev)'
+        required: false
+        default: 'dev'
+        type: string
 
 jobs:
   build-and-comment:
@@ -19,27 +30,59 @@ jobs:
       - name: Extract PR information
         id: extract-pr
         run: |
-          PR_NUMBER=${{ github.event.pull_request.number }}
-          HEAD_REF="${{ github.event.pull_request.head.ref }}"
-          HEAD_SHA="${{ github.event.pull_request.head.sha }}"
-          HEAD_REPO_FULL_NAME="${{ github.event.pull_request.head.repo.full_name }}"
-          BASE_REF="${{ github.event.pull_request.base.ref }}"
-          PR_TITLE="${{ github.event.pull_request.title }}"
+          # Determine if this is a manual trigger or PR trigger
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "Manual trigger detected"
+            PR_NUMBER="${{ github.event.inputs.pr_number }}"
+            TARGET_BRANCH="${{ github.event.inputs.target_branch }}"
+            
+            # Get PR information from GitHub API
+            PR_URL="https://api.github.com/repos/${{ github.repository }}/pulls/$PR_NUMBER"
+            PR_JSON=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+              -H "Accept: application/vnd.github.v3+json" \
+              "$PR_URL")
+            
+            HEAD_REF=$(echo "$PR_JSON" | jq -r '.head.ref')
+            HEAD_SHA=$(echo "$PR_JSON" | jq -r '.head.sha')
+            HEAD_REPO_FULL_NAME=$(echo "$PR_JSON" | jq -r '.head.repo.full_name')
+            PR_TITLE=$(echo "$PR_JSON" | jq -r '.title')
+            
+            # Escape PR title for shell
+            ESCAPED_PR_TITLE=$(echo "$PR_TITLE" | sed "s/'/'\\\\''/g")
+            
+            BASE_REF="$TARGET_BRANCH"
+          else
+            echo "PR trigger detected"
+            PR_NUMBER=${{ github.event.pull_request.number }}
+            HEAD_REF="${{ github.event.pull_request.head.ref }}"
+            HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+            HEAD_REPO_FULL_NAME="${{ github.event.pull_request.head.repo.full_name }}"
+            BASE_REF="${{ github.event.pull_request.base.ref }}"
+            
+            # Escape PR title for shell using jq to handle special characters
+            PR_TITLE_JSON=$(echo '"${{ github.event.pull_request.title }}"' | jq -r .)
+            ESCAPED_PR_TITLE="$PR_TITLE_JSON"
+          fi
           
           # Short SHA (7 characters)
           SHORT_SHA="${HEAD_SHA:0:7}"
           
+          # Output variables
           echo "pr-number=$PR_NUMBER" >> $GITHUB_OUTPUT
           echo "head-ref=$HEAD_REF" >> $GITHUB_OUTPUT
           echo "head-sha=$HEAD_SHA" >> $GITHUB_OUTPUT
           echo "short-sha=$SHORT_SHA" >> $GITHUB_OUTPUT
           echo "head-repo=$HEAD_REPO_FULL_NAME" >> $GITHUB_OUTPUT
           echo "base-ref=$BASE_REF" >> $GITHUB_OUTPUT
-          echo "pr-title=$PR_TITLE" >> $GITHUB_OUTPUT
+          
+          # Use printf to safely output the title
+          printf "pr-title=%s\n" "$ESCAPED_PR_TITLE" >> $GITHUB_OUTPUT
           
           # Create commit URL
           COMMIT_URL="https://github.com/${{ github.repository }}/pull/$PR_NUMBER/commits/$HEAD_SHA"
           echo "commit-url=$COMMIT_URL" >> $GITHUB_OUTPUT
+          
+          echo "Manual trigger: ${{ github.event_name == 'workflow_dispatch' && 'true' || 'false' }}" >> $GITHUB_OUTPUT
           
       - name: Check for existing comment
         id: find-comment
@@ -89,7 +132,7 @@ jobs:
           body: |
             # <img src="https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/icon.png" width="50" height="50" alt="ArchiveTune Logo" style="border-radius: 22%"> ArchiveTune Test Build
             
-            🚀 **Build triggered by new commit!**
+            ${{ steps.extract-pr.outputs.manual-trigger == 'true' && '🔧 **Build triggered manually!**' || '🚀 **Build triggered by new commit!**' }}
             
             **Status:** ⏳ Starting build process...
             **PR:** #${{ steps.extract-pr.outputs.pr-number }} - **${{ steps.extract-pr.outputs.pr-title }}**
@@ -109,7 +152,7 @@ jobs:
           body: |
             # <img src="https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/icon.png" width="50" height="50" alt="ArchiveTune Logo" style="border-radius: 22%"> ArchiveTune Test Build
             
-            🚀 **Build triggered by new commit!**
+            ${{ steps.extract-pr.outputs.manual-trigger == 'true' && '🔧 **Build triggered manually!**' || '🚀 **Build triggered by new commit!**' }}
             
             **Status:** 🔄 Building APK...
             **PR:** #${{ steps.extract-pr.outputs.pr-number }} - **${{ steps.extract-pr.outputs.pr-title }}**
@@ -137,7 +180,7 @@ jobs:
           body: |
             # <img src="https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/icon.png" width="50" height="50" alt="ArchiveTune Logo" style="border-radius: 22%"> ArchiveTune Test Build
             
-            🚀 **Build triggered by new commit!**
+            ${{ steps.extract-pr.outputs.manual-trigger == 'true' && '🔧 **Build triggered manually!**' || '🚀 **Build triggered by new commit!**' }}
             
             **Status:** ⚙️ Setting up build environment...
             **PR:** #${{ steps.extract-pr.outputs.pr-number }} - **${{ steps.extract-pr.outputs.pr-title }}**
@@ -179,7 +222,7 @@ jobs:
           body: |
             # <img src="https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/icon.png" width="50" height="50" alt="ArchiveTune Logo" style="border-radius: 22%"> ArchiveTune Test Build
             
-            🚀 **Build triggered by new commit!**
+            ${{ steps.extract-pr.outputs.manual-trigger == 'true' && '🔧 **Build triggered manually!**' || '🚀 **Build triggered by new commit!**' }}
             
             **Status:** 🔑 Generating debug keystore...
             **PR:** #${{ steps.extract-pr.outputs.pr-number }} - **${{ steps.extract-pr.outputs.pr-title }}**
@@ -220,7 +263,7 @@ jobs:
           body: |
             # <img src="https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/icon.png" width="50" height="50" alt="ArchiveTune Logo" style="border-radius: 22%"> ArchiveTune Test Build
             
-            🚀 **Build triggered by new commit!**
+            ${{ steps.extract-pr.outputs.manual-trigger == 'true' && '🔧 **Build triggered manually!**' || '🚀 **Build triggered by new commit!**' }}
             
             **Status:** 🏗️ Building APK...
             **PR:** #${{ steps.extract-pr.outputs.pr-number }} - **${{ steps.extract-pr.outputs.pr-title }}**
@@ -322,7 +365,7 @@ jobs:
           body: |
             # <img src="https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/icon.png" width="50" height="50" alt="ArchiveTune Logo" style="border-radius: 22%"> ArchiveTune Test Build
             
-            🚀 **Build triggered by new commit!**
+            ${{ steps.extract-pr.outputs.manual-trigger == 'true' && '🔧 **Build triggered manually!**' || '🚀 **Build triggered by new commit!**' }}
             
             **Status:** ✅ **BUILD SUCCESSFUL!**
             **PR:** #${{ steps.extract-pr.outputs.pr-number }} - **${{ steps.extract-pr.outputs.pr-title }}**
@@ -351,7 +394,7 @@ jobs:
           body: |
             # <img src="https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/icon.png" width="50" height="50" alt="ArchiveTune Logo" style="border-radius: 22%"> ArchiveTune Build Result
             
-            🚀 **Build triggered by new commit!**
+            ${{ steps.extract-pr.outputs.manual-trigger == 'true' && '🔧 **Build triggered manually!**' || '🚀 **Build triggered by new commit!**' }}
             
             **Status:** ❌ **BUILD FAILED!**
             **PR:** #${{ steps.extract-pr.outputs.pr-number }} - **${{ steps.extract-pr.outputs.pr-title }}**
@@ -446,7 +489,7 @@ jobs:
           body: |
             # <img src="https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/icon.png" width="50" height="50" alt="ArchiveTune Logo" style="border-radius: 22%"> ArchiveTune Test Build
             
-            🚀 **Build triggered by new commit!**
+            ${{ steps.extract-pr.outputs.manual-trigger == 'true' && '🔧 **Build triggered manually!**' || '🚀 **Build triggered by new commit!**' }}
             
             **Status:** ✅ **BUILD COMPLETE!**
             **PR:** #${{ steps.extract-pr.outputs.pr-number }} - **${{ steps.extract-pr.outputs.pr-title }}**
@@ -474,7 +517,7 @@ jobs:
             4. Report any issues in the PR
             
             ---
-            *✅ This build was automatically triggered by new commit.*
+            ${{ steps.extract-pr.outputs.manual-trigger == 'true' && '*🔧 This build was manually triggered via workflow dispatch.*' || '*✅ This build was automatically triggered by new commit.*' }}
 
       - name: Handle comment error and create new comment if needed
         if: always()
