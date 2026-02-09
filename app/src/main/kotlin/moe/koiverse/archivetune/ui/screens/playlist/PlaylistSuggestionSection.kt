@@ -68,7 +68,7 @@ fun PlaylistSuggestionsSection(
     Column(
         modifier = modifier.fillMaxWidth()
     ) {
-        // Header with refresh button
+        // Header
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
             verticalAlignment = Alignment.CenterVertically
@@ -82,24 +82,6 @@ fun PlaylistSuggestionsSection(
                 },
                 modifier = Modifier.weight(1f)
             )
-            
-            if (isLoading) {
-                CircularProgressIndicator(
-                    modifier = Modifier.padding(12.dp).size(20.dp),
-                    strokeWidth = 2.dp,
-                    color = MaterialTheme.colorScheme.primary
-                )
-            } else {
-                IconButton(
-                    onClick = { viewModel.resetAndLoadPlaylistSuggestions() },
-                    onLongClick = {}
-                ) {
-                    Icon(
-                        painter = painterResource(R.drawable.sync),
-                        contentDescription = stringResource(R.string.refresh_suggestions)
-                    )
-                }
-            }
         }
         
         Spacer(modifier = Modifier.height(8.dp))
@@ -179,14 +161,32 @@ fun PlaylistSuggestionsSection(
                 )
             }
             
-            if (suggestions.hasMore && !isLoading) {
-                TextButton(
-                    onClick = { viewModel.loadMoreSuggestions() },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 8.dp)
-                ) {
-                    Text(text = stringResource(R.string.more))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                } else {
+                    TextButton(
+                        onClick = { viewModel.resetAndLoadPlaylistSuggestions() }
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                painter = painterResource(R.drawable.sync),
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.size(8.dp))
+                            Text(text = stringResource(R.string.refresh_suggestions))
+                        }
+                    }
                 }
             }
         }

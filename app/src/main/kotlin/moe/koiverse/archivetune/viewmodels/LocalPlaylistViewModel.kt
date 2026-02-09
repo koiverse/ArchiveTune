@@ -101,8 +101,9 @@ constructor(
     private val _playlistSuggestions = MutableStateFlow<PlaylistSuggestion?>(null)
     val playlistSuggestions = combine(_playlistSuggestions, playlistSongs) { suggestions, songs ->
         val songIds = songs.map { it.song.id }.toSet()
+        val filteredItems = suggestions?.items?.filter { it.id !in songIds } ?: emptyList()
         suggestions?.copy(
-            items = suggestions.items.filter { it.id !in songIds }
+            items = filteredItems.take(10)
         )
     }.stateIn(viewModelScope, SharingStarted.Lazily, null)
     
@@ -140,6 +141,15 @@ constructor(
             }.collect { (playlist, songs) ->
                 playlist?.let { 
                     loadPlaylistSuggestions()
+                }
+            }
+        }
+
+        // Auto-refresh suggestions when they become empty
+        viewModelScope.launch {
+            playlistSuggestions.collect { suggestions ->
+                if (suggestions != null && suggestions.items.isEmpty() && suggestions.hasMore && !_isLoadingSuggestions.value) {
+                    loadMoreSuggestions()
                 }
             }
         }
@@ -319,7 +329,7 @@ constructor(
             val result = YouTube.search(currentQuery.query, searchFilter).getOrNull()
                 ?: return
             
-            val filteredItems = filterSuggestionItems(result.items)
+            val filteredItems = filterSuggestionItems(result.items).shuffled().take(10)
             
             // If we got no new items after filtering, try to load more if available
             if (filteredItems.isEmpty() && (result.continuation != null || currentIndex < queries.size - 1)) {
@@ -368,7 +378,7 @@ constructor(
             val result = YouTube.searchContinuation(continuation).getOrNull()
                 ?: return
             
-            val filteredItems = filterSuggestionItems(result.items)
+            val filteredItems = filterSuggestionItems(result.items).shuffled().take(10)
             
             // If we got no new items after filtering, try to move to next query if available
             if (filteredItems.isEmpty()) {
@@ -402,12 +412,23 @@ constructor(
             suggestedSongIds.value = suggestedSongIds.value + moreIds
             
             // Update suggestions state
-            val currentSuggestions = _playlistSuggestions.value ?: return
-            _playlistSuggestions.value = currentSuggestions.copy(
-                items = currentSuggestions.items + filteredItems,
-                continuation = result.continuation,
-                hasMore = result.continuation != null || currentSuggestions.currentQueryIndex < suggestionQueries.value.size - 1
-            )
+            val currentSuggestions = _playlistSuggestions.value
+            if (currentSuggestions == null) {
+                _playlistSuggestions.value = PlaylistSuggestion(
+                    items = filteredItems,
+                    continuation = result.continuation,
+                    currentQueryIndex = currentSuggestionQueryIndex.value,
+                    totalQueries = suggestionQueries.value.size,
+                    query = suggestionQueries.value.getOrNull(currentSuggestionQueryIndex.value)?.query ?: "",
+                    hasMore = result.continuation != null || currentSuggestionQueryIndex.value < suggestionQueries.value.size - 1
+                )
+            } else {
+                _playlistSuggestions.value = currentSuggestions.copy(
+                    items = currentSuggestions.items + filteredItems,
+                    continuation = result.continuation,
+                    hasMore = result.continuation != null || currentSuggestions.currentQueryIndex < suggestionQueries.value.size - 1
+                )
+            }
         } catch (e: Exception) {
             reportException(e)
         }
