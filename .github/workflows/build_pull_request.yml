@@ -38,6 +38,8 @@ jobs:
             
             # Get PR information from GitHub API
             PR_URL="https://api.github.com/repos/${{ github.repository }}/pulls/$PR_NUMBER"
+            echo "Fetching PR info from: $PR_URL"
+            
             PR_JSON=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
               -H "Accept: application/vnd.github.v3+json" \
               "$PR_URL")
@@ -51,6 +53,7 @@ jobs:
             ESCAPED_PR_TITLE=$(echo "$PR_TITLE" | sed "s/'/'\\\\''/g")
             
             BASE_REF="$TARGET_BRANCH"
+            IS_MANUAL_TRIGGER="true"
           else
             echo "PR trigger detected"
             PR_NUMBER=${{ github.event.pull_request.number }}
@@ -62,6 +65,7 @@ jobs:
             # Escape PR title for shell using jq to handle special characters
             PR_TITLE_JSON=$(echo '"${{ github.event.pull_request.title }}"' | jq -r .)
             ESCAPED_PR_TITLE="$PR_TITLE_JSON"
+            IS_MANUAL_TRIGGER="false"
           fi
           
           # Short SHA (7 characters)
@@ -74,6 +78,7 @@ jobs:
           echo "short-sha=$SHORT_SHA" >> $GITHUB_OUTPUT
           echo "head-repo=$HEAD_REPO_FULL_NAME" >> $GITHUB_OUTPUT
           echo "base-ref=$BASE_REF" >> $GITHUB_OUTPUT
+          echo "manual-trigger=$IS_MANUAL_TRIGGER" >> $GITHUB_OUTPUT
           
           # Use printf to safely output the title
           printf "pr-title=%s\n" "$ESCAPED_PR_TITLE" >> $GITHUB_OUTPUT
@@ -81,8 +86,6 @@ jobs:
           # Create commit URL
           COMMIT_URL="https://github.com/${{ github.repository }}/pull/$PR_NUMBER/commits/$HEAD_SHA"
           echo "commit-url=$COMMIT_URL" >> $GITHUB_OUTPUT
-          
-          echo "Manual trigger: ${{ github.event_name == 'workflow_dispatch' && 'true' || 'false' }}" >> $GITHUB_OUTPUT
           
       - name: Check for existing comment
         id: find-comment
@@ -92,6 +95,7 @@ jobs:
           
           # Get existing comments
           COMMENTS_URL="https://api.github.com/repos/$REPO/issues/$PR_NUMBER/comments"
+          echo "Fetching comments from: $COMMENTS_URL"
           
           COMMENTS_JSON=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
             -H "Accept: application/vnd.github.v3+json" \
@@ -128,7 +132,7 @@ jobs:
         with:
           comment-id: ${{ steps.find-comment.outputs.comment-id }}
           issue-number: ${{ steps.extract-pr.outputs.pr-number }}
-          edit-mode: ${{ steps.find-comment.outputs.same-sha == 'true' && 'replace' || steps.find-comment.outputs.comment-exists == 'true' && 'replace' || 'create' }}
+          edit-mode: replace
           body: |
             # <img src="https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/icon.png" width="50" height="50" alt="ArchiveTune Logo" style="border-radius: 22%"> ArchiveTune Test Build
             
@@ -522,9 +526,9 @@ jobs:
       - name: Handle comment error and create new comment if needed
         if: always()
         uses: peter-evans/create-or-update-comment@v5
+        continue-on-error: true
         with:
           issue-number: ${{ steps.extract-pr.outputs.pr-number }}
-          edit-mode: create
           body: |
             # <img src="https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/icon.png" width="50" height="50" alt="ArchiveTune Logo" style="border-radius: 22%"> ArchiveTune Build Result
             
