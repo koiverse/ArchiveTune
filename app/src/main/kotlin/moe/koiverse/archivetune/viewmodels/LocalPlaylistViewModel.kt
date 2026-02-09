@@ -35,8 +35,11 @@ import moe.koiverse.archivetune.db.entities.PlaylistSong
 import moe.koiverse.archivetune.extensions.reversed
 import moe.koiverse.archivetune.extensions.toEnum
 import moe.koiverse.archivetune.innertube.YouTube
+import moe.koiverse.archivetune.innertube.models.SongItem
+import moe.koiverse.archivetune.innertube.models.YTItem
 import moe.koiverse.archivetune.innertube.models.filterExplicit
 import moe.koiverse.archivetune.innertube.models.filterVideo
+import moe.koiverse.archivetune.innertube.pages.SearchResult
 import moe.koiverse.archivetune.models.PlaylistSuggestion
 import moe.koiverse.archivetune.models.PlaylistSuggestionPage
 import moe.koiverse.archivetune.models.PlaylistSuggestionQuery
@@ -53,8 +56,8 @@ import javax.inject.Inject
 class LocalPlaylistViewModel
 @Inject
 constructor(
-    @ApplicationContext context: Context,
-    database: MusicDatabase,
+    @ApplicationContext private val context: Context,
+    private val database: MusicDatabase,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
     val playlistId = savedStateHandle.get<String>("playlistId")!!
@@ -178,7 +181,7 @@ constructor(
                             query = "",
                             hasMore = false
                         )
-                        return@try
+                        return@withLock
                     }
                     
                     // Load first page of suggestions
