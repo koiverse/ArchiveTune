@@ -83,29 +83,51 @@ jobs:
           set -euo pipefail
 
           locate_universal_apk() {
+            local apk
             local metadata
             local output_file
             local base_dir
-            local apk
+            local candidate
 
-            metadata="$(find app/build/outputs/apk -type f -name "output-metadata.json" | grep -iE "(^|/)universal(/|Release/).*/release/output-metadata\.json$" | head -n 1 || true)"
+            apk="$(find app/build/outputs/apk/universal/release -maxdepth 1 -type f -name "*.apk" ! -name "*signed*.apk" | head -n 1 || true)"
+            if [ -n "${apk:-}" ] && [ -f "$apk" ]; then
+              echo "$apk"
+              return 0
+            fi
+
+            metadata="$(
+              find app/build/outputs/apk -type f -name "output-metadata.json" \
+                \( \
+                  -path "*/universal/release/output-metadata.json" -o \
+                  -path "*/universalRelease/release/output-metadata.json" -o \
+                  -path "*/universal/*/release/output-metadata.json" -o \
+                  -path "*/universalRelease/*/release/output-metadata.json" \
+                \) \
+                | head -n 1 || true
+            )"
             if [ -n "${metadata:-}" ]; then
               output_file="$(grep -oP '"outputFile"\s*:\s*"\K[^"]+' "$metadata" | head -n 1 || true)"
               if [ -n "${output_file:-}" ]; then
                 base_dir="$(dirname "$metadata")"
-                apk="$base_dir/$output_file"
-                if [ -f "$apk" ]; then
-                  echo "$apk"
+                candidate="$base_dir/$output_file"
+                if [ -f "$candidate" ]; then
+                  echo "$candidate"
                   return 0
                 fi
               fi
             fi
 
-            find app/build/outputs/apk -type f -name "*.apk" ! -name "*signed*.apk" | grep -i "universal" | head -n 1 || true
+            apk="$(find app/build/outputs/apk -type f -name "*.apk" ! -name "*signed*.apk" -path "*/universal/*" | head -n 1 || true)"
+            if [ -n "${apk:-}" ] && [ -f "$apk" ]; then
+              echo "$apk"
+              return 0
+            fi
+
+            return 1
           }
 
           ./gradlew clean assembleUniversalRelease
-          APK_1="$(locate_universal_apk)"
+          APK_1="$(locate_universal_apk || true)"
           if [ -z "${APK_1:-}" ] || [ ! -f "$APK_1" ]; then
             echo "Could not find unsigned universal release APK (first build)."
             echo "APK outputs:"
@@ -116,7 +138,7 @@ jobs:
           cp "$APK_1" /tmp/universal-1.apk
 
           ./gradlew clean assembleUniversalRelease
-          APK_2="$(locate_universal_apk)"
+          APK_2="$(locate_universal_apk || true)"
           if [ -z "${APK_2:-}" ] || [ ! -f "$APK_2" ]; then
             echo "Could not find unsigned universal release APK (second build)."
             echo "APK outputs:"
@@ -180,7 +202,16 @@ jobs:
             fi
           done
 
-          FOUND_METADATA="$(find app/build/outputs/apk -type f -name "output-metadata.json" | grep -iE "(^|/)${ABI}(/|Release/).*/release/output-metadata\.json$" | head -n 1 || true)"
+          FOUND_METADATA="$(
+            find app/build/outputs/apk -type f -name "output-metadata.json" \
+              \( \
+                -path "*/${ABI}/release/output-metadata.json" -o \
+                -path "*/${ABI}Release/release/output-metadata.json" -o \
+                -path "*/${ABI}/*/release/output-metadata.json" -o \
+                -path "*/${ABI}Release/*/release/output-metadata.json" \
+              \) \
+              | head -n 1 || true
+          )"
           if [ -n "${FOUND_METADATA:-}" ]; then
             echo "release_dir=$(dirname "$FOUND_METADATA")" >> "$GITHUB_OUTPUT"
             exit 0
