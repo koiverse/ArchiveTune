@@ -261,16 +261,16 @@ constructor(
                 }
             }
             
-            database.withTransaction {
+            val added = database.withTransaction {
                 // Ensure playlist exists in local database (it should, but just in case)
-                val p = database.getPlaylistByIdBlocking(playlistId)
+                val p = getPlaylistById(playlistId)
                 if (p == null) {
                     // If not found, we can't add to it.
                     // This might happen if it's a special playlist that hasn't been created yet.
                     if (playlistId == moe.koiverse.archivetune.db.entities.PlaylistEntity.LIKED_PLAYLIST_ID) {
                         insert(moe.koiverse.archivetune.db.entities.PlaylistEntity(id = playlistId, name = context.getString(R.string.liked_songs), isEditable = false, bookmarkedAt = java.time.LocalDateTime.now()))
                     } else {
-                        return@withTransaction
+                        return@withTransaction false
                     }
                 }
 
@@ -288,6 +288,11 @@ constructor(
                         setVideoId = null
                     )
                 )
+                true
+            }
+            
+            if (!added) {
+                return false
             }
             
             // Update suggested song IDs to avoid duplicates
@@ -319,21 +324,7 @@ constructor(
             val result = YouTube.search(currentQuery.query, searchFilter).getOrNull()
                 ?: return
             
-            // Filter out songs already in playlist and apply user preferences
-            val hideExplicit = context.dataStore.data.first()[HideExplicitKey] ?: false
-            val hideVideos = context.dataStore.data.first()[HideVideoKey] ?: false
-            
-            var filteredItems = result.items.filter { item ->
-                item.id !in suggestedSongIds.value
-            }
-            
-            if (hideExplicit) {
-                filteredItems = filteredItems.filterExplicit()
-            }
-            
-            if (hideVideos) {
-                filteredItems = filteredItems.filterVideo()
-            }
+            val filteredItems = filterSuggestionItems(result.items)
             
             // If we got no new items after filtering, try to load more if available
             if (filteredItems.isEmpty() && (result.continuation != null || currentIndex < queries.size - 1)) {
@@ -381,21 +372,7 @@ constructor(
             val result = YouTube.searchContinuation(continuation).getOrNull()
                 ?: return
             
-            // Filter out songs already in playlist and apply user preferences
-            val hideExplicit = context.dataStore.data.first()[HideExplicitKey] ?: false
-            val hideVideos = context.dataStore.data.first()[HideVideoKey] ?: false
-            
-            var filteredItems = result.items.filter { item ->
-                item.id !in suggestedSongIds.value
-            }
-            
-            if (hideExplicit) {
-                filteredItems = filteredItems.filterExplicit()
-            }
-            
-            if (hideVideos) {
-                filteredItems = filteredItems.filterVideo()
-            }
+            val filteredItems = filterSuggestionItems(result.items)
             
             // If we got no new items after filtering, try to move to next query if available
             if (filteredItems.isEmpty()) {
@@ -435,8 +412,21 @@ constructor(
                 hasMore = result.continuation != null || currentSuggestions.currentQueryIndex < suggestionQueries.value.size - 1
             )
             
-        } catch (e: Exception) {
-            reportException(e)
+    private suspend fun filterSuggestionItems(items: List<YTItem>): List<YTItem> {
+        val hideExplicit = context.dataStore.data.first()[HideExplicitKey] ?: false
+        val hideVideos = context.dataStore.data.first()[HideVideoKey] ?: false
+
+        var filteredItems = items.filter { item ->
+            item.id !in suggestedSongIds.value
         }
+
+        if (hideExplicit) {
+            filteredItems = filteredItems.filterExplicit()
+        }
+
+        if (hideVideos) {
+            filteredItems = filteredItems.filterVideo()
+        }
+        return filteredItems
     }
 }
