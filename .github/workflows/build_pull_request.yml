@@ -134,7 +134,7 @@ jobs:
           issue-number: ${{ steps.extract-pr.outputs.pr-number }}
           edit-mode: replace
           body: |
-            # <img src="https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/icon.png" width="50" height="50" alt="ArchiveTune Logo" style="border-radius: 22%"> ArchiveTune Test Build
+            # <img src="https://raw.githubusercontent.com/koiverse/ArchiveTune/main/fastlane/metadata/android/en-US/images/icon.png" width="50" height="50" alt="ArchiveTune Logo" style="border-radius: 22%"> ArchiveTune Test Build
             
             ${{ steps.extract-pr.outputs.manual-trigger == 'true' && '🔧 **Build triggered manually!**' || '🚀 **Build triggered by new commit!**' }}
             
@@ -154,7 +154,7 @@ jobs:
           comment-id: ${{ steps.initial-comment.outputs.comment-id }}
           edit-mode: replace
           body: |
-            # <img src="https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/icon.png" width="50" height="50" alt="ArchiveTune Logo" style="border-radius: 22%"> ArchiveTune Test Build
+            # <img src="https://raw.githubusercontent.com/koiverse/ArchiveTune/main/fastlane/metadata/android/en-US/images/icon.png" width="50" height="50" alt="ArchiveTune Logo" style="border-radius: 22%"> ArchiveTune Test Build
             
             ${{ steps.extract-pr.outputs.manual-trigger == 'true' && '🔧 **Build triggered manually!**' || '🚀 **Build triggered by new commit!**' }}
             
@@ -182,7 +182,7 @@ jobs:
           comment-id: ${{ steps.initial-comment.outputs.comment-id }}
           edit-mode: replace
           body: |
-            # <img src="https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/icon.png" width="50" height="50" alt="ArchiveTune Logo" style="border-radius: 22%"> ArchiveTune Test Build
+            # <img src="https://raw.githubusercontent.com/koiverse/ArchiveTune/main/fastlane/metadata/android/en-US/images/icon.png" width="50" height="50" alt="ArchiveTune Logo" style="border-radius: 22%"> ArchiveTune Test Build
             
             ${{ steps.extract-pr.outputs.manual-trigger == 'true' && '🔧 **Build triggered manually!**' || '🚀 **Build triggered by new commit!**' }}
             
@@ -224,7 +224,7 @@ jobs:
           comment-id: ${{ steps.initial-comment.outputs.comment-id }}
           edit-mode: replace
           body: |
-            # <img src="https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/icon.png" width="50" height="50" alt="ArchiveTune Logo" style="border-radius: 22%"> ArchiveTune Test Build
+            # <img src="https://raw.githubusercontent.com/koiverse/ArchiveTune/main/fastlane/metadata/android/en-US/images/icon.png" width="50" height="50" alt="ArchiveTune Logo" style="border-radius: 22%"> ArchiveTune Test Build
             
             ${{ steps.extract-pr.outputs.manual-trigger == 'true' && '🔧 **Build triggered manually!**' || '🚀 **Build triggered by new commit!**' }}
             
@@ -265,7 +265,7 @@ jobs:
           comment-id: ${{ steps.initial-comment.outputs.comment-id }}
           edit-mode: replace
           body: |
-            # <img src="https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/icon.png" width="50" height="50" alt="ArchiveTune Logo" style="border-radius: 22%"> ArchiveTune Test Build
+            # <img src="https://raw.githubusercontent.com/koiverse/ArchiveTune/main/fastlane/metadata/android/en-US/images/icon.png" width="50" height="50" alt="ArchiveTune Logo" style="border-radius: 22%"> ArchiveTune Test Build
             
             ${{ steps.extract-pr.outputs.manual-trigger == 'true' && '🔧 **Build triggered manually!**' || '🚀 **Build triggered by new commit!**' }}
             
@@ -367,7 +367,8 @@ jobs:
           comment-id: ${{ steps.initial-comment.outputs.comment-id }}
           edit-mode: replace
           body: |
-            # <img src="https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/icon.png" width="50" height="50" alt="ArchiveTune Logo" style="border-radius: 22%"> ArchiveTune Test Build
+            # <img src="https://raw.githubusercontent.com/koiverse/ArchiveTune/main/fastlane/metadata/android/en-US/images/icon.png" width="50" height="50" alt="ArchiveTune Logo" style="border-radius: 22%"> ArchiveTune Test Build
+            ## Build test results are available
             
             ${{ steps.extract-pr.outputs.manual-trigger == 'true' && '🔧 **Build triggered manually!**' || '🚀 **Build triggered by new commit!**' }}
             
@@ -396,7 +397,8 @@ jobs:
           comment-id: ${{ steps.initial-comment.outputs.comment-id }}
           edit-mode: replace
           body: |
-            # <img src="https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/icon.png" width="50" height="50" alt="ArchiveTune Logo" style="border-radius: 22%"> ArchiveTune Test Build
+            # <img src="https://raw.githubusercontent.com/koiverse/ArchiveTune/main/fastlane/metadata/android/en-US/images/icon.png" width="50" height="50" alt="ArchiveTune Logo" style="border-radius: 22%"> ArchiveTune Test Build
+            ## Build test results are available
             
             ${{ steps.extract-pr.outputs.manual-trigger == 'true' && '🔧 **Build triggered manually!**' || '🚀 **Build triggered by new commit!**' }}
             
@@ -491,7 +493,8 @@ jobs:
           comment-id: ${{ steps.initial-comment.outputs.comment-id }}
           edit-mode: replace
           body: |
-            # <img src="https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/icon.png" width="50" height="50" alt="ArchiveTune Logo" style="border-radius: 22%"> ArchiveTune Test Build
+            # <img src="https://raw.githubusercontent.com/koiverse/ArchiveTune/main/fastlane/metadata/android/en-US/images/icon.png" width="50" height="50" alt="ArchiveTune Logo" style="border-radius: 22%"> ArchiveTune Test Build
+            ## Build test results are available
             
             ${{ steps.extract-pr.outputs.manual-trigger == 'true' && '🔧 **Build triggered manually!**' || '🚀 **Build triggered by new commit!**' }}
             
@@ -523,14 +526,26 @@ jobs:
             ---
             ${{ steps.extract-pr.outputs.manual-trigger == 'true' && '*🔧 This build was manually triggered via workflow dispatch.*' || '*✅ This build was automatically triggered by new commit.*' }}
 
-      - name: Handle comment error and create new comment if needed
-        if: always()
+      - name: Check if we need to create backup comment
+        id: check-backup
+        run: |
+          # Check if we have a valid comment-id from initial step
+          if [ -n "${{ steps.initial-comment.outputs.comment-id }}" ] && [ "${{ steps.initial-comment.outputs.comment-id }}" != "" ]; then
+            echo "We have a valid comment ID: ${{ steps.initial-comment.outputs.comment-id }}"
+            echo "need-backup-comment=false" >> $GITHUB_OUTPUT
+          else
+            echo "No valid comment ID found, need backup comment"
+            echo "need-backup-comment=true" >> $GITHUB_OUTPUT
+          fi
+          
+      - name: Create backup comment only if needed
+        if: steps.check-backup.outputs.need-backup-comment == 'true'
         uses: peter-evans/create-or-update-comment@v5
         continue-on-error: true
         with:
           issue-number: ${{ steps.extract-pr.outputs.pr-number }}
           body: |
-            # <img src="https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/icon.png" width="50" height="50" alt="ArchiveTune Logo" style="border-radius: 22%"> ArchiveTune Test Build
+            # <img src="https://raw.githubusercontent.com/koiverse/ArchiveTune/main/fastlane/metadata/android/en-US/images/icon.png" width="50" height="50" alt="ArchiveTune Logo" style="border-radius: 22%"> ArchiveTune Build Result
             
             ⚠️ **Build status update**
             
@@ -540,12 +555,12 @@ jobs:
             **Commit SHA:** [<code>${{ steps.extract-pr.outputs.short-sha }}</code>](${{ steps.extract-pr.outputs.commit-url }})
             **Workflow:** ${{ steps.process-result.outputs.is-success == 'true' && '✅' || '❌' }} [Build Pull Request](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
             
-            *Note: Previous comment may have been deleted or inaccessible. This is a new comment for the current build.*
+            *Note: Original comment could not be created or updated.*
             
             ${{ steps.process-result.outputs.is-success == 'true' && '🎉 **Build successful!** APK is ready for download.' || '❌ **Build failed!** Check the workflow logs for details.' }}
             
             ---
-            *This comment was created because the original comment could not be updated.*
+            *This is a backup comment created because the original comment could not be properly managed.*
 
       - name: Fail job if build failed
         if: steps.process-result.outputs.is-success == 'false'
