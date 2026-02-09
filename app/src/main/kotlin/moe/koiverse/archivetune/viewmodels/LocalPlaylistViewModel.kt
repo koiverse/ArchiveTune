@@ -301,7 +301,10 @@ constructor(
                 items = filteredItems,
                 continuation = result.continuation
             )
-            
+
+            // Update suggested song IDs to avoid duplicates
+            suggestedSongIds.value = suggestedSongIds.value + filteredItems.map { it.id }.toSet()
+
             // Update suggestions state
             val currentSuggestions = _playlistSuggestions.value
             val newSuggestions = if (currentSuggestions == null) {
@@ -348,6 +351,9 @@ constructor(
                 items = filteredItems,
                 continuation = result.continuation
             )
+            
+            // Update suggested song IDs to avoid duplicates
+            suggestedSongIds.value = suggestedSongIds.value + filteredItems.map { it.id }.toSet()
             
             // Update suggestions state
             val currentSuggestions = _playlistSuggestions.value ?: return

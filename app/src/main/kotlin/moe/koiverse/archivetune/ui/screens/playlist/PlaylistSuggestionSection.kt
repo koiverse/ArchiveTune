@@ -117,8 +117,8 @@ fun PlaylistSuggestionsSection(
                                                     val songItem = song as? SongItem
                                                     val browseId = viewModel.playlist.value?.playlist?.browseId
                                                     
-                                                    if (songItem == null || browseId == null) {
-                                                        Toast.makeText(context, R.string.error, Toast.LENGTH_SHORT).show()
+                                                    if (songItem == null) {
+                                                        Toast.makeText(context, R.string.error_unknown, Toast.LENGTH_SHORT).show()
                                                         return@launch
                                                     }
                                                     
@@ -136,11 +136,11 @@ fun PlaylistSuggestionsSection(
                                                         }
                                                         Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
                                                     } else {
-                                                        Toast.makeText(context, R.string.error, Toast.LENGTH_SHORT).show()
+                                                        Toast.makeText(context, R.string.error_unknown, Toast.LENGTH_SHORT).show()
                                                     }
                                                 } catch (e: Exception) {
                                                     Log.e("PlaylistSuggestions", "Error adding song to playlist", e)
-                                                    Toast.makeText(context, R.string.error, Toast.LENGTH_SHORT).show()
+                                                    Toast.makeText(context, R.string.error_unknown, Toast.LENGTH_SHORT).show()
                                                 }
                                             }
                                         },
