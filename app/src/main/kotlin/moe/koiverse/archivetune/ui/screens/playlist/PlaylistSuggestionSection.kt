@@ -26,7 +26,6 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -56,8 +55,8 @@ fun PlaylistSuggestionsSection(
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val playerConnection = LocalPlayerConnection.current
-    val isPlaying by playerConnection?.isPlaying?.collectAsState() ?: mutableStateOf(false)
-    val mediaMetadata by playerConnection?.mediaMetadata?.collectAsState() ?: mutableStateOf(null)
+    val isPlaying by playerConnection?.isPlaying?.collectAsState() ?: androidx.compose.runtime.mutableStateOf(false)
+    val mediaMetadata by playerConnection?.mediaMetadata?.collectAsState() ?: androidx.compose.runtime.mutableStateOf(null)
     
     val playlistSuggestions by viewModel.playlistSuggestions.collectAsState()
     val isLoading by viewModel.isLoadingSuggestions.collectAsState()
@@ -69,50 +68,56 @@ fun PlaylistSuggestionsSection(
             ) {
                 // Header with refresh button
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     NavigationTitle(
                         title = stringResource(R.string.you_might_like),
                         subtitle = if (suggestions.totalQueries > 1) {
-                            "${suggestions.currentQueryIndex + 1}/${suggestions.totalQueries}"
+                            "${suggestions.currentQueryIndex + 1} / ${suggestions.totalQueries}"
                         } else null,
                         modifier = Modifier.weight(1f)
                     )
                     
-                    IconButton(
-                        onClick = { viewModel.resetAndLoadPlaylistSuggestions() },
-                        onLongClick = {}
-                    ) {
-                        Icon(
-                            painter = painterResource(R.drawable.sync),
-                            contentDescription = stringResource(R.string.refresh_suggestions)
+                    if (isLoading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.padding(12.dp).size(20.dp),
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.primary
                         )
+                    } else {
+                        IconButton(
+                            onClick = { viewModel.resetAndLoadPlaylistSuggestions() },
+                            onLongClick = {}
+                        ) {
+                            Icon(
+                                painter = painterResource(R.drawable.sync),
+                                contentDescription = stringResource(R.string.refresh_suggestions)
+                            )
+                        }
                     }
                 }
                 
                 Spacer(modifier = Modifier.height(8.dp))
                 
                 // Suggestions List (Vertical)
-                suggestions.items.forEach { song ->
+                suggestions.items.forEach { item ->
                     YouTubeListItem(
-                        item = song,
-                        isActive = song.id == mediaMetadata?.id,
+                        item = item,
+                        isActive = item.id == mediaMetadata?.id,
                         isPlaying = isPlaying == true,
                         trailingContent = {
                             IconButton(
                                 onClick = { 
-                                    // Handle add to playlist
                                     coroutineScope.launch {
                                         try {
-                                            val songItem = song as? SongItem
-                                            val browseId = viewModel.playlist.value?.playlist?.browseId
-                                            
+                                            val songItem = item as? SongItem
                                             if (songItem == null) {
                                                 Toast.makeText(context, R.string.error_unknown, Toast.LENGTH_SHORT).show()
                                                 return@launch
                                             }
                                             
+                                            val browseId = viewModel.playlist.value?.playlist?.browseId
                                             val success = viewModel.addSongToPlaylist(
                                                 song = songItem,
                                                 browseId = browseId
@@ -148,38 +153,28 @@ fun PlaylistSuggestionsSection(
                             .clip(MaterialTheme.shapes.medium)
                             .clickable {
                                 if (playerConnection == null) return@clickable
-                                if (song.id == mediaMetadata?.id) {
+                                if (item.id == mediaMetadata?.id) {
                                     playerConnection.player.togglePlayPause()
                                 } else {
-                                    val songItems = suggestions.items.filterIsInstance<SongItem>()
-                                    val startIndex = songItems.indexOfFirst { it.id == song.id }
-                                    if (startIndex != -1) {
-                                        playerConnection.playQueue(
-                                            ListQueue(
-                                                title = context.getString(R.string.you_might_like),
-                                                items = songItems.map { it.toMediaItem() },
-                                                startIndex = startIndex
+                                    if (item is SongItem) {
+                                        val songItems = suggestions.items.filterIsInstance<SongItem>()
+                                        val startIndex = songItems.indexOfFirst { it.id == item.id }
+                                        if (startIndex != -1) {
+                                            playerConnection.playQueue(
+                                                ListQueue(
+                                                    title = context.getString(R.string.you_might_like),
+                                                    items = songItems.map { it.toMediaItem() },
+                                                    startIndex = startIndex
+                                                )
                                             )
-                                        )
+                                        }
                                     }
                                 }
                             }
                     )
                 }
                 
-                if (isLoading) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 16.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(24.dp),
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    }
-                } else if (suggestions.hasMore) {
+                if (suggestions.hasMore && !isLoading) {
                     TextButton(
                         onClick = { viewModel.loadMoreSuggestions() },
                         modifier = Modifier

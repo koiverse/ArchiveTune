@@ -30,6 +30,7 @@ import moe.koiverse.archivetune.constants.PlaylistSongSortType
 import moe.koiverse.archivetune.constants.PlaylistSongSortTypeKey
 import moe.koiverse.archivetune.constants.HideExplicitKey
 import moe.koiverse.archivetune.constants.HideVideoKey
+import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.db.MusicDatabase
 import moe.koiverse.archivetune.db.entities.PlaylistSong
 import moe.koiverse.archivetune.extensions.reversed
@@ -261,6 +262,18 @@ constructor(
             }
             
             database.withTransaction {
+                // Ensure playlist exists in local database (it should, but just in case)
+                val p = database.getPlaylistByIdBlocking(playlistId)
+                if (p == null) {
+                    // If not found, we can't add to it.
+                    // This might happen if it's a special playlist that hasn't been created yet.
+                    if (playlistId == moe.koiverse.archivetune.db.entities.PlaylistEntity.LIKED_PLAYLIST_ID) {
+                        insert(moe.koiverse.archivetune.db.entities.PlaylistEntity(id = playlistId, name = context.getString(R.string.liked_songs), isEditable = false, bookmarkedAt = java.time.LocalDateTime.now()))
+                    } else {
+                        return@withTransaction
+                    }
+                }
+
                 // First, ensure the song and its artists are in the database
                 insert(song.toMediaMetadata())
                 
