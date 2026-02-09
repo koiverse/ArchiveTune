@@ -537,10 +537,15 @@ fun EditPlaylistDialog(
         },
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Box {
+            BoxWithConstraints(modifier = Modifier.size(140.dp)) {
+                val thumbnailSize = maxWidth
+                val badgeSize = (thumbnailSize * 0.34f).coerceIn(36.dp, 48.dp)
+                val badgePadding = (thumbnailSize * 0.06f).coerceIn(4.dp, 10.dp)
+                val iconSize = (badgeSize * 0.46f).coerceIn(18.dp, 24.dp)
+
                 PlaylistThumbnail(
                     thumbnails = previewThumbnails,
-                    size = 140.dp,
+                    size = thumbnailSize,
                     placeHolder = {
                         Box(
                             contentAlignment = Alignment.Center,
@@ -550,7 +555,7 @@ fun EditPlaylistDialog(
                                 painter = painterResource(R.drawable.queue_music),
                                 contentDescription = null,
                                 tint = LocalContentColor.current.copy(alpha = 0.8f),
-                                modifier = Modifier.size(64.dp),
+                                modifier = Modifier.size(thumbnailSize / 2),
                             )
                         }
                     },
@@ -561,17 +566,18 @@ fun EditPlaylistDialog(
                     onClick = { pickCoverLauncher.launch(arrayOf("image/*")) },
                     shape = CircleShape,
                     color = MaterialTheme.colorScheme.surfaceVariant,
+                    shadowElevation = 6.dp,
                     modifier = Modifier
                         .align(Alignment.TopEnd)
-                        .padding(8.dp)
-                        .size(48.dp),
+                        .padding(badgePadding)
+                        .size(badgeSize),
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
                             painter = painterResource(R.drawable.edit),
                             contentDescription = stringResource(R.string.change_playlist_cover),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(22.dp),
+                            modifier = Modifier.size(iconSize),
                         )
                     }
                 }
@@ -585,7 +591,6 @@ fun EditPlaylistDialog(
                         releasePersistablePermissionIfPossible(thumbnailUrl)
                         thumbnailUrl = null
                     },
-                    modifier = Modifier.fillMaxWidth(),
                 ) {
                     Text(text = stringResource(R.string.remove_playlist_cover))
                 }
