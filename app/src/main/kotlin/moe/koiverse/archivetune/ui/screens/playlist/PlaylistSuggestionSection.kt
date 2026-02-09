@@ -39,6 +39,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.compose.hiltViewModel
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.platform.LocalContext
+import android.widget.Toast
 import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.innertube.models.SongItem
 import moe.koiverse.archivetune.models.PlaylistSuggestion
@@ -46,12 +47,16 @@ import moe.koiverse.archivetune.ui.component.IconButton
 import moe.koiverse.archivetune.ui.component.NavigationTitle
 import moe.koiverse.archivetune.ui.component.SongListItem
 import moe.koiverse.archivetune.viewmodels.LocalPlaylistViewModel
+import kotlinx.coroutines.launch
+import androidx.compose.runtime.rememberCoroutineScope
 
 @Composable
 fun PlaylistSuggestionsSection(
     modifier: Modifier = Modifier,
     viewModel: LocalPlaylistViewModel = hiltViewModel()
 ) {
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
     val playlistSuggestions by viewModel.playlistSuggestions.collectAsState()
     val isLoading by viewModel.isLoadingSuggestions.collectAsState()
     
@@ -106,10 +111,20 @@ fun PlaylistSuggestionsSection(
                                     IconButton(
                                         onClick = { 
                                             // Handle add to playlist
-                                            viewModel.addSongToPlaylist(
-                                                song = song,
-                                                browseId = viewModel.playlist.value?.playlist?.browseId
-                                            )
+                                            coroutineScope.launch {
+                                                viewModel.addSongToPlaylist(
+                                                    song = song,
+                                                    browseId = viewModel.playlist.value?.playlist?.browseId
+                                                )
+                                                
+                                                val playlistName = viewModel.playlist.value?.playlist?.name
+                                                val message = if (playlistName != null) {
+                                                    context.getString(R.string.added_to_playlist, playlistName)
+                                                } else {
+                                                    context.getString(R.string.add_to_playlist)
+                                                }
+                                                Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+                                            }
                                         },
                                         onLongClick = {}
                                     ) {
