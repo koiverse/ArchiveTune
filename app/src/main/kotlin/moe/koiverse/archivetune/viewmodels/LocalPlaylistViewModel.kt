@@ -11,24 +11,38 @@ import android.content.Context
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import moe.koiverse.archivetune.constants.PlaylistSongSortDescendingKey
-import moe.koiverse.archivetune.constants.PlaylistSongSortType
-import moe.koiverse.archivetune.constants.PlaylistSongSortTypeKey
-import moe.koiverse.archivetune.db.MusicDatabase
-import moe.koiverse.archivetune.db.entities.PlaylistSong
-import moe.koiverse.archivetune.extensions.reversed
-import moe.koiverse.archivetune.extensions.toEnum
-import moe.koiverse.archivetune.utils.dataStore
-import dagger.hilt.android.lifecycle.HiltViewModel
-import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.Dispatchers
+import moe.koiverse.archivetune.constants.PlaylistSongSortDescendingKey
+import moe.koiverse.archivetune.constants.PlaylistSongSortType
+import moe.koiverse.archivetune.constants.PlaylistSongSortTypeKey
+import moe.koiverse.archivetune.constants.HideExplicitKey
+import moe.koiverse.archivetune.constants.HideVideoKey
+import moe.koiverse.archivetune.db.MusicDatabase
+import moe.koiverse.archivetune.db.entities.PlaylistSong
+import moe.koiverse.archivetune.extensions.reversed
+import moe.koiverse.archivetune.extensions.toEnum
+import moe.koiverse.archivetune.innertube.YouTube
+import moe.koiverse.archivetune.innertube.models.filterExplicit
+import moe.koiverse.archivetune.innertube.models.filterVideo
+import moe.koiverse.archivetune.models.PlaylistSuggestion
+import moe.koiverse.archivetune.models.PlaylistSuggestionPage
+import moe.koiverse.archivetune.models.PlaylistSuggestionQuery
+import moe.koiverse.archivetune.utils.PlaylistSuggestionQueryBuilder
+import moe.koiverse.archivetune.utils.dataStore
+import moe.koiverse.archivetune.utils.reportException
+import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import java.text.Collator
 import java.util.Locale
 import javax.inject.Inject
@@ -75,6 +89,21 @@ constructor(
                 PlaylistSongSortType.PLAY_TIME -> songs.sortedBy { it.song.song.totalPlayTime }
             }.reversed(sortDescending && sortType != PlaylistSongSortType.CUSTOM)
         }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+    
+    // Playlist Suggestions State
+    private val _playlistSuggestions = MutableStateFlow<PlaylistSuggestion?>(null)
+    val playlistSuggestions = _playlistSuggestions.asStateFlow()
+    
+    private val _isLoadingSuggestions = MutableStateFlow(false)
+    val isLoadingSuggestions = _isLoadingSuggestions.asStateFlow()
+    
+    private val suggestionQueries = MutableStateFlow<List<PlaylistSuggestionQuery>>(emptyList())
+    private val currentSuggestionQueryIndex = MutableStateFlow(0)
+    private val suggestionsCacheTimestamp = MutableStateFlow(0L)
+    private val suggestedSongIds = MutableStateFlow<Set<String>>(emptySet())
+    
+    // Cache for current suggestion page
+    private var currentSuggestionPage: PlaylistSuggestionPage? = null
 
     init {
         viewModelScope.launch {
@@ -87,6 +116,227 @@ constructor(
                     }
                 }
             }
+        }
+        
+        // Auto-load suggestions when playlist or songs change
+        viewModelScope.launch {
+            combine(playlist, playlistSongs) { playlist, songs ->
+                Pair(playlist, songs)
+            }.collect { (playlist, songs) ->
+                playlist?.let { 
+                    loadPlaylistSuggestions()
+                }
+            }
+        }
+    }
+    
+    // Playlist Suggestions Functions
+    
+    fun loadPlaylistSuggestions() {
+        viewModelScope.launch {
+            val currentPlaylist = playlist.first() ?: return@launch
+            val currentSongs = playlistSongs.first()
+            
+            val shouldRefresh = PlaylistSuggestionQueryBuilder.shouldRefreshSuggestions(
+                suggestionsCacheTimestamp.value
+            )
+            
+            if (!shouldRefresh && _playlistSuggestions.value != null) {
+                return@launch // Use cached suggestions
+            }
+            
+            _isLoadingSuggestions.value = true
+            
+            try {
+                // Build suggestion queries
+                val queries = PlaylistSuggestionQueryBuilder.buildSuggestionQueries(
+                    playlistName = currentPlaylist.playlist.name,
+                    playlistSongs = currentSongs
+                )
+                suggestionQueries.value = queries
+                currentSuggestionQueryIndex.value = 0
+                suggestedSongIds.value = currentSongs.map { it.song.id }.toSet()
+                suggestionsCacheTimestamp.value = System.currentTimeMillis()
+                
+                // Load first page of suggestions
+                loadNextSuggestionPage()
+                
+            } catch (e: Exception) {
+                reportException(e)
+                _playlistSuggestions.value = PlaylistSuggestion(
+                    items = emptyList(),
+                    continuation = null,
+                    currentQueryIndex = 0,
+                    totalQueries = 0,
+                    query = ""
+                )
+            } finally {
+                _isLoadingSuggestions.value = false
+            }
+        }
+    }
+    
+    fun loadMoreSuggestions() {
+        viewModelScope.launch {
+            if (_isLoadingSuggestions.value) return@launch
+            
+            val currentSuggestions = _playlistSuggestions.value ?: return@launch
+            val queries = suggestionQueries.value
+            
+            // If we have a continuation, load more from current query
+            currentSuggestionPage?.continuation?.let { continuation ->
+                loadMoreFromContinuation(continuation)
+                return@launch
+            }
+            
+            // Otherwise, move to next query
+            val nextIndex = currentSuggestionQueryIndex.value + 1
+            if (nextIndex < queries.size) {
+                currentSuggestionQueryIndex.value = nextIndex
+                loadNextSuggestionPage()
+            }
+        }
+    }
+    
+    fun resetAndLoadPlaylistSuggestions() {
+        viewModelScope.launch {
+            _playlistSuggestions.value = null
+            currentSuggestionQueryIndex.value = 0
+            suggestedSongIds.value = playlistSongs.first().map { it.song.id }.toSet()
+            suggestionsCacheTimestamp.value = 0L
+            currentSuggestionPage = null
+            loadPlaylistSuggestions()
+        }
+    }
+    
+    suspend fun addSongToPlaylist(song: moe.koiverse.archivetune.innertube.models.SongItem, browseId: String?) {
+        val currentPlaylist = playlist.first() ?: return
+        
+        try {
+            withContext(Dispatchers.IO) {
+                if (browseId != null) {
+                    // Add to YouTube playlist
+                    YouTube.addToPlaylist(browseId, song.id)
+                } else {
+                    // Add to local playlist
+                    database.transaction {
+                        val position = playlistSongs.first().size
+                        insert(
+                            moe.koiverse.archivetune.db.entities.PlaylistSongMap(
+                                songId = song.id,
+                                playlistId = playlistId,
+                                position = position,
+                                setVideoId = null
+                            )
+                        )
+                    }
+                }
+            }
+            
+            // Update suggested song IDs to avoid duplicates
+            suggestedSongIds.value = suggestedSongIds.value + song.id
+            
+            // Auto-refresh suggestions after successful add
+            viewModelScope.launch {
+                kotlinx.coroutines.delay(1000) // Small delay to let the add complete
+                loadMoreSuggestions()
+            }
+            
+        } catch (e: Exception) {
+            reportException(e)
+        }
+    }
+    
+    private suspend fun loadNextSuggestionPage() {
+        val queries = suggestionQueries.value
+        val currentIndex = currentSuggestionQueryIndex.value
+        
+        if (currentIndex >= queries.size) return
+        
+        val currentQuery = queries[currentIndex]
+        
+        try {
+            val searchFilter = YouTube.SearchFilter.FILTER_SONG
+            
+            val result = YouTube.search(currentQuery.query, searchFilter).getOrNull()
+                ?: return
+            
+            // Filter out songs already in playlist and apply user preferences
+            val hideExplicit = context.dataStore.data.first()[HideExplicitKey] ?: false
+            val hideVideos = context.dataStore.data.first()[HideVideoKey] ?: false
+            
+            var filteredItems = result.items.filter { item ->
+                item !in suggestedSongIds.value
+            }
+            
+            if (hideExplicit) {
+                filteredItems = filteredItems.filterExplicit()
+            }
+            
+            if (hideVideos) {
+                filteredItems = filteredItems.filterVideo()
+            }
+            
+            currentSuggestionPage = PlaylistSuggestionPage(
+                items = filteredItems,
+                continuation = result.continuation
+            )
+            
+            // Update suggestions state
+            val currentSuggestions = _playlistSuggestions.value
+            val newSuggestions = if (currentSuggestions == null) {
+                filteredItems
+            } else {
+                currentSuggestions.items + filteredItems
+            }
+            
+            _playlistSuggestions.value = PlaylistSuggestion(
+                items = newSuggestions,
+                continuation = result.continuation,
+                currentQueryIndex = currentIndex,
+                totalQueries = queries.size,
+                query = currentQuery.query
+            )
+            
+        } catch (e: Exception) {
+            reportException(e)
+        }
+    }
+    
+    private suspend fun loadMoreFromContinuation(continuation: String) {
+        try {
+            val result = YouTube.searchContinuation(continuation).getOrNull()
+                ?: return
+            
+            // Filter out songs already in playlist and apply user preferences
+            val hideExplicit = context.dataStore.data.first()[HideExplicitKey] ?: false
+            val hideVideos = context.dataStore.data.first()[HideVideoKey] ?: false
+            
+            var filteredItems = result.items.filter { item ->
+                item !in suggestedSongIds.value
+            }
+            
+            if (hideExplicit) {
+                filteredItems = filteredItems.filterExplicit()
+            }
+            
+            if (hideVideos) {
+                filteredItems = filteredItems.filterVideo()
+            }
+            
+            currentSuggestionPage = PlaylistSuggestionPage(
+                items = filteredItems,
+                continuation = result.continuation
+            )
+            
+            // Update suggestions state
+            val currentSuggestions = _playlistSuggestions.value ?: return
+            _playlistSuggestions.value = currentSuggestions.copy(
+                items = currentSuggestions.items + filteredItems
+            )
+            
+        } catch (e: Exception) {
+            reportException(e)
         }
     }
 }
