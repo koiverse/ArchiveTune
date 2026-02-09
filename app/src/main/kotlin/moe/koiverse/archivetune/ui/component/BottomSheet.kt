@@ -55,6 +55,7 @@ import moe.koiverse.archivetune.constants.BottomSheetAnimationSpec
 import moe.koiverse.archivetune.constants.BottomSheetSoftAnimationSpec
 import moe.koiverse.archivetune.utils.rememberPreference
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.launch
 
 /**
@@ -157,14 +158,14 @@ class BottomSheetState(
 
     fun collapse(animationSpec: AnimationSpec<Dp>) {
         onAnchorChanged(COLLAPSED_ANCHOR)
-        coroutineScope.launch {
+        coroutineScope.launch(start = CoroutineStart.UNDISPATCHED) {
             animatable.animateTo(collapsedBound, animationSpec)
         }
     }
 
     fun expand(animationSpec: AnimationSpec<Dp>) {
         onAnchorChanged(EXPANDED_ANCHOR)
-        coroutineScope.launch {
+        coroutineScope.launch(start = CoroutineStart.UNDISPATCHED) {
             animatable.animateTo(animatable.upperBound!!, animationSpec)
         }
     }
@@ -187,13 +188,13 @@ class BottomSheetState(
 
     fun dismiss() {
         onAnchorChanged(DISMISSED_ANCHOR)
-        coroutineScope.launch {
+        coroutineScope.launch(start = CoroutineStart.UNDISPATCHED) {
             animatable.animateTo(animatable.lowerBound!!)
         }
     }
 
     fun snapTo(value: Dp) {
-        coroutineScope.launch {
+        coroutineScope.launch(start = CoroutineStart.UNDISPATCHED) {
             animatable.snapTo(value)
         }
     }
@@ -324,14 +325,14 @@ fun rememberBottomSheetState(
             }
 
         animatable.updateBounds(dismissedBound.coerceAtMost(expandedBound), expandedBound)
-        coroutineScope.launch {
+        coroutineScope.launch(start = CoroutineStart.UNDISPATCHED) {
             animatable.animateTo(initialValue, BottomSheetAnimationSpec)
         }
 
         BottomSheetState(
             draggableState =
             DraggableState { delta ->
-                coroutineScope.launch {
+                coroutineScope.launch(start = CoroutineStart.UNDISPATCHED) {
                     animatable.snapTo(animatable.value - with(density) { delta.toDp() })
                 }
             },

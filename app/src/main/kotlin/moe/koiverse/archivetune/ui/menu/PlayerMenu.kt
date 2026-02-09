@@ -495,9 +495,9 @@ fun PlayerMenu(
                                 modifier =
                                     Modifier.clickable {
                                         if (splitArtists.size == 1 && splitArtists[0].originalArtist != null) {
-                                            navController.navigate("artist/${splitArtists[0].originalArtist!!.id}")
-                                            playerBottomSheetState.collapseSoft()
                                             onDismiss()
+                                            playerBottomSheetState.snapTo(playerBottomSheetState.collapsedBound)
+                                            navController.navigate("artist/${splitArtists[0].originalArtist!!.id}")
                                         } else {
                                             showSelectArtistDialog = true
                                         }
@@ -524,9 +524,9 @@ fun PlayerMenu(
                                 },
                                 modifier =
                                     Modifier.clickable {
-                                        navController.navigate("album/${mediaMetadata.album.id}")
-                                        playerBottomSheetState.collapseSoft()
                                         onDismiss()
+                                        playerBottomSheetState.snapTo(playerBottomSheetState.collapsedBound)
+                                        navController.navigate("album/${mediaMetadata.album.id}")
                                     },
                                 colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                             )
