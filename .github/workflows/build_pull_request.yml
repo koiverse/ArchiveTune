@@ -396,7 +396,7 @@ jobs:
           comment-id: ${{ steps.initial-comment.outputs.comment-id }}
           edit-mode: replace
           body: |
-            # <img src="https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/icon.png" width="50" height="50" alt="ArchiveTune Logo" style="border-radius: 22%"> ArchiveTune Build Result
+            # <img src="https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/icon.png" width="50" height="50" alt="ArchiveTune Logo" style="border-radius: 22%"> ArchiveTune Test Build
             
             ${{ steps.extract-pr.outputs.manual-trigger == 'true' && '🔧 **Build triggered manually!**' || '🚀 **Build triggered by new commit!**' }}
             
@@ -530,7 +530,7 @@ jobs:
         with:
           issue-number: ${{ steps.extract-pr.outputs.pr-number }}
           body: |
-            # <img src="https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/icon.png" width="50" height="50" alt="ArchiveTune Logo" style="border-radius: 22%"> ArchiveTune Build Result
+            # <img src="https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/icon.png" width="50" height="50" alt="ArchiveTune Logo" style="border-radius: 22%"> ArchiveTune Test Build
             
             ⚠️ **Build status update**
             
