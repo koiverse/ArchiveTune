@@ -65,6 +65,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -93,6 +94,7 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.ClipOp
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -130,6 +132,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.core.graphics.drawable.toBitmap
 import androidx.lifecycle.Lifecycle
 import androidx.activity.compose.BackHandler
@@ -190,6 +193,37 @@ import kotlin.time.Duration.Companion.seconds
 private val AppleMusicEasing = CubicBezierEasing(0.25f, 0.1f, 0.25f, 1.0f)
 private val SmoothDecelerateEasing = CubicBezierEasing(0.0f, 0.0f, 0.2f, 1.0f)
 
+private fun isRtlText(text: String): Boolean {
+    for (ch in text) {
+        when (Character.getDirectionality(ch)) {
+            Character.DIRECTIONALITY_RIGHT_TO_LEFT,
+            Character.DIRECTIONALITY_RIGHT_TO_LEFT_ARABIC,
+            Character.DIRECTIONALITY_RIGHT_TO_LEFT_EMBEDDING,
+            Character.DIRECTIONALITY_RIGHT_TO_LEFT_OVERRIDE -> return true
+
+            Character.DIRECTIONALITY_LEFT_TO_RIGHT,
+            Character.DIRECTIONALITY_LEFT_TO_RIGHT_EMBEDDING,
+            Character.DIRECTIONALITY_LEFT_TO_RIGHT_OVERRIDE -> return false
+        }
+    }
+    return false
+}
+
+private fun rtlAwareHorizontalGradient(
+    isRtl: Boolean,
+    vararg colorStops: Pair<Float, Color>
+): Brush {
+    val stops =
+        if (isRtl) {
+            colorStops
+                .map { (f, c) -> (1f - f).coerceIn(0f, 1f) to c }
+                .sortedBy { it.first }
+        } else {
+            colorStops.toList()
+        }
+    return Brush.horizontalGradient(*stops.toTypedArray())
+}
+
 
 /**
  * Renders a single word with karaoke fill animation.
@@ -201,6 +235,7 @@ private fun KaraokeWord(
     startTime: Long,
     endTime: Long,
     currentTimeProvider: () -> Long,
+    isRtl: Boolean,
     fontSize: TextUnit,
     textColor: Color,
     inactiveAlpha: Float,
@@ -256,7 +291,7 @@ private fun KaraokeWord(
                     0f
                 }
                 
-                translationX = shift
+                translationX = if (isRtl) -shift else shift
             }
     ) {
         // 1. Inactive (unfilled) layer
@@ -332,16 +367,28 @@ private fun KaraokeWord(
                         // Fill width based on text width
                         val fillWidth = textWidth * progress
                         
-                        // Gradient starts at paddingPx (start of text)
-                        val startFraction = paddingPx / totalWidth
                         val endFraction = (paddingPx + fillWidth + fadeWidth) / totalWidth
                         val solidFraction = (paddingPx + fillWidth) / totalWidth
 
-                        val softFillBrush = Brush.horizontalGradient(
-                            0f to Color.Black,
-                            solidFraction.coerceAtLeast(0f) to Color.Black,
-                            endFraction.coerceAtMost(1f) to Color.Transparent
-                        )
+                        val softFillBrush =
+                            if (!isRtl) {
+                                Brush.horizontalGradient(
+                                    0f to Color.Black,
+                                    solidFraction.coerceAtLeast(0f) to Color.Black,
+                                    endFraction.coerceAtMost(1f) to Color.Transparent
+                                )
+                            } else {
+                                val solidStartX = (paddingPx + (textWidth - fillWidth)).coerceIn(0f, totalWidth)
+                                val fadeStartX = (solidStartX - fadeWidth).coerceIn(0f, totalWidth)
+                                val fadeStartFraction = (fadeStartX / totalWidth).coerceIn(0f, 1f)
+                                val solidStartFraction = (solidStartX / totalWidth).coerceIn(0f, 1f)
+                                Brush.horizontalGradient(
+                                    0f to Color.Transparent,
+                                    fadeStartFraction to Color.Transparent,
+                                    solidStartFraction to Color.Black,
+                                    1f to Color.Black
+                                )
+                            }
                         
                         drawRect(
                             brush = softFillBrush,
@@ -978,23 +1025,30 @@ fun Lyrics(
                             }
                         }
 
-                    Column(
-                        modifier = itemModifier,
-                        horizontalAlignment = when (lyricsTextPosition) {
-                            LyricsPosition.LEFT -> Alignment.Start
-                            LyricsPosition.CENTER -> Alignment.CenterHorizontally
-                            LyricsPosition.RIGHT -> Alignment.End
-                        }
-                    ) {
+                    val baseLayoutDirection = LocalLayoutDirection.current
+                    val lineIsRtl = remember(item.text) { isRtlText(item.text) }
+                    val lineLayoutDirection = remember(lineIsRtl, baseLayoutDirection) {
+                        if (lineIsRtl) LayoutDirection.Rtl else baseLayoutDirection
+                    }
+
+                    CompositionLocalProvider(LocalLayoutDirection provides lineLayoutDirection) {
+                        Column(
+                            modifier = itemModifier,
+                            horizontalAlignment = when (lyricsTextPosition) {
+                                LyricsPosition.LEFT -> Alignment.Start
+                                LyricsPosition.CENTER -> Alignment.CenterHorizontally
+                                LyricsPosition.RIGHT -> Alignment.End
+                            }
+                        ) {
                         val isActiveLine = index == displayedCurrentLineIndex && isSynced
                         val lineColor = remember(isActiveLine, lyricsBaseColor) {
                             if (isActiveLine) lyricsBaseColor else lyricsBaseColor.copy(alpha = 0.7f)
                         }
                         val alignment = remember(lyricsTextPosition) {
                             when (lyricsTextPosition) {
-                                LyricsPosition.LEFT -> TextAlign.Left
+                                LyricsPosition.LEFT -> TextAlign.Start
                                 LyricsPosition.CENTER -> TextAlign.Center
-                                LyricsPosition.RIGHT -> TextAlign.Right
+                                LyricsPosition.RIGHT -> TextAlign.End
                             }
                         }
 
@@ -1018,16 +1072,25 @@ fun Lyrics(
                                 isChinese(item.text) || isJapanese(item.text) || isKorean(item.text)
                             }
 
-                            val wordsToRender = remember(item.words, item.text, item.time, lines.size, index) {
+                            val wordsToRender = remember(item.words, item.text, item.time, lines.size, index, lineIsRtl, isCjk) {
                                 if (hasWordTimings && item.words != null) {
                                     val baseWords = item.words.filter { it.text.isNotBlank() }
                                     baseWords.mapIndexed { idx, word ->
+                                        val prevText = baseWords.getOrNull(idx - 1)?.text
                                         val nextText = baseWords.getOrNull(idx + 1)?.text
-                                        val displayText =
-                                            if (!isCjk && nextText != null && shouldAppendWordSpace(word.text, nextText)) {
-                                                "${word.text} "
+                                        val includeSpace =
+                                            if (isCjk) {
+                                                false
+                                            } else if (lineIsRtl) {
+                                                prevText != null && shouldAppendWordSpace(prevText, word.text)
                                             } else {
-                                                word.text
+                                                nextText != null && shouldAppendWordSpace(word.text, nextText)
+                                            }
+                                        val displayText =
+                                            when {
+                                                !includeSpace -> word.text
+                                                lineIsRtl -> " ${word.text}"
+                                                else -> "${word.text} "
                                             }
                                         Triple(
                                             displayText,
@@ -1046,8 +1109,16 @@ fun Lyrics(
                                         item.text.trim().split(Regex("\\s+")).filter { it.isNotBlank() }
                                     }
                                     val lengths = splitWords.mapIndexed { idx, wordText ->
+                                        val prevText = splitWords.getOrNull(idx - 1)
                                         val nextText = splitWords.getOrNull(idx + 1)
-                                        val includeSpace = !isCjk && nextText != null && shouldAppendWordSpace(wordText, nextText)
+                                        val includeSpace =
+                                            if (isCjk) {
+                                                false
+                                            } else if (lineIsRtl) {
+                                                prevText != null && shouldAppendWordSpace(prevText, wordText)
+                                            } else {
+                                                nextText != null && shouldAppendWordSpace(wordText, nextText)
+                                            }
                                         wordText.length + if (includeSpace) 1 else 0
                                     }
                                     val totalLength = lengths.sum().coerceAtLeast(1)
@@ -1060,12 +1131,21 @@ fun Lyrics(
                                         val endTime = startTime + wordDuration
                                         currentOffset += wordDuration
                                         
+                                        val prevText = splitWords.getOrNull(idx - 1)
                                         val nextText = splitWords.getOrNull(idx + 1)
-                                        val displayText =
-                                            if (!isCjk && nextText != null && shouldAppendWordSpace(wordText, nextText)) {
-                                                "$wordText "
+                                        val includeSpace =
+                                            if (isCjk) {
+                                                false
+                                            } else if (lineIsRtl) {
+                                                prevText != null && shouldAppendWordSpace(prevText, wordText)
                                             } else {
-                                                wordText
+                                                nextText != null && shouldAppendWordSpace(wordText, nextText)
+                                            }
+                                        val displayText =
+                                            when {
+                                                !includeSpace -> wordText
+                                                lineIsRtl -> " $wordText"
+                                                else -> "$wordText "
                                             }
                                         
                                         Triple(displayText, startTime to endTime, false)
@@ -1099,6 +1179,7 @@ fun Lyrics(
                                         startTime = wordStartMs,
                                         endTime = wordEndMs,
                                         currentTimeProvider = karaokeCurrentTimeProvider,
+                                        isRtl = lineIsRtl,
                                         fontSize = lyricsTextSize.sp,
                                         textColor = lyricsBaseColor,
                                         inactiveAlpha = if (isActiveLine) {
@@ -1391,7 +1472,8 @@ fun Lyrics(
                                 val breatheEffect = (sin(breatheValue * Math.PI.toFloat() * 2f) * 0.03f).coerceIn(0f, 0.03f)
                                 val glowIntensity = (0.3f + fillProgress * 0.7f + breatheEffect).coerceIn(0f, 1.1f)
 
-                                val slideBrush = Brush.horizontalGradient(
+                                val slideBrush = rtlAwareHorizontalGradient(
+                                    isRtl = lineIsRtl,
                                     0.0f to lyricsBaseColor,
                                     (fillProgress * 0.95f).coerceIn(0f, 1f) to lyricsBaseColor,
                                     fillProgress to lyricsBaseColor.copy(alpha = 0.9f),
@@ -1461,7 +1543,8 @@ fun Lyrics(
                                         
                                         val glowIntensity = (fillProgress + breatheEffect).coerceIn(0f, 1.0f)
 
-                                        val wordBrush = Brush.horizontalGradient(
+                                        val wordBrush = rtlAwareHorizontalGradient(
+                                            isRtl = lineIsRtl,
                                             0.0f to lyricsBaseColor,
                                             (fillProgress * 0.85f).coerceIn(0f, 0.99f) to lyricsBaseColor,
                                             fillProgress.coerceIn(0.01f, 0.99f) to lyricsBaseColor.copy(alpha = 0.85f),
@@ -1637,7 +1720,8 @@ fun Lyrics(
 
                             val fill = fillProgress.value
 
-                            val slideBrush = Brush.horizontalGradient(
+                            val slideBrush = rtlAwareHorizontalGradient(
+                                isRtl = lineIsRtl,
                                 0.0f to lyricsBaseColor.copy(alpha = 0.3f),
                                 (fill * 0.7f).coerceIn(0f, 1f) to lyricsBaseColor.copy(alpha = 0.9f),
                                 fill to lyricsBaseColor,
@@ -1832,7 +1916,8 @@ fun Lyrics(
                                                             val timeElapsed = currentPlaybackPosition - wordStartMs
                                                             val fillProgress = (timeElapsed.toFloat() / wordDuration.toFloat()).coerceIn(0f, 1f)
 
-                                                            val romBrush = Brush.horizontalGradient(
+                                                            val romBrush = rtlAwareHorizontalGradient(
+                                                                isRtl = lineIsRtl,
                                                                 0.0f to lyricsBaseColor.copy(alpha = 0.8f),
                                                                 (fillProgress * 0.95f).coerceIn(0f, 1f) to lyricsBaseColor.copy(alpha = 0.8f),
                                                                 fillProgress to lyricsBaseColor.copy(alpha = 0.5f),
@@ -1932,9 +2017,9 @@ fun Lyrics(
                                         text = romanizedStyledText,
                                         fontSize = romanizedFontSize,
                                         textAlign = when (lyricsTextPosition) {
-                                            LyricsPosition.LEFT -> TextAlign.Left
+                                            LyricsPosition.LEFT -> TextAlign.Start
                                             LyricsPosition.CENTER -> TextAlign.Center
-                                            LyricsPosition.RIGHT -> TextAlign.Right
+                                            LyricsPosition.RIGHT -> TextAlign.End
                                         },
                                         modifier = Modifier.padding(top = 2.dp)
                                     )
@@ -1945,9 +2030,9 @@ fun Lyrics(
                                         fontSize = romanizedFontSize,
                                         color = lyricsBaseColor.copy(alpha = if (isActiveLine) 0.6f else 0.5f),
                                         textAlign = when (lyricsTextPosition) {
-                                            LyricsPosition.LEFT -> TextAlign.Left
+                                            LyricsPosition.LEFT -> TextAlign.Start
                                             LyricsPosition.CENTER -> TextAlign.Center
-                                            LyricsPosition.RIGHT -> TextAlign.Right
+                                            LyricsPosition.RIGHT -> TextAlign.End
                                         },
                                         fontWeight = FontWeight.Normal,
                                         modifier = Modifier.padding(top = 2.dp)
@@ -1955,6 +2040,7 @@ fun Lyrics(
                                 }
                             }
                         }
+                    }
                     }
                 }
             }
