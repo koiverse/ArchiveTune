@@ -45,7 +45,7 @@ import moe.koiverse.archivetune.innertube.models.SongItem
 import moe.koiverse.archivetune.models.PlaylistSuggestion
 import moe.koiverse.archivetune.ui.component.IconButton
 import moe.koiverse.archivetune.ui.component.NavigationTitle
-import moe.koiverse.archivetune.ui.component.SongListItem
+import moe.koiverse.archivetune.ui.component.YouTubeListItem
 import moe.koiverse.archivetune.viewmodels.LocalPlaylistViewModel
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.rememberCoroutineScope
@@ -59,6 +59,7 @@ fun PlaylistSuggestionsSection(
     val coroutineScope = rememberCoroutineScope()
     val playlistSuggestions by viewModel.playlistSuggestions.collectAsState()
     val isLoading by viewModel.isLoadingSuggestions.collectAsState()
+    val listState = rememberLazyListState()
     
     playlistSuggestions?.let { suggestions ->
         if (suggestions.items.isNotEmpty()) {
@@ -94,7 +95,7 @@ fun PlaylistSuggestionsSection(
                 // Suggestions LazyRow
                 Box {
                     LazyRow(
-                        state = rememberLazyListState(),
+                        state = listState,
                         contentPadding = PaddingValues(horizontal = 16.dp),
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
@@ -102,28 +103,35 @@ fun PlaylistSuggestionsSection(
                             items = suggestions.items,
                             key = { item -> item.id }
                         ) { song ->
-                            SongListItem(
-                                song = song,
+                            YouTubeListItem(
+                                item = song,
                                 isActive = false,
                                 isPlaying = false,
-                                showInLibraryIcon = false,
                                 trailingContent = {
                                     IconButton(
                                         onClick = { 
                                             // Handle add to playlist
                                             coroutineScope.launch {
-                                                viewModel.addSongToPlaylist(
-                                                    song = song,
-                                                    browseId = viewModel.playlist.value?.playlist?.browseId
-                                                )
-                                                
-                                                val playlistName = viewModel.playlist.value?.playlist?.name
-                                                val message = if (playlistName != null) {
-                                                    context.getString(R.string.added_to_playlist, playlistName)
-                                                } else {
-                                                    context.getString(R.string.add_to_playlist)
+                                                try {
+                                                    val success = viewModel.addSongToPlaylist(
+                                                        song = song as SongItem,
+                                                        browseId = viewModel.playlist.value?.playlist?.browseId
+                                                    )
+                                                    
+                                                    if (success) {
+                                                        val playlistName = viewModel.playlist.value?.playlist?.name
+                                                        val message = if (playlistName != null) {
+                                                            context.getString(R.string.added_to_playlist, playlistName)
+                                                        } else {
+                                                            context.getString(R.string.add_to_playlist)
+                                                        }
+                                                        Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+                                                    } else {
+                                                        Toast.makeText(context, R.string.error, Toast.LENGTH_SHORT).show()
+                                                    }
+                                                } catch (e: Exception) {
+                                                    Toast.makeText(context, R.string.error, Toast.LENGTH_SHORT).show()
                                                 }
-                                                Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
                                             }
                                         },
                                         onLongClick = {}
@@ -160,6 +168,7 @@ fun PlaylistSuggestionsSection(
                     
                     // Infinite scroll detection
                     InfiniteScrollEffect(
+                        listState = listState,
                         isLoading = isLoading,
                         onLoadMore = { viewModel.loadMoreSuggestions() }
                     )
@@ -171,15 +180,14 @@ fun PlaylistSuggestionsSection(
 
 @Composable
 private fun InfiniteScrollEffect(
+    listState: androidx.compose.foundation.lazy.LazyListState,
     isLoading: Boolean,
     onLoadMore: () -> Unit
 ) {
-    val lazyListState = rememberLazyListState()
-    
-    LaunchedEffect(lazyListState, isLoading) {
-        snapshotFlow { lazyListState.layoutInfo.visibleItemsInfo.lastOrNull()?.index }
+    LaunchedEffect(listState, isLoading) {
+        snapshotFlow { listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index }
             .collect { lastVisibleIndex ->
-                val totalItems = lazyListState.layoutInfo.totalItemsCount
+                val totalItems = listState.layoutInfo.totalItemsCount
                 if (lastVisibleIndex != null && lastVisibleIndex >= totalItems - 3 && !isLoading) {
                     onLoadMore()
                 }

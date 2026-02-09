@@ -10,6 +10,7 @@ package moe.koiverse.archivetune.utils
 import moe.koiverse.archivetune.models.PlaylistSuggestionQuery
 import moe.koiverse.archivetune.db.entities.PlaylistSong
 import java.time.LocalDateTime
+import java.time.Year
 import java.time.format.DateTimeFormatter
 
 object PlaylistSuggestionQueryBuilder {
@@ -26,7 +27,7 @@ object PlaylistSuggestionQueryBuilder {
     )
     
     private val fallbackQueries = listOf(
-        "trending songs", "popular music", "new music", "top hits", "music 2024",
+        "trending songs", "popular music", "new music", "top hits", "music ${Year.now().value}",
         "viral songs", "best songs", "music discovery", "fresh music", "recommended songs"
     )
     

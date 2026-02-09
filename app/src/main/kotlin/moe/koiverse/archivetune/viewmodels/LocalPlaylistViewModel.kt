@@ -21,6 +21,8 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.Dispatchers
 import moe.koiverse.archivetune.constants.PlaylistSongSortDescendingKey
@@ -102,6 +104,9 @@ constructor(
     private val suggestionsCacheTimestamp = MutableStateFlow(0L)
     private val suggestedSongIds = MutableStateFlow<Set<String>>(emptySet())
     
+    // Mutex to prevent concurrent suggestion loading
+    private val suggestionLoadMutex = Mutex()
+    
     // Cache for current suggestion page
     private var currentSuggestionPage: PlaylistSuggestionPage? = null
 
@@ -134,66 +139,70 @@ constructor(
     
     fun loadPlaylistSuggestions() {
         viewModelScope.launch {
-            val currentPlaylist = playlist.first() ?: return@launch
-            val currentSongs = playlistSongs.first()
-            
-            val shouldRefresh = PlaylistSuggestionQueryBuilder.shouldRefreshSuggestions(
-                suggestionsCacheTimestamp.value
-            )
-            
-            if (!shouldRefresh && _playlistSuggestions.value != null) {
-                return@launch // Use cached suggestions
-            }
-            
-            _isLoadingSuggestions.value = true
-            
-            try {
-                // Build suggestion queries
-                val queries = PlaylistSuggestionQueryBuilder.buildSuggestionQueries(
-                    playlistName = currentPlaylist.playlist.name,
-                    playlistSongs = currentSongs
-                )
-                suggestionQueries.value = queries
-                currentSuggestionQueryIndex.value = 0
-                suggestedSongIds.value = currentSongs.map { it.song.id }.toSet()
-                suggestionsCacheTimestamp.value = System.currentTimeMillis()
+            suggestionLoadMutex.withLock {
+                val currentPlaylist = playlist.first() ?: return@withLock
+                val currentSongs = playlistSongs.first()
                 
-                // Load first page of suggestions
-                loadNextSuggestionPage()
-                
-            } catch (e: Exception) {
-                reportException(e)
-                _playlistSuggestions.value = PlaylistSuggestion(
-                    items = emptyList(),
-                    continuation = null,
-                    currentQueryIndex = 0,
-                    totalQueries = 0,
-                    query = ""
+                val shouldRefresh = PlaylistSuggestionQueryBuilder.shouldRefreshSuggestions(
+                    suggestionsCacheTimestamp.value
                 )
-            } finally {
-                _isLoadingSuggestions.value = false
+                
+                if (!shouldRefresh && _playlistSuggestions.value != null) {
+                    return@withLock // Use cached suggestions
+                }
+                
+                _isLoadingSuggestions.value = true
+                
+                try {
+                    // Build suggestion queries
+                    val queries = PlaylistSuggestionQueryBuilder.buildSuggestionQueries(
+                        playlistName = currentPlaylist.playlist.name,
+                        playlistSongs = currentSongs
+                    )
+                    suggestionQueries.value = queries
+                    currentSuggestionQueryIndex.value = 0
+                    suggestedSongIds.value = currentSongs.map { it.song.id }.toSet()
+                    suggestionsCacheTimestamp.value = System.currentTimeMillis()
+                    
+                    // Load first page of suggestions
+                    loadNextSuggestionPage()
+                    
+                } catch (e: Exception) {
+                    reportException(e)
+                    _playlistSuggestions.value = PlaylistSuggestion(
+                        items = emptyList(),
+                        continuation = null,
+                        currentQueryIndex = 0,
+                        totalQueries = 0,
+                        query = ""
+                    )
+                } finally {
+                    _isLoadingSuggestions.value = false
+                }
             }
         }
     }
     
     fun loadMoreSuggestions() {
         viewModelScope.launch {
-            if (_isLoadingSuggestions.value) return@launch
-            
-            val currentSuggestions = _playlistSuggestions.value ?: return@launch
-            val queries = suggestionQueries.value
-            
-            // If we have a continuation, load more from current query
-            currentSuggestionPage?.continuation?.let { continuation ->
-                loadMoreFromContinuation(continuation)
-                return@launch
-            }
-            
-            // Otherwise, move to next query
-            val nextIndex = currentSuggestionQueryIndex.value + 1
-            if (nextIndex < queries.size) {
-                currentSuggestionQueryIndex.value = nextIndex
-                loadNextSuggestionPage()
+            suggestionLoadMutex.withLock {
+                if (_isLoadingSuggestions.value) return@withLock
+                
+                val currentSuggestions = _playlistSuggestions.value ?: return@withLock
+                val queries = suggestionQueries.value
+                
+                // If we have a continuation, load more from current query
+                currentSuggestionPage?.continuation?.let { continuation ->
+                    loadMoreFromContinuation(continuation)
+                    return@withLock
+                }
+                
+                // Otherwise, move to next query
+                val nextIndex = currentSuggestionQueryIndex.value + 1
+                if (nextIndex < queries.size) {
+                    currentSuggestionQueryIndex.value = nextIndex
+                    loadNextSuggestionPage()
+                }
             }
         }
     }
@@ -209,10 +218,10 @@ constructor(
         }
     }
     
-    suspend fun addSongToPlaylist(song: moe.koiverse.archivetune.innertube.models.SongItem, browseId: String?) {
-        val currentPlaylist = playlist.first() ?: return
+    suspend fun addSongToPlaylist(song: moe.koiverse.archivetune.innertube.models.SongItem, browseId: String?): Boolean {
+        val currentPlaylist = playlist.first() ?: return false
         
-        try {
+        return try {
             withContext(Dispatchers.IO) {
                 if (browseId != null) {
                     // Add to YouTube playlist
@@ -241,9 +250,10 @@ constructor(
                 kotlinx.coroutines.delay(1000) // Small delay to let the add complete
                 loadMoreSuggestions()
             }
-            
+            true
         } catch (e: Exception) {
             reportException(e)
+            false
         }
     }
     
@@ -266,7 +276,7 @@ constructor(
             val hideVideos = context.dataStore.data.first()[HideVideoKey] ?: false
             
             var filteredItems = result.items.filter { item ->
-                item !in suggestedSongIds.value
+                item.id !in suggestedSongIds.value
             }
             
             if (hideExplicit) {
@@ -313,7 +323,7 @@ constructor(
             val hideVideos = context.dataStore.data.first()[HideVideoKey] ?: false
             
             var filteredItems = result.items.filter { item ->
-                item !in suggestedSongIds.value
+                item.id !in suggestedSongIds.value
             }
             
             if (hideExplicit) {
