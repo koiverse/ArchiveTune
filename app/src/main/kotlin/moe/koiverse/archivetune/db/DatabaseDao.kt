@@ -1570,6 +1570,9 @@ interface DatabaseDao {
         from: Int,
     ): List<PlaylistSongMap>
 
+    @Query("SELECT MAX(position) FROM playlist_song_map WHERE playlistId = :playlistId")
+    fun maxPlaylistSongPosition(playlistId: String): Int?
+
     @RawQuery
     fun raw(supportSQLiteQuery: SupportSQLiteQuery): Int
 

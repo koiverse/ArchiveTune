@@ -141,15 +141,6 @@ constructor(
         viewModelScope.launch {
             suggestionLoadMutex.withLock {
                 val currentSongs = playlistSongs.first()
-
-                if (forceReset) {
-                    _playlistSuggestions.value = null
-                    currentSuggestionQueryIndex.value = 0
-                    suggestedSongIds.value = currentSongs.map { it.song.id }.toSet()
-                    suggestionsCacheTimestamp.value = 0L
-                    currentSuggestionPage = null
-                }
-
                 val currentPlaylist = playlist.first() ?: return@withLock
                 
                 val shouldRefresh = forceReset || PlaylistSuggestionQueryBuilder.shouldRefreshSuggestions(
@@ -162,6 +153,13 @@ constructor(
                 
                 _isLoadingSuggestions.value = true
                 
+                // Clear state for refresh
+                _playlistSuggestions.value = null
+                currentSuggestionQueryIndex.value = 0
+                suggestedSongIds.value = currentSongs.map { it.song.id }.toSet()
+                suggestionsCacheTimestamp.value = 0L
+                currentSuggestionPage = null
+                
                 try {
                     // Build suggestion queries
                     val queries = PlaylistSuggestionQueryBuilder.buildSuggestionQueries(
@@ -169,9 +167,19 @@ constructor(
                         playlistSongs = currentSongs
                     )
                     suggestionQueries.value = queries
-                    currentSuggestionQueryIndex.value = 0
-                    suggestedSongIds.value = currentSongs.map { it.song.id }.toSet()
                     suggestionsCacheTimestamp.value = System.currentTimeMillis()
+                    
+                    if (queries.isEmpty()) {
+                        _playlistSuggestions.value = PlaylistSuggestion(
+                            items = emptyList(),
+                            continuation = null,
+                            currentQueryIndex = 0,
+                            totalQueries = 0,
+                            query = "",
+                            hasMore = false
+                        )
+                        return@try
+                    }
                     
                     // Load first page of suggestions
                     loadNextSuggestionPage()
@@ -184,7 +192,8 @@ constructor(
                             continuation = null,
                             currentQueryIndex = 0,
                             totalQueries = 0,
-                            query = ""
+                            query = "",
+                            hasMore = false
                         )
                     }
                 } finally {
@@ -216,6 +225,9 @@ constructor(
                         _isLoadingSuggestions.value = true
                         currentSuggestionQueryIndex.value = nextIndex
                         loadNextSuggestionPage()
+                    } else {
+                        // No more queries and no continuation
+                        _playlistSuggestions.value = currentSuggestions.copy(hasMore = false)
                     }
                 } finally {
                     _isLoadingSuggestions.value = false
@@ -239,7 +251,8 @@ constructor(
                 } else {
                     // Add to local playlist
                     database.transaction {
-                        val position = playlistSongs.first().size
+                        val maxPosition = maxPlaylistSongPosition(playlistId)
+                        val position = (maxPosition ?: -1) + 1
                         insert(
                             moe.koiverse.archivetune.db.entities.PlaylistSongMap(
                                 songId = song.id,
@@ -318,7 +331,8 @@ constructor(
                 continuation = result.continuation,
                 currentQueryIndex = currentIndex,
                 totalQueries = queries.size,
-                query = currentQuery.query
+                query = currentQuery.query,
+                hasMore = result.continuation != null || currentIndex < queries.size - 1
             )
             
         } catch (e: Exception) {
@@ -358,7 +372,9 @@ constructor(
             // Update suggestions state
             val currentSuggestions = _playlistSuggestions.value ?: return
             _playlistSuggestions.value = currentSuggestions.copy(
-                items = currentSuggestions.items + filteredItems
+                items = currentSuggestions.items + filteredItems,
+                continuation = result.continuation,
+                hasMore = result.continuation != null || currentSuggestions.currentQueryIndex < suggestionQueries.value.size - 1
             )
             
         } catch (e: Exception) {

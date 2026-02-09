@@ -180,6 +180,7 @@ fun PlaylistSuggestionsSection(
                     InfiniteScrollEffect(
                         listState = listState,
                         isLoading = isLoading,
+                        hasMore = suggestions.hasMore,
                         onLoadMore = { viewModel.loadMoreSuggestions() }
                     )
                 }
@@ -192,13 +193,14 @@ fun PlaylistSuggestionsSection(
 private fun InfiniteScrollEffect(
     listState: androidx.compose.foundation.lazy.LazyListState,
     isLoading: Boolean,
+    hasMore: Boolean,
     onLoadMore: () -> Unit
 ) {
-    LaunchedEffect(listState, isLoading) {
+    LaunchedEffect(listState, isLoading, hasMore) {
         snapshotFlow { listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index }
             .collect { lastVisibleIndex ->
                 val totalItems = listState.layoutInfo.totalItemsCount
-                if (lastVisibleIndex != null && lastVisibleIndex >= totalItems - 3 && !isLoading) {
+                if (hasMore && lastVisibleIndex != null && lastVisibleIndex >= totalItems - 3 && !isLoading) {
                     onLoadMore()
                 }
             }

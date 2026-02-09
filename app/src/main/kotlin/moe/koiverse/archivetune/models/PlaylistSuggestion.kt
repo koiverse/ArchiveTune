@@ -15,6 +15,7 @@ data class PlaylistSuggestion(
     val currentQueryIndex: Int,
     val totalQueries: Int,
     val query: String,
+    val hasMore: Boolean = true,
     val timestamp: Long = System.currentTimeMillis()
 )
 
