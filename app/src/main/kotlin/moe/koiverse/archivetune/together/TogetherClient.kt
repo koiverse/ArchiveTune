@@ -198,7 +198,7 @@ class TogetherClient(
                                     _events.tryEmit(
                                         TogetherClientEvent.HeartbeatPong(
                                             pong = message,
-                                            receivedAtElapsedRealtimeMs = SystemClock.elapsedRealtime(),
+                                            receivedAtElapsedRealtimeMs = android.os.SystemClock.elapsedRealtime(),
                                         ),
                                     )
                                 }
@@ -219,8 +219,4 @@ class TogetherClient(
                 }
             }
     }
-}
-
-private object SystemClock {
-    fun elapsedRealtime(): Long = android.os.SystemClock.elapsedRealtime()
 }
