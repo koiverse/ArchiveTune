@@ -9,9 +9,17 @@ package moe.koiverse.archivetune.ui.menu
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -29,6 +37,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.TextUnitType
@@ -50,9 +59,14 @@ import moe.koiverse.archivetune.utils.reportException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 import timber.log.Timber
 import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
+import java.util.concurrent.atomic.AtomicInteger
 
 @Composable
 fun AddToPlaylistDialogOnline(
@@ -62,7 +76,8 @@ fun AddToPlaylistDialogOnline(
     songs: SnapshotStateList<Song>, // list of song ids. Songs should be inserted to database in this function.
     onDismiss: () -> Unit,
     onProgressStart: (Boolean) -> Unit,
-    onPercentageChange: (Int) -> Unit
+    onPercentageChange: (Int) -> Unit,
+    onStatusChange: (String) -> Unit = {}
 ) {
     val database = LocalDatabase.current
     val coroutineScope = rememberCoroutineScope()
@@ -70,28 +85,137 @@ fun AddToPlaylistDialogOnline(
         mutableStateOf(emptyList<Playlist>())
     }
 
-
     var showCreatePlaylistDialog by rememberSaveable {
         mutableStateOf(false)
     }
 
-    var showDuplicateDialog by remember {
-        mutableStateOf(false)
-    }
     var selectedPlaylist by remember {
         mutableStateOf<Playlist?>(null)
     }
     val songIds by remember {
-        mutableStateOf<List<String>?>(null) // list is not saveable
+        mutableStateOf<List<String>?>(null) 
     }
-    val duplicates by remember {
-        mutableStateOf(emptyList<String>())
-    }
+
+    var showResultDialog by remember { mutableStateOf(false) }
+    var processingSummary by remember { mutableStateOf<ProcessingSummary?>(null) }
 
 
     LaunchedEffect(Unit) {
         database.editablePlaylistsByCreateDateAsc().collect {
             playlists = it.asReversed()
+        }
+    }
+
+    fun processSongs(
+        targetPlaylist: Playlist?,
+        addToLiked: Boolean
+    ) {
+        coroutineScope.launch(Dispatchers.IO) {
+            val total = songs.size
+            if (total == 0) {
+                withContext(Dispatchers.Main) {
+                    onProgressStart(false)
+                    onPercentageChange(0)
+                    onDismiss()
+                }
+                return@launch
+            }
+
+            withContext(Dispatchers.Main) {
+                onProgressStart(true)
+                onPercentageChange(0)
+                onStatusChange("Preparing import...")
+                onDismiss() // Dismiss the selection dialog
+            }
+
+            val processed = AtomicInteger(0)
+            val successCount = AtomicInteger(0)
+            val failCount = AtomicInteger(0)
+            val failedSongs = mutableListOf<String>()
+
+            // Limit concurrency to avoid rate limiting and excessive resource usage
+            val semaphore = Semaphore(5)
+
+            val tasks = songs.map { song ->
+                async {
+                    semaphore.withPermit {
+                        val allArtists = song.artists.joinToString(" ") { artist ->
+                            try {
+                                URLDecoder.decode(artist.name, StandardCharsets.UTF_8.toString())
+                            } catch (e: Exception) {
+                                artist.name
+                            }
+                        }.trim()
+
+                        val query = if (allArtists.isEmpty()) {
+                            song.title
+                        } else {
+                            "${song.title} - $allArtists"
+                        }
+
+                        var success = false
+                        try {
+                            val result = YouTube.search(query, YouTube.SearchFilter.FILTER_SONG)
+                            result.onSuccess { search ->
+                                val firstSong = search.items.distinctBy { it.id }.firstOrNull() as? SongItem
+                                if (firstSong != null) {
+                                    val media = firstSong.toMediaMetadata()
+                                    val ids = listOf(firstSong.id)
+                                    try {
+                                        database.insert(media)
+                                        if (targetPlaylist != null) {
+                                            database.addSongToPlaylist(targetPlaylist, ids)
+                                        }
+                                        if (addToLiked) {
+                                            val entity = media.toSongEntity()
+                                            database.query {
+                                                update(entity.toggleLike())
+                                            }
+                                        }
+                                        success = true
+                                    } catch (e: Exception) {
+                                        Timber.e(e, "Error inserting/adding song")
+                                    }
+                                }
+                            }.onFailure {
+                                Timber.w(it, "Search failed for $query")
+                            }
+                        } catch (e: Exception) {
+                            Timber.e(e, "Error processing song $query")
+                        }
+
+                        if (success) {
+                            successCount.incrementAndGet()
+                        } else {
+                            failCount.incrementAndGet()
+                            synchronized(failedSongs) {
+                                failedSongs.add(song.title)
+                            }
+                        }
+
+                        val currentProcessed = processed.incrementAndGet()
+                        val percent = ((currentProcessed.toDouble() / total.toDouble()) * 100).toInt().coerceIn(0, 100)
+
+                        withContext(Dispatchers.Main) {
+                            onPercentageChange(percent)
+                            onStatusChange("Importing: $currentProcessed/$total\nFailed: ${failCount.get()}")
+                        }
+                    }
+                }
+            }
+
+            tasks.awaitAll()
+
+            withContext(Dispatchers.Main) {
+                onProgressStart(false)
+                processingSummary = ProcessingSummary(
+                    total = total,
+                    success = successCount.get(),
+                    failed = failCount.get(),
+                    failedItems = failedSongs
+                )
+                showResultDialog = true
+            }
         }
     }
 
@@ -121,76 +245,7 @@ fun AddToPlaylistDialogOnline(
                     playlist = playlist,
                     modifier = Modifier.clickable {
                         selectedPlaylist = playlist
-                        coroutineScope.launch(Dispatchers.IO) {
-                            onDismiss()
-                            val total = songs.size
-                            if (total == 0) {
-                                withContext(Dispatchers.Main) {
-                                    onProgressStart(false)
-                                    onPercentageChange(0)
-                                }
-                                return@launch
-                            }
-
-                            withContext(Dispatchers.Main) {
-                                onProgressStart(true)
-                                onPercentageChange(0)
-                            }
-
-                            var processed = 0
-
-                            songs.asReversed().forEach { song ->
-                                val allArtists =
-                                    song.artists.joinToString(" ") { artist ->
-                                        URLDecoder.decode(artist.name, StandardCharsets.UTF_8.toString())
-                                    }.trim()
-                                val query = if (allArtists.isEmpty()) {
-                                    song.title
-                                } else {
-                                    "${song.title} - $allArtists"
-                                }
-
-                                try {
-                                    val result = YouTube.search(query, YouTube.SearchFilter.FILTER_SONG)
-                                    result
-                                        .onSuccess { search ->
-                                            val firstSong = search.items.distinctBy { it.id }.firstOrNull() as? SongItem
-                                            if (firstSong != null) {
-                                                val media = firstSong.toMediaMetadata()
-                                                val ids = listOf(firstSong.id)
-                                                try {
-                                                    withContext(Dispatchers.IO) {
-                                                        try {
-                                                            database.insert(media)
-                                                        } catch (e: Exception) {
-                                                            Timber.tag("Exception inserting song in database:")
-                                                                .e(e.toString())
-                                                        }
-                                                        database.addSongToPlaylist(playlist, ids)
-                                                    }
-                                                } catch (e: Exception) {
-                                                    Timber.tag("ERROR").v(e.toString())
-                                                }
-                                            }
-                                        }
-                                        .onFailure {
-                                            reportException(it)
-                                        }
-                                } catch (e: Exception) {
-                                    Timber.tag("ERROR").v(e.toString())
-                                }
-
-                                processed += 1
-                                val percent = ((processed.toDouble() / total.toDouble()) * 100).toInt().coerceIn(0, 100)
-                                withContext(Dispatchers.Main) {
-                                    onPercentageChange(percent)
-                                    if (processed == total) {
-                                        onProgressStart(false)
-                                    }
-                                }
-                            }
-
-                        }
+                        processSongs(targetPlaylist = playlist, addToLiked = false)
                     }
                 )
             }
@@ -198,78 +253,7 @@ fun AddToPlaylistDialogOnline(
             item {
                 ListItem(
                     modifier = Modifier.clickable {
-                        coroutineScope.launch(Dispatchers.IO) {
-                            onDismiss()
-                            val total = songs.size
-                            if (total == 0) {
-                                withContext(Dispatchers.Main) {
-                                    onProgressStart(false)
-                                    onPercentageChange(0)
-                                }
-                                return@launch
-                            }
-
-                            withContext(Dispatchers.Main) {
-                                onProgressStart(true)
-                                onPercentageChange(0)
-                            }
-
-                            var processed = 0
-
-                            songs.asReversed().forEach { song ->
-                                val allArtists =
-                                    song.artists.joinToString(" ") { artist ->
-                                        URLDecoder.decode(artist.name, StandardCharsets.UTF_8.toString())
-                                    }.trim()
-                                val query = if (allArtists.isEmpty()) {
-                                    song.title
-                                } else {
-                                    "${song.title} - $allArtists"
-                                }
-
-                                try {
-                                    val result = YouTube.search(query, YouTube.SearchFilter.FILTER_SONG)
-                                    result
-                                        .onSuccess { search ->
-                                            val firstSong = search.items.distinctBy { it.id }.firstOrNull() as? SongItem
-                                            if (firstSong != null) {
-                                                val media = firstSong.toMediaMetadata()
-                                                val entity = media.toSongEntity()
-                                                try {
-                                                    withContext(Dispatchers.IO) {
-                                                        try {
-                                                            database.insert(media)
-                                                            database.query {
-                                                                update(entity.toggleLike())
-                                                            }
-                                                        } catch (e: Exception) {
-                                                            Timber.tag("Exception inserting song in database:")
-                                                                .e(e.toString())
-                                                        }
-                                                    }
-                                                } catch (e: Exception) {
-                                                    Timber.tag("ERROR").v(e.toString())
-                                                }
-                                            }
-                                        }
-                                        .onFailure {
-                                            reportException(it)
-                                        }
-                                } catch (e: Exception) {
-                                    Timber.tag("ERROR").v(e.toString())
-                                }
-
-                                processed += 1
-                                val percent = ((processed.toDouble() / total.toDouble()) * 100).toInt().coerceIn(0, 100)
-                                withContext(Dispatchers.Main) {
-                                    onPercentageChange(percent)
-                                    if (processed == total) {
-                                        onProgressStart(false)
-                                    }
-                                }
-                            }
-
-                        }
+                        processSongs(targetPlaylist = null, addToLiked = true)
                     },
                     title = stringResource(R.string.liked_songs),
                     thumbnailContent = {
@@ -302,61 +286,47 @@ fun AddToPlaylistDialogOnline(
         )
     }
 
-    // duplicate songs warning
-    if (showDuplicateDialog) {
+    // Result Dialog
+    if (showResultDialog && processingSummary != null) {
+        val summary = processingSummary!!
         DefaultDialog(
-            title = { Text(stringResource(R.string.duplicates)) },
+            title = { Text("Import Complete") },
+            onDismiss = { showResultDialog = false },
             buttons = {
-                TextButton(
-                    onClick = {
-                        showDuplicateDialog = false
-                        onDismiss()
-                        database.transaction {
-                            addSongToPlaylist(
-                                selectedPlaylist!!,
-                                songIds!!.filter {
-                                    !duplicates.contains(it)
-                                }
+                TextButton(onClick = { showResultDialog = false }) {
+                    Text("OK")
+                }
+            }
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Total Processed: ${summary.total}")
+                Text("Successfully Imported: ${summary.success}", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                if (summary.failed > 0) {
+                    Text("Failed: ${summary.failed}", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                    Text("Failed Items:", style = MaterialTheme.typography.labelLarge)
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(150.dp)
+                    ) {
+                        items(summary.failedItems) { title ->
+                            Text(
+                                text = "• $title",
+                                style = MaterialTheme.typography.bodySmall,
+                                modifier = Modifier.padding(vertical = 2.dp)
                             )
                         }
                     }
-                ) {
-                    Text(stringResource(R.string.skip_duplicates))
                 }
-
-                TextButton(
-                    onClick = {
-                        showDuplicateDialog = false
-                        onDismiss()
-                        database.transaction {
-                            addSongToPlaylist(selectedPlaylist!!, songIds!!)
-                        }
-                    }
-                ) {
-                    Text(stringResource(R.string.add_anyway))
-                }
-
-                TextButton(
-                    onClick = {
-                        showDuplicateDialog = false
-                    }
-                ) {
-                    Text(stringResource(android.R.string.cancel))
-                }
-            },
-            onDismiss = {
-                showDuplicateDialog = false
             }
-        ) {
-            Text(
-                text = if (duplicates.size == 1) {
-                    stringResource(R.string.duplicates_description_single)
-                } else {
-                    stringResource(R.string.duplicates_description_multiple, duplicates.size)
-                },
-                textAlign = TextAlign.Start,
-                modifier = Modifier.align(Alignment.Start)
-            )
         }
     }
 }
+
+data class ProcessingSummary(
+    val total: Int,
+    val success: Int,
+    val failed: Int,
+    val failedItems: List<String>
+)
