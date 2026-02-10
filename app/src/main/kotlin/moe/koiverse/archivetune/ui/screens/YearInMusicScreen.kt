@@ -38,16 +38,13 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
-import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -109,7 +106,6 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 import moe.koiverse.archivetune.LocalPlayerAwareWindowInsets
 import moe.koiverse.archivetune.LocalPlayerConnection
 import moe.koiverse.archivetune.R
-import moe.koiverse.archivetune.constants.AppBarHeight
 import moe.koiverse.archivetune.constants.DisableBlurKey
 import moe.koiverse.archivetune.db.entities.Album
 import moe.koiverse.archivetune.db.entities.Artist
@@ -189,7 +185,6 @@ fun YearInMusicScreen(
     val (disableBlur) = rememberPreference(DisableBlurKey, false)
     val shareBackgroundArgb = DeepBlack.toArgb()
     val view = LocalView.current
-    val systemBarsTopPadding = WindowInsets.systemBars.asPaddingValues().calculateTopPadding()
 
     Box(
         modifier = Modifier
@@ -237,7 +232,6 @@ fun YearInMusicScreen(
             },
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = systemBarsTopPadding + AppBarHeight)
                 .windowInsetsPadding(
                     LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Bottom)
                 )
@@ -304,7 +298,7 @@ fun YearInMusicScreen(
                     },
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
-                        .padding(end = 16.dp, bottom = 92.dp)
+                        .padding(16.dp)
                         .windowInsetsPadding(
                             LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Bottom)
                         )
@@ -317,7 +311,7 @@ fun YearInMusicScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .windowInsetsPadding(
-                        WindowInsets.systemBars.only(WindowInsetsSides.Top)
+                        LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Top)
                     )
             ) {
                 TopAppBar(
@@ -797,36 +791,49 @@ private fun PremiumStoryProgressIndicator(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp),
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         repeat(totalPages) { index ->
-            val isActive = index == currentPage
-            val scale by animateFloatAsState(
-                targetValue = if (isActive) 1.25f else 1f,
-                animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
-                label = "dotScale"
+            val progress by animateFloatAsState(
+                targetValue = when {
+                    index < currentPage -> 1f
+                    index == currentPage -> 1f
+                    else -> 0f
+                },
+                animationSpec = tween(300),
+                label = "progress"
             )
             val alpha by animateFloatAsState(
-                targetValue = if (isActive) 1f else 0.28f,
-                animationSpec = tween(220, easing = FastOutSlowInEasing),
-                label = "dotAlpha"
+                targetValue = when {
+                    index < currentPage -> 0.6f
+                    index == currentPage -> 1f
+                    else -> 0.2f
+                },
+                animationSpec = tween(300),
+                label = "alpha"
             )
 
             Box(
                 modifier = Modifier
-                    .size(8.dp)
-                    .scale(scale)
-                    .clip(CircleShape)
-                    .background(
-                        if (isActive) {
-                            Brush.linearGradient(colors = listOf(NeonPink, ElectricPurple))
-                        } else {
-                            Brush.linearGradient(colors = listOf(GlassWhite, GlassWhite))
-                        }
-                    )
-                    .alpha(alpha)
-            )
+                    .weight(1f)
+                    .height(3.dp)
+                    .clip(RoundedCornerShape(2.dp))
+                    .background(SoftWhite.copy(alpha = 0.15f))
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(progress)
+                        .height(3.dp)
+                        .clip(RoundedCornerShape(2.dp))
+                        .background(
+                            brush = Brush.horizontalGradient(
+                                colors = listOf(NeonPink, ElectricPurple)
+                            )
+                        )
+                        .alpha(alpha)
+                )
+            }
         }
     }
 }
@@ -965,20 +972,6 @@ private fun YearInMusicStoryPager(
     }
 
     Box(modifier = modifier.fillMaxSize()) {
-        val recapPages = remember(topSongsStats, topArtists, topAlbums) {
-            buildList {
-                if (topSongsStats.isNotEmpty()) add(YearInMusicStoryPage.TopSong)
-                if (topArtists.isNotEmpty()) add(YearInMusicStoryPage.TopArtist)
-                if (topAlbums.isNotEmpty()) add(YearInMusicStoryPage.TopAlbum)
-            }
-        }
-        val recapIndex = when (pages.getOrNull(currentPage)) {
-            YearInMusicStoryPage.TopSong -> recapPages.indexOf(YearInMusicStoryPage.TopSong)
-            YearInMusicStoryPage.TopArtist -> recapPages.indexOf(YearInMusicStoryPage.TopArtist)
-            YearInMusicStoryPage.TopAlbum -> recapPages.indexOf(YearInMusicStoryPage.TopAlbum)
-            else -> -1
-        }
-
         AnimatedContent(
             targetState = currentPage,
             transitionSpec = {
@@ -1084,18 +1077,16 @@ private fun YearInMusicStoryPager(
         }
 
         if (!isShareCaptureMode) {
-            if (recapPages.isNotEmpty()) {
-                PremiumStoryProgressIndicator(
-                    totalPages = recapPages.size,
-                    currentPage = recapIndex,
-                    modifier = Modifier
-                        .align(Alignment.TopCenter)
-                        .windowInsetsPadding(
-                            WindowInsets.systemBars.only(WindowInsetsSides.Horizontal)
-                        )
-                        .padding(top = 12.dp)
-                )
-            }
+            PremiumStoryProgressIndicator(
+                totalPages = pages.size,
+                currentPage = currentPage,
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .windowInsetsPadding(
+                        LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)
+                    )
+                    .padding(top = 56.dp)
+            )
 
             PremiumStoryNavBar(
                 canGoBack = currentPage > 0,
