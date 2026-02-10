@@ -181,15 +181,12 @@ import moe.koiverse.archivetune.db.MusicDatabase
 import moe.koiverse.archivetune.db.entities.SearchHistory
 import moe.koiverse.archivetune.innertube.YouTube
 import moe.koiverse.archivetune.innertube.models.SongItem
-import moe.koiverse.archivetune.innertube.models.WatchEndpoint
 import moe.koiverse.archivetune.extensions.toMediaItem
-import moe.koiverse.archivetune.models.MediaMetadata
-import moe.koiverse.archivetune.models.toMediaMetadata
 import moe.koiverse.archivetune.playback.DownloadUtil
 import moe.koiverse.archivetune.playback.MusicService
 import moe.koiverse.archivetune.playback.MusicService.MusicBinder
 import moe.koiverse.archivetune.playback.PlayerConnection
-import moe.koiverse.archivetune.playback.queues.YouTubeQueue
+import moe.koiverse.archivetune.playback.queues.ListQueue
 import moe.koiverse.archivetune.ui.component.AccountSettingsDialog
 import moe.koiverse.archivetune.ui.component.BottomSheetMenu
 import moe.koiverse.archivetune.ui.component.BottomSheetPage
@@ -277,8 +274,6 @@ class MainActivity : ComponentActivity() {
         }
 
     private data class PendingDeepLinkSong(
-        val endpoint: WatchEndpoint,
-        val preloadItem: MediaMetadata?,
         val mediaItem: MediaItem,
     )
 
@@ -286,10 +281,10 @@ class MainActivity : ComponentActivity() {
         val pending = pendingDeepLinkSong ?: return
         val connection = playerConnection ?: return
         pendingDeepLinkSong = null
-        if (connection.isPlaying.value) {
+        if (connection.player.isPlaying) {
             connection.playNext(pending.mediaItem)
         } else {
-            connection.playQueue(YouTubeQueue(pending.endpoint, pending.preloadItem))
+            connection.playQueue(ListQueue(items = listOf(pending.mediaItem)))
         }
     }
 
@@ -1689,9 +1684,9 @@ class MainActivity : ComponentActivity() {
                         }
 
                         result.onSuccess { queued ->
-                            val firstItem = queued.firstOrNull()
                             val mediaItem =
-                                firstItem?.toMediaItem()
+                                queued.firstOrNull { it.id == vid }?.toMediaItem()
+                                    ?: queued.firstOrNull()?.toMediaItem()
                                     ?: MediaItem
                                         .Builder()
                                         .setMediaId(vid)
@@ -1700,12 +1695,6 @@ class MainActivity : ComponentActivity() {
                                         .build()
                             pendingDeepLinkSong =
                                 PendingDeepLinkSong(
-                                    endpoint =
-                                        WatchEndpoint(
-                                            videoId = firstItem?.id ?: vid,
-                                            playlistId = playlistId,
-                                        ),
-                                    preloadItem = firstItem?.toMediaMetadata(),
                                     mediaItem = mediaItem,
                                 )
                             startMusicServiceSafely()
