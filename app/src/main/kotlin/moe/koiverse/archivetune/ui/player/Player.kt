@@ -15,6 +15,7 @@ import android.content.res.Configuration
 import android.graphics.drawable.BitmapDrawable
 import android.os.SystemClock
 import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -544,6 +545,19 @@ fun BottomSheetPlayer(
         collapsedBound = 0.dp,
         initialAnchor = 1
     )
+
+    BackHandler(
+        enabled =
+        (!lyricsSheetState.isCollapsed && !lyricsSheetState.isDismissed) ||
+            (!queueSheetState.isCollapsed && !queueSheetState.isDismissed) ||
+            (!state.isCollapsed && !state.isDismissed)
+    ) {
+        when {
+            !lyricsSheetState.isCollapsed && !lyricsSheetState.isDismissed -> lyricsSheetState.collapseSoft()
+            !queueSheetState.isCollapsed && !queueSheetState.isDismissed -> queueSheetState.collapseSoft()
+            !state.isCollapsed && !state.isDismissed -> state.collapseSoft()
+        }
+    }
 
     BottomSheet(
         state = state,
@@ -1199,7 +1213,7 @@ private fun Modifier.littlePlayerOverlayGestures(
         val touchSlop = viewConfiguration.touchSlop
 
         awaitEachGesture {
-            val down = awaitFirstDown(requireUnconsumed = false)
+            val down = awaitFirstDown(requireUnconsumed = true)
             val pointerId = down.id
 
             var upPosition = down.position
