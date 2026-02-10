@@ -233,8 +233,6 @@ import java.net.URLEncoder
 import java.util.Locale
 import javax.inject.Inject
 import kotlin.time.Duration.Companion.days
-import android.widget.Toast
-import moe.koiverse.archivetune.extensions.toMediaItem
 
 @Suppress("DEPRECATION", "ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
 @AndroidEntryPoint
@@ -250,7 +248,7 @@ class MainActivity : ComponentActivity() {
 
     private lateinit var navController: NavHostController
     private var pendingIntent: Intent? = null
-    private var pendingYouTubeRequest: PendingYouTubeRequest? = null
+    private var pendingYouTubeQueue: PendingYouTubeQueue? = null
     private var latestVersionName by mutableStateOf(BuildConfig.VERSION_NAME)
 
     private var playerConnection by mutableStateOf<PlayerConnection?>(null)
@@ -266,7 +264,7 @@ class MainActivity : ComponentActivity() {
                 if (service is MusicBinder) {
                     playerConnection =
                         PlayerConnection(this@MainActivity, service, database, lifecycleScope)
-                    consumePendingYouTubeRequestIfReady()
+                    playPendingYouTubeQueueIfReady()
                 }
             }
 
@@ -277,47 +275,16 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-    private enum class PendingYouTubePlaybackMode {
-        Auto,
-        PlayNow,
-        PlayNext,
-    }
-
-    private data class PendingYouTubeRequest(
+    private data class PendingYouTubeQueue(
         val endpoint: WatchEndpoint,
         val preloadItem: MediaMetadata?,
-        val mode: PendingYouTubePlaybackMode,
     )
 
-    private fun consumePendingYouTubeRequestIfReady() {
-        val pending = pendingYouTubeRequest ?: return
+    private fun playPendingYouTubeQueueIfReady() {
+        val pending = pendingYouTubeQueue ?: return
         val connection = playerConnection ?: return
-        pendingYouTubeRequest = null
-
-        val resolvedMode =
-            when (pending.mode) {
-                PendingYouTubePlaybackMode.Auto ->
-                    if (connection.isPlaying.value) PendingYouTubePlaybackMode.PlayNext else PendingYouTubePlaybackMode.PlayNow
-
-                else -> pending.mode
-            }
-
-        when (resolvedMode) {
-            PendingYouTubePlaybackMode.PlayNow ->
-                connection.playQueue(YouTubeQueue(pending.endpoint, pending.preloadItem))
-
-            PendingYouTubePlaybackMode.PlayNext -> {
-                val preloadItem = pending.preloadItem
-                if (preloadItem != null) {
-                    connection.playNext(preloadItem.toMediaItem())
-                    Toast.makeText(this, getString(R.string.added_to_play_next), Toast.LENGTH_SHORT).show()
-                } else {
-                    connection.playQueue(YouTubeQueue(pending.endpoint, null))
-                }
-            }
-
-            PendingYouTubePlaybackMode.Auto -> Unit
-        }
+        pendingYouTubeQueue = null
+        connection.playQueue(YouTubeQueue(pending.endpoint, pending.preloadItem))
     }
 
     override fun onStart() {
@@ -329,7 +296,7 @@ class MainActivity : ComponentActivity() {
                 serviceConnection,
                 Context.BIND_AUTO_CREATE
             )
-        consumePendingYouTubeRequestIfReady()
+        playPendingYouTubeQueueIfReady()
     }
 
     private fun safeUnbindMusicService() {
@@ -1717,17 +1684,16 @@ class MainActivity : ComponentActivity() {
 
                         result.onSuccess { queued ->
                             val firstItem = queued.firstOrNull()
-                            pendingYouTubeRequest =
-                                PendingYouTubeRequest(
+                            pendingYouTubeQueue =
+                                PendingYouTubeQueue(
                                     endpoint = WatchEndpoint(
                                         videoId = firstItem?.id ?: vid,
                                         playlistId = playlistId,
                                     ),
                                     preloadItem = firstItem?.toMediaMetadata(),
-                                    mode = PendingYouTubePlaybackMode.Auto,
                                 )
                             startMusicServiceSafely()
-                            consumePendingYouTubeRequestIfReady()
+                            playPendingYouTubeQueueIfReady()
                         }.onFailure {
                             reportException(it)
                         }
