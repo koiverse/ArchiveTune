@@ -316,6 +316,16 @@ fun PlayerMenu(
         )
     }
 
+    var showMusicTogetherDialog by rememberSaveable {
+        mutableStateOf(false)
+    }
+
+    if (showMusicTogetherDialog) {
+        MusicTogetherDialog(
+            onDismiss = { showMusicTogetherDialog = false },
+        )
+    }
+
     val nowPlayingTitle =
         remember(mediaMetadata.title) {
             mediaMetadata.title.ifBlank { context.getString(R.string.no_title) }
@@ -471,6 +481,18 @@ fun PlayerMenu(
                             android.widget.Toast.makeText(context, R.string.link_copied, android.widget.Toast.LENGTH_SHORT).show()
                             onDismiss()
                         }
+                    ),
+                    NewAction(
+                        icon = {
+                            Icon(
+                                painter = painterResource(R.drawable.all_inclusive),
+                                contentDescription = null,
+                                modifier = Modifier.size(28.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        },
+                        text = stringResource(R.string.music_together),
+                        onClick = { showMusicTogetherDialog = true }
                     )
                 ),
                 modifier = Modifier.padding(vertical = 4.dp)

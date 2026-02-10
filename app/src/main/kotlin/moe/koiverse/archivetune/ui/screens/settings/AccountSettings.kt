@@ -245,6 +245,20 @@ fun AccountSettings(
                         navController.navigate("settings/integration")
                     }
                 )
+
+                HorizontalDivider(
+                    modifier = Modifier.padding(start = 56.dp),
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
+                )
+
+                SettingsClickableItem(
+                    icon = painterResource(R.drawable.fire),
+                    title = stringResource(R.string.music_together),
+                    onClick = {
+                        onClose()
+                        navController.navigate("settings/music_together")
+                    }
+                )
             }
 
             // Advanced Section

@@ -193,7 +193,11 @@ class SyncUtils @Inject constructor(
         val gen = syncGeneration.get()
         YouTube.playlist("LM").completed().onSuccess { page ->
             if (!isSyncStillEnabled(gen)) return@onSuccess
-            val remoteSongs = page.songs
+            val remoteSongs = page.songs.orEmpty()
+            if (remoteSongs.isEmpty()) {
+                Timber.w("syncLikedSongs: Remote playlist is empty")
+                return@onSuccess
+            }
             val remoteIds = remoteSongs.map { it.id }
             val localSongs = database.likedSongsByNameAsc().first()
 
@@ -219,6 +223,8 @@ class SyncUtils @Inject constructor(
                     }
                 }
             }
+        }.onFailure { e ->
+            Timber.e(e, "syncLikedSongs: Failed to sync liked songs")
         }
     }
 
@@ -235,6 +241,10 @@ class SyncUtils @Inject constructor(
         YouTube.library("FEmusic_liked_videos").completed().onSuccess { page ->
             if (!isSyncStillEnabled(gen)) return@onSuccess
             val remoteSongs = page.items.filterIsInstance<SongItem>().reversed()
+            if (remoteSongs.isEmpty()) {
+                Timber.w("syncLibrarySongs: Remote library is empty")
+                return@onSuccess
+            }
             val remoteIds = remoteSongs.map { it.id }.toSet()
             val localSongs = database.songsByNameAsc().first()
 
@@ -259,6 +269,8 @@ class SyncUtils @Inject constructor(
                     }
                 }
             }
+        }.onFailure { e ->
+            Timber.e(e, "syncLibrarySongs: Failed to sync library songs")
         }
     }
 
@@ -275,6 +287,10 @@ class SyncUtils @Inject constructor(
         YouTube.library("FEmusic_liked_albums").completed().onSuccess { page ->
             if (!isSyncStillEnabled(gen)) return@onSuccess
             val remoteAlbums = page.items.filterIsInstance<AlbumItem>().reversed()
+            if (remoteAlbums.isEmpty()) {
+                Timber.w("syncLikedAlbums: No liked albums found")
+                return@onSuccess
+            }
             val remoteIds = remoteAlbums.map { it.id }.toSet()
             val localAlbums = database.albumsLikedByNameAsc().first()
 
@@ -291,17 +307,25 @@ class SyncUtils @Inject constructor(
                         YouTube.album(album.browseId).onSuccess { albumPage ->
                             if (!isSyncStillEnabled(gen)) return@onSuccess
                             if (dbAlbum == null) {
-                                database.insert(albumPage)
-                                database.album(album.id).firstOrNull()?.let { newDbAlbum ->
-                                    database.update(newDbAlbum.album.localToggleLike())
+                                try {
+                                    database.insert(albumPage)
+                                    database.album(album.id).firstOrNull()?.let { newDbAlbum ->
+                                        database.update(newDbAlbum.album.localToggleLike())
+                                    }
+                                } catch (e: Exception) {
+                                    Timber.w("syncLikedAlbums: Failed to insert album ${album.id}", e)
                                 }
                             } else if (dbAlbum.album.bookmarkedAt == null) {
                                 database.update(dbAlbum.album.localToggleLike())
                             }
+                        }.onFailure { e ->
+                            Timber.w("syncLikedAlbums: Failed to fetch album ${album.id}", e)
                         }
                     }
                 }
             }
+        }.onFailure { e ->
+            Timber.e(e, "syncLikedAlbums: Failed to sync liked albums")
         }
     }
 
@@ -318,6 +342,10 @@ class SyncUtils @Inject constructor(
         YouTube.library("FEmusic_library_corpus_artists").completed().onSuccess { page ->
             if (!isSyncStillEnabled(gen)) return@onSuccess
             val remoteArtists = page.items.filterIsInstance<ArtistItem>()
+            if (remoteArtists.isEmpty()) {
+                Timber.w("syncArtistsSubscriptions: No artist subscriptions found")
+                return@onSuccess
+            }
             val remoteIds = remoteArtists.map { it.id }.toSet()
             val localArtists = database.artistsBookmarkedByNameAsc().first()
 
@@ -359,6 +387,8 @@ class SyncUtils @Inject constructor(
                     }
                 }
             }
+        }.onFailure { e ->
+            Timber.e(e, "syncArtistsSubscriptions: Failed to sync artist subscriptions")
         }
     }
 
@@ -378,6 +408,11 @@ class SyncUtils @Inject constructor(
             val remotePlaylists = page.items.filterIsInstance<PlaylistItem>()
                 .filterNot { it.id == "LM" || it.id == "SE" }
                 .reversed()
+
+            if (remotePlaylists.isEmpty()) {
+                Timber.w("syncSavedPlaylists: No playlists found")
+                return@onSuccess
+            }
 
             val selectedCsv = context.dataStore[SelectedYtmPlaylistsKey] ?: ""
             val selectedIds = selectedCsv.split(',').map { it.trim() }.filter { it.isNotEmpty() }.toSet()
@@ -438,8 +473,13 @@ class SyncUtils @Inject constructor(
             return@coroutineScope
         }
         val gen = syncGeneration.get()
-        val autoSyncPlaylists = database.playlistsByNameAsc().first()
-            .filter { it.playlist.isAutoSync && it.playlist.browseId != null }
+        val autoSyncPlaylists = try {
+            database.playlistsByNameAsc().first()
+                .filter { it.playlist.isAutoSync && it.playlist.browseId != null }
+        } catch (e: Exception) {
+            Timber.e(e, "syncAutoSyncPlaylists: Failed to fetch auto-sync playlists")
+            return@coroutineScope
+        }
 
         Timber.d("syncAutoSyncPlaylists: Found ${autoSyncPlaylists.size} playlists to sync")
 
@@ -449,7 +489,11 @@ class SyncUtils @Inject constructor(
                 try {
                     dbWriteSemaphore.withPermit {
                         if (!isSyncStillEnabled(gen)) return@withPermit
-                        syncPlaylist(playlist.playlist.browseId!!, playlist.playlist.id)
+                        val browseId = playlist.playlist.browseId ?: run {
+                            Timber.w("syncAutoSyncPlaylists: browseId is null for playlist ${playlist.playlist.name}")
+                            return@withPermit
+                        }
+                        syncPlaylist(browseId, playlist.playlist.id)
                     }
                 } catch (e: Exception) {
                     Timber.e(e, "Failed to sync playlist ${playlist.playlist.name}")
@@ -469,7 +513,7 @@ class SyncUtils @Inject constructor(
         
         YouTube.playlist(browseId).completed().onSuccess { page ->
             if (!isSyncStillEnabled(gen)) return@onSuccess
-            val songs = page.songs.map(SongItem::toMediaMetadata)
+            val songs = page.songs.orEmpty().map(SongItem::toMediaMetadata)
             Timber.d("syncPlaylist: Fetched ${songs.size} songs from remote")
 
             if (songs.isEmpty()) {
@@ -477,10 +521,20 @@ class SyncUtils @Inject constructor(
                 return@onSuccess
             }
 
-            val remoteIds = songs.map { it.id }
-            val localIds = database.playlistSongs(playlistId).first()
-                .sortedBy { it.map.position }
-                .map { it.song.id }
+            val remoteIds = songs.mapNotNull { it.id }
+            if (remoteIds.isEmpty()) {
+                Timber.w("syncPlaylist: No valid song IDs found, skipping sync")
+                return@onSuccess
+            }
+
+            val localIds = try {
+                database.playlistSongs(playlistId).first()
+                    .sortedBy { it.map.position }
+                    .map { it.song.id }
+            } catch (e: Exception) {
+                Timber.w("syncPlaylist: Failed to fetch local songs", e)
+                emptyList()
+            }
 
             if (remoteIds == localIds) {
                 Timber.d("syncPlaylist: Local and remote are in sync, no changes needed")
@@ -489,25 +543,30 @@ class SyncUtils @Inject constructor(
 
             Timber.d("syncPlaylist: Updating local playlist (remote: ${remoteIds.size}, local: ${localIds.size})")
 
-            database.withTransaction {
-                if (!isSyncStillEnabled(gen)) return@withTransaction
-                database.clearPlaylist(playlistId)
-                songs.forEachIndexed { idx, song ->
+            try {
+                database.withTransaction {
                     if (!isSyncStillEnabled(gen)) return@withTransaction
-                    if (database.song(song.id).firstOrNull() == null) {
-                        database.insert(song)
-                    }
-                    database.insert(
-                        PlaylistSongMap(
-                            songId = song.id,
-                            playlistId = playlistId,
-                            position = idx,
-                            setVideoId = song.setVideoId
+                    database.clearPlaylist(playlistId)
+                    songs.forEachIndexed { idx, song ->
+                        if (!isSyncStillEnabled(gen)) return@withTransaction
+                        if (song.id == null) return@forEachIndexed
+                        if (database.song(song.id).firstOrNull() == null) {
+                            database.insert(song)
+                        }
+                        database.insert(
+                            PlaylistSongMap(
+                                songId = song.id,
+                                playlistId = playlistId,
+                                position = idx,
+                                setVideoId = song.setVideoId
+                            )
                         )
-                    )
+                    }
                 }
+                Timber.d("syncPlaylist: Successfully synced playlist")
+            } catch (e: Exception) {
+                Timber.e(e, "syncPlaylist: Error during database transaction")
             }
-            Timber.d("syncPlaylist: Successfully synced playlist")
         }.onFailure { e ->
             Timber.e(e, "syncPlaylist: Failed to fetch playlist from YouTube")
         }

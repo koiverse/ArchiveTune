@@ -53,6 +53,17 @@
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
 
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data
+                    android:host="together"
+                    android:scheme="archivetune" />
+            </intent-filter>
+
             <!-- Youtube filter -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
