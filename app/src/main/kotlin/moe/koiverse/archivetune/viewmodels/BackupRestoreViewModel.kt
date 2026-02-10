@@ -75,7 +75,7 @@ internal fun readCsvRecords(reader: Reader): Sequence<List<String>> =
             field.setLength(0)
         }
 
-        suspend fun endRecord() {
+        suspend fun SequenceScope<List<String>>.endRecord() {
             endField()
             val anyContent = record.any { it.isNotBlank() }
             if (anyContent) {
