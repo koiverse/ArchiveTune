@@ -1,7 +1,8 @@
 package moe.koiverse.archivetune.together
 
+import io.ktor.server.application.install
 import io.ktor.server.cio.CIO
-import io.ktor.server.engine.ApplicationEngine
+import io.ktor.server.engine.EmbeddedServer
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.routing.routing
 import io.ktor.server.websocket.WebSockets
@@ -56,7 +57,7 @@ class TogetherServer(
 ) {
     private val mutex = Mutex()
     private var settings: TogetherRoomSettings = initialSettings
-    private var engine: ApplicationEngine? = null
+    private var engine: EmbeddedServer<*, *>? = null
     @Volatile
     private var lastParticipants: List<TogetherParticipant> = emptyList()
 
@@ -315,7 +316,7 @@ class TogetherServer(
                                     sessionId = sessionId,
                                     pingId = message.pingId,
                                     clientElapsedRealtimeMs = message.clientElapsedRealtimeMs,
-                                    serverElapsedRealtimeMs = SystemClock.elapsedRealtime(),
+                                    serverElapsedRealtimeMs = android.os.SystemClock.elapsedRealtime(),
                                 ),
                             ),
                         )
@@ -347,8 +348,4 @@ class TogetherServer(
             runCatching { close() }
         }
     }
-}
-
-private object SystemClock {
-    fun elapsedRealtime(): Long = android.os.SystemClock.elapsedRealtime()
 }
