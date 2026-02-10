@@ -281,11 +281,7 @@ class MainActivity : ComponentActivity() {
         val pending = pendingDeepLinkSong ?: return
         val connection = playerConnection ?: return
         pendingDeepLinkSong = null
-        if (connection.player.isPlaying) {
-            connection.playNext(pending.mediaItem)
-        } else {
-            connection.playQueue(ListQueue(items = listOf(pending.mediaItem)))
-        }
+        connection.playQueue(ListQueue(items = listOf(pending.mediaItem)))
     }
 
     override fun onStart() {
