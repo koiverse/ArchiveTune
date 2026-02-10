@@ -182,6 +182,7 @@ import moe.koiverse.archivetune.db.entities.SearchHistory
 import moe.koiverse.archivetune.innertube.YouTube
 import moe.koiverse.archivetune.innertube.models.SongItem
 import moe.koiverse.archivetune.innertube.models.WatchEndpoint
+import moe.koiverse.archivetune.extensions.toMediaItem
 import moe.koiverse.archivetune.models.MediaMetadata
 import moe.koiverse.archivetune.models.toMediaMetadata
 import moe.koiverse.archivetune.playback.DownloadUtil
@@ -248,7 +249,7 @@ class MainActivity : ComponentActivity() {
 
     private lateinit var navController: NavHostController
     private var pendingIntent: Intent? = null
-    private var pendingYouTubeQueue: PendingYouTubeQueue? = null
+    private var pendingDeepLinkSong: PendingDeepLinkSong? = null
     private var latestVersionName by mutableStateOf(BuildConfig.VERSION_NAME)
 
     private var playerConnection by mutableStateOf<PlayerConnection?>(null)
@@ -264,7 +265,7 @@ class MainActivity : ComponentActivity() {
                 if (service is MusicBinder) {
                     playerConnection =
                         PlayerConnection(this@MainActivity, service, database, lifecycleScope)
-                    playPendingYouTubeQueueIfReady()
+                    playPendingDeepLinkSongIfReady()
                 }
             }
 
@@ -275,16 +276,21 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-    private data class PendingYouTubeQueue(
+    private data class PendingDeepLinkSong(
         val endpoint: WatchEndpoint,
         val preloadItem: MediaMetadata?,
+        val mediaItem: MediaItem,
     )
 
-    private fun playPendingYouTubeQueueIfReady() {
-        val pending = pendingYouTubeQueue ?: return
+    private fun playPendingDeepLinkSongIfReady() {
+        val pending = pendingDeepLinkSong ?: return
         val connection = playerConnection ?: return
-        pendingYouTubeQueue = null
-        connection.playQueue(YouTubeQueue(pending.endpoint, pending.preloadItem))
+        pendingDeepLinkSong = null
+        if (connection.isPlaying.value) {
+            connection.playNext(pending.mediaItem)
+        } else {
+            connection.playQueue(YouTubeQueue(pending.endpoint, pending.preloadItem))
+        }
     }
 
     override fun onStart() {
@@ -296,7 +302,7 @@ class MainActivity : ComponentActivity() {
                 serviceConnection,
                 Context.BIND_AUTO_CREATE
             )
-        playPendingYouTubeQueueIfReady()
+        playPendingDeepLinkSongIfReady()
     }
 
     private fun safeUnbindMusicService() {
@@ -1684,16 +1690,26 @@ class MainActivity : ComponentActivity() {
 
                         result.onSuccess { queued ->
                             val firstItem = queued.firstOrNull()
-                            pendingYouTubeQueue =
-                                PendingYouTubeQueue(
-                                    endpoint = WatchEndpoint(
-                                        videoId = firstItem?.id ?: vid,
-                                        playlistId = playlistId,
-                                    ),
+                            val mediaItem =
+                                firstItem?.toMediaItem()
+                                    ?: MediaItem
+                                        .Builder()
+                                        .setMediaId(vid)
+                                        .setUri(vid)
+                                        .setCustomCacheKey(vid)
+                                        .build()
+                            pendingDeepLinkSong =
+                                PendingDeepLinkSong(
+                                    endpoint =
+                                        WatchEndpoint(
+                                            videoId = firstItem?.id ?: vid,
+                                            playlistId = playlistId,
+                                        ),
                                     preloadItem = firstItem?.toMediaMetadata(),
+                                    mediaItem = mediaItem,
                                 )
                             startMusicServiceSafely()
-                            playPendingYouTubeQueueIfReady()
+                            playPendingDeepLinkSongIfReady()
                         }.onFailure {
                             reportException(it)
                         }
