@@ -46,6 +46,9 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import java.io.FileInputStream
 import java.io.FileOutputStream
+import java.io.InputStreamReader
+import java.io.PushbackReader
+import java.io.Reader
 import java.io.StringReader
 import java.util.zip.ZipEntry
 import javax.inject.Inject
@@ -59,6 +62,83 @@ data class BackupRestoreProgressUi(
     val percent: Int,
     val indeterminate: Boolean,
 )
+
+internal fun readCsvRecords(reader: Reader): Sequence<List<String>> =
+    sequence {
+        val pushbackReader = if (reader is PushbackReader) reader else PushbackReader(reader, 1)
+        val record = ArrayList<String>(8)
+        val field = StringBuilder(64)
+        var inQuotes = false
+
+        fun endField() {
+            record.add(field.toString())
+            field.setLength(0)
+        }
+
+        suspend fun SequenceScope<List<String>>.endRecord() {
+            endField()
+            val anyContent = record.any { it.isNotBlank() }
+            if (anyContent) {
+                yield(record.toList())
+            }
+            record.clear()
+        }
+
+        while (true) {
+            val value = pushbackReader.read()
+            if (value == -1) {
+                if (field.isNotEmpty() || record.isNotEmpty()) {
+                    endRecord()
+                }
+                break
+            }
+
+            val ch = value.toChar()
+            when (ch) {
+                '"' -> {
+                    if (inQuotes) {
+                        val next = pushbackReader.read()
+                        if (next == '"'.code) {
+                            field.append('"')
+                        } else {
+                            inQuotes = false
+                            if (next != -1) pushbackReader.unread(next)
+                        }
+                    } else {
+                        if (field.isEmpty()) {
+                            inQuotes = true
+                        } else {
+                            field.append('"')
+                        }
+                    }
+                }
+                ',' -> {
+                    if (inQuotes) {
+                        field.append(',')
+                    } else {
+                        endField()
+                    }
+                }
+                '\n' -> {
+                    if (inQuotes) {
+                        field.append('\n')
+                    } else {
+                        endRecord()
+                    }
+                }
+                '\r' -> {
+                    if (inQuotes) {
+                        field.append('\r')
+                    } else {
+                        val next = pushbackReader.read()
+                        if (next != '\n'.code && next != -1) pushbackReader.unread(next)
+                        endRecord()
+                    }
+                }
+                else -> field.append(ch)
+            }
+        }
+    }
 
 @HiltViewModel
 class BackupRestoreViewModel @Inject constructor(
@@ -431,76 +511,74 @@ class BackupRestoreViewModel @Inject constructor(
             stringSets.forEach { (k, v) -> prefs[stringSetPreferencesKey(k)] = v }
         }
     }
-    fun importPlaylistFromCsv(context: Context, uri: Uri): ArrayList<Song> {
-        val songs = arrayListOf<Song>()
-        runCatching {
-            context.contentResolver.openInputStream(uri)?.use { stream ->
-                fun parseCsvLine(line: String): List<String> {
-                    val result = mutableListOf<String>()
-                    var i = 0
-                    val n = line.length
-                    while (i < n) {
-                        if (line[i] == '"') {
-                            i++
-                            val sb = StringBuilder()
-                            while (i < n) {
-                                if (line[i] == '"') {
-                                    if (i + 1 < n && line[i + 1] == '"') {
-                                        sb.append('"')
-                                        i += 2
-                                        continue
-                                    } else {
-                                        i++
-                                        break
-                                    }
-                                }
-                                sb.append(line[i])
-                                i++
-                            }
-                            while (i < n && line[i] != ',') i++
-                            if (i < n && line[i] == ',') i++
-                            result.add(sb.toString())
-                        } else {
-                            val start = i
-                            while (i < n && line[i] != ',') i++
-                            result.add(line.substring(start, i).trim())
-                            if (i < n && line[i] == ',') i++
+    private fun normalizeCsvHeaderCell(value: String): String =
+        value
+            .trim()
+            .trimStart('\uFEFF')
+            .lowercase()
+            .replace(" ", "")
+            .replace("_", "")
+            .replace("-", "")
+
+    suspend fun importPlaylistFromCsv(context: Context, uri: Uri): ArrayList<Song> {
+        val songs =
+            withContext(Dispatchers.IO) {
+                val out = arrayListOf<Song>()
+
+                runCatching {
+                    context.contentResolver.openInputStream(uri)?.use { stream ->
+                        val reader = PushbackReader(InputStreamReader(stream, Charsets.UTF_8), 1)
+                        val iterator = readCsvRecords(reader).iterator()
+                        if (!iterator.hasNext()) return@use
+
+                        val firstRecord = iterator.next()
+                        val normalizedHeader = firstRecord.map(::normalizeCsvHeaderCell)
+
+                        val titleIndex =
+                            normalizedHeader.indexOfFirst { it == "title" || it == "tracktitle" || it == "songtitle" }
+                        val artistIndex =
+                            normalizedHeader.indexOfFirst { it == "artist" || it == "artists" || it == "artistname" }
+
+                        val hasHeader = titleIndex >= 0 && artistIndex >= 0
+                        val resolvedTitleIndex = if (hasHeader) titleIndex else 0
+                        val resolvedArtistIndex = if (hasHeader) artistIndex else 1
+
+                        fun addFromRecord(record: List<String>) {
+                            val titleRaw = record.getOrNull(resolvedTitleIndex).orEmpty()
+                            val artistRaw = record.getOrNull(resolvedArtistIndex).orEmpty()
+
+                            val title = titleRaw.trim().trimStart('\uFEFF')
+                            if (title.isBlank()) return
+
+                            val artistStr = artistRaw.trim()
+                            val artists =
+                                artistStr
+                                    .split(';', '|')
+                                    .map { it.trim() }
+                                    .filter { it.isNotEmpty() }
+                                    .map { ArtistEntity(id = "", name = it) }
+
+                            out.add(
+                                Song(
+                                    song = SongEntity(id = "", title = title),
+                                    artists = if (artists.isEmpty()) listOf(ArtistEntity("", "")) else artists,
+                                )
+                            )
+                        }
+
+                        if (!hasHeader) {
+                            addFromRecord(firstRecord)
+                        }
+                        while (iterator.hasNext()) {
+                            addFromRecord(iterator.next())
                         }
                     }
-                    return result
+                }.onFailure {
+                    reportException(it)
                 }
 
-                val lines = stream.bufferedReader().readLines()
-                val cleaned = lines.map { it.trim() }.filter { it.isNotEmpty() }
-                val dataLines = if (cleaned.isNotEmpty() && cleaned.first().lowercase().contains("title") && cleaned.first().lowercase().contains("artist")) {
-                    cleaned.drop(1)
-                } else cleaned
-
-                dataLines.forEach { line ->
-                    val parts = parseCsvLine(line)
-                    if (parts.size < 2) return@forEach
-                    val title = parts[0].trim().trim('\uFEFF')
-                    val artistStr = parts[1].trim()
-                    if (title.isEmpty()) return@forEach
-
-                    val artists = artistStr.split(";").map { it.trim() }.filter { it.isNotEmpty() }.map {
-                        ArtistEntity(
-                            id = "",
-                            name = it,
-                        )
-                    }
-
-                    val mockSong = Song(
-                        song = SongEntity(
-                            id = "",
-                            title = title,
-                        ),
-                        artists = if (artists.isEmpty()) listOf(ArtistEntity("", "")) else artists,
-                    )
-                    songs.add(mockSong)
-                }
+                out
             }
-        }
 
         if (songs.isEmpty()) {
             Toast.makeText(
@@ -509,40 +587,52 @@ class BackupRestoreViewModel @Inject constructor(
                 Toast.LENGTH_SHORT
             ).show()
         }
+
         return songs
     }
 
-    fun loadM3UOnline(
+    suspend fun loadM3UOnline(
         context: Context,
         uri: Uri,
     ): ArrayList<Song> {
-        val songs = ArrayList<Song>()
+        val songs =
+            withContext(Dispatchers.IO) {
+                val out = ArrayList<Song>()
 
-        runCatching {
-            context.applicationContext.contentResolver.openInputStream(uri)?.use { stream ->
-                val lines = stream.bufferedReader().readLines()
-                if (lines.first().startsWith("#EXTM3U")) {
-                    lines.forEachIndexed { _, rawLine ->
-                        if (rawLine.startsWith("#EXTINF:")) {
-                            // maybe later write this to be more efficient
-                            val artists =
-                                rawLine.substringAfter("#EXTINF:").substringAfter(',').substringBefore(" - ").split(';')
-                            val title = rawLine.substringAfter("#EXTINF:").substringAfter(',').substringAfter(" - ")
+                runCatching {
+                    context.applicationContext.contentResolver.openInputStream(uri)?.use { stream ->
+                        val lines = stream.bufferedReader().readLines()
+                        if (lines.firstOrNull()?.startsWith("#EXTM3U") == true) {
+                            lines.forEach { rawLine ->
+                                if (rawLine.startsWith("#EXTINF:")) {
+                                    val artists =
+                                        rawLine
+                                            .substringAfter("#EXTINF:")
+                                            .substringAfter(',')
+                                            .substringBefore(" - ")
+                                            .split(';')
+                                    val title =
+                                        rawLine
+                                            .substringAfter("#EXTINF:")
+                                            .substringAfter(',')
+                                            .substringAfter(" - ")
 
-                            val mockSong = Song(
-                                song = SongEntity(
-                                    id = "",
-                                    title = title,
-                                ),
-                                artists = artists.map { ArtistEntity("", it) },
-                            )
-                            songs.add(mockSong)
-
+                                    out.add(
+                                        Song(
+                                            song = SongEntity(id = "", title = title),
+                                            artists = artists.map { ArtistEntity("", it) },
+                                        )
+                                    )
+                                }
+                            }
                         }
                     }
+                }.onFailure {
+                    reportException(it)
                 }
+
+                out
             }
-        }
 
         if (songs.isEmpty()) {
             Toast.makeText(
@@ -551,6 +641,7 @@ class BackupRestoreViewModel @Inject constructor(
                 Toast.LENGTH_SHORT
             ).show()
         }
+
         return songs
     }
 

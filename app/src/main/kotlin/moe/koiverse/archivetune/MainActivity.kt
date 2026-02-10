@@ -182,6 +182,7 @@ import moe.koiverse.archivetune.db.entities.SearchHistory
 import moe.koiverse.archivetune.innertube.YouTube
 import moe.koiverse.archivetune.innertube.models.SongItem
 import moe.koiverse.archivetune.innertube.models.WatchEndpoint
+import moe.koiverse.archivetune.extensions.toMediaItem
 import moe.koiverse.archivetune.models.MediaMetadata
 import moe.koiverse.archivetune.models.toMediaMetadata
 import moe.koiverse.archivetune.playback.DownloadUtil
@@ -233,8 +234,6 @@ import java.net.URLEncoder
 import java.util.Locale
 import javax.inject.Inject
 import kotlin.time.Duration.Companion.days
-import android.widget.Toast
-import moe.koiverse.archivetune.extensions.toMediaItem
 
 @Suppress("DEPRECATION", "ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
 @AndroidEntryPoint
@@ -250,7 +249,7 @@ class MainActivity : ComponentActivity() {
 
     private lateinit var navController: NavHostController
     private var pendingIntent: Intent? = null
-    private var pendingYouTubeRequest: PendingYouTubeRequest? = null
+    private var pendingDeepLinkSong: PendingDeepLinkSong? = null
     private var latestVersionName by mutableStateOf(BuildConfig.VERSION_NAME)
 
     private var playerConnection by mutableStateOf<PlayerConnection?>(null)
@@ -266,7 +265,7 @@ class MainActivity : ComponentActivity() {
                 if (service is MusicBinder) {
                     playerConnection =
                         PlayerConnection(this@MainActivity, service, database, lifecycleScope)
-                    consumePendingYouTubeRequestIfReady()
+                    playPendingDeepLinkSongIfReady()
                 }
             }
 
@@ -277,46 +276,20 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-    private enum class PendingYouTubePlaybackMode {
-        Auto,
-        PlayNow,
-        PlayNext,
-    }
-
-    private data class PendingYouTubeRequest(
+    private data class PendingDeepLinkSong(
         val endpoint: WatchEndpoint,
         val preloadItem: MediaMetadata?,
-        val mode: PendingYouTubePlaybackMode,
+        val mediaItem: MediaItem,
     )
 
-    private fun consumePendingYouTubeRequestIfReady() {
-        val pending = pendingYouTubeRequest ?: return
+    private fun playPendingDeepLinkSongIfReady() {
+        val pending = pendingDeepLinkSong ?: return
         val connection = playerConnection ?: return
-        pendingYouTubeRequest = null
-
-        val resolvedMode =
-            when (pending.mode) {
-                PendingYouTubePlaybackMode.Auto ->
-                    if (connection.isPlaying.value) PendingYouTubePlaybackMode.PlayNext else PendingYouTubePlaybackMode.PlayNow
-
-                else -> pending.mode
-            }
-
-        when (resolvedMode) {
-            PendingYouTubePlaybackMode.PlayNow ->
-                connection.playQueue(YouTubeQueue(pending.endpoint, pending.preloadItem))
-
-            PendingYouTubePlaybackMode.PlayNext -> {
-                val preloadItem = pending.preloadItem
-                if (preloadItem != null) {
-                    connection.playNext(preloadItem.toMediaItem())
-                    Toast.makeText(this, getString(R.string.added_to_play_next), Toast.LENGTH_SHORT).show()
-                } else {
-                    connection.playQueue(YouTubeQueue(pending.endpoint, null))
-                }
-            }
-
-            PendingYouTubePlaybackMode.Auto -> Unit
+        pendingDeepLinkSong = null
+        if (connection.isPlaying.value) {
+            connection.playNext(pending.mediaItem)
+        } else {
+            connection.playQueue(YouTubeQueue(pending.endpoint, pending.preloadItem))
         }
     }
 
@@ -329,7 +302,7 @@ class MainActivity : ComponentActivity() {
                 serviceConnection,
                 Context.BIND_AUTO_CREATE
             )
-        consumePendingYouTubeRequestIfReady()
+        playPendingDeepLinkSongIfReady()
     }
 
     private fun safeUnbindMusicService() {
@@ -1717,17 +1690,26 @@ class MainActivity : ComponentActivity() {
 
                         result.onSuccess { queued ->
                             val firstItem = queued.firstOrNull()
-                            pendingYouTubeRequest =
-                                PendingYouTubeRequest(
-                                    endpoint = WatchEndpoint(
-                                        videoId = firstItem?.id ?: vid,
-                                        playlistId = playlistId,
-                                    ),
+                            val mediaItem =
+                                firstItem?.toMediaItem()
+                                    ?: MediaItem
+                                        .Builder()
+                                        .setMediaId(vid)
+                                        .setUri(vid)
+                                        .setCustomCacheKey(vid)
+                                        .build()
+                            pendingDeepLinkSong =
+                                PendingDeepLinkSong(
+                                    endpoint =
+                                        WatchEndpoint(
+                                            videoId = firstItem?.id ?: vid,
+                                            playlistId = playlistId,
+                                        ),
                                     preloadItem = firstItem?.toMediaMetadata(),
-                                    mode = PendingYouTubePlaybackMode.Auto,
+                                    mediaItem = mediaItem,
                                 )
                             startMusicServiceSafely()
-                            consumePendingYouTubeRequestIfReady()
+                            playPendingDeepLinkSongIfReady()
                         }.onFailure {
                             reportException(it)
                         }
