@@ -56,6 +56,14 @@ val ProxyUrlKey = stringPreferencesKey("proxyUrl")
 val ProxyTypeKey = stringPreferencesKey("proxyType")
 val YtmSyncKey = booleanPreferencesKey("ytmSync")
 val SelectedYtmPlaylistsKey = stringPreferencesKey("ytm_selected_playlists")
+
+val TogetherDisplayNameKey = stringPreferencesKey("together_display_name")
+val TogetherDefaultPortKey = intPreferencesKey("together_default_port")
+val TogetherAllowGuestsToAddTracksKey = booleanPreferencesKey("together_allow_guests_add_tracks")
+val TogetherAllowGuestsToControlPlaybackKey = booleanPreferencesKey("together_allow_guests_control_playback")
+val TogetherRequireHostApprovalToJoinKey = booleanPreferencesKey("together_require_host_approval_to_join")
+val TogetherLastJoinLinkKey = stringPreferencesKey("together_last_join_link")
+val TogetherWelcomeShownKey = booleanPreferencesKey("together_welcome_shown")
     
 // ListenBrainz scrobbling
 val ListenBrainzEnabledKey = booleanPreferencesKey("listenbrainz_enabled")

@@ -247,6 +247,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var navController: NavHostController
     private var pendingIntent: Intent? = null
     private var pendingDeepLinkSong: PendingDeepLinkSong? = null
+    private var pendingTogetherJoinLink: String? = null
     private var latestVersionName by mutableStateOf(BuildConfig.VERSION_NAME)
 
     private var playerConnection by mutableStateOf<PlayerConnection?>(null)
@@ -263,6 +264,7 @@ class MainActivity : ComponentActivity() {
                     playerConnection =
                         PlayerConnection(this@MainActivity, service, database, lifecycleScope)
                     playPendingDeepLinkSongIfReady()
+                    joinPendingTogetherIfReady()
                 }
             }
 
@@ -282,6 +284,23 @@ class MainActivity : ComponentActivity() {
         val connection = playerConnection ?: return
         pendingDeepLinkSong = null
         connection.playQueue(ListQueue(items = listOf(pending.mediaItem)))
+    }
+
+    private fun joinPendingTogetherIfReady() {
+        val pending = pendingTogetherJoinLink ?: return
+        val connection = playerConnection ?: return
+        pendingTogetherJoinLink = null
+        lifecycleScope.launch(Dispatchers.IO) {
+            val displayName =
+                runCatching { dataStore.data.first()[moe.koiverse.archivetune.constants.TogetherDisplayNameKey] }
+                    .getOrNull()
+                    ?.trim()
+                    .orEmpty()
+                    .ifBlank { Build.MODEL ?: getString(R.string.app_name) }
+            withContext(Dispatchers.Main) {
+                connection.service.joinTogether(pending, displayName)
+            }
+        }
     }
 
     override fun onStart() {
@@ -1640,6 +1659,14 @@ class MainActivity : ComponentActivity() {
     private fun handleDeepLinkIntent(intent: Intent, navController: NavHostController) {
         val uri = intent.data ?: intent.extras?.getString(Intent.EXTRA_TEXT)?.toUri() ?: return
         val coroutineScope = lifecycleScope
+
+        val authority = uri.authority?.lowercase()
+        if (uri.scheme.equals("archivetune", ignoreCase = true) && authority == "together") {
+            pendingTogetherJoinLink = uri.toString()
+            startMusicServiceSafely()
+            joinPendingTogetherIfReady()
+            return
+        }
 
         when (val path = uri.pathSegments.firstOrNull()) {
             "playlist" -> uri.getQueryParameter("list")?.let { playlistId ->

@@ -43,6 +43,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -59,6 +60,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
@@ -74,6 +76,7 @@ import moe.koiverse.archivetune.extensions.togglePlayPause
 
 import moe.koiverse.archivetune.models.MediaMetadata
 import moe.koiverse.archivetune.playback.PlayerConnection
+import moe.koiverse.archivetune.together.TogetherSessionState
 import kotlin.math.absoluteValue
 import kotlin.math.roundToInt
 import moe.koiverse.archivetune.LocalPlayerConnection
@@ -377,6 +380,7 @@ fun NewMiniPlayerContent(
     // Track loading state when buffering
     val isLoading = playbackState == Player.STATE_BUFFERING
     val isLiked = currentSong?.song?.liked == true
+    val togetherSessionState by playerConnection.service.togetherSessionState.collectAsState()
 
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -402,6 +406,26 @@ fun NewMiniPlayerContent(
         } ?: Spacer(Modifier.weight(1f))
 
         Spacer(modifier = Modifier.width(12.dp))
+
+        if (togetherSessionState !is TogetherSessionState.Idle) {
+            Surface(
+                shape = RoundedCornerShape(999.dp),
+                color = MaterialTheme.colorScheme.primaryContainer,
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.all_inclusive),
+                        contentDescription = stringResource(R.string.music_together),
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                        modifier = Modifier.size(14.dp),
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.width(8.dp))
+        }
 
         // Subscribe button
         mediaMetadata?.let {

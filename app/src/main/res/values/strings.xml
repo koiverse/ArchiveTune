@@ -650,4 +650,56 @@ ArchiveTune will only extract your token, and everything else is stored locally.
     <string name="next">Next</string>
     <string name="next_song">Next Song</string>
     <string name="allow">Allow</string>
+
+    <string name="music_together">ArchiveTune Music Together</string>
+    <string name="together_display_name">Display name</string>
+    <string name="together_display_name_placeholder">Your name</string>
+    <string name="together_port">Session port</string>
+    <string name="together_allow_guests_add">Guests can add songs</string>
+    <string name="together_allow_guests_control">Guests can control playback</string>
+    <string name="together_require_approval">Require approval</string>
+    <string name="together_join_link_hint">Paste a join link or code</string>
+    <string name="start_session">Start session</string>
+    <string name="end_session">End session</string>
+    <string name="join_session">Join session</string>
+    <string name="session_link">Session link</string>
+    <string name="participants">Participants</string>
+    <string name="pending_requests">Join requests</string>
+    <string name="waiting_for_approval">Waiting for approval</string>
+    <string name="host">Host</string>
+    <string name="session_settings">Session settings</string>
+    <string name="add_current_song">Add current song</string>
+    <string name="playback_controls">Playback controls</string>
+    <string name="approve">Approve</string>
+    <string name="deny">Deny</string>
+    <string name="dismiss">Dismiss</string>
+    <string name="enabled">Enabled</string>
+    <string name="disabled">Disabled</string>
+    <string name="invalid_link">Invalid link</string>
+    <string name="not_allowed">Not allowed</string>
+    <string name="network_unavailable">Network unavailable</string>
+    <string name="leave">Leave</string>
+    <string name="join">Join</string>
+    <string name="loading">Loading</string>
+    <string name="connecting">Connecting…</string>
+    <string name="copy_link">Copy link</string>
+
+    <string name="together_host_section">Host</string>
+    <string name="together_join_section">Join</string>
+    <string name="together_status">Status</string>
+    <string name="together_idle">Not in a session</string>
+    <string name="together_hosting">Hosting session</string>
+    <string name="together_joining">Joining session</string>
+    <string name="together_connected">Connected</string>
+    <string name="together_error_state">Error</string>
+
+    <string name="got_it">Got it</string>
+    <string name="together_welcome_title">Welcome to ArchiveTune Music Together</string>
+    <string name="together_welcome_body">Music Together lets multiple devices share a live session with a synced queue and playback. One device hosts a session and shares a link, others join on the same Wi‑Fi.</string>
+    <string name="together_welcome_host_title">Host a session</string>
+    <string name="together_welcome_host_body">Tap Start session, then share the session link. Keep ArchiveTune open in the background while hosting.</string>
+    <string name="together_welcome_join_title">Join from another device</string>
+    <string name="together_welcome_join_body">Open the shared link, or paste it here and tap Join. Your queue and playback will follow the host.</string>
+    <string name="together_welcome_permissions_title">Permissions and safety</string>
+    <string name="together_welcome_permissions_body">Hosts can decide whether guests can add songs, control playback, or require approval to join.</string>
 </resources>

@@ -1,0 +1,226 @@
+package moe.koiverse.archivetune.together
+
+import androidx.compose.runtime.Immutable
+import io.ktor.client.HttpClient
+import io.ktor.client.engine.okhttp.OkHttp
+import io.ktor.client.plugins.websocket.WebSockets
+import io.ktor.client.plugins.websocket.webSocket
+import io.ktor.websocket.CloseReason
+import io.ktor.websocket.Frame
+import io.ktor.websocket.WebSocketSession
+import io.ktor.websocket.close
+import io.ktor.websocket.readText
+import io.ktor.websocket.send
+import java.util.UUID
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.channels.ClosedReceiveChannelException
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
+
+sealed interface TogetherClientEvent {
+    data class Welcome(
+        val welcome: ServerWelcome,
+    ) : TogetherClientEvent
+
+    data class RoomState(
+        val state: TogetherRoomState,
+    ) : TogetherClientEvent
+
+    data class JoinDecision(
+        val decision: moe.koiverse.archivetune.together.JoinDecision,
+    ) : TogetherClientEvent
+
+    data class Error(
+        val message: String,
+        val throwable: Throwable? = null,
+    ) : TogetherClientEvent
+
+    data class HeartbeatPong(
+        val pong: moe.koiverse.archivetune.together.HeartbeatPong,
+        val receivedAtElapsedRealtimeMs: Long,
+    ) : TogetherClientEvent
+
+    data object Disconnected : TogetherClientEvent
+}
+
+@Immutable
+sealed class TogetherClientState {
+    data object Idle : TogetherClientState()
+    data class Connecting(val joinInfo: TogetherJoinInfo) : TogetherClientState()
+    data class Connected(val session: TogetherJoinInfo) : TogetherClientState()
+}
+
+class TogetherClient(
+    private val externalScope: CoroutineScope,
+) {
+    private val client =
+        HttpClient(OkHttp) {
+            install(WebSockets)
+        }
+
+    private val scope = CoroutineScope(externalScope.coroutineContext + SupervisorJob())
+
+    private val _state = MutableStateFlow<TogetherClientState>(TogetherClientState.Idle)
+    val state = _state.asStateFlow()
+
+    private val _events = MutableSharedFlow<TogetherClientEvent>(extraBufferCapacity = 64)
+    val events = _events.asSharedFlow()
+
+    private var session: WebSocketSession? = null
+    private var loopJob: Job? = null
+    private var selfParticipantId: String? = null
+    private val clientId = UUID.randomUUID().toString()
+
+    fun connect(joinInfo: TogetherJoinInfo, displayName: String) {
+        scope.launch {
+            disconnect()
+            _state.value = TogetherClientState.Connecting(joinInfo)
+
+            runCatching {
+                client.webSocket(urlString = joinInfo.toWebSocketUrl()) {
+                    session = this
+                    val hello =
+                        ClientHello(
+                            protocolVersion = TogetherProtocolVersion,
+                            sessionId = joinInfo.sessionId,
+                            sessionKey = joinInfo.sessionKey,
+                            clientId = clientId,
+                            displayName = displayName.trim().ifBlank { "Guest" },
+                        )
+                    send(TogetherJson.json.encodeToString(TogetherMessage.serializer(), hello))
+                    _state.value = TogetherClientState.Connected(joinInfo)
+                    runLoop(this, joinInfo.sessionId)
+                }
+            }.onFailure {
+                _events.tryEmit(TogetherClientEvent.Error("Connection failed", it))
+                _state.value = TogetherClientState.Idle
+            }
+        }
+    }
+
+    suspend fun disconnect() {
+        loopJob?.cancel()
+        loopJob?.cancelAndJoin()
+        loopJob = null
+        runCatching { session?.close(CloseReason(CloseReason.Codes.NORMAL, "Disconnect")) }
+        session = null
+        selfParticipantId = null
+        _state.value = TogetherClientState.Idle
+    }
+
+    fun requestControl(sessionId: String, action: ControlAction) {
+        val pid = selfParticipantId ?: return
+        scope.launch {
+            session?.send(
+                TogetherJson.json.encodeToString(
+                    TogetherMessage.serializer(),
+                    ControlRequest(sessionId = sessionId, participantId = pid, action = action),
+                ),
+            )
+        }
+    }
+
+    fun requestAddTrack(sessionId: String, track: TogetherTrack, mode: AddTrackMode) {
+        val pid = selfParticipantId ?: return
+        scope.launch {
+            session?.send(
+                TogetherJson.json.encodeToString(
+                    TogetherMessage.serializer(),
+                    AddTrackRequest(sessionId = sessionId, participantId = pid, track = track, mode = mode),
+                ),
+            )
+        }
+    }
+
+    fun sendHeartbeat(sessionId: String, pingId: Long, clientElapsedRealtimeMs: Long) {
+        scope.launch {
+            session?.send(
+                TogetherJson.json.encodeToString(
+                    TogetherMessage.serializer(),
+                    HeartbeatPing(
+                        sessionId = sessionId,
+                        pingId = pingId,
+                        clientElapsedRealtimeMs = clientElapsedRealtimeMs,
+                    ),
+                ),
+            )
+        }
+    }
+
+    private suspend fun runLoop(session: WebSocketSession, sessionId: String) {
+        loopJob =
+            scope.launch {
+                try {
+                    while (true) {
+                        val frame =
+                            try {
+                                session.incoming.receive()
+                            } catch (_: ClosedReceiveChannelException) {
+                                break
+                            }
+
+                        val text = (frame as? Frame.Text)?.readText() ?: continue
+                        val message =
+                            runCatching { TogetherJson.json.decodeFromString(TogetherMessage.serializer(), text) }
+                                .getOrElse {
+                                    _events.tryEmit(TogetherClientEvent.Error("Failed to decode message", it))
+                                    continue
+                                }
+
+                        when (message) {
+                            is ServerWelcome -> {
+                                if (message.sessionId == sessionId) {
+                                    selfParticipantId = message.participantId
+                                    _events.tryEmit(TogetherClientEvent.Welcome(message))
+                                }
+                            }
+
+                            is RoomStateMessage -> {
+                                if (message.state.sessionId == sessionId) {
+                                    _events.tryEmit(TogetherClientEvent.RoomState(message.state))
+                                }
+                            }
+
+                            is moe.koiverse.archivetune.together.JoinDecision -> {
+                                if (message.sessionId == sessionId && message.participantId == selfParticipantId) {
+                                    _events.tryEmit(TogetherClientEvent.JoinDecision(message))
+                                }
+                            }
+
+                            is HeartbeatPong -> {
+                                if (message.sessionId == sessionId) {
+                                    _events.tryEmit(
+                                        TogetherClientEvent.HeartbeatPong(
+                                            pong = message,
+                                            receivedAtElapsedRealtimeMs = SystemClock.elapsedRealtime(),
+                                        ),
+                                    )
+                                }
+                            }
+
+                            is ServerError -> {
+                                _events.tryEmit(TogetherClientEvent.Error(message.message, null))
+                            }
+
+                            else -> Unit
+                        }
+                    }
+                } catch (t: Throwable) {
+                    _events.tryEmit(TogetherClientEvent.Error("Connection loop failed", t))
+                } finally {
+                    _events.tryEmit(TogetherClientEvent.Disconnected)
+                    _state.value = TogetherClientState.Idle
+                }
+            }
+    }
+}
+
+private object SystemClock {
+    fun elapsedRealtime(): Long = android.os.SystemClock.elapsedRealtime()
+}

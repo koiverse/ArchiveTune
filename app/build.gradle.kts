@@ -212,6 +212,11 @@ dependencies {
 
     implementation(libs.ktor.client.core)
     implementation(libs.ktor.serialization.json)
+    implementation(libs.ktor.client.websockets)
+    implementation(libs.ktor.server.core)
+    implementation(libs.ktor.server.cio)
+    implementation(libs.ktor.server.websockets)
+    implementation(libs.ktor.server.content.negotiation)
 
     coreLibraryDesugaring(libs.desugaring)
 
