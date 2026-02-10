@@ -102,6 +102,8 @@ fun BackupAndRestore(
         mutableStateOf(false)
     }
 
+    var progressStatus by remember { mutableStateOf("") }
+
     var progressPercentage by rememberSaveable {
         mutableIntStateOf(0)
     }
@@ -165,6 +167,9 @@ fun BackupAndRestore(
             modifier = Modifier
                 .nestedScroll(scrollBehavior.nestedScrollConnection)
                 .padding(innerPadding)
+                .padding(horizontal = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
                 .windowInsetsPadding(
                     LocalPlayerAwareWindowInsets.current.only(
                         WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom
@@ -342,7 +347,8 @@ fun BackupAndRestore(
         songs = importedSongs,
         onDismiss = { showChoosePlaylistDialogOnline = false },
         onProgressStart = { newVal -> isProgressStarted = newVal },
-        onPercentageChange = { newPercentage -> progressPercentage = newPercentage }
+        onPercentageChange = { newPercentage -> progressPercentage = newPercentage },
+        onStatusChange = { progressStatus = it }
     )
 
     LaunchedEffect(progressPercentage, isProgressStarted) {
@@ -359,7 +365,7 @@ fun BackupAndRestore(
         isVisible = backupRestoreProgress != null || isProgressStarted,
         value = backupRestoreProgress?.percent ?: progressPercentage,
         title = backupRestoreProgress?.title,
-        stepText = backupRestoreProgress?.step,
+        stepText = backupRestoreProgress?.step ?: progressStatus,
         indeterminate = backupRestoreProgress?.indeterminate ?: false,
     )
 }
