@@ -167,9 +167,6 @@ fun BackupAndRestore(
             modifier = Modifier
                 .nestedScroll(scrollBehavior.nestedScrollConnection)
                 .padding(innerPadding)
-                .padding(horizontal = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
                 .windowInsetsPadding(
                     LocalPlayerAwareWindowInsets.current.only(
                         WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom
