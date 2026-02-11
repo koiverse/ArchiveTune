@@ -5,6 +5,7 @@
  */
 
 
+
 package com.my.kizzy.gateway.entities
 
 import com.my.kizzy.gateway.entities.op.OpCode
