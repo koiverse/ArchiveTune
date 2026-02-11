@@ -70,12 +70,19 @@ android {
                 ?: ""
         val togetherOnlineEndpoint =
             localProperties.getProperty("TOGETHER_ONLINE_ENDPOINT")
+                ?: localProperties.getProperty("TOGETHER_ONLINE_BASE_URL")
+                ?: localProperties.getProperty("TOGETHER_ONLINE_API_BASE_URL")
+                ?: localProperties.getProperty("TOGETHER_ONLINE_ENDPOINT_URL")
                 ?: System.getenv("TOGETHER_ONLINE_ENDPOINT")
+                ?: System.getenv("TOGETHER_ONLINE_BASE_URL")
+                ?: System.getenv("TOGETHER_ONLINE_API_BASE_URL")
+                ?: System.getenv("TOGETHER_ONLINE_ENDPOINT_URL")
                 ?: ""
         val togetherOnlineEndpointB64 = encryptAesGcmB64(togetherOnlineEndpoint, togetherOnlineSecret)
 
         buildConfigField("String", "TOGETHER_ONLINE_SECRET", "\"$togetherOnlineSecret\"")
         buildConfigField("String", "TOGETHER_ONLINE_ENDPOINT_B64", "\"$togetherOnlineEndpointB64\"")
+        buildConfigField("String", "TOGETHER_ONLINE_ENDPOINT", "\"$togetherOnlineEndpoint\"")
     }
 
     flavorDimensions += "abi"
