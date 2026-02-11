@@ -35,6 +35,9 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -42,6 +45,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -59,6 +63,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.getSystemService
+import kotlinx.coroutines.delay
 import moe.koiverse.archivetune.LocalPlayerConnection
 import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.constants.TogetherAllowGuestsToAddTracksKey
@@ -86,6 +91,37 @@ fun MusicTogetherDialog(
     val context = LocalContext.current
     val playerConnection = LocalPlayerConnection.current ?: return
     val sessionState by playerConnection.service.togetherSessionState.collectAsState()
+
+    var hostModeOnline by rememberSaveable { mutableStateOf(false) }
+    var joinModeOnline by rememberSaveable { mutableStateOf(false) }
+
+    var creatingSession by rememberSaveable { mutableStateOf(false) }
+    var joiningSession by rememberSaveable { mutableStateOf(false) }
+
+    LaunchedEffect(sessionState) {
+        if (sessionState !is TogetherSessionState.Idle) {
+            creatingSession = false
+            joiningSession = false
+        }
+        if (sessionState is TogetherSessionState.Error) {
+            creatingSession = false
+            joiningSession = false
+        }
+    }
+
+    LaunchedEffect(creatingSession) {
+        if (creatingSession) {
+            delay(2500)
+            if (sessionState is TogetherSessionState.Idle) creatingSession = false
+        }
+    }
+
+    LaunchedEffect(joiningSession) {
+        if (joiningSession) {
+            delay(2500)
+            if (sessionState is TogetherSessionState.Idle) joiningSession = false
+        }
+    }
 
     val (displayName, setDisplayName) =
         rememberPreference(
@@ -126,23 +162,38 @@ fun MusicTogetherDialog(
     }
 
     if (showJoinDialog) {
+        val placeholder =
+            if (joinModeOnline) {
+                stringResource(R.string.together_join_code_hint)
+            } else {
+                stringResource(R.string.together_join_link_hint)
+            }
         TextFieldDialog(
             title = { Text(text = stringResource(R.string.join_session)) },
-            placeholder = { Text(text = stringResource(R.string.together_join_link_hint)) },
+            placeholder = { Text(text = placeholder) },
             singleLine = false,
             maxLines = 6,
-            isInputValid = { TogetherLink.decode(it) != null },
+            isInputValid = {
+                if (joinModeOnline) it.trim().isNotBlank() else TogetherLink.decode(it) != null
+            },
             onDone = {
                 val trimmed = it.trim()
                 joinInput = trimmed
                 setLastJoinLink(trimmed)
-                playerConnection.service.joinTogether(trimmed, displayName)
+                if (joinModeOnline) {
+                    playerConnection.service.joinTogetherOnline(trimmed, displayName)
+                } else {
+                    playerConnection.service.joinTogether(trimmed, displayName)
+                }
             },
             onDismiss = { showJoinDialog = false },
         )
     }
 
-    val canJoin = remember(joinInput) { TogetherLink.decode(joinInput) != null }
+    val canJoin =
+        remember(joinInput, joinModeOnline) {
+            if (joinModeOnline) joinInput.trim().isNotBlank() else TogetherLink.decode(joinInput) != null
+        }
 
     val currentTrack = playerConnection.mediaMetadata.collectAsState().value
     val currentTogetherTrack =
@@ -180,7 +231,9 @@ fun MusicTogetherDialog(
                     actions = {
                         when (sessionState) {
                             is TogetherSessionState.Hosting,
+                            is TogetherSessionState.HostingOnline,
                             is TogetherSessionState.Joining,
+                            is TogetherSessionState.JoiningOnline,
                             is TogetherSessionState.Joined,
                                 -> {
                                 TextButton(
@@ -218,8 +271,36 @@ fun MusicTogetherDialog(
 
                     when (val state = sessionState) {
                         TogetherSessionState.Idle -> {
+                            val busy = creatingSession || joiningSession
                             MenuSurfaceSection {
                                 Column {
+                                    SingleChoiceSegmentedButtonRow(
+                                        modifier =
+                                            Modifier
+                                                .fillMaxWidth()
+                                                .padding(horizontal = 16.dp)
+                                                .padding(top = 14.dp),
+                                    ) {
+                                        SegmentedButton(
+                                            selected = !hostModeOnline,
+                                            enabled = !busy,
+                                            onClick = { hostModeOnline = false },
+                                            shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
+                                            icon = {},
+                                        ) {
+                                            Text(text = stringResource(R.string.together_lan))
+                                        }
+                                        SegmentedButton(
+                                            selected = hostModeOnline,
+                                            enabled = !busy,
+                                            onClick = { hostModeOnline = true },
+                                            shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
+                                            icon = {},
+                                        ) {
+                                            Text(text = stringResource(R.string.together_online))
+                                        }
+                                    }
+
                                     ListItem(
                                         headlineContent = { Text(text = stringResource(R.string.together_display_name)) },
                                         supportingContent = {
@@ -239,6 +320,7 @@ fun MusicTogetherDialog(
                                         colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                                     )
                                     TextButton(
+                                        enabled = !busy,
                                         onClick = { showNameDialog = true },
                                         modifier = Modifier.padding(start = 56.dp, bottom = 8.dp),
                                     ) {
@@ -250,29 +332,32 @@ fun MusicTogetherDialog(
                                         color = MaterialTheme.colorScheme.outlineVariant,
                                     )
 
-                                    ListItem(
-                                        headlineContent = { Text(text = stringResource(R.string.together_port)) },
-                                        supportingContent = { Text(text = port.toString()) },
-                                        leadingContent = {
-                                            Icon(
-                                                painter = painterResource(R.drawable.link),
-                                                contentDescription = null,
-                                            )
-                                        },
-                                        modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp).padding(top = 6.dp),
-                                        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-                                    )
-                                    TextButton(
-                                        onClick = { showPortDialog = true },
-                                        modifier = Modifier.padding(start = 56.dp, bottom = 8.dp),
-                                    ) {
-                                        Text(text = stringResource(R.string.edit))
-                                    }
+                                    if (!hostModeOnline) {
+                                        ListItem(
+                                            headlineContent = { Text(text = stringResource(R.string.together_port)) },
+                                            supportingContent = { Text(text = port.toString()) },
+                                            leadingContent = {
+                                                Icon(
+                                                    painter = painterResource(R.drawable.link),
+                                                    contentDescription = null,
+                                                )
+                                            },
+                                            modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp).padding(top = 6.dp),
+                                            colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                                        )
+                                        TextButton(
+                                            enabled = !busy,
+                                            onClick = { showPortDialog = true },
+                                            modifier = Modifier.padding(start = 56.dp, bottom = 8.dp),
+                                        ) {
+                                            Text(text = stringResource(R.string.edit))
+                                        }
 
-                                    HorizontalDivider(
-                                        modifier = Modifier.padding(start = 56.dp),
-                                        color = MaterialTheme.colorScheme.outlineVariant,
-                                    )
+                                        HorizontalDivider(
+                                            modifier = Modifier.padding(start = 56.dp),
+                                            color = MaterialTheme.colorScheme.outlineVariant,
+                                        )
+                                    }
 
                                     SettingToggleRow(
                                         title = stringResource(R.string.together_allow_guests_add),
@@ -293,32 +378,82 @@ fun MusicTogetherDialog(
                             }
 
                             Button(
+                                enabled = !busy,
                                 onClick = {
-                                    playerConnection.service.startTogetherHost(
-                                        port = port,
-                                        displayName = displayName,
-                                        settings =
-                                            TogetherRoomSettings(
-                                                allowGuestsToAddTracks = allowAddTracks,
-                                                allowGuestsToControlPlayback = allowControlPlayback,
-                                                requireHostApprovalToJoin = requireApproval,
-                                            ),
-                                    )
+                                    creatingSession = true
+                                    val settings =
+                                        TogetherRoomSettings(
+                                            allowGuestsToAddTracks = allowAddTracks,
+                                            allowGuestsToControlPlayback = allowControlPlayback,
+                                            requireHostApprovalToJoin = requireApproval,
+                                        )
+                                    if (hostModeOnline) {
+                                        playerConnection.service.startTogetherOnlineHost(
+                                            displayName = displayName,
+                                            settings = settings,
+                                        )
+                                    } else {
+                                        playerConnection.service.startTogetherHost(
+                                            port = port,
+                                            displayName = displayName,
+                                            settings = settings,
+                                        )
+                                    }
                                 },
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(24.dp),
                             ) {
-                                Text(text = stringResource(R.string.start_session))
+                                if (creatingSession) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                    ) {
+                                        CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                                        Text(text = stringResource(R.string.loading))
+                                    }
+                                } else {
+                                    Text(text = stringResource(R.string.start_session))
+                                }
                             }
 
                             MenuSurfaceSection {
                                 Column {
+                                    SingleChoiceSegmentedButtonRow(
+                                        modifier =
+                                            Modifier
+                                                .fillMaxWidth()
+                                                .padding(horizontal = 16.dp)
+                                                .padding(top = 14.dp),
+                                    ) {
+                                        SegmentedButton(
+                                            selected = !joinModeOnline,
+                                            enabled = !busy,
+                                            onClick = { joinModeOnline = false },
+                                            shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
+                                            icon = {},
+                                        ) {
+                                            Text(text = stringResource(R.string.together_join_link))
+                                        }
+                                        SegmentedButton(
+                                            selected = joinModeOnline,
+                                            enabled = !busy,
+                                            onClick = { joinModeOnline = true },
+                                            shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
+                                            icon = {},
+                                        ) {
+                                            Text(text = stringResource(R.string.together_join_code))
+                                        }
+                                    }
+
+                                    val joinHint =
+                                        if (joinModeOnline) stringResource(R.string.together_join_code_hint)
+                                        else stringResource(R.string.together_join_link_hint)
                                     ListItem(
                                         headlineContent = { Text(text = stringResource(R.string.join_session)) },
                                         supportingContent = {
                                             Text(
                                                 text =
-                                                    joinInput.trim().ifBlank { stringResource(R.string.together_join_link_hint) },
+                                                    joinInput.trim().ifBlank { joinHint },
                                                 maxLines = 2,
                                                 overflow = TextOverflow.Ellipsis,
                                             )
@@ -339,18 +474,36 @@ fun MusicTogetherDialog(
                                         horizontalArrangement = Arrangement.spacedBy(10.dp),
                                         modifier = Modifier.padding(start = 56.dp, bottom = 12.dp),
                                     ) {
-                                        TextButton(onClick = { showJoinDialog = true }) {
+                                        TextButton(
+                                            enabled = !busy,
+                                            onClick = { showJoinDialog = true },
+                                        ) {
                                             Text(text = stringResource(R.string.edit))
                                         }
                                         TextButton(
-                                            enabled = canJoin,
+                                            enabled = canJoin && !busy,
                                             onClick = {
+                                                joiningSession = true
                                                 val trimmed = joinInput.trim()
                                                 setLastJoinLink(trimmed)
-                                                playerConnection.service.joinTogether(trimmed, displayName)
+                                                if (joinModeOnline) {
+                                                    playerConnection.service.joinTogetherOnline(trimmed, displayName)
+                                                } else {
+                                                    playerConnection.service.joinTogether(trimmed, displayName)
+                                                }
                                             },
                                         ) {
-                                            Text(text = stringResource(R.string.join))
+                                            if (joiningSession) {
+                                                Row(
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                                ) {
+                                                    CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                                                    Text(text = stringResource(R.string.connecting))
+                                                }
+                                            } else {
+                                                Text(text = stringResource(R.string.join))
+                                            }
                                         }
                                     }
                                 }
@@ -545,7 +698,212 @@ fun MusicTogetherDialog(
                             }
                         }
 
+                        is TogetherSessionState.HostingOnline -> {
+                            val code = state.code
+                            MenuSurfaceSection {
+                                Column {
+                                    ListItem(
+                                        headlineContent = { Text(text = stringResource(R.string.session_code)) },
+                                        supportingContent = {
+                                            Text(
+                                                text = code,
+                                                maxLines = 2,
+                                                overflow = TextOverflow.Ellipsis,
+                                            )
+                                        },
+                                        leadingContent = {
+                                            Icon(
+                                                painter = painterResource(R.drawable.link),
+                                                contentDescription = null,
+                                            )
+                                        },
+                                        trailingContent = {
+                                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                                IconButton(
+                                                    onClick = {
+                                                        val clipboard =
+                                                            context.getSystemService<android.content.ClipboardManager>()
+                                                                ?: return@IconButton
+                                                        clipboard.setPrimaryClip(
+                                                            android.content.ClipData.newPlainText(
+                                                                context.getString(R.string.session_code),
+                                                                code,
+                                                            ),
+                                                        )
+                                                        Toast.makeText(context, R.string.copied, Toast.LENGTH_SHORT).show()
+                                                    },
+                                                ) {
+                                                    Icon(
+                                                        painter = painterResource(R.drawable.link),
+                                                        contentDescription = null,
+                                                    )
+                                                }
+                                                IconButton(
+                                                    onClick = {
+                                                        val share =
+                                                            Intent(Intent.ACTION_SEND).apply {
+                                                                type = "text/plain"
+                                                                putExtra(Intent.EXTRA_TEXT, code)
+                                                            }
+                                                        context.startActivity(Intent.createChooser(share, null))
+                                                    },
+                                                ) {
+                                                    Icon(
+                                                        painter = painterResource(R.drawable.share),
+                                                        contentDescription = null,
+                                                    )
+                                                }
+                                            }
+                                        },
+                                        modifier =
+                                            Modifier
+                                                .fillMaxWidth()
+                                                .padding(horizontal = 8.dp, vertical = 6.dp),
+                                        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                                    )
+                                }
+                            }
+
+                            MenuSurfaceSection {
+                                Column {
+                                    SettingToggleRow(
+                                        title = stringResource(R.string.together_allow_guests_add),
+                                        checked = state.settings.allowGuestsToAddTracks,
+                                        onCheckedChange = {
+                                            val updated = state.settings.copy(allowGuestsToAddTracks = it)
+                                            setAllowAddTracks(it)
+                                            playerConnection.service.updateTogetherSettings(updated)
+                                        },
+                                    )
+                                    SettingToggleRow(
+                                        title = stringResource(R.string.together_allow_guests_control),
+                                        checked = state.settings.allowGuestsToControlPlayback,
+                                        onCheckedChange = {
+                                            val updated = state.settings.copy(allowGuestsToControlPlayback = it)
+                                            setAllowControlPlayback(it)
+                                            playerConnection.service.updateTogetherSettings(updated)
+                                        },
+                                    )
+                                    SettingToggleRow(
+                                        title = stringResource(R.string.together_require_approval),
+                                        checked = state.settings.requireHostApprovalToJoin,
+                                        onCheckedChange = {
+                                            val updated = state.settings.copy(requireHostApprovalToJoin = it)
+                                            setRequireApproval(it)
+                                            playerConnection.service.updateTogetherSettings(updated)
+                                        },
+                                    )
+                                }
+                            }
+
+                            val room = state.roomState
+                            if (room != null) {
+                                val pending = room.participants.filter { it.isPending && !it.isHost }
+                                if (pending.isNotEmpty()) {
+                                    MenuSurfaceSection {
+                                        Column {
+                                            ListItem(
+                                                headlineContent = { Text(text = stringResource(R.string.pending_requests)) },
+                                                leadingContent = {
+                                                    Icon(
+                                                        painter = painterResource(R.drawable.notifications_unread),
+                                                        contentDescription = null,
+                                                    )
+                                                },
+                                                colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                                            )
+                                            pending.forEach { p ->
+                                                PendingRequestRow(
+                                                    name = p.name,
+                                                    onApprove = { playerConnection.service.approveTogetherParticipant(p.id, true) },
+                                                    onDeny = { playerConnection.service.approveTogetherParticipant(p.id, false) },
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+
+                                MenuSurfaceSection {
+                                    Column {
+                                        ListItem(
+                                            headlineContent = { Text(text = stringResource(R.string.participants)) },
+                                            supportingContent = { Text(text = room.participants.size.toString()) },
+                                            leadingContent = {
+                                                Icon(
+                                                    painter = painterResource(R.drawable.account),
+                                                    contentDescription = null,
+                                                )
+                                            },
+                                            colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                                        )
+                                        room.participants.forEach { p ->
+                                            ListItem(
+                                                headlineContent = {
+                                                    Text(
+                                                        text = p.name,
+                                                        maxLines = 1,
+                                                        overflow = TextOverflow.Ellipsis,
+                                                    )
+                                                },
+                                                supportingContent = {
+                                                    if (p.isHost) Text(text = stringResource(R.string.host))
+                                                    else if (p.isPending) Text(text = stringResource(R.string.waiting_for_approval))
+                                                },
+                                                leadingContent = {
+                                                    Icon(
+                                                        painter = painterResource(if (p.isHost) R.drawable.star else R.drawable.person),
+                                                        contentDescription = null,
+                                                    )
+                                                },
+                                                colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                                            )
+                                        }
+                                    }
+                                }
+                            } else {
+                                MenuSurfaceSection {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth().padding(18.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                    ) {
+                                        CircularProgressIndicator(modifier = Modifier.size(22.dp), strokeWidth = 2.dp)
+                                        Text(
+                                            text = stringResource(R.string.loading),
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        )
+                                    }
+                                }
+                            }
+
+                            Button(
+                                onClick = { playerConnection.service.leaveTogether() },
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(24.dp),
+                            ) {
+                                Text(text = stringResource(R.string.end_session))
+                            }
+                        }
+
                         is TogetherSessionState.Joining -> {
+                            MenuSurfaceSection {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth().padding(18.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                ) {
+                                    CircularProgressIndicator(modifier = Modifier.size(22.dp), strokeWidth = 2.dp)
+                                    Text(
+                                        text = stringResource(R.string.connecting),
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
+                            }
+                        }
+
+                        is TogetherSessionState.JoiningOnline -> {
                             MenuSurfaceSection {
                                 Row(
                                     modifier = Modifier.fillMaxWidth().padding(18.dp),

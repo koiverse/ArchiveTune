@@ -342,6 +342,7 @@ class MusicService :
         moe.koiverse.archivetune.together.TogetherSessionState.Idle,
     )
     private var togetherServer: moe.koiverse.archivetune.together.TogetherServer? = null
+    private var togetherOnlineHost: moe.koiverse.archivetune.together.TogetherOnlineHost? = null
     private var togetherClient: moe.koiverse.archivetune.together.TogetherClient? = null
     private var togetherBroadcastJob: Job? = null
     private var togetherClientEventsJob: Job? = null
@@ -1381,7 +1382,7 @@ class MusicService :
 
             server.onEvent = { event ->
                 ioScope.launch(SilentHandler) {
-                    handleTogetherServerEvent(event, server)
+                    handleTogetherHostEvent(event) { server.currentSettings() }
                 }
             }
 
@@ -1415,6 +1416,112 @@ class MusicService :
                                             participants = server.currentParticipants(),
                                             settings = server.currentSettings(),
                                         ),
+                                    )
+                            }
+                        }
+                        kotlinx.coroutines.delay(750)
+                    }
+                }
+        }
+    }
+
+    fun startTogetherOnlineHost(
+        displayName: String,
+        settings: moe.koiverse.archivetune.together.TogetherRoomSettings,
+    ) {
+        ensureScopesActive()
+        scope.launch(SilentHandler) {
+            togetherSessionState.value = moe.koiverse.archivetune.together.TogetherSessionState.Idle
+        }
+
+        ioScope.launch(SilentHandler) {
+            stopTogetherInternal()
+
+            val baseUrl = moe.koiverse.archivetune.together.TogetherOnlineEndpoint.baseUrlOrNull()
+            if (baseUrl == null) {
+                scope.launch(SilentHandler) {
+                    togetherSessionState.value =
+                        moe.koiverse.archivetune.together.TogetherSessionState.Error(
+                            message = getString(R.string.together_online_not_configured),
+                            recoverable = true,
+                        )
+                }
+                return@launch
+            }
+
+            val api = moe.koiverse.archivetune.together.TogetherOnlineApi(baseUrl = baseUrl)
+            val hostName = displayName.trim().ifBlank { getString(R.string.app_name) }
+
+            val created =
+                runCatching {
+                    api.createSession(
+                        hostDisplayName = hostName,
+                        settings = settings,
+                    )
+                }.getOrElse { t ->
+                    scope.launch(SilentHandler) {
+                        togetherSessionState.value =
+                            moe.koiverse.archivetune.together.TogetherSessionState.Error(
+                                message = getString(R.string.network_unavailable),
+                                recoverable = true,
+                            )
+                    }
+                    reportException(t)
+                    return@launch
+                }
+
+            val onlineHost =
+                moe.koiverse.archivetune.together.TogetherOnlineHost(
+                    externalScope = ioScope,
+                    sessionId = created.sessionId,
+                    sessionKey = created.hostKey,
+                    hostId = togetherHostId,
+                    hostDisplayName = hostName,
+                    initialSettings = created.settings,
+                )
+
+            onlineHost.onEvent = { event ->
+                ioScope.launch(SilentHandler) {
+                    handleTogetherHostEvent(event) { onlineHost.currentSettings() }
+                }
+            }
+
+            togetherOnlineHost = onlineHost
+
+            scope.launch(SilentHandler) {
+                togetherSessionState.value =
+                    moe.koiverse.archivetune.together.TogetherSessionState.HostingOnline(
+                        sessionId = created.sessionId,
+                        code = created.code,
+                        settings = created.settings,
+                        roomState = null,
+                    )
+            }
+
+            onlineHost.connect(created.wsUrl)
+
+            togetherBroadcastJob =
+                ioScope.launch(SilentHandler) {
+                    while (togetherOnlineHost === onlineHost) {
+                        val state =
+                            buildTogetherRoomState(
+                                sessionId = created.sessionId,
+                                hostId = togetherHostId,
+                            )
+                        onlineHost.broadcastRoomState(state)
+                        scope.launch(SilentHandler) {
+                            val hosting =
+                                togetherSessionState.value as? moe.koiverse.archivetune.together.TogetherSessionState.HostingOnline
+                            if (hosting?.sessionId == created.sessionId) {
+                                val currentSettings = onlineHost.currentSettings()
+                                togetherSessionState.value =
+                                    hosting.copy(
+                                        settings = currentSettings,
+                                        roomState =
+                                            state.copy(
+                                                participants = onlineHost.currentParticipants(),
+                                                settings = currentSettings,
+                                            ),
                                     )
                             }
                         }
@@ -1522,6 +1629,131 @@ class MusicService :
         }
     }
 
+    fun joinTogetherOnline(
+        code: String,
+        displayName: String,
+    ) {
+        ensureScopesActive()
+        val trimmedCode = code.trim()
+        if (trimmedCode.isBlank()) {
+            scope.launch(SilentHandler) {
+                togetherSessionState.value =
+                    moe.koiverse.archivetune.together.TogetherSessionState.Error(
+                        message = getString(R.string.invalid_code),
+                        recoverable = true,
+                    )
+            }
+            return
+        }
+
+        scope.launch(SilentHandler) {
+            togetherSessionState.value = moe.koiverse.archivetune.together.TogetherSessionState.JoiningOnline(trimmedCode)
+        }
+
+        ioScope.launch(SilentHandler) {
+            stopTogetherInternal()
+
+            val baseUrl = moe.koiverse.archivetune.together.TogetherOnlineEndpoint.baseUrlOrNull()
+            if (baseUrl == null) {
+                scope.launch(SilentHandler) {
+                    togetherSessionState.value =
+                        moe.koiverse.archivetune.together.TogetherSessionState.Error(
+                            message = getString(R.string.together_online_not_configured),
+                            recoverable = true,
+                        )
+                }
+                return@launch
+            }
+
+            val api = moe.koiverse.archivetune.together.TogetherOnlineApi(baseUrl = baseUrl)
+            val resolved =
+                runCatching { api.resolveCode(trimmedCode) }
+                    .getOrElse { t ->
+                        scope.launch(SilentHandler) {
+                            togetherSessionState.value =
+                                moe.koiverse.archivetune.together.TogetherSessionState.Error(
+                                    message = getString(R.string.network_unavailable),
+                                    recoverable = true,
+                                )
+                        }
+                        reportException(t)
+                        return@launch
+                    }
+
+            val client = moe.koiverse.archivetune.together.TogetherClient(ioScope)
+            togetherClient = client
+            togetherClock = moe.koiverse.archivetune.together.TogetherClock()
+            togetherSelfParticipantId = null
+            togetherLastAppliedQueueHash = null
+
+            togetherClientEventsJob?.cancel()
+            togetherClientEventsJob =
+                ioScope.launch(SilentHandler) {
+                    client.events.collect { event ->
+                        when (event) {
+                            is moe.koiverse.archivetune.together.TogetherClientEvent.Welcome -> {
+                                togetherSelfParticipantId = event.welcome.participantId
+                                startTogetherHeartbeat(resolved.sessionId, client)
+                            }
+
+                            is moe.koiverse.archivetune.together.TogetherClientEvent.RoomState -> {
+                                applyRemoteRoomState(event.state)
+                            }
+
+                            is moe.koiverse.archivetune.together.TogetherClientEvent.JoinDecision -> {
+                                if (!event.decision.approved) {
+                                    scope.launch(SilentHandler) {
+                                        togetherSessionState.value =
+                                            moe.koiverse.archivetune.together.TogetherSessionState.Error(
+                                                message = getString(R.string.not_allowed),
+                                                recoverable = true,
+                                            )
+                                    }
+                                    ioScope.launch(SilentHandler) { stopTogetherInternal() }
+                                }
+                            }
+
+                            is moe.koiverse.archivetune.together.TogetherClientEvent.HeartbeatPong -> {
+                                val clock = togetherClock ?: return@collect
+                                clock.onPong(
+                                    sentAtElapsedMs = event.pong.clientElapsedRealtimeMs,
+                                    receivedAtElapsedMs = event.receivedAtElapsedRealtimeMs,
+                                    serverElapsedMs = event.pong.serverElapsedRealtimeMs,
+                                )
+                            }
+
+                            is moe.koiverse.archivetune.together.TogetherClientEvent.Error -> {
+                                scope.launch(SilentHandler) {
+                                    togetherSessionState.value =
+                                        moe.koiverse.archivetune.together.TogetherSessionState.Error(
+                                            message = event.message,
+                                            recoverable = true,
+                                        )
+                                }
+                            }
+
+                            moe.koiverse.archivetune.together.TogetherClientEvent.Disconnected -> {
+                                scope.launch(SilentHandler) {
+                                    togetherSessionState.value =
+                                        moe.koiverse.archivetune.together.TogetherSessionState.Error(
+                                            message = getString(R.string.network_unavailable),
+                                            recoverable = true,
+                                        )
+                                }
+                            }
+                        }
+                    }
+                }
+
+            client.connect(
+                wsUrl = resolved.wsUrl,
+                sessionId = resolved.sessionId,
+                sessionKey = resolved.guestKey,
+                displayName = displayName,
+            )
+        }
+    }
+
     fun leaveTogether() {
         ensureScopesActive()
         scope.launch(SilentHandler) {
@@ -1531,16 +1763,22 @@ class MusicService :
     }
 
     fun updateTogetherSettings(settings: moe.koiverse.archivetune.together.TogetherRoomSettings) {
-        val server = togetherServer ?: return
+        val server = togetherServer
+        val onlineHost = togetherOnlineHost
+        if (server == null && onlineHost == null) return
         ioScope.launch(SilentHandler) {
-            server.updateSettings(settings)
+            server?.updateSettings(settings)
+            onlineHost?.updateSettings(settings)
         }
     }
 
     fun approveTogetherParticipant(participantId: String, approved: Boolean) {
-        val server = togetherServer ?: return
+        val server = togetherServer
+        val onlineHost = togetherOnlineHost
+        if (server == null && onlineHost == null) return
         ioScope.launch(SilentHandler) {
-            server.approveParticipant(participantId, approved)
+            server?.approveParticipant(participantId, approved)
+            onlineHost?.approveParticipant(participantId, approved)
         }
     }
 
@@ -1561,19 +1799,19 @@ class MusicService :
         client.requestAddTrack(state.sessionId, track, mode)
     }
 
-    private suspend fun handleTogetherServerEvent(
+    private suspend fun handleTogetherHostEvent(
         event: moe.koiverse.archivetune.together.TogetherServerEvent,
-        server: moe.koiverse.archivetune.together.TogetherServer,
+        currentSettings: suspend () -> moe.koiverse.archivetune.together.TogetherRoomSettings,
     ) {
         when (event) {
             is moe.koiverse.archivetune.together.TogetherServerEvent.ControlRequested -> {
-                val settings = server.currentSettings()
+                val settings = currentSettings()
                 if (!settings.allowGuestsToControlPlayback) return
                 applyHostControl(event.request.action)
             }
 
             is moe.koiverse.archivetune.together.TogetherServerEvent.AddTrackRequested -> {
-                val settings = server.currentSettings()
+                val settings = currentSettings()
                 if (!settings.allowGuestsToAddTracks) return
                 applyHostAddTrack(event.request.track, event.request.mode)
             }
@@ -1758,6 +1996,11 @@ class MusicService :
             togetherClient?.disconnect()
         } catch (_: Exception) {}
         togetherClient = null
+
+        try {
+            togetherOnlineHost?.disconnect()
+        } catch (_: Exception) {}
+        togetherOnlineHost = null
 
         try {
             togetherServer?.stop()

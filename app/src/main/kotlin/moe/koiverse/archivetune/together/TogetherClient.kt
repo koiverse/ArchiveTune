@@ -60,6 +60,15 @@ sealed class TogetherClientState {
     data object Idle : TogetherClientState()
     data class Connecting(val joinInfo: TogetherJoinInfo) : TogetherClientState()
     data class Connected(val session: TogetherJoinInfo) : TogetherClientState()
+    data class ConnectingRemote(
+        val wsUrl: String,
+        val sessionId: String,
+    ) : TogetherClientState()
+
+    data class ConnectedRemote(
+        val wsUrl: String,
+        val sessionId: String,
+    ) : TogetherClientState()
 }
 
 class TogetherClient(
@@ -102,6 +111,38 @@ class TogetherClient(
                     send(TogetherJson.json.encodeToString(TogetherMessage.serializer(), hello))
                     _state.value = TogetherClientState.Connected(joinInfo)
                     runLoop(this, joinInfo.sessionId)
+                }
+            }.onFailure {
+                _events.tryEmit(TogetherClientEvent.Error("Connection failed", it))
+                _state.value = TogetherClientState.Idle
+            }
+        }
+    }
+
+    fun connect(
+        wsUrl: String,
+        sessionId: String,
+        sessionKey: String,
+        displayName: String,
+    ) {
+        scope.launch {
+            disconnect()
+            _state.value = TogetherClientState.ConnectingRemote(wsUrl = wsUrl, sessionId = sessionId)
+
+            runCatching {
+                client.webSocket(urlString = wsUrl) {
+                    session = this
+                    val hello =
+                        ClientHello(
+                            protocolVersion = TogetherProtocolVersion,
+                            sessionId = sessionId,
+                            sessionKey = sessionKey,
+                            clientId = clientId,
+                            displayName = displayName.trim().ifBlank { "Guest" },
+                        )
+                    send(TogetherJson.json.encodeToString(TogetherMessage.serializer(), hello))
+                    _state.value = TogetherClientState.ConnectedRemote(wsUrl = wsUrl, sessionId = sessionId)
+                    runLoop(this, sessionId)
                 }
             }.onFailure {
                 _events.tryEmit(TogetherClientEvent.Error("Connection failed", it))

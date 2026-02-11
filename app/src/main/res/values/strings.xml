@@ -657,11 +657,17 @@ ArchiveTune will only extract your token, and everything else is stored locally.
     <string name="together_allow_guests_add">Guests can add songs</string>
     <string name="together_allow_guests_control">Guests can control playback</string>
     <string name="together_require_approval">Require approval</string>
+    <string name="together_lan">LAN</string>
+    <string name="together_online">Online</string>
+    <string name="together_join_link">Link</string>
+    <string name="together_join_code">Code</string>
     <string name="together_join_link_hint">Paste a join link or code</string>
+    <string name="together_join_code_hint">Enter a session code</string>
     <string name="start_session">Start session</string>
     <string name="end_session">End session</string>
     <string name="join_session">Join session</string>
     <string name="session_link">Session link</string>
+    <string name="session_code">Session code</string>
     <string name="participants">Participants</string>
     <string name="pending_requests">Join requests</string>
     <string name="waiting_for_approval">Waiting for approval</string>
@@ -677,6 +683,7 @@ ArchiveTune will only extract your token, and everything else is stored locally.
     <string name="invalid_link">Invalid link</string>
     <string name="not_allowed">Not allowed</string>
     <string name="network_unavailable">Network unavailable</string>
+    <string name="together_online_not_configured">Online sessions aren\'t configured in this build</string>
     <string name="leave">Leave</string>
     <string name="join">Join</string>
     <string name="loading">Loading</string>

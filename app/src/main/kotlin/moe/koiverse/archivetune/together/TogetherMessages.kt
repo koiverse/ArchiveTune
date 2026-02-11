@@ -83,6 +83,31 @@ data class JoinDecision(
 ) : TogetherMessage
 
 @Serializable
+@SerialName("join_request")
+@Immutable
+data class JoinRequest(
+    val sessionId: String,
+    val participant: TogetherParticipant,
+) : TogetherMessage
+
+@Serializable
+@SerialName("participant_joined")
+@Immutable
+data class ParticipantJoined(
+    val sessionId: String,
+    val participant: TogetherParticipant,
+) : TogetherMessage
+
+@Serializable
+@SerialName("participant_left")
+@Immutable
+data class ParticipantLeft(
+    val sessionId: String,
+    val participantId: String,
+    val reason: String? = null,
+) : TogetherMessage
+
+@Serializable
 @SerialName("heartbeat_ping")
 @Immutable
 data class HeartbeatPing(

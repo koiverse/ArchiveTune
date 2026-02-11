@@ -1,5 +1,11 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import java.security.MessageDigest
+import java.security.SecureRandom
+import java.util.Base64
 import java.util.Properties
+import javax.crypto.Cipher
+import javax.crypto.spec.GCMParameterSpec
+import javax.crypto.spec.SecretKeySpec
 
 plugins {
     alias(libs.plugins.android.application)
@@ -13,6 +19,24 @@ val localProperties = Properties()
 val localPropertiesFile = rootProject.file("local.properties")
 if (localPropertiesFile.exists()) {
     localProperties.load(localPropertiesFile.inputStream())
+}
+
+fun encryptAesGcmB64(plaintext: String, secret: String): String {
+    if (plaintext.isBlank() || secret.isBlank()) return ""
+
+    val keyBytes = MessageDigest.getInstance("SHA-256").digest(secret.toByteArray(Charsets.UTF_8))
+    val key = SecretKeySpec(keyBytes, "AES")
+    val iv = ByteArray(12).also { SecureRandom().nextBytes(it) }
+
+    val cipher = Cipher.getInstance("AES/GCM/NoPadding")
+    cipher.init(Cipher.ENCRYPT_MODE, key, GCMParameterSpec(128, iv))
+    val ciphertext = cipher.doFinal(plaintext.toByteArray(Charsets.UTF_8))
+
+    val combined = ByteArray(iv.size + ciphertext.size)
+    System.arraycopy(iv, 0, combined, 0, iv.size)
+    System.arraycopy(ciphertext, 0, combined, iv.size, ciphertext.size)
+
+    return Base64.getEncoder().encodeToString(combined)
 }
 
 android {
@@ -39,6 +63,19 @@ android {
                 ?: ""
         buildConfigField("String", "LASTFM_API_KEY", "\"$lastfmApiKey\"")
         buildConfigField("String", "LASTFM_SECRET", "\"$lastfmSecret\"")
+
+        val togetherOnlineSecret =
+            localProperties.getProperty("TOGETHER_ONLINE_SECRET")
+                ?: System.getenv("TOGETHER_ONLINE_SECRET")
+                ?: ""
+        val togetherOnlineEndpoint =
+            localProperties.getProperty("TOGETHER_ONLINE_ENDPOINT")
+                ?: System.getenv("TOGETHER_ONLINE_ENDPOINT")
+                ?: ""
+        val togetherOnlineEndpointB64 = encryptAesGcmB64(togetherOnlineEndpoint, togetherOnlineSecret)
+
+        buildConfigField("String", "TOGETHER_ONLINE_SECRET", "\"$togetherOnlineSecret\"")
+        buildConfigField("String", "TOGETHER_ONLINE_ENDPOINT_B64", "\"$togetherOnlineEndpointB64\"")
     }
 
     flavorDimensions += "abi"

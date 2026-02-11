@@ -72,8 +72,19 @@ sealed class TogetherSessionState {
         val roomState: TogetherRoomState?,
     ) : TogetherSessionState()
 
+    data class HostingOnline(
+        val sessionId: String,
+        val code: String,
+        val settings: TogetherRoomSettings,
+        val roomState: TogetherRoomState?,
+    ) : TogetherSessionState()
+
     data class Joining(
         val joinLink: String,
+    ) : TogetherSessionState()
+
+    data class JoiningOnline(
+        val code: String,
     ) : TogetherSessionState()
 
     data class Joined(
