@@ -15,7 +15,7 @@ import javax.crypto.spec.SecretKeySpec
 import moe.koiverse.archivetune.BuildConfig
 
 object TogetherOnlineEndpoint {
-    private const val DefaultBaseUrl = "https://candylike-biogeochemical-krish.ngrok-free.dev"
+    private const val DefaultBaseUrl = "http://87.106.62.92:15079"
 
     fun baseUrlOrNull(): String? {
         val secret = BuildConfig.TOGETHER_ONLINE_SECRET
@@ -55,7 +55,20 @@ object TogetherOnlineEndpoint {
                 ?: return derived
         if (host == "localhost" || host == "127.0.0.1" || host == "0.0.0.0") return derived
 
+        val baseHost =
+            runCatching { URI(baseUrl.trim()).host }.getOrNull()?.trim()?.lowercase()
+        if (baseHost != null && isIpv4Address(baseHost) && !isIpv4Address(host)) return derived
+
         return normalized
+    }
+
+    private fun isIpv4Address(host: String): Boolean {
+        val parts = host.split('.')
+        if (parts.size != 4) return false
+        return parts.all { part ->
+            val n = part.toIntOrNull() ?: return@all false
+            n in 0..255 && part == n.toString()
+        }
     }
 
     private fun deriveWebSocketUrlFromBaseUrl(
