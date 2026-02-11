@@ -7,6 +7,7 @@
 package moe.koiverse.archivetune.together
 
 import java.security.MessageDigest
+import java.net.URI
 import java.util.Base64
 import javax.crypto.Cipher
 import javax.crypto.spec.GCMParameterSpec
@@ -14,7 +15,7 @@ import javax.crypto.spec.SecretKeySpec
 import moe.koiverse.archivetune.BuildConfig
 
 object TogetherOnlineEndpoint {
-    private const val DefaultBaseUrl = "http://87.106.62.92:15079"
+    private const val DefaultBaseUrl = "https://candylike-biogeochemical-krish.ngrok-free.dev"
 
     fun baseUrlOrNull(): String? {
         val secret = BuildConfig.TOGETHER_ONLINE_SECRET
@@ -40,5 +41,63 @@ object TogetherOnlineEndpoint {
                 ?: return fallback
 
         return plaintext.ifBlank { fallback }
+    }
+
+    fun onlineWebSocketUrlOrNull(
+        rawWsUrl: String,
+        baseUrl: String,
+    ): String? {
+        val derived = deriveWebSocketUrlFromBaseUrl(baseUrl) ?: return null
+        val normalized = normalizeWebSocketUrl(rawWsUrl, baseUrl) ?: return derived
+
+        val host =
+            runCatching { URI(normalized).host }.getOrNull()?.trim()?.lowercase()
+                ?: return derived
+        if (host == "localhost" || host == "127.0.0.1" || host == "0.0.0.0") return derived
+
+        return normalized
+    }
+
+    private fun deriveWebSocketUrlFromBaseUrl(
+        baseUrl: String,
+    ): String? {
+        val uri = runCatching { URI(baseUrl.trim()) }.getOrNull() ?: return null
+        val host = uri.host?.trim()?.ifBlank { null } ?: return null
+        val scheme = uri.scheme?.trim()?.lowercase()
+        val wsScheme = if (scheme == "https") "wss" else "ws"
+
+        val portPart = if (uri.port != -1 && uri.port != 80 && uri.port != 443) ":${uri.port}" else ""
+        val normalizedPath =
+            uri.path
+                ?.trim()
+                ?.trimEnd('/')
+                .orEmpty()
+                .let { if (it.endsWith("/v1")) it else "$it/v1" }
+
+        return "$wsScheme://$host$portPart$normalizedPath/together/ws"
+    }
+
+    private fun normalizeWebSocketUrl(
+        raw: String,
+        baseUrl: String,
+    ): String? {
+        val trimmed = raw.trim()
+        if (trimmed.isBlank()) return null
+        if (trimmed.startsWith("ws://") || trimmed.startsWith("wss://")) return trimmed
+        if (trimmed.startsWith("http://")) return "ws://${trimmed.removePrefix("http://")}"
+        if (trimmed.startsWith("https://")) return "wss://${trimmed.removePrefix("https://")}"
+        if (trimmed.startsWith("/")) {
+            val baseUri = runCatching { URI(baseUrl.trim()) }.getOrNull() ?: return null
+            val host = baseUri.host?.trim()?.ifBlank { null } ?: return null
+            val scheme = baseUri.scheme?.trim()?.lowercase()
+            val wsScheme = if (scheme == "https") "wss" else "ws"
+            val portPart = if (baseUri.port != -1 && baseUri.port != 80 && baseUri.port != 443) ":${baseUri.port}" else ""
+            val basePath = baseUri.path?.trim()?.trimEnd('/').orEmpty()
+            return "$wsScheme://$host$portPart$basePath$trimmed"
+        }
+
+        val baseScheme = runCatching { URI(baseUrl.trim()).scheme?.trim()?.lowercase() }.getOrNull()
+        val wsScheme = if (baseScheme == "https") "wss" else "ws"
+        return "$wsScheme://$trimmed"
     }
 }
