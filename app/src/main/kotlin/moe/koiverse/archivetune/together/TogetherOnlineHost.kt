@@ -83,31 +83,30 @@ class TogetherOnlineHost(
 
         val trimmed = wsUrl.trim()
         val urls = listOfNotNull(trimmed, alternateWebSocketSchemeOrNull(trimmed)).distinct()
-        val result =
-            urls
-                .asSequence()
-                .map { candidate ->
-                    runCatching {
-                        client.webSocket(urlString = candidate) {
-                            session = this
-                            val hello =
-                                ClientHello(
-                                    protocolVersion = TogetherProtocolVersion,
-                                    sessionId = sessionId,
-                                    sessionKey = sessionKey,
-                                    clientId = clientId,
-                                    displayName = hostDisplayName.trim().ifBlank { "Host" },
-                                )
-                            send(TogetherJson.json.encodeToString(TogetherMessage.serializer(), hello))
-                            runLoop(this, candidate)
-                        }
-                    }
-                }.firstOrNull { it.isSuccess }
 
-        if (result == null || result.isFailure) {
-            val t = result?.exceptionOrNull()
-            onEvent?.invoke(TogetherServerEvent.Error(connectionFailureMessage(t), t))
+        var lastError: Throwable? = null
+        for (candidate in urls) {
+            try {
+                client.webSocket(urlString = candidate) {
+                    session = this
+                    val hello =
+                        ClientHello(
+                            protocolVersion = TogetherProtocolVersion,
+                            sessionId = sessionId,
+                            sessionKey = sessionKey,
+                            clientId = clientId,
+                            displayName = hostDisplayName.trim().ifBlank { "Host" },
+                        )
+                    send(TogetherJson.json.encodeToString(TogetherMessage.serializer(), hello))
+                    runLoop(this, candidate)
+                }
+                return
+            } catch (t: Throwable) {
+                lastError = t
+            }
         }
+
+        onEvent?.invoke(TogetherServerEvent.Error(connectionFailureMessage(lastError), lastError))
     }
 
     private fun alternateWebSocketSchemeOrNull(url: String): String? {
