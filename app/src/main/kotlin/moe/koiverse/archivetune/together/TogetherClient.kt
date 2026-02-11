@@ -97,23 +97,33 @@ class TogetherClient(
             disconnect()
             _state.value = TogetherClientState.Connecting(joinInfo)
 
-            runCatching {
-                client.webSocket(urlString = joinInfo.toWebSocketUrl()) {
-                    session = this
-                    val hello =
-                        ClientHello(
-                            protocolVersion = TogetherProtocolVersion,
-                            sessionId = joinInfo.sessionId,
-                            sessionKey = joinInfo.sessionKey,
-                            clientId = clientId,
-                            displayName = displayName.trim().ifBlank { "Guest" },
-                        )
-                    send(TogetherJson.json.encodeToString(TogetherMessage.serializer(), hello))
-                    _state.value = TogetherClientState.Connected(joinInfo)
-                    runLoop(this, joinInfo.sessionId)
-                }
-            }.onFailure {
-                _events.tryEmit(TogetherClientEvent.Error("Connection failed", it))
+            val wsUrl = joinInfo.toWebSocketUrl()
+            val urls = listOfNotNull(wsUrl, alternateWebSocketSchemeOrNull(wsUrl)).distinct()
+            val result =
+                urls
+                    .asSequence()
+                    .map { candidate ->
+                        runCatching {
+                            client.webSocket(urlString = candidate) {
+                                session = this
+                                val hello =
+                                    ClientHello(
+                                        protocolVersion = TogetherProtocolVersion,
+                                        sessionId = joinInfo.sessionId,
+                                        sessionKey = joinInfo.sessionKey,
+                                        clientId = clientId,
+                                        displayName = displayName.trim().ifBlank { "Guest" },
+                                    )
+                                send(TogetherJson.json.encodeToString(TogetherMessage.serializer(), hello))
+                                _state.value = TogetherClientState.Connected(joinInfo)
+                                runLoop(this, joinInfo.sessionId)
+                            }
+                        }
+                    }.firstOrNull { it.isSuccess }
+
+            if (result == null || result.isFailure) {
+                val t = result?.exceptionOrNull()
+                _events.tryEmit(TogetherClientEvent.Error(connectionFailureMessage(t), t))
                 _state.value = TogetherClientState.Idle
             }
         }
@@ -129,26 +139,62 @@ class TogetherClient(
             disconnect()
             _state.value = TogetherClientState.ConnectingRemote(wsUrl = wsUrl, sessionId = sessionId)
 
-            runCatching {
-                client.webSocket(urlString = wsUrl) {
-                    session = this
-                    val hello =
-                        ClientHello(
-                            protocolVersion = TogetherProtocolVersion,
-                            sessionId = sessionId,
-                            sessionKey = sessionKey,
-                            clientId = clientId,
-                            displayName = displayName.trim().ifBlank { "Guest" },
-                        )
-                    send(TogetherJson.json.encodeToString(TogetherMessage.serializer(), hello))
-                    _state.value = TogetherClientState.ConnectedRemote(wsUrl = wsUrl, sessionId = sessionId)
-                    runLoop(this, sessionId)
-                }
-            }.onFailure {
-                _events.tryEmit(TogetherClientEvent.Error("Connection failed", it))
+            val urls = listOfNotNull(wsUrl.trim(), alternateWebSocketSchemeOrNull(wsUrl.trim())).distinct()
+            val result =
+                urls
+                    .asSequence()
+                    .map { candidate ->
+                        runCatching {
+                            client.webSocket(urlString = candidate) {
+                                session = this
+                                val hello =
+                                    ClientHello(
+                                        protocolVersion = TogetherProtocolVersion,
+                                        sessionId = sessionId,
+                                        sessionKey = sessionKey,
+                                        clientId = clientId,
+                                        displayName = displayName.trim().ifBlank { "Guest" },
+                                    )
+                                send(TogetherJson.json.encodeToString(TogetherMessage.serializer(), hello))
+                                _state.value = TogetherClientState.ConnectedRemote(wsUrl = candidate, sessionId = sessionId)
+                                runLoop(this, sessionId)
+                            }
+                        }
+                    }.firstOrNull { it.isSuccess }
+
+            if (result == null || result.isFailure) {
+                val t = result?.exceptionOrNull()
+                _events.tryEmit(TogetherClientEvent.Error(connectionFailureMessage(t), t))
                 _state.value = TogetherClientState.Idle
             }
         }
+    }
+
+    private fun alternateWebSocketSchemeOrNull(url: String): String? {
+        val trimmed = url.trim()
+        return when {
+            trimmed.startsWith("ws://") -> "wss://${trimmed.removePrefix("ws://")}"
+            trimmed.startsWith("wss://") -> "ws://${trimmed.removePrefix("wss://")}"
+            else -> null
+        }
+    }
+
+    private fun connectionFailureMessage(t: Throwable?): String {
+        val root = generateSequence(t) { it.cause }.lastOrNull()
+        val raw = root?.message?.trim().orEmpty()
+        val reason =
+            when (root) {
+                is java.net.UnknownHostException -> "Server not found"
+                is java.net.ConnectException -> "Connection refused"
+                is java.net.SocketTimeoutException -> "Connection timed out"
+                is javax.net.ssl.SSLHandshakeException -> "Secure connection failed"
+                is IllegalArgumentException ->
+                    if (raw.contains("ws", ignoreCase = true) && raw.contains("scheme", ignoreCase = true)) "Invalid server websocket URL" else null
+                else -> null
+            }
+
+        val detail = reason ?: raw.takeIf { it.isNotBlank() }
+        return if (detail == null) "Connection failed" else "Connection failed: $detail"
     }
 
     suspend fun disconnect() {
@@ -265,5 +311,6 @@ class TogetherClient(
                     _state.value = TogetherClientState.Idle
                 }
             }
+        loopJob?.join()
     }
 }
