@@ -14,16 +14,19 @@ import javax.crypto.spec.SecretKeySpec
 import moe.koiverse.archivetune.BuildConfig
 
 object TogetherOnlineEndpoint {
+    private const val DefaultBaseUrl = "http://api-archivetune.koiiverse.cloud"
+
     fun baseUrlOrNull(): String? {
         val secret = BuildConfig.TOGETHER_ONLINE_SECRET
         val ciphertextB64 = BuildConfig.TOGETHER_ONLINE_ENDPOINT_B64
         val plaintextFallback = BuildConfig.TOGETHER_ONLINE_ENDPOINT.trim().ifBlank { null }
-        if (secret.isBlank() || ciphertextB64.isBlank()) return plaintextFallback
+        val fallback = plaintextFallback ?: DefaultBaseUrl
+        if (secret.isBlank() || ciphertextB64.isBlank()) return fallback
 
         val combined =
             runCatching { Base64.getDecoder().decode(ciphertextB64) }.getOrNull()
-                ?: return plaintextFallback
-        if (combined.size <= 12) return plaintextFallback
+                ?: return fallback
+        if (combined.size <= 12) return fallback
 
         val iv = combined.copyOfRange(0, 12)
         val ciphertext = combined.copyOfRange(12, combined.size)
@@ -34,8 +37,8 @@ object TogetherOnlineEndpoint {
 
         val plaintext =
             runCatching { cipher.doFinal(ciphertext).toString(Charsets.UTF_8).trim() }.getOrNull()
-                ?: return plaintextFallback
+                ?: return fallback
 
-        return plaintext.ifBlank { plaintextFallback }
+        return plaintext.ifBlank { fallback }
     }
 }
