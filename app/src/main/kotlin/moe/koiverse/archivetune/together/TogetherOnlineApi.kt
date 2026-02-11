@@ -8,13 +8,11 @@ package moe.koiverse.archivetune.together
 
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.okhttp.OkHttp
-import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
-import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
@@ -62,21 +60,21 @@ class TogetherOnlineApi(
             encodeDefaults = true
         }
 
-    private val client =
-        HttpClient(OkHttp) {
-            install(ContentNegotiation) {
-                json(this@TogetherOnlineApi.json)
-            }
-        }
+    private val client = HttpClient(OkHttp) {}
 
     suspend fun createSession(
         hostDisplayName: String,
         settings: TogetherRoomSettings,
     ): TogetherOnlineCreateSessionResponse {
+        val payload =
+            json.encodeToString(
+                TogetherOnlineCreateSessionRequest.serializer(),
+                TogetherOnlineCreateSessionRequest(hostDisplayName = hostDisplayName, settings = settings),
+            )
         val resp =
             client.post("$v1BaseUrl/together/sessions") {
                 contentType(ContentType.Application.Json)
-                setBody(TogetherOnlineCreateSessionRequest(hostDisplayName = hostDisplayName, settings = settings))
+                setBody(payload)
             }
         val raw = resp.bodyAsText()
         return json.decodeFromString(TogetherOnlineCreateSessionResponse.serializer(), raw)
@@ -85,10 +83,15 @@ class TogetherOnlineApi(
     suspend fun resolveCode(
         code: String,
     ): TogetherOnlineResolveResponse {
+        val payload =
+            json.encodeToString(
+                TogetherOnlineResolveRequest.serializer(),
+                TogetherOnlineResolveRequest(code = code.trim()),
+            )
         val resp =
             client.post("$v1BaseUrl/together/sessions/resolve") {
                 contentType(ContentType.Application.Json)
-                setBody(TogetherOnlineResolveRequest(code = code.trim()))
+                setBody(payload)
             }
         val raw = resp.bodyAsText()
         return json.decodeFromString(TogetherOnlineResolveResponse.serializer(), raw)

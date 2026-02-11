@@ -681,6 +681,7 @@ ArchiveTune will only extract your token, and everything else is stored locally.
     <string name="enabled">Enabled</string>
     <string name="disabled">Disabled</string>
     <string name="invalid_link">Invalid link</string>
+    <string name="invalid_code">Invalid code</string>
     <string name="not_allowed">Not allowed</string>
     <string name="network_unavailable">Network unavailable</string>
     <string name="together_online_not_configured">Online sessions aren\'t configured in this build</string>
