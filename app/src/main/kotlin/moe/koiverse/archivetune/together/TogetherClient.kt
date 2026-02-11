@@ -1,3 +1,9 @@
+/*
+ * ArchiveTune Project Original (2026)
+ * Kòi Natsuko (github.com/koiverse)
+ * Licensed Under GPL-3.0 | see git history for contributors
+ */
+
 package moe.koiverse.archivetune.together
 
 import androidx.compose.runtime.Immutable
@@ -54,6 +60,15 @@ sealed class TogetherClientState {
     data object Idle : TogetherClientState()
     data class Connecting(val joinInfo: TogetherJoinInfo) : TogetherClientState()
     data class Connected(val session: TogetherJoinInfo) : TogetherClientState()
+    data class ConnectingRemote(
+        val wsUrl: String,
+        val sessionId: String,
+    ) : TogetherClientState()
+
+    data class ConnectedRemote(
+        val wsUrl: String,
+        val sessionId: String,
+    ) : TogetherClientState()
 }
 
 class TogetherClient(
@@ -82,26 +97,102 @@ class TogetherClient(
             disconnect()
             _state.value = TogetherClientState.Connecting(joinInfo)
 
-            runCatching {
-                client.webSocket(urlString = joinInfo.toWebSocketUrl()) {
-                    session = this
-                    val hello =
-                        ClientHello(
-                            protocolVersion = TogetherProtocolVersion,
-                            sessionId = joinInfo.sessionId,
-                            sessionKey = joinInfo.sessionKey,
-                            clientId = clientId,
-                            displayName = displayName.trim().ifBlank { "Guest" },
-                        )
-                    send(TogetherJson.json.encodeToString(TogetherMessage.serializer(), hello))
-                    _state.value = TogetherClientState.Connected(joinInfo)
-                    runLoop(this, joinInfo.sessionId)
+            val wsUrl = joinInfo.toWebSocketUrl()
+            val urls = listOfNotNull(wsUrl, alternateWebSocketSchemeOrNull(wsUrl)).distinct()
+
+            var lastError: Throwable? = null
+            for (candidate in urls) {
+                try {
+                    client.webSocket(urlString = candidate) {
+                        session = this
+                        val hello =
+                            ClientHello(
+                                protocolVersion = TogetherProtocolVersion,
+                                sessionId = joinInfo.sessionId,
+                                sessionKey = joinInfo.sessionKey,
+                                clientId = clientId,
+                                displayName = displayName.trim().ifBlank { "Guest" },
+                            )
+                        send(TogetherJson.json.encodeToString(TogetherMessage.serializer(), hello))
+                        _state.value = TogetherClientState.Connected(joinInfo)
+                        runLoop(this, joinInfo.sessionId)
+                    }
+                    return@launch
+                } catch (t: Throwable) {
+                    lastError = t
                 }
-            }.onFailure {
-                _events.tryEmit(TogetherClientEvent.Error("Connection failed", it))
-                _state.value = TogetherClientState.Idle
             }
+
+            _events.tryEmit(TogetherClientEvent.Error(connectionFailureMessage(lastError), lastError))
+            _state.value = TogetherClientState.Idle
         }
+    }
+
+    fun connect(
+        wsUrl: String,
+        sessionId: String,
+        sessionKey: String,
+        displayName: String,
+    ) {
+        scope.launch {
+            disconnect()
+            _state.value = TogetherClientState.ConnectingRemote(wsUrl = wsUrl, sessionId = sessionId)
+
+            val urls = listOfNotNull(wsUrl.trim(), alternateWebSocketSchemeOrNull(wsUrl.trim())).distinct()
+
+            var lastError: Throwable? = null
+            for (candidate in urls) {
+                try {
+                    client.webSocket(urlString = candidate) {
+                        session = this
+                        val hello =
+                            ClientHello(
+                                protocolVersion = TogetherProtocolVersion,
+                                sessionId = sessionId,
+                                sessionKey = sessionKey,
+                                clientId = clientId,
+                                displayName = displayName.trim().ifBlank { "Guest" },
+                            )
+                        send(TogetherJson.json.encodeToString(TogetherMessage.serializer(), hello))
+                        _state.value = TogetherClientState.ConnectedRemote(wsUrl = candidate, sessionId = sessionId)
+                        runLoop(this, sessionId)
+                    }
+                    return@launch
+                } catch (t: Throwable) {
+                    lastError = t
+                }
+            }
+
+            _events.tryEmit(TogetherClientEvent.Error(connectionFailureMessage(lastError), lastError))
+            _state.value = TogetherClientState.Idle
+        }
+    }
+
+    private fun alternateWebSocketSchemeOrNull(url: String): String? {
+        val trimmed = url.trim()
+        return when {
+            trimmed.startsWith("ws://") -> "wss://${trimmed.removePrefix("ws://")}"
+            trimmed.startsWith("wss://") -> "ws://${trimmed.removePrefix("wss://")}"
+            else -> null
+        }
+    }
+
+    private fun connectionFailureMessage(t: Throwable?): String {
+        val root = generateSequence(t) { it.cause }.lastOrNull()
+        val raw = root?.message?.trim().orEmpty()
+        val reason =
+            when (root) {
+                is java.net.UnknownHostException -> "Server not found"
+                is java.net.ConnectException -> "Connection refused"
+                is java.net.SocketTimeoutException -> "Connection timed out"
+                is javax.net.ssl.SSLHandshakeException -> "Secure connection failed"
+                is IllegalArgumentException ->
+                    if (raw.contains("ws", ignoreCase = true) && raw.contains("scheme", ignoreCase = true)) "Invalid server websocket URL" else null
+                else -> null
+            }
+
+        val detail = reason ?: raw.takeIf { it.isNotBlank() }
+        return if (detail == null) "Connection failed" else "Connection failed: $detail"
     }
 
     suspend fun disconnect() {
@@ -218,5 +309,6 @@ class TogetherClient(
                     _state.value = TogetherClientState.Idle
                 }
             }
+        loopJob?.join()
     }
 }

@@ -1,3 +1,9 @@
+/*
+ * ArchiveTune Project Original (2026)
+ * Kòi Natsuko (github.com/koiverse)
+ * Licensed Under GPL-3.0 | see git history for contributors
+ */
+
 package moe.koiverse.archivetune.together
 
 import androidx.compose.runtime.Immutable
@@ -74,6 +80,31 @@ data class JoinDecision(
     val sessionId: String,
     val participantId: String,
     val approved: Boolean,
+) : TogetherMessage
+
+@Serializable
+@SerialName("join_request")
+@Immutable
+data class JoinRequest(
+    val sessionId: String,
+    val participant: TogetherParticipant,
+) : TogetherMessage
+
+@Serializable
+@SerialName("participant_joined")
+@Immutable
+data class ParticipantJoined(
+    val sessionId: String,
+    val participant: TogetherParticipant,
+) : TogetherMessage
+
+@Serializable
+@SerialName("participant_left")
+@Immutable
+data class ParticipantLeft(
+    val sessionId: String,
+    val participantId: String,
+    val reason: String? = null,
 ) : TogetherMessage
 
 @Serializable

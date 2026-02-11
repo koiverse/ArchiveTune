@@ -5,6 +5,7 @@
  */
 
 
+
 package moe.koiverse.archivetune.innertube.models
 
 import moe.koiverse.archivetune.innertube.models.BrowseEndpoint.BrowseEndpointContextSupportedConfigs.BrowseEndpointContextMusicConfig.Companion.MUSIC_PAGE_TYPE_ALBUM
