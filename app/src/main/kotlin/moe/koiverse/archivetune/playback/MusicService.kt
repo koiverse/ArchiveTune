@@ -1498,7 +1498,24 @@ class MusicService :
                     )
             }
 
-            onlineHost.connect(created.wsUrl)
+            val wsUrl =
+                moe.koiverse.archivetune.together.TogetherOnlineEndpoint.onlineWebSocketUrlOrNull(
+                    rawWsUrl = created.wsUrl,
+                    baseUrl = baseUrl,
+                )
+            if (wsUrl == null) {
+                scope.launch(SilentHandler) {
+                    togetherSessionState.value =
+                        moe.koiverse.archivetune.together.TogetherSessionState.Error(
+                            message = "Connection failed: Invalid server websocket URL",
+                            recoverable = true,
+                        )
+                }
+                ioScope.launch(SilentHandler) { stopTogetherInternal() }
+                return@launch
+            }
+
+            onlineHost.connect(wsUrl)
 
             togetherBroadcastJob =
                 ioScope.launch(SilentHandler) {
@@ -1610,6 +1627,7 @@ class MusicService :
                                         recoverable = true,
                                     )
                             }
+                            ioScope.launch(SilentHandler) { stopTogetherInternal() }
                         }
 
                         moe.koiverse.archivetune.together.TogetherClientEvent.Disconnected -> {
@@ -1620,6 +1638,7 @@ class MusicService :
                                         recoverable = true,
                                     )
                             }
+                            ioScope.launch(SilentHandler) { stopTogetherInternal() }
                         }
                     }
                 }
@@ -1730,6 +1749,7 @@ class MusicService :
                                             recoverable = true,
                                         )
                                 }
+                                ioScope.launch(SilentHandler) { stopTogetherInternal() }
                             }
 
                             moe.koiverse.archivetune.together.TogetherClientEvent.Disconnected -> {
@@ -1740,13 +1760,31 @@ class MusicService :
                                             recoverable = true,
                                         )
                                 }
+                                ioScope.launch(SilentHandler) { stopTogetherInternal() }
                             }
                         }
                     }
                 }
 
+            val wsUrl =
+                moe.koiverse.archivetune.together.TogetherOnlineEndpoint.onlineWebSocketUrlOrNull(
+                    rawWsUrl = resolved.wsUrl,
+                    baseUrl = baseUrl,
+                )
+            if (wsUrl == null) {
+                scope.launch(SilentHandler) {
+                    togetherSessionState.value =
+                        moe.koiverse.archivetune.together.TogetherSessionState.Error(
+                            message = "Connection failed: Invalid server websocket URL",
+                            recoverable = true,
+                        )
+                }
+                ioScope.launch(SilentHandler) { stopTogetherInternal() }
+                return@launch
+            }
+
             client.connect(
-                wsUrl = resolved.wsUrl,
+                wsUrl = wsUrl,
                 sessionId = resolved.sessionId,
                 sessionKey = resolved.guestKey,
                 displayName = displayName,
@@ -1814,6 +1852,17 @@ class MusicService :
                 val settings = currentSettings()
                 if (!settings.allowGuestsToAddTracks) return
                 applyHostAddTrack(event.request.track, event.request.mode)
+            }
+
+            is moe.koiverse.archivetune.together.TogetherServerEvent.Error -> {
+                val current = togetherSessionState.value
+                if (current is moe.koiverse.archivetune.together.TogetherSessionState.Idle) return
+                togetherSessionState.value =
+                    moe.koiverse.archivetune.together.TogetherSessionState.Error(
+                        message = event.message,
+                        recoverable = true,
+                    )
+                ioScope.launch(SilentHandler) { stopTogetherInternal() }
             }
 
             else -> Unit
