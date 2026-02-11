@@ -14,7 +14,7 @@ import javax.crypto.spec.SecretKeySpec
 import moe.koiverse.archivetune.BuildConfig
 
 object TogetherOnlineEndpoint {
-    private const val DefaultBaseUrl = "http://api-archivetune.koiiverse.cloud"
+    private const val DefaultBaseUrl = "http://87.106.62.92:15079"
 
     fun baseUrlOrNull(): String? {
         val secret = BuildConfig.TOGETHER_ONLINE_SECRET
