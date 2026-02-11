@@ -368,7 +368,10 @@ fun MusicTogetherScreen(
                 )
 
                 Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 12.dp)
+                        .padding(bottom = 10.dp),
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     Button(
