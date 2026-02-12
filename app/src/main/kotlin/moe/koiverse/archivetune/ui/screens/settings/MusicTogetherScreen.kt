@@ -162,7 +162,12 @@ fun MusicTogetherScreen(
             is TogetherSessionState.HostingOnline -> state.roomState == null
             else -> false
         }
-    val disableJoinUi = isHostRole || isCreatingSessionLoading
+    val isJoinedAsGuest =
+        when (val state = sessionState) {
+            is TogetherSessionState.Joined -> state.role is TogetherRole.Guest
+            else -> false
+        }
+    val disableJoinUi = isHostRole || isCreatingSessionLoading || isJoinedAsGuest
 
     var showNameDialog by rememberSaveable { mutableStateOf(false) }
     var showPortDialog by rememberSaveable { mutableStateOf(false) }
@@ -362,45 +367,47 @@ fun MusicTogetherScreen(
             )
         }
 
-        HostSectionCard(
-            hostModeOnline = hostModeOnline,
-            onHostModeChange = { hostModeOnline = it },
-            displayName = displayName,
-            port = port,
-            allowAddTracks = allowAddTracks,
-            allowControlPlayback = allowControlPlayback,
-            requireApproval = requireApproval,
-            onShowNameDialog = { showNameDialog = true },
-            onShowPortDialog = { showPortDialog = true },
-            onAllowAddTracksChange = setAllowAddTracks,
-            onAllowControlPlaybackChange = setAllowControlPlayback,
-            onRequireApprovalChange = setRequireApproval,
-            isStartEnabled = !isCreatingSessionLoading && !isJoining && !isHosting && sessionState !is TogetherSessionState.Joined,
-            isLoading = isCreatingSessionLoading,
-            onStartSession = {
-                val settings =
-                    TogetherRoomSettings(
-                        allowGuestsToAddTracks = allowAddTracks,
-                        allowGuestsToControlPlayback = allowControlPlayback,
-                        requireHostApprovalToJoin = requireApproval,
-                    )
-                if (hostModeOnline) {
-                    playerConnection?.service?.startTogetherOnlineHost(
-                        displayName = displayName,
-                        settings = settings,
-                    )
-                } else {
-                    playerConnection?.service?.startTogetherHost(
-                        port = port,
-                        displayName = displayName,
-                        settings = settings,
-                    )
-                }
-            },
-            modifier = Modifier
-                .padding(horizontal = 16.dp)
-                .padding(bottom = 12.dp),
-        )
+        if (!isJoinedAsGuest) {
+            HostSectionCard(
+                hostModeOnline = hostModeOnline,
+                onHostModeChange = { hostModeOnline = it },
+                displayName = displayName,
+                port = port,
+                allowAddTracks = allowAddTracks,
+                allowControlPlayback = allowControlPlayback,
+                requireApproval = requireApproval,
+                onShowNameDialog = { showNameDialog = true },
+                onShowPortDialog = { showPortDialog = true },
+                onAllowAddTracksChange = setAllowAddTracks,
+                onAllowControlPlaybackChange = setAllowControlPlayback,
+                onRequireApprovalChange = setRequireApproval,
+                isStartEnabled = !isCreatingSessionLoading && !isJoining && !isHosting && sessionState !is TogetherSessionState.Joined,
+                isLoading = isCreatingSessionLoading,
+                onStartSession = {
+                    val settings =
+                        TogetherRoomSettings(
+                            allowGuestsToAddTracks = allowAddTracks,
+                            allowGuestsToControlPlayback = allowControlPlayback,
+                            requireHostApprovalToJoin = requireApproval,
+                        )
+                    if (hostModeOnline) {
+                        playerConnection?.service?.startTogetherOnlineHost(
+                            displayName = displayName,
+                            settings = settings,
+                        )
+                    } else {
+                        playerConnection?.service?.startTogetherHost(
+                            port = port,
+                            displayName = displayName,
+                            settings = settings,
+                        )
+                    }
+                },
+                modifier = Modifier
+                    .padding(horizontal = 16.dp)
+                    .padding(bottom = 12.dp),
+            )
+        }
 
         JoinSectionCard(
             joinModeOnline = joinModeOnline,
@@ -408,6 +415,7 @@ fun MusicTogetherScreen(
             joinInput = joinInput,
             canJoin = canJoin,
             disableJoinUi = disableJoinUi,
+            isJoined = isJoinedAsGuest,
             isJoining = isJoining,
             onShowJoinDialog = { showJoinDialog = true },
             onJoin = {
@@ -963,6 +971,7 @@ private fun JoinSectionCard(
     joinInput: String,
     canJoin: Boolean,
     disableJoinUi: Boolean,
+    isJoined: Boolean,
     isJoining: Boolean,
     onShowJoinDialog: () -> Unit,
     onJoin: () -> Unit,
@@ -999,7 +1008,7 @@ private fun JoinSectionCard(
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
-                        painter = painterResource(R.drawable.link),
+                        painter = painterResource(R.drawable.multi_user),
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.tertiary,
                         modifier = Modifier.size(22.dp),
@@ -1055,7 +1064,7 @@ private fun JoinSectionCard(
                 title = stringResource(R.string.join_session),
                 subtitle = joinInput.trim().ifBlank { hint },
                 subtitleMaxLines = 2,
-                onClick = if (!disableJoinUi && !isJoining) onShowJoinDialog else null,
+                onClick = if (!disableJoinUi && !isJoining && !isJoined) onShowJoinDialog else null,
             )
 
             Spacer(Modifier.height(8.dp))
@@ -1069,7 +1078,7 @@ private fun JoinSectionCard(
             )
 
             FilledTonalButton(
-                enabled = canJoin && !disableJoinUi && !isJoining,
+                enabled = canJoin && !disableJoinUi && !isJoining && !isJoined,
                 onClick = onJoin,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -1090,9 +1099,20 @@ private fun JoinSectionCard(
                         text = stringResource(R.string.connecting),
                         fontWeight = FontWeight.SemiBold,
                     )
+                } else if (isJoined) {
+                    Icon(
+                        painter = painterResource(R.drawable.check),
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        text = stringResource(R.string.joined),
+                        fontWeight = FontWeight.SemiBold,
+                    )
                 } else {
                     Icon(
-                        painter = painterResource(R.drawable.link),
+                        painter = painterResource(R.drawable.join),
                         contentDescription = null,
                         modifier = Modifier.size(18.dp),
                     )
@@ -1363,12 +1383,17 @@ private fun StatusCard(
                             onClick = onLeave,
                             shape = RoundedCornerShape(14.dp),
                         ) {
+                            Icon(
+                                painter = painterResource(R.drawable.leave),
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp),
+                            )
+                            Spacer(Modifier.width(6.dp))
                             Text(
                                 text = stringResource(R.string.leave),
                                 fontWeight = FontWeight.SemiBold,
                             )
                         }
-                    }
                 }
 
                 when (state) {
