@@ -543,6 +543,9 @@ val GitHubContributorsEtagKey = stringPreferencesKey("github_contributors_etag")
 val GitHubContributorsJsonKey = stringPreferencesKey("github_contributors_json")
 val GitHubContributorsLastCheckedAtKey = longPreferencesKey("github_contributors_last_checked_at")
 
+val TogetherOnlineEndpointCacheKey = stringPreferencesKey("together_online_endpoint_cache")
+val TogetherOnlineEndpointLastCheckedAtKey = longPreferencesKey("together_online_endpoint_last_checked_at")
+
 enum class UpdateChannel {
     STABLE,
     NIGHTLY,

@@ -1456,7 +1456,7 @@ class MusicService :
         ioScope.launch(SilentHandler) {
             stopTogetherInternal()
 
-            val baseUrl = moe.koiverse.archivetune.together.TogetherOnlineEndpoint.baseUrlOrNull()
+            val baseUrl = moe.koiverse.archivetune.together.TogetherOnlineEndpoint.baseUrlOrNull(dataStore)
             if (baseUrl == null) {
                 scope.launch(SilentHandler) {
                     togetherSessionState.value =
@@ -1691,7 +1691,7 @@ class MusicService :
         ioScope.launch(SilentHandler) {
             stopTogetherInternal()
 
-            val baseUrl = moe.koiverse.archivetune.together.TogetherOnlineEndpoint.baseUrlOrNull()
+            val baseUrl = moe.koiverse.archivetune.together.TogetherOnlineEndpoint.baseUrlOrNull(dataStore)
             if (baseUrl == null) {
                 scope.launch(SilentHandler) {
                     togetherSessionState.value =
