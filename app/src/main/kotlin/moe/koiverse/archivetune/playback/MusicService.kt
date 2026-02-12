@@ -1778,10 +1778,20 @@ class MusicService :
                         }
 
                         moe.koiverse.archivetune.together.TogetherClientEvent.Disconnected -> {
+                            val current = togetherSessionState.value
+                            if (current is moe.koiverse.archivetune.together.TogetherSessionState.Idle) return@collect
                             scope.launch(SilentHandler) {
+                                val currentState = togetherSessionState.value
                                 togetherSessionState.value =
                                     moe.koiverse.archivetune.together.TogetherSessionState.Error(
-                                        message = getString(R.string.network_unavailable),
+                                        message =
+                                            if (currentState is moe.koiverse.archivetune.together.TogetherSessionState.Joined &&
+                                                currentState.role is moe.koiverse.archivetune.together.TogetherRole.Guest
+                                            ) {
+                                                getString(R.string.together_host_left_session)
+                                            } else {
+                                                getString(R.string.network_unavailable)
+                                            },
                                         recoverable = true,
                                     )
                             }
@@ -1941,10 +1951,20 @@ class MusicService :
                             }
 
                             moe.koiverse.archivetune.together.TogetherClientEvent.Disconnected -> {
+                                val current = togetherSessionState.value
+                                if (current is moe.koiverse.archivetune.together.TogetherSessionState.Idle) return@collect
                                 scope.launch(SilentHandler) {
+                                    val currentState = togetherSessionState.value
                                     togetherSessionState.value =
                                         moe.koiverse.archivetune.together.TogetherSessionState.Error(
-                                            message = getString(R.string.network_unavailable),
+                                            message =
+                                                if (currentState is moe.koiverse.archivetune.together.TogetherSessionState.Joined &&
+                                                    currentState.role is moe.koiverse.archivetune.together.TogetherRole.Guest
+                                                ) {
+                                                    getString(R.string.together_host_left_session)
+                                                } else {
+                                                    getString(R.string.network_unavailable)
+                                                },
                                             recoverable = true,
                                         )
                                 }
@@ -3615,6 +3635,25 @@ class MusicService :
         discordRpc = null
         try { DiscordPresenceManager.stop() } catch (_: Exception) {}
         lastPresenceToken = null
+
+        try {
+            val state = togetherSessionState.value
+            val isHostSessionActive =
+                state is moe.koiverse.archivetune.together.TogetherSessionState.Hosting ||
+                    state is moe.koiverse.archivetune.together.TogetherSessionState.HostingOnline ||
+                    (state is moe.koiverse.archivetune.together.TogetherSessionState.Joined &&
+                        state.role is moe.koiverse.archivetune.together.TogetherRole.Host)
+
+            val isPlaybackInactive = player.playbackState == Player.STATE_IDLE || player.mediaItemCount == 0
+
+            if (isHostSessionActive && isPlaybackInactive) {
+                runCatching { kotlinx.coroutines.runBlocking { stopTogetherInternal() } }
+                runCatching { togetherSessionState.value = moe.koiverse.archivetune.together.TogetherSessionState.Idle }
+                stopSelf()
+                return
+            }
+        } catch (_: Exception) {}
+
         try {
             if (dataStore.get(StopMusicOnTaskClearKey, false)) {
                 stopSelf()
