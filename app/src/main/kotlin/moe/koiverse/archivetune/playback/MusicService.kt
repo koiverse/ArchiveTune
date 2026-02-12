@@ -357,26 +357,6 @@ class MusicService :
     @Volatile
     private var togetherApplyingRemote: Boolean = false
     private val togetherHostId: String = "host"
-    private var togetherLastDeniedPlaybackToastAtMs: Long = 0L
-    private var togetherLastDeniedAddSongToastAtMs: Long = 0L
-
-    private fun showTogetherDeniedPlaybackToast() {
-        val now = android.os.SystemClock.elapsedRealtime()
-        if (now - togetherLastDeniedPlaybackToastAtMs < 1250L) return
-        togetherLastDeniedPlaybackToastAtMs = now
-        scope.launch {
-            Toast.makeText(this@MusicService, "You're not allowed controlled this playback", Toast.LENGTH_SHORT).show()
-        }
-    }
-
-    private fun showTogetherDeniedAddSongToast() {
-        val now = android.os.SystemClock.elapsedRealtime()
-        if (now - togetherLastDeniedAddSongToastAtMs < 1250L) return
-        togetherLastDeniedAddSongToastAtMs = now
-        scope.launch {
-            Toast.makeText(this@MusicService, "You're not allowed to add song", Toast.LENGTH_SHORT).show()
-        }
-    }
 
     private suspend fun getOrCreateTogetherClientId(): String {
         val existing = dataStore.getAsync(TogetherClientIdKey)?.trim().orEmpty()
@@ -1153,7 +1133,6 @@ class MusicService :
             joined?.role is moe.koiverse.archivetune.together.TogetherRole.Guest &&
             !joined.roomState.settings.allowGuestsToControlPlayback
         ) {
-            showTogetherDeniedPlaybackToast()
             return
         }
         ensureScopesActive()
@@ -1269,7 +1248,6 @@ class MusicService :
             joined?.role is moe.koiverse.archivetune.together.TogetherRole.Guest &&
             !joined.roomState.settings.allowGuestsToControlPlayback
         ) {
-            showTogetherDeniedPlaybackToast()
             return
         }
         suppressAutoPlayback = false
@@ -1383,7 +1361,6 @@ class MusicService :
         val joined = togetherSessionState.value as? moe.koiverse.archivetune.together.TogetherSessionState.Joined
         if (joined?.role is moe.koiverse.archivetune.together.TogetherRole.Guest) {
             if (!joined.roomState.settings.allowGuestsToAddTracks) {
-                showTogetherDeniedAddSongToast()
                 return
             }
             val tracks =
@@ -1413,7 +1390,6 @@ class MusicService :
         val joined = togetherSessionState.value as? moe.koiverse.archivetune.together.TogetherSessionState.Joined
         if (joined?.role is moe.koiverse.archivetune.together.TogetherRole.Guest) {
             if (!joined.roomState.settings.allowGuestsToAddTracks) {
-                showTogetherDeniedAddSongToast()
                 return
             }
             val tracks =
@@ -2049,7 +2025,6 @@ class MusicService :
         val state = togetherSessionState.value as? moe.koiverse.archivetune.together.TogetherSessionState.Joined ?: return
         if (state.role !is moe.koiverse.archivetune.together.TogetherRole.Guest) return
         if (!state.roomState.settings.allowGuestsToControlPlayback) {
-            showTogetherDeniedPlaybackToast()
             return
         }
         client.requestControl(state.sessionId, action)
@@ -2063,7 +2038,6 @@ class MusicService :
         val state = togetherSessionState.value as? moe.koiverse.archivetune.together.TogetherSessionState.Joined ?: return
         if (state.role !is moe.koiverse.archivetune.together.TogetherRole.Guest) return
         if (!state.roomState.settings.allowGuestsToAddTracks) {
-            showTogetherDeniedAddSongToast()
             return
         }
         client.requestAddTrack(state.sessionId, track, mode)
@@ -2589,7 +2563,6 @@ class MusicService :
         reason == Player.MEDIA_ITEM_TRANSITION_REASON_SEEK
     ) {
         if (!joined.roomState.settings.allowGuestsToControlPlayback) {
-            showTogetherDeniedPlaybackToast()
             scope.launch(SilentHandler) { applyRemoteRoomState(joined.roomState) }
             return
         }
@@ -2831,7 +2804,6 @@ class MusicService :
         events.contains(Player.EVENT_PLAY_WHEN_READY_CHANGED)
     ) {
         if (!joined.roomState.settings.allowGuestsToControlPlayback) {
-            showTogetherDeniedPlaybackToast()
             scope.launch(SilentHandler) { applyRemoteRoomState(joined.roomState) }
         } else {
             val action =
@@ -3002,7 +2974,6 @@ class MusicService :
         if (joined?.role is moe.koiverse.archivetune.together.TogetherRole.Guest) {
             if (!togetherApplyingRemote) {
                 if (!joined.roomState.settings.allowGuestsToControlPlayback) {
-                    showTogetherDeniedPlaybackToast()
                     scope.launch(SilentHandler) { applyRemoteRoomState(joined.roomState) }
                     return
                 }
@@ -3032,7 +3003,6 @@ class MusicService :
         if (joined?.role is moe.koiverse.archivetune.together.TogetherRole.Guest) {
             if (!togetherApplyingRemote) {
                 if (!joined.roomState.settings.allowGuestsToControlPlayback) {
-                    showTogetherDeniedPlaybackToast()
                     scope.launch(SilentHandler) { applyRemoteRoomState(joined.roomState) }
                     return
                 }
