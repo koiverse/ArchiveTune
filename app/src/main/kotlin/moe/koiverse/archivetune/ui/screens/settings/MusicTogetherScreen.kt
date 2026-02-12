@@ -169,6 +169,17 @@ fun MusicTogetherScreen(
             is TogetherSessionState.Joined -> state.role is TogetherRole.Guest
             else -> false
         }
+    val isWaitingApproval =
+        when (val state = sessionState) {
+            is TogetherSessionState.Joined -> {
+                state.role is TogetherRole.Guest &&
+                    state.roomState.participants
+                        .firstOrNull { it.id == state.selfParticipantId }
+                        ?.isPending == true
+            }
+            else -> false
+        }
+    val isJoinedAsAcceptedGuest = isJoinedAsGuest && !isWaitingApproval
     val disableJoinUi = isHostRole || isCreatingSessionLoading || isJoinedAsGuest
 
     var showNameDialog by rememberSaveable { mutableStateOf(false) }
@@ -417,7 +428,8 @@ fun MusicTogetherScreen(
             joinInput = joinInput,
             canJoin = canJoin,
             disableJoinUi = disableJoinUi,
-            isJoined = isJoinedAsGuest,
+            isJoined = isJoinedAsAcceptedGuest,
+            isWaitingApproval = isWaitingApproval,
             isJoining = isJoining,
             onShowJoinDialog = { showJoinDialog = true },
             onJoin = {
@@ -999,6 +1011,7 @@ private fun JoinSectionCard(
     canJoin: Boolean,
     disableJoinUi: Boolean,
     isJoined: Boolean,
+    isWaitingApproval: Boolean,
     isJoining: Boolean,
     onShowJoinDialog: () -> Unit,
     onJoin: () -> Unit,
@@ -1091,7 +1104,7 @@ private fun JoinSectionCard(
                 title = stringResource(R.string.join_session),
                 subtitle = joinInput.trim().ifBlank { hint },
                 subtitleMaxLines = 2,
-                onClick = if (!disableJoinUi && !isJoining && !isJoined) onShowJoinDialog else null,
+                onClick = if (!disableJoinUi && !isJoining && !isJoined && !isWaitingApproval) onShowJoinDialog else null,
             )
 
             Spacer(Modifier.height(8.dp))
@@ -1105,7 +1118,7 @@ private fun JoinSectionCard(
             )
 
             FilledTonalButton(
-                enabled = canJoin && !disableJoinUi && !isJoining && !isJoined,
+                enabled = canJoin && !disableJoinUi && !isJoining && !isJoined && !isWaitingApproval,
                 onClick = onJoin,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -1124,6 +1137,17 @@ private fun JoinSectionCard(
                     Spacer(Modifier.width(10.dp))
                     Text(
                         text = stringResource(R.string.connecting),
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                } else if (isWaitingApproval) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(18.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                    )
+                    Spacer(Modifier.width(10.dp))
+                    Text(
+                        text = stringResource(R.string.together_waiting_approval),
                         fontWeight = FontWeight.SemiBold,
                     )
                 } else if (isJoined) {
@@ -1305,6 +1329,16 @@ private fun StatusCard(
 ) {
     val isActive = state !is TogetherSessionState.Idle
     val isError = state is TogetherSessionState.Error
+    val isWaitingApproval =
+        when (state) {
+            is TogetherSessionState.Joined -> {
+                state.role is TogetherRole.Guest &&
+                    state.roomState.participants
+                        .firstOrNull { it.id == state.selfParticipantId }
+                        ?.isPending == true
+            }
+            else -> false
+        }
     val statusColor = when {
         isError -> MaterialTheme.colorScheme.error
         isActive -> MaterialTheme.colorScheme.primary
@@ -1398,7 +1432,12 @@ private fun StatusCard(
                                 is TogetherSessionState.HostingOnline -> stringResource(R.string.together_hosting)
                                 is TogetherSessionState.Joining -> stringResource(R.string.together_joining)
                                 is TogetherSessionState.JoiningOnline -> stringResource(R.string.together_joining)
-                                is TogetherSessionState.Joined -> stringResource(R.string.together_connected)
+                                is TogetherSessionState.Joined ->
+                                    if (isWaitingApproval) {
+                                        stringResource(R.string.together_waiting_approval)
+                                    } else {
+                                        stringResource(R.string.together_connected)
+                                    }
                                 is TogetherSessionState.Error -> stringResource(R.string.together_error_state)
                             },
                             style = MaterialTheme.typography.titleMedium,
@@ -1446,7 +1485,9 @@ private fun StatusCard(
                     }
 
                     is TogetherSessionState.Joined -> {
-                        ParticipantsCard(participants = state.roomState.participants.map { it.name })
+                        if (!isWaitingApproval) {
+                            ParticipantsCard(participants = state.roomState.participants.map { it.name })
+                        }
                     }
 
                     is TogetherSessionState.Error -> {
