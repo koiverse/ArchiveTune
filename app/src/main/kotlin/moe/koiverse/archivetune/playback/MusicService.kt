@@ -1425,6 +1425,25 @@ class MusicService :
         }
     }
 
+    private fun togetherOnlineErrorMessage(t: Throwable): String {
+        if (t is moe.koiverse.archivetune.together.TogetherOnlineApiException) {
+            val code = t.statusCode
+            return when {
+                code == 404 -> getString(R.string.together_session_not_found)
+                code != null && code in 500..599 -> getString(R.string.together_server_error)
+                else -> t.message ?: getString(R.string.network_unavailable)
+            }
+        }
+        val root = generateSequence(t) { it.cause }.lastOrNull() ?: t
+        return when (root) {
+            is UnknownHostException -> getString(R.string.together_server_unreachable)
+            is ConnectException -> getString(R.string.together_server_unreachable)
+            is SocketTimeoutException -> getString(R.string.together_connection_timed_out)
+            is javax.net.ssl.SSLHandshakeException -> getString(R.string.together_server_unreachable)
+            else -> getString(R.string.network_unavailable)
+        }
+    }
+
     fun startTogetherOnlineHost(
         displayName: String,
         settings: moe.koiverse.archivetune.together.TogetherRoomSettings,
@@ -1462,7 +1481,7 @@ class MusicService :
                     scope.launch(SilentHandler) {
                         togetherSessionState.value =
                             moe.koiverse.archivetune.together.TogetherSessionState.Error(
-                                message = getString(R.string.network_unavailable),
+                                message = togetherOnlineErrorMessage(t),
                                 recoverable = true,
                             )
                     }
@@ -1691,7 +1710,7 @@ class MusicService :
                         scope.launch(SilentHandler) {
                             togetherSessionState.value =
                                 moe.koiverse.archivetune.together.TogetherSessionState.Error(
-                                    message = getString(R.string.network_unavailable),
+                                    message = togetherOnlineErrorMessage(t),
                                     recoverable = true,
                                 )
                         }
