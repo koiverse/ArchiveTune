@@ -1149,7 +1149,8 @@ class MusicService :
         playWhenReady: Boolean = true,
     ) {
         val joined = togetherSessionState.value as? moe.koiverse.archivetune.together.TogetherSessionState.Joined
-        if (joined?.role is moe.koiverse.archivetune.together.TogetherRole.Guest &&
+        if (!togetherApplyingRemote &&
+            joined?.role is moe.koiverse.archivetune.together.TogetherRole.Guest &&
             !joined.roomState.settings.allowGuestsToControlPlayback
         ) {
             showTogetherDeniedPlaybackToast()
@@ -1264,7 +1265,8 @@ class MusicService :
 
     fun startRadioSeamlessly() {
         val joined = togetherSessionState.value as? moe.koiverse.archivetune.together.TogetherSessionState.Joined
-        if (joined?.role is moe.koiverse.archivetune.together.TogetherRole.Guest &&
+        if (!togetherApplyingRemote &&
+            joined?.role is moe.koiverse.archivetune.together.TogetherRole.Guest &&
             !joined.roomState.settings.allowGuestsToControlPlayback
         ) {
             showTogetherDeniedPlaybackToast()
@@ -2212,15 +2214,20 @@ class MusicService :
 
                 if (desiredItems.isNotEmpty() && needsRebuild) {
                     val startIndex = state.currentIndex.coerceIn(0, desiredItems.lastIndex)
-                    playQueue(
+                    suppressAutoPlayback = false
+                    currentQueue =
                         moe.koiverse.archivetune.playback.queues.ListQueue(
                             title = getString(R.string.music_player),
                             items = desiredItems,
                             startIndex = startIndex,
                             position = targetPos,
-                        ),
-                        playWhenReady = state.isPlaying,
-                    )
+                        )
+                    queueTitle = null
+                    player.setMediaItems(desiredItems, startIndex, targetPos)
+                    player.prepare()
+                    player.repeatMode = state.repeatMode
+                    player.shuffleModeEnabled = state.shuffleEnabled
+                    player.playWhenReady = state.isPlaying
                     togetherLastAppliedQueueHash = desiredHash
                 } else {
                     val index = state.currentIndex.coerceAtLeast(0)
