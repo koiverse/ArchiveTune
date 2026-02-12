@@ -1438,7 +1438,12 @@ private fun StatusCard(
                                     } else {
                                         stringResource(R.string.together_connected)
                                     }
-                                is TogetherSessionState.Error -> stringResource(R.string.together_error_state)
+                                is TogetherSessionState.Error ->
+                                    if (state.message == stringResource(R.string.together_host_left_session)) {
+                                        state.message
+                                    } else {
+                                        stringResource(R.string.together_error_state)
+                                    }
                             },
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold,
