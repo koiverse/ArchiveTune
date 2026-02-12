@@ -194,4 +194,16 @@ sealed interface ControlAction {
         val index: Int,
         val positionMs: Long = 0L,
     ) : ControlAction
+
+    @Serializable
+    @SerialName("set_repeat_mode")
+    data class SetRepeatMode(
+        val repeatMode: Int,
+    ) : ControlAction
+
+    @Serializable
+    @SerialName("set_shuffle_enabled")
+    data class SetShuffleEnabled(
+        val shuffleEnabled: Boolean,
+    ) : ControlAction
 }
