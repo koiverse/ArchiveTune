@@ -715,12 +715,13 @@ ArchiveTune will only extract your token, and everything else is stored locally.
     <string name="together_error_state">Error</string>
 
     <string name="got_it">Got it</string>
+    <string name="together_dont_show_again">Don\'t show this again</string>
     <string name="together_welcome_title">Welcome to ArchiveTune Music Together</string>
-    <string name="together_welcome_body">Music Together lets multiple devices share a live session with a synced queue and playback. One device hosts a session and shares a link, others join on the same Wi‑Fi.</string>
+    <string name="together_welcome_body">Music Together lets multiple devices share a live session with a synced queue and playback.</string>
     <string name="together_welcome_host_title">Host a session</string>
     <string name="together_welcome_host_body">Tap Start session, then share the session link. Keep ArchiveTune open in the background while hosting.</string>
     <string name="together_welcome_join_title">Join from another device</string>
-    <string name="together_welcome_join_body">Open the shared link, or paste it here and tap Join. Your queue and playback will follow the host.</string>
+    <string name="together_welcome_join_body">Open the shared link, or enter code and tap Join. Your queue and playback will follow the host.</string>
     <string name="together_welcome_permissions_title">Permissions and safety</string>
     <string name="together_welcome_permissions_body">Hosts can decide whether guests can add songs, control playback, or require approval to join.</string>
 </resources>

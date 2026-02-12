@@ -45,6 +45,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
@@ -122,10 +123,11 @@ fun MusicTogetherScreen(
 
     if (showWelcome) {
         WelcomeDialog(
-            onDismiss = {
+            onGotIt = { dontShowAgain ->
                 showWelcome = false
-                setWelcomeShown(true)
+                if (dontShowAgain) setWelcomeShown(true)
             },
+            onDismiss = { showWelcome = false },
         )
     }
 
@@ -605,8 +607,10 @@ private fun OnlineParticipantsCard(
 
 @Composable
 private fun WelcomeDialog(
+    onGotIt: (dontShowAgain: Boolean) -> Unit,
     onDismiss: () -> Unit,
 ) {
+    var dontShowAgain by rememberSaveable { mutableStateOf(true) }
     AlertDialog(
         onDismissRequest = onDismiss,
         shape = RoundedCornerShape(28.dp),
@@ -683,11 +687,34 @@ private fun WelcomeDialog(
                         )
                     }
                 }
+                Row(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(14.dp))
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null,
+                            ) { dontShowAgain = !dontShowAgain }
+                            .padding(horizontal = 4.dp, vertical = 2.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    Checkbox(
+                        checked = dontShowAgain,
+                        onCheckedChange = { dontShowAgain = it },
+                    )
+                    Text(
+                        text = stringResource(R.string.together_dont_show_again),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                }
             }
         },
         confirmButton = {
             Button(
-                onClick = onDismiss,
+                onClick = { onGotIt(dontShowAgain) },
                 shape = RoundedCornerShape(16.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.primary,
