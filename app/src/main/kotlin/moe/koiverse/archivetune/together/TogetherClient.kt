@@ -73,6 +73,7 @@ sealed class TogetherClientState {
 
 class TogetherClient(
     private val externalScope: CoroutineScope,
+    clientId: String = UUID.randomUUID().toString(),
 ) {
     private val client =
         HttpClient(OkHttp) {
@@ -90,7 +91,7 @@ class TogetherClient(
     private var session: WebSocketSession? = null
     private var loopJob: Job? = null
     private var selfParticipantId: String? = null
-    private val clientId = UUID.randomUUID().toString()
+    private val clientId = clientId.trim().ifBlank { UUID.randomUUID().toString() }.take(64)
 
     fun connect(joinInfo: TogetherJoinInfo, displayName: String) {
         scope.launch {
@@ -111,7 +112,7 @@ class TogetherClient(
                                 sessionId = joinInfo.sessionId,
                                 sessionKey = joinInfo.sessionKey,
                                 clientId = clientId,
-                                displayName = displayName.trim().ifBlank { "Guest" },
+                                    displayName = displayName.trim(),
                             )
                         send(TogetherJson.json.encodeToString(TogetherMessage.serializer(), hello))
                         _state.value = TogetherClientState.Connected(joinInfo)
@@ -281,6 +282,22 @@ class TogetherClient(
                             is moe.koiverse.archivetune.together.JoinDecision -> {
                                 if (message.sessionId == sessionId && message.participantId == selfParticipantId) {
                                     _events.tryEmit(TogetherClientEvent.JoinDecision(message))
+                                }
+                            }
+
+                            is KickParticipant -> {
+                                if (message.sessionId == sessionId && message.participantId == selfParticipantId) {
+                                    val detail = message.reason?.trim().orEmpty().ifBlank { "Kicked" }
+                                    _events.tryEmit(TogetherClientEvent.Error(detail, null))
+                                    break
+                                }
+                            }
+
+                            is BanParticipant -> {
+                                if (message.sessionId == sessionId && message.participantId == selfParticipantId) {
+                                    val detail = message.reason?.trim().orEmpty().ifBlank { "Banned" }
+                                    _events.tryEmit(TogetherClientEvent.Error(detail, null))
+                                    break
                                 }
                             }
 

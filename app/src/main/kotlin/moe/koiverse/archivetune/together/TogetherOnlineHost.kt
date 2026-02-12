@@ -18,6 +18,7 @@ import io.ktor.websocket.close
 import io.ktor.websocket.readText
 import io.ktor.websocket.send
 import java.util.UUID
+import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
@@ -45,10 +46,22 @@ class TogetherOnlineHost(
     private val hostId: String,
     private val hostDisplayName: String,
     initialSettings: TogetherRoomSettings,
+    clientId: String = UUID.randomUUID().toString(),
 ) {
     private val client =
         HttpClient(OkHttp) {
-            install(WebSockets)
+            engine {
+                config {
+                    connectTimeout(15, TimeUnit.SECONDS)
+                    readTimeout(30, TimeUnit.SECONDS)
+                    writeTimeout(15, TimeUnit.SECONDS)
+                    pingInterval(25, TimeUnit.SECONDS)
+                    retryOnConnectionFailure(true)
+                }
+            }
+            install(WebSockets) {
+                pingIntervalMillis = 25_000
+            }
         }
 
     private val scope = CoroutineScope(externalScope.coroutineContext + SupervisorJob())
@@ -59,7 +72,7 @@ class TogetherOnlineHost(
     private var loopJob: Job? = null
     private var hostParticipantId: String? = null
 
-    private val clientId = UUID.randomUUID().toString()
+    private val clientId = clientId.trim().ifBlank { UUID.randomUUID().toString() }.take(64)
 
     private data class Guest(
         val participantId: String,
@@ -95,7 +108,7 @@ class TogetherOnlineHost(
                             sessionId = sessionId,
                             sessionKey = sessionKey,
                             clientId = clientId,
-                            displayName = hostDisplayName.trim().ifBlank { "Host" },
+                            displayName = hostDisplayName.trim(),
                         )
                     send(TogetherJson.json.encodeToString(TogetherMessage.serializer(), hello))
                     runLoop(this, candidate)
@@ -204,6 +217,18 @@ class TogetherOnlineHost(
                 TogetherJson.json.encodeToString(
                     TogetherMessage.serializer(),
                     KickParticipant(sessionId = sessionId, participantId = participantId, reason = reason),
+                ),
+            )
+        }
+    }
+
+    suspend fun banParticipant(participantId: String, reason: String?) {
+        if (!guests.containsKey(participantId)) return
+        runCatching {
+            session?.send(
+                TogetherJson.json.encodeToString(
+                    TogetherMessage.serializer(),
+                    BanParticipant(sessionId = sessionId, participantId = participantId, reason = reason),
                 ),
             )
         }

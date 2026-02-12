@@ -317,16 +317,6 @@ fun PlayerMenu(
         )
     }
 
-    var showMusicTogetherDialog by rememberSaveable {
-        mutableStateOf(false)
-    }
-
-    if (showMusicTogetherDialog) {
-        MusicTogetherDialog(
-            onDismiss = { showMusicTogetherDialog = false },
-        )
-    }
-
     val nowPlayingTitle =
         remember(mediaMetadata.title) {
             mediaMetadata.title.ifBlank { context.getString(R.string.no_title) }
@@ -486,14 +476,18 @@ fun PlayerMenu(
                     NewAction(
                         icon = {
                             Icon(
-                                painter = painterResource(R.drawable.all_inclusive),
+                                painter = painterResource(R.drawable.fire),
                                 contentDescription = null,
                                 modifier = Modifier.size(28.dp),
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         },
                         text = stringResource(R.string.music_together),
-                        onClick = { showMusicTogetherDialog = true }
+                        onClick = {
+                            onDismiss()
+                            playerBottomSheetState.snapTo(playerBottomSheetState.collapsedBound)
+                            navController.navigate("settings/music_together")
+                        }
                     )
                 ),
                 modifier = Modifier.padding(vertical = 4.dp)

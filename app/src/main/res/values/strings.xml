@@ -98,6 +98,17 @@
     <string name="refetch">Refetch</string>
     <string name="share">Share</string>
     <string name="delete">Delete</string>
+    <string name="together_participants">Participants</string>
+    <string name="together_connected_count">%1$d connected</string>
+    <string name="together_role_host">Host</string>
+    <string name="together_role_guest">Guest</string>
+    <string name="together_pending_approval">Pending approval</string>
+    <string name="together_waiting_approval">Waiting Approval</string>
+    <string name="together_host_left_session">Host Leaved Sessions</string>
+    <string name="together_kick">Kick</string>
+    <string name="together_ban">Ban</string>
+    <string name="together_kick_confirm">Kick %1$s?</string>
+    <string name="together_ban_confirm">Ban %1$s?</string>
     <string name="remove_from_history">Remove from history</string>
     <string name="remove_from_playlist">Remove from playlist</string>
     <string name="remove_from_queue">Remove from queue</string>
@@ -685,8 +696,13 @@ ArchiveTune will only extract your token, and everything else is stored locally.
     <string name="not_allowed">Not allowed</string>
     <string name="network_unavailable">Network unavailable</string>
     <string name="together_online_not_configured">Online sessions aren\'t configured</string>
+    <string name="together_server_unreachable">Server unreachable</string>
+    <string name="together_connection_timed_out">Connection timed out</string>
+    <string name="together_session_not_found">Session not found</string>
+    <string name="together_server_error">Server error, please try again later</string>
     <string name="leave">Leave</string>
     <string name="join">Join</string>
+    <string name="joined">Joined</string>
     <string name="loading">Loading</string>
     <string name="connecting">Connecting…</string>
     <string name="copy_link">Copy link</string>
@@ -701,12 +717,13 @@ ArchiveTune will only extract your token, and everything else is stored locally.
     <string name="together_error_state">Error</string>
 
     <string name="got_it">Got it</string>
+    <string name="together_dont_show_again">Don\'t show this again</string>
     <string name="together_welcome_title">Welcome to ArchiveTune Music Together</string>
-    <string name="together_welcome_body">Music Together lets multiple devices share a live session with a synced queue and playback. One device hosts a session and shares a link, others join on the same Wi‑Fi.</string>
+    <string name="together_welcome_body">Music Together lets multiple devices share a live session with a synced queue and playback.</string>
     <string name="together_welcome_host_title">Host a session</string>
     <string name="together_welcome_host_body">Tap Start session, then share the session link. Keep ArchiveTune open in the background while hosting.</string>
     <string name="together_welcome_join_title">Join from another device</string>
-    <string name="together_welcome_join_body">Open the shared link, or paste it here and tap Join. Your queue and playback will follow the host.</string>
+    <string name="together_welcome_join_body">Open the shared link, or enter code and tap Join. Your queue and playback will follow the host.</string>
     <string name="together_welcome_permissions_title">Permissions and safety</string>
     <string name="together_welcome_permissions_body">Hosts can decide whether guests can add songs, control playback, or require approval to join.</string>
 </resources>
