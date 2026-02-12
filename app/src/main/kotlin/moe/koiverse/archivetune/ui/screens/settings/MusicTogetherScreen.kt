@@ -9,32 +9,53 @@ package moe.koiverse.archivetune.ui.screens.settings
 import android.content.Intent
 import android.os.Build
 import android.widget.Toast
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.ListItem
-import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
-import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -49,7 +70,10 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -57,7 +81,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import androidx.compose.material3.Switch
 import kotlinx.coroutines.flow.MutableStateFlow
 import moe.koiverse.archivetune.LocalPlayerAwareWindowInsets
 import moe.koiverse.archivetune.LocalPlayerConnection
@@ -74,7 +97,6 @@ import moe.koiverse.archivetune.together.TogetherRole
 import moe.koiverse.archivetune.together.TogetherRoomSettings
 import moe.koiverse.archivetune.together.TogetherSessionState
 import moe.koiverse.archivetune.ui.component.IconButton as AtIconButton
-import moe.koiverse.archivetune.ui.component.PreferenceGroupTitle
 import moe.koiverse.archivetune.ui.component.TextFieldDialog
 import moe.koiverse.archivetune.ui.utils.backToMain
 import moe.koiverse.archivetune.utils.rememberPreference
@@ -98,64 +120,10 @@ fun MusicTogetherScreen(
     }
 
     if (showWelcome) {
-        AlertDialog(
-            onDismissRequest = {
+        WelcomeDialog(
+            onDismiss = {
                 showWelcome = false
                 setWelcomeShown(true)
-            },
-            shape = RoundedCornerShape(28.dp),
-            containerColor = MaterialTheme.colorScheme.surface,
-            title = {
-                Text(
-                    text = stringResource(R.string.together_welcome_title),
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.SemiBold,
-                )
-            },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text(
-                        text = stringResource(R.string.together_welcome_body),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Surface(
-                        color = MaterialTheme.colorScheme.surfaceContainer,
-                        shape = RoundedCornerShape(20.dp),
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(14.dp),
-                            verticalArrangement = Arrangement.spacedBy(10.dp),
-                        ) {
-                            InstructionRow(
-                                icon = R.drawable.fire,
-                                title = stringResource(R.string.together_welcome_host_title),
-                                body = stringResource(R.string.together_welcome_host_body),
-                            )
-                            InstructionRow(
-                                icon = R.drawable.link,
-                                title = stringResource(R.string.together_welcome_join_title),
-                                body = stringResource(R.string.together_welcome_join_body),
-                            )
-                            InstructionRow(
-                                icon = R.drawable.lock,
-                                title = stringResource(R.string.together_welcome_permissions_title),
-                                body = stringResource(R.string.together_welcome_permissions_body),
-                            )
-                        }
-                    }
-                }
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        showWelcome = false
-                        setWelcomeShown(true)
-                    },
-                ) {
-                    Text(text = stringResource(R.string.got_it))
-                }
             },
         )
     }
@@ -270,8 +238,6 @@ fun MusicTogetherScreen(
             ),
         )
 
-        PreferenceGroupTitle(title = stringResource(R.string.music_together))
-
         StatusCard(
             state = sessionState,
             onCopyText = { labelRes, value ->
@@ -290,241 +256,72 @@ fun MusicTogetherScreen(
                 context.startActivity(Intent.createChooser(share, null))
             },
             onLeave = { playerConnection?.service?.leaveTogether() },
-            modifier = Modifier.padding(horizontal = 16.dp),
+            modifier = Modifier
+                .padding(horizontal = 16.dp)
+                .padding(top = 4.dp, bottom = 12.dp),
         )
 
-        Spacer(Modifier.size(12.dp))
-
-        PreferenceGroupTitle(title = stringResource(R.string.together_host_section))
-
-        Surface(
-            shape = RoundedCornerShape(20.dp),
-            color = MaterialTheme.colorScheme.surfaceContainerLow,
-            modifier = Modifier.padding(horizontal = 16.dp).fillMaxWidth(),
-        ) {
-            Column {
-                SingleChoiceSegmentedButtonRow(
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp)
-                            .padding(top = 14.dp),
-                ) {
-                    SegmentedButton(
-                        selected = !hostModeOnline,
-                        onClick = { hostModeOnline = false },
-                        shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
-                        icon = {},
-                    ) {
-                        Text(text = stringResource(R.string.together_lan))
-                    }
-                    SegmentedButton(
-                        selected = hostModeOnline,
-                        onClick = { hostModeOnline = true },
-                        shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
-                        icon = {},
-                    ) {
-                        Text(text = stringResource(R.string.together_online))
-                    }
-                }
-
-                ListItem(
-                    headlineContent = { Text(stringResource(R.string.together_display_name)) },
-                    supportingContent = {
-                        Text(
-                            text = displayName,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    },
-                    leadingContent = { Icon(painterResource(R.drawable.person), null) },
-                    trailingContent = {
-                        TextButton(onClick = { showNameDialog = true }) {
-                            Text(text = stringResource(R.string.edit))
-                        }
-                    },
-                    colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-                )
-
-                HorizontalDivider(modifier = Modifier.padding(start = 56.dp), color = MaterialTheme.colorScheme.outlineVariant)
-
-                if (!hostModeOnline) {
-                    ListItem(
-                        headlineContent = { Text(stringResource(R.string.together_port)) },
-                        supportingContent = { Text(port.toString()) },
-                        leadingContent = { Icon(painterResource(R.drawable.link), null) },
-                        trailingContent = {
-                            TextButton(onClick = { showPortDialog = true }) {
-                                Text(text = stringResource(R.string.edit))
-                            }
-                        },
-                        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+        HostSectionCard(
+            hostModeOnline = hostModeOnline,
+            onHostModeChange = { hostModeOnline = it },
+            displayName = displayName,
+            port = port,
+            allowAddTracks = allowAddTracks,
+            allowControlPlayback = allowControlPlayback,
+            requireApproval = requireApproval,
+            onShowNameDialog = { showNameDialog = true },
+            onShowPortDialog = { showPortDialog = true },
+            onAllowAddTracksChange = setAllowAddTracks,
+            onAllowControlPlaybackChange = setAllowControlPlayback,
+            onRequireApprovalChange = setRequireApproval,
+            isStartEnabled = !isCreatingSessionLoading && !isJoining && !isHosting && sessionState !is TogetherSessionState.Joined,
+            isLoading = isCreatingSessionLoading,
+            onStartSession = {
+                val settings =
+                    TogetherRoomSettings(
+                        allowGuestsToAddTracks = allowAddTracks,
+                        allowGuestsToControlPlayback = allowControlPlayback,
+                        requireHostApprovalToJoin = requireApproval,
                     )
-
-                    HorizontalDivider(modifier = Modifier.padding(start = 56.dp), color = MaterialTheme.colorScheme.outlineVariant)
+                if (hostModeOnline) {
+                    playerConnection?.service?.startTogetherOnlineHost(
+                        displayName = displayName,
+                        settings = settings,
+                    )
+                } else {
+                    playerConnection?.service?.startTogetherHost(
+                        port = port,
+                        displayName = displayName,
+                        settings = settings,
+                    )
                 }
+            },
+            modifier = Modifier
+                .padding(horizontal = 16.dp)
+                .padding(bottom = 12.dp),
+        )
 
-                ToggleRow(
-                    title = stringResource(R.string.together_allow_guests_add),
-                    checked = allowAddTracks,
-                    onCheckedChange = setAllowAddTracks,
-                )
-                ToggleRow(
-                    title = stringResource(R.string.together_allow_guests_control),
-                    checked = allowControlPlayback,
-                    onCheckedChange = setAllowControlPlayback,
-                )
-                ToggleRow(
-                    title = stringResource(R.string.together_require_approval),
-                    checked = requireApproval,
-                    onCheckedChange = setRequireApproval,
-                )
-
-                Spacer(Modifier.size(6.dp))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Button(
-                        enabled = !isCreatingSessionLoading && !isJoining && !isHosting && sessionState !is TogetherSessionState.Joined,
-                        onClick = {
-                            val settings =
-                                TogetherRoomSettings(
-                                    allowGuestsToAddTracks = allowAddTracks,
-                                    allowGuestsToControlPlayback = allowControlPlayback,
-                                    requireHostApprovalToJoin = requireApproval,
-                                )
-                            if (hostModeOnline) {
-                                playerConnection?.service?.startTogetherOnlineHost(
-                                    displayName = displayName,
-                                    settings = settings,
-                                )
-                            } else {
-                                playerConnection?.service?.startTogetherHost(
-                                    port = port,
-                                    displayName = displayName,
-                                    settings = settings,
-                                )
-                            }
-                        },
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(18.dp),
-                    ) {
-                        if (isCreatingSessionLoading) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                            ) {
-                                CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
-                                Text(text = stringResource(R.string.loading))
-                            }
-                        } else {
-                            Text(text = stringResource(R.string.start_session))
-                        }
-                    }
+        JoinSectionCard(
+            joinModeOnline = joinModeOnline,
+            onJoinModeChange = { joinModeOnline = it },
+            joinInput = joinInput,
+            canJoin = canJoin,
+            disableJoinUi = disableJoinUi,
+            isJoining = isJoining,
+            onShowJoinDialog = { showJoinDialog = true },
+            onJoin = {
+                val trimmed = joinInput.trim()
+                setLastJoinLink(trimmed)
+                if (joinModeOnline) {
+                    playerConnection?.service?.joinTogetherOnline(trimmed, displayName)
+                } else {
+                    playerConnection?.service?.joinTogether(trimmed, displayName)
                 }
-            }
-        }
-
-        Spacer(Modifier.size(12.dp))
-
-        PreferenceGroupTitle(title = stringResource(R.string.together_join_section))
-
-        Surface(
-            shape = RoundedCornerShape(20.dp),
-            color = MaterialTheme.colorScheme.surfaceContainerLow,
-            modifier = Modifier.padding(horizontal = 16.dp).fillMaxWidth(),
-        ) {
-            Column {
-                SingleChoiceSegmentedButtonRow(
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp)
-                            .padding(top = 14.dp),
-                ) {
-                    SegmentedButton(
-                        selected = !joinModeOnline,
-                        enabled = !disableJoinUi,
-                        onClick = { joinModeOnline = false },
-                        shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
-                        icon = {},
-                    ) {
-                        Text(text = stringResource(R.string.together_join_link))
-                    }
-                    SegmentedButton(
-                        selected = joinModeOnline,
-                        enabled = !disableJoinUi,
-                        onClick = { joinModeOnline = true },
-                        shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
-                        icon = {},
-                    ) {
-                        Text(text = stringResource(R.string.together_join_code))
-                    }
-                }
-
-                ListItem(
-                    headlineContent = { Text(stringResource(R.string.join_session)) },
-                    supportingContent = {
-                        val hint =
-                            if (joinModeOnline) stringResource(R.string.together_join_code_hint)
-                            else stringResource(R.string.together_join_link_hint)
-                        Text(
-                            text = joinInput.trim().ifBlank { hint },
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    },
-                    leadingContent = { Icon(painterResource(R.drawable.input), null) },
-                    trailingContent = {
-                        TextButton(
-                            enabled = !disableJoinUi && !isJoining,
-                            onClick = { showJoinDialog = true },
-                        ) {
-                            Text(text = stringResource(R.string.edit))
-                        }
-                    },
-                    colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-                )
-
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 12.dp)
-                        .padding(bottom = 10.dp),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                ) {
-                    Button(
-                        enabled = canJoin && !disableJoinUi && !isJoining,
-                        onClick = {
-                            val trimmed = joinInput.trim()
-                            setLastJoinLink(trimmed)
-                            if (joinModeOnline) {
-                                playerConnection?.service?.joinTogetherOnline(trimmed, displayName)
-                            } else {
-                                playerConnection?.service?.joinTogether(trimmed, displayName)
-                            }
-                        },
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(18.dp),
-                    ) {
-                        if (isJoining) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                            ) {
-                                CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
-                                Text(text = stringResource(R.string.connecting))
-                            }
-                        } else {
-                            Text(text = stringResource(R.string.join))
-                        }
-                    }
-                }
-            }
-        }
+            },
+            modifier = Modifier
+                .padding(horizontal = 16.dp)
+                .padding(bottom = 16.dp),
+        )
     }
 
     TopAppBar(
@@ -542,24 +339,133 @@ fun MusicTogetherScreen(
 }
 
 @Composable
+private fun WelcomeDialog(
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        shape = RoundedCornerShape(28.dp),
+        containerColor = MaterialTheme.colorScheme.surface,
+        title = {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(
+                            Brush.linearGradient(
+                                colors = listOf(
+                                    MaterialTheme.colorScheme.tertiary.copy(alpha = 0.2f),
+                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
+                                ),
+                            ),
+                        ),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.fire),
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(22.dp),
+                    )
+                }
+                Text(
+                    text = stringResource(R.string.together_welcome_title),
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.SemiBold,
+                )
+            }
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(
+                    text = stringResource(R.string.together_welcome_body),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Card(
+                    shape = RoundedCornerShape(22.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                    ),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(14.dp),
+                    ) {
+                        InstructionRow(
+                            icon = R.drawable.fire,
+                            accentColor = MaterialTheme.colorScheme.primary,
+                            title = stringResource(R.string.together_welcome_host_title),
+                            body = stringResource(R.string.together_welcome_host_body),
+                        )
+                        InstructionRow(
+                            icon = R.drawable.link,
+                            accentColor = MaterialTheme.colorScheme.tertiary,
+                            title = stringResource(R.string.together_welcome_join_title),
+                            body = stringResource(R.string.together_welcome_join_body),
+                        )
+                        InstructionRow(
+                            icon = R.drawable.lock,
+                            accentColor = MaterialTheme.colorScheme.secondary,
+                            title = stringResource(R.string.together_welcome_permissions_title),
+                            body = stringResource(R.string.together_welcome_permissions_body),
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = onDismiss,
+                shape = RoundedCornerShape(16.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                ),
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.check),
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp),
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = stringResource(R.string.got_it),
+                    fontWeight = FontWeight.SemiBold,
+                )
+            }
+        },
+    )
+}
+
+@Composable
 private fun InstructionRow(
     icon: Int,
+    accentColor: androidx.compose.ui.graphics.Color,
     title: String,
     body: String,
 ) {
     Row(
         verticalAlignment = Alignment.Top,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        Surface(
-            shape = RoundedCornerShape(12.dp),
-            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+        Box(
+            modifier = Modifier
+                .size(38.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(accentColor.copy(alpha = 0.14f)),
+            contentAlignment = Alignment.Center,
         ) {
             Icon(
                 painter = painterResource(icon),
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(10.dp).size(18.dp),
+                tint = accentColor,
+                modifier = Modifier.size(20.dp),
             )
         }
         Column(verticalArrangement = Arrangement.spacedBy(2.dp), modifier = Modifier.weight(1f)) {
@@ -577,22 +483,512 @@ private fun InstructionRow(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun HostSectionCard(
+    hostModeOnline: Boolean,
+    onHostModeChange: (Boolean) -> Unit,
+    displayName: String,
+    port: Int,
+    allowAddTracks: Boolean,
+    allowControlPlayback: Boolean,
+    requireApproval: Boolean,
+    onShowNameDialog: () -> Unit,
+    onShowPortDialog: () -> Unit,
+    onAllowAddTracksChange: (Boolean) -> Unit,
+    onAllowControlPlaybackChange: (Boolean) -> Unit,
+    onRequireApprovalChange: (Boolean) -> Unit,
+    isStartEnabled: Boolean,
+    isLoading: Boolean,
+    onStartSession: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .animateContentSize(animationSpec = spring(stiffness = Spring.StiffnessMediumLow)),
+        shape = RoundedCornerShape(28.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+    ) {
+        Column(modifier = Modifier.padding(vertical = 8.dp)) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 18.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(
+                            Brush.linearGradient(
+                                colors = listOf(
+                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.18f),
+                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
+                                ),
+                            ),
+                        ),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.fire),
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(22.dp),
+                    )
+                }
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = stringResource(R.string.together_host_section),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    Text(
+                        text = stringResource(R.string.together_display_name),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+
+            SingleChoiceSegmentedButtonRow(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 18.dp)
+                    .padding(bottom = 4.dp),
+            ) {
+                SegmentedButton(
+                    selected = !hostModeOnline,
+                    onClick = { onHostModeChange(false) },
+                    shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
+                    icon = {},
+                ) {
+                    Text(text = stringResource(R.string.together_lan))
+                }
+                SegmentedButton(
+                    selected = hostModeOnline,
+                    onClick = { onHostModeChange(true) },
+                    shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
+                    icon = {},
+                ) {
+                    Text(text = stringResource(R.string.together_online))
+                }
+            }
+
+            SettingsItemRow(
+                icon = R.drawable.person,
+                title = stringResource(R.string.together_display_name),
+                subtitle = displayName,
+                onClick = onShowNameDialog,
+            )
+
+            HorizontalDivider(
+                modifier = Modifier.padding(start = 76.dp, end = 18.dp),
+                thickness = 0.5.dp,
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
+            )
+
+            AnimatedVisibility(
+                visible = !hostModeOnline,
+                enter = fadeIn(tween(200)) + expandVertically(tween(250)),
+                exit = fadeOut(tween(150)) + shrinkVertically(tween(200)),
+            ) {
+                Column {
+                    SettingsItemRow(
+                        icon = R.drawable.link,
+                        title = stringResource(R.string.together_port),
+                        subtitle = port.toString(),
+                        onClick = onShowPortDialog,
+                    )
+
+                    HorizontalDivider(
+                        modifier = Modifier.padding(start = 76.dp, end = 18.dp),
+                        thickness = 0.5.dp,
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
+                    )
+                }
+            }
+
+            ToggleRow(
+                icon = R.drawable.playlist_add,
+                title = stringResource(R.string.together_allow_guests_add),
+                checked = allowAddTracks,
+                onCheckedChange = onAllowAddTracksChange,
+            )
+
+            HorizontalDivider(
+                modifier = Modifier.padding(start = 76.dp, end = 18.dp),
+                thickness = 0.5.dp,
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
+            )
+
+            ToggleRow(
+                icon = R.drawable.play,
+                title = stringResource(R.string.together_allow_guests_control),
+                checked = allowControlPlayback,
+                onCheckedChange = onAllowControlPlaybackChange,
+            )
+
+            HorizontalDivider(
+                modifier = Modifier.padding(start = 76.dp, end = 18.dp),
+                thickness = 0.5.dp,
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
+            )
+
+            ToggleRow(
+                icon = R.drawable.lock,
+                title = stringResource(R.string.together_require_approval),
+                checked = requireApproval,
+                onCheckedChange = onRequireApprovalChange,
+            )
+
+            Spacer(Modifier.height(8.dp))
+
+            val interactionSource = remember { MutableInteractionSource() }
+            val isPressed by interactionSource.collectIsPressedAsState()
+            val scale by animateFloatAsState(
+                targetValue = if (isPressed) 0.97f else 1f,
+                animationSpec = spring(stiffness = Spring.StiffnessMedium),
+                label = "host_btn_scale",
+            )
+
+            Button(
+                enabled = isStartEnabled,
+                onClick = onStartSession,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 18.dp)
+                    .padding(bottom = 10.dp)
+                    .scale(scale),
+                shape = RoundedCornerShape(18.dp),
+                interactionSource = interactionSource,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                ),
+            ) {
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(18.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.onPrimary,
+                    )
+                    Spacer(Modifier.width(10.dp))
+                    Text(
+                        text = stringResource(R.string.loading),
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                } else {
+                    Icon(
+                        painter = painterResource(R.drawable.fire),
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        text = stringResource(R.string.start_session),
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun JoinSectionCard(
+    joinModeOnline: Boolean,
+    onJoinModeChange: (Boolean) -> Unit,
+    joinInput: String,
+    canJoin: Boolean,
+    disableJoinUi: Boolean,
+    isJoining: Boolean,
+    onShowJoinDialog: () -> Unit,
+    onJoin: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .animateContentSize(animationSpec = spring(stiffness = Spring.StiffnessMediumLow)),
+        shape = RoundedCornerShape(28.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+    ) {
+        Column(modifier = Modifier.padding(vertical = 8.dp)) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 18.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(
+                            Brush.linearGradient(
+                                colors = listOf(
+                                    MaterialTheme.colorScheme.tertiary.copy(alpha = 0.18f),
+                                    MaterialTheme.colorScheme.tertiary.copy(alpha = 0.08f),
+                                ),
+                            ),
+                        ),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.link),
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.tertiary,
+                        modifier = Modifier.size(22.dp),
+                    )
+                }
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = stringResource(R.string.together_join_section),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    Text(
+                        text = stringResource(R.string.join_session),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+
+            SingleChoiceSegmentedButtonRow(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 18.dp)
+                    .padding(bottom = 4.dp),
+            ) {
+                SegmentedButton(
+                    selected = !joinModeOnline,
+                    enabled = !disableJoinUi,
+                    onClick = { onJoinModeChange(false) },
+                    shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
+                    icon = {},
+                ) {
+                    Text(text = stringResource(R.string.together_join_link))
+                }
+                SegmentedButton(
+                    selected = joinModeOnline,
+                    enabled = !disableJoinUi,
+                    onClick = { onJoinModeChange(true) },
+                    shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
+                    icon = {},
+                ) {
+                    Text(text = stringResource(R.string.together_join_code))
+                }
+            }
+
+            val hint =
+                if (joinModeOnline) stringResource(R.string.together_join_code_hint)
+                else stringResource(R.string.together_join_link_hint)
+
+            SettingsItemRow(
+                icon = R.drawable.input,
+                title = stringResource(R.string.join_session),
+                subtitle = joinInput.trim().ifBlank { hint },
+                subtitleMaxLines = 2,
+                onClick = if (!disableJoinUi && !isJoining) onShowJoinDialog else null,
+            )
+
+            Spacer(Modifier.height(8.dp))
+
+            val interactionSource = remember { MutableInteractionSource() }
+            val isPressed by interactionSource.collectIsPressedAsState()
+            val scale by animateFloatAsState(
+                targetValue = if (isPressed) 0.97f else 1f,
+                animationSpec = spring(stiffness = Spring.StiffnessMedium),
+                label = "join_btn_scale",
+            )
+
+            FilledTonalButton(
+                enabled = canJoin && !disableJoinUi && !isJoining,
+                onClick = onJoin,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 18.dp)
+                    .padding(bottom = 10.dp)
+                    .scale(scale),
+                shape = RoundedCornerShape(18.dp),
+                interactionSource = interactionSource,
+            ) {
+                if (isJoining) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(18.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                    )
+                    Spacer(Modifier.width(10.dp))
+                    Text(
+                        text = stringResource(R.string.connecting),
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                } else {
+                    Icon(
+                        painter = painterResource(R.drawable.link),
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        text = stringResource(R.string.join),
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SettingsItemRow(
+    icon: Int,
+    title: String,
+    subtitle: String,
+    subtitleMaxLines: Int = 1,
+    onClick: (() -> Unit)? = null,
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val alpha by animateFloatAsState(
+        targetValue = if (isPressed) 0.7f else 1f,
+        animationSpec = tween(100),
+        label = "item_alpha",
+    )
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(18.dp))
+            .then(
+                if (onClick != null) {
+                    Modifier.clickable(
+                        interactionSource = interactionSource,
+                        indication = null,
+                        onClick = onClick,
+                    )
+                } else {
+                    Modifier
+                },
+            )
+            .graphicsLayer { this.alpha = alpha }
+            .padding(horizontal = 18.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(
+                    MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                ),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                painter = painterResource(icon),
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.9f),
+                modifier = Modifier.size(22.dp),
+            )
+        }
+
+        Spacer(Modifier.width(16.dp))
+
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Spacer(Modifier.height(2.dp))
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = subtitleMaxLines,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+
+        if (onClick != null) {
+            Spacer(Modifier.width(8.dp))
+            Icon(
+                painter = painterResource(R.drawable.navigate_next),
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                modifier = Modifier.size(20.dp),
+            )
+        }
+    }
+}
+
 @Composable
 private fun ToggleRow(
+    icon: Int,
     title: String,
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
 ) {
-    ListItem(
-        headlineContent = { Text(text = title) },
-        trailingContent = {
-            Switch(
-                checked = checked,
-                onCheckedChange = onCheckedChange,
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(18.dp))
+            .clickable { onCheckedChange(!checked) }
+            .padding(horizontal = 18.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(
+                    MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                ),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                painter = painterResource(icon),
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.9f),
+                modifier = Modifier.size(22.dp),
             )
-        },
-        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-    )
+        }
+
+        Spacer(Modifier.width(16.dp))
+
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.weight(1f),
+        )
+
+        Switch(
+            checked = checked,
+            onCheckedChange = onCheckedChange,
+            thumbContent = {
+                Icon(
+                    painter = painterResource(
+                        id = if (checked) R.drawable.check else R.drawable.close,
+                    ),
+                    contentDescription = null,
+                    modifier = Modifier.size(SwitchDefaults.IconSize),
+                )
+            },
+        )
+    }
 }
 
 @Composable
@@ -603,33 +999,96 @@ private fun StatusCard(
     onLeave: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Surface(
-        shape = RoundedCornerShape(24.dp),
-        color = MaterialTheme.colorScheme.surfaceContainer,
-        modifier = modifier.fillMaxWidth(),
+    val isActive = state !is TogetherSessionState.Idle
+    val isError = state is TogetherSessionState.Error
+    val statusColor = when {
+        isError -> MaterialTheme.colorScheme.error
+        isActive -> MaterialTheme.colorScheme.primary
+        else -> MaterialTheme.colorScheme.onSurfaceVariant
+    }
+
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .animateContentSize(animationSpec = spring(stiffness = Spring.StiffnessMediumLow)),
+        shape = RoundedCornerShape(28.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Surface(
-                    shape = RoundedCornerShape(14.dp),
-                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(
+                    Brush.horizontalGradient(
+                        colors = if (isActive && !isError) {
+                            listOf(
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.14f),
+                                MaterialTheme.colorScheme.surfaceContainerLow,
+                            )
+                        } else if (isError) {
+                            listOf(
+                                MaterialTheme.colorScheme.error.copy(alpha = 0.14f),
+                                MaterialTheme.colorScheme.surfaceContainerLow,
+                            )
+                        } else {
+                            listOf(
+                                MaterialTheme.colorScheme.surfaceContainerLow,
+                                MaterialTheme.colorScheme.surfaceContainerLow,
+                            )
+                        },
+                    ),
+                )
+                .padding(18.dp),
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(14.dp),
                 ) {
-                    Icon(
-                        painter = painterResource(R.drawable.fire),
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(10.dp).size(18.dp),
-                    )
-                }
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = stringResource(R.string.together_status),
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
-                    Text(
-                        text =
-                            when (state) {
+                    Box(
+                        modifier = Modifier
+                            .size(44.dp)
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(
+                                Brush.linearGradient(
+                                    colors = listOf(
+                                        statusColor.copy(alpha = 0.18f),
+                                        statusColor.copy(alpha = 0.08f),
+                                    ),
+                                ),
+                            ),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            painter = painterResource(
+                                if (isError) R.drawable.error else R.drawable.fire,
+                            ),
+                            contentDescription = null,
+                            tint = statusColor,
+                            modifier = Modifier.size(24.dp),
+                        )
+                    }
+                    Column(modifier = Modifier.weight(1f)) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            Text(
+                                text = stringResource(R.string.together_status),
+                                style = MaterialTheme.typography.labelLarge,
+                                color = statusColor,
+                            )
+                            if (isActive && !isError) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(8.dp)
+                                        .clip(CircleShape)
+                                        .background(MaterialTheme.colorScheme.primary),
+                                )
+                            }
+                        }
+                        Text(
+                            text = when (state) {
                                 TogetherSessionState.Idle -> stringResource(R.string.together_idle)
                                 is TogetherSessionState.Hosting -> stringResource(R.string.together_hosting)
                                 is TogetherSessionState.HostingOnline -> stringResource(R.string.together_hosting)
@@ -638,123 +1097,174 @@ private fun StatusCard(
                                 is TogetherSessionState.Joined -> stringResource(R.string.together_connected)
                                 is TogetherSessionState.Error -> stringResource(R.string.together_error_state)
                             },
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                }
-                if (state !is TogetherSessionState.Idle) {
-                    TextButton(onClick = onLeave) {
-                        Text(text = stringResource(R.string.leave))
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                        )
                     }
-                }
-            }
-
-            when (state) {
-                is TogetherSessionState.Hosting -> {
-                    SessionLinkRow(state.joinLink, onCopyText, onShareLink)
-                }
-
-                is TogetherSessionState.HostingOnline -> {
-                    SessionCodeRow(state.code, onCopyText, onShareLink)
-                }
-
-                is TogetherSessionState.Joined -> {
-                    Surface(
-                        shape = RoundedCornerShape(18.dp),
-                        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                    ) {
-                        Column(modifier = Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (isActive) {
+                        FilledTonalButton(
+                            onClick = onLeave,
+                            shape = RoundedCornerShape(14.dp),
+                        ) {
                             Text(
-                                text = stringResource(R.string.participants),
-                                style = MaterialTheme.typography.titleSmall,
+                                text = stringResource(R.string.leave),
                                 fontWeight = FontWeight.SemiBold,
-                            )
-                            val list = state.roomState.participants
-                            Text(
-                                text = list.joinToString(separator = " • ") { it.name },
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 2,
-                                overflow = TextOverflow.Ellipsis,
                             )
                         }
                     }
                 }
 
-                is TogetherSessionState.Error -> {
-                    Text(
-                        text = state.message,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.error,
-                    )
-                }
+                when (state) {
+                    is TogetherSessionState.Hosting -> {
+                        SessionInfoCard(
+                            label = stringResource(R.string.session_link),
+                            value = state.joinLink,
+                            maxLines = 3,
+                            onCopy = { onCopyText(R.string.session_link, state.joinLink) },
+                            onShare = { onShareLink(state.joinLink) },
+                        )
+                    }
 
-                else -> Unit
+                    is TogetherSessionState.HostingOnline -> {
+                        SessionInfoCard(
+                            label = stringResource(R.string.session_code),
+                            value = state.code,
+                            maxLines = 2,
+                            onCopy = { onCopyText(R.string.session_code, state.code) },
+                            onShare = { onShareLink(state.code) },
+                        )
+                    }
+
+                    is TogetherSessionState.Joined -> {
+                        ParticipantsCard(participants = state.roomState.participants.map { it.name })
+                    }
+
+                    is TogetherSessionState.Error -> {
+                        Card(
+                            shape = RoundedCornerShape(18.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.4f),
+                            ),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                        ) {
+                            Text(
+                                text = state.message,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onErrorContainer,
+                                modifier = Modifier.padding(14.dp),
+                            )
+                        }
+                    }
+
+                    else -> Unit
+                }
             }
         }
     }
 }
 
 @Composable
-private fun SessionLinkRow(
-    link: String,
-    onCopyText: (Int, String) -> Unit,
-    onShareLink: (String) -> Unit,
+private fun SessionInfoCard(
+    label: String,
+    value: String,
+    maxLines: Int,
+    onCopy: () -> Unit,
+    onShare: () -> Unit,
 ) {
-    Surface(
-        shape = RoundedCornerShape(18.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+    Card(
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.6f),
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         modifier = Modifier.fillMaxWidth(),
     ) {
-        Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
             Text(
-                text = stringResource(R.string.session_link),
+                text = label,
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.primary,
             )
             Text(
-                text = link,
+                text = value,
                 style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = maxLines,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                FilledTonalButton(
+                    onClick = onCopy,
+                    shape = RoundedCornerShape(14.dp),
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.copy),
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text(text = stringResource(R.string.copy_link))
+                }
+                TextButton(
+                    onClick = onShare,
+                    shape = RoundedCornerShape(14.dp),
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.share),
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text(text = stringResource(R.string.share))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ParticipantsCard(
+    participants: List<String>,
+) {
+    Card(
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.6f),
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.person),
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(18.dp),
+                )
+                Text(
+                    text = stringResource(R.string.participants),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                )
+            }
+            Text(
+                text = participants.joinToString(separator = " · "),
+                style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 3,
                 overflow = TextOverflow.Ellipsis,
             )
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                TextButton(onClick = { onCopyText(R.string.session_link, link) }) { Text(text = stringResource(R.string.copy_link)) }
-                TextButton(onClick = { onShareLink(link) }) { Text(text = stringResource(R.string.share)) }
-            }
-        }
-    }
-}
-
-@Composable
-private fun SessionCodeRow(
-    code: String,
-    onCopyText: (Int, String) -> Unit,
-    onShareText: (String) -> Unit,
-) {
-    Surface(
-        shape = RoundedCornerShape(18.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(
-                text = stringResource(R.string.session_code),
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.SemiBold,
-            )
-            Text(
-                text = code,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                TextButton(onClick = { onCopyText(R.string.session_code, code) }) { Text(text = stringResource(R.string.copy_link)) }
-                TextButton(onClick = { onShareText(code) }) { Text(text = stringResource(R.string.share)) }
-            }
         }
     }
 }
