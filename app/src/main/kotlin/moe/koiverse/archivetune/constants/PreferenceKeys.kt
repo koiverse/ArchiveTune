@@ -59,6 +59,7 @@ val YtmSyncKey = booleanPreferencesKey("ytmSync")
 val SelectedYtmPlaylistsKey = stringPreferencesKey("ytm_selected_playlists")
 
 val TogetherDisplayNameKey = stringPreferencesKey("together_display_name")
+val TogetherClientIdKey = stringPreferencesKey("together_client_id")
 val TogetherDefaultPortKey = intPreferencesKey("together_default_port")
 val TogetherAllowGuestsToAddTracksKey = booleanPreferencesKey("together_allow_guests_add_tracks")
 val TogetherAllowGuestsToControlPlaybackKey = booleanPreferencesKey("together_allow_guests_control_playback")
