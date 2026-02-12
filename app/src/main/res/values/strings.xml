@@ -103,6 +103,7 @@
     <string name="together_role_host">Host</string>
     <string name="together_role_guest">Guest</string>
     <string name="together_pending_approval">Pending approval</string>
+    <string name="together_waiting_approval">Waiting Approval</string>
     <string name="together_kick">Kick</string>
     <string name="together_ban">Ban</string>
     <string name="together_kick_confirm">Kick %1$s?</string>

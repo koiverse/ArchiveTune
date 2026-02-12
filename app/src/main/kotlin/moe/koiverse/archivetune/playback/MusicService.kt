@@ -26,6 +26,7 @@ import android.media.MediaCodecList
 import android.media.audiofx.Virtualizer
 import android.net.ConnectivityManager
 import android.os.Binder
+import android.widget.Toast
 import androidx.core.content.getSystemService
 import androidx.core.net.toUri
 import androidx.datastore.preferences.core.Preferences
@@ -356,6 +357,26 @@ class MusicService :
     @Volatile
     private var togetherApplyingRemote: Boolean = false
     private val togetherHostId: String = "host"
+    private var togetherLastDeniedPlaybackToastAtMs: Long = 0L
+    private var togetherLastDeniedAddSongToastAtMs: Long = 0L
+
+    private fun showTogetherDeniedPlaybackToast() {
+        val now = android.os.SystemClock.elapsedRealtime()
+        if (now - togetherLastDeniedPlaybackToastAtMs < 1250L) return
+        togetherLastDeniedPlaybackToastAtMs = now
+        scope.launch {
+            Toast.makeText(this@MusicService, "You're not allowed controlled this playback", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun showTogetherDeniedAddSongToast() {
+        val now = android.os.SystemClock.elapsedRealtime()
+        if (now - togetherLastDeniedAddSongToastAtMs < 1250L) return
+        togetherLastDeniedAddSongToastAtMs = now
+        scope.launch {
+            Toast.makeText(this@MusicService, "You're not allowed to add song", Toast.LENGTH_SHORT).show()
+        }
+    }
 
     private suspend fun getOrCreateTogetherClientId(): String {
         val existing = dataStore.getAsync(TogetherClientIdKey)?.trim().orEmpty()
@@ -1127,6 +1148,13 @@ class MusicService :
         queue: Queue,
         playWhenReady: Boolean = true,
     ) {
+        val joined = togetherSessionState.value as? moe.koiverse.archivetune.together.TogetherSessionState.Joined
+        if (joined?.role is moe.koiverse.archivetune.together.TogetherRole.Guest &&
+            !joined.roomState.settings.allowGuestsToControlPlayback
+        ) {
+            showTogetherDeniedPlaybackToast()
+            return
+        }
         ensureScopesActive()
         suppressAutoPlayback = false
         currentQueue = queue
@@ -1235,6 +1263,13 @@ class MusicService :
     }
 
     fun startRadioSeamlessly() {
+        val joined = togetherSessionState.value as? moe.koiverse.archivetune.together.TogetherSessionState.Joined
+        if (joined?.role is moe.koiverse.archivetune.together.TogetherRole.Guest &&
+            !joined.roomState.settings.allowGuestsToControlPlayback
+        ) {
+            showTogetherDeniedPlaybackToast()
+            return
+        }
         suppressAutoPlayback = false
         val currentMediaMetadata = player.currentMetadata ?: return
 
@@ -1343,6 +1378,27 @@ class MusicService :
     }
 
     fun playNext(items: List<MediaItem>) {
+        val joined = togetherSessionState.value as? moe.koiverse.archivetune.together.TogetherSessionState.Joined
+        if (joined?.role is moe.koiverse.archivetune.together.TogetherRole.Guest) {
+            if (!joined.roomState.settings.allowGuestsToAddTracks) {
+                showTogetherDeniedAddSongToast()
+                return
+            }
+            val tracks =
+                items.mapNotNull { it.metadata }.map { meta ->
+                    moe.koiverse.archivetune.together.TogetherTrack(
+                        id = meta.id,
+                        title = meta.title,
+                        artists = meta.artists.map { it.name },
+                        durationSec = meta.duration,
+                        thumbnailUrl = meta.thumbnailUrl,
+                    )
+                }
+            tracks.asReversed().forEach { track ->
+                requestTogetherAddTrack(track, moe.koiverse.archivetune.together.AddTrackMode.PLAY_NEXT)
+            }
+            return
+        }
         suppressAutoPlayback = false
         player.addMediaItems(
             if (player.mediaItemCount == 0) 0 else player.currentMediaItemIndex + 1,
@@ -1352,6 +1408,27 @@ class MusicService :
     }
 
     fun addToQueue(items: List<MediaItem>) {
+        val joined = togetherSessionState.value as? moe.koiverse.archivetune.together.TogetherSessionState.Joined
+        if (joined?.role is moe.koiverse.archivetune.together.TogetherRole.Guest) {
+            if (!joined.roomState.settings.allowGuestsToAddTracks) {
+                showTogetherDeniedAddSongToast()
+                return
+            }
+            val tracks =
+                items.mapNotNull { it.metadata }.map { meta ->
+                    moe.koiverse.archivetune.together.TogetherTrack(
+                        id = meta.id,
+                        title = meta.title,
+                        artists = meta.artists.map { it.name },
+                        durationSec = meta.duration,
+                        thumbnailUrl = meta.thumbnailUrl,
+                    )
+                }
+            tracks.forEach { track ->
+                requestTogetherAddTrack(track, moe.koiverse.archivetune.together.AddTrackMode.ADD_TO_QUEUE)
+            }
+            return
+        }
         suppressAutoPlayback = false
         player.addMediaItems(items)
         player.prepare()
@@ -1949,6 +2026,10 @@ class MusicService :
         val client = togetherClient ?: return
         val state = togetherSessionState.value as? moe.koiverse.archivetune.together.TogetherSessionState.Joined ?: return
         if (state.role !is moe.koiverse.archivetune.together.TogetherRole.Guest) return
+        if (!state.roomState.settings.allowGuestsToControlPlayback) {
+            showTogetherDeniedPlaybackToast()
+            return
+        }
         client.requestControl(state.sessionId, action)
     }
 
@@ -1959,6 +2040,10 @@ class MusicService :
         val client = togetherClient ?: return
         val state = togetherSessionState.value as? moe.koiverse.archivetune.together.TogetherSessionState.Joined ?: return
         if (state.role !is moe.koiverse.archivetune.together.TogetherRole.Guest) return
+        if (!state.roomState.settings.allowGuestsToAddTracks) {
+            showTogetherDeniedAddSongToast()
+            return
+        }
         client.requestAddTrack(state.sessionId, track, mode)
     }
 
@@ -2027,6 +2112,14 @@ class MusicService :
                     val idx = action.index.coerceAtLeast(0)
                     player.seekTo(idx, action.positionMs.coerceAtLeast(0L))
                     player.prepare()
+                }
+
+                is moe.koiverse.archivetune.together.ControlAction.SetRepeatMode -> {
+                    player.repeatMode = action.repeatMode
+                }
+
+                is moe.koiverse.archivetune.together.ControlAction.SetShuffleEnabled -> {
+                    player.shuffleModeEnabled = action.shuffleEnabled
                 }
             }
         }
@@ -2463,6 +2556,24 @@ class MusicService :
     override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
     super.onMediaItemTransition(mediaItem, reason)
 
+    val joined = togetherSessionState.value as? moe.koiverse.archivetune.together.TogetherSessionState.Joined
+    if (!togetherApplyingRemote &&
+        joined?.role is moe.koiverse.archivetune.together.TogetherRole.Guest &&
+        reason == Player.MEDIA_ITEM_TRANSITION_REASON_SEEK
+    ) {
+        if (!joined.roomState.settings.allowGuestsToControlPlayback) {
+            showTogetherDeniedPlaybackToast()
+            scope.launch(SilentHandler) { applyRemoteRoomState(joined.roomState) }
+            return
+        }
+        requestTogetherControl(
+            moe.koiverse.archivetune.together.ControlAction.SeekToIndex(
+                index = player.currentMediaItemIndex.coerceAtLeast(0),
+                positionMs = player.currentPosition.coerceAtLeast(0L),
+            ),
+        )
+    }
+
     val timelineEmpty = player.currentTimeline.isEmpty || player.mediaItemCount == 0 || player.currentMediaItem == null
     currentMediaMetadata.value = if (timelineEmpty) null else (mediaItem?.metadata ?: player.currentMetadata)
 
@@ -2687,6 +2798,24 @@ class MusicService :
 
 
     override fun onEvents(player: Player, events: Player.Events) {
+    val joined = togetherSessionState.value as? moe.koiverse.archivetune.together.TogetherSessionState.Joined
+    if (!togetherApplyingRemote &&
+        joined?.role is moe.koiverse.archivetune.together.TogetherRole.Guest &&
+        events.contains(Player.EVENT_PLAY_WHEN_READY_CHANGED)
+    ) {
+        if (!joined.roomState.settings.allowGuestsToControlPlayback) {
+            showTogetherDeniedPlaybackToast()
+            scope.launch(SilentHandler) { applyRemoteRoomState(joined.roomState) }
+        } else {
+            val action =
+                if (this.player.playWhenReady) {
+                    moe.koiverse.archivetune.together.ControlAction.Play
+                } else {
+                    moe.koiverse.archivetune.together.ControlAction.Pause
+                }
+            requestTogetherControl(action)
+        }
+    }
     if (events.contains(Player.EVENT_AUDIO_SESSION_ID)) {
         val newSessionId = this.player.audioSessionId
         val oldSessionId = openedAudioSessionId
@@ -2842,6 +2971,22 @@ class MusicService :
 
     override fun onShuffleModeEnabledChanged(shuffleModeEnabled: Boolean) {
         updateNotification()
+        val joined = togetherSessionState.value as? moe.koiverse.archivetune.together.TogetherSessionState.Joined
+        if (joined?.role is moe.koiverse.archivetune.together.TogetherRole.Guest) {
+            if (!togetherApplyingRemote) {
+                if (!joined.roomState.settings.allowGuestsToControlPlayback) {
+                    showTogetherDeniedPlaybackToast()
+                    scope.launch(SilentHandler) { applyRemoteRoomState(joined.roomState) }
+                    return
+                }
+                requestTogetherControl(
+                    moe.koiverse.archivetune.together.ControlAction.SetShuffleEnabled(
+                        shuffleEnabled = shuffleModeEnabled,
+                    ),
+                )
+            }
+            return
+        }
         if (shuffleModeEnabled) {
             applyCurrentFirstShuffleOrder()
         }
@@ -2856,6 +3001,22 @@ class MusicService :
 
     override fun onRepeatModeChanged(repeatMode: Int) {
         updateNotification()
+        val joined = togetherSessionState.value as? moe.koiverse.archivetune.together.TogetherSessionState.Joined
+        if (joined?.role is moe.koiverse.archivetune.together.TogetherRole.Guest) {
+            if (!togetherApplyingRemote) {
+                if (!joined.roomState.settings.allowGuestsToControlPlayback) {
+                    showTogetherDeniedPlaybackToast()
+                    scope.launch(SilentHandler) { applyRemoteRoomState(joined.roomState) }
+                    return
+                }
+                requestTogetherControl(
+                    moe.koiverse.archivetune.together.ControlAction.SetRepeatMode(
+                        repeatMode = repeatMode,
+                    ),
+                )
+            }
+            return
+        }
         scope.launch {
             dataStore.edit { settings ->
                 settings[RepeatModeKey] = repeatMode
