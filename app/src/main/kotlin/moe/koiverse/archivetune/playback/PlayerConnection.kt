@@ -5,6 +5,7 @@
  */
 
 
+
 package moe.koiverse.archivetune.playback
 
 import android.content.Context
@@ -130,6 +131,11 @@ class PlayerConnection(
     }
 
     fun seekToNext() {
+        val state = service.togetherSessionState.value as? moe.koiverse.archivetune.together.TogetherSessionState.Joined
+        if (state?.role is moe.koiverse.archivetune.together.TogetherRole.Guest) {
+            service.requestTogetherControl(moe.koiverse.archivetune.together.ControlAction.SkipNext)
+            return
+        }
         player.seekToNext()
         player.prepare()
         player.playWhenReady = true
@@ -142,6 +148,11 @@ class PlayerConnection(
     }
 
     fun seekToPrevious() {
+        val state = service.togetherSessionState.value as? moe.koiverse.archivetune.together.TogetherSessionState.Joined
+        if (state?.role is moe.koiverse.archivetune.together.TogetherRole.Guest) {
+            service.requestTogetherControl(moe.koiverse.archivetune.together.ControlAction.SkipPrevious)
+            return
+        }
         player.seekToPrevious()
         player.prepare()
         player.playWhenReady = true

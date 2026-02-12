@@ -57,12 +57,12 @@
     <string name="already_in_playlist">Déjà dans la playlist :</string>
     <plurals name="n_element">
         <item quantity="one">%d élément</item>
-        <item quantity="many"></item>
+        <item quantity="many"/>
         <item quantity="other">%d éléments</item>
     </plurals>
     <plurals name="n_time">
         <item quantity="one">%d fois</item>
-        <item quantity="many"></item>
+        <item quantity="many"/>
         <item quantity="other">%d fois</item>
     </plurals>
     <string name="seek_backward">5 secondes en arrière</string>
@@ -172,7 +172,7 @@
     <string name="empty_playlist_desc">Cette playlist ne contient aucun titre.</string>
     <plurals name="seconds">
         <item quantity="one">1 seconde</item>
-        <item quantity="many"></item>
+        <item quantity="many"/>
         <item quantity="other">%d secondes</item>
     </plurals>
     <!-- Player Settings -->
@@ -245,4 +245,16 @@
     <string name="player_stream_client_android_vr_desc">Diffusion directe sans décryptage de signature, pour une vitesse maximale. Convient à la majorité des utilisateurs.</string>
     <string name="player_stream_client_web_remix">Remix Web</string>
     <string name="player_stream_client_web_remix_desc">Prise en charge étendue des formats au détriment de la vitesse. Le décryptage des signatures JavaScript entraîne un délai de démarrage d\'environ 5 à 10 secondes.</string>
+    <string name="crop_thumbnail_to_square">Recadrer les miniatures au format 1:1</string>
+    <string name="crop_thumbnail_to_square_desc">Afficher les miniatures YouTube au format carré au lieu du format 16:9</string>
+    <string name="backup_in_progress">Sauvegarde en cours</string>
+    <string name="restore_in_progress">Restauration en cours</string>
+    <string name="backup_step_checkpoint_database">Préparation de la base de données</string>
+    <string name="backup_step_export_settings">Sauvegarde des paramètres</string>
+    <string name="backup_step_copying_file">Copie de %1$s</string>
+    <string name="restore_step_verifying">Vérification de la sauvegarde</string>
+    <string name="restore_step_stopping_playback">Arrêt de la lecture</string>
+    <string name="restore_step_restoring_settings">Restauration des paramètres</string>
+    <string name="restore_step_restoring_file">Restauration de %1$s</string>
+    <string name="restore_step_restarting">Redémarrer l\'application</string>
 </resources>

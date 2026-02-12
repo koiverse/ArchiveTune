@@ -5,6 +5,7 @@
  */
 
 
+
 package moe.koiverse.archivetune.constants
 
 import androidx.datastore.preferences.core.booleanPreferencesKey
@@ -56,6 +57,15 @@ val ProxyUrlKey = stringPreferencesKey("proxyUrl")
 val ProxyTypeKey = stringPreferencesKey("proxyType")
 val YtmSyncKey = booleanPreferencesKey("ytmSync")
 val SelectedYtmPlaylistsKey = stringPreferencesKey("ytm_selected_playlists")
+
+val TogetherDisplayNameKey = stringPreferencesKey("together_display_name")
+val TogetherClientIdKey = stringPreferencesKey("together_client_id")
+val TogetherDefaultPortKey = intPreferencesKey("together_default_port")
+val TogetherAllowGuestsToAddTracksKey = booleanPreferencesKey("together_allow_guests_add_tracks")
+val TogetherAllowGuestsToControlPlaybackKey = booleanPreferencesKey("together_allow_guests_control_playback")
+val TogetherRequireHostApprovalToJoinKey = booleanPreferencesKey("together_require_host_approval_to_join")
+val TogetherLastJoinLinkKey = stringPreferencesKey("together_last_join_link")
+val TogetherWelcomeShownKey = booleanPreferencesKey("together_welcome_shown")
     
 // ListenBrainz scrobbling
 val ListenBrainzEnabledKey = booleanPreferencesKey("listenbrainz_enabled")
@@ -533,6 +543,9 @@ val LastNotifiedVersionKey = stringPreferencesKey("lastNotifiedVersion")
 val GitHubContributorsEtagKey = stringPreferencesKey("github_contributors_etag")
 val GitHubContributorsJsonKey = stringPreferencesKey("github_contributors_json")
 val GitHubContributorsLastCheckedAtKey = longPreferencesKey("github_contributors_last_checked_at")
+
+val TogetherOnlineEndpointCacheKey = stringPreferencesKey("together_online_endpoint_cache")
+val TogetherOnlineEndpointLastCheckedAtKey = longPreferencesKey("together_online_endpoint_last_checked_at")
 
 enum class UpdateChannel {
     STABLE,

@@ -5,6 +5,7 @@
  */
 
 
+
 package moe.koiverse.archivetune
 
 import android.annotation.SuppressLint
@@ -181,14 +182,12 @@ import moe.koiverse.archivetune.db.MusicDatabase
 import moe.koiverse.archivetune.db.entities.SearchHistory
 import moe.koiverse.archivetune.innertube.YouTube
 import moe.koiverse.archivetune.innertube.models.SongItem
-import moe.koiverse.archivetune.innertube.models.WatchEndpoint
-import moe.koiverse.archivetune.models.MediaMetadata
-import moe.koiverse.archivetune.models.toMediaMetadata
+import moe.koiverse.archivetune.extensions.toMediaItem
 import moe.koiverse.archivetune.playback.DownloadUtil
 import moe.koiverse.archivetune.playback.MusicService
 import moe.koiverse.archivetune.playback.MusicService.MusicBinder
 import moe.koiverse.archivetune.playback.PlayerConnection
-import moe.koiverse.archivetune.playback.queues.YouTubeQueue
+import moe.koiverse.archivetune.playback.queues.ListQueue
 import moe.koiverse.archivetune.ui.component.AccountSettingsDialog
 import moe.koiverse.archivetune.ui.component.BottomSheetMenu
 import moe.koiverse.archivetune.ui.component.BottomSheetPage
@@ -248,7 +247,8 @@ class MainActivity : ComponentActivity() {
 
     private lateinit var navController: NavHostController
     private var pendingIntent: Intent? = null
-    private var pendingYouTubeQueue: PendingYouTubeQueue? = null
+    private var pendingDeepLinkSong: PendingDeepLinkSong? = null
+    private var pendingTogetherJoinLink: String? = null
     private var latestVersionName by mutableStateOf(BuildConfig.VERSION_NAME)
 
     private var playerConnection by mutableStateOf<PlayerConnection?>(null)
@@ -264,7 +264,8 @@ class MainActivity : ComponentActivity() {
                 if (service is MusicBinder) {
                     playerConnection =
                         PlayerConnection(this@MainActivity, service, database, lifecycleScope)
-                    playPendingYouTubeQueueIfReady()
+                    playPendingDeepLinkSongIfReady()
+                    joinPendingTogetherIfReady()
                 }
             }
 
@@ -275,16 +276,32 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-    private data class PendingYouTubeQueue(
-        val endpoint: WatchEndpoint,
-        val preloadItem: MediaMetadata?,
+    private data class PendingDeepLinkSong(
+        val mediaItem: MediaItem,
     )
 
-    private fun playPendingYouTubeQueueIfReady() {
-        val pending = pendingYouTubeQueue ?: return
+    private fun playPendingDeepLinkSongIfReady() {
+        val pending = pendingDeepLinkSong ?: return
         val connection = playerConnection ?: return
-        pendingYouTubeQueue = null
-        connection.playQueue(YouTubeQueue(pending.endpoint, pending.preloadItem))
+        pendingDeepLinkSong = null
+        connection.playQueue(ListQueue(items = listOf(pending.mediaItem)))
+    }
+
+    private fun joinPendingTogetherIfReady() {
+        val pending = pendingTogetherJoinLink ?: return
+        val connection = playerConnection ?: return
+        pendingTogetherJoinLink = null
+        lifecycleScope.launch(Dispatchers.IO) {
+            val displayName =
+                runCatching { dataStore.data.first()[moe.koiverse.archivetune.constants.TogetherDisplayNameKey] }
+                    .getOrNull()
+                    ?.trim()
+                    .orEmpty()
+                    .ifBlank { Build.MODEL ?: getString(R.string.app_name) }
+            withContext(Dispatchers.Main) {
+                connection.service.joinTogether(pending, displayName)
+            }
+        }
     }
 
     override fun onStart() {
@@ -296,7 +313,7 @@ class MainActivity : ComponentActivity() {
                 serviceConnection,
                 Context.BIND_AUTO_CREATE
             )
-        playPendingYouTubeQueueIfReady()
+        playPendingDeepLinkSongIfReady()
     }
 
     private fun safeUnbindMusicService() {
@@ -1644,6 +1661,14 @@ class MainActivity : ComponentActivity() {
         val uri = intent.data ?: intent.extras?.getString(Intent.EXTRA_TEXT)?.toUri() ?: return
         val coroutineScope = lifecycleScope
 
+        val authority = uri.authority?.lowercase()
+        if (uri.scheme.equals("archivetune", ignoreCase = true) && authority == "together") {
+            pendingTogetherJoinLink = uri.toString()
+            startMusicServiceSafely()
+            joinPendingTogetherIfReady()
+            return
+        }
+
         when (val path = uri.pathSegments.firstOrNull()) {
             "playlist" -> uri.getQueryParameter("list")?.let { playlistId ->
                 if (playlistId.startsWith("OLAK5uy_")) {
@@ -1683,17 +1708,21 @@ class MainActivity : ComponentActivity() {
                         }
 
                         result.onSuccess { queued ->
-                            val firstItem = queued.firstOrNull()
-                            pendingYouTubeQueue =
-                                PendingYouTubeQueue(
-                                    endpoint = WatchEndpoint(
-                                        videoId = firstItem?.id ?: vid,
-                                        playlistId = playlistId,
-                                    ),
-                                    preloadItem = firstItem?.toMediaMetadata(),
+                            val mediaItem =
+                                queued.firstOrNull { it.id == vid }?.toMediaItem()
+                                    ?: queued.firstOrNull()?.toMediaItem()
+                                    ?: MediaItem
+                                        .Builder()
+                                        .setMediaId(vid)
+                                        .setUri(vid)
+                                        .setCustomCacheKey(vid)
+                                        .build()
+                            pendingDeepLinkSong =
+                                PendingDeepLinkSong(
+                                    mediaItem = mediaItem,
                                 )
                             startMusicServiceSafely()
-                            playPendingYouTubeQueueIfReady()
+                            playPendingDeepLinkSongIfReady()
                         }.onFailure {
                             reportException(it)
                         }

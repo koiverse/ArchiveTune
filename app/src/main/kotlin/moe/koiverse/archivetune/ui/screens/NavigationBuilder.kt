@@ -5,6 +5,7 @@
  */
 
 
+
 package moe.koiverse.archivetune.ui.screens
 
 import androidx.compose.animation.core.tween
@@ -76,6 +77,7 @@ import moe.koiverse.archivetune.ui.screens.settings.DiscordTokenLoginScreen
 import moe.koiverse.archivetune.ui.screens.settings.DiscordTokenViewScreen
 import moe.koiverse.archivetune.ui.screens.settings.IntegrationScreen
 import moe.koiverse.archivetune.ui.screens.settings.LastFMSettings
+import moe.koiverse.archivetune.ui.screens.settings.MusicTogetherScreen
 import moe.koiverse.archivetune.ui.screens.settings.PalettePickerScreen
 import moe.koiverse.archivetune.ui.screens.settings.PlayerSettings
 import moe.koiverse.archivetune.ui.screens.settings.PrivacySettings
@@ -332,6 +334,9 @@ fun NavGraphBuilder.navigationBuilder(
     }
     composable("settings/integration") {
         IntegrationScreen(navController, scrollBehavior)
+    }
+    composable("settings/music_together") {
+        MusicTogetherScreen(navController, scrollBehavior)
     }
     composable("settings/lastfm") {
         LastFMSettings(navController, scrollBehavior)

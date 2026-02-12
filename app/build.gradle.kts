@@ -211,7 +211,13 @@ dependencies {
     implementation("com.github.Kyant0:m3color:2025.4")
 
     implementation(libs.ktor.client.core)
+    implementation(libs.ktor.client.okhttp)
     implementation(libs.ktor.serialization.json)
+    implementation(libs.ktor.client.websockets)
+    implementation(libs.ktor.server.core)
+    implementation(libs.ktor.server.cio)
+    implementation(libs.ktor.server.websockets)
+    implementation(libs.ktor.server.content.negotiation)
 
     coreLibraryDesugaring(libs.desugaring)
 

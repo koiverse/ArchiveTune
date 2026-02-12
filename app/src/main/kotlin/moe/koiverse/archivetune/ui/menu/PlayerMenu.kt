@@ -5,6 +5,7 @@
  */
 
 
+
 package moe.koiverse.archivetune.ui.menu
 
 import android.content.Intent
@@ -470,6 +471,22 @@ fun PlayerMenu(
                             clipboard.setPrimaryClip(clip)
                             android.widget.Toast.makeText(context, R.string.link_copied, android.widget.Toast.LENGTH_SHORT).show()
                             onDismiss()
+                        }
+                    ),
+                    NewAction(
+                        icon = {
+                            Icon(
+                                painter = painterResource(R.drawable.fire),
+                                contentDescription = null,
+                                modifier = Modifier.size(28.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        },
+                        text = stringResource(R.string.music_together),
+                        onClick = {
+                            onDismiss()
+                            playerBottomSheetState.snapTo(playerBottomSheetState.collapsedBound)
+                            navController.navigate("settings/music_together")
                         }
                     )
                 ),
