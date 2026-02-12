@@ -98,6 +98,15 @@
     <string name="refetch">Refetch</string>
     <string name="share">Share</string>
     <string name="delete">Delete</string>
+    <string name="together_participants">Participants</string>
+    <string name="together_connected_count">%1$d connected</string>
+    <string name="together_role_host">Host</string>
+    <string name="together_role_guest">Guest</string>
+    <string name="together_pending_approval">Pending approval</string>
+    <string name="together_kick">Kick</string>
+    <string name="together_ban">Ban</string>
+    <string name="together_kick_confirm">Kick %1$s?</string>
+    <string name="together_ban_confirm">Ban %1$s?</string>
     <string name="remove_from_history">Remove from history</string>
     <string name="remove_from_playlist">Remove from playlist</string>
     <string name="remove_from_queue">Remove from queue</string>

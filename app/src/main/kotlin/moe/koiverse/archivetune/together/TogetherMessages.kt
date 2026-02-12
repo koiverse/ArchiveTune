@@ -144,6 +144,15 @@ data class KickParticipant(
 ) : TogetherMessage
 
 @Serializable
+@SerialName("ban")
+@Immutable
+data class BanParticipant(
+    val sessionId: String,
+    val participantId: String,
+    val reason: String? = null,
+) : TogetherMessage
+
+@Serializable
 enum class ServerRole {
     HOST,
     GUEST,

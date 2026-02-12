@@ -65,6 +65,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -167,6 +168,13 @@ fun MusicTogetherScreen(
     var showPortDialog by rememberSaveable { mutableStateOf(false) }
     var showJoinDialog by rememberSaveable { mutableStateOf(false) }
 
+    val hostingOnline = sessionState as? TogetherSessionState.HostingOnline
+    val onlineParticipants = hostingOnline?.roomState?.participants.orEmpty()
+    var confirmKickParticipantId by rememberSaveable { mutableStateOf<String?>(null) }
+    var confirmBanParticipantId by rememberSaveable { mutableStateOf<String?>(null) }
+    val confirmKickName = onlineParticipants.firstOrNull { it.id == confirmKickParticipantId }?.name
+    val confirmBanName = onlineParticipants.firstOrNull { it.id == confirmBanParticipantId }?.name
+
     LaunchedEffect(disableJoinUi, isJoining, isHosting) {
         if (disableJoinUi || isJoining || isHosting) showJoinDialog = false
     }
@@ -227,6 +235,80 @@ fun MusicTogetherScreen(
         )
     }
 
+    if (confirmKickParticipantId != null) {
+        AlertDialog(
+            onDismissRequest = { confirmKickParticipantId = null },
+            shape = RoundedCornerShape(28.dp),
+            containerColor = MaterialTheme.colorScheme.surface,
+            title = { Text(text = stringResource(R.string.together_kick)) },
+            text = {
+                Text(
+                    text = stringResource(R.string.together_kick_confirm, confirmKickName ?: stringResource(R.string.unknown)),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val pid = confirmKickParticipantId ?: return@Button
+                        confirmKickParticipantId = null
+                        playerConnection?.service?.kickTogetherParticipant(pid)
+                    },
+                    shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                ) {
+                    Text(text = stringResource(R.string.together_kick), fontWeight = FontWeight.SemiBold)
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { confirmKickParticipantId = null },
+                    shape = RoundedCornerShape(16.dp),
+                ) {
+                    Text(text = stringResource(R.string.dismiss))
+                }
+            },
+        )
+    }
+
+    if (confirmBanParticipantId != null) {
+        AlertDialog(
+            onDismissRequest = { confirmBanParticipantId = null },
+            shape = RoundedCornerShape(28.dp),
+            containerColor = MaterialTheme.colorScheme.surface,
+            title = { Text(text = stringResource(R.string.together_ban)) },
+            text = {
+                Text(
+                    text = stringResource(R.string.together_ban_confirm, confirmBanName ?: stringResource(R.string.unknown)),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val pid = confirmBanParticipantId ?: return@Button
+                        confirmBanParticipantId = null
+                        playerConnection?.service?.banTogetherParticipant(pid)
+                    },
+                    shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                ) {
+                    Text(text = stringResource(R.string.together_ban), fontWeight = FontWeight.SemiBold)
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { confirmBanParticipantId = null },
+                    shape = RoundedCornerShape(16.dp),
+                ) {
+                    Text(text = stringResource(R.string.dismiss))
+                }
+            },
+        )
+    }
+
     Column(
         Modifier
             .windowInsetsPadding(LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom))
@@ -260,6 +342,25 @@ fun MusicTogetherScreen(
                 .padding(horizontal = 16.dp)
                 .padding(top = 4.dp, bottom = 12.dp),
         )
+
+        if (hostingOnline?.roomState != null && isHostRole) {
+            OnlineParticipantsCard(
+                participants = hostingOnline.roomState.participants,
+                hostApprovalEnabled = hostingOnline.settings.requireHostApprovalToJoin,
+                onApprove = { participantId, approved ->
+                    playerConnection?.service?.approveTogetherParticipant(participantId, approved)
+                },
+                onKick = { participantId ->
+                    confirmKickParticipantId = participantId
+                },
+                onBan = { participantId ->
+                    confirmBanParticipantId = participantId
+                },
+                modifier = Modifier
+                    .padding(horizontal = 16.dp)
+                    .padding(bottom = 12.dp),
+            )
+        }
 
         HostSectionCard(
             hostModeOnline = hostModeOnline,
@@ -336,6 +437,162 @@ fun MusicTogetherScreen(
         },
         scrollBehavior = scrollBehavior,
     )
+}
+
+@Composable
+private fun OnlineParticipantsCard(
+    participants: List<moe.koiverse.archivetune.together.TogetherParticipant>,
+    hostApprovalEnabled: Boolean,
+    onApprove: (participantId: String, approved: Boolean) -> Unit,
+    onKick: (participantId: String) -> Unit,
+    onBan: (participantId: String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .animateContentSize(animationSpec = spring(stiffness = Spring.StiffnessMediumLow)),
+        shape = RoundedCornerShape(28.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+    ) {
+        Column(modifier = Modifier.padding(vertical = 8.dp)) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 18.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(
+                            Brush.linearGradient(
+                                colors = listOf(
+                                    MaterialTheme.colorScheme.tertiary.copy(alpha = 0.18f),
+                                    MaterialTheme.colorScheme.tertiary.copy(alpha = 0.08f),
+                                ),
+                            ),
+                        ),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.list),
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.tertiary,
+                        modifier = Modifier.size(22.dp),
+                    )
+                }
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = stringResource(R.string.together_participants),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    Text(
+                        text = stringResource(R.string.together_connected_count, participants.size),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+
+            participants.forEachIndexed { index, participant ->
+                key(participant.id) {
+                    if (index != 0) {
+                        HorizontalDivider(
+                            modifier = Modifier.padding(start = 76.dp, end = 18.dp),
+                            thickness = 0.5.dp,
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
+                        )
+                    }
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 18.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(14.dp),
+                    ) {
+                        val accent =
+                            if (participant.isHost) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary
+                        Box(
+                            modifier = Modifier
+                                .size(44.dp)
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(accent.copy(alpha = 0.14f)),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Icon(
+                                painter = painterResource(if (participant.isHost) R.drawable.fire else R.drawable.person),
+                                contentDescription = null,
+                                tint = accent,
+                                modifier = Modifier.size(22.dp),
+                            )
+                        }
+
+                        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Text(
+                                text = participant.name,
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.SemiBold,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                            val subtitle =
+                                when {
+                                    participant.isHost -> stringResource(R.string.together_role_host)
+                                    participant.isPending && hostApprovalEnabled -> stringResource(R.string.together_pending_approval)
+                                    else -> stringResource(R.string.together_role_guest)
+                                }
+                            Text(
+                                text = subtitle,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+
+                        if (!participant.isHost) {
+                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                                if (participant.isPending && hostApprovalEnabled) {
+                                    AtIconButton(
+                                        onClick = { onApprove(participant.id, true) },
+                                        onLongClick = {},
+                                    ) {
+                                        Icon(painterResource(R.drawable.check), null)
+                                    }
+                                    AtIconButton(
+                                        onClick = { onApprove(participant.id, false) },
+                                        onLongClick = {},
+                                    ) {
+                                        Icon(painterResource(R.drawable.close), null)
+                                    }
+                                }
+
+                                AtIconButton(
+                                    onClick = { onKick(participant.id) },
+                                    onLongClick = {},
+                                ) {
+                                    Icon(painterResource(R.drawable.kick), null)
+                                }
+                                AtIconButton(
+                                    onClick = { onBan(participant.id) },
+                                    onLongClick = {},
+                                ) {
+                                    Icon(painterResource(R.drawable.block), null)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 @Composable
