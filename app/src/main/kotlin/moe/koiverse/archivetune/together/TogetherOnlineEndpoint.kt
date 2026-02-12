@@ -6,41 +6,89 @@
  
 package moe.koiverse.archivetune.together
 
-import java.security.MessageDigest
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.edit
+import io.ktor.client.HttpClient
+import io.ktor.client.engine.okhttp.OkHttp
+import io.ktor.client.request.get
+import io.ktor.client.statement.bodyAsText
 import java.net.URI
-import java.util.Base64
-import javax.crypto.Cipher
-import javax.crypto.spec.GCMParameterSpec
-import javax.crypto.spec.SecretKeySpec
-import moe.koiverse.archivetune.BuildConfig
+import java.util.concurrent.TimeUnit
+import moe.koiverse.archivetune.constants.TogetherOnlineEndpointCacheKey
+import moe.koiverse.archivetune.constants.TogetherOnlineEndpointLastCheckedAtKey
+import moe.koiverse.archivetune.utils.getAsync
 
 object TogetherOnlineEndpoint {
-    private const val DefaultBaseUrl = "http://87.106.62.92:15079"
+    private const val EndpointSourceUrl =
+        "https://raw.githubusercontent.com/koiverse/ArchiveTune/refs/heads/dev/ArchiveTuneKoiverseServer.txt"
 
-    fun baseUrlOrNull(): String? {
-        val secret = BuildConfig.TOGETHER_ONLINE_SECRET
-        val ciphertextB64 = BuildConfig.TOGETHER_ONLINE_ENDPOINT_B64
-        val plaintextFallback = BuildConfig.TOGETHER_ONLINE_ENDPOINT.trim().ifBlank { null }
-        val fallback = plaintextFallback ?: DefaultBaseUrl
-        if (secret.isBlank() || ciphertextB64.isBlank()) return fallback
+    private const val CacheTtlMs: Long = 6 * 60 * 60 * 1000L
 
-        val combined =
-            runCatching { Base64.getDecoder().decode(ciphertextB64) }.getOrNull()
-                ?: return fallback
-        if (combined.size <= 12) return fallback
+    private val httpClient =
+        HttpClient(OkHttp) {
+            engine {
+                config {
+                    connectTimeout(12, TimeUnit.SECONDS)
+                    readTimeout(12, TimeUnit.SECONDS)
+                    writeTimeout(12, TimeUnit.SECONDS)
+                    retryOnConnectionFailure(true)
+                }
+            }
+        }
 
-        val iv = combined.copyOfRange(0, 12)
-        val ciphertext = combined.copyOfRange(12, combined.size)
+    suspend fun baseUrlOrNull(
+        dataStore: DataStore<Preferences>,
+    ): String? {
+        val now = System.currentTimeMillis()
+        val cached = dataStore.getAsync(TogetherOnlineEndpointCacheKey)?.trim().orEmpty()
+        val lastCheckedAt = dataStore.getAsync(TogetherOnlineEndpointLastCheckedAtKey, 0L)
 
-        val keyBytes = MessageDigest.getInstance("SHA-256").digest(secret.toByteArray(Charsets.UTF_8))
-        val cipher = Cipher.getInstance("AES/GCM/NoPadding")
-        cipher.init(Cipher.DECRYPT_MODE, SecretKeySpec(keyBytes, "AES"), GCMParameterSpec(128, iv))
+        if (cached.isNotBlank() && now - lastCheckedAt < CacheTtlMs) return cached
 
-        val plaintext =
-            runCatching { cipher.doFinal(ciphertext).toString(Charsets.UTF_8).trim() }.getOrNull()
-                ?: return fallback
+        val fetched = fetchEndpointFromSourceOrNull()
+        if (fetched != null) {
+            dataStore.edit { prefs ->
+                prefs[TogetherOnlineEndpointCacheKey] = fetched
+                prefs[TogetherOnlineEndpointLastCheckedAtKey] = now
+            }
+            return fetched
+        }
 
-        return plaintext.ifBlank { fallback }
+        if (cached.isNotBlank()) {
+            dataStore.edit { prefs ->
+                prefs[TogetherOnlineEndpointLastCheckedAtKey] = now
+            }
+            return cached
+        }
+
+        dataStore.edit { prefs ->
+            prefs[TogetherOnlineEndpointLastCheckedAtKey] = now
+        }
+        return null
+    }
+
+    private suspend fun fetchEndpointFromSourceOrNull(): String? {
+        val text =
+            runCatching { httpClient.get(EndpointSourceUrl).bodyAsText() }
+                .getOrNull()
+                ?.trim()
+                .orEmpty()
+        if (text.isBlank()) return null
+
+        val candidate =
+            text.lineSequence()
+                .map { it.trim() }
+                .firstOrNull { it.isNotBlank() }
+                ?: return null
+
+        val uri = runCatching { URI(candidate) }.getOrNull() ?: return null
+        val scheme = uri.scheme?.trim()?.lowercase()
+        if (scheme != "http" && scheme != "https") return null
+        val host = uri.host?.trim().orEmpty()
+        if (host.isBlank()) return null
+
+        return candidate.trimEnd('/')
     }
 
     fun onlineWebSocketUrlOrNull(
