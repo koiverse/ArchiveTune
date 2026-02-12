@@ -1394,6 +1394,7 @@ private fun StatusCard(
                                 fontWeight = FontWeight.SemiBold,
                             )
                         }
+                    }
                 }
 
                 when (state) {
