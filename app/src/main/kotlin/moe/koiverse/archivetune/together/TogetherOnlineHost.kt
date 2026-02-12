@@ -46,6 +46,7 @@ class TogetherOnlineHost(
     private val hostId: String,
     private val hostDisplayName: String,
     initialSettings: TogetherRoomSettings,
+    clientId: String = UUID.randomUUID().toString(),
 ) {
     private val client =
         HttpClient(OkHttp) {
@@ -71,7 +72,7 @@ class TogetherOnlineHost(
     private var loopJob: Job? = null
     private var hostParticipantId: String? = null
 
-    private val clientId = UUID.randomUUID().toString()
+    private val clientId = clientId.trim().ifBlank { UUID.randomUUID().toString() }.take(64)
 
     private data class Guest(
         val participantId: String,
@@ -107,7 +108,7 @@ class TogetherOnlineHost(
                             sessionId = sessionId,
                             sessionKey = sessionKey,
                             clientId = clientId,
-                            displayName = hostDisplayName.trim().ifBlank { "Host" },
+                            displayName = hostDisplayName.trim(),
                         )
                     send(TogetherJson.json.encodeToString(TogetherMessage.serializer(), hello))
                     runLoop(this, candidate)
@@ -216,6 +217,18 @@ class TogetherOnlineHost(
                 TogetherJson.json.encodeToString(
                     TogetherMessage.serializer(),
                     KickParticipant(sessionId = sessionId, participantId = participantId, reason = reason),
+                ),
+            )
+        }
+    }
+
+    suspend fun banParticipant(participantId: String, reason: String?) {
+        if (!guests.containsKey(participantId)) return
+        runCatching {
+            session?.send(
+                TogetherJson.json.encodeToString(
+                    TogetherMessage.serializer(),
+                    BanParticipant(sessionId = sessionId, participantId = participantId, reason = reason),
                 ),
             )
         }
