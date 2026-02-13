@@ -137,9 +137,9 @@ fun MusicTogetherScreen(
             defaultValue = Build.MODEL?.takeIf { it.isNotBlank() } ?: context.getString(R.string.app_name),
         )
     val (port, setPort) = rememberPreference(TogetherDefaultPortKey, defaultValue = 42117)
-    val (allowAddTracks, setAllowAddTracks) = rememberPreference(TogetherAllowGuestsToAddTracksKey, defaultValue = true)
-    val (allowControlPlayback, setAllowControlPlayback) = rememberPreference(TogetherAllowGuestsToControlPlaybackKey, defaultValue = false)
-    val (requireApproval, setRequireApproval) = rememberPreference(TogetherRequireHostApprovalToJoinKey, defaultValue = false)
+    val (allowAddTracks, setAllowAddTracksRaw) = rememberPreference(TogetherAllowGuestsToAddTracksKey, defaultValue = true)
+    val (allowControlPlayback, setAllowControlPlaybackRaw) = rememberPreference(TogetherAllowGuestsToControlPlaybackKey, defaultValue = false)
+    val (requireApproval, setRequireApprovalRaw) = rememberPreference(TogetherRequireHostApprovalToJoinKey, defaultValue = false)
     val (lastJoinLink, setLastJoinLink) = rememberPreference(TogetherLastJoinLinkKey, defaultValue = "")
 
     val sessionStateFlow =
@@ -199,6 +199,35 @@ fun MusicTogetherScreen(
 
     var hostModeOnline by rememberSaveable { mutableStateOf(false) }
     var joinModeOnline by rememberSaveable { mutableStateOf(false) }
+
+    fun pushSettingsToActiveSession(
+        addTracks: Boolean = allowAddTracks,
+        controlPlayback: Boolean = allowControlPlayback,
+        approval: Boolean = requireApproval,
+    ) {
+        if (isHosting) {
+            playerConnection?.service?.updateTogetherSettings(
+                TogetherRoomSettings(
+                    allowGuestsToAddTracks = addTracks,
+                    allowGuestsToControlPlayback = controlPlayback,
+                    requireHostApprovalToJoin = approval,
+                ),
+            )
+        }
+    }
+
+    val setAllowAddTracks: (Boolean) -> Unit = { value ->
+        setAllowAddTracksRaw(value)
+        pushSettingsToActiveSession(addTracks = value)
+    }
+    val setAllowControlPlayback: (Boolean) -> Unit = { value ->
+        setAllowControlPlaybackRaw(value)
+        pushSettingsToActiveSession(controlPlayback = value)
+    }
+    val setRequireApproval: (Boolean) -> Unit = { value ->
+        setRequireApprovalRaw(value)
+        pushSettingsToActiveSession(approval = value)
+    }
 
     if (showNameDialog) {
         TextFieldDialog(
