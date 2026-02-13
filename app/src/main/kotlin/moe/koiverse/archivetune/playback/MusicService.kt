@@ -42,7 +42,6 @@ import androidx.media3.common.Player.REPEAT_MODE_ALL
 import androidx.media3.common.Player.REPEAT_MODE_OFF
 import androidx.media3.common.Player.REPEAT_MODE_ONE
 import androidx.media3.common.Player.STATE_IDLE
-import androidx.media3.common.AudioOffloadPreferences
 import androidx.media3.common.Timeline
 import androidx.media3.common.audio.AudioProcessor
 import androidx.media3.common.audio.SonicAudioProcessor
@@ -3321,20 +3320,25 @@ class MusicService :
 
     private fun updateAudioOffload(enabled: Boolean) {
         runCatching {
-            player.trackSelectionParameters =
-                player.trackSelectionParameters
-                    .buildUpon()
-                    .setAudioOffloadPreferences(
-                        AudioOffloadPreferences
-                            .Builder()
-                            .setAudioOffloadMode(
-                                if (enabled) {
-                                    AudioOffloadPreferences.AUDIO_OFFLOAD_MODE_ENABLED
-                                } else {
-                                    AudioOffloadPreferences.AUDIO_OFFLOAD_MODE_DISABLED
-                                },
-                            ).build(),
-                    ).build()
+            val builder = player.trackSelectionParameters.buildUpon()
+            val audioOffloadPrefsClass = Class.forName("androidx.media3.common.AudioOffloadPreferences")
+            val audioOffloadPrefsBuilderClass = Class.forName("androidx.media3.common.AudioOffloadPreferences\$Builder")
+
+            val modeFieldName = if (enabled) "AUDIO_OFFLOAD_MODE_ENABLED" else "AUDIO_OFFLOAD_MODE_DISABLED"
+            val mode = audioOffloadPrefsClass.getField(modeFieldName).getInt(null)
+
+            val prefsBuilder = audioOffloadPrefsBuilderClass.getDeclaredConstructor().newInstance()
+            audioOffloadPrefsBuilderClass.getMethod("setAudioOffloadMode", Int::class.javaPrimitiveType).invoke(prefsBuilder, mode)
+            val prefs = audioOffloadPrefsBuilderClass.getMethod("build").invoke(prefsBuilder)
+
+            val setMethod =
+                builder.javaClass.methods.firstOrNull { method ->
+                    method.name == "setAudioOffloadPreferences" && method.parameterTypes.size == 1
+                }
+            if (setMethod != null) {
+                setMethod.invoke(builder, prefs)
+                player.trackSelectionParameters = builder.build()
+            }
         }
         player.setOffloadEnabled(enabled)
     }
