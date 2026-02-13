@@ -1554,7 +1554,7 @@ class MusicService :
                 return@launch
             }
 
-            val api = moe.koiverse.archivetune.together.TogetherOnlineApi(baseUrl = baseUrl)
+            val api = moe.koiverse.archivetune.together.TogetherOnlineApi(baseUrl = baseUrl, packageName = packageName)
             val hostName = displayName.trim().ifBlank { getString(R.string.app_name) }
 
             val created =
@@ -1584,6 +1584,7 @@ class MusicService :
                     hostDisplayName = hostName,
                     initialSettings = created.settings,
                     clientId = getOrCreateTogetherClientId(),
+                    packageName = packageName,
                 )
 
             onlineHost.onEvent = { event ->
@@ -1685,6 +1686,7 @@ class MusicService :
                 moe.koiverse.archivetune.together.TogetherClient(
                     ioScope,
                     clientId = getOrCreateTogetherClientId(),
+                    packageName = packageName,
                 )
             togetherClient = client
             togetherClock = moe.koiverse.archivetune.together.TogetherClock()
@@ -1839,7 +1841,7 @@ class MusicService :
                 return@launch
             }
 
-            val api = moe.koiverse.archivetune.together.TogetherOnlineApi(baseUrl = baseUrl)
+            val api = moe.koiverse.archivetune.together.TogetherOnlineApi(baseUrl = baseUrl, packageName = packageName)
             val resolved =
                 runCatching { api.resolveCode(trimmedCode) }
                     .getOrElse { t ->
@@ -1858,6 +1860,7 @@ class MusicService :
                 moe.koiverse.archivetune.together.TogetherClient(
                     ioScope,
                     clientId = getOrCreateTogetherClientId(),
+                    packageName = packageName,
                 )
             togetherClient = client
             togetherClock = moe.koiverse.archivetune.together.TogetherClock()
