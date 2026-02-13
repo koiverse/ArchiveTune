@@ -42,6 +42,7 @@ import androidx.media3.common.Player.REPEAT_MODE_ALL
 import androidx.media3.common.Player.REPEAT_MODE_OFF
 import androidx.media3.common.Player.REPEAT_MODE_ONE
 import androidx.media3.common.Player.STATE_IDLE
+import androidx.media3.common.AudioOffloadPreferences
 import androidx.media3.common.Timeline
 import androidx.media3.common.audio.AudioProcessor
 import androidx.media3.common.audio.SonicAudioProcessor
@@ -504,7 +505,7 @@ class MusicService :
             withContext(Dispatchers.Main) {
                 player.repeatMode = repeatMode
                 playerVolume.value = volume
-                player.setOffloadEnabled(offload)
+                updateAudioOffload(offload)
             }
         }
 
@@ -573,6 +574,25 @@ class MusicService :
             .distinctUntilChanged()
             .collectLatest(scope) {
                 player.skipSilenceEnabled = it
+            }
+
+        dataStore.data
+            .map { it[AudioOffload] ?: false }
+            .distinctUntilChanged()
+            .collectLatest(scope) { enabled ->
+                updateAudioOffload(enabled)
+                if (enabled) {
+                    val skipSilenceEnabled = dataStore.get(SkipSilenceKey, false)
+                    if (skipSilenceEnabled) {
+                        dataStore.edit { it[SkipSilenceKey] = false }
+                        player.skipSilenceEnabled = false
+                    }
+                    val crossfadeSeconds = dataStore.get(AudioCrossfadeDurationKey, 0)
+                    if (crossfadeSeconds != 0) {
+                        dataStore.edit { it[AudioCrossfadeDurationKey] = 0 }
+                        crossfadeProcessor.crossfadeDurationMs = 0
+                    }
+                }
             }
         
         dataStore.data
@@ -3295,6 +3315,26 @@ class MusicService :
                 arrayOf(MatroskaExtractor(), FragmentedMp4Extractor())
             },
         )
+
+    private fun updateAudioOffload(enabled: Boolean) {
+        runCatching {
+            player.trackSelectionParameters =
+                player.trackSelectionParameters
+                    .buildUpon()
+                    .setAudioOffloadPreferences(
+                        AudioOffloadPreferences
+                            .Builder()
+                            .setAudioOffloadMode(
+                                if (enabled) {
+                                    AudioOffloadPreferences.AUDIO_OFFLOAD_MODE_ENABLED
+                                } else {
+                                    AudioOffloadPreferences.AUDIO_OFFLOAD_MODE_DISABLED
+                                },
+                            ).build(),
+                    ).build()
+        }
+        player.setOffloadEnabled(enabled)
+    }
 
     private fun createRenderersFactory() =
         object : DefaultRenderersFactory(this) {
