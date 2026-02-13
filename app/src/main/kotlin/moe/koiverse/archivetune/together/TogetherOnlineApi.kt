@@ -8,6 +8,7 @@ package moe.koiverse.archivetune.together
 
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.okhttp.OkHttp
+import io.ktor.client.request.header
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.HttpResponse
@@ -56,6 +57,7 @@ class TogetherOnlineApiException(
 
 class TogetherOnlineApi(
     private val baseUrl: String,
+    private val packageName: String? = null,
 ) {
     private val v1BaseUrl: String =
         baseUrl
@@ -137,6 +139,7 @@ class TogetherOnlineApi(
                 )
             val resp =
                 client.post("$v1BaseUrl/together/sessions") {
+                    packageName?.trim()?.takeIf { it.isNotBlank() }?.let { header("x-package-name", it) }
                     contentType(ContentType.Application.Json)
                     setBody(payload)
                 }
@@ -156,6 +159,7 @@ class TogetherOnlineApi(
                 )
             val resp =
                 client.post("$v1BaseUrl/together/sessions/resolve") {
+                    packageName?.trim()?.takeIf { it.isNotBlank() }?.let { header("x-package-name", it) }
                     contentType(ContentType.Application.Json)
                     setBody(payload)
                 }
