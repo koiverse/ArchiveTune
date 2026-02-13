@@ -355,7 +355,10 @@ class MusicService :
     private var togetherSelfParticipantId: String? = null
     private var togetherLastAppliedQueueHash: String? = null
     @Volatile
-    private var togetherApplyingRemote: Boolean = false
+    private var togetherApplyingRemoteUntil: Long = 0L
+
+    private fun isTogetherApplyingRemote(): Boolean =
+        android.os.SystemClock.elapsedRealtime() < togetherApplyingRemoteUntil
     private val togetherHostId: String = "host"
 
     private suspend fun getOrCreateTogetherClientId(): String {
@@ -2101,12 +2104,16 @@ class MusicService :
         withContext(Dispatchers.Main) {
             when (action) {
                 moe.koiverse.archivetune.together.ControlAction.Play -> {
-                    player.prepare()
-                    player.playWhenReady = true
+                    if (!player.playWhenReady) {
+                        player.prepare()
+                        player.playWhenReady = true
+                    }
                 }
 
                 moe.koiverse.archivetune.together.ControlAction.Pause -> {
-                    player.playWhenReady = false
+                    if (player.playWhenReady) {
+                        player.playWhenReady = false
+                    }
                 }
 
                 is moe.koiverse.archivetune.together.ControlAction.SeekTo -> {
@@ -2115,29 +2122,39 @@ class MusicService :
                 }
 
                 moe.koiverse.archivetune.together.ControlAction.SkipNext -> {
-                    player.seekToNext()
-                    player.prepare()
-                    player.playWhenReady = true
+                    if (player.hasNextMediaItem()) {
+                        player.seekToNext()
+                        player.prepare()
+                        player.playWhenReady = true
+                    }
                 }
 
                 moe.koiverse.archivetune.together.ControlAction.SkipPrevious -> {
-                    player.seekToPrevious()
-                    player.prepare()
-                    player.playWhenReady = true
+                    if (player.hasPreviousMediaItem()) {
+                        player.seekToPrevious()
+                        player.prepare()
+                        player.playWhenReady = true
+                    }
                 }
 
                 is moe.koiverse.archivetune.together.ControlAction.SeekToIndex -> {
                     val idx = action.index.coerceAtLeast(0)
-                    player.seekTo(idx, action.positionMs.coerceAtLeast(0L))
-                    player.prepare()
+                    if (idx < player.mediaItemCount) {
+                        player.seekTo(idx, action.positionMs.coerceAtLeast(0L))
+                        player.prepare()
+                    }
                 }
 
                 is moe.koiverse.archivetune.together.ControlAction.SetRepeatMode -> {
-                    player.repeatMode = action.repeatMode
+                    if (player.repeatMode != action.repeatMode) {
+                        player.repeatMode = action.repeatMode
+                    }
                 }
 
                 is moe.koiverse.archivetune.together.ControlAction.SetShuffleEnabled -> {
-                    player.shuffleModeEnabled = action.shuffleEnabled
+                    if (player.shuffleModeEnabled != action.shuffleEnabled) {
+                        player.shuffleModeEnabled = action.shuffleEnabled
+                    }
                 }
             }
         }
@@ -2206,9 +2223,11 @@ class MusicService :
             try {
                 val desiredItems = state.queue.map { it.toMediaMetadata().toMediaItem() }
                 val desiredHash = state.queueHash
-                val needsRebuild = desiredHash.isNotBlank() && desiredHash != togetherLastAppliedQueueHash
+                val currentHash = togetherLastAppliedQueueHash
+                val needsRebuild = desiredHash.isNotBlank() && desiredHash != currentHash
 
                 if (desiredItems.isNotEmpty() && needsRebuild) {
+                    togetherLastAppliedQueueHash = desiredHash
                     val startIndex = state.currentIndex.coerceIn(0, desiredItems.lastIndex)
                     suppressAutoPlayback = false
                     currentQueue =
@@ -2224,7 +2243,6 @@ class MusicService :
                     player.repeatMode = state.repeatMode
                     player.shuffleModeEnabled = state.shuffleEnabled
                     player.playWhenReady = state.isPlaying
-                    togetherLastAppliedQueueHash = desiredHash
                 } else {
                     val index = state.currentIndex.coerceAtLeast(0)
                     if (player.mediaItemCount > 0 && index != player.currentMediaItemIndex) {
@@ -2232,14 +2250,20 @@ class MusicService :
                         player.prepare()
                     } else {
                         val drift = kotlin.math.abs(player.currentPosition - targetPos)
-                        if (drift > 900) {
+                        if (drift > 500) {
                             player.seekTo(targetPos)
                             player.prepare()
                         }
                     }
-                    player.repeatMode = state.repeatMode
-                    player.shuffleModeEnabled = state.shuffleEnabled
-                    player.playWhenReady = state.isPlaying
+                    if (player.repeatMode != state.repeatMode) {
+                        player.repeatMode = state.repeatMode
+                    }
+                    if (player.shuffleModeEnabled != state.shuffleEnabled) {
+                        player.shuffleModeEnabled = state.shuffleEnabled
+                    }
+                    if (player.playWhenReady != state.isPlaying) {
+                        player.playWhenReady = state.isPlaying
+                    }
                 }
 
                 togetherSessionState.value =
