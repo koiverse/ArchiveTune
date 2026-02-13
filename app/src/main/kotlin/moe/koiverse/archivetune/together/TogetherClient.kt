@@ -74,6 +74,7 @@ sealed class TogetherClientState {
 class TogetherClient(
     private val externalScope: CoroutineScope,
     clientId: String = UUID.randomUUID().toString(),
+    private val packageName: String? = null,
 ) {
     private val client =
         HttpClient(OkHttp) {
@@ -112,7 +113,8 @@ class TogetherClient(
                                 sessionId = joinInfo.sessionId,
                                 sessionKey = joinInfo.sessionKey,
                                 clientId = clientId,
-                                    displayName = displayName.trim(),
+                                displayName = displayName.trim(),
+                                packageName = packageName,
                             )
                         send(TogetherJson.json.encodeToString(TogetherMessage.serializer(), hello))
                         _state.value = TogetherClientState.Connected(joinInfo)
@@ -153,6 +155,7 @@ class TogetherClient(
                                 sessionKey = sessionKey,
                                 clientId = clientId,
                                 displayName = displayName.trim().ifBlank { "Guest" },
+                                packageName = packageName,
                             )
                         send(TogetherJson.json.encodeToString(TogetherMessage.serializer(), hello))
                         _state.value = TogetherClientState.ConnectedRemote(wsUrl = candidate, sessionId = sessionId)
