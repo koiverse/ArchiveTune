@@ -360,6 +360,19 @@ class MusicService :
     private fun isTogetherApplyingRemote(): Boolean =
         android.os.SystemClock.elapsedRealtime() < togetherApplyingRemoteUntil
     private val togetherHostId: String = "host"
+    private var lastTogetherNoticeAtElapsedMs: Long = 0L
+    private var lastTogetherNoticeKey: String? = null
+
+    private fun showTogetherNotice(message: String, key: String? = null) {
+        val now = android.os.SystemClock.elapsedRealtime()
+        val normalizedKey = key ?: message
+        if (normalizedKey == lastTogetherNoticeKey && now - lastTogetherNoticeAtElapsedMs < 1200L) return
+        lastTogetherNoticeKey = normalizedKey
+        lastTogetherNoticeAtElapsedMs = now
+        scope.launch(SilentHandler) {
+            Toast.makeText(this@MusicService, message, Toast.LENGTH_SHORT).show()
+        }
+    }
 
     private suspend fun getOrCreateTogetherClientId(): String {
         val existing = dataStore.getAsync(TogetherClientIdKey)?.trim().orEmpty()
@@ -1759,6 +1772,39 @@ class MusicService :
                             }
                         }
 
+                        is moe.koiverse.archivetune.together.TogetherClientEvent.ServerIssue -> {
+                            Timber.tag("Together").w("server issue (lan) code=${event.code.orEmpty()} message=${event.message}")
+                            when (event.code) {
+                                "GUEST_CONTROL_DISABLED" -> {
+                                    showTogetherNotice(event.message, key = "GUEST_CONTROL_DISABLED")
+                                    val joined =
+                                        togetherSessionState.value as? moe.koiverse.archivetune.together.TogetherSessionState.Joined
+                                    if (joined?.role is moe.koiverse.archivetune.together.TogetherRole.Guest) {
+                                        scope.launch(SilentHandler) { applyRemoteRoomState(joined.roomState) }
+                                    }
+                                }
+
+                                "GUEST_ADD_DISABLED" -> {
+                                    showTogetherNotice(event.message, key = "GUEST_ADD_DISABLED")
+                                }
+
+                                "HOST_OFFLINE" -> {
+                                    showTogetherNotice(event.message, key = "HOST_OFFLINE")
+                                }
+
+                                else -> {
+                                    scope.launch(SilentHandler) {
+                                        togetherSessionState.value =
+                                            moe.koiverse.archivetune.together.TogetherSessionState.Error(
+                                                message = event.message,
+                                                recoverable = true,
+                                            )
+                                    }
+                                    ioScope.launch(SilentHandler) { stopTogetherInternal() }
+                                }
+                            }
+                        }
+
                         is moe.koiverse.archivetune.together.TogetherClientEvent.HeartbeatPong -> {
                             val clock = togetherClock ?: return@collect
                             clock.onPong(
@@ -1933,6 +1979,39 @@ class MusicService :
                                 }
                             }
 
+                            is moe.koiverse.archivetune.together.TogetherClientEvent.ServerIssue -> {
+                                Timber.tag("Together").w("server issue (online) code=${event.code.orEmpty()} message=${event.message}")
+                                when (event.code) {
+                                    "GUEST_CONTROL_DISABLED" -> {
+                                        showTogetherNotice(event.message, key = "GUEST_CONTROL_DISABLED")
+                                        val joined =
+                                            togetherSessionState.value as? moe.koiverse.archivetune.together.TogetherSessionState.Joined
+                                        if (joined?.role is moe.koiverse.archivetune.together.TogetherRole.Guest) {
+                                            scope.launch(SilentHandler) { applyRemoteRoomState(joined.roomState) }
+                                        }
+                                    }
+
+                                    "GUEST_ADD_DISABLED" -> {
+                                        showTogetherNotice(event.message, key = "GUEST_ADD_DISABLED")
+                                    }
+
+                                    "HOST_OFFLINE" -> {
+                                        showTogetherNotice(event.message, key = "HOST_OFFLINE")
+                                    }
+
+                                    else -> {
+                                        scope.launch(SilentHandler) {
+                                            togetherSessionState.value =
+                                                moe.koiverse.archivetune.together.TogetherSessionState.Error(
+                                                    message = event.message,
+                                                    recoverable = true,
+                                                )
+                                        }
+                                        ioScope.launch(SilentHandler) { stopTogetherInternal() }
+                                    }
+                                }
+                            }
+
                             is moe.koiverse.archivetune.together.TogetherClientEvent.HeartbeatPong -> {
                                 val clock = togetherClock ?: return@collect
                                 clock.onPong(
@@ -2050,6 +2129,8 @@ class MusicService :
         val state = togetherSessionState.value as? moe.koiverse.archivetune.together.TogetherSessionState.Joined ?: return
         if (state.role !is moe.koiverse.archivetune.together.TogetherRole.Guest) return
         if (!state.roomState.settings.allowGuestsToControlPlayback) {
+            Timber.tag("Together").i("control blocked locally (disabled) action=${action::class.java.simpleName}")
+            showTogetherNotice(getString(R.string.not_allowed), key = "GUEST_CONTROL_DISABLED_LOCAL")
             return
         }
         client.requestControl(state.sessionId, action)
@@ -2063,6 +2144,8 @@ class MusicService :
         val state = togetherSessionState.value as? moe.koiverse.archivetune.together.TogetherSessionState.Joined ?: return
         if (state.role !is moe.koiverse.archivetune.together.TogetherRole.Guest) return
         if (!state.roomState.settings.allowGuestsToAddTracks) {
+            Timber.tag("Together").i("add blocked locally (disabled) mode=$mode trackId=${track.id}")
+            showTogetherNotice(getString(R.string.not_allowed), key = "GUEST_ADD_DISABLED_LOCAL")
             return
         }
         client.requestAddTrack(state.sessionId, track, mode)
