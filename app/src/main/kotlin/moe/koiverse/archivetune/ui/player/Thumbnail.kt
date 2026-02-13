@@ -9,6 +9,8 @@
 package moe.koiverse.archivetune.ui.player
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -341,7 +343,6 @@ fun Thumbnail(
                                 }
                             val shouldAnimateCanvas =
                                 archiveTuneCanvasEnabled &&
-                                    isPlaying &&
                                     item.mediaId.isNotBlank() &&
                                     item.mediaId == currentMediaItem?.mediaId
                             var canvasArtwork by remember(item.mediaId) { mutableStateOf<CanvasArtwork?>(null) }
@@ -471,7 +472,9 @@ fun Thumbnail(
                                             )
                                         }
                                     } else {
-                                        // Blurred
+                                        val primaryCanvasUrl = canvasArtwork?.animated
+                                        val fallbackCanvasUrl = canvasArtwork?.videoUrl
+                                        
                                         AsyncImage(
                                             model = item.mediaMetadata.artworkUri?.toString(),
                                             contentDescription = null,
@@ -485,23 +488,21 @@ fun Thumbnail(
                                                 )
                                         )
 
-                                        // Main image
-                                        val primaryCanvasUrl = canvasArtwork?.animated
-                                        val fallbackCanvasUrl = canvasArtwork?.videoUrl
+                                        AsyncImage(
+                                            model = item.mediaMetadata.artworkUri?.toString(),
+                                            contentDescription = null,
+                                            contentScale = if (cropThumbnailToSquare) ContentScale.Crop else ContentScale.Fit,
+                                            modifier = Modifier
+                                                .fillMaxSize()
+                                                .let { if (cropThumbnailToSquare) it.aspectRatio(1f) else it }
+                                        )
+
                                         if (shouldAnimateCanvas && (!primaryCanvasUrl.isNullOrBlank() || !fallbackCanvasUrl.isNullOrBlank())) {
                                             CanvasArtworkPlayer(
                                                 primaryUrl = primaryCanvasUrl,
                                                 fallbackUrl = fallbackCanvasUrl,
+                                                isPlaying = isPlaying,
                                                 modifier = Modifier.fillMaxSize(),
-                                            )
-                                        } else {
-                                            AsyncImage(
-                                                model = item.mediaMetadata.artworkUri?.toString(),
-                                                contentDescription = null,
-                                                contentScale = if (cropThumbnailToSquare) ContentScale.Crop else ContentScale.Fit,
-                                                modifier = Modifier
-                                                    .fillMaxSize()
-                                                    .let { if (cropThumbnailToSquare) it.aspectRatio(1f) else it }
                                             )
                                         }
                                     }
@@ -545,6 +546,7 @@ fun Thumbnail(
 private fun CanvasArtworkPlayer(
     primaryUrl: String?,
     fallbackUrl: String?,
+    isPlaying: Boolean,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -552,6 +554,8 @@ private fun CanvasArtworkPlayer(
     val fallback = fallbackUrl?.takeIf { it.isNotBlank() }
     val initial = primary ?: fallback ?: return
     var currentUrl by remember(initial) { mutableStateOf(initial) }
+    var isVideoReady by remember(initial) { mutableStateOf(false) }
+
     val okHttpClient =
         remember {
             OkHttpClient
@@ -584,9 +588,15 @@ private fun CanvasArtworkPlayer(
                 )
                 volume = 0f
                 repeatMode = Player.REPEAT_MODE_ONE
-                playWhenReady = true
+                playWhenReady = isPlaying
             }
         }
+
+    LaunchedEffect(isPlaying) {
+        if (exoPlayer.playWhenReady != isPlaying) {
+            exoPlayer.playWhenReady = isPlaying
+        }
+    }
 
     DisposableEffect(exoPlayer, primary, fallback) {
         val listener =
@@ -597,7 +607,14 @@ private fun CanvasArtworkPlayer(
                             primary -> fallback
                             else -> null
                         }
-                    if (!next.isNullOrBlank()) currentUrl = next
+                    if (!next.isNullOrBlank()) {
+                        currentUrl = next
+                        isVideoReady = false 
+                    }
+                }
+
+                override fun onRenderedFirstFrame() {
+                    isVideoReady = true
                 }
             }
         exoPlayer.addListener(listener)
@@ -624,7 +641,7 @@ private fun CanvasArtworkPlayer(
         exoPlayer.stop()
         exoPlayer.setMediaItem(mediaItem)
         exoPlayer.prepare()
-        exoPlayer.playWhenReady = true
+        exoPlayer.playWhenReady = isPlaying
     }
 
     DisposableEffect(exoPlayer) {
@@ -633,6 +650,12 @@ private fun CanvasArtworkPlayer(
         }
     }
 
+    val alpha by animateFloatAsState(
+        targetValue = if (isVideoReady) 1f else 0f,
+        animationSpec = tween(durationMillis = 300),
+        label = "canvasAlpha"
+    )
+
     AndroidView(
         factory = { viewContext ->
             PlayerView(viewContext).apply {
@@ -640,12 +663,13 @@ private fun CanvasArtworkPlayer(
                 player = exoPlayer
                 useController = false
                 resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
+                setShutterBackgroundColor(android.graphics.Color.TRANSPARENT)
             }
         },
         update = { view ->
             if (view.player !== exoPlayer) view.player = exoPlayer
         },
-        modifier = modifier,
+        modifier = modifier.alpha(alpha),
     )
 }
 
