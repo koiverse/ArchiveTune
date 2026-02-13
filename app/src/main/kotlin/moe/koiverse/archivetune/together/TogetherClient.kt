@@ -42,6 +42,11 @@ sealed interface TogetherClientEvent {
         val decision: moe.koiverse.archivetune.together.JoinDecision,
     ) : TogetherClientEvent
 
+    data class ServerIssue(
+        val message: String,
+        val code: String? = null,
+    ) : TogetherClientEvent
+
     data class Error(
         val message: String,
         val throwable: Throwable? = null,
@@ -316,7 +321,7 @@ class TogetherClient(
                             }
 
                             is ServerError -> {
-                                _events.tryEmit(TogetherClientEvent.Error(message.message, null))
+                                _events.tryEmit(TogetherClientEvent.ServerIssue(message = message.message, code = message.code))
                             }
 
                             else -> Unit
