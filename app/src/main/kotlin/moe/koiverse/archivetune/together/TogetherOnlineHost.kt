@@ -47,6 +47,7 @@ class TogetherOnlineHost(
     private val hostDisplayName: String,
     initialSettings: TogetherRoomSettings,
     clientId: String = UUID.randomUUID().toString(),
+    private val packageName: String? = null,
 ) {
     private val client =
         HttpClient(OkHttp) {
@@ -109,6 +110,7 @@ class TogetherOnlineHost(
                             sessionKey = sessionKey,
                             clientId = clientId,
                             displayName = hostDisplayName.trim(),
+                            packageName = packageName,
                         )
                     send(TogetherJson.json.encodeToString(TogetherMessage.serializer(), hello))
                     runLoop(this, candidate)
