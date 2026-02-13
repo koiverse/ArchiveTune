@@ -42,6 +42,7 @@ import moe.koiverse.archivetune.LocalPlayerAwareWindowInsets
 import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.constants.ArtistSeparatorsKey
 import moe.koiverse.archivetune.constants.AudioNormalizationKey
+import moe.koiverse.archivetune.constants.AudioOffload
 import moe.koiverse.archivetune.constants.AudioQuality
 import moe.koiverse.archivetune.constants.AudioQualityKey
 import moe.koiverse.archivetune.constants.NetworkMeteredKey
@@ -104,6 +105,10 @@ fun PlayerSettings(
     val (audioNormalization, onAudioNormalizationChange) = rememberPreference(
         AudioNormalizationKey,
         defaultValue = true
+    )
+    val (audioOffload, onAudioOffloadChange) = rememberPreference(
+        AudioOffload,
+        defaultValue = false
     )
 
     val (seekExtraSeconds, onSeekExtraSeconds) = rememberPreference(
@@ -271,7 +276,8 @@ fun PlayerSettings(
             title = { Text(stringResource(R.string.skip_silence)) },
             icon = { Icon(painterResource(R.drawable.fast_forward), null) },
             checked = skipSilence,
-            onCheckedChange = onSkipSilenceChange
+            onCheckedChange = onSkipSilenceChange,
+            isEnabled = !audioOffload,
         )
 
         SwitchPreference(
@@ -279,6 +285,19 @@ fun PlayerSettings(
             icon = { Icon(painterResource(R.drawable.volume_up), null) },
             checked = audioNormalization,
             onCheckedChange = onAudioNormalizationChange
+        )
+
+        SwitchPreference(
+            title = { Text(stringResource(R.string.audio_offload)) },
+            description = stringResource(R.string.audio_offload_desc),
+            icon = { Icon(painterResource(R.drawable.speed), null) },
+            checked = audioOffload,
+            onCheckedChange = { enabled ->
+                onAudioOffloadChange(enabled)
+                if (enabled) {
+                    onSkipSilenceChange(false)
+                }
+            }
         )
 
         SwitchPreference(
