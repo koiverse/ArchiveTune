@@ -1151,7 +1151,7 @@ class MusicService :
         playWhenReady: Boolean = true,
     ) {
         val joined = togetherSessionState.value as? moe.koiverse.archivetune.together.TogetherSessionState.Joined
-        if (!togetherApplyingRemote &&
+        if (!isTogetherApplyingRemote() &&
             joined?.role is moe.koiverse.archivetune.together.TogetherRole.Guest &&
             !joined.roomState.settings.allowGuestsToControlPlayback
         ) {
@@ -1266,7 +1266,7 @@ class MusicService :
 
     fun startRadioSeamlessly() {
         val joined = togetherSessionState.value as? moe.koiverse.archivetune.together.TogetherSessionState.Joined
-        if (!togetherApplyingRemote &&
+        if (!isTogetherApplyingRemote() &&
             joined?.role is moe.koiverse.archivetune.together.TogetherRole.Guest &&
             !joined.roomState.settings.allowGuestsToControlPlayback
         ) {
@@ -2219,7 +2219,7 @@ class MusicService :
             if (state.isPlaying) (state.positionMs + delta).coerceAtLeast(0L) else state.positionMs.coerceAtLeast(0L)
 
         withContext(Dispatchers.Main) {
-            togetherApplyingRemote = true
+            togetherApplyingRemoteUntil = android.os.SystemClock.elapsedRealtime() + 3000L
             try {
                 val desiredItems = state.queue.map { it.toMediaMetadata().toMediaItem() }
                 val desiredHash = state.queueHash
@@ -2274,7 +2274,7 @@ class MusicService :
                         roomState = state,
                     )
             } finally {
-                togetherApplyingRemote = false
+                togetherApplyingRemoteUntil = 0L
             }
         }
     }
@@ -2604,7 +2604,7 @@ class MusicService :
     super.onMediaItemTransition(mediaItem, reason)
 
     val joined = togetherSessionState.value as? moe.koiverse.archivetune.together.TogetherSessionState.Joined
-    if (!togetherApplyingRemote &&
+    if (!isTogetherApplyingRemote() &&
         joined?.role is moe.koiverse.archivetune.together.TogetherRole.Guest &&
         reason == Player.MEDIA_ITEM_TRANSITION_REASON_SEEK
     ) {
@@ -2845,7 +2845,7 @@ class MusicService :
 
     override fun onEvents(player: Player, events: Player.Events) {
     val joined = togetherSessionState.value as? moe.koiverse.archivetune.together.TogetherSessionState.Joined
-    if (!togetherApplyingRemote &&
+    if (!isTogetherApplyingRemote() &&
         joined?.role is moe.koiverse.archivetune.together.TogetherRole.Guest &&
         events.contains(Player.EVENT_PLAY_WHEN_READY_CHANGED)
     ) {
@@ -3018,7 +3018,7 @@ class MusicService :
         updateNotification()
         val joined = togetherSessionState.value as? moe.koiverse.archivetune.together.TogetherSessionState.Joined
         if (joined?.role is moe.koiverse.archivetune.together.TogetherRole.Guest) {
-            if (!togetherApplyingRemote) {
+            if (!isTogetherApplyingRemote()) {
                 if (!joined.roomState.settings.allowGuestsToControlPlayback) {
                     scope.launch(SilentHandler) { applyRemoteRoomState(joined.roomState) }
                     return
@@ -3047,7 +3047,7 @@ class MusicService :
         updateNotification()
         val joined = togetherSessionState.value as? moe.koiverse.archivetune.together.TogetherSessionState.Joined
         if (joined?.role is moe.koiverse.archivetune.together.TogetherRole.Guest) {
-            if (!togetherApplyingRemote) {
+            if (!isTogetherApplyingRemote()) {
                 if (!joined.roomState.settings.allowGuestsToControlPlayback) {
                     scope.launch(SilentHandler) { applyRemoteRoomState(joined.roomState) }
                     return
