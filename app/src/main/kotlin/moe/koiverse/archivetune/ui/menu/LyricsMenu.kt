@@ -591,12 +591,8 @@ fun LyricsMenu(
                         },
                         text = stringResource(R.string.refetch),
                         onClick = {
+                            viewModel.refetchLyrics(mediaMetadataProvider(), lyricsProvider())
                             onDismiss()
-                            coroutineScope.launch {
-                                try {
-                                    viewModel.refetchLyrics(mediaMetadataProvider(), lyricsProvider())
-                                } catch (_: Exception) {}
-                            }
                         }
                     ),
                     NewAction(
