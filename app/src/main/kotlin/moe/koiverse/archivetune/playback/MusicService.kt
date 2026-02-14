@@ -354,6 +354,7 @@ class MusicService :
     private var togetherClock: moe.koiverse.archivetune.together.TogetherClock? = null
     private var togetherSelfParticipantId: String? = null
     private var togetherLastAppliedQueueHash: String? = null
+    private var togetherIsOnlineSession: Boolean = false
     @Volatile
     private var togetherApplyingRemote: Boolean = false
     @Volatile
@@ -379,6 +380,7 @@ class MusicService :
     private data class TogetherPendingGuestControl(
         val desiredIsPlaying: Boolean? = null,
         val desiredIndex: Int? = null,
+        val desiredTrackId: String? = null,
         val expiresAtElapsedMs: Long,
     )
 
@@ -1478,6 +1480,7 @@ class MusicService :
 
         ioScope.launch(SilentHandler) {
             stopTogetherInternal()
+            togetherIsOnlineSession = false
 
             val localIp = getLocalIpv4Address()
             val sessionId = java.util.UUID.randomUUID().toString()
@@ -1575,6 +1578,7 @@ class MusicService :
 
         ioScope.launch(SilentHandler) {
             stopTogetherInternal()
+            togetherIsOnlineSession = true
 
             val baseUrl = moe.koiverse.archivetune.together.TogetherOnlineEndpoint.baseUrlOrNull(dataStore)
             if (baseUrl == null) {
@@ -1716,6 +1720,7 @@ class MusicService :
 
         ioScope.launch(SilentHandler) {
             stopTogetherInternal()
+            togetherIsOnlineSession = false
             val client =
                 moe.koiverse.archivetune.together.TogetherClient(
                     ioScope,
@@ -1897,6 +1902,7 @@ class MusicService :
 
         ioScope.launch(SilentHandler) {
             stopTogetherInternal()
+            togetherIsOnlineSession = true
 
             val baseUrl = moe.koiverse.archivetune.together.TogetherOnlineEndpoint.baseUrlOrNull(dataStore)
             if (baseUrl == null) {
@@ -2171,6 +2177,8 @@ class MusicService :
                     TogetherPendingGuestControl(desiredIsPlaying = false, expiresAtElapsedMs = now + 2000L)
                 is moe.koiverse.archivetune.together.ControlAction.SeekToIndex ->
                     TogetherPendingGuestControl(desiredIndex = action.index.coerceAtLeast(0), expiresAtElapsedMs = now + 2000L)
+                is moe.koiverse.archivetune.together.ControlAction.SeekToTrack ->
+                    TogetherPendingGuestControl(desiredTrackId = action.trackId.trim().ifBlank { null }, expiresAtElapsedMs = now + 2000L)
                 else -> togetherPendingGuestControl
             }
         client.requestControl(state.sessionId, action)
@@ -2260,6 +2268,21 @@ class MusicService :
                     }
                 }
 
+                is moe.koiverse.archivetune.together.ControlAction.SeekToTrack -> {
+                    val trackId = action.trackId.trim()
+                    if (trackId.isNotBlank()) {
+                        val idx =
+                            player.mediaItems.indexOfFirst {
+                                val metaId = it.metadata?.id
+                                it.mediaId == trackId || metaId == trackId
+                            }
+                        if (idx >= 0 && idx < player.mediaItemCount) {
+                            player.seekTo(idx, action.positionMs.coerceAtLeast(0L))
+                            player.prepare()
+                        }
+                    }
+                }
+
                 is moe.koiverse.archivetune.together.ControlAction.SeekToIndex -> {
                     val idx = action.index.coerceAtLeast(0)
                     if (idx < player.mediaItemCount) {
@@ -2340,9 +2363,11 @@ class MusicService :
             if (now >= pending.expiresAtElapsedMs) {
                 togetherPendingGuestControl = null
             } else {
+                val currentTrackId = state.queue.getOrNull(state.currentIndex.coerceAtLeast(0))?.id
                 val mismatch =
                     (pending.desiredIsPlaying != null && state.isPlaying != pending.desiredIsPlaying) ||
-                        (pending.desiredIndex != null && state.currentIndex != pending.desiredIndex)
+                        (pending.desiredIndex != null && state.currentIndex != pending.desiredIndex) ||
+                        (pending.desiredTrackId != null && currentTrackId != pending.desiredTrackId)
                 if (mismatch) return
                 togetherPendingGuestControl = null
             }
@@ -2352,9 +2377,9 @@ class MusicService :
         val sentAt = state.sentAtElapsedRealtimeMs
         if (sentAt > 0L && lastSentAt > 0L && sentAt <= lastSentAt) return
 
-        val offset = togetherClock?.snapshot()?.estimatedOffsetMs ?: 0L
+        val offset = if (togetherIsOnlineSession) 0L else (togetherClock?.snapshot()?.estimatedOffsetMs ?: 0L)
         val correctedSentAt = sentAt + offset
-        val delta = (now - correctedSentAt).coerceAtLeast(0L)
+        val delta = if (togetherIsOnlineSession) 0L else (now - correctedSentAt).coerceAtLeast(0L)
         val targetPos =
             if (state.isPlaying) (state.positionMs + delta).coerceAtLeast(0L) else state.positionMs.coerceAtLeast(0L)
 
@@ -2363,12 +2388,19 @@ class MusicService :
             togetherSuppressEchoUntilElapsedMs = android.os.SystemClock.elapsedRealtime() + 450L
             try {
                 val desiredItems = state.queue.map { it.toMediaMetadata().toMediaItem() }
+                val desiredIds = state.queue.map { it.id }
                 val desiredHash = state.queueHash
-                val currentHash = togetherLastAppliedQueueHash
-                val needsRebuild = desiredHash.isNotBlank() && desiredHash != currentHash
+                val localIds = player.mediaItems.mapNotNull { it.metadata?.id ?: it.mediaId }.filter { it.isNotBlank() }
+                val localHash = if (localIds.isEmpty()) "" else moe.koiverse.archivetune.utils.md5(localIds.joinToString(separator = "|"))
+                val needsRebuild =
+                    desiredItems.isNotEmpty() &&
+                        (
+                            (desiredHash.isNotBlank() && desiredHash != localHash) ||
+                                (desiredHash.isBlank() && desiredIds != localIds)
+                        )
 
                 if (desiredItems.isNotEmpty() && needsRebuild) {
-                    togetherLastAppliedQueueHash = desiredHash
+                    togetherLastAppliedQueueHash = desiredHash.ifBlank { localHash }
                     val startIndex = state.currentIndex.coerceIn(0, desiredItems.lastIndex)
                     suppressAutoPlayback = false
                     currentQueue =
@@ -2453,6 +2485,7 @@ class MusicService :
         togetherClock = null
         togetherSelfParticipantId = null
         togetherLastAppliedQueueHash = null
+        togetherIsOnlineSession = false
         togetherApplyingRemote = false
         togetherSuppressEchoUntilElapsedMs = 0L
         togetherLastAppliedRoomStateSentAtElapsedMs = 0L
@@ -2770,11 +2803,19 @@ class MusicService :
             isTogetherApplyingRemote() ||
                 (now < togetherSuppressEchoUntilElapsedMs && togetherLastRemoteAppliedIndex == index)
         if (!isEcho) {
+            val trackId = (mediaItem?.metadata ?: player.currentMetadata)?.id?.trim().orEmpty()
             requestTogetherControl(
-                moe.koiverse.archivetune.together.ControlAction.SeekToIndex(
-                    index = index,
-                    positionMs = player.currentPosition.coerceAtLeast(0L),
-                ),
+                if (trackId.isBlank()) {
+                    moe.koiverse.archivetune.together.ControlAction.SeekToIndex(
+                        index = index,
+                        positionMs = player.currentPosition.coerceAtLeast(0L),
+                    )
+                } else {
+                    moe.koiverse.archivetune.together.ControlAction.SeekToTrack(
+                        trackId = trackId,
+                        positionMs = player.currentPosition.coerceAtLeast(0L),
+                    )
+                },
             )
         }
     }
