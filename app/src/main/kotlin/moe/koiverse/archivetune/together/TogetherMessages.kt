@@ -197,6 +197,13 @@ sealed interface ControlAction {
     ) : ControlAction
 
     @Serializable
+    @SerialName("seek_to_track")
+    data class SeekToTrack(
+        val trackId: String,
+        val positionMs: Long = 0L,
+    ) : ControlAction
+
+    @Serializable
     @SerialName("set_repeat_mode")
     data class SetRepeatMode(
         val repeatMode: Int,
