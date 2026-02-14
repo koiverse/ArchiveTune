@@ -42,6 +42,11 @@ sealed interface TogetherClientEvent {
         val decision: moe.koiverse.archivetune.together.JoinDecision,
     ) : TogetherClientEvent
 
+    data class ServerIssue(
+        val message: String,
+        val code: String? = null,
+    ) : TogetherClientEvent
+
     data class Error(
         val message: String,
         val throwable: Throwable? = null,
@@ -74,6 +79,7 @@ sealed class TogetherClientState {
 class TogetherClient(
     private val externalScope: CoroutineScope,
     clientId: String = UUID.randomUUID().toString(),
+    private val packageName: String? = null,
 ) {
     private val client =
         HttpClient(OkHttp) {
@@ -112,7 +118,8 @@ class TogetherClient(
                                 sessionId = joinInfo.sessionId,
                                 sessionKey = joinInfo.sessionKey,
                                 clientId = clientId,
-                                    displayName = displayName.trim(),
+                                displayName = displayName.trim(),
+                                packageName = packageName,
                             )
                         send(TogetherJson.json.encodeToString(TogetherMessage.serializer(), hello))
                         _state.value = TogetherClientState.Connected(joinInfo)
@@ -153,6 +160,7 @@ class TogetherClient(
                                 sessionKey = sessionKey,
                                 clientId = clientId,
                                 displayName = displayName.trim().ifBlank { "Guest" },
+                                packageName = packageName,
                             )
                         send(TogetherJson.json.encodeToString(TogetherMessage.serializer(), hello))
                         _state.value = TogetherClientState.ConnectedRemote(wsUrl = candidate, sessionId = sessionId)
@@ -313,7 +321,7 @@ class TogetherClient(
                             }
 
                             is ServerError -> {
-                                _events.tryEmit(TogetherClientEvent.Error(message.message, null))
+                                _events.tryEmit(TogetherClientEvent.ServerIssue(message = message.message, code = message.code))
                             }
 
                             else -> Unit

@@ -103,3 +103,4 @@ core.*
 /server/node_modules/
 /server/data/
 /server/.env
+/server/package-lock.json

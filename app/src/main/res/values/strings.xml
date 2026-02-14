@@ -423,6 +423,8 @@
     <string name="auto_load_more_desc">Automatically add more songs when the end of the queue is reached. Disabled when repeat mode is active</string>
     <string name="skip_silence">Skip silence</string>
     <string name="audio_normalization">Audio normalization</string>
+    <string name="audio_offload">Audio offload</string>
+    <string name="audio_offload_desc">Let supported devices play audio using low-power hardware decoding. Some audio processing features are disabled.</string>
     <string name="auto_skip_next_on_error">Auto skip to next song when error occurs</string>
     <string name="auto_skip_next_on_error_desc">Ensure your continuous playback experience</string>
     <string name="stop_music_on_task_clear">Stop music on task clear</string>
@@ -686,6 +688,9 @@ ArchiveTune will only extract your token, and everything else is stored locally.
     <string name="next">Next</string>
     <string name="next_song">Next Song</string>
     <string name="allow">Allow</string>
+    <!-- Playlist Suggestions -->
+    <string name="you_might_like">You might like</string>
+    <string name="refresh_suggestions">Refresh suggestions</string>
 
     <string name="music_together">ArchiveTune Music Together</string>
     <string name="together_display_name">Display name</string>

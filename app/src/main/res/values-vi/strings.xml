@@ -674,4 +674,7 @@ ArchiveTune sẽ chỉ trích xuất token của bạn, và mọi thứ khác đ
     <string name="playback_state_unknown">KHÔNG XÁC ĐỊNH</string>
     <string name="share_logs">Chia sẻ nhật ký</string>
     <string name="next_song">Bài hát tiếp theo</string>
+    <!-- Playlist Suggestions -->
+    <string name="you_might_like">Có thể bạn sẽ thích</string>
+    <string name="refresh_suggestions">Làm mới gợi ý</string>
 </resources>
