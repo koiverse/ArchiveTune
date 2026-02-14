@@ -23,8 +23,8 @@ android {
     applicationId = "moe.koiverse.archivetune"
         minSdk = 26
         targetSdk = 36
-        versionCode = 131
-        versionName = "12.5.0"
+        versionCode = 130
+        versionName = "12.4.7"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
@@ -174,6 +174,7 @@ dependencies {
 
     implementation(libs.material3)
     implementation(libs.palette)
+    implementation(libs.multiplatform.markdown)
 
     implementation(libs.coil)
     implementation(libs.coil.network.okhttp)
@@ -181,8 +182,10 @@ dependencies {
     implementation(libs.shimmer)
 
     implementation(libs.media3)
+    implementation("androidx.media3:media3-exoplayer-hls:${libs.versions.media3.get()}")
     implementation(libs.media3.session)
     implementation(libs.media3.okhttp)
+    implementation("androidx.media3:media3-ui:${libs.versions.media3.get()}")
     implementation(libs.squigglyslider)
 
     implementation(libs.room.runtime)
@@ -204,10 +207,17 @@ dependencies {
     implementation(project(":betterlyrics"))
     implementation(project(":kizzy"))
     implementation(project(":simpmusic"))
+    implementation(project(":canvas"))
     implementation("com.github.Kyant0:m3color:2025.4")
 
     implementation(libs.ktor.client.core)
+    implementation(libs.ktor.client.okhttp)
     implementation(libs.ktor.serialization.json)
+    implementation(libs.ktor.client.websockets)
+    implementation(libs.ktor.server.core)
+    implementation(libs.ktor.server.cio)
+    implementation(libs.ktor.server.websockets)
+    implementation(libs.ktor.server.content.negotiation)
 
     coreLibraryDesugaring(libs.desugaring)
 

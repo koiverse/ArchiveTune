@@ -5,6 +5,7 @@
  */
 
 
+
 package moe.koiverse.archivetune.ui.menu
 
 import android.content.Intent
@@ -20,6 +21,7 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
@@ -41,11 +43,13 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
@@ -71,6 +75,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
@@ -89,6 +95,7 @@ import androidx.media3.exoplayer.offline.Download
 import androidx.media3.exoplayer.offline.DownloadRequest
 import androidx.media3.exoplayer.offline.DownloadService
 import androidx.navigation.NavController
+import coil3.compose.AsyncImage
 import moe.koiverse.archivetune.innertube.YouTube
 import moe.koiverse.archivetune.innertube.models.WatchEndpoint
 import moe.koiverse.archivetune.LocalDatabase
@@ -117,15 +124,18 @@ import moe.koiverse.archivetune.playback.queues.YouTubeQueue
 import moe.koiverse.archivetune.ui.component.BigSeekBar
 import moe.koiverse.archivetune.ui.component.BottomSheetState
 import moe.koiverse.archivetune.ui.component.ListDialog
+import moe.koiverse.archivetune.ui.component.MenuSurfaceSection
 import moe.koiverse.archivetune.ui.component.NewAction
 import moe.koiverse.archivetune.ui.component.NewActionGrid
 import moe.koiverse.archivetune.ui.component.TextFieldDialog
 import moe.koiverse.archivetune.utils.rememberPreference
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlin.math.abs
 import kotlin.math.log2
 import kotlin.math.pow
 import kotlin.math.round
+import kotlin.math.roundToInt
 import java.util.UUID
 
 @Composable
@@ -218,30 +228,57 @@ fun PlayerMenu(
             onDismiss = { showSelectArtistDialog = false },
         ) {
             items(splitArtists.distinctBy { it.name }) { splitArtist ->
-                Box(
-                    contentAlignment = Alignment.CenterStart,
-                    modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .height(ListItemHeight)
-                        .clickable {
-                            splitArtist.originalArtist?.let { artist ->
-                                navController.navigate("artist/${artist.id}")
-                                showSelectArtistDialog = false
-                                playerBottomSheetState.collapseSoft()
-                                onDismiss()
+                ListItem(
+                    headlineContent = {
+                        Text(
+                            text = splitArtist.name,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    },
+                    leadingContent = {
+                        val thumbUrl = splitArtist.originalArtist?.thumbnailUrl
+                        if (thumbUrl.isNullOrBlank()) {
+                            Box(
+                                modifier =
+                                    Modifier
+                                        .size(40.dp)
+                                        .clip(CircleShape)
+                                        .background(MaterialTheme.colorScheme.surfaceContainerHighest),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Icon(
+                                    painter = painterResource(R.drawable.music_note),
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(18.dp),
+                                )
                             }
+                        } else {
+                            AsyncImage(
+                                model = thumbUrl,
+                                contentDescription = null,
+                                contentScale = ContentScale.Crop,
+                                modifier =
+                                    Modifier
+                                        .size(40.dp)
+                                        .clip(CircleShape),
+                            )
                         }
-                        .padding(horizontal = 24.dp),
-                ) {
-                    Text(
-                        text = splitArtist.name,
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
+                    },
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                splitArtist.originalArtist?.let { artist ->
+                                    navController.navigate("artist/${artist.id}")
+                                    showSelectArtistDialog = false
+                                    playerBottomSheetState.collapseSoft()
+                                    onDismiss()
+                                }
+                            },
+                    colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                )
             }
         }
     }
@@ -280,37 +317,95 @@ fun PlayerMenu(
         )
     }
 
-    if (isQueueTrigger != true) {
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(24.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            modifier =
-            Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 24.dp)
-                .padding(top = 24.dp, bottom = 6.dp),
-        ) {
-            Icon(
-                painter = painterResource(R.drawable.volume_up),
-                contentDescription = null,
-                modifier = Modifier.size(28.dp),
-            )
+    val nowPlayingTitle =
+        remember(mediaMetadata.title) {
+            mediaMetadata.title.ifBlank { context.getString(R.string.no_title) }
+        }
 
-            BigSeekBar(
-                progressProvider = playerVolume::value,
-                onProgressChange = { playerConnection.service.playerVolume.value = it },
-                modifier = Modifier
-                    .weight(1f)
-                    .height(36.dp), // Reduced height from default (assumed ~48.dp) to 36.dp
-            )
+    val nowPlayingSubtitle =
+        remember(mediaMetadata.artists) {
+            mediaMetadata.artists.joinToString(separator = " • ") { it.name }
+        }
+
+    Surface(
+        shape = RoundedCornerShape(28.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+        ) {
+            val thumb = mediaMetadata.thumbnailUrl
+            if (thumb.isNullOrBlank()) {
+                Box(
+                    modifier =
+                        Modifier
+                            .size(56.dp)
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(MaterialTheme.colorScheme.surfaceContainerHighest),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.music_note),
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(22.dp),
+                    )
+                }
+            } else {
+                AsyncImage(
+                    model = thumb,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier =
+                        Modifier
+                            .size(56.dp)
+                            .clip(RoundedCornerShape(16.dp)),
+                )
+            }
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = stringResource(R.string.now_playing),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = nowPlayingTitle,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.basicMarquee(),
+                )
+                if (nowPlayingSubtitle.isNotBlank()) {
+                    Text(
+                        text = nowPlayingSubtitle,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.basicMarquee(),
+                    )
+                }
+            }
         }
     }
 
-    Spacer(modifier = Modifier.height(20.dp))
+    if (isQueueTrigger != true) {
+        Spacer(modifier = Modifier.height(12.dp))
 
-    HorizontalDivider()
+        PlayerVolumeCard(
+            volume = playerVolume.value,
+            onVolumeChange = { playerConnection.service.playerVolume.value = it },
+        )
+    }
 
-    Spacer(modifier = Modifier.height(12.dp))
+    Spacer(modifier = Modifier.height(16.dp))
 
     val configuration = LocalConfiguration.current
     val isPortrait = configuration.orientation == Configuration.ORIENTATION_PORTRAIT
@@ -325,7 +420,6 @@ fun PlayerMenu(
         ),
     ) {
         item {
-            // Enhanced Action Grid using NewMenuComponents
             NewActionGrid(
                 actions = listOf(
                     NewAction(
@@ -367,61 +461,105 @@ fun PlayerMenu(
                         },
                         text = stringResource(R.string.copy_link),
                         onClick = {
-                            val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
-                            val clip = android.content.ClipData.newPlainText("Song Link", "https://music.youtube.com/watch?v=${mediaMetadata.id}")
+                            val clipboard =
+                                context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                            val clip =
+                                android.content.ClipData.newPlainText(
+                                    context.getString(R.string.copy_link),
+                                    "https://music.youtube.com/watch?v=${mediaMetadata.id}",
+                                )
                             clipboard.setPrimaryClip(clip)
                             android.widget.Toast.makeText(context, R.string.link_copied, android.widget.Toast.LENGTH_SHORT).show()
                             onDismiss()
                         }
+                    ),
+                    NewAction(
+                        icon = {
+                            Icon(
+                                painter = painterResource(R.drawable.fire),
+                                contentDescription = null,
+                                modifier = Modifier.size(28.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        },
+                        text = stringResource(R.string.music_together),
+                        onClick = {
+                            onDismiss()
+                            playerBottomSheetState.snapTo(playerBottomSheetState.collapsedBound)
+                            navController.navigate("settings/music_together")
+                        }
                     )
                 ),
-                modifier = Modifier.padding(horizontal = 4.dp, vertical = 16.dp)
+                modifier = Modifier.padding(vertical = 4.dp)
             )
         }
-        if (splitArtists.isNotEmpty()) {
+        item {
+            Spacer(modifier = Modifier.height(12.dp))
+        }
+        if (splitArtists.isNotEmpty() || mediaMetadata.album != null) {
             item {
-                ListItem(
-                    headlineContent = { Text(text = stringResource(R.string.view_artist)) },
-                    leadingContent = {
-                        Icon(
-                            painter = painterResource(R.drawable.artist),
-                            contentDescription = null,
-                        )
-                    },
-                    modifier = Modifier.clickable {
-                        if (splitArtists.size == 1 && splitArtists[0].originalArtist != null) {
-                            navController.navigate("artist/${splitArtists[0].originalArtist!!.id}")
-                            playerBottomSheetState.collapseSoft()
-                            onDismiss()
-                        } else {
-                            showSelectArtistDialog = true
+                MenuSurfaceSection(modifier = Modifier.padding(vertical = 6.dp)) {
+                    Column {
+                        if (splitArtists.isNotEmpty()) {
+                            ListItem(
+                                headlineContent = { Text(text = stringResource(R.string.view_artist)) },
+                                leadingContent = {
+                                    Icon(
+                                        painter = painterResource(R.drawable.artist),
+                                        contentDescription = null,
+                                    )
+                                },
+                                modifier =
+                                    Modifier.clickable {
+                                        if (splitArtists.size == 1 && splitArtists[0].originalArtist != null) {
+                                            onDismiss()
+                                            playerBottomSheetState.snapTo(playerBottomSheetState.collapsedBound)
+                                            navController.navigate("artist/${splitArtists[0].originalArtist!!.id}")
+                                        } else {
+                                            showSelectArtistDialog = true
+                                        }
+                                    },
+                                colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                            )
+                        }
+
+                        if (splitArtists.isNotEmpty() && mediaMetadata.album != null) {
+                            HorizontalDivider(
+                                modifier = Modifier.padding(start = 56.dp),
+                                color = MaterialTheme.colorScheme.outlineVariant,
+                            )
+                        }
+
+                        if (mediaMetadata.album != null) {
+                            ListItem(
+                                headlineContent = { Text(text = stringResource(R.string.view_album)) },
+                                leadingContent = {
+                                    Icon(
+                                        painter = painterResource(R.drawable.album),
+                                        contentDescription = null,
+                                    )
+                                },
+                                modifier =
+                                    Modifier.clickable {
+                                        onDismiss()
+                                        playerBottomSheetState.snapTo(playerBottomSheetState.collapsedBound)
+                                        navController.navigate("album/${mediaMetadata.album.id}")
+                                    },
+                                colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                            )
                         }
                     }
-                )
+                }
             }
-        }
-        if (mediaMetadata.album != null) {
             item {
-                ListItem(
-                    headlineContent = { Text(text = stringResource(R.string.view_album)) },
-                    leadingContent = {
-                        Icon(
-                            painter = painterResource(R.drawable.album),
-                            contentDescription = null,
-                        )
-                    },
-                    modifier = Modifier.clickable {
-                        navController.navigate("album/${mediaMetadata.album.id}")
-                        playerBottomSheetState.collapseSoft()
-                        onDismiss()
-                    }
-                )
+                Spacer(modifier = Modifier.height(12.dp))
             }
         }
         item {
             when (download?.state) {
                 Download.STATE_COMPLETED -> {
-                    ListItem(
+                    MenuSurfaceSection(modifier = Modifier.padding(vertical = 6.dp)) {
+                        ListItem(
                         headlineContent = {
                             Text(
                                 text = stringResource(R.string.remove_download),
@@ -432,6 +570,7 @@ fun PlayerMenu(
                             Icon(
                                 painter = painterResource(R.drawable.offline),
                                 contentDescription = null,
+                                tint = MaterialTheme.colorScheme.error,
                             )
                         },
                         modifier = Modifier.clickable {
@@ -442,10 +581,13 @@ fun PlayerMenu(
                                 false,
                             )
                         }
-                    )
+                        , colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                        )
+                    }
                 }
                 Download.STATE_QUEUED, Download.STATE_DOWNLOADING -> {
-                    ListItem(
+                    MenuSurfaceSection(modifier = Modifier.padding(vertical = 6.dp)) {
+                        ListItem(
                         headlineContent = { Text(text = stringResource(R.string.downloading)) },
                         leadingContent = {
                             CircularProgressIndicator(
@@ -461,10 +603,13 @@ fun PlayerMenu(
                                 false,
                             )
                         }
-                    )
+                        , colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                        )
+                    }
                 }
                 else -> {
-                    ListItem(
+                    MenuSurfaceSection(modifier = Modifier.padding(vertical = 6.dp)) {
+                        ListItem(
                         headlineContent = { Text(text = stringResource(R.string.action_download)) },
                         leadingContent = {
                             Icon(
@@ -489,52 +634,140 @@ fun PlayerMenu(
                                 false,
                             )
                         }
-                    )
+                        , colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                        )
+                    }
                 }
             }
         }
         item {
-            ListItem(
-                headlineContent = { Text(text = stringResource(R.string.details)) },
-                leadingContent = {
-                    Icon(
-                        painter = painterResource(R.drawable.info),
-                        contentDescription = null,
+            MenuSurfaceSection(modifier = Modifier.padding(vertical = 6.dp)) {
+                Column {
+                    ListItem(
+                        headlineContent = { Text(text = stringResource(R.string.details)) },
+                        leadingContent = {
+                            Icon(
+                                painter = painterResource(R.drawable.info),
+                                contentDescription = null,
+                            )
+                        },
+                        modifier =
+                            Modifier.clickable {
+                                onShowDetailsDialog()
+                                onDismiss()
+                            },
+                        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                     )
-                },
-                modifier = Modifier.clickable {
-                    onShowDetailsDialog()
-                    onDismiss()
-                }
-            )
-        }
-        if (isQueueTrigger != true) {
-            item {
-                ListItem(
-                    headlineContent = { Text(text = stringResource(R.string.equalizer)) },
-                    leadingContent = {
-                        Icon(
-                            painter = painterResource(R.drawable.equalizer),
-                            contentDescription = null,
+
+                    if (isQueueTrigger != true) {
+                        HorizontalDivider(
+                            modifier = Modifier.padding(start = 56.dp),
+                            color = MaterialTheme.colorScheme.outlineVariant,
                         )
-                    },
-                    modifier = Modifier.clickable {
-                        showEqualizerDialog = true
+
+                        ListItem(
+                            headlineContent = { Text(text = stringResource(R.string.equalizer)) },
+                            leadingContent = {
+                                Icon(
+                                    painter = painterResource(R.drawable.equalizer),
+                                    contentDescription = null,
+                                )
+                            },
+                            modifier = Modifier.clickable { showEqualizerDialog = true },
+                            colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                        )
+
+                        HorizontalDivider(
+                            modifier = Modifier.padding(start = 56.dp),
+                            color = MaterialTheme.colorScheme.outlineVariant,
+                        )
+
+                        ListItem(
+                            headlineContent = { Text(text = stringResource(R.string.tempo_and_pitch)) },
+                            leadingContent = {
+                                Icon(
+                                    painter = painterResource(R.drawable.speed),
+                                    contentDescription = null,
+                                )
+                            },
+                            supportingContent = {
+                                val playbackParameters by playerConnection.playbackParameters.collectAsState()
+                                Text(
+                                    text = "x${formatMultiplier(playbackParameters.speed)} • x${formatMultiplier(playbackParameters.pitch)}",
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            },
+                            modifier = Modifier.clickable { showPitchTempoDialog = true },
+                            colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                        )
                     }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PlayerVolumeCard(
+    volume: Float,
+    onVolumeChange: (Float) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        shape = RoundedCornerShape(28.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        modifier = modifier.fillMaxWidth(),
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.volume_up),
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(22.dp),
+                )
+
+                Text(
+                    text = stringResource(R.string.volume),
+                    style = MaterialTheme.typography.titleSmall,
+                    modifier = Modifier.weight(1f),
+                )
+
+                Text(
+                    text = "${(volume * 100).roundToInt()}%",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            item {
-                ListItem(
-                    headlineContent = { Text(text = stringResource(R.string.advanced)) },
-                    leadingContent = {
-                        Icon(
-                            painter = painterResource(R.drawable.tune),
-                            contentDescription = null,
-                        )
-                    },
-                    modifier = Modifier.clickable {
-                        showPitchTempoDialog = true
-                    }
+
+            BigSeekBar(
+                progressProvider = { volume },
+                onProgressChange = onVolumeChange,
+                modifier = Modifier.fillMaxWidth().height(36.dp),
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = stringResource(R.string.minimum_volume),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(
+                    text = stringResource(R.string.maximum_volume),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
         }
@@ -544,15 +777,29 @@ fun PlayerMenu(
 @Composable
 fun TempoPitchDialog(onDismiss: () -> Unit) {
     val playerConnection = LocalPlayerConnection.current ?: return
+    val initialSpeed = remember { playerConnection.player.playbackParameters.speed }
+    val initialPitch = remember { playerConnection.player.playbackParameters.pitch }
+
     var tempo by remember {
-        mutableFloatStateOf(playerConnection.player.playbackParameters.speed)
+        mutableFloatStateOf(initialSpeed.safeCoerceIn(TempoMin, TempoMax, fallback = 1f))
     }
-    var transposeValue by remember {
-        mutableIntStateOf(round(12 * log2(playerConnection.player.playbackParameters.pitch)).toInt())
+
+    var pitch by remember {
+        mutableFloatStateOf(initialPitch.safeCoerceIn(PitchMin, PitchMax, fallback = 1f))
     }
-    val updatePlaybackParameters = {
+
+    var pitchMode by rememberSaveable {
+        mutableStateOf(
+            if (isPitchSemitoneAligned(pitch)) PitchMode.Semitones else PitchMode.Multiplier
+        )
+    }
+
+    val applyPlaybackParameters: (Float, Float) -> Unit = { speed, pitchMultiplier ->
         playerConnection.player.playbackParameters =
-            PlaybackParameters(tempo, 2f.pow(transposeValue.toFloat() / 12))
+            PlaybackParameters(
+                speed.coerceIn(TempoMin, TempoMax),
+                pitchMultiplier.coerceIn(PitchMin, PitchMax),
+            )
     }
 
     AlertDialog(
@@ -565,8 +812,8 @@ fun TempoPitchDialog(onDismiss: () -> Unit) {
             TextButton(
                 onClick = {
                     tempo = 1f
-                    transposeValue = 0
-                    updatePlaybackParameters()
+                    pitch = 1f
+                    applyPlaybackParameters(tempo, pitch)
                 },
             ) {
                 Text(stringResource(R.string.reset))
@@ -580,84 +827,337 @@ fun TempoPitchDialog(onDismiss: () -> Unit) {
             }
         },
         text = {
-            Column {
-                ValueAdjuster(
-                    icon = R.drawable.speed,
-                    currentValue = tempo,
-                    values = (0..35).map { round((0.25f + it * 0.05f) * 100) / 100 },
-                    onValueUpdate = {
-                        tempo = it
-                        updatePlaybackParameters()
-                    },
-                    valueText = { "x$it" },
-                    modifier = Modifier.padding(bottom = 12.dp),
-                )
-                ValueAdjuster(
-                    icon = R.drawable.discover_tune,
-                    currentValue = transposeValue,
-                    values = (-12..12).toList(),
-                    onValueUpdate = {
-                        transposeValue = it
-                        updatePlaybackParameters()
-                    },
-                    valueText = { "${if (it > 0) "+" else ""}$it" },
-                )
+            Column(
+                verticalArrangement = Arrangement.spacedBy(18.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp, vertical = 12.dp),
+            ) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.speed),
+                        contentDescription = null,
+                        modifier = Modifier.size(28.dp),
+                    )
+
+                    Text(
+                        text = stringResource(R.string.tempo),
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.weight(1f),
+                    )
+
+                    Text(
+                        text = "x${formatMultiplier(tempo)}",
+                        style = MaterialTheme.typography.titleMedium,
+                        textAlign = TextAlign.End,
+                    )
+                }
+
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    IconButton(
+                        enabled = tempo > TempoMin,
+                        onClick = {
+                            tempo = (tempo - 0.01f).coerceIn(TempoMin, TempoMax).quantize(0.01f)
+                            applyPlaybackParameters(tempo, pitch)
+                        }
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.remove),
+                            contentDescription = null,
+                        )
+                    }
+
+                    Slider(
+                        value = multiplierToSlider(tempo),
+                        onValueChange = { slider ->
+                            val updated = sliderToMultiplier(slider).quantize(0.01f)
+                            if (abs(updated - tempo) >= 0.005f) {
+                                tempo = updated
+                                applyPlaybackParameters(tempo, pitch)
+                            }
+                        },
+                        valueRange = 0f..1f,
+                        modifier = Modifier.weight(1f),
+                        colors = SliderDefaults.colors(),
+                    )
+
+                    IconButton(
+                        enabled = tempo < TempoMax,
+                        onClick = {
+                            tempo = (tempo + 0.01f).coerceIn(TempoMin, TempoMax).quantize(0.01f)
+                            applyPlaybackParameters(tempo, pitch)
+                        }
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.add),
+                            contentDescription = null,
+                        )
+                    }
+                }
+
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                ) {
+                    val presets = listOf(0.25f, 0.5f, 0.75f, 1f, 1.25f, 1.5f, 2f)
+                    presets.forEach { preset ->
+                        val selected = abs(tempo - preset) < 0.005f
+                        FilterChip(
+                            selected = selected,
+                            onClick = {
+                                tempo = preset
+                                applyPlaybackParameters(tempo, pitch)
+                            },
+                            label = { Text("x${formatMultiplier(preset)}") },
+                        )
+                    }
+                }
+
+                HorizontalDivider()
+
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.discover_tune),
+                        contentDescription = null,
+                        modifier = Modifier.size(28.dp),
+                    )
+
+                    Text(
+                        text = stringResource(R.string.pitch),
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.weight(1f),
+                    )
+
+                    Text(
+                        text =
+                        when (pitchMode) {
+                            PitchMode.Semitones -> {
+                                val semitones = pitchToSemitones(pitch)
+                                "${if (semitones > 0) "+" else ""}$semitones"
+                            }
+
+                            PitchMode.Multiplier -> "x${formatMultiplier(pitch)}"
+                        },
+                        style = MaterialTheme.typography.titleMedium,
+                        textAlign = TextAlign.End,
+                    )
+                }
+
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                ) {
+                    FilterChip(
+                        selected = pitchMode == PitchMode.Semitones,
+                        onClick = { pitchMode = PitchMode.Semitones },
+                        label = { Text(stringResource(R.string.pitch_mode_semitones_short)) },
+                    )
+                    FilterChip(
+                        selected = pitchMode == PitchMode.Multiplier,
+                        onClick = { pitchMode = PitchMode.Multiplier },
+                        label = { Text(stringResource(R.string.pitch_mode_multiplier_short)) },
+                    )
+                }
+
+                when (pitchMode) {
+                    PitchMode.Semitones -> {
+                        val currentSemitones = pitchToSemitones(pitch)
+                        Slider(
+                            value = currentSemitones.toFloat(),
+                            onValueChange = { slider ->
+                                val semitones = slider.roundToInt().coerceIn(-12, 12)
+                                val updated = semitonesToPitch(semitones)
+                                if (abs(updated - pitch) >= 0.0005f) {
+                                    pitch = updated
+                                    applyPlaybackParameters(tempo, pitch)
+                                }
+                            },
+                            valueRange = -12f..12f,
+                            steps = 23,
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = SliderDefaults.colors(),
+                        )
+
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .horizontalScroll(rememberScrollState()),
+                        ) {
+                            val presets = listOf(-12, -7, -5, 0, 5, 7, 12)
+                            presets.forEach { preset ->
+                                val selected = currentSemitones == preset
+                                FilterChip(
+                                    selected = selected,
+                                    onClick = {
+                                        pitch = semitonesToPitch(preset)
+                                        applyPlaybackParameters(tempo, pitch)
+                                    },
+                                    label = { Text("${if (preset > 0) "+" else ""}$preset") },
+                                )
+                            }
+                        }
+                    }
+
+                    PitchMode.Multiplier -> {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            IconButton(
+                                enabled = pitch > PitchMin,
+                                onClick = {
+                                    pitch = (pitch - 0.01f).coerceIn(PitchMin, PitchMax).quantize(0.01f)
+                                    applyPlaybackParameters(tempo, pitch)
+                                }
+                            ) {
+                                Icon(
+                                    painter = painterResource(R.drawable.remove),
+                                    contentDescription = null,
+                                )
+                            }
+
+                            Slider(
+                                value = multiplierToSlider(pitch),
+                                onValueChange = { slider ->
+                                    val updated = sliderToMultiplier(slider).quantize(0.01f)
+                                    if (abs(updated - pitch) >= 0.005f) {
+                                        pitch = updated
+                                        applyPlaybackParameters(tempo, pitch)
+                                    }
+                                },
+                                valueRange = 0f..1f,
+                                modifier = Modifier.weight(1f),
+                                colors = SliderDefaults.colors(),
+                            )
+
+                            IconButton(
+                                enabled = pitch < PitchMax,
+                                onClick = {
+                                    pitch = (pitch + 0.01f).coerceIn(PitchMin, PitchMax).quantize(0.01f)
+                                    applyPlaybackParameters(tempo, pitch)
+                                }
+                            ) {
+                                Icon(
+                                    painter = painterResource(R.drawable.add),
+                                    contentDescription = null,
+                                )
+                            }
+                        }
+
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .horizontalScroll(rememberScrollState()),
+                        ) {
+                            val presets = listOf(0.25f, 0.5f, 0.75f, 1f, 1.25f, 1.5f, 2f)
+                            presets.forEach { preset ->
+                                val selected = abs(pitch - preset) < 0.005f
+                                FilterChip(
+                                    selected = selected,
+                                    onClick = {
+                                        pitch = preset
+                                        applyPlaybackParameters(tempo, pitch)
+                                    },
+                                    label = { Text("x${formatMultiplier(preset)}") },
+                                )
+                            }
+                        }
+                    }
+                }
             }
         },
     )
 }
 
-@Composable
-fun <T> ValueAdjuster(
-    @DrawableRes icon: Int,
-    currentValue: T,
-    values: List<T>,
-    onValueUpdate: (T) -> Unit,
-    valueText: (T) -> String,
-    modifier: Modifier = Modifier,
-) {
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(24.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = modifier,
-    ) {
-        Icon(
-            painter = painterResource(icon),
-            contentDescription = null,
-            modifier = Modifier.size(28.dp),
-        )
+private enum class PitchMode {
+    Semitones,
+    Multiplier
+}
 
-        IconButton(
-            enabled = currentValue != values.first(),
-            onClick = {
-                onValueUpdate(values[values.indexOf(currentValue) - 1])
-            },
-        ) {
-            Icon(
-                painter = painterResource(R.drawable.remove),
-                contentDescription = null,
-            )
-        }
+private const val TempoMin = 0.25f
+private const val TempoMax = 2f
+private const val PitchMin = 0.25f
+private const val PitchMax = 2f
 
-        Text(
-            text = valueText(currentValue),
-            style = MaterialTheme.typography.titleMedium,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.width(80.dp),
-        )
+private fun Float.safeCoerceIn(min: Float, max: Float, fallback: Float): Float {
+    val safe = if (this.isFinite()) this else fallback
+    return safe.coerceIn(min, max)
+}
 
-        IconButton(
-            enabled = currentValue != values.last(),
-            onClick = {
-                onValueUpdate(values[values.indexOf(currentValue) + 1])
-            },
-        ) {
-            Icon(
-                painter = painterResource(R.drawable.add),
-                contentDescription = null,
-            )
-        }
+private fun Float.quantize(step: Float): Float {
+    if (step <= 0f) return this
+    return (round(this / step) * step).coerceAtLeast(0f)
+}
+
+private fun pitchToSemitones(pitch: Float): Int {
+    val safePitch = pitch.safeCoerceIn(PitchMin, PitchMax, fallback = 1f).coerceAtLeast(0.0001f)
+    return (12f * log2(safePitch)).roundToInt().coerceIn(-12, 12)
+}
+
+private fun semitonesToPitch(semitones: Int): Float {
+    return 2f.pow(semitones.toFloat() / 12f).coerceIn(PitchMin, PitchMax)
+}
+
+private fun isPitchSemitoneAligned(pitch: Float): Boolean {
+    val safePitch = pitch.safeCoerceIn(PitchMin, PitchMax, fallback = 1f).coerceAtLeast(0.0001f)
+    val semitones = (12f * log2(safePitch)).roundToInt()
+    val reconstructed = 2f.pow(semitones.toFloat() / 12f)
+    return abs(reconstructed - pitch) < 0.0015f
+}
+
+private fun formatMultiplier(multiplier: Float): String {
+    return String.format("%.2f", multiplier)
+}
+
+private fun sliderToMultiplier(slider: Float): Float {
+    val t = slider.coerceIn(0f, 1f)
+    val y = (t - 0.5f) * 2f
+    val curve = 2.2f
+    val absY = abs(y).pow(curve)
+    val shaped = when {
+        y > 0f -> absY
+        y < 0f -> -absY
+        else -> 0f
     }
+    val exponent = if (y < 0f) 2f * shaped else shaped
+    return 2f.pow(exponent).coerceIn(TempoMin, TempoMax)
+}
+
+private fun multiplierToSlider(multiplier: Float): Float {
+    val m = multiplier.coerceIn(TempoMin, TempoMax)
+    val log = log2(m)
+    val curve = 2.2f
+    val shaped = if (m < 1f) (log / 2f) else log
+    val absShaped = abs(shaped).pow(1f / curve)
+    val y = when {
+        shaped > 0f -> absShaped
+        shaped < 0f -> -absShaped
+        else -> 0f
+    }
+    return (0.5f + y / 2f).coerceIn(0f, 1f)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

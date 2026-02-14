@@ -5,6 +5,7 @@
  */
 
 
+
 package moe.koiverse.archivetune.ui.screens.playlist
 
 import android.annotation.SuppressLint
@@ -142,6 +143,7 @@ import moe.koiverse.archivetune.playback.ExoDownloadService
 import moe.koiverse.archivetune.playback.queues.ListQueue
 import moe.koiverse.archivetune.playback.queues.LocalMixQueue
 import moe.koiverse.archivetune.ui.component.DefaultDialog
+import moe.koiverse.archivetune.ui.component.EditPlaylistDialog
 import moe.koiverse.archivetune.ui.component.DraggableScrollbar
 import moe.koiverse.archivetune.ui.component.EmptyPlaceholder
 import moe.koiverse.archivetune.ui.component.PlaylistTagChips
@@ -150,13 +152,13 @@ import moe.koiverse.archivetune.ui.component.IconButton
 import moe.koiverse.archivetune.ui.component.LocalMenuState
 import moe.koiverse.archivetune.ui.component.SongListItem
 import moe.koiverse.archivetune.ui.component.SortHeader
-import moe.koiverse.archivetune.ui.component.TextFieldDialog
 import moe.koiverse.archivetune.ui.component.shimmer.ButtonPlaceholder
 import moe.koiverse.archivetune.ui.component.shimmer.ListItemPlaceHolder
 import moe.koiverse.archivetune.ui.component.shimmer.ShimmerHost
 import moe.koiverse.archivetune.ui.component.shimmer.TextPlaceholder
 import moe.koiverse.archivetune.ui.menu.SelectionSongMenu
 import moe.koiverse.archivetune.ui.menu.SongMenu
+import moe.koiverse.archivetune.ui.screens.playlist.PlaylistSuggestionsSection
 import moe.koiverse.archivetune.ui.theme.PlayerColorExtractor
 import moe.koiverse.archivetune.ui.utils.ItemWrapper
 import moe.koiverse.archivetune.ui.utils.backToMain
@@ -288,31 +290,24 @@ fun LocalPlaylistScreen(
     var showEditDialog by remember { mutableStateOf(false) }
 
     if (showEditDialog) {
-        playlist?.playlist?.let { playlistEntity ->
-            TextFieldDialog(
-                icon = {
-                    Icon(
-                        painter = painterResource(R.drawable.edit),
-                        contentDescription = null
-                    )
-                },
-                title = { Text(text = stringResource(R.string.edit_playlist)) },
+        playlist?.let { playlistData ->
+            EditPlaylistDialog(
+                initialName = playlistData.playlist.name,
+                initialThumbnailUrl = playlistData.playlist.thumbnailUrl,
+                fallbackThumbnails = playlistData.songThumbnails.filterNotNull(),
                 onDismiss = { showEditDialog = false },
-                initialTextFieldValue = TextFieldValue(
-                    playlistEntity.name,
-                    TextRange(playlistEntity.name.length)
-                ),
-                onDone = { name ->
+                onSave = { name, thumbnailUrl ->
                     database.query {
                         update(
-                            playlistEntity.copy(
+                            playlistData.playlist.copy(
                                 name = name,
-                                lastUpdateTime = LocalDateTime.now()
+                                thumbnailUrl = thumbnailUrl,
+                                lastUpdateTime = LocalDateTime.now(),
                             )
                         )
                     }
                     viewModel.viewModelScope.launch(Dispatchers.IO) {
-                        playlistEntity.browseId?.let { YouTube.renamePlaylist(it, name) }
+                        playlistData.playlist.browseId?.let { YouTube.renamePlaylist(it, name) }
                     }
                 },
             )
@@ -1339,6 +1334,16 @@ fun LocalPlaylistScreen(
                     }
                 }
             }
+
+            // Playlist Suggestions Section
+            if (!selection && !isSearching) {
+                item {
+                    PlaylistSuggestionsSection(
+                        modifier = Modifier.padding(vertical = 16.dp)
+                    )
+                }
+            }
+
         }
 
         DraggableScrollbar(

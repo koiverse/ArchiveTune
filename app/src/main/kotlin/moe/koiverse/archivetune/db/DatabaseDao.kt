@@ -5,6 +5,7 @@
  */
 
 
+
 package moe.koiverse.archivetune.db
 
 import androidx.room.Dao
@@ -92,17 +93,32 @@ interface DatabaseDao {
     fun songs(
         sortType: SongSortType,
         descending: Boolean,
+        filterVideo: Boolean = false,
     ) = when (sortType) {
-        SongSortType.CREATE_DATE -> songsByCreateDateAsc()
+        SongSortType.CREATE_DATE ->
+            if (filterVideo) {
+                songsByCreateDateAscNoVideo()
+            } else {
+                songsByCreateDateAsc()
+            }
+
         SongSortType.NAME ->
-            songsByNameAsc().map { songs ->
+            (if (filterVideo) {
+                songsByNameAscNoVideo()
+            } else {
+                songsByNameAsc()
+            }).map { songs ->
                 val collator = Collator.getInstance(Locale.getDefault())
                 collator.strength = Collator.PRIMARY
                 songs.sortedWith(compareBy(collator) { it.song.title })
             }
 
         SongSortType.ARTIST ->
-            songsByRowIdAsc().map { songs ->
+            (if (filterVideo) {
+                songsByRowIdAscNoVideo()
+            } else {
+                songsByRowIdAsc()
+            }).map { songs ->
                 val collator = Collator.getInstance(Locale.getDefault())
                 collator.strength = Collator.PRIMARY
                 songs
@@ -124,6 +140,54 @@ interface DatabaseDao {
     }.map { it.reversed(descending) }
 
     @Transaction
+    @Query(
+        """
+        SELECT song.*
+        FROM song
+        LEFT JOIN set_video_id ON set_video_id.videoId = song.id
+        WHERE song.inLibrary IS NOT NULL AND set_video_id.setVideoId IS NULL
+        ORDER BY song.id
+        """,
+    )
+    fun songsByRowIdAscNoVideo(): Flow<List<Song>>
+
+    @Transaction
+    @Query(
+        """
+        SELECT song.*
+        FROM song
+        LEFT JOIN set_video_id ON set_video_id.videoId = song.id
+        WHERE song.inLibrary IS NOT NULL AND set_video_id.setVideoId IS NULL
+        ORDER BY inLibrary
+        """,
+    )
+    fun songsByCreateDateAscNoVideo(): Flow<List<Song>>
+
+    @Transaction
+    @Query(
+        """
+        SELECT song.*
+        FROM song
+        LEFT JOIN set_video_id ON set_video_id.videoId = song.id
+        WHERE song.inLibrary IS NOT NULL AND set_video_id.setVideoId IS NULL
+        ORDER BY title
+        """,
+    )
+    fun songsByNameAscNoVideo(): Flow<List<Song>>
+
+    @Transaction
+    @Query(
+        """
+        SELECT song.*
+        FROM song
+        LEFT JOIN set_video_id ON set_video_id.videoId = song.id
+        WHERE song.inLibrary IS NOT NULL AND set_video_id.setVideoId IS NULL
+        ORDER BY totalPlayTime
+        """,
+    )
+    fun songsByPlayTimeAscNoVideo(): Flow<List<Song>>
+
+    @Transaction
     @Query("SELECT * FROM song WHERE liked ORDER BY rowId")
     fun likedSongsByRowIdAsc(): Flow<List<Song>>
 
@@ -142,17 +206,32 @@ interface DatabaseDao {
     fun likedSongs(
         sortType: SongSortType,
         descending: Boolean,
+        filterVideo: Boolean = false,
     ) = when (sortType) {
-        SongSortType.CREATE_DATE -> likedSongsByCreateDateAsc()
+        SongSortType.CREATE_DATE ->
+            if (filterVideo) {
+                likedSongsByCreateDateAscNoVideo()
+            } else {
+                likedSongsByCreateDateAsc()
+            }
+
         SongSortType.NAME ->
-            likedSongsByNameAsc().map { songs ->
+            (if (filterVideo) {
+                likedSongsByNameAscNoVideo()
+            } else {
+                likedSongsByNameAsc()
+            }).map { songs ->
                 val collator = Collator.getInstance(Locale.getDefault())
                 collator.strength = Collator.PRIMARY
                 songs.sortedWith(compareBy(collator) { it.song.title })
             }
 
         SongSortType.ARTIST ->
-            likedSongsByRowIdAsc().map { songs ->
+            (if (filterVideo) {
+                likedSongsByRowIdAscNoVideo()
+            } else {
+                likedSongsByRowIdAsc()
+            }).map { songs ->
                 val collator = Collator.getInstance(Locale.getDefault())
                 collator.strength = Collator.PRIMARY
                 songs
@@ -172,6 +251,54 @@ interface DatabaseDao {
 
         SongSortType.PLAY_TIME -> likedSongsByPlayTimeAsc()
     }.map { it.reversed(descending) }
+
+    @Transaction
+    @Query(
+        """
+        SELECT song.*
+        FROM song
+        LEFT JOIN set_video_id ON set_video_id.videoId = song.id
+        WHERE liked AND set_video_id.setVideoId IS NULL
+        ORDER BY song.id
+        """,
+    )
+    fun likedSongsByRowIdAscNoVideo(): Flow<List<Song>>
+
+    @Transaction
+    @Query(
+        """
+        SELECT song.*
+        FROM song
+        LEFT JOIN set_video_id ON set_video_id.videoId = song.id
+        WHERE liked AND set_video_id.setVideoId IS NULL
+        ORDER BY likedDate
+        """,
+    )
+    fun likedSongsByCreateDateAscNoVideo(): Flow<List<Song>>
+
+    @Transaction
+    @Query(
+        """
+        SELECT song.*
+        FROM song
+        LEFT JOIN set_video_id ON set_video_id.videoId = song.id
+        WHERE liked AND set_video_id.setVideoId IS NULL
+        ORDER BY title
+        """,
+    )
+    fun likedSongsByNameAscNoVideo(): Flow<List<Song>>
+
+    @Transaction
+    @Query(
+        """
+        SELECT song.*
+        FROM song
+        LEFT JOIN set_video_id ON set_video_id.videoId = song.id
+        WHERE liked AND set_video_id.setVideoId IS NULL
+        ORDER BY totalPlayTime
+        """,
+    )
+    fun likedSongsByPlayTimeAscNoVideo(): Flow<List<Song>>
 
     @Transaction
     @Query("SELECT COUNT(1) FROM song WHERE liked")
@@ -954,6 +1081,14 @@ interface DatabaseDao {
     fun playlist(playlistId: String): Flow<Playlist?>
 
     @Transaction
+    @Query("SELECT *, (SELECT COUNT(*) FROM playlist_song_map WHERE playlistId = playlist.id) AS songCount FROM playlist WHERE id = :playlistId LIMIT 1")
+    suspend fun getPlaylistById(playlistId: String): Playlist?
+
+    @Transaction
+    @Query("SELECT *, (SELECT COUNT(*) FROM playlist_song_map WHERE playlistId = playlist.id) AS songCount FROM playlist WHERE id = :playlistId LIMIT 1")
+    fun getPlaylistByIdBlocking(playlistId: String): Playlist?
+
+    @Transaction
     @Query("SELECT *, (SELECT COUNT(*) FROM playlist_song_map WHERE playlistId = playlist.id) AS songCount FROM playlist WHERE isEditable AND bookmarkedAt IS NOT NULL ORDER BY rowId")
     fun editablePlaylistsByCreateDateAsc(): Flow<List<Playlist>>
 
@@ -1150,6 +1285,9 @@ interface DatabaseDao {
     fun insert(map: PlaylistSongMap)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
+    fun insert(setVideoIdEntity: SetVideoIdEntity)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
     fun insert(searchHistory: SearchHistory)
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
@@ -1167,6 +1305,15 @@ interface DatabaseDao {
         block: (SongEntity) -> SongEntity = { it },
     ) {
         if (insert(mediaMetadata.toSongEntity().let(block)) == -1L) return
+
+        if (mediaMetadata.setVideoId != null) {
+            insert(
+                SetVideoIdEntity(
+                    videoId = mediaMetadata.id,
+                    setVideoId = mediaMetadata.setVideoId,
+                ),
+            )
+        }
 
         mediaMetadata.artists.forEachIndexed { index, artist ->
             val artistId = artist.id ?: artistByName(artist.name)?.id ?: ArtistEntity.generateArtistId()
@@ -1431,6 +1578,9 @@ interface DatabaseDao {
         playlistId: String,
         from: Int,
     ): List<PlaylistSongMap>
+
+    @Query("SELECT MAX(position) FROM playlist_song_map WHERE playlistId = :playlistId")
+    fun maxPlaylistSongPosition(playlistId: String): Int?
 
     @RawQuery
     fun raw(supportSQLiteQuery: SupportSQLiteQuery): Int

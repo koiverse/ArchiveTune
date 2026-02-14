@@ -5,11 +5,13 @@
  */
 
 
+
 package moe.koiverse.archivetune.playback
 
 import android.content.Context
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
+import androidx.media3.common.PlaybackParameters
 import androidx.media3.common.Player
 import androidx.media3.common.Player.COMMAND_SEEK_IN_CURRENT_MEDIA_ITEM
 import androidx.media3.common.Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM
@@ -45,6 +47,7 @@ class PlayerConnection(
 
     val playbackState = MutableStateFlow(player.playbackState)
     private val playWhenReady = MutableStateFlow(player.playWhenReady)
+    val playbackParameters = MutableStateFlow(player.playbackParameters)
     val isPlaying =
         combine(playbackState, playWhenReady) { playbackState, playWhenReady ->
             playWhenReady && playbackState != STATE_ENDED
@@ -85,6 +88,7 @@ class PlayerConnection(
 
         playbackState.value = player.playbackState
         playWhenReady.value = player.playWhenReady
+        playbackParameters.value = player.playbackParameters
         val currentMeta = player.currentMetadata ?: service.currentMediaMetadata.value
         mediaMetadata.value = currentMeta
         queueTitle.value = service.queueTitle
@@ -127,6 +131,11 @@ class PlayerConnection(
     }
 
     fun seekToNext() {
+        val state = service.togetherSessionState.value as? moe.koiverse.archivetune.together.TogetherSessionState.Joined
+        if (state?.role is moe.koiverse.archivetune.together.TogetherRole.Guest) {
+            service.requestTogetherControl(moe.koiverse.archivetune.together.ControlAction.SkipNext)
+            return
+        }
         player.seekToNext()
         player.prepare()
         player.playWhenReady = true
@@ -139,6 +148,11 @@ class PlayerConnection(
     }
 
     fun seekToPrevious() {
+        val state = service.togetherSessionState.value as? moe.koiverse.archivetune.together.TogetherSessionState.Joined
+        if (state?.role is moe.koiverse.archivetune.together.TogetherRole.Guest) {
+            service.requestTogetherControl(moe.koiverse.archivetune.together.ControlAction.SkipPrevious)
+            return
+        }
         player.seekToPrevious()
         player.prepare()
         player.playWhenReady = true
@@ -160,6 +174,10 @@ class PlayerConnection(
         reason: Int,
     ) {
         playWhenReady.value = newPlayWhenReady
+    }
+
+    override fun onPlaybackParametersChanged(playbackParameters: PlaybackParameters) {
+        this.playbackParameters.value = playbackParameters
     }
 
     override fun onMediaItemTransition(

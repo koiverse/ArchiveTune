@@ -5,6 +5,7 @@
  */
 
 
+
 package moe.koiverse.archivetune.ui.player
 
 import androidx.compose.animation.AnimatedContent
@@ -22,6 +23,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -82,6 +84,7 @@ import moe.koiverse.archivetune.constants.MiniPlayerHeight
 import moe.koiverse.archivetune.constants.SwipeSensitivityKey
 import moe.koiverse.archivetune.constants.ThumbnailCornerRadius
 import moe.koiverse.archivetune.constants.UseNewMiniPlayerDesignKey
+import moe.koiverse.archivetune.constants.CropThumbnailToSquareKey
 import moe.koiverse.archivetune.db.entities.ArtistEntity
 import moe.koiverse.archivetune.extensions.togglePlayPause
 import moe.koiverse.archivetune.models.MediaMetadata
@@ -380,6 +383,7 @@ private fun LegacyMiniMediaInfo(
     pureBlack: Boolean,
     modifier: Modifier = Modifier,
 ) {
+    val cropThumbnailToSquare by rememberPreference(CropThumbnailToSquareKey, false)
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier,
@@ -397,6 +401,7 @@ private fun LegacyMiniMediaInfo(
                 contentScale = ContentScale.FillBounds,
                 modifier = Modifier
                     .fillMaxSize()
+                    .let { if (cropThumbnailToSquare) it.aspectRatio(1f) else it }
                     .graphicsLayer(
                         renderEffect = BlurEffect(
                             radiusX = 75f,
@@ -410,9 +415,10 @@ private fun LegacyMiniMediaInfo(
             AsyncImage(
                 model = mediaMetadata.thumbnailUrl,
                 contentDescription = null,
-                contentScale = ContentScale.Fit,
+                contentScale = if (cropThumbnailToSquare) ContentScale.Crop else ContentScale.Fit,
                 modifier = Modifier
                     .fillMaxSize()
+                    .let { if (cropThumbnailToSquare) it.aspectRatio(1f) else it }
                     .clip(RoundedCornerShape(ThumbnailCornerRadius)),
             )
 

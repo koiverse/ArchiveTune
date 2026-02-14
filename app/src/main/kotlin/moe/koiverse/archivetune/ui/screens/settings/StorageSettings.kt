@@ -5,6 +5,7 @@
  */
 
 
+
 package moe.koiverse.archivetune.ui.screens.settings
 
 import androidx.compose.animation.core.animateFloatAsState
@@ -50,6 +51,7 @@ import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.constants.MaxImageCacheSizeKey
 import moe.koiverse.archivetune.constants.MaxSongCacheSizeKey
 import moe.koiverse.archivetune.constants.SmartTrimmerKey
+import moe.koiverse.archivetune.extensions.directorySizeBytes
 import moe.koiverse.archivetune.extensions.tryOrNull
 import moe.koiverse.archivetune.ui.component.ActionPromptDialog
 import moe.koiverse.archivetune.ui.component.DefaultDialog
@@ -66,22 +68,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.io.File
-
-/**
- * Calculate the total size of a directory recursively.
- * This is used as a fallback when cache.cacheSpace returns 0.
- */
-private fun calculateDirectorySize(directory: File): Long {
-    if (!directory.exists()) return 0L
-    var size = 0L
-    directory.walkTopDown().forEach { file ->
-        if (file.isFile) {
-            size += file.length()
-        }
-    }
-    return size
-}
 
 @OptIn(ExperimentalCoilApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -137,6 +123,11 @@ fun StorageSettings(
         label = "playerCacheProgress",
     )
 
+    val isSmartTrimmerAvailable = maxImageCacheSize != 0 || maxSongCacheSize != 0
+    LaunchedEffect(isSmartTrimmerAvailable) {
+        if (!isSmartTrimmerAvailable && smartTrimmer) onSmartTrimmerChange(false)
+    }
+
     LaunchedEffect(maxImageCacheSize) {
         if (maxImageCacheSize == 0) {
             coroutineScope.launch(Dispatchers.IO) {
@@ -167,7 +158,7 @@ fun StorageSettings(
             playerCacheSize =
                 withContext(Dispatchers.IO) {
                     val cacheSpace = tryOrNull { playerCache.cacheSpace } ?: 0L
-                    if (cacheSpace == 0L) calculateDirectorySize(playerCacheDir) else cacheSpace
+                    if (cacheSpace == 0L) playerCacheDir.directorySizeBytes() else cacheSpace
                 }
         }
     }
@@ -177,7 +168,7 @@ fun StorageSettings(
             downloadCacheSize =
                 withContext(Dispatchers.IO) {
                     val cacheSpace = tryOrNull { downloadCache.cacheSpace } ?: 0L
-                    if (cacheSpace == 0L) calculateDirectorySize(downloadCacheDir) else cacheSpace
+                    if (cacheSpace == 0L) downloadCacheDir.directorySizeBytes() else cacheSpace
                 }
         }
     }
@@ -197,8 +188,9 @@ fun StorageSettings(
         SwitchPreference(
             title = { Text(stringResource(R.string.smart_trimmer)) },
             description = stringResource(R.string.smart_trimmer_description),
-            checked = smartTrimmer,
+            checked = smartTrimmer && isSmartTrimmerAvailable,
             onCheckedChange = onSmartTrimmerChange,
+            isEnabled = isSmartTrimmerAvailable,
         )
 
         // --- Section: Downloads ---
@@ -288,7 +280,11 @@ fun StorageSettings(
         CacheCard(
             icon = R.drawable.image,
             title = stringResource(R.string.image_cache),
-            description = "${formatFileSize(imageCacheSize)} / ${formatFileSize(imageDiskCache.maxSize)}",
+            description = if (maxImageCacheSize > 0) {
+                "${formatFileSize(imageCacheSize)} / ${formatFileSize(imageDiskCache.maxSize)}"
+            } else {
+                stringResource(R.string.disable)
+            },
             progress = if (maxImageCacheSize > 0) imageCacheProgress else null,
             actions = {
                 ListPreference(

@@ -5,6 +5,7 @@
  */
 
 
+
 package moe.koiverse.archivetune.ui.screens.settings
 
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -39,11 +40,13 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -67,6 +70,7 @@ import moe.koiverse.archivetune.ui.menu.LoadingScreen
 import moe.koiverse.archivetune.ui.utils.backToMain
 import moe.koiverse.archivetune.viewmodels.BackupRestoreViewModel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
@@ -101,10 +105,14 @@ fun BackupAndRestore(
         mutableStateOf(false)
     }
 
+    var progressStatus by remember { mutableStateOf("") }
+
     var progressPercentage by rememberSaveable {
         mutableIntStateOf(0)
     }
+    val backupRestoreProgress by viewModel.backupRestoreProgress.collectAsState()
     val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
     val backupLauncher =
         rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/octet-stream")) { uri ->
             if (uri != null) {
@@ -120,23 +128,26 @@ fun BackupAndRestore(
     val importPlaylistFromCsv =
         rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
             if (uri == null) return@rememberLauncherForActivityResult
-            val result = viewModel.importPlaylistFromCsv(context, uri)
+            coroutineScope.launch {
+                val result = viewModel.importPlaylistFromCsv(context, uri)
+                importedSongs.clear()
+                importedSongs.addAll(result)
+
+                if (importedSongs.isNotEmpty()) {
+                    showChoosePlaylistDialogOnline = true
+                }
+            }
+        }
+    val importM3uLauncherOnline = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        coroutineScope.launch {
+            val result = viewModel.loadM3UOnline(context, uri)
             importedSongs.clear()
             importedSongs.addAll(result)
 
             if (importedSongs.isNotEmpty()) {
                 showChoosePlaylistDialogOnline = true
             }
-        }
-    val importM3uLauncherOnline = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-        if (uri == null) return@rememberLauncherForActivityResult
-        val result = viewModel.loadM3UOnline(context, uri)
-        importedSongs.clear()
-        importedSongs.addAll(result)
-
-
-        if (importedSongs.isNotEmpty()) {
-            showChoosePlaylistDialogOnline = true
         }
     }
 
@@ -340,7 +351,8 @@ fun BackupAndRestore(
         songs = importedSongs,
         onDismiss = { showChoosePlaylistDialogOnline = false },
         onProgressStart = { newVal -> isProgressStarted = newVal },
-        onPercentageChange = { newPercentage -> progressPercentage = newPercentage }
+        onPercentageChange = { newPercentage -> progressPercentage = newPercentage },
+        onStatusChange = { progressStatus = it }
     )
 
     LaunchedEffect(progressPercentage, isProgressStarted) {
@@ -354,7 +366,10 @@ fun BackupAndRestore(
     }
 
     LoadingScreen(
-        isVisible = isProgressStarted,
-        value = progressPercentage,
+        isVisible = backupRestoreProgress != null || isProgressStarted,
+        value = backupRestoreProgress?.percent ?: progressPercentage,
+        title = backupRestoreProgress?.title,
+        stepText = backupRestoreProgress?.step ?: progressStatus,
+        indeterminate = backupRestoreProgress?.indeterminate ?: false,
     )
 }

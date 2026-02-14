@@ -5,6 +5,7 @@
  */
 
 
+
 package moe.koiverse.archivetune.ui.screens
 
 import android.content.Intent
@@ -1011,19 +1012,10 @@ private fun YearInMusicStoryPager(
                         PremiumTopSongStoryCard(
                             song = topSong,
                             onClick = {
-                                if (topSong.id == mediaMetadataId) {
-                                    playerConnection.player.togglePlayPause()
-                                } else if (topSongEntity != null) {
-                                    playerConnection.playQueue(
-                                        YouTubeQueue(
-                                            endpoint = WatchEndpoint(topSong.id),
-                                            preloadItem = topSongEntity.toMediaMetadata()
-                                        )
-                                    )
-                                }
+                                if (!isShareCaptureMode && currentPage < lastPage) navigateTo(currentPage + 1)
                             },
                             onLongClick = {
-                                if (topSongEntity != null) {
+                                if (!isShareCaptureMode && topSongEntity != null) {
                                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                     menuState.show {
                                         SongMenu(
@@ -1043,15 +1035,17 @@ private fun YearInMusicStoryPager(
                     if (topArtist != null) {
                         PremiumTopArtistStoryCard(
                             artist = topArtist,
-                            onClick = { navController.navigate("artist/${topArtist.id}") },
+                            onClick = { if (!isShareCaptureMode && currentPage < lastPage) navigateTo(currentPage + 1) },
                             onLongClick = {
-                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                menuState.show {
-                                    ArtistMenu(
-                                        originalArtist = topArtist,
-                                        coroutineScope = coroutineScope,
-                                        onDismiss = menuState::dismiss
-                                    )
+                                if (!isShareCaptureMode) {
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    menuState.show {
+                                        ArtistMenu(
+                                            originalArtist = topArtist,
+                                            coroutineScope = coroutineScope,
+                                            onDismiss = menuState::dismiss
+                                        )
+                                    }
                                 }
                             }
                         )
@@ -1063,7 +1057,7 @@ private fun YearInMusicStoryPager(
                     if (topAlbum != null) {
                         PremiumTopAlbumStoryCard(
                             album = topAlbum,
-                            onClick = { navController.navigate("album/${topAlbum.id}") }
+                            onClick = { if (!isShareCaptureMode && currentPage < lastPage) navigateTo(currentPage + 1) }
                         )
                     }
                 }

@@ -5,6 +5,7 @@
  */
 
 
+
 package moe.koiverse.archivetune.ui.component
 
 import androidx.compose.foundation.clickable
@@ -35,6 +36,7 @@ fun NavigationTitle(
     title: String,
     modifier: Modifier = Modifier,
     label: String? = null,
+    subtitle: String? = null,
     thumbnail: (@Composable () -> Unit)? = null,
     onClick: (() -> Unit)? = null,
 ) {
@@ -71,6 +73,16 @@ fun NavigationTitle(
                 overflow = TextOverflow.Ellipsis,
                 maxLines = 1,
             )
+
+            subtitle?.let {
+                Text(
+                    text = it,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.secondary,
+                    overflow = TextOverflow.Ellipsis,
+                    maxLines = 1,
+                )
+            }
         }
 
         if (onClick != null) {

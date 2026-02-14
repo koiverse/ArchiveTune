@@ -5,14 +5,19 @@
  */
 
 
+
 package moe.koiverse.archivetune.utils
 
 import android.content.ContentValues
 import android.content.Context
+import android.content.ContextWrapper
+import android.app.Activity
 import android.graphics.*
 import android.net.Uri
 import android.os.Build
 import android.os.Environment
+import android.os.Handler
+import android.os.Looper
 import android.provider.MediaStore
 import android.text.Layout
 import android.text.StaticLayout
@@ -28,39 +33,93 @@ import coil3.request.ImageRequest
 import coil3.request.allowHardware
 import coil3.toBitmap
 import android.view.View
+import android.view.PixelCopy
 import androidx.core.view.drawToBitmap
 import moe.koiverse.archivetune.R
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.suspendCancellableCoroutine
 import java.io.File
 import java.io.FileOutputStream
+import kotlin.coroutines.resume
 
 object ComposeToImage {
 
-    private fun ensureSoftwareBitmap(bitmap: Bitmap): Bitmap {
-        return if (bitmap.config == Bitmap.Config.HARDWARE) {
-            bitmap.copy(Bitmap.Config.ARGB_8888, false)
-        } else {
-            bitmap
+    private tailrec fun Context.findActivity(): Activity? {
+        return when (this) {
+            is Activity -> this
+            is ContextWrapper -> baseContext.findActivity()
+            else -> null
         }
     }
 
-    fun captureViewBitmap(
+    private fun ensureSoftwareBitmap(bitmap: Bitmap): Bitmap {
+        val config = bitmap.config
+        if (config != Bitmap.Config.HARDWARE && config != null) return bitmap
+        return runCatching { bitmap.copy(Bitmap.Config.ARGB_8888, false) }.getOrNull() ?: bitmap
+    }
+
+    @androidx.annotation.RequiresApi(Build.VERSION_CODES.O)
+    private suspend fun pixelCopyViewBitmap(view: View): Bitmap? {
+        if (!view.isAttachedToWindow || view.width <= 0 || view.height <= 0) return null
+        val activity = view.context.findActivity() ?: return null
+        val window = activity.window ?: return null
+
+        val location = IntArray(2)
+        view.getLocationInWindow(location)
+        val rect = Rect(
+            location[0],
+            location[1],
+            location[0] + view.width,
+            location[1] + view.height
+        )
+
+        val bitmap = Bitmap.createBitmap(view.width, view.height, Bitmap.Config.ARGB_8888)
+        val copyResult =
+            suspendCancellableCoroutine { cont ->
+                PixelCopy.request(
+                    window,
+                    rect,
+                    bitmap,
+                    { result -> cont.resume(result) },
+                    Handler(Looper.getMainLooper()),
+                )
+            }
+        return if (copyResult == PixelCopy.SUCCESS) bitmap else null
+    }
+
+    suspend fun captureViewBitmap(
         view: View,
         targetWidth: Int? = null,
         targetHeight: Int? = null,
         backgroundColor: Int? = null,
     ): Bitmap {
-        val original = ensureSoftwareBitmap(view.drawToBitmap())
+        val fallbackBitmap = runCatching {
+            view.drawToBitmap()
+        }.getOrElse {
+            val w = view.width.coerceAtLeast(1)
+            val h = view.height.coerceAtLeast(1)
+            Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888).also { bmp ->
+                backgroundColor?.let { Canvas(bmp).drawColor(it) }
+            }
+        }
+
+        val original =
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                pixelCopyViewBitmap(view) ?: fallbackBitmap
+            } else {
+                fallbackBitmap
+            }
         val needsScale =
             (targetWidth != null && targetWidth > 0 && targetWidth != original.width) ||
             (targetHeight != null && targetHeight > 0 && targetHeight != original.height)
         val base = if (needsScale) {
+            val safeOriginal = ensureSoftwareBitmap(original)
             val tw = targetWidth ?: original.width
             val th = targetHeight ?: (original.height * tw / original.width)
-            ensureSoftwareBitmap(Bitmap.createScaledBitmap(original, tw, th, true))
+            ensureSoftwareBitmap(Bitmap.createScaledBitmap(safeOriginal, tw, th, true))
         } else {
-            original
+            ensureSoftwareBitmap(original)
         }
         if (backgroundColor != null) {
             val out = Bitmap.createBitmap(base.width, base.height, Bitmap.Config.ARGB_8888)
@@ -314,6 +373,7 @@ object ComposeToImage {
     }
 
     fun saveBitmapAsFile(context: Context, bitmap: Bitmap, fileName: String): Uri {
+        val safeBitmap = ensureSoftwareBitmap(bitmap)
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             val contentValues = ContentValues().apply {
                 put(MediaStore.MediaColumns.DISPLAY_NAME, "$fileName.png")
@@ -326,7 +386,7 @@ object ComposeToImage {
             ) ?: throw IllegalStateException("Failed to create new MediaStore record")
 
             context.contentResolver.openOutputStream(uri)?.use { outputStream ->
-                bitmap.compress(Bitmap.CompressFormat.PNG, 100, outputStream)
+                safeBitmap.compress(Bitmap.CompressFormat.PNG, 100, outputStream)
             }
             uri
         } else {
@@ -334,7 +394,7 @@ object ComposeToImage {
             cachePath.mkdirs()
             val imageFile = File(cachePath, "$fileName.png")
             FileOutputStream(imageFile).use { outputStream ->
-                bitmap.compress(Bitmap.CompressFormat.PNG, 100, outputStream)
+                safeBitmap.compress(Bitmap.CompressFormat.PNG, 100, outputStream)
             }
             FileProvider.getUriForFile(
                 context,

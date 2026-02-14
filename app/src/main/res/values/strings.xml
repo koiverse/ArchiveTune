@@ -66,6 +66,8 @@
     <string name="playlist_is_empty">The playlist is empty</string>
     <string name="remove_download_playlist_confirm">Do you really want to remove all \"%s\" playlist songs from the Downloaded Songs storage?</string>
     <string name="delete_playlist_confirm">Do you really want to delete the playlist \"%s\"?</string>
+    <string name="change_playlist_cover">Change playlist cover</string>
+    <string name="remove_playlist_cover">Remove Cover</string>
     <!-- Button -->
     <string name="retry">Retry</string>
     <string name="radio">Radio</string>
@@ -96,6 +98,17 @@
     <string name="refetch">Refetch</string>
     <string name="share">Share</string>
     <string name="delete">Delete</string>
+    <string name="together_participants">Participants</string>
+    <string name="together_connected_count">%1$d connected</string>
+    <string name="together_role_host">Host</string>
+    <string name="together_role_guest">Guest</string>
+    <string name="together_pending_approval">Pending approval</string>
+    <string name="together_waiting_approval">Waiting Approval</string>
+    <string name="together_host_left_session">Host Leaved Sessions</string>
+    <string name="together_kick">Kick</string>
+    <string name="together_ban">Ban</string>
+    <string name="together_kick_confirm">Kick %1$s?</string>
+    <string name="together_ban_confirm">Ban %1$s?</string>
     <string name="remove_from_history">Remove from history</string>
     <string name="remove_from_playlist">Remove from playlist</string>
     <string name="remove_from_queue">Remove from queue</string>
@@ -103,6 +116,10 @@
     <string name="action_sync">Sync</string>
     <string name="advanced">Advanced</string>
     <string name="tempo_and_pitch">Tempo and Pitch</string>
+    <string name="tempo">Tempo</string>
+    <string name="pitch">Pitch</string>
+    <string name="pitch_mode_semitones_short">st</string>
+    <string name="pitch_mode_multiplier_short">x</string>
     <!-- Sort menu -->
     <string name="sort_by_create_date">Date added</string>
     <string name="sort_by_name">Name</string>
@@ -339,6 +356,8 @@
     <string name="custom_value">Custom value</string>
     <string name="new_library_design">New library design</string>
     <string name="new_library_design_description">Enable the new library design (may be unstable)</string>
+    <string name="archivetune_canvas">ArchiveTune Canvas</string>
+    <string name="archivetune_canvas_desc">Animate album artwork while playing (Powered by BetterLyrics)</string>
     <string name="show_button1_description">Toggle visibility of button 1 in Discord Rich Presence</string>
     <string name="show_button2_description">Toggle visibility of button 2 in Discord Rich Presence</string>
     <string name="discord_activity_type">Activity type</string>
@@ -391,8 +410,6 @@
     <string name="audio_quality">Audio quality</string>
     <string name="audio_quality_auto">Auto</string>
     <string name="audio_quality_high">High</string>
-    <string name="audio_quality_very_high">Very High</string>
-    <string name="audio_quality_highest">Highest</string>
     <string name="audio_quality_low">Low</string>
     <string name="network_metered_title">Treat network as metered</string>
     <string name="network_metered_description">When enabled, the app will prefer lower-quality streams on metered networks</string>
@@ -405,6 +422,8 @@
     <string name="auto_load_more_desc">Automatically add more songs when the end of the queue is reached. Disabled when repeat mode is active</string>
     <string name="skip_silence">Skip silence</string>
     <string name="audio_normalization">Audio normalization</string>
+    <string name="audio_offload">Audio offload</string>
+    <string name="audio_offload_desc">Let supported devices play audio using low-power hardware decoding. Some audio processing features are disabled.</string>
     <string name="auto_skip_next_on_error">Auto skip to next song when error occurs</string>
     <string name="auto_skip_next_on_error_desc">Ensure your continuous playback experience</string>
     <string name="stop_music_on_task_clear">Stop music on task clear</string>
@@ -474,11 +493,11 @@
     <string name="imported_playlist">Imported playlist</string>
     <string name="backup_create_success">Backup created successfully</string>
     <string name="backup_create_failed">Couldn\'t create backup</string>
+    <string name="restore_success">Backup restored successfully</string>
     <string name="restore_failed">Failed to restore backup</string>
     <string name="discord_integration">Discord Integration</string>
     <string name="discord_information">ArchiveTune uses the KizzyRPC library to set your Discord account\'s status. This involves using the Discord Gateway connection, which may be considered a violation of Discord\'s TOS. However, there are no known cases of user accounts being suspended for this reason. Use at your own risk.
 ArchiveTune will only extract your token, and everything else is stored locally.</string>
-    <string name="dismiss">Dismiss</string>
     <string name="options">Options</string>
     <string name="preview">Preview</string>
     <string name="enable_discord_rpc">Enable Rich Presence</string>
@@ -643,4 +662,73 @@ ArchiveTune will only extract your token, and everything else is stored locally.
     <string name="next">Next</string>
     <string name="next_song">Next Song</string>
     <string name="allow">Allow</string>
+    <!-- Playlist Suggestions -->
+    <string name="you_might_like">You might like</string>
+    <string name="refresh_suggestions">Refresh suggestions</string>
+
+    <string name="music_together">ArchiveTune Music Together</string>
+    <string name="together_display_name">Display name</string>
+    <string name="together_display_name_placeholder">Your name</string>
+    <string name="together_port">Session port</string>
+    <string name="together_allow_guests_add">Guests can add songs</string>
+    <string name="together_allow_guests_control">Guests can control playback</string>
+    <string name="together_require_approval">Require approval</string>
+    <string name="together_lan">LAN</string>
+    <string name="together_online">Online</string>
+    <string name="together_join_link">Link</string>
+    <string name="together_join_code">Code</string>
+    <string name="together_join_link_hint">Paste a join link or code</string>
+    <string name="together_join_code_hint">Enter a session code</string>
+    <string name="start_session">Start session</string>
+    <string name="end_session">End session</string>
+    <string name="join_session">Join session</string>
+    <string name="session_link">Session link</string>
+    <string name="session_code">Session code</string>
+    <string name="participants">Participants</string>
+    <string name="pending_requests">Join requests</string>
+    <string name="waiting_for_approval">Waiting for approval</string>
+    <string name="host">Host</string>
+    <string name="session_settings">Session settings</string>
+    <string name="add_current_song">Add current song</string>
+    <string name="playback_controls">Playback controls</string>
+    <string name="approve">Approve</string>
+    <string name="deny">Deny</string>
+    <string name="dismiss">Dismiss</string>
+    <string name="enabled">Enabled</string>
+    <string name="disabled">Disabled</string>
+    <string name="invalid_link">Invalid link</string>
+    <string name="invalid_code">Invalid code</string>
+    <string name="not_allowed">Not allowed</string>
+    <string name="network_unavailable">Network unavailable</string>
+    <string name="together_online_not_configured">Online sessions aren\'t configured</string>
+    <string name="together_server_unreachable">Server unreachable</string>
+    <string name="together_connection_timed_out">Connection timed out</string>
+    <string name="together_session_not_found">Session not found</string>
+    <string name="together_server_error">Server error, please try again later</string>
+    <string name="leave">Leave</string>
+    <string name="join">Join</string>
+    <string name="joined">Joined</string>
+    <string name="loading">Loading</string>
+    <string name="connecting">Connecting…</string>
+    <string name="copy_link">Copy link</string>
+
+    <string name="together_host_section">Host</string>
+    <string name="together_join_section">Join</string>
+    <string name="together_status">Status</string>
+    <string name="together_idle">Not in a session</string>
+    <string name="together_hosting">Hosting session</string>
+    <string name="together_joining">Joining session</string>
+    <string name="together_connected">Connected</string>
+    <string name="together_error_state">Error</string>
+
+    <string name="got_it">Got it</string>
+    <string name="together_dont_show_again">Don\'t show this again</string>
+    <string name="together_welcome_title">Welcome to ArchiveTune Music Together</string>
+    <string name="together_welcome_body">Music Together lets multiple devices share a live session with a synced queue and playback.</string>
+    <string name="together_welcome_host_title">Host a session</string>
+    <string name="together_welcome_host_body">Tap Start session, then share the session link. Keep ArchiveTune open in the background while hosting.</string>
+    <string name="together_welcome_join_title">Join from another device</string>
+    <string name="together_welcome_join_body">Open the shared link, or enter code and tap Join. Your queue and playback will follow the host.</string>
+    <string name="together_welcome_permissions_title">Permissions and safety</string>
+    <string name="together_welcome_permissions_body">Hosts can decide whether guests can add songs, control playback, or require approval to join.</string>
 </resources>

@@ -5,6 +5,7 @@
  */
 
 
+
 package moe.koiverse.archivetune.db.entities
 
 import androidx.room.Entity

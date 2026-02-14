@@ -5,6 +5,7 @@
  */
 
 
+
 package moe.koiverse.archivetune.ui.player
 
 import androidx.activity.compose.BackHandler
@@ -189,6 +190,11 @@ fun Queue(
 
     var locked by rememberPreference(QueueEditLockKey, defaultValue = true)
     var similarContentEnabled by rememberPreference(SimilarContent, defaultValue = true)
+    val togetherSessionState by playerConnection.service.togetherSessionState.collectAsState()
+    val togetherForcesLock =
+        togetherSessionState is moe.koiverse.archivetune.together.TogetherSessionState.Joined &&
+            (togetherSessionState as moe.koiverse.archivetune.together.TogetherSessionState.Joined).role is moe.koiverse.archivetune.together.TogetherRole.Guest
+    val effectiveLocked = locked || togetherForcesLock
 
     val playerDesignStyle by rememberEnumPreference(
         key = PlayerDesignStyleKey,
@@ -527,7 +533,7 @@ fun Queue(
                     isPlaying = isPlaying,
                     repeatMode = repeatMode,
                     shuffleModeEnabled = playerConnection.player.shuffleModeEnabled,
-                    locked = locked,
+                    locked = effectiveLocked,
                     songCount = queueWindows.size,
                     queueDuration = queueLength,
                     similarContentEnabled = similarContentEnabled,
@@ -559,7 +565,13 @@ fun Queue(
                             playerConnection.player.shuffleModeEnabled = !playerConnection.player.shuffleModeEnabled
                         }
                     },
-                    onLockClick = { locked = !locked },
+                    onLockClick = {
+                        if (togetherForcesLock) {
+                            Toast.makeText(context, R.string.not_allowed, Toast.LENGTH_SHORT).show()
+                        } else {
+                            locked = !locked
+                        }
+                    },
                     onSimilarContentClick = { similarContentEnabled = !similarContentEnabled }
                 )
 
@@ -682,7 +694,7 @@ fun Queue(
                                                 contentDescription = null,
                                             )
                                         }
-                                        if (!locked) {
+                                        if (!effectiveLocked) {
                                             IconButton(
                                                 onClick = { },
                                                 modifier = Modifier
@@ -738,7 +750,7 @@ fun Queue(
                             }
                         }
 
-                        if (locked) {
+                        if (effectiveLocked) {
                             content()
                         } else {
                             SwipeToDismissBox(

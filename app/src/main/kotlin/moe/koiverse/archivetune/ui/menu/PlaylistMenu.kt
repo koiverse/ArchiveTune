@@ -5,6 +5,7 @@
  */
 
 
+
 package moe.koiverse.archivetune.ui.menu
 
 import android.content.Intent
@@ -42,8 +43,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.TextRange
-import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import androidx.media3.exoplayer.offline.Download
@@ -63,10 +62,10 @@ import moe.koiverse.archivetune.playback.queues.ListQueue
 import moe.koiverse.archivetune.playback.queues.YouTubeQueue
 import moe.koiverse.archivetune.ui.component.DefaultDialog
 import moe.koiverse.archivetune.ui.component.AssignTagsDialog
+import moe.koiverse.archivetune.ui.component.EditPlaylistDialog
 import moe.koiverse.archivetune.ui.component.NewAction
 import moe.koiverse.archivetune.ui.component.NewActionGrid
 import moe.koiverse.archivetune.ui.component.PlaylistListItem
-import moe.koiverse.archivetune.ui.component.TextFieldDialog
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -133,22 +132,19 @@ fun PlaylistMenu(
     }
 
     if (showEditDialog) {
-        TextFieldDialog(
-            icon = { Icon(painter = painterResource(R.drawable.edit), contentDescription = null) },
-            title = { Text(text = stringResource(R.string.edit_playlist)) },
+        EditPlaylistDialog(
+            initialName = playlist.playlist.name,
+            initialThumbnailUrl = playlist.playlist.thumbnailUrl,
+            fallbackThumbnails = playlist.songThumbnails.filterNotNull(),
             onDismiss = { showEditDialog = false },
-            initialTextFieldValue =
-            TextFieldValue(
-                playlist.playlist.name,
-                TextRange(playlist.playlist.name.length),
-            ),
-            onDone = { name ->
+            onSave = { name, thumbnailUrl ->
                 onDismiss()
                 database.query {
                     update(
                         playlist.playlist.copy(
                             name = name,
-                            lastUpdateTime = LocalDateTime.now()
+                            thumbnailUrl = thumbnailUrl,
+                            lastUpdateTime = LocalDateTime.now(),
                         )
                     )
                 }

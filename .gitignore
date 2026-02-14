@@ -98,3 +98,9 @@ core.*
 *.so
 *.bin
 /.trae
+
+# Node server
+/server/node_modules/
+/server/data/
+/server/.env
+/server/package-lock.json

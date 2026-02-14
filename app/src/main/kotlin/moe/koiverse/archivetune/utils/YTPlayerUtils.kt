@@ -5,6 +5,7 @@
  */
 
 
+
 package moe.koiverse.archivetune.utils
 
 import android.net.ConnectivityManager
@@ -334,8 +335,7 @@ object YTPlayerUtils {
             when (effectiveQuality) {
                 AudioQuality.LOW -> 70_000
                 AudioQuality.HIGH -> 160_000
-                AudioQuality.VERY_HIGH -> 256_000
-                AudioQuality.HIGHEST -> null
+                AudioQuality.HIGHEST -> 320_000
                 AudioQuality.AUTO -> null
             }
 

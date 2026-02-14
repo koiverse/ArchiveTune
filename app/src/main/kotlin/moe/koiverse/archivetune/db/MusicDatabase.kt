@@ -5,6 +5,7 @@
  */
 
 
+
 package moe.koiverse.archivetune.db
 
 import android.annotation.SuppressLint
@@ -26,6 +27,8 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import androidx.sqlite.db.SupportSQLiteOpenHelper
 import androidx.sqlite.db.framework.FrameworkSQLiteOpenHelperFactory
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withTimeout
 import moe.koiverse.archivetune.db.entities.AlbumArtistMap
 import moe.koiverse.archivetune.db.entities.AlbumEntity
 import moe.koiverse.archivetune.db.entities.ArtistEntity
@@ -51,6 +54,8 @@ import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneOffset
 import java.util.Date
+import java.util.concurrent.Executor
+import kotlin.coroutines.resume
 
 private const val TAG = "MusicDatabase"
 private const val CURRENT_VERSION = 26
@@ -82,7 +87,22 @@ class MusicDatabase(
             block(this@MusicDatabase)
         }
 
+    suspend fun awaitIdle(timeoutMs: Long = 5_000L) {
+        withTimeout(timeoutMs) {
+            awaitExecutor(delegate.queryExecutor)
+            awaitExecutor(delegate.transactionExecutor)
+        }
+    }
+
     fun close() = delegate.close()
+
+    private suspend fun awaitExecutor(executor: Executor) {
+        suspendCancellableCoroutine { cont ->
+            executor.execute {
+                if (cont.isActive) cont.resume(Unit)
+            }
+        }
+    }
 }
 
 @Database(

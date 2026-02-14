@@ -392,8 +392,6 @@
     <string name="audio_quality">Qualité audio</string>
     <string name="audio_quality_auto">Auto</string>
     <string name="audio_quality_high">Haute</string>
-    <string name="audio_quality_very_high">Très haute</string>
-    <string name="audio_quality_highest">La plus haute</string>
     <string name="audio_quality_low">Basse</string>
     <string name="network_metered_title">Considérer le réseau comme un réseau mesuré</string>
     <string name="network_metered_description">Une fois activée, l\'application privilégiera les flux de qualité inférieure sur les réseaux limités.</string>
@@ -651,4 +649,11 @@
     <string name="playback_state_ended">TERMINÉ</string>
     <string name="playback_state_unknown">INCONNU</string>
     <string name="share_logs">Partager les journaux</string>
+    <string name="tempo">Tempo</string>
+    <string name="pitch">Pas</string>
+    <string name="pitch_mode_semitones_short">dt</string>
+    <string name="pitch_mode_multiplier_short">x</string>
+    <string name="archivetune_canvas_desc">Animer les pochettes d\'album pendant la lecture (technologie BetterLyrics)</string>
+    <string name="restore_success">Sauvegarde restaurée avec succès</string>
+    <string name="archivetune_canvas">ArchiveTune Canvas</string>
 </resources>

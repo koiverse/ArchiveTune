@@ -5,6 +5,7 @@
  */
 
 
+
 package moe.koiverse.archivetune
 
 import android.annotation.SuppressLint
@@ -181,13 +182,12 @@ import moe.koiverse.archivetune.db.MusicDatabase
 import moe.koiverse.archivetune.db.entities.SearchHistory
 import moe.koiverse.archivetune.innertube.YouTube
 import moe.koiverse.archivetune.innertube.models.SongItem
-import moe.koiverse.archivetune.innertube.models.WatchEndpoint
-import moe.koiverse.archivetune.models.toMediaMetadata
+import moe.koiverse.archivetune.extensions.toMediaItem
 import moe.koiverse.archivetune.playback.DownloadUtil
 import moe.koiverse.archivetune.playback.MusicService
 import moe.koiverse.archivetune.playback.MusicService.MusicBinder
 import moe.koiverse.archivetune.playback.PlayerConnection
-import moe.koiverse.archivetune.playback.queues.YouTubeQueue
+import moe.koiverse.archivetune.playback.queues.ListQueue
 import moe.koiverse.archivetune.ui.component.AccountSettingsDialog
 import moe.koiverse.archivetune.ui.component.BottomSheetMenu
 import moe.koiverse.archivetune.ui.component.BottomSheetPage
@@ -198,6 +198,7 @@ import moe.koiverse.archivetune.ui.component.IconButton
 import moe.koiverse.archivetune.ui.component.LocalBottomSheetPageState
 import moe.koiverse.archivetune.ui.component.LocalMenuState
 import moe.koiverse.archivetune.ui.component.StarDialog
+import com.mikepenz.markdown.m3.Markdown
 import moe.koiverse.archivetune.ui.component.TopSearch
 import moe.koiverse.archivetune.ui.component.rememberBottomSheetState
 import moe.koiverse.archivetune.ui.component.shimmer.ShimmerTheme
@@ -246,6 +247,8 @@ class MainActivity : ComponentActivity() {
 
     private lateinit var navController: NavHostController
     private var pendingIntent: Intent? = null
+    private var pendingDeepLinkSong: PendingDeepLinkSong? = null
+    private var pendingTogetherJoinLink: String? = null
     private var latestVersionName by mutableStateOf(BuildConfig.VERSION_NAME)
 
     private var playerConnection by mutableStateOf<PlayerConnection?>(null)
@@ -261,6 +264,8 @@ class MainActivity : ComponentActivity() {
                 if (service is MusicBinder) {
                     playerConnection =
                         PlayerConnection(this@MainActivity, service, database, lifecycleScope)
+                    playPendingDeepLinkSongIfReady()
+                    joinPendingTogetherIfReady()
                 }
             }
 
@@ -271,6 +276,34 @@ class MainActivity : ComponentActivity() {
             }
         }
 
+    private data class PendingDeepLinkSong(
+        val mediaItem: MediaItem,
+    )
+
+    private fun playPendingDeepLinkSongIfReady() {
+        val pending = pendingDeepLinkSong ?: return
+        val connection = playerConnection ?: return
+        pendingDeepLinkSong = null
+        connection.playQueue(ListQueue(items = listOf(pending.mediaItem)))
+    }
+
+    private fun joinPendingTogetherIfReady() {
+        val pending = pendingTogetherJoinLink ?: return
+        val connection = playerConnection ?: return
+        pendingTogetherJoinLink = null
+        lifecycleScope.launch(Dispatchers.IO) {
+            val displayName =
+                runCatching { dataStore.data.first()[moe.koiverse.archivetune.constants.TogetherDisplayNameKey] }
+                    .getOrNull()
+                    ?.trim()
+                    .orEmpty()
+                    .ifBlank { Build.MODEL ?: getString(R.string.app_name) }
+            withContext(Dispatchers.Main) {
+                connection.service.joinTogether(pending, displayName)
+            }
+        }
+    }
+
     override fun onStart() {
         super.onStart()
         startMusicServiceSafely()
@@ -280,6 +313,7 @@ class MainActivity : ComponentActivity() {
                 serviceConnection,
                 Context.BIND_AUTO_CREATE
             )
+        playPendingDeepLinkSongIfReady()
     }
 
     private fun safeUnbindMusicService() {
@@ -488,22 +522,11 @@ class MainActivity : ComponentActivity() {
                         ) {
                             val notes = releaseNotesState.value
                             if (notes != null && notes.isNotBlank()) {
-                                val lines = notes.lines()
-                                Column(modifier = Modifier.padding(end = 8.dp)) {
-                                    lines.forEach { line ->
-                                        when {
-                                            line.startsWith("# ") -> Text(line.removePrefix("# ").trim(), style = MaterialTheme.typography.titleLarge)
-                                            line.startsWith("## ") -> Text(line.removePrefix("## ").trim(), style = MaterialTheme.typography.titleMedium)
-                                            line.startsWith("### ") -> Text(line.removePrefix("### ").trim(), style = MaterialTheme.typography.titleSmall)
-                                            line.startsWith("- ") -> Row {
-                                                Text("• ", style = MaterialTheme.typography.bodyLarge)
-                                                Text(line.removePrefix("- ").trim(), style = MaterialTheme.typography.bodyLarge)
-                                            }
-                                            else -> Text(line, style = MaterialTheme.typography.bodyMedium)
-                                        }
-                                        Spacer(Modifier.height(6.dp))
-                                    }
-                                }
+                                Markdown(
+                                    content = notes,
+                                    modifier = Modifier
+                                        .fillMaxWidth().padding(end = 8.dp)
+                                )
                             } else {
                                 Text(
                                     text = stringResource(R.string.release_notes_unavailable),
@@ -1638,6 +1661,14 @@ class MainActivity : ComponentActivity() {
         val uri = intent.data ?: intent.extras?.getString(Intent.EXTRA_TEXT)?.toUri() ?: return
         val coroutineScope = lifecycleScope
 
+        val authority = uri.authority?.lowercase()
+        if (uri.scheme.equals("archivetune", ignoreCase = true) && authority == "together") {
+            pendingTogetherJoinLink = uri.toString()
+            startMusicServiceSafely()
+            joinPendingTogetherIfReady()
+            return
+        }
+
         when (val path = uri.pathSegments.firstOrNull()) {
             "playlist" -> uri.getQueryParameter("list")?.let { playlistId ->
                 if (playlistId.startsWith("OLAK5uy_")) {
@@ -1677,26 +1708,21 @@ class MainActivity : ComponentActivity() {
                         }
 
                         result.onSuccess { queued ->
-                            coroutineScope.launch {
-                                val timeoutMs = 3000L
-                                var waited = 0L
-                                val step = 100L
-                                while (playerConnection == null && waited < timeoutMs) {
-                                    delay(step)
-                                    waited += step
-                                }
-
-                                if (playerConnection != null) {
-                                    playerConnection?.playQueue(
-                                        YouTubeQueue(
-                                            WatchEndpoint(videoId = queued.firstOrNull()?.id, playlistId = playlistId),
-                                            queued.firstOrNull()?.toMediaMetadata()
-                                        )
-                                    )
-                                } else {
-                                    startMusicServiceSafely()
-                                }
-                            }
+                            val mediaItem =
+                                queued.firstOrNull { it.id == vid }?.toMediaItem()
+                                    ?: queued.firstOrNull()?.toMediaItem()
+                                    ?: MediaItem
+                                        .Builder()
+                                        .setMediaId(vid)
+                                        .setUri(vid)
+                                        .setCustomCacheKey(vid)
+                                        .build()
+                            pendingDeepLinkSong =
+                                PendingDeepLinkSong(
+                                    mediaItem = mediaItem,
+                                )
+                            startMusicServiceSafely()
+                            playPendingDeepLinkSongIfReady()
                         }.onFailure {
                             reportException(it)
                         }

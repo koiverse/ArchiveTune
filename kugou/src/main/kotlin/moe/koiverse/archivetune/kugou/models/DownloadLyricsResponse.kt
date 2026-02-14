@@ -5,6 +5,7 @@
  */
 
 
+
 package moe.koiverse.archivetune.kugou.models
 
 import kotlinx.serialization.Serializable

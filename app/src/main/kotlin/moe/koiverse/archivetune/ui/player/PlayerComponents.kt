@@ -5,6 +5,7 @@
  */
 
 
+
 package moe.koiverse.archivetune.ui.player
 
 import android.content.ClipData
@@ -139,8 +140,8 @@ fun PlayerTitleSection(
                     interactionSource = remember { MutableInteractionSource() },
                     onClick = {
                         if (mediaMetadata.album != null) {
+                            state.snapTo(state.collapsedBound)
                             navController.navigate("album/${mediaMetadata.album.id}")
-                            state.collapseSoft()
                         }
                     },
                     onLongClick = {

@@ -5,6 +5,7 @@
  */
 
 
+
 package moe.koiverse.archivetune.ui.component
 
 import android.annotation.SuppressLint
@@ -127,6 +128,7 @@ import moe.koiverse.archivetune.ui.theme.extractThemeColor
 import moe.koiverse.archivetune.utils.joinByBullet
 import moe.koiverse.archivetune.utils.makeTimeString
 import moe.koiverse.archivetune.utils.rememberPreference
+import moe.koiverse.archivetune.constants.CropThumbnailToSquareKey
 import moe.koiverse.archivetune.utils.reportException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -1035,6 +1037,7 @@ fun YouTubeGridItem(
             isActive = isActive,
             isPlaying = isPlaying,
             shape = if (item is ArtistItem) CircleShape else RoundedCornerShape(ThumbnailCornerRadius),
+            thumbnailRatio = thumbnailRatio
         )
 
         if (item is SongItem && !isActive) {
@@ -1177,6 +1180,9 @@ fun ItemThumbnail(
             .aspectRatio(thumbnailRatio)
             .clip(shape)
     ) {
+        val (cropThumbnailToSquare, _) = rememberPreference(CropThumbnailToSquareKey, false)
+        val isYouTubeThumb = thumbnailUrl?.contains("ytimg.com", ignoreCase = true) == true
+        val shouldApplySquareCrop = cropThumbnailToSquare && isYouTubeThumb && kotlin.math.abs(thumbnailRatio - 1f) < 0.001f
         val widthPx = if (maxWidth == Dp.Infinity) null else with(density) { maxWidth.roundToPx().coerceAtLeast(1) }
         val heightPx = if (maxHeight == Dp.Infinity) null else with(density) { maxHeight.roundToPx().coerceAtLeast(1) }
 
@@ -1196,8 +1202,10 @@ fun ItemThumbnail(
                 AsyncImage(
                     model = request,
                     contentDescription = null,
+                    contentScale = if (shouldApplySquareCrop) ContentScale.Crop else ContentScale.Fit,
                     modifier = Modifier
                         .fillMaxSize()
+                        .let { if (shouldApplySquareCrop) it.aspectRatio(1f) else it }
                 )
             } else {
                 Box(
@@ -1274,6 +1282,9 @@ fun LocalThumbnail(
             .aspectRatio(thumbnailRatio)
             .clip(shape)
     ) {
+        val (cropThumbnailToSquare, _) = rememberPreference(CropThumbnailToSquareKey, false)
+        val isYouTubeThumb = thumbnailUrl?.contains("ytimg.com", ignoreCase = true) == true
+        val shouldApplySquareCrop = cropThumbnailToSquare && isYouTubeThumb && kotlin.math.abs(thumbnailRatio - 1f) < 0.001f
         val widthPx = if (maxWidth == Dp.Infinity) null else with(density) { maxWidth.roundToPx().coerceAtLeast(1) }
         val heightPx = if (maxHeight == Dp.Infinity) null else with(density) { maxHeight.roundToPx().coerceAtLeast(1) }
         val request = remember(thumbnailUrl, widthPx, heightPx) {
@@ -1290,7 +1301,8 @@ fun LocalThumbnail(
         AsyncImage(
             model = request,
             contentDescription = null,
-            modifier = Modifier.fillMaxSize()
+            contentScale = if (shouldApplySquareCrop) ContentScale.Crop else ContentScale.Fit,
+            modifier = Modifier.fillMaxSize().let { if (shouldApplySquareCrop) it.aspectRatio(1f) else it }
         )
 
         AnimatedVisibility(

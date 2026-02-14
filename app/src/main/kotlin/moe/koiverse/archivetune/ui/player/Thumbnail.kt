@@ -5,9 +5,12 @@
  */
 
 
+
 package moe.koiverse.archivetune.ui.player
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -20,6 +23,7 @@ import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -51,6 +55,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.BlurEffect
 import androidx.compose.ui.graphics.Color
@@ -69,23 +74,44 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.util.fastForEach
 import androidx.media3.common.C
+import androidx.media3.common.AudioAttributes
+import androidx.media3.common.MediaItem
+import androidx.media3.common.MimeTypes
 import androidx.media3.common.Player
+import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
+import androidx.media3.datasource.DefaultDataSource
+import androidx.media3.datasource.okhttp.OkHttpDataSource
+import androidx.media3.ui.AspectRatioFrameLayout
+import androidx.media3.ui.PlayerView
 import coil3.compose.AsyncImage
 import androidx.compose.material3.Icon
 import moe.koiverse.archivetune.LocalPlayerConnection
 import moe.koiverse.archivetune.R
+import moe.koiverse.archivetune.canvas.ArchiveTuneCanvas
+import moe.koiverse.archivetune.canvas.CanvasArtwork
 import moe.koiverse.archivetune.constants.PlayerBackgroundStyle
 import moe.koiverse.archivetune.constants.PlayerBackgroundStyleKey
 import moe.koiverse.archivetune.constants.PlayerHorizontalPadding
 import moe.koiverse.archivetune.constants.SeekExtraSeconds
 import moe.koiverse.archivetune.constants.SwipeThumbnailKey
+import moe.koiverse.archivetune.constants.ArchiveTuneCanvasKey
 import moe.koiverse.archivetune.constants.ThumbnailCornerRadiusKey
+import moe.koiverse.archivetune.constants.CropThumbnailToSquareKey
 import moe.koiverse.archivetune.constants.HidePlayerThumbnailKey
+import moe.koiverse.archivetune.extensions.metadata
+import moe.koiverse.archivetune.innertube.YouTube
 import moe.koiverse.archivetune.utils.rememberEnumPreference
 import moe.koiverse.archivetune.utils.rememberPreference
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import okhttp3.OkHttpClient
+import java.util.Locale
 import kotlin.math.abs
+import android.view.ViewGroup.LayoutParams.MATCH_PARENT
+import androidx.compose.ui.viewinterop.AndroidView
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -101,15 +127,18 @@ fun Thumbnail(
 
     // States
     val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
+    val isPlaying by playerConnection.isPlaying.collectAsState()
     val error by playerConnection.error.collectAsState()
     val queueTitle by playerConnection.queueTitle.collectAsState()
 
     val swipeThumbnail by rememberPreference(SwipeThumbnailKey, true)
     val hidePlayerThumbnail by rememberPreference(HidePlayerThumbnailKey, false)
+    val archiveTuneCanvasEnabled by rememberPreference(ArchiveTuneCanvasKey, false)
     val (thumbnailCornerRadius, _) = rememberPreference(
         key = ThumbnailCornerRadiusKey,
         defaultValue = 16f
     )
+    val cropThumbnailToSquare by rememberPreference(CropThumbnailToSquareKey, false)
     val canSkipPrevious by playerConnection.canSkipPrevious.collectAsState()
     val canSkipNext by playerConnection.canSkipNext.collectAsState()
     
@@ -307,6 +336,75 @@ fun Thumbnail(
                             val incrementalSeekSkipEnabled by rememberPreference(SeekExtraSeconds, defaultValue = false)
                             var skipMultiplier by remember { mutableStateOf(1) }
                             var lastTapTime by remember { mutableLongStateOf(0L) }
+                            val itemMetadata = remember(item) { item.metadata }
+                            val storefront =
+                                remember {
+                                    val country = Locale.getDefault().country
+                                    if (country.length == 2) country.lowercase(Locale.ROOT) else "us"
+                                }
+                            val shouldAnimateCanvas =
+                                archiveTuneCanvasEnabled &&
+                                    item.mediaId.isNotBlank() &&
+                                    item.mediaId == currentMediaItem?.mediaId
+                            var canvasArtwork by remember(item.mediaId) { mutableStateOf<CanvasArtwork?>(null) }
+                            var canvasFetchedAtMs by remember(item.mediaId) { mutableLongStateOf(0L) }
+                            var canvasFetchInFlight by remember(item.mediaId) { mutableStateOf(false) }
+
+                            LaunchedEffect(shouldAnimateCanvas) {
+                                if (!shouldAnimateCanvas) {
+                                    canvasArtwork = null
+                                    canvasFetchedAtMs = 0L
+                                    canvasFetchInFlight = false
+                                }
+                            }
+
+                            LaunchedEffect(shouldAnimateCanvas, item.mediaId) {
+                                if (!shouldAnimateCanvas) return@LaunchedEffect
+
+                                val songTitleRaw =
+                                    itemMetadata?.title
+                                        ?.takeIf { it.isNotBlank() }
+                                        ?: item.mediaMetadata.title?.toString()
+                                        ?: return@LaunchedEffect
+
+                                val artistNameRaw =
+                                    itemMetadata?.artists?.firstOrNull()?.name
+                                        ?.takeIf { it.isNotBlank() }
+                                        ?: item.mediaMetadata.artist?.toString()
+                                        ?: item.mediaMetadata.subtitle?.toString()
+                                        ?: ""
+
+                                val now = System.currentTimeMillis()
+                                if (canvasFetchInFlight) return@LaunchedEffect
+                                canvasFetchInFlight = true
+
+                                val fetched =
+                                    withContext(Dispatchers.IO) {
+                                        val songTitle = normalizeCanvasSongTitle(songTitleRaw)
+                                        val artistName = normalizeCanvasArtistName(artistNameRaw)
+                                        val candidates =
+                                            linkedSetOf(
+                                                songTitle to artistName,
+                                                songTitleRaw to artistName,
+                                                songTitle to artistNameRaw,
+                                                songTitleRaw to artistNameRaw,
+                                            ).filter { (song, artist) ->
+                                                song.isNotBlank() && artist.isNotBlank()
+                                            }
+
+                                        candidates.firstNotNullOfOrNull { (song, artist) ->
+                                            ArchiveTuneCanvas
+                                                .getBySongArtist(
+                                                    song = song,
+                                                    artist = artist,
+                                                    storefront = storefront,
+                                                )?.takeIf { !it.preferredAnimationUrl.isNullOrBlank() }
+                                        }
+                                    }
+                                canvasArtwork = fetched
+                                canvasFetchedAtMs = now
+                                canvasFetchInFlight = false
+                            }
 
                             Box(
                                 modifier = Modifier
@@ -375,26 +473,39 @@ fun Thumbnail(
                                             )
                                         }
                                     } else {
-                                        // Blurred 
+                                        val primaryCanvasUrl = canvasArtwork?.animated
+                                        val fallbackCanvasUrl = canvasArtwork?.videoUrl
+                                        
                                         AsyncImage(
                                             model = item.mediaMetadata.artworkUri?.toString(),
                                             contentDescription = null,
                                             contentScale = ContentScale.FillBounds,
                                             modifier = Modifier
                                                 .fillMaxSize()
+                                                .let { if (cropThumbnailToSquare) it.aspectRatio(1f) else it }
                                                 .graphicsLayer(
                                                     renderEffect = BlurEffect(radiusX = 60f, radiusY = 60f),
                                                     alpha = 0.6f
                                                 )
                                         )
 
-                                        // Main image
                                         AsyncImage(
                                             model = item.mediaMetadata.artworkUri?.toString(),
                                             contentDescription = null,
-                                            contentScale = ContentScale.Fit,
-                                            modifier = Modifier.fillMaxSize()
+                                            contentScale = if (cropThumbnailToSquare) ContentScale.Crop else ContentScale.Fit,
+                                            modifier = Modifier
+                                                .fillMaxSize()
+                                                .let { if (cropThumbnailToSquare) it.aspectRatio(1f) else it }
                                         )
+
+                                        if (shouldAnimateCanvas && (!primaryCanvasUrl.isNullOrBlank() || !fallbackCanvasUrl.isNullOrBlank())) {
+                                            CanvasArtworkPlayer(
+                                                primaryUrl = primaryCanvasUrl,
+                                                fallbackUrl = fallbackCanvasUrl,
+                                                isPlaying = isPlaying,
+                                                modifier = Modifier.fillMaxSize(),
+                                            )
+                                        }
                                     }
                                 }
                             }
@@ -430,6 +541,185 @@ fun Thumbnail(
             )
         }
     }
+}
+
+@Composable
+private fun CanvasArtworkPlayer(
+    primaryUrl: String?,
+    fallbackUrl: String?,
+    isPlaying: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    val context = LocalContext.current
+    val primary = primaryUrl?.takeIf { it.isNotBlank() }
+    val fallback = fallbackUrl?.takeIf { it.isNotBlank() }
+    val initial = primary ?: fallback ?: return
+    var currentUrl by remember(initial) { mutableStateOf(initial) }
+    var isVideoReady by remember(initial) { mutableStateOf(false) }
+
+    val okHttpClient =
+        remember {
+            OkHttpClient
+                .Builder()
+                .proxy(YouTube.proxy)
+                .build()
+        }
+    val mediaSourceFactory =
+        remember(okHttpClient) {
+            DefaultMediaSourceFactory(
+                DefaultDataSource.Factory(
+                    context,
+                    OkHttpDataSource.Factory(okHttpClient),
+                ),
+            )
+        }
+    val exoPlayer =
+        remember(initial) {
+            ExoPlayer.Builder(context)
+                .setMediaSourceFactory(mediaSourceFactory)
+                .build()
+                .apply {
+                setAudioAttributes(
+                    AudioAttributes
+                        .Builder()
+                        .setUsage(C.USAGE_MEDIA)
+                        .setContentType(C.AUDIO_CONTENT_TYPE_MOVIE)
+                        .build(),
+                    false,
+                )
+                volume = 0f
+                repeatMode = Player.REPEAT_MODE_ONE
+                playWhenReady = isPlaying
+            }
+        }
+
+    LaunchedEffect(isPlaying) {
+        if (exoPlayer.playWhenReady != isPlaying) {
+            exoPlayer.playWhenReady = isPlaying
+        }
+    }
+
+    DisposableEffect(exoPlayer, primary, fallback) {
+        val listener =
+            object : Player.Listener {
+                override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
+                    val next =
+                        when (currentUrl) {
+                            primary -> fallback
+                            else -> null
+                        }
+                    if (!next.isNullOrBlank()) {
+                        currentUrl = next
+                        isVideoReady = false 
+                    }
+                }
+
+                override fun onRenderedFirstFrame() {
+                    isVideoReady = true
+                }
+            }
+        exoPlayer.addListener(listener)
+        onDispose { exoPlayer.removeListener(listener) }
+    }
+
+    LaunchedEffect(currentUrl, exoPlayer) {
+        val normalized = currentUrl.trim()
+        val mimeType =
+            when {
+                primary != null && currentUrl == primary -> MimeTypes.APPLICATION_M3U8
+                fallback != null && currentUrl == fallback -> MimeTypes.VIDEO_MP4
+                normalized.lowercase(Locale.ROOT).contains("m3u8") -> MimeTypes.APPLICATION_M3U8
+                normalized.lowercase(Locale.ROOT).contains("mp4") -> MimeTypes.VIDEO_MP4
+                else -> MimeTypes.APPLICATION_M3U8
+            }
+
+        val mediaItem =
+            MediaItem.Builder()
+                .setUri(normalized)
+                .setMimeType(mimeType)
+                .build()
+
+        exoPlayer.stop()
+        exoPlayer.setMediaItem(mediaItem)
+        exoPlayer.prepare()
+        exoPlayer.playWhenReady = isPlaying
+    }
+
+    DisposableEffect(exoPlayer) {
+        onDispose {
+            exoPlayer.release()
+        }
+    }
+
+    val alpha by animateFloatAsState(
+        targetValue = if (isVideoReady) 1f else 0f,
+        animationSpec = tween(durationMillis = 300),
+        label = "canvasAlpha"
+    )
+
+    AndroidView(
+        factory = { viewContext ->
+            PlayerView(viewContext).apply {
+                layoutParams = android.view.ViewGroup.LayoutParams(MATCH_PARENT, MATCH_PARENT)
+                player = exoPlayer
+                useController = false
+                resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
+                setShutterBackgroundColor(android.graphics.Color.TRANSPARENT)
+            }
+        },
+        update = { view ->
+            if (view.player !== exoPlayer) view.player = exoPlayer
+        },
+        modifier = modifier.alpha(alpha),
+    )
+}
+
+private fun normalizeCanvasSongTitle(raw: String): String {
+    val stripped =
+        raw
+            .replace(Regex("\\s*\\[[^]]*]"), "")
+            .replace(
+                Regex(
+                    "\\s*\\((?:feat\\.?|ft\\.?|featuring|with)\\b[^)]*\\)",
+                    RegexOption.IGNORE_CASE,
+                ),
+                "",
+            )
+            .replace(
+                Regex(
+                    "\\s*\\((?:official\\s*)?(?:music\\s*)?(?:video|mv|lyrics?|audio|visualizer|live|remaster(?:ed)?|version|edit|mix|remix)[^)]*\\)",
+                    RegexOption.IGNORE_CASE,
+                ),
+                "",
+            )
+            .replace(
+                Regex(
+                    "\\s*-\\s*(?:official\\s*)?(?:music\\s*)?(?:video|mv|lyrics?|audio|visualizer|live|remaster(?:ed)?|version|edit|mix|remix)\\b.*$",
+                    RegexOption.IGNORE_CASE,
+                ),
+                "",
+            )
+            .replace(Regex("\\s+"), " ")
+            .trim()
+
+    return stripped
+        .trim('-')
+        .replace(Regex("\\s+"), " ")
+        .trim()
+}
+
+private fun normalizeCanvasArtistName(raw: String): String {
+    val first =
+        raw
+            .split(
+                Regex(
+                    "(?:\\s*,\\s*|\\s*&\\s*|\\s+×\\s+|\\s+x\\s+|\\bfeat\\.?\\b|\\bft\\.?\\b|\\bfeaturing\\b|\\bwith\\b)",
+                    RegexOption.IGNORE_CASE,
+                ),
+                limit = 2,
+            ).firstOrNull().orEmpty()
+
+    return first.replace(Regex("\\s+"), " ").trim()
 }
 
 /*

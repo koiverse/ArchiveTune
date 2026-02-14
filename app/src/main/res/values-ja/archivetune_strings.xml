@@ -54,6 +54,8 @@
     <string name="maximum_volume">最大音量</string>
     <string name="hide_player_thumbnail">プレーヤーのサムネイルを非表示にする</string>
     <string name="hide_player_thumbnail_desc">プレーヤーでアルバムのアートワークをアプリのロゴに置き換える</string>
+    <string name="crop_thumbnail_to_square">サムネイルを1:1にトリミング</string>
+    <string name="crop_thumbnail_to_square_desc">YouTubeサムネイルを16:9ではなく正方形で表示</string>
     <string name="already_in_playlist">すでにプレイリストにあります:</string>
     <plurals name="n_element">
         <item quantity="other">%d 要素</item>
@@ -239,4 +241,14 @@
     <string name="theme_preview_primary_action">主要な行動</string>
     <string name="theme_preview_secondary_action">二次的行動</string>
     <string name="copy">コピー</string>
+    <string name="backup_in_progress">バックアップ実行中</string>
+    <string name="restore_in_progress">復元実行中</string>
+    <string name="backup_step_export_settings">設定をバックアップ中</string>
+    <string name="backup_step_checkpoint_database">データベースを準備中</string>
+    <string name="backup_step_copying_file">%1$sをコピー中</string>
+    <string name="restore_step_verifying">バックアップを検証中</string>
+    <string name="restore_step_stopping_playback">再生を停止中</string>
+    <string name="restore_step_restoring_settings">設定を復元中</string>
+    <string name="restore_step_restoring_file">%1$sを復元中</string>
+    <string name="restore_step_restarting">アプリを再起動中</string>
 </resources>

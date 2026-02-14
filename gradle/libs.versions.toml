@@ -1,27 +1,27 @@
 [versions]
-androidGradlePlugin = "9.0.0"
+androidGradlePlugin = "9.0.1"
 annotation = "1.9.1"
 json = "20250517"
-kotlin = "2.2.20"
-compose = "1.10.1"
+kotlin = "2.3.10"
+compose = "1.10.3"
 lifecycle = "2.10.0"
 material3 = "1.5.0-alpha09"
-media3 = "1.9.1"
+media3 = "1.9.2"
 room = "2.8.4"
-hilt = "2.59"
+hilt = "2.59.1"
 ktor = "3.4.0"
-ksp = "2.3.4"
+ksp = "2.3.5"
 jsoup = "1.22.1"
 re2j = "1.8"
 coil = "3.3.0"
 guava = "33.5.0-jre"
 coroutinesGuava = "1.10.2"
 concurrentFutures = "1.3.0"
-activity = "1.12.2"
-navigation = "2.9.6"
+activity = "1.12.4"
+navigation = "2.9.7"
 hiltNavigation = "1.3.0"
 datastore = "1.2.0"
-workManager = "2.11.0"
+workManager = "2.11.1"
 composeReorderable = "3.0.0"
 squigglyslider = "1.0.0"
 shimmer = "1.3.3"
@@ -34,6 +34,7 @@ timber = "5.0.1"
 kuromojiIpadic = "0.9.0"
 extractor = "2d2d9ed"
 rhino = "1.9.0"
+multiplatformMarkdown = "0.39.2"
 
 [libraries]
 annotation = { module = "androidx.annotation:annotation", version.ref = "annotation" }
@@ -86,9 +87,14 @@ hilt-compiler = { module = "com.google.dagger:hilt-android-compiler", version.re
 ktor-client-core = { module = "io.ktor:ktor-client-core", version.ref = "ktor" }
 ktor-client-cio = { module = "io.ktor:ktor-client-cio", version.ref = "ktor" }
 ktor-client-okhttp = { module = "io.ktor:ktor-client-okhttp", version.ref = "ktor" }
+ktor-client-websockets = { module = "io.ktor:ktor-client-websockets", version.ref = "ktor" }
 ktor-client-content-negotiation = { module = "io.ktor:ktor-client-content-negotiation", version.ref = "ktor" }
 ktor-client-encoding = { module = "io.ktor:ktor-client-encoding", version.ref = "ktor" }
 ktor-serialization-json = { module = "io.ktor:ktor-serialization-kotlinx-json", version.ref = "ktor" }
+ktor-server-core = { module = "io.ktor:ktor-server-core", version.ref = "ktor" }
+ktor-server-cio = { module = "io.ktor:ktor-server-cio", version.ref = "ktor" }
+ktor-server-websockets = { module = "io.ktor:ktor-server-websockets", version.ref = "ktor" }
+ktor-server-content-negotiation = { module = "io.ktor:ktor-server-content-negotiation", version.ref = "ktor" }
 
 jsoup = { module = "org.jsoup:jsoup", version.ref = "jsoup" }
 re2j = { module = "com.google.re2j:re2j", version.ref = "re2j" }
@@ -110,6 +116,8 @@ newpipe-extractor = { module = "com.github.teamnewpipe:NewPipeExtractor", versio
 #newpipe-extractor = { module = "com.github.mostafaalagamy:MetrolistExtractor", version.ref = "extractor" }
 
 kuromoji-ipadic = { module = "com.atilika.kuromoji:kuromoji-ipadic", version.ref = "kuromojiIpadic" }
+
+multiplatform-markdown = { module = "com.mikepenz:multiplatform-markdown-renderer-m3", version.ref = "multiplatformMarkdown" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "androidGradlePlugin" }

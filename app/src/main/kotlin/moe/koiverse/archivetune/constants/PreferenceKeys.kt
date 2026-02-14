@@ -5,6 +5,7 @@
  */
 
 
+
 package moe.koiverse.archivetune.constants
 
 import androidx.datastore.preferences.core.booleanPreferencesKey
@@ -29,7 +30,9 @@ val PlayerDesignStyleKey = stringPreferencesKey("playerDesignStyle")
 val UseNewLibraryDesignKey = booleanPreferencesKey("useNewLibraryDesign")
 val UseNewMiniPlayerDesignKey = booleanPreferencesKey("useNewMiniPlayerDesign")
 val HidePlayerThumbnailKey = booleanPreferencesKey("hidePlayerThumbnail")
+val ArchiveTuneCanvasKey = booleanPreferencesKey("archiveTuneCanvas")
 val ThumbnailCornerRadiusKey = floatPreferencesKey("thumbnailCornerRadius")
+val CropThumbnailToSquareKey = booleanPreferencesKey("cropThumbnailToSquare")
 val SeekExtraSeconds = booleanPreferencesKey("seekExtraSeconds")
 val DisableBlurKey = booleanPreferencesKey("disableBlur")
 
@@ -54,6 +57,15 @@ val ProxyUrlKey = stringPreferencesKey("proxyUrl")
 val ProxyTypeKey = stringPreferencesKey("proxyType")
 val YtmSyncKey = booleanPreferencesKey("ytmSync")
 val SelectedYtmPlaylistsKey = stringPreferencesKey("ytm_selected_playlists")
+
+val TogetherDisplayNameKey = stringPreferencesKey("together_display_name")
+val TogetherClientIdKey = stringPreferencesKey("together_client_id")
+val TogetherDefaultPortKey = intPreferencesKey("together_default_port")
+val TogetherAllowGuestsToAddTracksKey = booleanPreferencesKey("together_allow_guests_add_tracks")
+val TogetherAllowGuestsToControlPlaybackKey = booleanPreferencesKey("together_allow_guests_control_playback")
+val TogetherRequireHostApprovalToJoinKey = booleanPreferencesKey("together_require_host_approval_to_join")
+val TogetherLastJoinLinkKey = stringPreferencesKey("together_last_join_link")
+val TogetherWelcomeShownKey = booleanPreferencesKey("together_welcome_shown")
     
 // ListenBrainz scrobbling
 val ListenBrainzEnabledKey = booleanPreferencesKey("listenbrainz_enabled")
@@ -75,7 +87,6 @@ val NetworkMeteredKey = booleanPreferencesKey("networkMetered")
 enum class AudioQuality {
     AUTO,
     HIGH,
-    VERY_HIGH,
     HIGHEST,
     LOW,
 }
@@ -439,16 +450,83 @@ val UseLoginForBrowse = booleanPreferencesKey("useLoginForBrowse")
 val LanguageCodeToName =
     mapOf(
         "en" to "English (US)",
+        "en-GB" to "English (UK)",
         "ja" to "日本語",
         "ko" to "한국어",
         "vi" to "Tiếng Việt",
+        "zh" to "中文",
+        "zh-CN" to "简体中文",
+        "zh-TW" to "繁體中文",
+        "fr" to "Français",
+        "de" to "Deutsch",
+        "es" to "Español",
+        "pt" to "Português",
+        "pt-BR" to "Português (Brasil)",
+        "ru" to "Русский",
+        "it" to "Italiano",
+        "nl" to "Nederlands",
+        "pl" to "Polski",
+        "tr" to "Türkçe",
+        "ar" to "العربية",
+        "hi" to "हिन्दी",
+        "th" to "ไทย",
+        "id" to "Bahasa Indonesia",
+        "ms" to "Bahasa Melayu",
+        "uk" to "Українська",
+        "cs" to "Čeština",
+        "el" to "Ελληνικά",
+        "he" to "עברית",
+        "hu" to "Magyar",
+        "ro" to "Română",
+        "fi" to "Suomi",
+        "da" to "Dansk",
+        "no" to "Norsk",
+        "sv" to "Svenska",
+        "sk" to "Slovenčina",
+        "bg" to "Български",
+        "hr" to "Hrvatski",
+        "sr" to "Срpsки",
+        "lt" to "Lietuvių",
+        "lv" to "Latviešu",
+        "et" to "Eesti",
     )
 
 val CountryCodeToName =
     mapOf(
-        "JP" to "Japan", //
-        "KR" to "South Korea", //
+        "JP" to "Japan",
+        "KR" to "South Korea",
         "US" to "United States",
+        "GB" to "United Kingdom",
+        "CN" to "China",
+        "TW" to "Taiwan",
+        "HK" to "Hong Kong",
+        "FR" to "France",
+        "DE" to "Germany",
+        "ES" to "Spain",
+        "MX" to "Mexico",
+        "BR" to "Brazil",
+        "RU" to "Russia",
+        "IT" to "Italy",
+        "NL" to "Netherlands",
+        "PL" to "Poland",
+        "TR" to "Turkey",
+        "AU" to "Australia",
+        "CA" to "Canada",
+        "IN" to "India",
+        "ID" to "Indonesia",
+        "TH" to "Thailand",
+        "VN" to "Vietnam",
+        "PH" to "Philippines",
+        "MY" to "Malaysia",
+        "SG" to "Singapore",
+        "AR" to "Argentina",
+        "CL" to "Chile",
+        "CO" to "Colombia",
+        "PE" to "Peru",
+        "ZA" to "South Africa",
+        "EG" to "Egypt",
+        "SA" to "Saudi Arabia",
+        "AE" to "United Arab Emirates",
     )
 
 // App rating / star prompt preferences
@@ -465,6 +543,9 @@ val LastNotifiedVersionKey = stringPreferencesKey("lastNotifiedVersion")
 val GitHubContributorsEtagKey = stringPreferencesKey("github_contributors_etag")
 val GitHubContributorsJsonKey = stringPreferencesKey("github_contributors_json")
 val GitHubContributorsLastCheckedAtKey = longPreferencesKey("github_contributors_last_checked_at")
+
+val TogetherOnlineEndpointCacheKey = stringPreferencesKey("together_online_endpoint_cache")
+val TogetherOnlineEndpointLastCheckedAtKey = longPreferencesKey("together_online_endpoint_last_checked_at")
 
 enum class UpdateChannel {
     STABLE,

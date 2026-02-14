@@ -165,4 +165,19 @@
     <string name="pin">Tõsta esile</string>
     <string name="unpin">Lõpeta esiletõstmine</string>
     <string name="show_tags_in_library">Näita muusikakogus silte</string>
+    <string name="advanced_login">Logi sisse tunnusloaga</string>
+    <string name="token_hidden">Klõpsa tunnusloa nägemiseks</string>
+    <string name="token_shown">Muutmiseks või koperimiseks klõpsa uuesti</string>
+    <string name="yt_sync">Automaatne sünkroonimine kasutajakontoga</string>
+    <string name="more_content">Täiendav sisu</string>
+    <string name="general">Üldist</string>
+    <string name="proxy">Proksi</string>
+    <string name="set_quick_picks">Määra kiirvalikud</string>
+    <string name="last_song_listened">Põhineb viimatikuulatud lool</string>
+    <string name="percentage_format">%d%%</string>
+    <string name="minimum_playback_duration">Tasesituse väikseim kestus</string>
+    <string name="import_online">Impordi „m3u“ tüüpi eristusloendeid</string>
+    <string name="import_csv">Impordi „csv“ tüüpi eristusloendeid</string>
+    <string name="auto_download_on_like">Meeldivaks märkimisel laadi automaatselt alla</string>
+    <string name="auto_download_on_like_desc">Kui oled loo märkinud meeldivaks, siis laadi ta automaatselt alla</string>
 </resources>

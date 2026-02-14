@@ -5,6 +5,7 @@
  */
 
 
+
 package moe.koiverse.archivetune.viewmodels
 
 import android.content.Context
@@ -232,6 +233,7 @@ class HomeViewModel @Inject constructor(
     fun loadMoreYouTubeItems(continuation: String?) {
         if (continuation == null || _isLoadingMore.value) return
         val hideExplicit = context.dataStore.get(HideExplicitKey, false)
+        val hideVideo = context.dataStore.get(HideVideoKey, false)
 
         viewModelScope.launch(Dispatchers.IO) {
             _isLoadingMore.value = true
@@ -243,7 +245,7 @@ class HomeViewModel @Inject constructor(
             homePage.value = nextSections.copy(
                 chips = homePage.value?.chips,
                 sections = (homePage.value?.sections.orEmpty() + nextSections.sections).map { section ->
-                    section.copy(items = section.items.filterExplicit(hideExplicit))
+                    section.copy(items = section.items.filterExplicit(hideExplicit).filterVideo(hideVideo))
                 }
             )
             _isLoadingMore.value = false
@@ -264,12 +266,13 @@ class HomeViewModel @Inject constructor(
 
         viewModelScope.launch(Dispatchers.IO) {
             val hideExplicit = context.dataStore.get(HideExplicitKey, false)
+            val hideVideo = context.dataStore.get(HideVideoKey, false)
             val nextSections = YouTube.home(params = chip?.endpoint?.params).getOrNull() ?: return@launch
 
             homePage.value = nextSections.copy(
                 chips = homePage.value?.chips,
                 sections = nextSections.sections.map { section ->
-                    section.copy(items = section.items.filterExplicit(hideExplicit))
+                    section.copy(items = section.items.filterExplicit(hideExplicit).filterVideo(hideVideo))
                 }
             )
             selectedChip.value = chip

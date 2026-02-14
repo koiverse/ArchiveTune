@@ -5,6 +5,7 @@
  */
 
 
+
 @file:OptIn(ExperimentalCoroutinesApi::class)
 
 package moe.koiverse.archivetune.viewmodels
@@ -31,6 +32,7 @@ import moe.koiverse.archivetune.constants.ArtistSortDescendingKey
 import moe.koiverse.archivetune.constants.ArtistSortType
 import moe.koiverse.archivetune.constants.ArtistSortTypeKey
 import moe.koiverse.archivetune.constants.HideExplicitKey
+import moe.koiverse.archivetune.constants.HideVideoKey
 import moe.koiverse.archivetune.constants.LibraryFilter
 import moe.koiverse.archivetune.constants.PlaylistSortDescendingKey
 import moe.koiverse.archivetune.constants.PlaylistSortType
@@ -84,20 +86,21 @@ constructor(
     val allSongs =
         context.dataStore.data
             .map {
-                Pair(
+                Triple(
                     Triple(
                         it[SongFilterKey].toEnum(SongFilter.LIKED),
                         it[SongSortTypeKey].toEnum(SongSortType.CREATE_DATE),
                         (it[SongSortDescendingKey] ?: true),
                     ),
-                    it[HideExplicitKey] ?: false
+                    it[HideExplicitKey] ?: false,
+                    it[HideVideoKey] ?: false,
                 )
             }.distinctUntilChanged()
-            .flatMapLatest { (filterSort, hideExplicit) ->
+            .flatMapLatest { (filterSort, hideExplicit, hideVideo) ->
                 val (filter, sortType, descending) = filterSort
                 when (filter) {
-                    SongFilter.LIBRARY -> database.songs(sortType, descending).map { it.filterExplicit(hideExplicit) }
-                    SongFilter.LIKED -> database.likedSongs(sortType, descending).map { it.filterExplicit(hideExplicit) }
+                    SongFilter.LIBRARY -> database.songs(sortType, descending, hideVideo).map { it.filterExplicit(hideExplicit) }
+                    SongFilter.LIKED -> database.likedSongs(sortType, descending, hideVideo).map { it.filterExplicit(hideExplicit) }
                     SongFilter.DOWNLOADED ->
                         downloadUtil.downloads.flatMapLatest { downloads ->
                             database

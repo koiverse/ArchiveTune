@@ -41,7 +41,6 @@
     <string name="added_to_play_next">Added to play next</string>
     <string name="added_to_queue">Added to the queue</string>
     <string name="remove_from_cache">Remove from cache</string>
-    <string name="copy_link">Copy link</string>
     <string name="select">Select all</string>
     <string name="manage_tags">Manage Tags</string>
     <string name="add_tag">Add Tag</string>
@@ -68,6 +67,8 @@
     <string name="maximum_volume">Maximum Volume</string>
     <string name="hide_player_thumbnail">Hide Player Thumbnail</string>
     <string name="hide_player_thumbnail_desc">Replace album artwork with app logo in player</string>
+    <string name="crop_thumbnail_to_square">Crop thumbnails to 1:1</string>
+    <string name="crop_thumbnail_to_square_desc">Display YouTube thumbnails in square format instead of 16:9</string>
     <string name="show_tags_in_library">Show tags in library</string>
     <string name="show_tags_in_library_desc">Show tag filter chips in the library</string>
     <string name="already_in_playlist">Already in playlist:</string>
@@ -249,4 +250,14 @@
     <string name="theme_preview_secondary_action">Secondary Action</string>
 
     <string name="copy">Copy</string>
+    <string name="backup_in_progress">Backup in progress</string>
+    <string name="restore_in_progress">Restore in progress</string>
+    <string name="backup_step_export_settings">Backing up settings</string>
+    <string name="backup_step_checkpoint_database">Preparing database</string>
+    <string name="backup_step_copying_file">Copying %1$s</string>
+    <string name="restore_step_verifying">Verifying backup</string>
+    <string name="restore_step_stopping_playback">Stopping playback</string>
+    <string name="restore_step_restoring_settings">Restoring settings</string>
+    <string name="restore_step_restoring_file">Restoring %1$s</string>
+    <string name="restore_step_restarting">Restarting app</string>
 </resources>
