@@ -54,6 +54,24 @@ class TogetherCoreTest {
     }
 
     @Test
+    fun protocol_seekToTrack_roundTrip() {
+        val message: TogetherMessage =
+            ControlRequest(
+                sessionId = "sid",
+                participantId = "pid",
+                action = ControlAction.SeekToTrack(trackId = "track123", positionMs = 456L),
+            )
+        val json = TogetherJson.json.encodeToString(TogetherMessage.serializer(), message)
+        val decoded = TogetherJson.json.decodeFromString(TogetherMessage.serializer(), json)
+        assertTrue(decoded is ControlRequest)
+        val req = decoded as ControlRequest
+        assertTrue(req.action is ControlAction.SeekToTrack)
+        val action = req.action as ControlAction.SeekToTrack
+        assertEquals("track123", action.trackId)
+        assertEquals(456L, action.positionMs)
+    }
+
+    @Test
     fun clock_estimates_offset_and_rtt() {
         val clock = TogetherClock()
         val snapshot =

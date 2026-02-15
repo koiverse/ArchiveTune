@@ -18,6 +18,7 @@ import io.ktor.websocket.close
 import io.ktor.websocket.readText
 import io.ktor.websocket.send
 import java.util.UUID
+import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
@@ -83,7 +84,18 @@ class TogetherClient(
 ) {
     private val client =
         HttpClient(OkHttp) {
-            install(WebSockets)
+            engine {
+                config {
+                    connectTimeout(15, TimeUnit.SECONDS)
+                    readTimeout(30, TimeUnit.SECONDS)
+                    writeTimeout(15, TimeUnit.SECONDS)
+                    pingInterval(25, TimeUnit.SECONDS)
+                    retryOnConnectionFailure(true)
+                }
+            }
+            install(WebSockets) {
+                pingIntervalMillis = 25_000
+            }
         }
 
     private val scope = CoroutineScope(externalScope.coroutineContext + SupervisorJob())
