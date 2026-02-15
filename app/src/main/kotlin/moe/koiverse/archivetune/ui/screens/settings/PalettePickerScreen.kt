@@ -837,6 +837,51 @@ object ThemePalettes {
     fun findById(id: String): ThemePalette? {
         return allPalettes.find { it.id == id }
     }
+    
+    fun getRandomPalette(): ThemePalette {
+        return allPalettes.random()
+    }
+    
+    fun generateRandomPalette(): ThemePalette {
+        // Generate random vibrant colors using HCT color space for better visual quality
+        val random = java.util.Random()
+        
+        // Generate a random hue for primary color
+        val primaryHue = random.nextFloat() * 360f
+        val primarySaturation = 0.5f + random.nextFloat() * 0.4f // 50-90% saturation
+        val primaryLightness = 0.4f + random.nextFloat() * 0.25f // 40-65% lightness
+        
+        val primary = hctToColor(primaryHue, primarySaturation, primaryLightness)
+        
+        // Generate secondary color by shifting hue by 30-90 degrees
+        val secondaryHue = (primaryHue + 30f + random.nextFloat() * 60f) % 360f
+        val secondary = hctToColor(secondaryHue, primarySaturation * 0.9f, primaryLightness * 1.1f)
+        
+        // Generate tertiary color by shifting hue in opposite direction
+        val tertiaryHue = (primaryHue - 30f - random.nextFloat() * 60f + 360f) % 360f
+        val tertiary = hctToColor(tertiaryHue, primarySaturation * 0.8f, primaryLightness * 0.95f)
+        
+        // Generate neutral color with low saturation
+        val neutralHue = (primaryHue + random.nextFloat() * 20f - 10f) % 360f
+        val neutral = hctToColor(neutralHue, 0.1f, primaryLightness * 0.8f)
+        
+        return ThemePalette(
+            id = "random_" + System.currentTimeMillis(),
+            nameResId = R.string.palette_custom,
+            primary = primary,
+            secondary = secondary,
+            tertiary = tertiary,
+            neutral = neutral
+        )
+    }
+    
+    private fun hctToColor(hue: Float, saturation: Float, lightness: Float): Color {
+        // Convert HCT-like values to Color
+        // This is a simplified conversion using HSV as approximation
+        val hsv = floatArrayOf(hue, saturation, lightness)
+        val argb = android.graphics.Color.HSVToColor(hsv)
+        return Color(argb)
+    }
 }
 
 private fun Color.toHexString(): String {

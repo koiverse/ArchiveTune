@@ -25,6 +25,9 @@ import coil3.request.allowHardware
 import coil3.request.crossfade
 import moe.koiverse.archivetune.constants.*
 import moe.koiverse.archivetune.extensions.*
+import moe.koiverse.archivetune.ui.screens.settings.ThemePalettes
+import moe.koiverse.archivetune.ui.theme.ThemeSeedPalette
+import moe.koiverse.archivetune.ui.theme.ThemeSeedPaletteCodec
 import moe.koiverse.archivetune.utils.dataStore
 import moe.koiverse.archivetune.utils.PreferenceStore
 import moe.koiverse.archivetune.utils.get
@@ -138,6 +141,21 @@ class App : Application(), SingletonImageLoader.Factory {
 
                 if (prefs[UseLoginForBrowse] != false) {
                     YouTube.useLoginForBrowse = true
+                }
+                
+                // Apply random theme on startup if enabled
+                if (prefs[RandomThemeOnStartupKey] == true) {
+                    val randomPalette = ThemePalettes.generateRandomPalette()
+                    val seedPalette = ThemeSeedPalette(
+                        primary = randomPalette.primary,
+                        secondary = randomPalette.secondary,
+                        tertiary = randomPalette.tertiary,
+                        neutral = randomPalette.neutral
+                    )
+                    val encodedPalette = ThemeSeedPaletteCodec.encodeForPreference(seedPalette, "Random")
+                    dataStore.edit { settings ->
+                        settings[CustomThemeColorKey] = encodedPalette
+                    }
                 }
                 
                 isInitialized = true

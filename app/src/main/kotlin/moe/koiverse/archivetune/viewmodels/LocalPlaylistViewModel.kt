@@ -263,6 +263,21 @@ constructor(
         loadPlaylistSuggestions(forceReset = true)
     }
     
+    /**
+     * Mark a suggested song as added to prevent it from appearing again
+     */
+    fun markSuggestionAsAdded(songId: String) {
+        suggestedSongIds.value = suggestedSongIds.value + songId
+        
+        // Also remove from current suggestions list
+        val currentSuggestions = _playlistSuggestions.value
+        if (currentSuggestions != null) {
+            _playlistSuggestions.value = currentSuggestions.copy(
+                items = currentSuggestions.items.filter { it.id != songId }
+            )
+        }
+    }
+    
     suspend fun addSongToPlaylist(song: moe.koiverse.archivetune.innertube.models.SongItem, browseId: String?): Boolean {
         return try {
             if (browseId != null) {

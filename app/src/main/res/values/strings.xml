@@ -235,6 +235,8 @@
     <string name="appearance">Appearance</string>
     <string name="theme">Theme</string>
     <string name="enable_dynamic_theme">Enable dynamic theme</string>
+    <string name="random_theme_on_startup">Random theme on startup</string>
+    <string name="random_theme_on_startup_desc">Apply a random color palette every time the app starts</string>
     <string name="use_system_font">Use system font</string>
     <string name="use_system_font_desc">Use the device font instead of the app font</string>
     <!-- Color Palette -->
@@ -603,7 +605,7 @@ ArchiveTune will only extract your token, and everything else is stored locally.
     <string name="content_length_label">Content Length</string>
     <string name="unknown_content_length">Unknown content length</string>
     <string name="format_label">Format</string>
-    <string name="loading_format">Loading format...</string>
+    <string name="loading_format">Loading format…</string>
     <string name="buffer_health_label">Buffer Health</string>
     <string name="playback_speed_label">Playback Speed</string>
     <string name="state_label">State</string>
