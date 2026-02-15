@@ -109,6 +109,8 @@
     <string name="together_ban">Ban</string>
     <string name="together_kick_confirm">Kick %1$s?</string>
     <string name="together_ban_confirm">Ban %1$s?</string>
+    <string name="together_requesting_song_change">Requesting host to change the song\u2026</string>
+    <string name="together_song_change_failed">Song change not applied. Please try again.</string>
     <string name="remove_from_history">Remove from history</string>
     <string name="remove_from_playlist">Remove from playlist</string>
     <string name="remove_from_queue">Remove from queue</string>

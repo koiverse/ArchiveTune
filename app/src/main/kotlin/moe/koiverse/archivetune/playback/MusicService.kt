@@ -381,6 +381,7 @@ class MusicService :
         val desiredIsPlaying: Boolean? = null,
         val desiredIndex: Int? = null,
         val desiredTrackId: String? = null,
+        val requestedAtElapsedMs: Long,
         val expiresAtElapsedMs: Long,
     )
 
@@ -2154,7 +2155,11 @@ class MusicService :
     }
 
     fun requestTogetherControl(action: moe.koiverse.archivetune.together.ControlAction) {
-        val client = togetherClient ?: return
+        val client =
+            togetherClient ?: run {
+                showTogetherNotice(getString(R.string.network_unavailable), key = "TOGETHER_CLIENT_MISSING")
+                return
+            }
         val state = togetherSessionState.value as? moe.koiverse.archivetune.together.TogetherSessionState.Joined ?: return
         if (state.role !is moe.koiverse.archivetune.together.TogetherRole.Guest) return
         if (!state.roomState.settings.allowGuestsToControlPlayback) {
@@ -2172,13 +2177,17 @@ class MusicService :
         togetherPendingGuestControl =
             when (action) {
                 moe.koiverse.archivetune.together.ControlAction.Play ->
-                    TogetherPendingGuestControl(desiredIsPlaying = true, expiresAtElapsedMs = now + 2000L)
+                    TogetherPendingGuestControl(desiredIsPlaying = true, requestedAtElapsedMs = now, expiresAtElapsedMs = now + 2000L)
                 moe.koiverse.archivetune.together.ControlAction.Pause ->
-                    TogetherPendingGuestControl(desiredIsPlaying = false, expiresAtElapsedMs = now + 2000L)
+                    TogetherPendingGuestControl(desiredIsPlaying = false, requestedAtElapsedMs = now, expiresAtElapsedMs = now + 2000L)
                 is moe.koiverse.archivetune.together.ControlAction.SeekToIndex ->
-                    TogetherPendingGuestControl(desiredIndex = action.index.coerceAtLeast(0), expiresAtElapsedMs = now + 2000L)
+                    TogetherPendingGuestControl(desiredIndex = action.index.coerceAtLeast(0), requestedAtElapsedMs = now, expiresAtElapsedMs = now + 900L)
                 is moe.koiverse.archivetune.together.ControlAction.SeekToTrack ->
-                    TogetherPendingGuestControl(desiredTrackId = action.trackId.trim().ifBlank { null }, expiresAtElapsedMs = now + 2000L)
+                    TogetherPendingGuestControl(
+                        desiredTrackId = action.trackId.trim().ifBlank { null },
+                        requestedAtElapsedMs = now,
+                        expiresAtElapsedMs = now + 900L,
+                    )
                 else -> togetherPendingGuestControl
             }
         client.requestControl(state.sessionId, action)
@@ -2360,14 +2369,20 @@ class MusicService :
 
         val pending = togetherPendingGuestControl
         if (pending != null) {
+            val currentTrackId = state.queue.getOrNull(state.currentIndex.coerceAtLeast(0))?.id
+            val mismatch =
+                (pending.desiredIsPlaying != null && state.isPlaying != pending.desiredIsPlaying) ||
+                    (pending.desiredIndex != null && state.currentIndex != pending.desiredIndex) ||
+                    (pending.desiredTrackId != null && currentTrackId != pending.desiredTrackId)
             if (now >= pending.expiresAtElapsedMs) {
+                if ((pending.desiredIndex != null || pending.desiredTrackId != null) &&
+                    now - pending.requestedAtElapsedMs >= 1200L &&
+                    mismatch
+                ) {
+                    showTogetherNotice(getString(R.string.together_song_change_failed), key = "GUEST_SEEK_TIMEOUT")
+                }
                 togetherPendingGuestControl = null
             } else {
-                val currentTrackId = state.queue.getOrNull(state.currentIndex.coerceAtLeast(0))?.id
-                val mismatch =
-                    (pending.desiredIsPlaying != null && state.isPlaying != pending.desiredIsPlaying) ||
-                        (pending.desiredIndex != null && state.currentIndex != pending.desiredIndex) ||
-                        (pending.desiredTrackId != null && currentTrackId != pending.desiredTrackId)
                 if (mismatch) return
                 togetherPendingGuestControl = null
             }
