@@ -8,7 +8,7 @@
     <string name="no_title">タイトルなし</string>
     <string name="unknown_artist">不明なアーティスト</string>
     <string name="unknown_item_type">不明なアイテムの種類</string>
-    <string name="loading_charts">チャートを読み込んでいます...</string>
+    <string name="loading_charts">チャートを読み込んでいます…</string>
     <string name="retry_button">リトライ</string>
     <string name="album_cover_desc">アルバムカバー</string>
     <string name="top_music_videos">人気のミュージック ビデオ</string>
@@ -41,7 +41,6 @@
     <string name="added_to_play_next">次にプレイするために追加されました</string>
     <string name="added_to_queue">キューに追加されました</string>
     <string name="remove_from_cache">キャッシュから削除</string>
-    <string name="copy_link">リンクをコピー</string>
     <string name="select">すべて選択</string>
     <string name="like_all">みんなと同じように</string>
     <string name="dislike_all">全部嫌い</string>
