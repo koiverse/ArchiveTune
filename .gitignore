@@ -104,3 +104,6 @@ core.*
 /server/data/
 /server/.env
 /server/package-lock.json
+
+# AI code review
+/.qodo/

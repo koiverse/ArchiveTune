@@ -66,6 +66,8 @@
     <string name="playlist_is_empty">Danh sách phát trống</string>
     <string name="remove_download_playlist_confirm">Bạn có muốn xóa tất cả bài hát của \"%s\" khỏi mục đã tải xuống không?</string>
     <string name="delete_playlist_confirm">Bạn có muốn xóa danh sách phát \"%s\" không?</string>
+    <string name="change_playlist_cover">Thay đổi ảnh bìa danh sách phát</string>
+    <string name="remove_playlist_cover">Xóa ảnh bìa</string>
     <!-- Button -->
     <string name="retry">Thử lại</string>
     <string name="radio">Radio</string>
@@ -96,6 +98,17 @@
     <string name="refetch">Tải lại</string>
     <string name="share">Chia sẻ</string>
     <string name="delete">Xóa</string>
+    <string name="together_participants">Người tham gia</string>
+    <string name="together_connected_count">%1$d đã kết nối</string>
+    <string name="together_role_host">Người tổ chức</string>
+    <string name="together_role_guest">Khách</string>
+    <string name="together_pending_approval">Chờ phê duyệt</string>
+    <string name="together_waiting_approval">Đang chờ phê duyệt</string>
+    <string name="together_host_left_session">Người tổ chức đã rời khỏi phiên</string>
+    <string name="together_kick">Đuổi</string>
+    <string name="together_ban">Cấm</string>
+    <string name="together_kick_confirm">Đuổi %1$s?</string>
+    <string name="together_ban_confirm">Cấm %1$s?</string>
     <string name="remove_from_history">Xóa khỏi lịch sử</string>
     <string name="remove_from_playlist">Xóa khỏi danh sách phát</string>
     <string name="remove_from_queue">Xóa khỏi hàng đợi</string>
@@ -216,6 +229,8 @@
     <string name="appearance">Giao diện</string>
     <string name="theme">Giao diện</string>
     <string name="enable_dynamic_theme">Bật giao diện động</string>
+    <string name="random_theme_on_startup">Chủ đề ngẫu nhiên khi khởi động</string>
+    <string name="random_theme_on_startup_desc">Áp dụng bảng màu ngẫu nhiên mỗi khi app khởi động</string>
     <string name="use_system_font">Sử dụng font hệ thống</string>
     <string name="use_system_font_desc">Sử dụng font thiết bị thay vì font ứng dụng</string>
     <!-- Color Palette -->
@@ -402,6 +417,8 @@
     <string name="auto_load_more_desc">Tự động thêm nhiều bài hát khi đến cuối hàng đợi. Tắt khi chế độ lặp đang hoạt động</string>
     <string name="skip_silence">Bỏ qua im lặng</string>
     <string name="audio_normalization">Chuẩn hóa âm thanh</string>
+    <string name="audio_offload">Giải phóng âm thanh</string>
+    <string name="audio_offload_desc">Cho phép các thiết bị được hỗ trợ phát âm thanh bằng giải mã phần cứng công suất thấp. Một số tính năng xử lý âm thanh sẽ bị vô hiệu hóa.</string>
     <string name="auto_skip_next_on_error">Tự động chuyển sang bài tiếp theo khi có lỗi</string>
     <string name="auto_skip_next_on_error_desc">Đảm bảo trải nghiệm phát nhạc liên tục của bạn</string>
     <string name="stop_music_on_task_clear">Dừng nhạc khi xóa tác vụ</string>
@@ -579,7 +596,7 @@ ArchiveTune sẽ chỉ trích xuất token của bạn, và mọi thứ khác đ
     <string name="content_length_label">Độ dài nội dung</string>
     <string name="unknown_content_length">Độ dài nội dung không xác định</string>
     <string name="format_label">Định dạng</string>
-    <string name="loading_format">Đang tải định dạng...</string>
+    <string name="loading_format">Đang tải định dạng…</string>
     <string name="buffer_health_label">Sức khỏe Buffer</string>
     <string name="playback_speed_label">Tốc độ phát</string>
     <string name="state_label">Trạng thái</string>
@@ -652,4 +669,69 @@ ArchiveTune sẽ chỉ trích xuất token của bạn, và mọi thứ khác đ
     <!-- Playlist Suggestions -->
     <string name="you_might_like">Có thể bạn sẽ thích</string>
     <string name="refresh_suggestions">Làm mới gợi ý</string>
+
+    <string name="music_together">ArchiveTune Music Together</string>
+    <string name="together_display_name">Tên hiển thị</string>
+    <string name="together_display_name_placeholder">Tên của bạn</string>
+    <string name="together_port">Cổng phiên</string>
+    <string name="together_allow_guests_add">Khách có thể thêm bài hát</string>
+    <string name="together_allow_guests_control">Khách có thể điều khiển phát nhạc</string>
+    <string name="together_require_approval">Yêu cầu phê duyệt</string>
+    <string name="together_lan">Mạng LAN</string>
+    <string name="together_online">Trực tuyến</string>
+    <string name="together_join_link">Liên kết</string>
+    <string name="together_join_code">Mã</string>
+    <string name="together_join_link_hint">Dán liên kết hoặc mã tham gia</string>
+    <string name="together_join_code_hint">Nhập mã phiên</string>
+    <string name="start_session">Bắt đầu phiên</string>
+    <string name="end_session">Kết thúc phiên</string>
+    <string name="join_session">Tham gia phiên</string>
+    <string name="session_link">Liên kết phiên</string>
+    <string name="session_code">Mã phiên</string>
+    <string name="participants">Người tham gia</string>
+    <string name="pending_requests">Yêu cầu tham gia</string>
+    <string name="waiting_for_approval">Đang chờ phê duyệt</string>
+    <string name="host">Người tổ chức</string>
+    <string name="session_settings">Cài đặt phiên</string>
+    <string name="add_current_song">Thêm bài hát hiện tại</string>
+    <string name="playback_controls">Điều khiển phát nhạc</string>
+    <string name="approve">Phê duyệt</string>
+    <string name="deny">Từ chối</string>
+    <string name="enabled">Đã bật</string>
+    <string name="disabled">Đã tắt</string>
+    <string name="invalid_link">Liên kết không hợp lệ</string>
+    <string name="invalid_code">Mã không hợp lệ</string>
+    <string name="not_allowed">Không được phép</string>
+    <string name="network_unavailable">Mạng không khả dụng</string>
+    <string name="together_online_not_configured">Phiên trực tuyến chưa được định cấu hình</string>
+    <string name="together_server_unreachable">Không thể kết nối máy chủ</string>
+    <string name="together_connection_timed_out">Kết nối đã hết thời gian chờ</string>
+    <string name="together_session_not_found">Không tìm thấy phiên</string>
+    <string name="together_server_error">Lỗi máy chủ, vui lòng thử lại sau</string>
+    <string name="leave">Rời đi</string>
+    <string name="join">Tham gia</string>
+    <string name="joined">Đã tham gia</string>
+    <string name="loading">Đang tải</string>
+    <string name="connecting">Đang kết nối…</string>
+    <string name="copy_link">Sao chép liên kết</string>
+
+    <string name="together_host_section">Tổ chức</string>
+    <string name="together_join_section">Tham gia</string>
+    <string name="together_status">Trạng thái</string>
+    <string name="together_idle">Không trong phiên</string>
+    <string name="together_hosting">Đang tổ chức phiên</string>
+    <string name="together_joining">Đang tham gia phiên</string>
+    <string name="together_connected">Đã kết nối</string>
+    <string name="together_error_state">Lỗi</string>
+
+    <string name="got_it">Hiểu rồi</string>
+    <string name="together_dont_show_again">Không hiển thị lại nữa</string>
+    <string name="together_welcome_title">Chào mừng đến với ArchiveTune Music Together</string>
+    <string name="together_welcome_body">Music Together cho phép nhiều thiết bị chia sẻ một phiên trực tiếp với hàng đợi đồng bộ và phát nhạc.</string>
+    <string name="together_welcome_host_title">Tổ chức một phiên</string>
+    <string name="together_welcome_host_body">Nhấn Bắt đầu phiên, sau đó chia sẻ liên kết phiên. Giữ ArchiveTune mở trong nền trong khi tổ chức.</string>
+    <string name="together_welcome_join_title">Tham gia từ thiết bị khác</string>
+    <string name="together_welcome_join_body">Mở liên kết được chia sẻ, hoặc nhập mã và nhấn Tham gia. Hàng đợi và phát nhạc của bạn sẽ theo người tổ chức.</string>
+    <string name="together_welcome_permissions_title">Quyền và an toàn</string>
+    <string name="together_welcome_permissions_body">Người tổ chức có thể quyết định liệu khách có thể thêm bài hát, điều khiển phát nhạc, hoặc yêu cầu phê duyệt để tham gia hay không.</string>
 </resources>

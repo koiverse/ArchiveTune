@@ -66,6 +66,8 @@
     <string name="playlist_is_empty">プレイリストは空です</string>
     <string name="remove_download_playlist_confirm">「%s」プレイリストのすべての曲をダウンロードした曲のストレージから削除してもよろしいですか?</string>
     <string name="delete_playlist_confirm">本当にプレイリストを削除しますか? \"%s\"?</string>
+    <string name="change_playlist_cover">プレイリストカバーを変更</string>
+    <string name="remove_playlist_cover">カバーを削除</string>
     <!-- Button -->
     <string name="retry">再試行</string>
     <string name="radio">ラジオ</string>
@@ -96,6 +98,17 @@
     <string name="refetch">再フェッチ</string>
     <string name="share">共有</string>
     <string name="delete">削除</string>
+    <string name="together_participants">参加者</string>
+    <string name="together_connected_count">%1$d 人接続中</string>
+    <string name="together_role_host">ホスト</string>
+    <string name="together_role_guest">ゲスト</string>
+    <string name="together_pending_approval">承認待ち</string>
+    <string name="together_waiting_approval">承認待ち</string>
+    <string name="together_host_left_session">ホストがセッションを離れました</string>
+    <string name="together_kick">Kick</string>
+    <string name="together_ban">Ban</string>
+    <string name="together_kick_confirm">%1$s をKickしますか?</string>
+    <string name="together_ban_confirm">%1$s をBanしますか?</string>
     <string name="remove_from_history">履歴から削除</string>
     <string name="remove_from_playlist">プレイリストから削除</string>
     <string name="remove_from_queue">キューから削除</string>
@@ -202,6 +215,8 @@
     <string name="appearance">外観</string>
     <string name="theme">テーマ</string>
     <string name="enable_dynamic_theme">ダイナミックテーマを有効にする</string>
+    <string name="random_theme_on_startup">起動時にランダムテーマ</string>
+    <string name="random_theme_on_startup_desc">アプリ起動時にランダムなカラーパレットを適用</string>
     <!-- Color Palette -->
     <string name="color_palette">カラーパレット</string>
     <string name="customize_theme_colors">アプリのテーマカラーを選択</string>
@@ -232,7 +247,7 @@
     <string name="palette_warm_amber">アンバー</string>
     <string name="palette_tangerine_blast">タンジェリン</string>
     <string name="palette_peach">ピーチ</string>
-    <string name="palette_mango">マンゴー</string>
+    <string name="palette_mango">망고</string>
     <!-- Purples -->
     <string name="palette_royal_purple">ロイヤルパープル</string>
     <string name="palette_lavender_dream">ラベンダー</string>
@@ -384,6 +399,8 @@
     <string name="auto_load_more_desc">可能であれば、キューの終わりに達したときに自動的に曲を追加</string>
     <string name="skip_silence">無音部分をスキップ</string>
     <string name="audio_normalization">音声正規化</string>
+    <string name="audio_offload">オーディオオフロード</string>
+    <string name="audio_offload_desc">サポートされているデバイスで低電力ハードウェアデコードを使用してオーディオを再生します。一部のオーディオ処理機能は無効になります。</string>
     <string name="auto_skip_next_on_error">エラー発生時は次の曲に自動スキップ</string>
     <string name="auto_skip_next_on_error_desc">連続再生エクスペリエンス</string>
     <string name="stop_music_on_task_clear">タスククリア時に音楽を停止</string>
@@ -533,7 +550,7 @@
     <string name="content_length_label">コンテンツの長さ</string>
     <string name="unknown_content_length">不明なコンテンツの長さ</string>
     <string name="format_label">フォーマット</string>
-    <string name="loading_format">フォーマットを読み込み中...</string>
+    <string name="loading_format">フォーマットを読み込み中…</string>
     <string name="buffer_health_label">バッファ状態</string>
     <string name="playback_speed_label">再生速度</string>
     <string name="state_label">状態</string>
@@ -641,4 +658,69 @@
     <!-- Playlist Suggestions -->
     <string name="you_might_like">あなた好み</string>
     <string name="refresh_suggestions">提案を更新</string>
+
+    <string name="music_together">ArchiveTune Music Together</string>
+    <string name="together_display_name">表示名</string>
+    <string name="together_display_name_placeholder">あなたの名前</string>
+    <string name="together_port">セッションポート</string>
+    <string name="together_allow_guests_add">ゲストは曲を追加できます</string>
+    <string name="together_allow_guests_control">ゲストは再生を制御できます</string>
+    <string name="together_require_approval">承認が必要</string>
+    <string name="together_lan">LAN</string>
+    <string name="together_online">オンライン</string>
+    <string name="together_join_link">リンク</string>
+    <string name="together_join_code">コード</string>
+    <string name="together_join_link_hint">参加リンクまたはコードを貼り付け</string>
+    <string name="together_join_code_hint">セッションコードを入力</string>
+    <string name="start_session">セッションを開始</string>
+    <string name="end_session">セッションを終了</string>
+    <string name="join_session">セッションに参加</string>
+    <string name="session_link">セッショリンク</string>
+    <string name="session_code">セッションコード</string>
+    <string name="participants">参加者</string>
+    <string name="pending_requests">参加リクエスト</string>
+    <string name="waiting_for_approval">承認待ち</string>
+    <string name="host">ホスト</string>
+    <string name="session_settings">セッション設定</string>
+    <string name="add_current_song">現在の曲を追加</string>
+    <string name="playback_controls">再生コントロール</string>
+    <string name="approve">承認</string>
+    <string name="deny">拒否</string>
+    <string name="enabled">有効</string>
+    <string name="disabled">無効</string>
+    <string name="invalid_link">無効なリンク</string>
+    <string name="invalid_code">無効なコード</string>
+    <string name="not_allowed">許可されていません</string>
+    <string name="network_unavailable">ネットワークが利用できません</string>
+    <string name="together_online_not_configured">オンラインセッションは設定されていません</string>
+    <string name="together_server_unreachable">サーバーに到達できません</string>
+    <string name="together_connection_timed_out">接続がタイムアウトしました</string>
+    <string name="together_session_not_found">セッションが見つかりません</string>
+    <string name="together_server_error">サーバーエラー、後でもう一度お試しください</string>
+    <string name="leave">離れる</string>
+    <string name="join">参加</string>
+    <string name="joined">参加しました</string>
+    <string name="loading">読み込み中</string>
+    <string name="connecting">接続中…</string>
+    <string name="copy_link">リンクをコピー</string>
+
+    <string name="together_host_section">ホスト</string>
+    <string name="together_join_section">参加</string>
+    <string name="together_status">ステータス</string>
+    <string name="together_idle">セッションしていません</string>
+    <string name="together_hosting">セッションをホスト中</string>
+    <string name="together_joining">セッションに参加中</string>
+    <string name="together_connected">接続済み</string>
+    <string name="together_error_state">エラー</string>
+
+    <string name="got_it">了解</string>
+    <string name="together_dont_show_again">これを二度と表示しない</string>
+    <string name="together_welcome_title">ArchiveTune Music Togetherへようこそ</string>
+    <string name="together_welcome_body">Music Togetherを使用すると、複数のデバイスで同期キューと再生を備えたライブセッションを共有できます。</string>
+    <string name="together_welcome_host_title">セッションをホスト</string>
+    <string name="together_welcome_host_body">「セッションを開始」をタップし、セッションリンクを共有します。ホストしている間はArchiveTuneをバックグラウンドで開いたままにしてください。</string>
+    <string name="together_welcome_join_title">別のデバイスから参加</string>
+    <string name="together_welcome_join_body">オープンな共有リンク、またはコードを入力して「参加」をタップします。キューと再生はホストに従います。</string>
+    <string name="together_welcome_permissions_title">権限と安全</string>
+    <string name="together_welcome_permissions_body">ホストは、曲の追加、再生の制御、参加の承認要求をゲストに許可するかどうかを決定できます。</string>
 </resources>

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <string name="explore">Khám phá</string>
     <string name="local_history">Cục bộ</string>
     <string name="remote_history">Từ xa</string>
@@ -8,7 +8,7 @@
     <string name="no_title">Không có tiêu đề</string>
     <string name="unknown_artist">Nghệ sĩ không xác định</string>
     <string name="unknown_item_type">Loại mục không xác định</string>
-    <string name="loading_charts">Đang tải bảng xếp hạng...</string>
+    <string name="loading_charts">Đang tải bảng xếp hạng…</string>
     <string name="retry_button">Thử lại</string>
     <string name="album_cover_desc">Bìa album</string>
     <string name="top_music_videos">Video âm nhạc hàng đầu</string>
@@ -41,7 +41,6 @@
     <string name="added_to_play_next">Đã thêm để phát tiếp theo</string>
     <string name="added_to_queue">Đã thêm vào hàng đợi</string>
     <string name="remove_from_cache">Xóa khỏi cache</string>
-    <string name="copy_link">Sao chép liên kết</string>
     <string name="select">Chọn tất cả</string>
     <string name="manage_tags">Quản lý Thẻ</string>
     <string name="add_tag">Thêm Thẻ</string>
