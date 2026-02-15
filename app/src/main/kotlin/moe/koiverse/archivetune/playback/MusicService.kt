@@ -3907,6 +3907,13 @@ class MusicService :
         try { DiscordPresenceManager.stop() } catch (_: Exception) {}
         lastPresenceToken = null
 
+        val stopMusicOnTaskClearEnabled =
+            runCatching {
+                kotlinx.coroutines.runBlocking(Dispatchers.IO) {
+                    dataStore.getAsync(StopMusicOnTaskClearKey, false)
+                }
+            }.getOrDefault(false)
+
         try {
             val state = togetherSessionState.value
             val isHostSessionActive =
@@ -3917,17 +3924,26 @@ class MusicService :
 
             val isPlaybackInactive = player.playbackState == Player.STATE_IDLE || player.mediaItemCount == 0
 
-            if (isHostSessionActive && isPlaybackInactive) {
-                runCatching { kotlinx.coroutines.runBlocking { stopTogetherInternal() } }
-                runCatching { togetherSessionState.value = moe.koiverse.archivetune.together.TogetherSessionState.Idle }
-                stopSelf()
-                return
-            }
-        } catch (_: Exception) {}
+            if (shouldStopServiceOnTaskRemoved(stopMusicOnTaskClearEnabled, isHostSessionActive, isPlaybackInactive)) {
+                if (isHostSessionActive && isPlaybackInactive) {
+                    runCatching { kotlinx.coroutines.runBlocking { stopTogetherInternal() } }
+                    runCatching { togetherSessionState.value = moe.koiverse.archivetune.together.TogetherSessionState.Idle }
+                    stopSelf()
+                    return
+                }
 
-        try {
-            if (dataStore.get(StopMusicOnTaskClearKey, false)) {
-                stopSelf()
+                if (stopMusicOnTaskClearEnabled) {
+                    runCatching { stopAndClearPlayback() }
+                    runCatching {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                            stopForeground(STOP_FOREGROUND_REMOVE)
+                        } else {
+                            stopForeground(true)
+                        }
+                    }
+                    stopSelf()
+                    return
+                }
             }
         } catch (_: Exception) {}
     }
@@ -3952,6 +3968,12 @@ class MusicService :
     }
 
     companion object {
+        internal fun shouldStopServiceOnTaskRemoved(
+            stopMusicOnTaskClearEnabled: Boolean,
+            isHostSessionActive: Boolean,
+            isPlaybackInactive: Boolean,
+        ): Boolean = (isHostSessionActive && isPlaybackInactive) || stopMusicOnTaskClearEnabled
+
         const val ROOT = "root"
         const val SONG = "song"
         const val ARTIST = "artist"
