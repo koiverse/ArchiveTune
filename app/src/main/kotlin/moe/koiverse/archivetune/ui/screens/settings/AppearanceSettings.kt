@@ -79,6 +79,7 @@ import moe.koiverse.archivetune.constants.UseNewMiniPlayerDesignKey
 import moe.koiverse.archivetune.constants.PlayerBackgroundStyle
 import moe.koiverse.archivetune.constants.PlayerBackgroundStyleKey
 import moe.koiverse.archivetune.constants.PureBlackKey
+import moe.koiverse.archivetune.constants.RandomThemeOnStartupKey
 import moe.koiverse.archivetune.constants.UseSystemFontKey
 import moe.koiverse.archivetune.constants.PlayerButtonsStyle
 import moe.koiverse.archivetune.constants.PlayerButtonsStyleKey
@@ -127,6 +128,10 @@ fun AppearanceSettings(
     val (dynamicTheme, onDynamicThemeChange) = rememberPreference(
         DynamicThemeKey,
         defaultValue = true
+    )
+    val (randomThemeOnStartup, onRandomThemeOnStartupChange) = rememberPreference(
+        RandomThemeOnStartupKey,
+        defaultValue = false
     )
     val (darkMode, onDarkModeChange) = rememberEnumPreference(
         DarkModeKey,
@@ -407,6 +412,16 @@ fun AppearanceSettings(
             checked = dynamicTheme,
             onCheckedChange = onDynamicThemeChange,
         )
+
+        AnimatedVisibility(visible = !dynamicTheme || Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
+            SwitchPreference(
+                title = { Text(stringResource(R.string.random_theme_on_startup)) },
+                description = stringResource(R.string.random_theme_on_startup_desc),
+                icon = { Icon(painterResource(R.drawable.shuffle), null) },
+                checked = randomThemeOnStartup,
+                onCheckedChange = onRandomThemeOnStartupChange,
+            )
+        }
 
         AnimatedVisibility(visible = !dynamicTheme || Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
             PreferenceEntry(
