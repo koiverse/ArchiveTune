@@ -729,11 +729,34 @@ fun Queue(
                                                     if (index == currentWindowIndex) {
                                                         playerConnection.player.togglePlayPause()
                                                     } else {
-                                                        playerConnection.player.seekToDefaultPosition(
-                                                            window.firstPeriodIndex,
-                                                        )
-                                                        playerConnection.player.playWhenReady = true
-                                                        shouldScrollToCurrent = false
+                                                        val joined =
+                                                            togetherSessionState as? moe.koiverse.archivetune.together.TogetherSessionState.Joined
+                                                        val isGuest = joined?.role is moe.koiverse.archivetune.together.TogetherRole.Guest
+                                                        if (isGuest) {
+                                                            if (joined?.roomState?.settings?.allowGuestsToControlPlayback != true) {
+                                                                Toast.makeText(context, R.string.not_allowed, Toast.LENGTH_SHORT).show()
+                                                                return@combinedClickable
+                                                            }
+                                                            val trackId =
+                                                                window.mediaItem.metadata?.id?.trim().orEmpty().ifBlank {
+                                                                    window.mediaItem.mediaId.trim()
+                                                                }
+                                                            if (trackId.isBlank()) return@combinedClickable
+                                                            Toast.makeText(context, R.string.together_requesting_song_change, Toast.LENGTH_SHORT).show()
+                                                            playerConnection.service.requestTogetherControl(
+                                                                moe.koiverse.archivetune.together.ControlAction.SeekToTrack(
+                                                                    trackId = trackId,
+                                                                    positionMs = 0L,
+                                                                ),
+                                                            )
+                                                            shouldScrollToCurrent = false
+                                                        } else {
+                                                            playerConnection.player.seekToDefaultPosition(
+                                                                window.firstPeriodIndex,
+                                                            )
+                                                            playerConnection.player.playWhenReady = true
+                                                            shouldScrollToCurrent = false
+                                                        }
                                                     }
                                                 }
                                             },
