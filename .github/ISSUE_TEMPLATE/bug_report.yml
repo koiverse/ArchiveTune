@@ -1,6 +1,6 @@
 name: Bug Report
 description: Report a bug to help us improve ArchiveTune
-labels: [bug]
+labels: [BUG]
 body:
   - type: checkboxes
     id: pre-submission-checklist
