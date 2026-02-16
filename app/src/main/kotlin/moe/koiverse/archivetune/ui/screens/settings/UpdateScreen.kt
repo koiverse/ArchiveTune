@@ -116,6 +116,7 @@ fun UpdateScreen(
     var isLoadingCommits by remember { mutableStateOf(true) }
     var latestVersion by remember { mutableStateOf<String?>(null) }
     var isExpanded by remember { mutableStateOf(true) }
+    var showNightlyChannelConfirmDialog by remember { mutableStateOf(false) }
     var hasNotificationPermission by remember {
         mutableStateOf(
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -137,6 +138,80 @@ fun UpdateScreen(
             onEnableUpdateNotificationChange(true)
             UpdateNotificationManager.schedulePeriodicUpdateCheck(context)
         }
+    }
+
+    if (showNightlyChannelConfirmDialog) {
+        AlertDialog(
+            onDismissRequest = { showNightlyChannelConfirmDialog = false },
+            title = { Text(stringResource(R.string.channel_nightly)) },
+            text = {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = "ArchiveTune provides two download channels for builds:",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(
+                            text = "• Stable builds",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(
+                            text = "Distributed via official GitHub Releases.",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                        Text(
+                            text = "These versions are tested and recommended for most users.",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(
+                            text = "• Nightly builds",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(
+                            text = "Automatically generated development builds hosted via nightly.link.",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                        Text(
+                            text = "Nightly builds may include experimental features, unfinished changes, or temporary regressions.",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+
+                    Text(
+                        text = "Nightly builds are provided for testing and early access only.\nStability, compatibility, and functionality are not guaranteed.",
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                    Text(
+                        text = "By continuing, you acknowledge that nightly builds may be unstable and use them at your own risk.",
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showNightlyChannelConfirmDialog = false
+                        onUpdateChannelChange(UpdateChannel.NIGHTLY)
+                    }
+                ) {
+                    Text(stringResource(android.R.string.ok))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showNightlyChannelConfirmDialog = false }) {
+                    Text(stringResource(android.R.string.cancel))
+                }
+            }
+        )
     }
 
     LaunchedEffect(Unit) {
@@ -286,7 +361,13 @@ fun UpdateScreen(
                             UpdateChannel.NIGHTLY -> stringResource(R.string.channel_nightly)
                         }
                     },
-                    onValueSelected = onUpdateChannelChange
+                    onValueSelected = { selectedChannel ->
+                        if (selectedChannel == UpdateChannel.NIGHTLY && updateChannel != UpdateChannel.NIGHTLY) {
+                            showNightlyChannelConfirmDialog = true
+                        } else {
+                            onUpdateChannelChange(selectedChannel)
+                        }
+                    }
                 )
             }
 
