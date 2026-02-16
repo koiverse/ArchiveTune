@@ -381,6 +381,7 @@ class MusicService :
         val desiredIsPlaying: Boolean? = null,
         val desiredIndex: Int? = null,
         val desiredTrackId: String? = null,
+        val requestedAtElapsedMs: Long,
         val expiresAtElapsedMs: Long,
     )
 
@@ -1185,10 +1186,64 @@ class MusicService :
         playWhenReady: Boolean = true,
     ) {
         val joined = togetherSessionState.value as? moe.koiverse.archivetune.together.TogetherSessionState.Joined
-        if (!isTogetherApplyingRemote() &&
-            joined?.role is moe.koiverse.archivetune.together.TogetherRole.Guest &&
-            !joined.roomState.settings.allowGuestsToControlPlayback
-        ) {
+        if (!isTogetherApplyingRemote() && joined?.role is moe.koiverse.archivetune.together.TogetherRole.Guest) {
+            if (!joined.roomState.settings.allowGuestsToControlPlayback) {
+                showTogetherNotice(getString(R.string.not_allowed), key = "GUEST_PLAYQUEUE_DISABLED")
+                return
+            }
+            ensureScopesActive()
+            scope.launch(SilentHandler) {
+                val initialStatus =
+                    withContext(Dispatchers.IO) {
+                        queue.getInitialStatus()
+                            .filterExplicit(dataStore.get(HideExplicitKey, false))
+                            .filterVideo(dataStore.get(HideVideoKey, false))
+                    }
+
+                val targetItem =
+                    initialStatus.items.getOrNull(initialStatus.mediaItemIndex)
+                        ?: queue.preloadItem?.toMediaItem()
+
+                val meta = targetItem?.metadata
+                val trackId =
+                    meta?.id?.trim().orEmpty().ifBlank {
+                        targetItem?.mediaId?.trim().orEmpty()
+                    }
+                if (trackId.isBlank()) {
+                    showTogetherNotice(getString(R.string.not_allowed), key = "GUEST_PLAYQUEUE_NO_TRACK")
+                    return@launch
+                }
+
+                val track =
+                    moe.koiverse.archivetune.together.TogetherTrack(
+                        id = trackId,
+                        title = meta?.title ?: trackId,
+                        artists = meta?.artists?.map { it.name }.orEmpty(),
+                        durationSec = meta?.duration ?: -1,
+                        thumbnailUrl = meta?.thumbnailUrl,
+                    )
+
+                val ops =
+                    moe.koiverse.archivetune.together.TogetherGuestPlaybackPlanner.planPlayTrackNow(
+                        roomState = joined.roomState,
+                        track = track,
+                        positionMs = initialStatus.position,
+                        playWhenReady = playWhenReady,
+                    )
+
+                if (ops.isEmpty()) {
+                    showTogetherNotice(getString(R.string.not_allowed), key = "GUEST_PLAYQUEUE_BLOCKED")
+                    return@launch
+                }
+
+                showTogetherNotice(getString(R.string.together_requesting_song_change), key = "GUEST_PLAYQUEUE_REQUEST")
+                ops.forEach { op ->
+                    when (op) {
+                        is moe.koiverse.archivetune.together.TogetherGuestOp.Control -> requestTogetherControl(op.action)
+                        is moe.koiverse.archivetune.together.TogetherGuestOp.AddTrack -> requestTogetherAddTrack(op.track, op.mode)
+                    }
+                }
+            }
             return
         }
         ensureScopesActive()
@@ -1300,10 +1355,12 @@ class MusicService :
 
     fun startRadioSeamlessly() {
         val joined = togetherSessionState.value as? moe.koiverse.archivetune.together.TogetherSessionState.Joined
-        if (!isTogetherApplyingRemote() &&
-            joined?.role is moe.koiverse.archivetune.together.TogetherRole.Guest &&
-            !joined.roomState.settings.allowGuestsToControlPlayback
-        ) {
+        if (!isTogetherApplyingRemote() && joined?.role is moe.koiverse.archivetune.together.TogetherRole.Guest) {
+            if (!joined.roomState.settings.allowGuestsToControlPlayback) {
+                showTogetherNotice(getString(R.string.not_allowed), key = "GUEST_RADIO_DISABLED")
+                return
+            }
+            showTogetherNotice(getString(R.string.not_allowed), key = "GUEST_RADIO_UNSUPPORTED")
             return
         }
         suppressAutoPlayback = false
@@ -2154,7 +2211,11 @@ class MusicService :
     }
 
     fun requestTogetherControl(action: moe.koiverse.archivetune.together.ControlAction) {
-        val client = togetherClient ?: return
+        val client =
+            togetherClient ?: run {
+                showTogetherNotice(getString(R.string.network_unavailable), key = "TOGETHER_CLIENT_MISSING")
+                return
+            }
         val state = togetherSessionState.value as? moe.koiverse.archivetune.together.TogetherSessionState.Joined ?: return
         if (state.role !is moe.koiverse.archivetune.together.TogetherRole.Guest) return
         if (!state.roomState.settings.allowGuestsToControlPlayback) {
@@ -2172,13 +2233,17 @@ class MusicService :
         togetherPendingGuestControl =
             when (action) {
                 moe.koiverse.archivetune.together.ControlAction.Play ->
-                    TogetherPendingGuestControl(desiredIsPlaying = true, expiresAtElapsedMs = now + 2000L)
+                    TogetherPendingGuestControl(desiredIsPlaying = true, requestedAtElapsedMs = now, expiresAtElapsedMs = now + 2000L)
                 moe.koiverse.archivetune.together.ControlAction.Pause ->
-                    TogetherPendingGuestControl(desiredIsPlaying = false, expiresAtElapsedMs = now + 2000L)
+                    TogetherPendingGuestControl(desiredIsPlaying = false, requestedAtElapsedMs = now, expiresAtElapsedMs = now + 2000L)
                 is moe.koiverse.archivetune.together.ControlAction.SeekToIndex ->
-                    TogetherPendingGuestControl(desiredIndex = action.index.coerceAtLeast(0), expiresAtElapsedMs = now + 2000L)
+                    TogetherPendingGuestControl(desiredIndex = action.index.coerceAtLeast(0), requestedAtElapsedMs = now, expiresAtElapsedMs = now + 900L)
                 is moe.koiverse.archivetune.together.ControlAction.SeekToTrack ->
-                    TogetherPendingGuestControl(desiredTrackId = action.trackId.trim().ifBlank { null }, expiresAtElapsedMs = now + 2000L)
+                    TogetherPendingGuestControl(
+                        desiredTrackId = action.trackId.trim().ifBlank { null },
+                        requestedAtElapsedMs = now,
+                        expiresAtElapsedMs = now + 900L,
+                    )
                 else -> togetherPendingGuestControl
             }
         client.requestControl(state.sessionId, action)
@@ -2360,14 +2425,20 @@ class MusicService :
 
         val pending = togetherPendingGuestControl
         if (pending != null) {
+            val currentTrackId = state.queue.getOrNull(state.currentIndex.coerceAtLeast(0))?.id
+            val mismatch =
+                (pending.desiredIsPlaying != null && state.isPlaying != pending.desiredIsPlaying) ||
+                    (pending.desiredIndex != null && state.currentIndex != pending.desiredIndex) ||
+                    (pending.desiredTrackId != null && currentTrackId != pending.desiredTrackId)
             if (now >= pending.expiresAtElapsedMs) {
+                if ((pending.desiredIndex != null || pending.desiredTrackId != null) &&
+                    now - pending.requestedAtElapsedMs >= 1200L &&
+                    mismatch
+                ) {
+                    showTogetherNotice(getString(R.string.together_song_change_failed), key = "GUEST_SEEK_TIMEOUT")
+                }
                 togetherPendingGuestControl = null
             } else {
-                val currentTrackId = state.queue.getOrNull(state.currentIndex.coerceAtLeast(0))?.id
-                val mismatch =
-                    (pending.desiredIsPlaying != null && state.isPlaying != pending.desiredIsPlaying) ||
-                        (pending.desiredIndex != null && state.currentIndex != pending.desiredIndex) ||
-                        (pending.desiredTrackId != null && currentTrackId != pending.desiredTrackId)
                 if (mismatch) return
                 togetherPendingGuestControl = null
             }
@@ -3892,6 +3963,13 @@ class MusicService :
         try { DiscordPresenceManager.stop() } catch (_: Exception) {}
         lastPresenceToken = null
 
+        val stopMusicOnTaskClearEnabled =
+            runCatching {
+                kotlinx.coroutines.runBlocking(Dispatchers.IO) {
+                    dataStore.getAsync(StopMusicOnTaskClearKey, false)
+                }
+            }.getOrDefault(false)
+
         try {
             val state = togetherSessionState.value
             val isHostSessionActive =
@@ -3902,17 +3980,26 @@ class MusicService :
 
             val isPlaybackInactive = player.playbackState == Player.STATE_IDLE || player.mediaItemCount == 0
 
-            if (isHostSessionActive && isPlaybackInactive) {
-                runCatching { kotlinx.coroutines.runBlocking { stopTogetherInternal() } }
-                runCatching { togetherSessionState.value = moe.koiverse.archivetune.together.TogetherSessionState.Idle }
-                stopSelf()
-                return
-            }
-        } catch (_: Exception) {}
+            if (shouldStopServiceOnTaskRemoved(stopMusicOnTaskClearEnabled, isHostSessionActive, isPlaybackInactive)) {
+                if (isHostSessionActive && isPlaybackInactive) {
+                    runCatching { kotlinx.coroutines.runBlocking { stopTogetherInternal() } }
+                    runCatching { togetherSessionState.value = moe.koiverse.archivetune.together.TogetherSessionState.Idle }
+                    stopSelf()
+                    return
+                }
 
-        try {
-            if (dataStore.get(StopMusicOnTaskClearKey, false)) {
-                stopSelf()
+                if (stopMusicOnTaskClearEnabled) {
+                    runCatching { stopAndClearPlayback() }
+                    runCatching {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                            stopForeground(STOP_FOREGROUND_REMOVE)
+                        } else {
+                            stopForeground(true)
+                        }
+                    }
+                    stopSelf()
+                    return
+                }
             }
         } catch (_: Exception) {}
     }
@@ -3937,6 +4024,12 @@ class MusicService :
     }
 
     companion object {
+        internal fun shouldStopServiceOnTaskRemoved(
+            stopMusicOnTaskClearEnabled: Boolean,
+            isHostSessionActive: Boolean,
+            isPlaybackInactive: Boolean,
+        ): Boolean = (isHostSessionActive && isPlaybackInactive) || stopMusicOnTaskClearEnabled
+
         const val ROOT = "root"
         const val SONG = "song"
         const val ARTIST = "artist"

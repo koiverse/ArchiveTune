@@ -52,6 +52,9 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import kotlinx.coroutines.withContext
 
+internal fun playlistsForAddToPlaylist(playlists: List<Playlist>): List<Playlist> =
+    playlists.filter { it.playlist.isEditable || it.playlist.browseId != null }
+
 @Composable
 fun AddToPlaylistDialog(
     isVisible: Boolean,
@@ -63,9 +66,10 @@ fun AddToPlaylistDialog(
 ) {
     val database = LocalDatabase.current
     val coroutineScope = rememberCoroutineScope()
-    var playlists by remember { mutableStateOf(emptyList<Playlist>()) }
+    var allPlaylists by remember { mutableStateOf(emptyList<Playlist>()) }
     val (innerTubeCookie) = rememberPreference(InnerTubeCookieKey, "")
     val isLoggedIn = remember(innerTubeCookie) { "SAPISID" in parseCookieString(innerTubeCookie) }
+    val playlists = remember(allPlaylists) { playlistsForAddToPlaylist(allPlaylists).asReversed() }
     var showCreatePlaylistDialog by rememberSaveable { mutableStateOf(false) }
     var showDuplicateDialog by remember { mutableStateOf(false) }
     var playlistsWithDuplicates by remember { mutableStateOf<List<Playlist>>(emptyList()) }
@@ -76,8 +80,8 @@ fun AddToPlaylistDialog(
 
 
     LaunchedEffect(Unit) {
-        database.editablePlaylistsByCreateDateAsc().collect {
-            playlists = it.asReversed()
+        database.playlistsByCreateDateAsc().collect {
+            allPlaylists = it
         }
     }
 
@@ -165,11 +169,12 @@ fun AddToPlaylistDialog(
                                     }
                                 }
 
-                            playlistsWithoutDups.forEach { playlist ->
+                                playlistsWithoutDups.forEach { playlist ->
                                     database.addSongToPlaylist(playlist, currentSongIds)
-                                    playlist.playlist.browseId?.let { plist ->
+                                    val browseId = playlist.playlist.browseId
+                                    if (isLoggedIn && browseId != null) {
                                         currentSongIds.forEach { songId ->
-                                            YouTube.addToPlaylist(plist, songId)
+                                            runCatching { YouTube.addToPlaylist(browseId, songId) }
                                         }
                                     }
                                 }
@@ -231,6 +236,12 @@ fun AddToPlaylistDialog(
                                 val songsToAdd = songIds!!.filter { it !in duplicatesForThisPlaylist }
                                 if (songsToAdd.isNotEmpty()) {
                                     database.addSongToPlaylist(playlist, songsToAdd)
+                                    val browseId = playlist.playlist.browseId
+                                    if (isLoggedIn && browseId != null) {
+                                        songsToAdd.forEach { songId ->
+                                            runCatching { YouTube.addToPlaylist(browseId, songId) }
+                                        }
+                                    }
                                     totalAdded += songsToAdd.size
                                 }
                             }
@@ -253,6 +264,12 @@ fun AddToPlaylistDialog(
                         coroutineScope.launch(Dispatchers.IO) {
                             playlistsWithDuplicates.forEach { playlist ->
                                 database.addSongToPlaylist(playlist, songIds!!)
+                                val browseId = playlist.playlist.browseId
+                                if (isLoggedIn && browseId != null) {
+                                    songIds!!.forEach { songId ->
+                                        runCatching { YouTube.addToPlaylist(browseId, songId) }
+                                    }
+                                }
                             }
                             val names = playlistsWithDuplicates.map { it.playlist.name }
                             withContext(Dispatchers.Main) {

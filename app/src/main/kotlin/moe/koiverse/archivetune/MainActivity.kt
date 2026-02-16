@@ -222,6 +222,7 @@ import moe.koiverse.archivetune.utils.SyncUtils
 import moe.koiverse.archivetune.utils.Updater
 import moe.koiverse.archivetune.utils.dataStore
 import moe.koiverse.archivetune.utils.get
+import moe.koiverse.archivetune.utils.getAsync
 import moe.koiverse.archivetune.utils.rememberEnumPreference
 import moe.koiverse.archivetune.utils.rememberPreference
 import moe.koiverse.archivetune.utils.reportException
@@ -386,11 +387,18 @@ class MainActivity : ComponentActivity() {
             try { DiscordPresenceManager.stop() } catch (_: Exception) {}
         }
 
-        if (dataStore.get(
-                StopMusicOnTaskClearKey,
+        val shouldStopOnTaskClear =
+            if (!isFinishing) {
                 false
-            ) && playerConnection?.isPlaying?.value == true && isFinishing
-        ) {
+            } else {
+                runCatching {
+                    runBlocking(Dispatchers.IO) {
+                        dataStore.getAsync(StopMusicOnTaskClearKey, false)
+                    }
+                }.getOrDefault(false)
+            }
+
+        if (shouldStopOnTaskClear) {
             safeUnbindMusicService()
             stopService(Intent(this, MusicService::class.java))
             playerConnection = null
