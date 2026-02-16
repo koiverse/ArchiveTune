@@ -908,39 +908,60 @@ fun OnlinePlaylistScreen(
                         }
                     }
                 } else {
-                    // Error State
+                    val isPrivatePlaylist = error?.contains("PLAYLIST_PRIVATE") == true
                     item(key = "error") {
                         Column(
                             modifier = Modifier.fillMaxWidth().padding(32.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            Text(
-                                text =
-                                    if (error != null) {
-                                        stringResource(R.string.error_unknown)
-                                    } else {
-                                        stringResource(R.string.playlist_not_found)
-                                    },
-                                style = MaterialTheme.typography.titleLarge,
-                                color =
-                                    if (error != null) MaterialTheme.colorScheme.error
-                                    else MaterialTheme.colorScheme.onSurface
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                text =
-                                    if (error != null) {
-                                        error!!
-                                    } else {
-                                        stringResource(R.string.playlist_not_found_desc)
-                                    },
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            if (error != null) {
+                            if (isPrivatePlaylist) {
+                                Image(
+                                    painter = painterResource(R.drawable.anime_blank),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(120.dp)
+                                )
                                 Spacer(modifier = Modifier.height(16.dp))
-                                Button(onClick = { viewModel.retry() }) {
-                                    Text(stringResource(R.string.retry))
+                                Text(
+                                    text = stringResource(R.string.playlist_private_title),
+                                    style = MaterialTheme.typography.titleLarge,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = stringResource(R.string.playlist_private_desc),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    textAlign = TextAlign.Center
+                                )
+                            } else {
+                                Text(
+                                    text =
+                                        if (error != null) {
+                                            stringResource(R.string.error_unknown)
+                                        } else {
+                                            stringResource(R.string.playlist_not_found)
+                                        },
+                                    style = MaterialTheme.typography.titleLarge,
+                                    color =
+                                        if (error != null) MaterialTheme.colorScheme.error
+                                        else MaterialTheme.colorScheme.onSurface
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text =
+                                        if (error != null) {
+                                            error!!
+                                        } else {
+                                            stringResource(R.string.playlist_not_found_desc)
+                                        },
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                if (error != null) {
+                                    Spacer(modifier = Modifier.height(16.dp))
+                                    Button(onClick = { viewModel.retry() }) {
+                                        Text(stringResource(R.string.retry))
+                                    }
                                 }
                             }
                         }

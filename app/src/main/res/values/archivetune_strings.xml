@@ -184,6 +184,8 @@
     <string name="subscribed">Subscribed</string>
     <string name="playlist_not_found">Playlist not found</string>
     <string name="playlist_not_found_desc">The requested playlist could not be loaded</string>
+    <string name="playlist_private_title">This playlist was private</string>
+    <string name="playlist_private_desc">You don\'t have access to this playlist.</string>
     <string name="empty_playlist">Empty Playlist</string>
     <string name="empty_playlist_desc">This playlist doesn\'t contain any songs</string>
     <plurals name="seconds">
