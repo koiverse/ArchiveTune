@@ -2230,19 +2230,20 @@ class MusicService :
         togetherLastSentControlAction = action
         togetherLastSentControlAtElapsedMs = now
 
+        val timeout = if (togetherIsOnlineSession) 5000L else 2000L
         togetherPendingGuestControl =
             when (action) {
                 moe.koiverse.archivetune.together.ControlAction.Play ->
-                    TogetherPendingGuestControl(desiredIsPlaying = true, requestedAtElapsedMs = now, expiresAtElapsedMs = now + 2000L)
+                    TogetherPendingGuestControl(desiredIsPlaying = true, requestedAtElapsedMs = now, expiresAtElapsedMs = now + timeout)
                 moe.koiverse.archivetune.together.ControlAction.Pause ->
-                    TogetherPendingGuestControl(desiredIsPlaying = false, requestedAtElapsedMs = now, expiresAtElapsedMs = now + 2000L)
+                    TogetherPendingGuestControl(desiredIsPlaying = false, requestedAtElapsedMs = now, expiresAtElapsedMs = now + timeout)
                 is moe.koiverse.archivetune.together.ControlAction.SeekToIndex ->
-                    TogetherPendingGuestControl(desiredIndex = action.index.coerceAtLeast(0), requestedAtElapsedMs = now, expiresAtElapsedMs = now + 900L)
+                    TogetherPendingGuestControl(desiredIndex = action.index.coerceAtLeast(0), requestedAtElapsedMs = now, expiresAtElapsedMs = now + timeout)
                 is moe.koiverse.archivetune.together.ControlAction.SeekToTrack ->
                     TogetherPendingGuestControl(
                         desiredTrackId = action.trackId.trim().ifBlank { null },
                         requestedAtElapsedMs = now,
-                        expiresAtElapsedMs = now + 900L,
+                        expiresAtElapsedMs = now + timeout,
                     )
                 else -> togetherPendingGuestControl
             }
@@ -2450,7 +2451,8 @@ class MusicService :
 
         val offset = if (togetherIsOnlineSession) 0L else (togetherClock?.snapshot()?.estimatedOffsetMs ?: 0L)
         val correctedSentAt = sentAt + offset
-        val delta = if (togetherIsOnlineSession) 0L else (now - correctedSentAt).coerceAtLeast(0L)
+        val estimatedOnlineLatency = if (togetherIsOnlineSession) 1200L else 0L
+        val delta = if (togetherIsOnlineSession) estimatedOnlineLatency else (now - correctedSentAt).coerceAtLeast(0L)
         val targetPos =
             if (state.isPlaying) (state.positionMs + delta).coerceAtLeast(0L) else state.positionMs.coerceAtLeast(0L)
 
@@ -2490,24 +2492,36 @@ class MusicService :
                     togetherLastRemoteAppliedIndex = startIndex
                 } else {
                     val index = state.currentIndex.coerceAtLeast(0)
-                    if (player.mediaItemCount > 0 && index != player.currentMediaItemIndex) {
+                    val indexChanged = player.mediaItemCount > 0 && index != player.currentMediaItemIndex
+                    val stateChanged =
+                        player.repeatMode != state.repeatMode ||
+                            player.shuffleModeEnabled != state.shuffleEnabled ||
+                            player.playWhenReady != state.isPlaying
+
+                    if (indexChanged) {
                         player.seekTo(index.coerceAtMost(player.mediaItemCount - 1), targetPos)
                         player.prepare()
+                        player.playWhenReady = state.isPlaying
+                    } else if (stateChanged) {
+                        if (player.repeatMode != state.repeatMode) player.repeatMode = state.repeatMode
+                        if (player.shuffleModeEnabled != state.shuffleEnabled) player.shuffleModeEnabled = state.shuffleEnabled
+                        if (player.playWhenReady != state.isPlaying) {
+                            player.playWhenReady = state.isPlaying
+                            val drift = kotlin.math.abs(player.currentPosition - targetPos)
+                            if (drift > 100) {
+                                player.seekTo(targetPos)
+                                player.prepare()
+                            }
+                        }
                     } else {
                         val drift = kotlin.math.abs(player.currentPosition - targetPos)
-                        if (drift > 500) {
+                        val seekThreshold = if (togetherIsOnlineSession) 4000L else 2000L
+                        val threshold = if (state.isPlaying) seekThreshold else 200L
+                        
+                        if (drift > threshold) {
                             player.seekTo(targetPos)
                             player.prepare()
                         }
-                    }
-                    if (player.repeatMode != state.repeatMode) {
-                        player.repeatMode = state.repeatMode
-                    }
-                    if (player.shuffleModeEnabled != state.shuffleEnabled) {
-                        player.shuffleModeEnabled = state.shuffleEnabled
-                    }
-                    if (player.playWhenReady != state.isPlaying) {
-                        player.playWhenReady = state.isPlaying
                     }
                     togetherLastRemoteAppliedIndex = index
                 }
