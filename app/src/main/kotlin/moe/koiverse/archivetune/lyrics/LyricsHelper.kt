@@ -25,12 +25,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.Dispatchers
 import javax.inject.Inject
 
@@ -49,26 +45,6 @@ constructor(
             YouTubeSubtitleLyricsProvider,
             YouTubeLyricsProvider,
         )
-
-    private var lyricsProviders =
-        baseProviders
-
-    val preferred =
-        context.dataStore.data
-            .map {
-                it[PreferredLyricsProviderKey].toEnum(PreferredLyricsProvider.LRCLIB)
-            }.distinctUntilChanged()
-            .map {
-                val first =
-                    when (it) {
-                        PreferredLyricsProvider.LRCLIB -> LrcLibLyricsProvider
-                        PreferredLyricsProvider.KUGOU -> KuGouLyricsProvider
-                        PreferredLyricsProvider.BETTER_LYRICS -> BetterLyricsProvider
-                        PreferredLyricsProvider.SIMPMUSIC -> SimpMusicLyricsProvider
-                    }
-
-                lyricsProviders = listOf(first) + baseProviders.filterNot { provider -> provider == first }
-            }
 
     private val cache = LruCache<String, List<LyricsResult>>(MAX_CACHE_SIZE)
     private var currentLyricsJob: Job? = null
@@ -99,9 +75,10 @@ constructor(
             return LYRICS_NOT_FOUND
         }
 
+        val providers = orderedProviders()
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
         val deferred = scope.async {
-            for (provider in lyricsProviders) {
+            for (provider in providers) {
                 val enabled = provider.isEnabled(context)
                 
                 if (enabled) {
@@ -162,8 +139,9 @@ constructor(
         }
 
         val allResult = mutableListOf<LyricsResult>()
-        currentLyricsJob = CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
-            lyricsProviders.forEach { provider ->
+        val providers = orderedProviders()
+        currentLyricsJob = CoroutineScope(SupervisorJob() + Dispatchers.IO).async {
+            providers.forEach { provider ->
                 if (provider.isEnabled(context)) {
                     try {
                         provider.getAllLyrics(mediaId, songTitle, songArtists, songAlbum, duration) lyricsCallback@{ lyrics ->
@@ -181,6 +159,23 @@ constructor(
         }
 
         currentLyricsJob?.join()
+    }
+
+    private suspend fun orderedProviders(): List<LyricsProvider> {
+        val preferred =
+            context.dataStore.data
+                .first()[PreferredLyricsProviderKey]
+                .toEnum(PreferredLyricsProvider.LRCLIB)
+
+        val first =
+            when (preferred) {
+                PreferredLyricsProvider.LRCLIB -> LrcLibLyricsProvider
+                PreferredLyricsProvider.KUGOU -> KuGouLyricsProvider
+                PreferredLyricsProvider.BETTER_LYRICS -> BetterLyricsProvider
+                PreferredLyricsProvider.SIMPMUSIC -> SimpMusicLyricsProvider
+            }
+
+        return listOf(first) + baseProviders.filterNot { provider -> provider == first }
     }
 
     private fun isMeaningfulLyrics(lyrics: String): Boolean {
