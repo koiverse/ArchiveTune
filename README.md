@@ -121,7 +121,7 @@
 ## ❓ Need Help or Have Questions?
 Join Our Telegram Channels for Support and Discussion.
 
-![Telegram](https://img.shields.io/badge/Telegram-2CA5E0?style=for-the-badge&logo=telegram&logoColor=white&link=https%3A%2F%2Ft.me%2Fkoiversearchivetune)
+[![Telegram](https://img.shields.io/badge/Telegram-2CA5E0?style=for-the-badge&logo=telegram&logoColor=white)](https://t.me/ArchiveTuneGC)
 
 
 > [!IMPORTANT]  
