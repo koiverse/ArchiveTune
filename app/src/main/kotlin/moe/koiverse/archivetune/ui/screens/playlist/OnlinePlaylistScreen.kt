@@ -135,6 +135,7 @@ import moe.koiverse.archivetune.ui.menu.YouTubeSongMenu
 import moe.koiverse.archivetune.ui.theme.PlayerColorExtractor
 import moe.koiverse.archivetune.ui.utils.ItemWrapper
 import moe.koiverse.archivetune.ui.utils.backToMain
+import moe.koiverse.archivetune.ui.utils.formatCompactCount
 import moe.koiverse.archivetune.utils.rememberPreference
 import moe.koiverse.archivetune.viewmodels.OnlinePlaylistViewModel
 
@@ -155,6 +156,7 @@ fun OnlinePlaylistScreen(
 
     val playlist by viewModel.playlist.collectAsState()
     val songs by viewModel.playlistSongs.collectAsState()
+    val viewCounts by viewModel.viewCounts.collectAsState()
     val dbPlaylist by viewModel.dbPlaylist.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val isLoadingMore by viewModel.isLoadingMore.collectAsState()
@@ -851,6 +853,10 @@ fun OnlinePlaylistScreen(
                     items(items = wrappedSongs, key = { it.item.second.id }) { song ->
                         YouTubeListItem(
                             item = song.item.second,
+                            viewCountText =
+                                viewCounts[song.item.second.id]?.let { count ->
+                                    formatCompactCount(count.toLong())
+                                },
                             isActive = mediaMetadata?.id == song.item.second.id,
                             isPlaying = isPlaying,
                             isSelected = song.isSelected && selection,

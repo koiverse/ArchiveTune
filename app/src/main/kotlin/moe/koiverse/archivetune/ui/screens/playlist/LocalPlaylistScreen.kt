@@ -165,6 +165,7 @@ import moe.koiverse.archivetune.ui.screens.playlist.PlaylistSuggestionsSection
 import moe.koiverse.archivetune.ui.theme.PlayerColorExtractor
 import moe.koiverse.archivetune.ui.utils.ItemWrapper
 import moe.koiverse.archivetune.ui.utils.backToMain
+import moe.koiverse.archivetune.ui.utils.formatCompactCount
 import moe.koiverse.archivetune.utils.makeTimeString
 import moe.koiverse.archivetune.utils.rememberEnumPreference
 import moe.koiverse.archivetune.utils.rememberPreference
@@ -192,6 +193,7 @@ fun LocalPlaylistScreen(
 
     val playlist by viewModel.playlist.collectAsState()
     val songs by viewModel.playlistSongs.collectAsState()
+    val viewCounts by viewModel.viewCounts.collectAsState()
     val isRefreshing by viewModel.isRefreshing.collectAsState()
     val mutableSongs = remember { mutableStateListOf<PlaylistSong>() }
     val playlistLength = remember(songs) {
@@ -1136,6 +1138,8 @@ fun LocalPlaylistScreen(
                         val content: @Composable () -> Unit = {
                             SongListItem(
                                 song = song.song,
+                                viewCountText =
+                                    viewCounts[song.song.id]?.let { count -> formatCompactCount(count.toLong()) },
                                 isActive = song.song.id == mediaMetadata?.id,
                                 isPlaying = isPlaying,
                                 showInLibraryIcon = true,
@@ -1261,6 +1265,8 @@ fun LocalPlaylistScreen(
                         val content: @Composable () -> Unit = {
                             SongListItem(
                                 song = songWrapper.item.song,
+                                viewCountText =
+                                    viewCounts[songWrapper.item.song.id]?.let { count -> formatCompactCount(count.toLong()) },
                                 isActive = songWrapper.item.song.id == mediaMetadata?.id,
                                 isPlaying = isPlaying,
                                 showInLibraryIcon = true,

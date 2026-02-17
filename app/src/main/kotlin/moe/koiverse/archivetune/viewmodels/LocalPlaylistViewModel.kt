@@ -12,6 +12,9 @@ import android.content.Context
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -23,6 +26,8 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.Dispatchers
@@ -100,6 +105,13 @@ constructor(
             }.reversed(sortDescending && sortType != PlaylistSongSortType.CUSTOM)
         }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
     
+    private val _viewCounts = MutableStateFlow<Map<String, Int>>(emptyMap())
+    val viewCounts = _viewCounts.asStateFlow()
+
+    private val viewCountsMutex = Mutex()
+    private val viewCountsInFlight = mutableSetOf<String>()
+    private val viewCountsSemaphore = Semaphore(permits = 4)
+
     // Playlist Suggestions State
     private val _playlistSuggestions = MutableStateFlow<PlaylistSuggestion?>(null)
     val playlistSuggestions = combine(_playlistSuggestions, playlistSongs) { suggestions, songs ->
@@ -139,6 +151,18 @@ constructor(
                 }
             }
         }
+
+        viewModelScope.launch {
+            playlistSongs.collect { songs ->
+                prefetchViewCounts(
+                    songs
+                        .asSequence()
+                        .filter { !it.song.song.isLocal }
+                        .map { it.song.id }
+                        .toList()
+                )
+            }
+        }
         
         // Auto-load suggestions when playlist or songs change
         viewModelScope.launch {
@@ -157,6 +181,42 @@ constructor(
                 if (suggestions != null && suggestions.items.isEmpty() && suggestions.hasMore && !_isLoadingSuggestions.value) {
                     loadMoreSuggestions()
                 }
+            }
+        }
+    }
+
+    private fun prefetchViewCounts(videoIds: List<String>) {
+        val uniqueIds = videoIds.distinct().filter { it.isNotBlank() }
+        if (uniqueIds.isEmpty()) return
+
+        viewModelScope.launch(Dispatchers.IO) {
+            coroutineScope {
+                uniqueIds.map { videoId ->
+                    async {
+                        val shouldFetch =
+                            viewCountsMutex.withLock {
+                                if (_viewCounts.value.containsKey(videoId) || viewCountsInFlight.contains(videoId)) {
+                                    false
+                                } else {
+                                    viewCountsInFlight.add(videoId)
+                                    true
+                                }
+                            }
+
+                        if (!shouldFetch) return@async
+
+                        try {
+                            viewCountsSemaphore.withPermit {
+                                val count = YouTube.getMediaInfo(videoId).getOrNull()?.viewCount
+                                if (count != null && count >= 0) {
+                                    _viewCounts.update { current -> current + (videoId to count) }
+                                }
+                            }
+                        } finally {
+                            viewCountsMutex.withLock { viewCountsInFlight.remove(videoId) }
+                        }
+                    }
+                }.awaitAll()
             }
         }
     }
