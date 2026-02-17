@@ -24,7 +24,6 @@ import kotlinx.serialization.json.Json
 data class TogetherOnlineCreateSessionRequest(
     val hostDisplayName: String,
     val settings: TogetherRoomSettings,
-    val packageName: String? = null,
 )
 
 @Serializable
@@ -40,7 +39,6 @@ data class TogetherOnlineCreateSessionResponse(
 @Serializable
 data class TogetherOnlineResolveRequest(
     val code: String,
-    val packageName: String? = null,
 )
 
 @Serializable
@@ -59,7 +57,7 @@ class TogetherOnlineApiException(
 
 class TogetherOnlineApi(
     private val baseUrl: String,
-    private val packageName: String? = null,
+    private val bearerToken: String? = null,
 ) {
     private val v1BaseUrl: String =
         baseUrl
@@ -140,24 +138,25 @@ class TogetherOnlineApi(
         }
     }
 
+    private fun normalizedBearerTokenOrNull(): String? = bearerToken?.trim()?.takeIf { it.isNotBlank() }
+
     suspend fun createSession(
         hostDisplayName: String,
         settings: TogetherRoomSettings,
     ): TogetherOnlineCreateSessionResponse =
         withRetry {
-            val normalizedPackageName = packageName?.trim()?.takeIf { it.isNotBlank() }
+            val token = normalizedBearerTokenOrNull() ?: throw TogetherOnlineApiException("Together token is missing")
             val payload =
                 json.encodeToString(
                     TogetherOnlineCreateSessionRequest.serializer(),
                     TogetherOnlineCreateSessionRequest(
                         hostDisplayName = hostDisplayName,
                         settings = settings,
-                        packageName = normalizedPackageName,
                     ),
                 )
             val resp =
                 client.post("$v1BaseUrl/together/sessions") {
-                    normalizedPackageName?.let { header("x-package-name", it) }
+                    header("Authorization", "Bearer $token")
                     contentType(ContentType.Application.Json)
                     setBody(payload)
                 }
@@ -171,15 +170,15 @@ class TogetherOnlineApi(
         code: String,
     ): TogetherOnlineResolveResponse =
         withRetry {
-            val normalizedPackageName = packageName?.trim()?.takeIf { it.isNotBlank() }
+            val token = normalizedBearerTokenOrNull() ?: throw TogetherOnlineApiException("Together token is missing")
             val payload =
                 json.encodeToString(
                     TogetherOnlineResolveRequest.serializer(),
-                    TogetherOnlineResolveRequest(code = code.trim(), packageName = normalizedPackageName),
+                    TogetherOnlineResolveRequest(code = code.trim()),
                 )
             val resp =
                 client.post("$v1BaseUrl/together/sessions/resolve") {
-                    normalizedPackageName?.let { header("x-package-name", it) }
+                    header("Authorization", "Bearer $token")
                     contentType(ContentType.Application.Json)
                     setBody(payload)
                 }

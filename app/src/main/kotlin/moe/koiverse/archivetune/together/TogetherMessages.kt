@@ -24,7 +24,6 @@ data class ClientHello(
     val sessionKey: String,
     val clientId: String,
     val displayName: String,
-    val packageName: String? = null,
 ) : TogetherMessage
 
 @Serializable

@@ -1649,7 +1649,19 @@ class MusicService :
                 return@launch
             }
 
-            val api = moe.koiverse.archivetune.together.TogetherOnlineApi(baseUrl = baseUrl, packageName = packageName)
+            val togetherToken = moe.koiverse.archivetune.BuildConfig.TOGETHER_BEARER_TOKEN.trim().takeIf { it.isNotBlank() }
+            if (togetherToken == null) {
+                scope.launch(SilentHandler) {
+                    togetherSessionState.value =
+                        moe.koiverse.archivetune.together.TogetherSessionState.Error(
+                            message = getString(R.string.together_token_missing),
+                            recoverable = true,
+                        )
+                }
+                return@launch
+            }
+
+            val api = moe.koiverse.archivetune.together.TogetherOnlineApi(baseUrl = baseUrl, bearerToken = togetherToken)
             val hostName = displayName.trim().ifBlank { getString(R.string.app_name) }
 
             val created =
@@ -1679,7 +1691,7 @@ class MusicService :
                     hostDisplayName = hostName,
                     initialSettings = created.settings,
                     clientId = getOrCreateTogetherClientId(),
-                    packageName = packageName,
+                    bearerToken = togetherToken,
                 )
 
             onlineHost.onEvent = { event ->
@@ -1782,7 +1794,6 @@ class MusicService :
                 moe.koiverse.archivetune.together.TogetherClient(
                     ioScope,
                     clientId = getOrCreateTogetherClientId(),
-                    packageName = packageName,
                 )
             togetherClient = client
             togetherClock = moe.koiverse.archivetune.together.TogetherClock()
@@ -1973,7 +1984,19 @@ class MusicService :
                 return@launch
             }
 
-            val api = moe.koiverse.archivetune.together.TogetherOnlineApi(baseUrl = baseUrl, packageName = packageName)
+            val togetherToken = moe.koiverse.archivetune.BuildConfig.TOGETHER_BEARER_TOKEN.trim().takeIf { it.isNotBlank() }
+            if (togetherToken == null) {
+                scope.launch(SilentHandler) {
+                    togetherSessionState.value =
+                        moe.koiverse.archivetune.together.TogetherSessionState.Error(
+                            message = getString(R.string.together_token_missing),
+                            recoverable = true,
+                        )
+                }
+                return@launch
+            }
+
+            val api = moe.koiverse.archivetune.together.TogetherOnlineApi(baseUrl = baseUrl, bearerToken = togetherToken)
             val resolved =
                 runCatching { api.resolveCode(trimmedCode) }
                     .getOrElse { t ->
@@ -1992,7 +2015,7 @@ class MusicService :
                 moe.koiverse.archivetune.together.TogetherClient(
                     ioScope,
                     clientId = getOrCreateTogetherClientId(),
-                    packageName = packageName,
+                    bearerToken = togetherToken,
                 )
             togetherClient = client
             togetherClock = moe.koiverse.archivetune.together.TogetherClock()

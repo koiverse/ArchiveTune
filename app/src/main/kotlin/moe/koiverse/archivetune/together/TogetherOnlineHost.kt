@@ -11,6 +11,7 @@ import io.ktor.client.HttpClient
 import io.ktor.client.engine.okhttp.OkHttp
 import io.ktor.client.plugins.websocket.WebSockets
 import io.ktor.client.plugins.websocket.webSocket
+import io.ktor.client.request.header
 import io.ktor.websocket.CloseReason
 import io.ktor.websocket.Frame
 import io.ktor.websocket.WebSocketSession
@@ -47,7 +48,7 @@ class TogetherOnlineHost(
     private val hostDisplayName: String,
     initialSettings: TogetherRoomSettings,
     clientId: String = UUID.randomUUID().toString(),
-    private val packageName: String? = null,
+    private val bearerToken: String? = null,
 ) {
     private val client =
         HttpClient(OkHttp) {
@@ -74,6 +75,7 @@ class TogetherOnlineHost(
     private var hostParticipantId: String? = null
 
     private val clientId = clientId.trim().ifBlank { UUID.randomUUID().toString() }.take(64)
+    private val normalizedBearerToken: String? = bearerToken?.trim()?.takeIf { it.isNotBlank() }
 
     private data class Guest(
         val participantId: String,
@@ -98,10 +100,21 @@ class TogetherOnlineHost(
         val trimmed = wsUrl.trim()
         val urls = listOfNotNull(trimmed, alternateWebSocketSchemeOrNull(trimmed)).distinct()
 
+        val token = normalizedBearerToken
+        if (token == null) {
+            onEvent?.invoke(TogetherServerEvent.Error("Together token is missing"))
+            return
+        }
+
         var lastError: Throwable? = null
         for (candidate in urls) {
             try {
-                client.webSocket(urlString = candidate) {
+                client.webSocket(
+                    urlString = candidate,
+                    request = {
+                        header("Authorization", "Bearer $token")
+                    },
+                ) {
                     session = this
                     val hello =
                         ClientHello(
@@ -110,7 +123,6 @@ class TogetherOnlineHost(
                             sessionKey = sessionKey,
                             clientId = clientId,
                             displayName = hostDisplayName.trim(),
-                            packageName = packageName,
                         )
                     send(TogetherJson.json.encodeToString(TogetherMessage.serializer(), hello))
                     runLoop(this, candidate)

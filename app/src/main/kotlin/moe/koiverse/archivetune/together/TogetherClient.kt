@@ -11,6 +11,7 @@ import io.ktor.client.HttpClient
 import io.ktor.client.engine.okhttp.OkHttp
 import io.ktor.client.plugins.websocket.WebSockets
 import io.ktor.client.plugins.websocket.webSocket
+import io.ktor.client.request.header
 import io.ktor.websocket.CloseReason
 import io.ktor.websocket.Frame
 import io.ktor.websocket.WebSocketSession
@@ -80,7 +81,7 @@ sealed class TogetherClientState {
 class TogetherClient(
     private val externalScope: CoroutineScope,
     clientId: String = UUID.randomUUID().toString(),
-    private val packageName: String? = null,
+    private val bearerToken: String? = null,
 ) {
     private val client =
         HttpClient(OkHttp) {
@@ -110,6 +111,7 @@ class TogetherClient(
     private var loopJob: Job? = null
     private var selfParticipantId: String? = null
     private val clientId = clientId.trim().ifBlank { UUID.randomUUID().toString() }.take(64)
+    private val normalizedBearerToken: String? = bearerToken?.trim()?.takeIf { it.isNotBlank() }
 
     fun connect(joinInfo: TogetherJoinInfo, displayName: String) {
         scope.launch {
@@ -119,10 +121,17 @@ class TogetherClient(
             val wsUrl = joinInfo.toWebSocketUrl()
             val urls = listOfNotNull(wsUrl, alternateWebSocketSchemeOrNull(wsUrl)).distinct()
 
+            val token = normalizedBearerToken
+
             var lastError: Throwable? = null
             for (candidate in urls) {
                 try {
-                    client.webSocket(urlString = candidate) {
+                    client.webSocket(
+                        urlString = candidate,
+                        request = {
+                            if (token != null) header("Authorization", "Bearer $token")
+                        },
+                    ) {
                         session = this
                         val hello =
                             ClientHello(
@@ -131,7 +140,6 @@ class TogetherClient(
                                 sessionKey = joinInfo.sessionKey,
                                 clientId = clientId,
                                 displayName = displayName.trim(),
-                                packageName = packageName,
                             )
                         send(TogetherJson.json.encodeToString(TogetherMessage.serializer(), hello))
                         _state.value = TogetherClientState.Connected(joinInfo)
@@ -160,10 +168,17 @@ class TogetherClient(
 
             val urls = listOfNotNull(wsUrl.trim(), alternateWebSocketSchemeOrNull(wsUrl.trim())).distinct()
 
+            val token = normalizedBearerToken
+
             var lastError: Throwable? = null
             for (candidate in urls) {
                 try {
-                    client.webSocket(urlString = candidate) {
+                    client.webSocket(
+                        urlString = candidate,
+                        request = {
+                            if (token != null) header("Authorization", "Bearer $token")
+                        },
+                    ) {
                         session = this
                         val hello =
                             ClientHello(
@@ -172,7 +187,6 @@ class TogetherClient(
                                 sessionKey = sessionKey,
                                 clientId = clientId,
                                 displayName = displayName.trim().ifBlank { "Guest" },
-                                packageName = packageName,
                             )
                         send(TogetherJson.json.encodeToString(TogetherMessage.serializer(), hello))
                         _state.value = TogetherClientState.ConnectedRemote(wsUrl = candidate, sessionId = sessionId)
