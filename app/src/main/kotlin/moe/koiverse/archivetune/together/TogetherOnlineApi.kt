@@ -24,6 +24,7 @@ import kotlinx.serialization.json.Json
 data class TogetherOnlineCreateSessionRequest(
     val hostDisplayName: String,
     val settings: TogetherRoomSettings,
+    val packageName: String? = null,
 )
 
 @Serializable
@@ -39,6 +40,7 @@ data class TogetherOnlineCreateSessionResponse(
 @Serializable
 data class TogetherOnlineResolveRequest(
     val code: String,
+    val packageName: String? = null,
 )
 
 @Serializable
@@ -111,20 +113,31 @@ class TogetherOnlineApi(
             root is java.io.IOException
     }
 
-    private fun requireSuccessfulResponse(resp: HttpResponse) {
-        val status = resp.status.value
-        if (status in 200..299) return
-        val detail =
-            when (status) {
-                400 -> "Bad request"
-                401 -> "Unauthorized"
-                403 -> "Forbidden"
-                404 -> "Session not found"
-                429 -> "Too many requests, please try again later"
-                in 500..599 -> "Server error ($status)"
-                else -> "Unexpected response ($status)"
-            }
-        throw TogetherOnlineApiException(detail, statusCode = status)
+    @Serializable
+    private data class TogetherOnlineErrorResponse(
+        val ok: Boolean? = null,
+        val error: String? = null,
+        val code: String? = null,
+    )
+
+    private fun errorMessageFromResponse(
+        status: Int,
+        rawBody: String,
+    ): String {
+        val parsedError =
+            runCatching { json.decodeFromString(TogetherOnlineErrorResponse.serializer(), rawBody) }
+                .getOrNull()
+        val specific = parsedError?.error?.trim()?.takeIf { it.isNotBlank() }
+        if (specific != null) return specific
+        return when (status) {
+            400 -> "Bad request"
+            401 -> "Unauthorized"
+            403 -> "Forbidden"
+            404 -> "Session not found"
+            429 -> "Too many requests, please try again later"
+            in 500..599 -> "Server error ($status)"
+            else -> "Unexpected response ($status)"
+        }
     }
 
     suspend fun createSession(
@@ -132,19 +145,25 @@ class TogetherOnlineApi(
         settings: TogetherRoomSettings,
     ): TogetherOnlineCreateSessionResponse =
         withRetry {
+            val normalizedPackageName = packageName?.trim()?.takeIf { it.isNotBlank() }
             val payload =
                 json.encodeToString(
                     TogetherOnlineCreateSessionRequest.serializer(),
-                    TogetherOnlineCreateSessionRequest(hostDisplayName = hostDisplayName, settings = settings),
+                    TogetherOnlineCreateSessionRequest(
+                        hostDisplayName = hostDisplayName,
+                        settings = settings,
+                        packageName = normalizedPackageName,
+                    ),
                 )
             val resp =
                 client.post("$v1BaseUrl/together/sessions") {
-                    packageName?.trim()?.takeIf { it.isNotBlank() }?.let { header("x-package-name", it) }
+                    normalizedPackageName?.let { header("x-package-name", it) }
                     contentType(ContentType.Application.Json)
                     setBody(payload)
                 }
-            requireSuccessfulResponse(resp)
+            val status = resp.status.value
             val raw = resp.bodyAsText()
+            if (status !in 200..299) throw TogetherOnlineApiException(errorMessageFromResponse(status, raw), statusCode = status)
             json.decodeFromString(TogetherOnlineCreateSessionResponse.serializer(), raw)
         }
 
@@ -152,19 +171,21 @@ class TogetherOnlineApi(
         code: String,
     ): TogetherOnlineResolveResponse =
         withRetry {
+            val normalizedPackageName = packageName?.trim()?.takeIf { it.isNotBlank() }
             val payload =
                 json.encodeToString(
                     TogetherOnlineResolveRequest.serializer(),
-                    TogetherOnlineResolveRequest(code = code.trim()),
+                    TogetherOnlineResolveRequest(code = code.trim(), packageName = normalizedPackageName),
                 )
             val resp =
                 client.post("$v1BaseUrl/together/sessions/resolve") {
-                    packageName?.trim()?.takeIf { it.isNotBlank() }?.let { header("x-package-name", it) }
+                    normalizedPackageName?.let { header("x-package-name", it) }
                     contentType(ContentType.Application.Json)
                     setBody(payload)
                 }
-            requireSuccessfulResponse(resp)
+            val status = resp.status.value
             val raw = resp.bodyAsText()
+            if (status !in 200..299) throw TogetherOnlineApiException(errorMessageFromResponse(status, raw), statusCode = status)
             json.decodeFromString(TogetherOnlineResolveResponse.serializer(), raw)
         }
 }
