@@ -46,6 +46,7 @@ import moe.koiverse.archivetune.models.PlaylistSuggestion
 import moe.koiverse.archivetune.models.PlaylistSuggestionPage
 import moe.koiverse.archivetune.models.PlaylistSuggestionQuery
 import moe.koiverse.archivetune.utils.PlaylistSuggestionQueryBuilder
+import moe.koiverse.archivetune.utils.SyncUtils
 import moe.koiverse.archivetune.utils.dataStore
 import moe.koiverse.archivetune.utils.reportException
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -61,6 +62,7 @@ class LocalPlaylistViewModel
 constructor(
     @ApplicationContext private val context: Context,
     private val database: MusicDatabase,
+    private val syncUtils: SyncUtils,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
     val playlistId = savedStateHandle.get<String>("playlistId")!!
@@ -122,6 +124,9 @@ constructor(
     // Cache for current suggestion page
     private var currentSuggestionPage: PlaylistSuggestionPage? = null
 
+    private val _isRefreshing = MutableStateFlow(false)
+    val isRefreshing = _isRefreshing.asStateFlow()
+
     init {
         viewModelScope.launch {
             val sortedSongs =
@@ -152,6 +157,22 @@ constructor(
                 if (suggestions != null && suggestions.items.isEmpty() && suggestions.hasMore && !_isLoadingSuggestions.value) {
                     loadMoreSuggestions()
                 }
+            }
+        }
+    }
+
+    fun refresh() {
+        if (_isRefreshing.value) return
+        viewModelScope.launch(Dispatchers.IO) {
+            _isRefreshing.value = true
+            try {
+                val p = playlist.first() ?: return@launch
+                val browseId = p.playlist.browseId ?: return@launch
+                syncUtils.syncPlaylistNow(browseId = browseId, playlistId = playlistId)
+            } catch (e: Exception) {
+                reportException(e)
+            } finally {
+                _isRefreshing.value = false
             }
         }
     }

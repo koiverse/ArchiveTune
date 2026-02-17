@@ -39,6 +39,9 @@ class OnlinePlaylistViewModel @Inject constructor(
     private val _isLoading = MutableStateFlow(true)
     val isLoading = _isLoading.asStateFlow()
     
+    private val _isRefreshing = MutableStateFlow(false)
+    val isRefreshing = _isRefreshing.asStateFlow()
+
     private val _error = MutableStateFlow<String?>(null)
     val error = _error.asStateFlow()
     
@@ -52,22 +55,11 @@ class OnlinePlaylistViewModel @Inject constructor(
         private set
 
     init {
-        viewModelScope.launch(Dispatchers.IO) {
-            _isLoading.value = true
-            _error.value = null
-            
-            YouTube.playlist(playlistId).completed()
-                .onSuccess { playlistPage ->
-                    playlist.value = playlistPage.playlist
-                    playlistSongs.value = playlistPage.songs.distinctBy { it.id }
-                    continuation = playlistPage.songsContinuation
-                    _isLoading.value = false
-                }.onFailure { throwable ->
-                    _error.value = throwable.message ?: "Failed to load playlist"
-                    _isLoading.value = false
-                    reportException(throwable)
-                }
-        }
+        load(initial = true)
+    }
+
+    fun refresh() {
+        load(initial = false)
     }
 
     fun loadMoreSongs() {
@@ -92,21 +84,42 @@ class OnlinePlaylistViewModel @Inject constructor(
     }
 
     fun retry() {
+        load(initial = true)
+    }
+
+    private fun load(initial: Boolean) {
+        if (initial) {
+            if (_isLoading.value && playlist.value != null) return
+        } else {
+            if (_isRefreshing.value || _isLoading.value) return
+        }
+
         viewModelScope.launch(Dispatchers.IO) {
-            _isLoading.value = true
+            if (initial) {
+                _isLoading.value = true
+            } else {
+                _isRefreshing.value = true
+            }
+
             _error.value = null
-            
-            YouTube.playlist(playlistId).completed()
+
+            YouTube
+                .playlist(playlistId)
+                .completed()
                 .onSuccess { playlistPage ->
                     playlist.value = playlistPage.playlist
                     playlistSongs.value = playlistPage.songs.distinctBy { it.id }
                     continuation = playlistPage.songsContinuation
-                    _isLoading.value = false
                 }.onFailure { throwable ->
                     _error.value = throwable.message ?: "Failed to load playlist"
-                    _isLoading.value = false
                     reportException(throwable)
                 }
+
+            if (initial) {
+                _isLoading.value = false
+            } else {
+                _isRefreshing.value = false
+            }
         }
     }
 }
