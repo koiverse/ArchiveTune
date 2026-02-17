@@ -503,6 +503,10 @@ class SyncUtils @Inject constructor(
         }
     }
 
+    suspend fun syncPlaylistNow(browseId: String, playlistId: String) = playlistSyncMutex.withLock {
+        syncPlaylist(browseId, playlistId)
+    }
+
     private suspend fun syncPlaylist(browseId: String, playlistId: String) = coroutineScope {
         if (!isYtmSyncEnabled()) {
             Timber.w("syncPlaylist: Skipping - sync disabled")
