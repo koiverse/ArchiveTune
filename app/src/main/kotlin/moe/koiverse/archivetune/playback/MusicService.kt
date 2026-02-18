@@ -52,6 +52,7 @@ import androidx.media3.datasource.ResolvingDataSource
 import androidx.media3.datasource.cache.CacheDataSource
 import androidx.media3.datasource.cache.CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR
 import androidx.media3.datasource.cache.Cache
+import androidx.media3.datasource.cache.ContentMetadata
 import androidx.media3.datasource.cache.SimpleCache
 import androidx.media3.datasource.okhttp.OkHttpDataSource
 import androidx.media3.exoplayer.DefaultRenderersFactory
@@ -290,6 +291,9 @@ class MusicService :
 
     private val normalizeFactor = MutableStateFlow(1f)
     var playerVolume = MutableStateFlow(1f)
+    private val audioFocusVolumeFactor = MutableStateFlow(1f)
+    private val playbackFadeFactor = MutableStateFlow(1f)
+    private val crossfadeDurationMs = MutableStateFlow(0)
 
     lateinit var sleepTimer: SleepTimer
 
@@ -337,7 +341,6 @@ class MusicService :
     private var consecutivePlaybackErr = 0
 
     val maxSafeGainFactor = 1.414f // +3 dB
-    private val crossfadeProcessor = CrossfadeAudioProcessor()
     @Volatile
     private var hasCalledStartForeground = false
 
@@ -563,10 +566,9 @@ class MusicService :
             }
         }
 
-        combine(playerVolume, normalizeFactor) { playerVolume, normalizeFactor ->
-            playerVolume * normalizeFactor
+        combine(playerVolume, normalizeFactor, audioFocusVolumeFactor, playbackFadeFactor) { playerVolume, normalizeFactor, audioFocusVolumeFactor, playbackFadeFactor ->
+            playerVolume * normalizeFactor * audioFocusVolumeFactor * playbackFadeFactor
         }.collectLatest(scope) { finalVolume ->
-            Timber.tag("AudioNormalization").d("Setting player volume: $finalVolume (playerVolume: ${playerVolume.value}, normalizeFactor: ${normalizeFactor.value})")
             player.volume = finalVolume
         }
 
@@ -627,7 +629,6 @@ class MusicService :
                     val crossfadeSeconds = dataStore.get(AudioCrossfadeDurationKey, 0)
                     if (crossfadeSeconds != 0) {
                         dataStore.edit { it[AudioCrossfadeDurationKey] = 0 }
-                        crossfadeProcessor.crossfadeDurationMs = 0
                     }
                 }
             }
@@ -636,8 +637,27 @@ class MusicService :
             .map { (it[AudioCrossfadeDurationKey] ?: 0) * 1000 }
             .distinctUntilChanged()
             .collectLatest(scope) {
-                crossfadeProcessor.crossfadeDurationMs = it
+                crossfadeDurationMs.value = it
             }
+
+        scope.launch {
+            while (isActive) {
+                val fadeMs = crossfadeDurationMs.value
+                if (fadeMs <= 0) {
+                    if (playbackFadeFactor.value != 1f) playbackFadeFactor.value = 1f
+                    delay(250)
+                } else {
+                    val newFactor =
+                        computePlaybackFadeFactor(
+                            crossfadeDurationMs = fadeMs,
+                            positionMs = player.currentPosition.coerceAtLeast(0L),
+                            durationMs = player.duration,
+                        )
+                    if (playbackFadeFactor.value != newFactor) playbackFadeFactor.value = newFactor
+                    delay(50)
+                }
+            }
+        }
 
         dataStore.data
             .map(::readEqSettingsFromPrefs)
@@ -956,19 +976,19 @@ class MusicService :
         when (focusChange) {
             AudioManager.AUDIOFOCUS_GAIN -> {
                 hasAudioFocus = true
+                audioFocusVolumeFactor.value = 1f
 
                 if (wasPlayingBeforeAudioFocusLoss) {
                     player.play()
                     wasPlayingBeforeAudioFocusLoss = false
                 }
 
-                player.volume = (playerVolume.value * normalizeFactor.value)
-
                 lastAudioFocusState = focusChange
             }
 
             AudioManager.AUDIOFOCUS_LOSS -> {
                 hasAudioFocus = false
+                audioFocusVolumeFactor.value = 1f
                 wasPlayingBeforeAudioFocusLoss = false
 
                 if (player.isPlaying) {
@@ -982,6 +1002,7 @@ class MusicService :
 
             AudioManager.AUDIOFOCUS_LOSS_TRANSIENT -> {
                 hasAudioFocus = false
+                audioFocusVolumeFactor.value = 1f
                 wasPlayingBeforeAudioFocusLoss = player.isPlaying
 
                 if (player.isPlaying) {
@@ -997,9 +1018,7 @@ class MusicService :
 
                 wasPlayingBeforeAudioFocusLoss = player.isPlaying
 
-                if (player.isPlaying) {
-                    player.volume = (playerVolume.value * normalizeFactor.value * 0.2f) // خفض إلى 20%
-                }
+                audioFocusVolumeFactor.value = 0.2f
 
                 lastAudioFocusState = focusChange
             }
@@ -1007,25 +1026,60 @@ class MusicService :
             AudioManager.AUDIOFOCUS_GAIN_TRANSIENT -> {
 
                 hasAudioFocus = true
+                audioFocusVolumeFactor.value = 1f
 
                 if (wasPlayingBeforeAudioFocusLoss) {
                     player.play()
                     wasPlayingBeforeAudioFocusLoss = false
                 }
-
-                player.volume = (playerVolume.value * normalizeFactor.value)
         
                 lastAudioFocusState = focusChange
             }
 
             AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK -> {
                 hasAudioFocus = true
-
-                player.volume = (playerVolume.value * normalizeFactor.value)
+                audioFocusVolumeFactor.value = 1f
 
                 lastAudioFocusState = focusChange
             }
         }
+    }
+
+    private fun computePlaybackFadeFactor(
+        crossfadeDurationMs: Int,
+        positionMs: Long,
+        durationMs: Long,
+    ): Float {
+        if (crossfadeDurationMs <= 0) return 1f
+
+        val fadeWindowMs = crossfadeDurationMs.toLong()
+        val effectiveFadeWindowMs =
+            if (durationMs > 0 && durationMs != C.TIME_UNSET) {
+                min(fadeWindowMs, durationMs / 2)
+            } else {
+                fadeWindowMs
+            }.coerceAtLeast(1L)
+
+        val fadeIn =
+            if (positionMs < effectiveFadeWindowMs) {
+                (positionMs.toFloat() / effectiveFadeWindowMs.toFloat()).coerceIn(0f, 1f)
+            } else {
+                1f
+            }
+
+        val fadeOut =
+            if (durationMs > 0 && durationMs != C.TIME_UNSET) {
+                val remainingMs = (durationMs - positionMs).coerceAtLeast(0L)
+                if (remainingMs < effectiveFadeWindowMs) {
+                    (remainingMs.toFloat() / effectiveFadeWindowMs.toFloat()).coerceIn(0f, 1f)
+                } else {
+                    1f
+                }
+            } else {
+                1f
+            }
+
+        return min(fadeIn, fadeOut)
     }
 
     private fun requestAudioFocus(): Boolean {
@@ -3410,6 +3464,13 @@ class MusicService :
                     httpStatusCode in setOf(403, 404, 410, 416, 429, 500, 502, 503)
                 )
 
+        if (currentMediaId != null && error.errorCode == PlaybackException.ERROR_CODE_IO_FILE_NOT_FOUND) {
+            scope.launch(Dispatchers.IO) {
+                runCatching { downloadCache.removeResource(currentMediaId) }
+                runCatching { playerCache.removeResource(currentMediaId) }
+            }
+        }
+
         if (shouldAttemptStreamRefresh && currentMediaId != null && markAndCheckRecoveryAllowance(currentMediaId)) {
             Timber.tag("MusicService").w(
                 "Attempting stream refresh for $currentMediaId (http=$httpStatusCode, code=${error.errorCode})"
@@ -3515,6 +3576,7 @@ class MusicService :
                             ),
                         ),
                     ),
+                    .setFlags(FLAG_IGNORE_CACHE_ON_ERROR),
             ).setCacheWriteDataSinkFactory(null)
             .setFlags(FLAG_IGNORE_CACHE_ON_ERROR)
 
@@ -3522,15 +3584,36 @@ class MusicService :
         return ResolvingDataSource.Factory(createCacheDataSource()) { dataSpec ->
             val mediaId = dataSpec.key ?: error("No media id")
 
-            if (downloadCache.isCached(
-                    mediaId,
-                    dataSpec.position,
-                    if (dataSpec.length >= 0) dataSpec.length else 1
-                ) ||
-                playerCache.isCached(mediaId, dataSpec.position, if (dataSpec.length >= 0) dataSpec.length else CHUNK_LENGTH)
-            ) {
-                scope.launch(Dispatchers.IO) { recoverSong(mediaId) }
-                return@Factory dataSpec
+            val requiredCachedLength =
+                if (dataSpec.length >= 0) {
+                    dataSpec.length
+                } else {
+                    val contentLength =
+                        runBlocking(Dispatchers.IO) {
+                            database.format(mediaId).first()?.contentLength
+                        } ?: runCatching {
+                            downloadCache
+                                .getContentMetadata(mediaId)
+                                .get(ContentMetadata.KEY_CONTENT_LENGTH, -1L)
+                        }.getOrNull()?.takeIf { it > 0L } ?: runCatching {
+                            playerCache
+                                .getContentMetadata(mediaId)
+                                .get(ContentMetadata.KEY_CONTENT_LENGTH, -1L)
+                        }.getOrNull()?.takeIf { it > 0L }
+
+                    contentLength?.let { nonNullContentLength ->
+                        (nonNullContentLength - dataSpec.position).takeIf { it > 0L }
+                    }
+                }
+
+            if (requiredCachedLength != null) {
+                val isFullyCached =
+                    downloadCache.isCached(mediaId, dataSpec.position, requiredCachedLength) ||
+                        playerCache.isCached(mediaId, dataSpec.position, requiredCachedLength)
+                if (isFullyCached) {
+                    scope.launch(Dispatchers.IO) { recoverSong(mediaId) }
+                    return@Factory dataSpec
+                }
             }
 
             playbackUrlCache[mediaId]?.takeIf { it.second > System.currentTimeMillis() }?.let {
@@ -3695,7 +3778,6 @@ class MusicService :
                 .setEnableAudioTrackPlaybackParams(enableAudioTrackPlaybackParams)
                 .setAudioProcessorChain(
                     DefaultAudioSink.DefaultAudioProcessorChain(
-                        crossfadeProcessor,
                         SilenceSkippingAudioProcessor(
                             2_000_000L,
                             0.2f,
