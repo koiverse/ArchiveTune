@@ -405,7 +405,14 @@ fun LocalPlaylistScreen(
         )
     }
 
-    val headerItems = 2
+    val headerItems by remember {
+        derivedStateOf {
+            val current = playlist
+            val hasContent = current != null &&
+                (current.songCount > 0 || current.playlist.remoteSongCount != 0)
+            if (hasContent && !isSearching) 2 else 0
+        }
+    }
     val lazyListState = rememberLazyListState()
     var dragInfo by remember { mutableStateOf<Pair<Int, Int>?>(null) }
     val reorderableState = rememberReorderableLazyListState(
@@ -1370,7 +1377,7 @@ fun LocalPlaylistScreen(
                 )
                 .align(Alignment.CenterEnd),
             scrollState = lazyListState,
-            headerItems = 2
+            headerItems = headerItems
         )
 
         // Top App Bar

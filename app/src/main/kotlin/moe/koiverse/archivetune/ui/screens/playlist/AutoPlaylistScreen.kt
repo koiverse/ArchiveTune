@@ -352,6 +352,13 @@ fun AutoPlaylistScreen(
         }
     }
 
+    val headerItems by remember {
+        derivedStateOf {
+            val currentSongs = songs
+            if (currentSongs != null && currentSongs.isNotEmpty() && !isSearching) 2 else 0
+        }
+    }
+
     // System bars padding
     val systemBarsTopPadding = WindowInsets.systemBars.asPaddingValues().calculateTopPadding()
 
@@ -813,7 +820,7 @@ fun AutoPlaylistScreen(
                 )
                 .align(Alignment.CenterEnd),
             scrollState = lazyListState,
-            headerItems = 2
+            headerItems = headerItems
         )
 
         TopAppBar(

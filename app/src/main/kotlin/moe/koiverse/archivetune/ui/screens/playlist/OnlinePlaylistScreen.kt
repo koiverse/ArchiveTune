@@ -276,6 +276,13 @@ fun OnlinePlaylistScreen(
         derivedStateOf { !disableBlur && !selection && !showTopBarTitle }
     }
 
+    val headerItems by remember {
+        derivedStateOf {
+            val current = playlist
+            if (!isLoading && current != null && !isSearching) 1 else 0
+        }
+    }
+
     LaunchedEffect(lazyListState) {
         snapshotFlow { lazyListState.layoutInfo.visibleItemsInfo.lastOrNull()?.index }
             .collect { lastVisibleIndex ->
@@ -996,7 +1003,7 @@ fun OnlinePlaylistScreen(
                     )
                     .align(Alignment.CenterEnd),
             scrollState = lazyListState,
-            headerItems = 1
+            headerItems = headerItems
         )
 
         // Top App Bar
