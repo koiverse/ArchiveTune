@@ -38,18 +38,15 @@ class CrossfadeAudioProcessor : AudioProcessor {
     private var outputBuffer: ByteBuffer = AudioProcessor.EMPTY_BUFFER
     
     private fun updateCrossfadeSamples() {
-        if (inputAudioFormat != AudioFormat.NOT_SET && crossfadeDurationMs > 0) {
-            crossfadeSamples = (inputAudioFormat.sampleRate * crossfadeDurationMs) / 1000
-        } else {
-            crossfadeSamples = 0
-        }
+        crossfadeSamples =
+            if (inputAudioFormat != AudioFormat.NOT_SET && crossfadeDurationMs > 0) {
+                (inputAudioFormat.sampleRate * crossfadeDurationMs) / 1000
+            } else {
+                0
+            }
     }
 
     override fun configure(inputAudioFormat: AudioFormat): AudioFormat {
-        if (crossfadeDurationMs == 0) {
-            return AudioFormat.NOT_SET
-        }
-        
         if (inputAudioFormat.encoding != C.ENCODING_PCM_16BIT) {
             return AudioFormat.NOT_SET
         }
@@ -64,16 +61,16 @@ class CrossfadeAudioProcessor : AudioProcessor {
     override fun isActive(): Boolean = crossfadeDurationMs > 0 && inputAudioFormat != AudioFormat.NOT_SET
 
     override fun queueInput(inputBuffer: ByteBuffer) {
-        if (crossfadeDurationMs == 0 || inputAudioFormat == AudioFormat.NOT_SET) {
+        if (inputAudioFormat == AudioFormat.NOT_SET) {
             return
         }
-        
+
         val remaining = inputBuffer.remaining()
         if (remaining == 0) return
         
         buffer = replaceOutputBuffer(remaining)
 
-        if (isEnding && currentSample < crossfadeSamples) {
+        if (isEnding && crossfadeDurationMs > 0 && crossfadeSamples > 0 && currentSample < crossfadeSamples) {
             val samplesThisPass = min(crossfadeSamples - currentSample, remaining / 2)
             for (i in 0 until samplesThisPass) {
                 val sample = inputBuffer.short
