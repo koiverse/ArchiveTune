@@ -23,7 +23,6 @@ import kotlin.math.min
 class CrossfadeAudioProcessor : AudioProcessor {
     private var inputAudioFormat = AudioFormat.NOT_SET
     private var outputAudioFormat = AudioFormat.NOT_SET
-    private var isActive = false
     private var isEnding = false
     
     @Volatile
@@ -62,10 +61,10 @@ class CrossfadeAudioProcessor : AudioProcessor {
         return outputAudioFormat
     }
 
-    override fun isActive(): Boolean = crossfadeDurationMs > 0
+    override fun isActive(): Boolean = crossfadeDurationMs > 0 && inputAudioFormat != AudioFormat.NOT_SET
 
     override fun queueInput(inputBuffer: ByteBuffer) {
-        if (!isActive || crossfadeDurationMs == 0) {
+        if (crossfadeDurationMs == 0 || inputAudioFormat == AudioFormat.NOT_SET) {
             return
         }
         
@@ -73,11 +72,8 @@ class CrossfadeAudioProcessor : AudioProcessor {
         if (remaining == 0) return
         
         buffer = replaceOutputBuffer(remaining)
-        
-        // Simple fade processing (this is a basic implementation)
-        // In a real crossfade, we'd need to mix audio from the previous track
+
         if (isEnding && currentSample < crossfadeSamples) {
-            // Fade out
             val samplesThisPass = min(crossfadeSamples - currentSample, remaining / 2)
             for (i in 0 until samplesThisPass) {
                 val sample = inputBuffer.short
@@ -86,8 +82,10 @@ class CrossfadeAudioProcessor : AudioProcessor {
                 buffer.putShort(fadedSample)
                 currentSample++
             }
+            if (inputBuffer.hasRemaining()) {
+                buffer.put(inputBuffer)
+            }
         } else {
-            // Pass through
             buffer.put(inputBuffer)
         }
         
