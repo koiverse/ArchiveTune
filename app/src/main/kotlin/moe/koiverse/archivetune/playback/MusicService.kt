@@ -3575,8 +3575,8 @@ class MusicService :
                                     .build(),
                             ),
                         ),
-                    ),
-                    .setFlags(FLAG_IGNORE_CACHE_ON_ERROR),
+                    )
+                    .setFlags(FLAG_IGNORE_CACHE_ON_ERROR)
             ).setCacheWriteDataSinkFactory(null)
             .setFlags(FLAG_IGNORE_CACHE_ON_ERROR)
 
