@@ -954,7 +954,7 @@ fun PlayerPlaybackControls(
                             }
                         },
                         shape = RoundedCornerShape(28.dp),
-                        color = textBackgroundColor,
+                        color = textButtonColor,
                         modifier = Modifier
                             .padding(horizontal = 20.dp)
                             .size(88.dp)
