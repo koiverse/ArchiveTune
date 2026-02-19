@@ -1042,7 +1042,7 @@ class MusicService :
     }
 
     private suspend fun runOverlapCrossfadeLoop() {
-        while (isActive) {
+        while (kotlin.coroutines.coroutineContext.isActive) {
             val fadeMs = crossfadeDurationMs.value
             if (fadeMs <= 0) {
                 stopOverlapCrossfade(resetMainFade = true)
