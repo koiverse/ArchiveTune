@@ -648,6 +648,10 @@ ArchiveTune will only extract your token, and everything else is stored locally.
     <string name="channel_nightly">Nightly</string>
     <string name="commit_history">Development</string>
     <string name="recent_commits">Recent Commits</string>
+    <string name="changelog">Changelog</string>
+    <string name="view_changelog">View Changelog</string>
+    <string name="error_loading_changelog">Error loading changelog</string>
+    <string name="no_releases">No releases found</string>
     <string name="update_notification_channel_name">App Updates</string>
     <string name="update_notification_channel_desc">Notifications for new app updates</string>
     <string name="update_notification_title">Update Available</string>

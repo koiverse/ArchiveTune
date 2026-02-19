@@ -617,6 +617,10 @@ ArchiveTune sẽ chỉ trích xuất token của bạn, và mọi thứ khác đ
     <string name="channel_nightly">Hàng đêm</string>
     <string name="commit_history">Phát triển</string>
     <string name="recent_commits">Commits Gần đây</string>
+    <string name="changelog">Nhật ký thay đổi</string>
+    <string name="view_changelog">Xem nhật ký thay đổi</string>
+    <string name="error_loading_changelog">Lỗi khi tải nhật ký thay đổi</string>
+    <string name="no_releases">Không tìm thấy phiên bản nào</string>
     <string name="update_notification_channel_name">Cập nhật Ứng dụng</string>
     <string name="update_notification_channel_desc">Thông báo cho các cập nhật ứng dụng mới</string>
     <string name="update_notification_title">Cập nhật Có sẵn</string>

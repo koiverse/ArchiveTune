@@ -447,6 +447,22 @@ fun UpdateScreen(
             }
 
             item {
+                Spacer(modifier = Modifier.height(8.dp))
+                Button(
+                    onClick = { navController.navigate("settings/changelog") },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.update),
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(stringResource(R.string.view_changelog))
+                }
+            }
+
+            item {
                 AnimatedVisibility(visible = updateChannel == UpdateChannel.NIGHTLY) {
                     val latestCommitHash = commits.firstOrNull()?.sha ?: "—"
                     Card(
