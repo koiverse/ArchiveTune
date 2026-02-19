@@ -57,8 +57,6 @@
     <string name="like_all">Thích tất cả</string>
     <string name="dislike_all">Không thích tất cả</string>
     <string name="sort_by_last_updated">Ngày cập nhật</string>
-    <string name="pin">Ghim</string>
-    <string name="unpin">Bỏ ghim</string>
     <string name="link_copied">Đã sao chép liên kết vào clipboard</string>
     <string name="starting_radio">Đang bắt đầu radio</string>
     <string name="now_playing">Đang phát</string>

@@ -208,8 +208,6 @@
     <string name="share_summary">Partager le résumé</string>
     <string name="no_listening_data">Aucune donnée d\'écoute pour cette année</string>
     <string name="played">joués</string>
-    <string name="pin">Épingler</string>
-    <string name="unpin">Détacher</string>
     <string name="custom_theme">Thème personnalisé</string>
     <string name="import_theme">Importer un thème</string>
     <string name="export_theme">Exporter le thème</string>

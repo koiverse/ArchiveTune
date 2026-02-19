@@ -162,8 +162,6 @@
     <string name="settings_section_system">Süsteem ja rakenduse teave</string>
     <string name="similar_content">Sarnane sisu</string>
     <string name="assign_tags_to_playlists">Määra esitusloenditele</string>
-    <string name="pin">Tõsta esile</string>
-    <string name="unpin">Lõpeta esiletõstmine</string>
     <string name="show_tags_in_library">Näita muusikakogus silte</string>
     <string name="advanced_login">Logi sisse tunnusloaga</string>
     <string name="token_hidden">Klõpsa tunnusloa nägemiseks</string>

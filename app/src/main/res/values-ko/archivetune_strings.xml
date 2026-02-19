@@ -192,8 +192,6 @@
     <string name="no_tags_available">사용할 수 있는 태그가 없습니다. 먼저 태그를 만드세요.</string>
     <string name="manage_playlist_tags">재생 목록 태그</string>
     <string name="manage_playlist_tags_desc">재생 목록 구성을 위한 태그 생성 및 관리</string>
-    <string name="pin">고정</string>
-    <string name="unpin">고정 해제</string>
     <string name="show_tags_in_library">라이브러리에 태그 표시</string>
     <string name="show_tags_in_library_desc">라이브러리에 태그 필터 칩 표시</string>
     <string name="player_design_v5">작게</string>

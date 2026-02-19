@@ -193,8 +193,6 @@
     <string name="lyrics_text_size">歌詞の文字サイズ</string>
     <string name="resume_autoscroll">履歴書の自動スクロール</string>
     <string name="assign_tags_to_playlists">プレイリストに割り当てる</string>
-    <string name="pin">ピン</string>
-    <string name="unpin">固定解除</string>
     <string name="show_tags_in_library">ライブラリでタグを表示する</string>
     <string name="show_tags_in_library_desc">ライブラリ内のタグフィルターチップを表示する</string>
     <string name="player_design_v5">少し</string>

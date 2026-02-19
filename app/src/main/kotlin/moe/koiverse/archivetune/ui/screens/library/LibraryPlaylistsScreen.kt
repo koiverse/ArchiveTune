@@ -238,10 +238,6 @@ fun LibraryPlaylistsScreen(
             return@rememberReorderableLazyListState
         }
 
-        val fromPinned = mutableVisiblePlaylists[fromIndex].playlist.isPinned
-        val toPinned = mutableVisiblePlaylists[toIndex].playlist.isPinned
-        if (fromPinned != toPinned) return@rememberReorderableLazyListState
-
         val currentDragInfo = dragInfo
         dragInfo =
             if (currentDragInfo == null) {

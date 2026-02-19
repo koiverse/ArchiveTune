@@ -373,40 +373,6 @@ fun PlaylistMenu(
             )
         }
 
-        if (autoPlaylist != true) {
-            item {
-                val pinned = dbPlaylist?.playlist?.isPinned == true
-                ListItem(
-                    headlineContent = { Text(text = stringResource(if (pinned) R.string.unpin else R.string.pin)) },
-                    leadingContent = {
-                        Icon(
-                            painter =
-                            painterResource(
-                                if (pinned) R.drawable.unpin else R.drawable.pin
-                            ),
-                            contentDescription = null,
-                        )
-                    },
-                    modifier = Modifier.clickable {
-                        database.transaction {
-                            val currentPinned = dbPlaylist?.playlist?.isPinned == true
-                            val newPinned = !currentPinned
-                            val newOrder =
-                                if (newPinned) {
-                                    (minPinnedCustomOrder() ?: 0) - 1
-                                } else {
-                                    (maxUnpinnedCustomOrder() ?: (maxPlaylistCustomOrder() ?: 0)) + 1
-                                }
-
-                            setPlaylistPinned(playlist.id, newPinned)
-                            setPlaylistCustomOrder(playlist.id, newOrder)
-                        }
-                        onDismiss()
-                    }
-                )
-            }
-        }
-
         playlist.playlist.browseId?.let { browseId ->
             item {
                 ListItem(
