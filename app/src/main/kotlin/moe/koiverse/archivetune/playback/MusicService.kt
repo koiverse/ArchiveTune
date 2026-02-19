@@ -309,6 +309,7 @@ class MusicService :
     private var handoffDurationMs: Int = 0
     private var handoffTargetPositionMs: Long = 0L
     private var handoffSeekIssued = false
+    private var handoffRampStarted = false
 
     lateinit var sleepTimer: SleepTimer
 
@@ -1183,13 +1184,34 @@ class MusicService :
                 val currentIndex = player.currentMediaItemIndex
                 if (currentIndex != C.INDEX_UNSET) {
                     player.seekTo(currentIndex, handoffTargetPositionMs)
+                    player.prepare()
                 }
             }
 
+            val nowElapsedMs = android.os.SystemClock.elapsedRealtime()
+
+            if (!handoffRampStarted) {
+                val bufferedMs = player.totalBufferedDuration.coerceAtLeast(0L)
+                val deltaMs = player.currentPosition - handoffTargetPositionMs
+                val mainStable =
+                    player.playbackState == Player.STATE_READY &&
+                        player.isPlaying &&
+                        bufferedMs >= 1200L &&
+                        deltaMs in -200L..900L
+
+                if (!mainStable) {
+                    playbackFadeFactor.value = 0f
+                    overlap.volume = baseOverlapVolume
+                    return
+                }
+
+                handoffRampStarted = true
+                handoffStartElapsedMs = nowElapsedMs
+            }
+
             val denom = handoffDurationMs.toLong().coerceAtLeast(1L)
-            val elapsed = (android.os.SystemClock.elapsedRealtime() - handoffStartElapsedMs).coerceAtLeast(0L)
-            val mainReady = player.playbackState == Player.STATE_READY && player.isPlaying
-            val t = if (mainReady) (elapsed.toFloat() / denom.toFloat()).coerceIn(0f, 1f) else 0f
+            val elapsed = (nowElapsedMs - handoffStartElapsedMs).coerceAtLeast(0L)
+            val t = (elapsed.toFloat() / denom.toFloat()).coerceIn(0f, 1f)
 
             playbackFadeFactor.value = t
             overlap.volume = (baseOverlapVolume * (1f - t)).coerceIn(0f, 1f)
@@ -1234,9 +1256,10 @@ class MusicService :
 
         handoffActive = true
         handoffSeekIssued = false
+        handoffRampStarted = false
         handoffTargetPositionMs = overlap.currentPosition.coerceAtLeast(0L)
         handoffStartElapsedMs = android.os.SystemClock.elapsedRealtime()
-        handoffDurationMs = 280
+        handoffDurationMs = 450
         playbackFadeFactor.value = 0f
     }
 
@@ -1257,6 +1280,7 @@ class MusicService :
         handoffDurationMs = 0
         handoffTargetPositionMs = 0L
         handoffSeekIssued = false
+        handoffRampStarted = false
 
         crossfadeActive = false
         crossfadeTargetIndex = C.INDEX_UNSET
@@ -1282,6 +1306,7 @@ class MusicService :
         handoffDurationMs = 0
         handoffTargetPositionMs = 0L
         handoffSeekIssued = false
+        handoffRampStarted = false
 
         overlapPlayer?.let { overlap ->
             runCatching {
