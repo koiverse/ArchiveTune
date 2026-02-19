@@ -48,6 +48,7 @@ import coil3.imageLoader
 import moe.koiverse.archivetune.LocalPlayerAwareWindowInsets
 import moe.koiverse.archivetune.LocalPlayerConnection
 import moe.koiverse.archivetune.R
+import moe.koiverse.archivetune.constants.MaxCanvasCacheSizeKey
 import moe.koiverse.archivetune.constants.MaxImageCacheSizeKey
 import moe.koiverse.archivetune.constants.MaxSongCacheSizeKey
 import moe.koiverse.archivetune.constants.SmartTrimmerKey
@@ -60,6 +61,7 @@ import moe.koiverse.archivetune.ui.component.ListPreference
 import moe.koiverse.archivetune.ui.component.PreferenceEntry
 import moe.koiverse.archivetune.ui.component.SwitchPreference
 import moe.koiverse.archivetune.ui.component.PreferenceGroupTitle
+import moe.koiverse.archivetune.ui.player.CanvasArtworkPlaybackCache
 import moe.koiverse.archivetune.ui.utils.backToMain
 import moe.koiverse.archivetune.ui.utils.formatFileSize
 import moe.koiverse.archivetune.utils.rememberPreference
@@ -96,9 +98,14 @@ fun StorageSettings(
         key = MaxSongCacheSizeKey,
         defaultValue = 1024
     )
+    val (maxCanvasCacheSize, onMaxCanvasCacheSizeChange) = rememberPreference(
+        key = MaxCanvasCacheSizeKey,
+        defaultValue = 256,
+    )
     var clearCacheDialog by remember { mutableStateOf(false) }
     var clearDownloads by remember { mutableStateOf(false) }
     var clearImageCacheDialog by remember { mutableStateOf(false) }
+    var clearCanvasCacheDialog by remember { mutableStateOf(false) }
 
     var imageCacheSize by remember {
         mutableStateOf(imageDiskCache.size)
@@ -108,6 +115,9 @@ fun StorageSettings(
     }
     var downloadCacheSize by remember {
         mutableStateOf(0L)
+    }
+    var canvasCacheSize by remember {
+        mutableStateOf(CanvasArtworkPlaybackCache.size())
     }
     val imageCacheProgress by animateFloatAsState(
         targetValue = if (imageDiskCache.maxSize > 0) {
@@ -121,6 +131,12 @@ fun StorageSettings(
             (playerCacheSize.toFloat() / maxSongCacheSizeBytes).coerceIn(0f, 1f)
         } else 0f,
         label = "playerCacheProgress",
+    )
+    val canvasCacheProgress by animateFloatAsState(
+        targetValue = if (maxCanvasCacheSize > 0) {
+            (canvasCacheSize.toFloat() / maxCanvasCacheSize).coerceIn(0f, 1f)
+        } else 0f,
+        label = "canvasCacheProgress",
     )
 
     val isSmartTrimmerAvailable = maxImageCacheSize != 0 || maxSongCacheSize != 0
@@ -143,6 +159,12 @@ fun StorageSettings(
                     playerCache.removeResource(key)
                 }
             }
+        }
+    }
+    LaunchedEffect(maxCanvasCacheSize) {
+        CanvasArtworkPlaybackCache.setMaxSize(maxCanvasCacheSize)
+        if (maxCanvasCacheSize == 0) {
+            CanvasArtworkPlaybackCache.clear()
         }
     }
 
@@ -170,6 +192,12 @@ fun StorageSettings(
                     val cacheSpace = tryOrNull { downloadCache.cacheSpace } ?: 0L
                     if (cacheSpace == 0L) downloadCacheDir.directorySizeBytes() else cacheSpace
                 }
+        }
+    }
+    LaunchedEffect(Unit) {
+        while (isActive) {
+            delay(500)
+            canvasCacheSize = CanvasArtworkPlaybackCache.size()
         }
     }
 
@@ -320,6 +348,55 @@ fun StorageSettings(
                 onCancel = { clearImageCacheDialog = false },
                 content = {
                     Text(text = stringResource(R.string.clear_image_cache_dialog))
+                }
+            )
+        }
+
+        // --- Section: Canvas cache ---
+        CacheCard(
+            icon = R.drawable.motion_photos_on,
+            title = stringResource(R.string.canvas_cache),
+            description = if (maxCanvasCacheSize > 0) {
+                stringResource(
+                    R.string.canvas_cache_usage,
+                    stringResource(R.string.canvas_cache_items, canvasCacheSize),
+                    stringResource(R.string.canvas_cache_items, maxCanvasCacheSize),
+                )
+            } else {
+                stringResource(R.string.disable)
+            },
+            progress = if (maxCanvasCacheSize > 0) canvasCacheProgress else null,
+            actions = {
+                ListPreference(
+                    title = { Text(stringResource(R.string.max_cache_size)) },
+                    selectedValue = maxCanvasCacheSize,
+                    values = listOf(0, 64, 128, 256, 512, 1024),
+                    valueText = {
+                        when (it) {
+                            0 -> stringResource(R.string.disable)
+                            else -> stringResource(R.string.canvas_cache_items, it)
+                        }
+                    },
+                    onValueSelected = onMaxCanvasCacheSizeChange,
+                )
+                PreferenceEntry(
+                    title = { Text(stringResource(R.string.clear_canvas_cache)) },
+                    onClick = { clearCanvasCacheDialog = true },
+                )
+            }
+        )
+
+        if (clearCanvasCacheDialog) {
+            ActionPromptDialog(
+                title = stringResource(R.string.clear_canvas_cache),
+                onDismiss = { clearCanvasCacheDialog = false },
+                onConfirm = {
+                    CanvasArtworkPlaybackCache.clear()
+                    clearCanvasCacheDialog = false
+                },
+                onCancel = { clearCanvasCacheDialog = false },
+                content = {
+                    Text(text = stringResource(R.string.clear_canvas_cache_dialog))
                 }
             )
         }

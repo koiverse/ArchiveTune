@@ -129,6 +129,7 @@ val EqualizerCustomProfilesJsonKey = stringPreferencesKey("equalizerCustomProfil
 val MaxImageCacheSizeKey = intPreferencesKey("maxImageCacheSize")
 val SmartTrimmerKey = booleanPreferencesKey("smartTrimmer")
 val MaxSongCacheSizeKey = intPreferencesKey("maxSongCacheSize")
+val MaxCanvasCacheSizeKey = intPreferencesKey("maxCanvasCacheSize")
 
 val PauseListenHistoryKey = booleanPreferencesKey("pauseListenHistory")
 val PauseSearchHistoryKey = booleanPreferencesKey("pauseSearchHistory")
