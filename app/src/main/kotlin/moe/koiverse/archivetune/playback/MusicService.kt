@@ -294,6 +294,16 @@ class MusicService :
     private val audioFocusVolumeFactor = MutableStateFlow(1f)
     private val playbackFadeFactor = MutableStateFlow(1f)
     private val crossfadeDurationMs = MutableStateFlow(0)
+    private val audioNormalizationEnabled = MutableStateFlow(true)
+    private var overlapPlayer: ExoPlayer? = null
+    private var overlapPrimedIndex: Int = C.INDEX_UNSET
+    private var overlapPrimedMediaId: String? = null
+    private var crossfadeActive = false
+    private var crossfadeTargetIndex: Int = C.INDEX_UNSET
+    private var crossfadeTargetMediaId: String? = null
+    private var crossfadeStartElapsedMs: Long = 0L
+    private var crossfadeActiveDurationMs: Int = 0
+    private var overlapNormalizeFactor: Float = 1f
 
     lateinit var sleepTimer: SleepTimer
 
@@ -641,22 +651,7 @@ class MusicService :
             }
 
         scope.launch {
-            while (isActive) {
-                val fadeMs = crossfadeDurationMs.value
-                if (fadeMs <= 0) {
-                    if (playbackFadeFactor.value != 1f) playbackFadeFactor.value = 1f
-                    delay(250)
-                } else {
-                    val newFactor =
-                        computePlaybackFadeFactor(
-                            crossfadeDurationMs = fadeMs,
-                            positionMs = player.currentPosition.coerceAtLeast(0L),
-                            durationMs = player.duration,
-                        )
-                    if (playbackFadeFactor.value != newFactor) playbackFadeFactor.value = newFactor
-                    delay(50)
-                }
-            }
+            runOverlapCrossfadeLoop()
         }
 
         dataStore.data
@@ -675,6 +670,7 @@ class MusicService :
         ) { format, normalizeAudio ->
             format to normalizeAudio
         }.collectLatest(scope) { (format, normalizeAudio) ->
+            audioNormalizationEnabled.value = normalizeAudio
             Timber.tag("AudioNormalization").d("Audio normalization enabled: $normalizeAudio")
             Timber.tag("AudioNormalization").d("Format loudnessDb: ${format?.loudnessDb}, perceptualLoudnessDb: ${format?.perceptualLoudnessDb}")
             
@@ -1045,34 +1041,225 @@ class MusicService :
         }
     }
 
-    private fun computePlaybackFadeFactor(
-        crossfadeDurationMs: Int,
-        positionMs: Long,
-        durationMs: Long,
-    ): Float {
-        if (crossfadeDurationMs <= 0) return 1f
-
-        val fadeWindowMs = crossfadeDurationMs.toLong()
-        val effectiveFadeWindowMs =
-            if (durationMs > 0 && durationMs != C.TIME_UNSET) {
-                min(fadeWindowMs, durationMs / 2)
-            } else {
-                fadeWindowMs
-            }.coerceAtLeast(1L)
-
-        val fadeOut =
-            if (durationMs > 0 && durationMs != C.TIME_UNSET) {
-                val remainingMs = (durationMs - positionMs).coerceAtLeast(0L)
-                if (remainingMs < effectiveFadeWindowMs) {
-                    (remainingMs.toFloat() / effectiveFadeWindowMs.toFloat()).coerceIn(0f, 1f)
-                } else {
-                    1f
-                }
-            } else {
-                1f
+    private suspend fun runOverlapCrossfadeLoop() {
+        while (isActive) {
+            val fadeMs = crossfadeDurationMs.value
+            if (fadeMs <= 0) {
+                stopOverlapCrossfade(resetMainFade = true)
+                delay(250)
+                continue
             }
 
-        return fadeOut
+            if (!player.playWhenReady || player.playbackState != Player.STATE_READY || !player.isPlaying) {
+                stopOverlapCrossfade(resetMainFade = true)
+                delay(150)
+                continue
+            }
+
+            val durationMs = player.duration
+            val positionMs = player.currentPosition.coerceAtLeast(0L)
+            val nextIndex = player.nextMediaItemIndex
+
+            if (player.repeatMode == Player.REPEAT_MODE_ONE) {
+                stopOverlapCrossfade(resetMainFade = true)
+                delay(150)
+                continue
+            }
+
+            if (nextIndex == C.INDEX_UNSET || durationMs <= 0 || durationMs == C.TIME_UNSET) {
+                stopOverlapCrossfade(resetMainFade = true)
+                delay(150)
+                continue
+            }
+
+            val remainingMs = (durationMs - positionMs).coerceAtLeast(0L)
+            val preloadWindowMs = fadeMs.toLong() + 1200L
+
+            if (crossfadeActive) {
+                val tooFarFromEnd = remainingMs > fadeMs.toLong() + 2000L
+                val nextChanged = crossfadeTargetIndex != C.INDEX_UNSET && nextIndex != crossfadeTargetIndex
+                if (tooFarFromEnd || nextChanged) {
+                    stopOverlapCrossfade(resetMainFade = true)
+                    delay(100)
+                    continue
+                }
+
+                updateOverlapCrossfadeVolumes()
+                delay(50)
+                continue
+            }
+
+            if (remainingMs in 1L..preloadWindowMs) {
+                primeOverlapForNext(nextIndex)
+            } else {
+                unprimeOverlap()
+            }
+
+            if (overlapPrimedIndex == nextIndex && remainingMs in 1L..fadeMs.toLong()) {
+                beginOverlapCrossfade(fadeMs = fadeMs, remainingMs = remainingMs)
+                delay(50)
+                continue
+            }
+
+            if (playbackFadeFactor.value != 1f) playbackFadeFactor.value = 1f
+            delay(100)
+        }
+    }
+
+    private suspend fun primeOverlapForNext(nextIndex: Int) {
+        val nextItem = player.getMediaItemAt(nextIndex)
+        val nextMediaId = nextItem.mediaId
+        if (overlapPrimedIndex == nextIndex && overlapPrimedMediaId == nextMediaId) return
+
+        stopOverlapCrossfade(resetMainFade = false)
+
+        val overlap = ensureOverlapPlayer()
+        overlap.clearMediaItems()
+        overlap.setMediaItem(nextItem)
+        overlap.prepare()
+        overlap.playWhenReady = true
+        overlap.volume = 0f
+
+        overlapNormalizeFactor = fetchNormalizeFactorForMediaId(nextMediaId)
+        overlapPrimedIndex = nextIndex
+        overlapPrimedMediaId = nextMediaId
+    }
+
+    private fun unprimeOverlap() {
+        if (crossfadeActive) return
+        if (overlapPrimedIndex == C.INDEX_UNSET && overlapPrimedMediaId == null) return
+        stopOverlapCrossfade(resetMainFade = false)
+    }
+
+    private fun beginOverlapCrossfade(fadeMs: Int, remainingMs: Long) {
+        if (overlapPlayer == null) return
+        crossfadeActive = true
+        crossfadeStartElapsedMs = android.os.SystemClock.elapsedRealtime()
+        crossfadeActiveDurationMs = min(fadeMs.toLong(), remainingMs).toInt().coerceAtLeast(1)
+        crossfadeTargetIndex = overlapPrimedIndex
+        crossfadeTargetMediaId = overlapPrimedMediaId
+    }
+
+    private fun updateOverlapCrossfadeVolumes() {
+        val overlap = overlapPlayer ?: run {
+            stopOverlapCrossfade(resetMainFade = true)
+            return
+        }
+
+        val denom = crossfadeActiveDurationMs.toLong().coerceAtLeast(1L)
+        val elapsed = (android.os.SystemClock.elapsedRealtime() - crossfadeStartElapsedMs).coerceAtLeast(0L)
+        val t = (elapsed.toFloat() / denom.toFloat()).coerceIn(0f, 1f)
+
+        val mainFactor = (1f - t).coerceIn(0f, 1f)
+        val overlapFactor = t
+
+        playbackFadeFactor.value = mainFactor
+
+        val overlapVolume =
+            (playerVolume.value * overlapNormalizeFactor * audioFocusVolumeFactor.value * overlapFactor)
+                .coerceIn(0f, 1f)
+        overlap.volume = overlapVolume
+    }
+
+    private fun handleCrossfadeMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+        if (!crossfadeActive) return
+
+        val targetId = crossfadeTargetMediaId
+        val newId = mediaItem?.mediaId
+
+        if (reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO && !targetId.isNullOrBlank() && targetId == newId) {
+            handoffToMainFromOverlap()
+            return
+        }
+
+        stopOverlapCrossfade(resetMainFade = true)
+    }
+
+    private fun handoffToMainFromOverlap() {
+        val overlap = overlapPlayer ?: run {
+            stopOverlapCrossfade(resetMainFade = true)
+            return
+        }
+
+        val targetPositionMs = overlap.currentPosition.coerceAtLeast(0L)
+        overlap.volume = 0f
+        overlap.stop()
+        overlap.clearMediaItems()
+
+        crossfadeActive = false
+        crossfadeTargetIndex = C.INDEX_UNSET
+        crossfadeTargetMediaId = null
+        overlapPrimedIndex = C.INDEX_UNSET
+        overlapPrimedMediaId = null
+
+        playbackFadeFactor.value = 1f
+
+        val currentIndex = player.currentMediaItemIndex
+        if (currentIndex != C.INDEX_UNSET) {
+            player.seekTo(currentIndex, targetPositionMs)
+        }
+    }
+
+    private fun stopOverlapCrossfade(resetMainFade: Boolean) {
+        crossfadeActive = false
+        crossfadeTargetIndex = C.INDEX_UNSET
+        crossfadeTargetMediaId = null
+        crossfadeActiveDurationMs = 0
+        overlapNormalizeFactor = 1f
+        overlapPrimedIndex = C.INDEX_UNSET
+        overlapPrimedMediaId = null
+
+        overlapPlayer?.let { overlap ->
+            runCatching {
+                overlap.volume = 0f
+                overlap.stop()
+                overlap.clearMediaItems()
+            }
+        }
+
+        if (resetMainFade) {
+            playbackFadeFactor.value = 1f
+        }
+    }
+
+    private fun ensureOverlapPlayer(): ExoPlayer {
+        val existing = overlapPlayer
+        if (existing != null) return existing
+
+        val newPlayer =
+            ExoPlayer
+                .Builder(this)
+                .setMediaSourceFactory(createMediaSourceFactory())
+                .setRenderersFactory(createRenderersFactory())
+                .setHandleAudioBecomingNoisy(false)
+                .setWakeMode(C.WAKE_MODE_NETWORK)
+                .setAudioAttributes(
+                    AudioAttributes
+                        .Builder()
+                        .setUsage(C.USAGE_MEDIA)
+                        .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
+                        .build(),
+                    false,
+                ).setSeekBackIncrementMs(5000)
+                .setSeekForwardIncrementMs(5000)
+                .build()
+
+        overlapPlayer = newPlayer
+        return newPlayer
+    }
+
+    private suspend fun fetchNormalizeFactorForMediaId(mediaId: String): Float {
+        if (!audioNormalizationEnabled.value) return 1f
+
+        val format =
+            withContext(Dispatchers.IO) {
+                database.format(mediaId).first()
+            }
+
+        val loudness = format?.loudnessDb ?: format?.perceptualLoudnessDb ?: return 1f
+        var factor = 10f.pow((-loudness.toFloat()) / 20f)
+        if (factor > 1f) factor = min(factor, maxSafeGainFactor)
+        return factor
     }
 
     private fun requestAudioFocus(): Boolean {
@@ -2944,6 +3131,8 @@ class MusicService :
     override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
     super.onMediaItemTransition(mediaItem, reason)
 
+    handleCrossfadeMediaItemTransition(mediaItem, reason)
+
     val joined = togetherSessionState.value as? moe.koiverse.archivetune.together.TogetherSessionState.Joined
     if (joined?.role is moe.koiverse.archivetune.together.TogetherRole.Guest &&
         reason == Player.MEDIA_ITEM_TRANSITION_REASON_SEEK
@@ -3084,6 +3273,7 @@ class MusicService :
     }
 
     if (playbackState == Player.STATE_IDLE || playbackState == Player.STATE_ENDED) {
+        stopOverlapCrossfade(resetMainFade = true)
         scrobbleManager?.onSongStop()
     }
     
@@ -4041,6 +4231,10 @@ class MusicService :
             player.removeListener(this)
             player.removeListener(sleepTimer)
             player.release()
+        } catch (_: Exception) {}
+        try {
+            overlapPlayer?.release()
+            overlapPlayer = null
         } catch (_: Exception) {}
         scopeJob.cancel()
     }
