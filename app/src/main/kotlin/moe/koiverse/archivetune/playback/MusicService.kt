@@ -1060,13 +1060,6 @@ class MusicService :
                 fadeWindowMs
             }.coerceAtLeast(1L)
 
-        val fadeIn =
-            if (positionMs < effectiveFadeWindowMs) {
-                (positionMs.toFloat() / effectiveFadeWindowMs.toFloat()).coerceIn(0f, 1f)
-            } else {
-                1f
-            }
-
         val fadeOut =
             if (durationMs > 0 && durationMs != C.TIME_UNSET) {
                 val remainingMs = (durationMs - positionMs).coerceAtLeast(0L)
@@ -1079,7 +1072,7 @@ class MusicService :
                 1f
             }
 
-        return min(fadeIn, fadeOut)
+        return fadeOut
     }
 
     private fun requestAudioFocus(): Boolean {
