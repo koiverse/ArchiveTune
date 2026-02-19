@@ -305,8 +305,10 @@ fun HomeScreen(
                 contentPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues()
             ) {
             item {
+                val visibleHomeChips = homePage?.chips.orEmpty()
+                    .filterNot { it.title.contains("podcasts", ignoreCase = true) }
                 ChipsRow(
-                    chips = homePage?.chips?.map { it to it.title } ?: emptyList(),
+                    chips = visibleHomeChips.map { it to it.title },
                     currentValue = selectedChip,
                     onValueUpdate = {
                         viewModel.toggleChip(it)
