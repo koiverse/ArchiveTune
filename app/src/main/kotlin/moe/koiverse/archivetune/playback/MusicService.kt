@@ -75,6 +75,7 @@ import androidx.media3.session.MediaSession
 import androidx.media3.session.SessionToken
 import com.google.common.util.concurrent.MoreExecutors
 import moe.koiverse.archivetune.innertube.YouTube
+import moe.koiverse.archivetune.innertube.models.YouTubeClient
 import moe.koiverse.archivetune.innertube.models.SongItem
 import moe.koiverse.archivetune.innertube.models.WatchEndpoint
 import moe.koiverse.archivetune.MainActivity
@@ -267,6 +268,44 @@ class MusicService :
     private val streamRecoveryState = ConcurrentHashMap<String, Pair<Int, Long>>()
     private val avoidStreamCodecs: Set<String> by lazy {
         if (deviceSupportsMimeType("audio/opus")) emptySet() else setOf("opus")
+    }
+    private val mediaOkHttpClient: OkHttpClient by lazy {
+        OkHttpClient
+            .Builder()
+            .proxy(YouTube.proxy)
+            .followRedirects(true)
+            .followSslRedirects(true)
+            .addInterceptor { chain ->
+                val request = chain.request()
+                val host = request.url.host
+                val isYouTubeMediaHost =
+                    host.endsWith("googlevideo.com") ||
+                        host.endsWith("googleusercontent.com") ||
+                        host.endsWith("youtube.com") ||
+                        host.endsWith("youtube-nocookie.com") ||
+                        host.endsWith("ytimg.com")
+
+                if (!isYouTubeMediaHost) return@addInterceptor chain.proceed(request)
+
+                val isWeb =
+                    preferredStreamClient == PlayerStreamClient.WEB_REMIX ||
+                        request.url.toString().contains("c=WEB", ignoreCase = true)
+
+                val userAgent =
+                    if (isWeb) {
+                        YouTubeClient.USER_AGENT_WEB
+                    } else {
+                        YouTubeClient.ANDROID_VR_NO_AUTH.userAgent
+                    }
+
+                val builder = request.newBuilder().header("User-Agent", userAgent)
+                if (isWeb) {
+                    builder.header("Origin", YouTubeClient.ORIGIN_YOUTUBE_MUSIC)
+                    builder.header("Referer", YouTubeClient.REFERER_YOUTUBE_MUSIC)
+                }
+
+                chain.proceed(builder.build())
+            }.build()
     }
 
     private var currentQueue: Queue = EmptyQueue
@@ -3455,6 +3494,7 @@ class MusicService :
             Timber.tag("MusicService").w(
                 "Attempting stream refresh for $currentMediaId (http=$httpStatusCode, code=${error.errorCode})"
             )
+            YTPlayerUtils.invalidateCachedStreamUrls(currentMediaId)
             playbackUrlCache.remove(currentMediaId)
             player.prepare()
             player.playWhenReady = true
@@ -3549,10 +3589,7 @@ class MusicService :
                         DefaultDataSource.Factory(
                             this,
                             OkHttpDataSource.Factory(
-                                OkHttpClient
-                                    .Builder()
-                                    .proxy(YouTube.proxy)
-                                    .build(),
+                                mediaOkHttpClient,
                             ),
                         ),
                     )
@@ -3681,6 +3718,7 @@ class MusicService :
 
     fun retryCurrentFromFreshStream() {
         val mediaId = player.currentMediaItem?.mediaId ?: return
+        YTPlayerUtils.invalidateCachedStreamUrls(mediaId)
         playbackUrlCache.remove(mediaId)
         player.prepare()
         player.playWhenReady = true
