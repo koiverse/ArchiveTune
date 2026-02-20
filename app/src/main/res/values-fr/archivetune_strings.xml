@@ -255,4 +255,14 @@
     <string name="restore_step_restoring_settings">Restauration des paramètres</string>
     <string name="restore_step_restoring_file">Restauration de %1$s</string>
     <string name="restore_step_restarting">Redémarrer l\'application</string>
+    <string name="canvas_cache">Cache Canvas</string>
+    <string name="canvas_cache_items">%d éléments</string>
+    <string name="canvas_cache_usage">%1$s / %2$s</string>
+    <string name="clear_canvas_cache">Vider le cache du canevas</string>
+    <string name="clear_canvas_cache_dialog">Êtes-vous sûr de vouloir effacer tout le contenu mis en cache ?</string>
+    <string name="playlist_private_title">Cette playlist était privée.</string>
+    <string name="playlist_private_desc">Vous n\'avez pas accès à cette playlist.</string>
+    <string name="audio_crossfade_title">Fondu enchaîné</string>
+    <string name="audio_crossfade_description">Assurez une transition fluide entre les titres en atténuant progressivement la fin de chaque titre.</string>
+    <string name="audio_crossfade_dialog_title">Durée du fondu enchaîné</string>
 </resources>
