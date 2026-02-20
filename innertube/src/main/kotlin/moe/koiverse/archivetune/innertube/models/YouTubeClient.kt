@@ -104,26 +104,26 @@ data class YouTubeClient(
 
         val IOS = YouTubeClient(
             clientName = "IOS",
-            clientVersion = "21.02.1",
+            clientVersion = "21.10.3",
             clientId = "5",
-            userAgent = "com.google.ios.youtube/21.02.1 (iPhone16,2; U; CPU iOS 18_2 like Mac OS X;)",
-            osVersion = "18.2.22C152",
+            userAgent = "com.google.ios.youtube/21.10.3 (iPhone16,2; U; CPU iOS 18_3_2 like Mac OS X;)",
+            osVersion = "18.3.2.22D82",
         )
 
         val MOBILE = YouTubeClient(
             clientName = "ANDROID",
-            clientVersion = "21.02.38",
+            clientVersion = "21.10.38",
             clientId = "3",
-            userAgent = "com.google.android.youtube/21.02.38 (Linux; U; Android 14) gzip",
+            userAgent = "com.google.android.youtube/21.10.38 (Linux; U; Android 15; en_US; Pixel 9 Pro; Build/AP4A.250205.002; Cronet/132.0.6834.79) gzip",
             loginSupported = true,
             useSignatureTimestamp = true
         )
 
         val ANDROID_VR_NO_AUTH = YouTubeClient(
             clientName = "ANDROID_VR",
-            clientVersion = "1.61.48",
+            clientVersion = "1.62.20",
             clientId = "28",
-            userAgent = "com.google.android.apps.youtube.vr.oculus/1.61.48 (Linux; U; Android 12; en_US; Oculus Quest 3; Build/SQ3A.220605.009.A1; Cronet/132.0.6808.3)",
+            userAgent = "com.google.android.apps.youtube.vr.oculus/1.62.20 (Linux; U; Android 12; en_US; Quest 3; Build/SQ3A.220605.009.A1; Cronet/132.0.6834.79)",
             loginSupported = false,
             useSignatureTimestamp = false
         )
@@ -209,6 +209,24 @@ data class YouTubeClient(
             loginSupported = false,
             useSignatureTimestamp = false,
             packageName = "com.google.ios.youtube"
+        )
+
+        val ANDROID_MUSIC = YouTubeClient(
+            clientName = "ANDROID_MUSIC",
+            clientVersion = "7.27.52",
+            clientId = "21",
+            userAgent = "com.google.android.apps.youtube.music/7.27.52 (Linux; U; Android 15; en_US; Pixel 9 Pro; Build/AP4A.250205.002; Cronet/132.0.6834.79) gzip",
+            osName = "Android",
+            osVersion = "15",
+            deviceMake = "Google",
+            deviceModel = "Pixel 9 Pro",
+            androidSdkVersion = "35",
+            buildId = "AP4A.250205.002",
+            cronetVersion = "132.0.6834.79",
+            packageName = "com.google.android.apps.youtube.music",
+            friendlyName = "YouTube Music",
+            loginSupported = true,
+            useSignatureTimestamp = true
         )
     }
 }

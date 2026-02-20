@@ -92,7 +92,11 @@ constructor(
                     if (isWeb) {
                         YouTubeClient.USER_AGENT_WEB
                     } else {
-                        YouTubeClient.ANDROID_VR_NO_AUTH.userAgent
+                        when (preferredStreamClient) {
+                            PlayerStreamClient.IOS -> YouTubeClient.IOS.userAgent
+                            PlayerStreamClient.ANDROID_MUSIC -> YouTubeClient.ANDROID_MUSIC.userAgent
+                            else -> YouTubeClient.ANDROID_VR_NO_AUTH.userAgent
+                        }
                     }
 
                 val builder = request.newBuilder().header("User-Agent", userAgent)

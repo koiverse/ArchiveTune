@@ -20,7 +20,10 @@ import moe.koiverse.archivetune.innertube.models.YouTubeClient.Companion.TVHTML5
 import moe.koiverse.archivetune.innertube.models.YouTubeClient.Companion.WEB_REMIX
 import moe.koiverse.archivetune.innertube.models.response.PlayerResponse
 import moe.koiverse.archivetune.innertube.models.YouTubeClient.Companion.ANDROID_VR_NO_AUTH
+import moe.koiverse.archivetune.innertube.models.YouTubeClient.Companion.ANDROID_MUSIC
+import moe.koiverse.archivetune.innertube.models.YouTubeClient.Companion.ANDROID_CREATOR
 import moe.koiverse.archivetune.innertube.models.YouTubeClient.Companion.MOBILE
+import moe.koiverse.archivetune.innertube.models.YouTubeClient.Companion.TVHTML5
 import moe.koiverse.archivetune.innertube.models.YouTubeClient.Companion.WEB
 import moe.koiverse.archivetune.innertube.models.YouTubeClient.Companion.WEB_CREATOR
 import okhttp3.OkHttpClient
@@ -47,10 +50,13 @@ object YTPlayerUtils {
      * Clients used for fallback streams in case the streams of the main client do not work.
      */
     private val STREAM_FALLBACK_CLIENTS: Array<YouTubeClient> = arrayOf(
+        IOS,
+        ANDROID_MUSIC,
         ANDROID_VR_NO_AUTH,
         MOBILE,
+        ANDROID_CREATOR,
         TVHTML5_SIMPLY_EMBEDDED_PLAYER,
-        IOS,
+        TVHTML5,
         WEB,
         WEB_CREATOR
     )
@@ -151,6 +157,8 @@ object YTPlayerUtils {
             when (preferredStreamClient) {
                 PlayerStreamClient.ANDROID_VR -> ANDROID_VR_NO_AUTH
                 PlayerStreamClient.WEB_REMIX -> WEB_REMIX
+                PlayerStreamClient.IOS -> IOS
+                PlayerStreamClient.ANDROID_MUSIC -> ANDROID_MUSIC
             }
 
         val metadataClient =
