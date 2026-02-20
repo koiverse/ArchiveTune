@@ -81,8 +81,11 @@ constructor(
 
                 if (!isYouTubeMediaHost) return@addInterceptor chain.proceed(request)
 
+                val clientParam = request.url.queryParameter("c")?.trim().orEmpty()
                 val isWeb =
-                    preferredStreamClient == PlayerStreamClient.WEB_REMIX ||
+                    clientParam.startsWith("WEB", ignoreCase = true) ||
+                        clientParam.startsWith("WEB_REMIX", ignoreCase = true) ||
+                        preferredStreamClient == PlayerStreamClient.WEB_REMIX ||
                         request.url.toString().contains("c=WEB", ignoreCase = true)
 
                 val userAgent =
