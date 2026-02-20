@@ -177,4 +177,7 @@
     </plurals>
     <string name="added_to_playlist">Добавлено в %s</string>
     <string name="added_n_songs_to_playlist">Добавлено %1$d песен в %2$s</string>
+    <string name="change_playlist_cover">Сменить обложку плейлиста</string>
+    <string name="remove_playlist_cover">Удалить обложку</string>
+    <string name="together_participants">Участники</string>
 </resources>
