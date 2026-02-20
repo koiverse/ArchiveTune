@@ -199,6 +199,7 @@ class SyncUtils @Inject constructor(
                 Timber.w("syncLikedSongs: Remote playlist is empty")
                 return@onSuccess
             }
+            val baseTimestamp = LocalDateTime.now()
             val remoteIds = remoteSongs.map { it.id }
             val localSongs = database.likedSongsByNameAsc().first()
 
@@ -207,12 +208,12 @@ class SyncUtils @Inject constructor(
                 .forEach { database.update(it.song.localToggleLike()) }
 
             remoteSongs.forEachIndexed { index, song ->
+                val timestamp = likedSongTimestamp(baseTimestamp, index)
                 launch {
                     if (!isSyncStillEnabled(gen)) return@launch
                     dbWriteSemaphore.withPermit {
                         if (!isSyncStillEnabled(gen)) return@withPermit
                         val dbSong = database.song(song.id).firstOrNull()
-                        val timestamp = LocalDateTime.now().minusSeconds(index.toLong())
                         database.withTransaction {
                             if (!isSyncStillEnabled(gen)) return@withTransaction
                             if (dbSong == null) {
@@ -576,4 +577,8 @@ class SyncUtils @Inject constructor(
             Timber.e(e, "syncPlaylist: Failed to fetch playlist from YouTube")
         }
     }
+}
+
+internal fun likedSongTimestamp(baseTimestamp: LocalDateTime, index: Int): LocalDateTime {
+    return baseTimestamp.minusSeconds(index.toLong())
 }
