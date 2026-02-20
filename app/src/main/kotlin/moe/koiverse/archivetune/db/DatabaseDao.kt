@@ -192,7 +192,7 @@ interface DatabaseDao {
     fun likedSongsByRowIdAsc(): Flow<List<Song>>
 
     @Transaction
-    @Query("SELECT * FROM song WHERE liked ORDER BY likedDate")
+    @Query("SELECT * FROM song WHERE liked ORDER BY likedDate, rowId")
     fun likedSongsByCreateDateAsc(): Flow<List<Song>>
 
     @Transaction
@@ -259,7 +259,7 @@ interface DatabaseDao {
         FROM song
         LEFT JOIN set_video_id ON set_video_id.videoId = song.id
         WHERE liked AND set_video_id.setVideoId IS NULL
-        ORDER BY song.id
+        ORDER BY song.rowid
         """,
     )
     fun likedSongsByRowIdAscNoVideo(): Flow<List<Song>>
@@ -271,7 +271,7 @@ interface DatabaseDao {
         FROM song
         LEFT JOIN set_video_id ON set_video_id.videoId = song.id
         WHERE liked AND set_video_id.setVideoId IS NULL
-        ORDER BY likedDate
+        ORDER BY likedDate, song.rowid
         """,
     )
     fun likedSongsByCreateDateAscNoVideo(): Flow<List<Song>>

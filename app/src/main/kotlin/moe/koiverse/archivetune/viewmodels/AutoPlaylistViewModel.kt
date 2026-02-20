@@ -13,11 +13,12 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.media3.exoplayer.offline.Download
+import moe.koiverse.archivetune.constants.AutoPlaylistSongSortDescendingKey
+import moe.koiverse.archivetune.constants.AutoPlaylistSongSortType
+import moe.koiverse.archivetune.constants.AutoPlaylistSongSortTypeKey
 import moe.koiverse.archivetune.constants.HideExplicitKey
 import moe.koiverse.archivetune.constants.HideVideoKey
-import moe.koiverse.archivetune.constants.SongSortDescendingKey
 import moe.koiverse.archivetune.constants.SongSortType
-import moe.koiverse.archivetune.constants.SongSortTypeKey
 import moe.koiverse.archivetune.db.MusicDatabase
 import moe.koiverse.archivetune.extensions.filterExplicit
 import moe.koiverse.archivetune.extensions.reversed
@@ -58,12 +59,20 @@ constructor(
     private val _isRefreshing = MutableStateFlow(false)
     val isRefreshing = _isRefreshing.asStateFlow()
 
+    private fun AutoPlaylistSongSortType.toSongSortType(): SongSortType =
+        when (this) {
+            AutoPlaylistSongSortType.CREATE_DATE -> SongSortType.CREATE_DATE
+            AutoPlaylistSongSortType.NAME -> SongSortType.NAME
+            AutoPlaylistSongSortType.ARTIST -> SongSortType.ARTIST
+            AutoPlaylistSongSortType.PLAY_TIME -> SongSortType.PLAY_TIME
+        }
+
     @OptIn(ExperimentalCoroutinesApi::class)
     val likedSongs =
         context.dataStore.data
             .map {
                 Triple(
-                    it[SongSortTypeKey].toEnum(SongSortType.CREATE_DATE) to (it[SongSortDescendingKey]
+                    it[AutoPlaylistSongSortTypeKey].toEnum(AutoPlaylistSongSortType.CREATE_DATE) to (it[AutoPlaylistSongSortDescendingKey]
                         ?: true),
                     it[HideExplicitKey] ?: false,
                     it[HideVideoKey] ?: false,
@@ -72,8 +81,9 @@ constructor(
             .distinctUntilChanged()
             .flatMapLatest { (sortDesc, hideExplicit, hideVideo) ->
                 val (sortType, descending) = sortDesc
+                val songSortType = sortType.toSongSortType()
                 when (playlist) {
-                    "liked" -> database.likedSongs(sortType, descending, hideVideo).map { it.filterExplicit(hideExplicit) }
+                    "liked" -> database.likedSongs(songSortType, descending, hideVideo).map { it.filterExplicit(hideExplicit) }
                     "downloaded" -> downloadUtil.downloads.flatMapLatest { downloads ->
                         database.allSongs()
                             .flowOn(Dispatchers.IO)
@@ -83,7 +93,7 @@ constructor(
                                 }
                             }
                             .map { songs ->
-                                when (sortType) {
+                                when (songSortType) {
                                     SongSortType.CREATE_DATE -> songs.sortedBy {
                                         downloads[it.id]?.updateTimeMs ?: 0L
                                     }
