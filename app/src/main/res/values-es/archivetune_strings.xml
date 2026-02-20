@@ -120,7 +120,6 @@
     <string name="show_top_playlist">Mostrar lista de reproducción \"Top\"</string>
     <string name="show_cached_playlist">Mostrar lista de reproducción \"En cache\"</string>
     <string name="google">Google</string>
-    <string name="discord"></string>
     <string name="advanced_login">Iniciar sesión con token</string>
     <string name="token_hidden">Pulsa para mostrar el token</string>
     <string name="token_shown">Pulsar de nuevo para copiar o editar</string>
