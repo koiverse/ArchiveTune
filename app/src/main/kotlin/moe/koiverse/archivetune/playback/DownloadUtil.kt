@@ -22,6 +22,7 @@ import androidx.media3.exoplayer.offline.Download
 import androidx.media3.exoplayer.offline.DownloadManager
 import androidx.media3.exoplayer.offline.DownloadNotificationHelper
 import moe.koiverse.archivetune.innertube.YouTube
+import moe.koiverse.archivetune.innertube.models.YouTubeClient
 import moe.koiverse.archivetune.constants.AudioQuality
 import moe.koiverse.archivetune.constants.AudioQualityKey
 import moe.koiverse.archivetune.constants.PlayerStreamClient
@@ -62,6 +63,44 @@ constructor(
     private val avoidStreamCodecs: Set<String> by lazy {
         if (deviceSupportsMimeType("audio/opus")) emptySet() else setOf("opus")
     }
+    private val mediaOkHttpClient: OkHttpClient by lazy {
+        OkHttpClient
+            .Builder()
+            .proxy(YouTube.proxy)
+            .followRedirects(true)
+            .followSslRedirects(true)
+            .addInterceptor { chain ->
+                val request = chain.request()
+                val host = request.url.host
+                val isYouTubeMediaHost =
+                    host.endsWith("googlevideo.com") ||
+                        host.endsWith("googleusercontent.com") ||
+                        host.endsWith("youtube.com") ||
+                        host.endsWith("youtube-nocookie.com") ||
+                        host.endsWith("ytimg.com")
+
+                if (!isYouTubeMediaHost) return@addInterceptor chain.proceed(request)
+
+                val isWeb =
+                    preferredStreamClient == PlayerStreamClient.WEB_REMIX ||
+                        request.url.toString().contains("c=WEB", ignoreCase = true)
+
+                val userAgent =
+                    if (isWeb) {
+                        YouTubeClient.USER_AGENT_WEB
+                    } else {
+                        YouTubeClient.ANDROID_VR_NO_AUTH.userAgent
+                    }
+
+                val builder = request.newBuilder().header("User-Agent", userAgent)
+                if (isWeb) {
+                    builder.header("Origin", YouTubeClient.ORIGIN_YOUTUBE_MUSIC)
+                    builder.header("Referer", YouTubeClient.REFERER_YOUTUBE_MUSIC)
+                }
+
+                chain.proceed(builder.build())
+            }.build()
+    }
 
     val downloads = MutableStateFlow<Map<String, Download>>(emptyMap())
 
@@ -72,7 +111,7 @@ constructor(
                 .setCache(playerCache)
                 .setUpstreamDataSourceFactory(
                     OkHttpDataSource.Factory(
-                        OkHttpClient.Builder().proxy(YouTube.proxy).build(),
+                        mediaOkHttpClient,
                     ),
                 ),
         ) { dataSpec ->
