@@ -60,6 +60,12 @@ object YTPlayerUtils {
     )
 
     private val streamUrlCache = ConcurrentHashMap<String, CachedStreamUrl>()
+
+    fun invalidateCachedStreamUrls(videoId: String) {
+        val prefix = "$videoId:"
+        streamUrlCache.keys.removeIf { it.startsWith(prefix) }
+    }
+
     data class PlaybackData(
         val audioConfig: PlayerResponse.PlayerConfig.AudioConfig?,
         val videoDetails: PlayerResponse.VideoDetails?,
@@ -83,19 +89,48 @@ object YTPlayerUtils {
         networkMetered: Boolean? = null,
         avoidCodecs: Set<String> = emptySet(),
     ): Result<PlaybackData> = runCatching {
+        val attempts =
+            when (audioQuality) {
+                AudioQuality.HIGHEST -> listOf(AudioQuality.HIGHEST, AudioQuality.HIGH)
+                AudioQuality.AUTO -> listOf(AudioQuality.AUTO, AudioQuality.HIGH)
+                else -> listOf(audioQuality)
+            }.distinct()
+
+        var lastError: Throwable? = null
+        for (attempt in attempts) {
+            val attemptResult =
+                runCatching {
+                    playerResponseForPlaybackOnce(
+                        videoId = videoId,
+                        playlistId = playlistId,
+                        audioQuality = attempt,
+                        connectivityManager = connectivityManager,
+                        preferredStreamClient = preferredStreamClient,
+                        networkMetered = networkMetered,
+                        avoidCodecs = avoidCodecs,
+                    )
+                }
+            if (attemptResult.isSuccess) return@runCatching attemptResult.getOrThrow()
+            lastError = attemptResult.exceptionOrNull()
+        }
+        throw lastError ?: IllegalStateException("Failed to resolve stream")
+    }
+
+    private suspend fun playerResponseForPlaybackOnce(
+        videoId: String,
+        playlistId: String?,
+        audioQuality: AudioQuality,
+        connectivityManager: ConnectivityManager,
+        preferredStreamClient: PlayerStreamClient,
+        networkMetered: Boolean?,
+        avoidCodecs: Set<String>,
+    ): PlaybackData {
         Timber.tag(logTag).i("Fetching player response for videoId: $videoId, playlistId: $playlistId")
-        /**
-         * This is required for some clients to get working streams however
-         * it should not be forced for the [MAIN_CLIENT] because the response of the [MAIN_CLIENT]
-         * is required even if the streams won't work from this client.
-         * This is why it is allowed to be null.
-         */
         val signatureTimestamp = getSignatureTimestampOrNull(videoId)
         Timber.tag(logTag).v("Signature timestamp: $signatureTimestamp")
 
         val isLoggedIn = YouTube.cookie != null
-        val sessionId =
-            if (isLoggedIn) YouTube.dataSyncId else YouTube.visitorData
+        val sessionId = if (isLoggedIn) YouTube.dataSyncId else YouTube.visitorData
         Timber.tag(logTag).v("Session authentication status: ${if (isLoggedIn) "Logged in" else "Not logged in"} (sessionId=${sessionId.orEmpty()})")
 
         var format: PlayerResponse.StreamingData.Format? = null
@@ -106,8 +141,7 @@ object YTPlayerUtils {
         val orderedFallbackClients =
             (
                 if (isLoggedIn) {
-                    STREAM_FALLBACK_CLIENTS.filter { it.loginSupported } +
-                        STREAM_FALLBACK_CLIENTS.filterNot { it.loginSupported }
+                    STREAM_FALLBACK_CLIENTS.filter { it.loginSupported } + STREAM_FALLBACK_CLIENTS.filterNot { it.loginSupported }
                 } else {
                     STREAM_FALLBACK_CLIENTS.toList()
                 }
@@ -119,7 +153,8 @@ object YTPlayerUtils {
                 PlayerStreamClient.WEB_REMIX -> WEB_REMIX
             }
 
-        val metadataClient = preferredYouTubeClient.takeIf { preferredStreamClient == PlayerStreamClient.ANDROID_VR } ?: MAIN_CLIENT
+        val metadataClient =
+            preferredYouTubeClient.takeIf { preferredStreamClient == PlayerStreamClient.ANDROID_VR } ?: MAIN_CLIENT
 
         Timber.tag(logTag).i("Fetching metadata response using client: ${metadataClient.clientName}")
         val metadataPlayerResponse =
@@ -149,11 +184,9 @@ object YTPlayerUtils {
                 "Trying ${if (isMain) "MAIN_CLIENT" else "fallback client"} ${index + 1}/${streamClients.size}: ${client.clientName}"
             )
 
-            if (!isMain) {
-                if (client.loginRequired && !isLoggedIn) {
-                    Timber.tag(logTag).w("Skipping client ${client.clientName} - requires login but user is not logged in")
-                    continue
-                }
+            if (!isMain && client.loginRequired && !isLoggedIn) {
+                Timber.tag(logTag).w("Skipping client ${client.clientName} - requires login but user is not logged in")
+                continue
             }
 
             streamPlayerResponse =
@@ -188,9 +221,7 @@ object YTPlayerUtils {
             var selectedUrl: String? = null
 
             for (candidate in candidates.asSequence().take(6)) {
-                if (isLoggedIn && expectedDurationMs != null && isLikelyPreview(candidate, expectedDurationMs)) {
-                    continue
-                }
+                if (isLoggedIn && expectedDurationMs != null && isLikelyPreview(candidate, expectedDurationMs)) continue
                 val cacheKey = buildCacheKey(videoId, candidate.itag)
                 val cached = streamUrlCache[cacheKey]
                 val candidateUrl =
@@ -263,7 +294,7 @@ object YTPlayerUtils {
         }
 
         Timber.tag(logTag).i("Successfully obtained playback data with format: ${format.mimeType}, bitrate: ${format.bitrate}")
-        PlaybackData(
+        return PlaybackData(
             audioConfig,
             videoDetails,
             playbackTracking,
