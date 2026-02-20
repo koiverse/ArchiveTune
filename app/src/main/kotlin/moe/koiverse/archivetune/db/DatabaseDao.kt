@@ -259,7 +259,7 @@ interface DatabaseDao {
         FROM song
         LEFT JOIN set_video_id ON set_video_id.videoId = song.id
         WHERE liked AND set_video_id.setVideoId IS NULL
-        ORDER BY rowId
+        ORDER BY song.rowid
         """,
     )
     fun likedSongsByRowIdAscNoVideo(): Flow<List<Song>>
@@ -271,7 +271,7 @@ interface DatabaseDao {
         FROM song
         LEFT JOIN set_video_id ON set_video_id.videoId = song.id
         WHERE liked AND set_video_id.setVideoId IS NULL
-        ORDER BY likedDate, rowId
+        ORDER BY likedDate, song.rowid
         """,
     )
     fun likedSongsByCreateDateAscNoVideo(): Flow<List<Song>>
