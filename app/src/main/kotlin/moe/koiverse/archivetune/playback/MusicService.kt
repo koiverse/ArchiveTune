@@ -67,6 +67,7 @@ import androidx.media3.exoplayer.source.ShuffleOrder.DefaultShuffleOrder
 import androidx.media3.extractor.ExtractorsFactory
 import androidx.media3.extractor.mkv.MatroskaExtractor
 import androidx.media3.extractor.mp4.FragmentedMp4Extractor
+import androidx.media3.extractor.mp4.Mp4Extractor
 import androidx.media3.session.CommandButton
 import androidx.media3.session.DefaultMediaNotificationProvider
 import androidx.media3.session.MediaController
@@ -287,8 +288,11 @@ class MusicService :
 
                 if (!isYouTubeMediaHost) return@addInterceptor chain.proceed(request)
 
+                val clientParam = request.url.queryParameter("c")?.trim().orEmpty()
                 val isWeb =
-                    preferredStreamClient == PlayerStreamClient.WEB_REMIX ||
+                    clientParam.startsWith("WEB", ignoreCase = true) ||
+                        clientParam.startsWith("WEB_REMIX", ignoreCase = true) ||
+                        preferredStreamClient == PlayerStreamClient.WEB_REMIX ||
                         request.url.toString().contains("c=WEB", ignoreCase = true)
 
                 val userAgent =
@@ -3755,7 +3759,7 @@ class MusicService :
         DefaultMediaSourceFactory(
             createDataSourceFactory(),
             ExtractorsFactory {
-                arrayOf(MatroskaExtractor(), FragmentedMp4Extractor())
+                arrayOf(Mp4Extractor(), FragmentedMp4Extractor(), MatroskaExtractor())
             },
         )
 
