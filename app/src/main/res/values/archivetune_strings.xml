@@ -208,8 +208,6 @@
     <string name="player_stream_client_web_remix_desc">Extended format support at the cost of speed. JavaScript signature decryption introduces a ~5–10 second startup delay.</string>
     <string name="player_stream_client_ios">iOS</string>
     <string name="player_stream_client_ios_desc">Uses the iOS YouTube client. Most reliable against YouTube restrictions.</string>
-    <string name="player_stream_client_android_music">Android Music</string>
-    <string name="player_stream_client_android_music_desc">YouTube Music native client. Best suited for music streaming.</string>
     <string name="settings_section_ui">User Interface</string>
     <string name="settings_section_privacy">Privacy &amp; Security</string>
     <string name="settings_section_player">Player &amp; Media</string>

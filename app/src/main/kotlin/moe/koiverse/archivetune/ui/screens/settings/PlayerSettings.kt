@@ -203,7 +203,6 @@ fun PlayerSettings(
                                 PlayerStreamClient.ANDROID_VR -> stringResource(R.string.player_stream_client_android_vr)
                                 PlayerStreamClient.WEB_REMIX -> stringResource(R.string.player_stream_client_web_remix)
                                 PlayerStreamClient.IOS -> stringResource(R.string.player_stream_client_ios)
-                                PlayerStreamClient.ANDROID_MUSIC -> stringResource(R.string.player_stream_client_android_music)
                             },
                             style = MaterialTheme.typography.bodyLarge,
                         )
@@ -214,7 +213,6 @@ fun PlayerSettings(
                                 PlayerStreamClient.ANDROID_VR -> stringResource(R.string.player_stream_client_android_vr_desc)
                                 PlayerStreamClient.WEB_REMIX -> stringResource(R.string.player_stream_client_web_remix_desc)
                                 PlayerStreamClient.IOS -> stringResource(R.string.player_stream_client_ios_desc)
-                                PlayerStreamClient.ANDROID_MUSIC -> stringResource(R.string.player_stream_client_android_music_desc)
                             },
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.secondary,

@@ -94,7 +94,6 @@ constructor(
                     } else {
                         when (preferredStreamClient) {
                             PlayerStreamClient.IOS -> YouTubeClient.IOS.userAgent
-                            PlayerStreamClient.ANDROID_MUSIC -> YouTubeClient.ANDROID_MUSIC.userAgent
                             else -> YouTubeClient.ANDROID_VR_NO_AUTH.userAgent
                         }
                     }

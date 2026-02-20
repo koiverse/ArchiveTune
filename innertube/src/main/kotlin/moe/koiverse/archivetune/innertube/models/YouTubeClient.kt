@@ -211,22 +211,5 @@ data class YouTubeClient(
             packageName = "com.google.ios.youtube"
         )
 
-        val ANDROID_MUSIC = YouTubeClient(
-            clientName = "ANDROID_MUSIC",
-            clientVersion = "7.27.52",
-            clientId = "21",
-            userAgent = "com.google.android.apps.youtube.music/7.27.52 (Linux; U; Android 15; en_US; Pixel 9 Pro; Build/AP4A.250205.002; Cronet/132.0.6834.79) gzip",
-            osName = "Android",
-            osVersion = "15",
-            deviceMake = "Google",
-            deviceModel = "Pixel 9 Pro",
-            androidSdkVersion = "35",
-            buildId = "AP4A.250205.002",
-            cronetVersion = "132.0.6834.79",
-            packageName = "com.google.android.apps.youtube.music",
-            friendlyName = "YouTube Music",
-            loginSupported = true,
-            useSignatureTimestamp = true
-        )
     }
 }
