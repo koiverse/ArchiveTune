@@ -560,7 +560,6 @@
     <string name="update_notification_title">업데이트 가능</string>
     <string name="update_notification_text">ArchiveTune %s이(가) 출시되었습니다</string>
     <string name="download">다운로드</string>
-
     <string name="tempo">템포</string>
     <string name="pitch">피치</string>
     <string name="pitch_mode_semitones_short">st</string>
