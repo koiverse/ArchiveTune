@@ -204,42 +204,33 @@
     <string name="share_summary">Chia sẻ Tóm tắt</string>
     <string name="no_listening_data">Không có dữ liệu nghe cho năm này</string>
     <string name="played">đã phát</string>
-
     <string name="custom_theme">Giao diện Tùy chỉnh</string>
     <string name="import_theme">Nhập Giao diện</string>
     <string name="export_theme">Xuất Giao diện</string>
-
     <string name="palette_custom">Tùy chỉnh</string>
-
     <string name="theme_creator_title">Công cụ Tạo Giao diện</string>
     <string name="theme_creator_subtitle">Điều chỉnh màu sắc, xem trước kết quả, sau đó xuất hoặc nhập.</string>
-
     <string name="theme_meta_title">Chi tiết Giao diện</string>
     <string name="theme_name_optional">Tên (tùy chọn)</string>
     <string name="theme_apply_button">Áp dụng Giao diện</string>
-
     <string name="theme_applied">Đã áp dụng giao diện</string>
     <string name="theme_export_success">Đã xuất giao diện</string>
     <string name="theme_export_failed">Xuất thất bại</string>
     <string name="theme_import_success">Đã nhập giao diện</string>
     <string name="theme_import_failed">Nhập thất bại</string>
     <string name="theme_import_failed_title">Không thể nhập giao diện</string>
-
     <string name="theme_seed_colors">Màu Hạt giống</string>
     <string name="theme_seed_primary">Chính</string>
     <string name="theme_seed_secondary">Phụ</string>
     <string name="theme_seed_tertiary">Bậc ba</string>
     <string name="theme_seed_neutral">Trung tính</string>
-
     <string name="theme_editor_title">Màu %1$s</string>
     <string name="theme_editor_hex">Hex</string>
     <string name="theme_editor_hex_input">Giá trị hex (#RRGGBB hoặc #AARRGGBB)</string>
     <string name="theme_presets_title">Cài đặt sẵn</string>
-
     <string name="theme_preview_trackline">Một thẻ xem trước cao cấp</string>
     <string name="theme_preview_primary_action">Hành động Chính</string>
     <string name="theme_preview_secondary_action">Hành động Phụ</string>
-
     <string name="copy">Sao chép</string>
     <string name="player_design_v5">Nhỏ nhắn</string>
     <string name="player_stream_client">Client phát nhạc</string>
@@ -258,4 +249,16 @@
     <string name="restore_step_restoring_settings">Đang khôi phục cài đặt</string>
     <string name="restore_step_restoring_file">Đang khôi phục %1$s</string>
     <string name="restore_step_restarting">Đang khởi động lại ứng dụng</string>
+    <string name="canvas_cache">Canvas Cache</string>
+    <string name="canvas_cache_items">%d mục</string>
+    <string name="canvas_cache_usage">%1$s / %2$s</string>
+    <string name="clear_canvas_cache">Xóa bộ nhớ cache canvas</string>
+    <string name="clear_canvas_cache_dialog">Bạn có chắc chắn muốn xóa tất cả dữ liệu canvas đã lưu trong bộ nhớ cache không?</string>
+    <string name="playlist_private_title">Danh sách phát này là riêng tư</string>
+    <string name="playlist_private_desc">Bạn không có quyền truy cập vào danh sách phát này.</string>
+    <string name="audio_crossfade_title">Chuyển bài mượt mà</string>
+    <string name="audio_crossfade_description">Chuyển tiếp mượt mà giữa các bài hát bằng cách làm mờ dần âm thanh ở cuối mỗi bản nhạc.</string>
+    <string name="audio_crossfade_dialog_title">Thời gian chuyển</string>
+    <string name="player_stream_client_ios">iOS</string>
+    <string name="player_stream_client_ios_desc">Sử dụng ứng dụng YouTube trên iOS. Độ tin cậy cao nhất khi đối mặt với các hạn chế của YouTube.</string>
 </resources>
