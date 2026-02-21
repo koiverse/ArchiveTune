@@ -152,7 +152,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
+import moe.koiverse.archivetune.utils.PreferenceStore
 import kotlinx.coroutines.withContext
 import moe.koiverse.archivetune.constants.AppBarHeight
 import moe.koiverse.archivetune.constants.AppLanguageKey
@@ -391,11 +391,7 @@ class MainActivity : ComponentActivity() {
             if (!isFinishing) {
                 false
             } else {
-                runCatching {
-                    runBlocking(Dispatchers.IO) {
-                        dataStore.getAsync(StopMusicOnTaskClearKey, false)
-                    }
-                }.getOrDefault(false)
+                dataStore.get(StopMusicOnTaskClearKey, false)
             }
 
         if (shouldStopOnTaskClear) {
@@ -423,9 +419,7 @@ class MainActivity : ComponentActivity() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
 
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
-            val initialLocale = runBlocking(Dispatchers.IO) {
-                dataStore.data.first()[AppLanguageKey]
-            }
+            val initialLocale = PreferenceStore.get(AppLanguageKey)
                 ?.takeUnless { it == SYSTEM_DEFAULT }
                 ?.let { Locale.forLanguageTag(it) }
                 ?: Locale.getDefault()

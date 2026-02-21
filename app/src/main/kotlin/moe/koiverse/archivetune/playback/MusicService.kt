@@ -918,20 +918,10 @@ class MusicService :
         // Save queue periodically to prevent queue loss from crash or force kill
         scope.launch {
             while (isActive) {
-                delay(30.seconds)
+                val interval = if (player.isPlaying) 10.seconds else 30.seconds
+                delay(interval)
                 val shouldSave = withContext(Dispatchers.IO) { dataStore.get(PersistentQueueKey, true) }
                 if (shouldSave) {
-                    saveQueueToDisk()
-                }
-            }
-        }
-        
-        // Save queue more frequently when playing to ensure state is preserved
-        scope.launch {
-            while (isActive) {
-                delay(10.seconds)
-                val shouldSave = withContext(Dispatchers.IO) { dataStore.get(PersistentQueueKey, true) }
-                if (shouldSave && player.isPlaying) {
                     saveQueueToDisk()
                 }
             }
@@ -3992,9 +3982,7 @@ class MusicService :
     override fun onDestroy() {
         super.onDestroy()
         try {
-            kotlinx.coroutines.runBlocking {
-                stopTogetherInternal()
-            }
+            scope.launch { stopTogetherInternal() }
         } catch (_: Exception) {}
         try {
             DiscordPresenceManager.stop()
@@ -4108,12 +4096,7 @@ class MusicService :
         try { DiscordPresenceManager.stop() } catch (_: Exception) {}
         lastPresenceToken = null
 
-        val stopMusicOnTaskClearEnabled =
-            runCatching {
-                kotlinx.coroutines.runBlocking(Dispatchers.IO) {
-                    dataStore.getAsync(StopMusicOnTaskClearKey, false)
-                }
-            }.getOrDefault(false)
+        val stopMusicOnTaskClearEnabled = dataStore.get(StopMusicOnTaskClearKey, false)
 
         try {
             val state = togetherSessionState.value
@@ -4127,7 +4110,7 @@ class MusicService :
 
             if (shouldStopServiceOnTaskRemoved(stopMusicOnTaskClearEnabled, isHostSessionActive, isPlaybackInactive)) {
                 if (isHostSessionActive && isPlaybackInactive) {
-                    runCatching { kotlinx.coroutines.runBlocking { stopTogetherInternal() } }
+                    runCatching { scope.launch { stopTogetherInternal() } }
                     runCatching { togetherSessionState.value = moe.koiverse.archivetune.together.TogetherSessionState.Idle }
                     stopSelf()
                     return

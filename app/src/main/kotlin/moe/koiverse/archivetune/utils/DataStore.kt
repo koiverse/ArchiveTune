@@ -72,7 +72,7 @@ operator fun <T> DataStore<Preferences>.get(key: Preferences.Key<T>): T? =
             null
         } else {
             runBlocking(Dispatchers.IO) {
-                withTimeoutOrNull(1500) {
+                withTimeoutOrNull(500) {
                     data.first()[key]
                 }
             }
@@ -87,7 +87,7 @@ fun <T> DataStore<Preferences>.get(
             defaultValue
         } else {
             runBlocking(Dispatchers.IO) {
-                withTimeoutOrNull(1500) {
+                withTimeoutOrNull(500) {
                     data.first()[key]
                 } ?: defaultValue
             }
