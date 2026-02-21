@@ -35,6 +35,7 @@ import moe.koiverse.archivetune.constants.AccountEmailKey
 import moe.koiverse.archivetune.constants.AccountNameKey
 import moe.koiverse.archivetune.constants.DataSyncIdKey
 import moe.koiverse.archivetune.constants.InnerTubeCookieKey
+import moe.koiverse.archivetune.constants.PoTokenKey
 import moe.koiverse.archivetune.constants.VisitorDataKey
 import moe.koiverse.archivetune.ui.component.IconButton
 import moe.koiverse.archivetune.ui.utils.backToMain
@@ -56,6 +57,7 @@ fun LoginScreen(
     var visitorData by rememberPreference(VisitorDataKey, "")
     var dataSyncId by rememberPreference(DataSyncIdKey, "")
     var innerTubeCookie by rememberPreference(InnerTubeCookieKey, "")
+    var poToken by rememberPreference(PoTokenKey, "")
     var accountName by rememberPreference(AccountNameKey, "")
     var accountEmail by rememberPreference(AccountEmailKey, "")
     var accountChannelHandle by rememberPreference(AccountChannelHandleKey, "")
@@ -72,6 +74,7 @@ fun LoginScreen(
                     override fun onPageFinished(view: WebView, url: String?) {
                         loadUrl("javascript:Android.onRetrieveVisitorData(window.yt.config_.VISITOR_DATA)")
                         loadUrl("javascript:Android.onRetrieveDataSyncId(window.yt.config_.DATASYNC_ID)")
+                        loadUrl("javascript:void((function(){try{var c=window.ytcfg;if(c&&c.get){var t=c.get('PO_TOKEN');if(t){Android.onRetrievePoToken(t);return}}var s=document.querySelectorAll('script');for(var i=0;i<s.length;i++){var m=s[i].textContent.match(/\"PO_TOKEN\":\"([^\"]+)\"/);if(m){Android.onRetrievePoToken(m[1]);return}}}catch(e){}})())")
 
                         if (url?.startsWith("https://music.youtube.com") == true) {
                             innerTubeCookie = CookieManager.getInstance().getCookie(url)
@@ -104,6 +107,12 @@ fun LoginScreen(
                     fun onRetrieveDataSyncId(newDataSyncId: String?) {
                         if (newDataSyncId != null) {
                             dataSyncId = newDataSyncId.substringBefore("||")
+                        }
+                    }
+                    @JavascriptInterface
+                    fun onRetrievePoToken(newPoToken: String?) {
+                        if (!newPoToken.isNullOrBlank()) {
+                            poToken = newPoToken
                         }
                     }
                 }, "Android")
