@@ -248,12 +248,18 @@ object YTPlayerUtils {
 
             if (streamExpiresInSeconds == null) continue
 
+            val currentPoToken = YouTube.poToken
+            if (isLoggedIn && !currentPoToken.isNullOrBlank() && streamUrl != null) {
+                val separator = if ("?" in streamUrl!!) "&" else "?"
+                streamUrl = "${streamUrl}${separator}pot=${currentPoToken}"
+            }
+
             Timber.tag(logTag).i("Format found: ${format.mimeType}, bitrate: ${format.bitrate}")
             Timber.tag(logTag).v("Stream expires in: $streamExpiresInSeconds seconds")
 
             streamUrlCache[buildCacheKey(videoId, format.itag)] =
                 CachedStreamUrl(
-                    url = streamUrl,
+                    url = streamUrl!!,
                     expiresAtMs = System.currentTimeMillis() + (streamExpiresInSeconds * 1000L),
                 )
 
