@@ -272,9 +272,9 @@ private fun KaraokeWord(
                 val currentTime = currentTimeProvider()
                 
                 // Nudge parameters
-                val maxShift = 8f // Reduced from 12f
-                val attackDuration = 200L // Increased from 80L
-                val decayDuration = 400L // Increased from 200L
+                val maxShift = 5f
+                val attackDuration = 120L
+                val decayDuration = 250L
                 val totalImpulseTime = attackDuration + decayDuration
                 
                 val shift = if (nudgeEnabled && currentTime >= startTime && currentTime < startTime + totalImpulseTime) {
@@ -331,7 +331,7 @@ private fun KaraokeWord(
                      compositingStrategy = CompositingStrategy.Offscreen
                      
                     val currentTime = currentTimeProvider()
-                    val fadeDuration = 400L
+                    val fadeDuration = 200L
                     
                     if (currentTime >= endTime) {
                         val timeSinceEnd = currentTime - endTime
@@ -352,13 +352,13 @@ private fun KaraokeWord(
                         0f
                     }
 
-                    val fadeDuration = 400L
+                    val fadeDuration = 200L
                     val isFading = currentTime >= endTime && currentTime < (endTime + fadeDuration)
                     
                     if ((progress > 0f && progress < 1f) || isFading) {
                         drawContent()
                         
-                        val fadeWidth = 40f 
+                        val fadeWidth = 20f 
                         val totalWidth = size.width
                         val paddingPx = glowPadding.toPx()
                         
@@ -1184,7 +1184,7 @@ fun Lyrics(
                                         fontSize = lyricsTextSize.sp,
                                         textColor = lyricsBaseColor,
                                         inactiveAlpha = if (isActiveLine) {
-                                            if (isUpcoming) 0.3f else 0.3f
+                                            if (isUpcoming) 0.4f else 0.3f
                                         } else {
                                             0.7f
                                         },
