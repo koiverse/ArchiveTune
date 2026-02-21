@@ -56,6 +56,7 @@ val HideVideoKey = booleanPreferencesKey("hideVideo")
 val ProxyEnabledKey = booleanPreferencesKey("proxyEnabled")
 val ProxyUrlKey = stringPreferencesKey("proxyUrl")
 val ProxyTypeKey = stringPreferencesKey("proxyType")
+val StreamBypassProxyKey = booleanPreferencesKey("streamBypassProxy")
 val YtmSyncKey = booleanPreferencesKey("ytmSync")
 val SelectedYtmPlaylistsKey = stringPreferencesKey("ytm_selected_playlists")
 

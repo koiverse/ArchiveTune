@@ -32,9 +32,19 @@ import java.util.concurrent.ConcurrentHashMap
 object YTPlayerUtils {
     private const val logTag = "YTPlayerUtils"
 
-    private val httpClient = OkHttpClient.Builder()
-        .proxy(YouTube.proxy)
-        .build()
+    @Volatile private var streamClientPair: Pair<java.net.Proxy?, OkHttpClient>? = null
+
+    private fun currentStreamClient(): OkHttpClient {
+        val current = YouTube.streamProxy
+        streamClientPair?.let { (proxy, client) ->
+            if (proxy == current) return client
+        }
+        val client = OkHttpClient.Builder()
+            .proxy(current)
+            .build()
+        streamClientPair = current to client
+        return client
+    }
     /**
      * The main client is used for metadata and initial streams.
      * Do not use other clients for this because it can result in inconsistent metadata.
@@ -457,7 +467,7 @@ object YTPlayerUtils {
                     .build()
 
             val headOk =
-                httpClient.newCall(headRequest).execute().use { response ->
+                currentStreamClient().newCall(headRequest).execute().use { response ->
                     response.code in 200..399
                 }
 
@@ -471,7 +481,7 @@ object YTPlayerUtils {
                     .url(url)
                     .build()
 
-            return httpClient.newCall(rangeRequest).execute().use { response ->
+            return currentStreamClient().newCall(rangeRequest).execute().use { response ->
                 response.code in 200..399
             }
         } catch (e: Exception) {

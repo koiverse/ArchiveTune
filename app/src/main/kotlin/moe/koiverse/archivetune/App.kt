@@ -137,6 +137,7 @@ class App : Application(), SingletonImageLoader.Factory {
                         }
                         reportException(e)
                     }
+                    YouTube.streamBypassProxy = prefs[StreamBypassProxyKey] == true
                 }
 
                 if (prefs[UseLoginForBrowse] != false) {

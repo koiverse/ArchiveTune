@@ -407,6 +407,8 @@
     <string name="enable_proxy">Enable proxy</string>
     <string name="proxy_type">Proxy type</string>
     <string name="proxy_url">Proxy URL</string>
+    <string name="stream_bypass_proxy">Bypass proxy for streams</string>
+    <string name="stream_bypass_proxy_desc">Use your direct IP for stream playback to avoid IP mismatch</string>
     <string name="restart_to_take_effect">Restart to take effect</string>
     <string name="enable_betterlyrics">Enable BetterLyrics</string>
     <string name="enable_simpmusic_lyrics">Enable SimpMusic lyrics</string>

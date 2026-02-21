@@ -205,6 +205,7 @@ import okhttp3.OkHttpClient
 import java.io.ObjectInputStream
 import java.io.ObjectOutputStream
 import java.net.ConnectException
+import java.net.Proxy
 import java.net.SocketTimeoutException
 import java.net.UnknownHostException
 import java.time.LocalDateTime
@@ -270,47 +271,56 @@ class MusicService :
     private val avoidStreamCodecs: Set<String> by lazy {
         if (deviceSupportsMimeType("audio/opus")) emptySet() else setOf("opus")
     }
-    private val mediaOkHttpClient: OkHttpClient by lazy {
-        OkHttpClient
-            .Builder()
-            .proxy(YouTube.proxy)
-            .followRedirects(true)
-            .followSslRedirects(true)
-            .addInterceptor { chain ->
-                val request = chain.request()
-                val host = request.url.host
-                val isYouTubeMediaHost =
-                    host.endsWith("googlevideo.com") ||
-                        host.endsWith("googleusercontent.com") ||
-                        host.endsWith("youtube.com") ||
-                        host.endsWith("youtube-nocookie.com") ||
-                        host.endsWith("ytimg.com")
+    @Volatile private var mediaClientPair: Pair<Proxy?, OkHttpClient>? = null
 
-                if (!isYouTubeMediaHost) return@addInterceptor chain.proceed(request)
+    private val mediaOkHttpClient: OkHttpClient
+        get() {
+            val current = YouTube.streamProxy
+            mediaClientPair?.let { (proxy, client) ->
+                if (proxy == current) return client
+            }
+            val client = OkHttpClient
+                .Builder()
+                .proxy(current)
+                .followRedirects(true)
+                .followSslRedirects(true)
+                .addInterceptor { chain ->
+                    val request = chain.request()
+                    val host = request.url.host
+                    val isYouTubeMediaHost =
+                        host.endsWith("googlevideo.com") ||
+                            host.endsWith("googleusercontent.com") ||
+                            host.endsWith("youtube.com") ||
+                            host.endsWith("youtube-nocookie.com") ||
+                            host.endsWith("ytimg.com")
 
-                val clientParam = request.url.queryParameter("c")?.trim().orEmpty()
-                val isWeb =
-                    clientParam.startsWith("WEB", ignoreCase = true) ||
-                        clientParam.startsWith("WEB_REMIX", ignoreCase = true) ||
-                        preferredStreamClient == PlayerStreamClient.WEB_REMIX ||
-                        request.url.toString().contains("c=WEB", ignoreCase = true)
+                    if (!isYouTubeMediaHost) return@addInterceptor chain.proceed(request)
 
-                val userAgent =
+                    val clientParam = request.url.queryParameter("c")?.trim().orEmpty()
+                    val isWeb =
+                        clientParam.startsWith("WEB", ignoreCase = true) ||
+                            clientParam.startsWith("WEB_REMIX", ignoreCase = true) ||
+                            preferredStreamClient == PlayerStreamClient.WEB_REMIX ||
+                            request.url.toString().contains("c=WEB", ignoreCase = true)
+
+                    val userAgent =
+                        if (isWeb) {
+                            YouTubeClient.USER_AGENT_WEB
+                        } else {
+                            YouTubeClient.ANDROID_VR_NO_AUTH.userAgent
+                        }
+
+                    val builder = request.newBuilder().header("User-Agent", userAgent)
                     if (isWeb) {
-                        YouTubeClient.USER_AGENT_WEB
-                    } else {
-                        YouTubeClient.ANDROID_VR_NO_AUTH.userAgent
+                        builder.header("Origin", YouTubeClient.ORIGIN_YOUTUBE_MUSIC)
+                        builder.header("Referer", YouTubeClient.REFERER_YOUTUBE_MUSIC)
                     }
 
-                val builder = request.newBuilder().header("User-Agent", userAgent)
-                if (isWeb) {
-                    builder.header("Origin", YouTubeClient.ORIGIN_YOUTUBE_MUSIC)
-                    builder.header("Referer", YouTubeClient.REFERER_YOUTUBE_MUSIC)
-                }
-
-                chain.proceed(builder.build())
-            }.build()
-    }
+                    chain.proceed(builder.build())
+                }.build()
+            mediaClientPair = current to client
+            return client
+        }
 
     private var currentQueue: Queue = EmptyQueue
     var queueTitle: String? = null
