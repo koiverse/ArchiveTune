@@ -3801,11 +3801,11 @@ class MusicService :
                 .setAudioProcessorChain(
                     DefaultAudioSink.DefaultAudioProcessorChain(
                         SilenceSkippingAudioProcessor(
-                            2_000_000L,
-                            0.2f,
-                            20_000L,
+                            1_500_000L,
+                            0.35f,
+                            500_000L,
                             10,
-                            256.toShort(),
+                            150.toShort(),
                         ),
                         SonicAudioProcessor(),
                     ),
