@@ -233,6 +233,14 @@ class App : Application(), SingletonImageLoader.Factory {
         }
         applicationScope.launch(Dispatchers.IO) {
             dataStore.data
+                .map { it[PoTokenKey] }
+                .distinctUntilChanged()
+                .collect { token ->
+                    YouTube.poToken = token?.takeIf { it.isNotBlank() }
+                }
+        }
+        applicationScope.launch(Dispatchers.IO) {
+            dataStore.data
                 .map { it[LastFMSessionKey] }
                 .distinctUntilChanged()
                 .collect { sessionKey ->
@@ -291,6 +299,7 @@ class App : Application(), SingletonImageLoader.Factory {
             CoroutineScope(Dispatchers.IO).launch {
                 context.dataStore.edit { settings ->
                     settings.remove(InnerTubeCookieKey)
+                    settings.remove(PoTokenKey)
                     settings.remove(VisitorDataKey)
                     settings.remove(DataSyncIdKey)
                     settings.remove(AccountNameKey)
