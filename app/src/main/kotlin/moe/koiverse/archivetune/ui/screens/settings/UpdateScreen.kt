@@ -412,7 +412,7 @@ fun UpdateScreen(
                 SwitchPreference(
                     title = { Text(stringResource(R.string.enable_update_notification)) },
                     description = stringResource(R.string.enable_update_notification_desc),
-                    icon = { Icon(painterResource(R.drawable.notifications_unread), null) },
+                    icon = { Icon(painterResource(R.drawable.new_release), null) },
                     checked = enableUpdateNotification,
                     onCheckedChange = { enabled ->
                         if (enabled) {
