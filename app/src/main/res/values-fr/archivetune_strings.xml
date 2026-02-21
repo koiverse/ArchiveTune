@@ -265,4 +265,6 @@
     <string name="audio_crossfade_title">Fondu enchaîné</string>
     <string name="audio_crossfade_description">Assurez une transition fluide entre les titres en atténuant progressivement la fin de chaque titre.</string>
     <string name="audio_crossfade_dialog_title">Durée du fondu enchaîné</string>
+    <string name="player_stream_client_ios">iOS</string>
+    <string name="player_stream_client_ios_desc">Utilise le client YouTube iOS. Le plus fiable contre les restrictions YouTube.</string>
 </resources>
