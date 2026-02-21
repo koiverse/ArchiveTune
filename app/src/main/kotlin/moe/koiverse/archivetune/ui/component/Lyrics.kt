@@ -251,6 +251,7 @@ private fun KaraokeWord(
     Box(
         modifier = modifier
             .layout { measurable, constraints ->
+                val glowPaddingPx = glowPadding.roundToPx()
                 val looseConstraints = constraints.copy(
                     minWidth = 0,
                     maxWidth = Constraints.Infinity,
@@ -259,7 +260,6 @@ private fun KaraokeWord(
                 )
                 val placeable = measurable.measure(looseConstraints)
                 
-                val glowPaddingPx = glowPadding.roundToPx()
                 val coreWidth = (placeable.width - glowPaddingPx * 2).coerceAtLeast(0)
                 val coreHeight = (placeable.height - glowPaddingPx * 2).coerceAtLeast(0)
                 
@@ -704,10 +704,8 @@ fun Lyrics(
             lastPreviewTime = 0L
         } else if (lastPreviewTime != 0L) {
             delay(LyricsPreviewTime)
-            if (!isManualScrolling) {
-                lastPreviewTime = 0L
-            } else {
-            }
+            isManualScrolling = false
+            lastPreviewTime = 0L
         }
     }
 
@@ -1066,7 +1064,7 @@ fun Lyrics(
                         val effectiveAnimationStyle = lyricsAnimationStyle
 
                         val reduceMotionDuringScroll =
-                            isManualScrolling || isSelectionModeActive
+                            isSelectionModeActive
 
                         if (effectiveAnimationStyle == LyricsAnimationStyle.KARAOKE) {
                             val isCjk = remember(item.text) {
@@ -1076,28 +1074,58 @@ fun Lyrics(
                             val wordsToRender = remember(item.words, item.text, item.time, lines.size, index, lineIsRtl, isCjk) {
                                 if (hasWordTimings && item.words != null) {
                                     val baseWords = item.words.filter { it.text.isNotBlank() }
-                                    baseWords.mapIndexed { idx, word ->
+                                    baseWords.flatMapIndexed { idx, word ->
                                         val prevText = baseWords.getOrNull(idx - 1)?.text
                                         val nextText = baseWords.getOrNull(idx + 1)?.text
                                         val includeSpace =
                                             if (isCjk) {
-                                                false
+                                                // Add space at CJK↔Latin boundaries
+                                                val currEdge = if (lineIsRtl) word.text.firstOrNull() else word.text.lastOrNull()
+                                                val neighborEdge = if (lineIsRtl) prevText?.lastOrNull() else nextText?.firstOrNull()
+                                                val neighbor = if (lineIsRtl) prevText else nextText
+                                                currEdge != null && neighborEdge != null && neighbor != null &&
+                                                    (currEdge.code < 0x3000 || neighborEdge.code < 0x3000) &&
+                                                    shouldAppendWordSpace(
+                                                        if (lineIsRtl) neighbor else word.text,
+                                                        if (lineIsRtl) word.text else neighbor
+                                                    )
                                             } else if (lineIsRtl) {
                                                 prevText != null && shouldAppendWordSpace(prevText, word.text)
                                             } else {
                                                 nextText != null && shouldAppendWordSpace(word.text, nextText)
                                             }
-                                        val displayText =
-                                            when {
+
+                                        val wordStartMs = (word.startTime * 1000).toLong()
+                                        val wordEndMs = (word.endTime * 1000).toLong()
+                                        val wordDuration = wordEndMs - wordStartMs
+
+                                        if (isCjk && word.text.length > 3) {
+                                            // Split long CJK phrases into individual characters for FlowRow wrapping
+                                            // Short entries (1-3 chars) are kept intact — TTML already provides granular timing
+                                            val chars = word.text.toList()
+                                            chars.mapIndexed { charIdx, char ->
+                                                val charStartMs = wordStartMs + (wordDuration * charIdx / chars.size)
+                                                val charEndMs = wordStartMs + (wordDuration * (charIdx + 1) / chars.size)
+                                                // Add space only at the last/first character boundary with next/prev word
+                                                val charText = when {
+                                                    includeSpace && !lineIsRtl && charIdx == chars.lastIndex -> "${char} "
+                                                    includeSpace && lineIsRtl && charIdx == 0 -> " ${char}"
+                                                    else -> char.toString()
+                                                }
+                                                Triple(charText, charStartMs to charEndMs, word.isBackground)
+                                            }
+                                        } else {
+                                            val displayText = when {
                                                 !includeSpace -> word.text
                                                 lineIsRtl -> " ${word.text}"
                                                 else -> "${word.text} "
                                             }
-                                        Triple(
-                                            displayText,
-                                            (word.startTime * 1000).toLong() to (word.endTime * 1000).toLong(),
-                                            word.isBackground,
-                                        )
+                                            listOf(Triple(
+                                                displayText,
+                                                wordStartMs to wordEndMs,
+                                                word.isBackground,
+                                            ))
+                                        }
                                     }
                                 } else {
                                     // Simulate word timings - cache this computation
@@ -1114,7 +1142,15 @@ fun Lyrics(
                                         val nextText = splitWords.getOrNull(idx + 1)
                                         val includeSpace =
                                             if (isCjk) {
-                                                false
+                                                val currEdge = if (lineIsRtl) wordText.firstOrNull() else wordText.lastOrNull()
+                                                val neighborEdge = if (lineIsRtl) prevText?.lastOrNull() else nextText?.firstOrNull()
+                                                val neighbor = if (lineIsRtl) prevText else nextText
+                                                currEdge != null && neighborEdge != null && neighbor != null &&
+                                                    (currEdge.code < 0x3000 || neighborEdge.code < 0x3000) &&
+                                                    shouldAppendWordSpace(
+                                                        if (lineIsRtl) neighbor else wordText,
+                                                        if (lineIsRtl) wordText else neighbor
+                                                    )
                                             } else if (lineIsRtl) {
                                                 prevText != null && shouldAppendWordSpace(prevText, wordText)
                                             } else {
@@ -1136,7 +1172,15 @@ fun Lyrics(
                                         val nextText = splitWords.getOrNull(idx + 1)
                                         val includeSpace =
                                             if (isCjk) {
-                                                false
+                                                val currEdge = if (lineIsRtl) wordText.firstOrNull() else wordText.lastOrNull()
+                                                val neighborEdge = if (lineIsRtl) prevText?.lastOrNull() else nextText?.firstOrNull()
+                                                val neighbor = if (lineIsRtl) prevText else nextText
+                                                currEdge != null && neighborEdge != null && neighbor != null &&
+                                                    (currEdge.code < 0x3000 || neighborEdge.code < 0x3000) &&
+                                                    shouldAppendWordSpace(
+                                                        if (lineIsRtl) neighbor else wordText,
+                                                        if (lineIsRtl) wordText else neighbor
+                                                    )
                                             } else if (lineIsRtl) {
                                                 prevText != null && shouldAppendWordSpace(prevText, wordText)
                                             } else {
@@ -1173,8 +1217,6 @@ fun Lyrics(
                                 wordsToRender.forEach { (text, timings, isBg) ->
                                     val (wordStartMs, wordEndMs) = timings
                                     
-                                    val isUpcoming = isActiveLine && currentPlaybackPosition < wordStartMs
-                                    
                                     KaraokeWord(
                                         text = text,
                                         startTime = wordStartMs,
@@ -1183,11 +1225,7 @@ fun Lyrics(
                                         isRtl = lineIsRtl,
                                         fontSize = lyricsTextSize.sp,
                                         textColor = lyricsBaseColor,
-                                        inactiveAlpha = if (isActiveLine) {
-                                            if (isUpcoming) 0.4f else 0.3f
-                                        } else {
-                                            0.7f
-                                        },
+                                        inactiveAlpha = if (isActiveLine) 0.35f else 0.7f,
                                         fontWeight = if (hasRomanization) FontWeight.Bold else FontWeight.ExtraBold,
                                         isBackground = isBg,
                                         nudgeEnabled = isActiveLine && !reduceMotionDuringScroll,
