@@ -626,7 +626,6 @@ ArchiveTune sẽ chỉ trích xuất token của bạn, và mọi thứ khác đ
     <string name="update_notification_title">Cập nhật Có sẵn</string>
     <string name="update_notification_text">ArchiveTune %s hiện đã có sẵn</string>
     <string name="download">Tải xuống</string>
-
     <string name="permissions_title">Cho phép ArchiveTune hoạt động tốt nhất</string>
     <string name="permissions_subtitle">Chúng tôi sử dụng một số quyền để phát và quản lý nhạc của bạn một cách đáng tin cậy. Bạn có thể thay đổi những quyền này bất cứ lúc nào trong cài đặt hệ thống.</string>
     <string name="permission_storage_title">Truy cập lưu trữ</string>
@@ -638,7 +637,6 @@ ArchiveTune sẽ chỉ trích xuất token của bạn, và mọi thứ khác đ
     <string name="permission_status_required">Vui lòng cho phép tất cả quyền cần thiết để tiếp tục.</string>
     <string name="next">Tiếp theo</string>
     <string name="allow">Cho phép</string>
-
     <string name="tempo">Nhịp độ</string>
     <string name="pitch">Cao độ</string>
     <string name="pitch_mode_semitones_short">st</string>
@@ -673,7 +671,6 @@ ArchiveTune sẽ chỉ trích xuất token của bạn, và mọi thứ khác đ
     <!-- Playlist Suggestions -->
     <string name="you_might_like">Có thể bạn sẽ thích</string>
     <string name="refresh_suggestions">Làm mới gợi ý</string>
-
     <string name="music_together">ArchiveTune Music Together</string>
     <string name="together_display_name">Tên hiển thị</string>
     <string name="together_display_name_placeholder">Tên của bạn</string>
@@ -718,7 +715,6 @@ ArchiveTune sẽ chỉ trích xuất token của bạn, và mọi thứ khác đ
     <string name="loading">Đang tải</string>
     <string name="connecting">Đang kết nối…</string>
     <string name="copy_link">Sao chép liên kết</string>
-
     <string name="together_host_section">Tổ chức</string>
     <string name="together_join_section">Tham gia</string>
     <string name="together_status">Trạng thái</string>
@@ -727,7 +723,6 @@ ArchiveTune sẽ chỉ trích xuất token của bạn, và mọi thứ khác đ
     <string name="together_joining">Đang tham gia phiên</string>
     <string name="together_connected">Đã kết nối</string>
     <string name="together_error_state">Lỗi</string>
-
     <string name="got_it">Hiểu rồi</string>
     <string name="together_dont_show_again">Không hiển thị lại nữa</string>
     <string name="together_welcome_title">Chào mừng đến với ArchiveTune Music Together</string>
@@ -738,4 +733,7 @@ ArchiveTune sẽ chỉ trích xuất token của bạn, và mọi thứ khác đ
     <string name="together_welcome_join_body">Mở liên kết được chia sẻ, hoặc nhập mã và nhấn Tham gia. Hàng đợi và phát nhạc của bạn sẽ theo người tổ chức.</string>
     <string name="together_welcome_permissions_title">Quyền và an toàn</string>
     <string name="together_welcome_permissions_body">Người tổ chức có thể quyết định liệu khách có thể thêm bài hát, điều khiển phát nhạc, hoặc yêu cầu phê duyệt để tham gia hay không.</string>
+    <string name="together_requesting_song_change">Yêu cầu chủ trì đổi bài hát…</string>
+    <string name="together_song_change_failed">Yêu cầu thay đổi bài hát không được áp dụng. Vui lòng thử lại.</string>
+    <string name="together_token_missing">Phiên bản này không hỗ trợ phát nhạc trực tuyến</string>
 </resources>
