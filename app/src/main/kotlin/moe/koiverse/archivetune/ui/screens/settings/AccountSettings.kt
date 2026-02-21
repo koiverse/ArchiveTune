@@ -95,6 +95,7 @@ import moe.koiverse.archivetune.constants.AccountEmailKey
 import moe.koiverse.archivetune.constants.AccountNameKey
 import moe.koiverse.archivetune.constants.DataSyncIdKey
 import moe.koiverse.archivetune.constants.InnerTubeCookieKey
+import moe.koiverse.archivetune.constants.PoTokenKey
 import moe.koiverse.archivetune.constants.SelectedYtmPlaylistsKey
 import moe.koiverse.archivetune.constants.UseLoginForBrowse
 import moe.koiverse.archivetune.constants.VisitorDataKey
@@ -122,6 +123,7 @@ fun AccountSettings(
     val (accountEmail, onAccountEmailChange) = rememberPreference(AccountEmailKey, "")
     val (accountChannelHandle, onAccountChannelHandleChange) = rememberPreference(AccountChannelHandleKey, "")
     val (innerTubeCookie, onInnerTubeCookieChange) = rememberPreference(InnerTubeCookieKey, "")
+    val (poToken, onPoTokenChange) = rememberPreference(PoTokenKey, "")
     val (visitorData, onVisitorDataChange) = rememberPreference(VisitorDataKey, "")
     val (dataSyncId, onDataSyncIdChange) = rememberPreference(DataSyncIdKey, "")
 
@@ -183,6 +185,7 @@ fun AccountSettings(
                     accountEmail = accountEmail,
                     accountChannelHandle = accountChannelHandle,
                     onInnerTubeCookieChange = onInnerTubeCookieChange,
+                    onPoTokenChange = onPoTokenChange,
                     onVisitorDataChange = onVisitorDataChange,
                     onDataSyncIdChange = onDataSyncIdChange,
                     onAccountNameChange = onAccountNameChange,
@@ -775,6 +778,7 @@ private fun TokenEditorDialog(
     accountEmail: String,
     accountChannelHandle: String,
     onInnerTubeCookieChange: (String) -> Unit,
+    onPoTokenChange: (String) -> Unit,
     onVisitorDataChange: (String) -> Unit,
     onDataSyncIdChange: (String) -> Unit,
     onAccountNameChange: (String) -> Unit,
@@ -786,6 +790,7 @@ private fun TokenEditorDialog(
         ***INNERTUBE COOKIE*** =$innerTubeCookie
         ***VISITOR DATA*** =$visitorData
         ***DATASYNC ID*** =$dataSyncId
+        ***PO TOKEN*** =${YouTube.poToken.orEmpty()}
         ***ACCOUNT NAME*** =$accountNamePref
         ***ACCOUNT EMAIL*** =$accountEmail
         ***ACCOUNT CHANNEL HANDLE*** =$accountChannelHandle
@@ -799,6 +804,7 @@ private fun TokenEditorDialog(
                     it.startsWith("***INNERTUBE COOKIE*** =") -> onInnerTubeCookieChange(it.substringAfter("="))
                     it.startsWith("***VISITOR DATA*** =") -> onVisitorDataChange(it.substringAfter("="))
                     it.startsWith("***DATASYNC ID*** =") -> onDataSyncIdChange(it.substringAfter("="))
+                    it.startsWith("***PO TOKEN*** =") -> onPoTokenChange(it.substringAfter("="))
                     it.startsWith("***ACCOUNT NAME*** =") -> onAccountNameChange(it.substringAfter("="))
                     it.startsWith("***ACCOUNT EMAIL*** =") -> onAccountEmailChange(it.substringAfter("="))
                     it.startsWith("***ACCOUNT CHANNEL HANDLE*** =") -> onAccountChannelHandleChange(it.substringAfter("="))
