@@ -147,7 +147,7 @@ fun AppearanceSettings(
     )
     val (useNewLibraryDesign, onUseNewLibraryDesignChange) = rememberPreference(
         key = moe.koiverse.archivetune.constants.UseNewLibraryDesignKey,
-        defaultValue = true
+        defaultValue = false
     )
     val (hidePlayerThumbnail, onHidePlayerThumbnailChange) = rememberPreference(
         HidePlayerThumbnailKey,
@@ -171,7 +171,7 @@ fun AppearanceSettings(
             defaultValue = PlayerBackgroundStyle.DEFAULT,
         )
     val (pureBlack, onPureBlackChange) = rememberPreference(PureBlackKey, defaultValue = false)
-    val (disableBlur, onDisableBlurChange) = rememberPreference(DisableBlurKey, defaultValue = false)
+    val (disableBlur, onDisableBlurChange) = rememberPreference(DisableBlurKey, defaultValue = true)
     val (useSystemFont, onUseSystemFontChange) = rememberPreference(UseSystemFontKey, defaultValue = false)
     val (defaultOpenTab, onDefaultOpenTabChange) = rememberEnumPreference(
         DefaultOpenTabKey,

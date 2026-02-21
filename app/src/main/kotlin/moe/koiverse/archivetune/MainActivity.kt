@@ -1216,7 +1216,7 @@ class MainActivity : ComponentActivity() {
                                                     }
                                                     IconButton(onClick = { navController.navigate("new_release") }) {
                                                         Icon(
-                                                            painter = painterResource(R.drawable.notifications_unread),
+                                                            painter = painterResource(R.drawable.new_release),
                                                             contentDescription = stringResource(R.string.new_release_albums)
                                                         )
                                                     }
