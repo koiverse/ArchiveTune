@@ -199,12 +199,7 @@ fun LyricsV2(
                 val lineDurationMs = (nextEntryTime - entry.time).coerceAtLeast(500L)
                 val lineStartSec = entry.time / 1000.0
 
-                val isCjk = isChinese(entry.text) || isJapanese(entry.text) || isKorean(entry.text)
-                val tokens = if (isCjk) {
-                    entry.text.map { it.toString() }
-                } else {
-                    entry.text.split(Regex("\\s+"))
-                }
+                val tokens = entry.text.split(Regex("\\s+"))
                 if (tokens.isEmpty()) return@mapIndexed entry
 
                 // Weight each token by character count for proportional distribution
@@ -225,8 +220,8 @@ fun LyricsV2(
                             endTime = wordEndSec,
                         )
                     )
-                    // Insert space token between words (non-CJK)
-                    if (!isCjk && wordIdx < tokens.lastIndex) {
+                    // Insert space token between words
+                    if (wordIdx < tokens.lastIndex) {
                         words.add(
                             WordTimestamp(
                                 text = " ",
@@ -269,7 +264,11 @@ fun LyricsV2(
         while (isActive) {
             val sliderPos = sliderPositionProvider()
             val pos = sliderPos ?: player.currentPosition
-            currentPositionMs = pos + leadMs
+            
+            // Add a visual tuning offset so animations feel instantly responsive and perfectly land on beat
+            val visualTuningOffsetMs = 150L 
+            currentPositionMs = pos + leadMs + visualTuningOffsetMs
+            
             currentLineIndex = findCurrentLineIndex(entriesWithWords, currentPositionMs, 0L)
             delay(16L) // ~60fps polling
         }
@@ -670,10 +669,21 @@ private fun AnimatedWordV2(
     }
 
     // ── Bounce and Float animation ──
-    // Subtle scale up and float peaking halfway through the word. Exact timing sync!
+    // Subtle scale up peaking halfway through the word. Exact timing sync!
     val sinProgress = kotlin.math.sin(progress * kotlin.math.PI).toFloat()
     val wordScale = 1f + (0.015f * sinProgress)
-    val floatOffset = -2f * sinProgress
+    
+    // Float is only applied when the word is actively sung, making it pop from the line.
+    // We use animateFloatAsState so that when it finishes (and drops to 0f), 
+    // it smoothly decays back into place rather than a harsh mathematical snap.
+    val targetFloat = if (isWordActive) -4f * sinProgress else 0f
+    val floatOffset by androidx.compose.animation.core.animateFloatAsState(
+        targetValue = targetFloat,
+        animationSpec = androidx.compose.animation.core.tween(
+            durationMillis = if (isWordActive) 50 else 350,
+            easing = androidx.compose.animation.core.FastOutSlowInEasing
+        )
+    )
 
     // ── Glow intensity ──
     // "lines and words that are done animating shouldnt continue to glow"
