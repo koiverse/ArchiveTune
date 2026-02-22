@@ -20,7 +20,8 @@ object TTMLParser {
         val startTime: Double,
         val endTime: Double,
         val words: List<ParsedWord>,
-        val isBackground: Boolean = false
+        val isBackground: Boolean = false,
+        val agent: String? = null,
     )
     
     data class ParsedWord(
@@ -87,6 +88,16 @@ object TTMLParser {
                         dur.isNotEmpty() -> startTime + parseTime(dur, timingContext)
                         else -> startTime + 5.0
                     }
+                    
+                    // Parse agent attribute (ttm:agent or similar)
+                    val agent = pElement.getAttribute("ttm:agent").takeIf { it.isNotEmpty() }
+                        ?: pElement.attributes?.let { attrs ->
+                            (0 until attrs.length)
+                                .map { attrs.item(it) }
+                                .firstOrNull { it.nodeName.endsWith("agent", ignoreCase = true) }
+                                ?.nodeValue?.takeIf { it.isNotEmpty() }
+                        }
+                    
                     val words = mutableListOf<ParsedWord>()
                     val lineText = StringBuilder()
                     
@@ -206,7 +217,8 @@ object TTMLParser {
                                 startTime = startTime,
                                 endTime = endTime,
                                 words = words,
-                                isBackground = false
+                                isBackground = false,
+                                agent = agent,
                             )
                         )
                     }
@@ -232,6 +244,16 @@ object TTMLParser {
                         dur.isNotEmpty() -> startTime + parseTime(dur, timingContext)
                         else -> startTime + 5.0
                     }
+                    
+                    // Parse agent attribute
+                    val agent = pElement.getAttribute("ttm:agent").takeIf { it.isNotEmpty() }
+                        ?: pElement.attributes?.let { attrs ->
+                            (0 until attrs.length)
+                                .map { attrs.item(it) }
+                                .firstOrNull { it.nodeName.endsWith("agent", ignoreCase = true) }
+                                ?.nodeValue?.takeIf { it.isNotEmpty() }
+                        }
+                    
                     val words = mutableListOf<ParsedWord>()
                     val lineText = StringBuilder()
                     
@@ -342,7 +364,8 @@ object TTMLParser {
                                 startTime = startTime,
                                 endTime = endTime,
                                 words = words,
-                                isBackground = false
+                                isBackground = false,
+                                agent = agent,
                             )
                         )
                     }

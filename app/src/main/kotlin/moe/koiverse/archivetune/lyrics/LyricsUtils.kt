@@ -140,6 +140,7 @@ object LyricsUtils {
                 time = (line.startTime * scale * 1000.0).toLong(),
                 text = line.text,
                 words = words,
+                agent = line.agent,
             )
         }.sorted()
     }
