@@ -547,10 +547,39 @@ object YouTube {
 
     suspend fun newReleaseAlbums(): Result<List<AlbumItem>> = runCatching {
         val response = innerTube.browse(WEB_REMIX, browseId = "FEmusic_new_releases_albums").body<BrowseResponse>()
-        response.contents?.singleColumnBrowseResultsRenderer?.tabs?.firstOrNull()?.tabRenderer?.content?.sectionListRenderer?.contents?.firstOrNull()?.gridRenderer?.items
-            ?.mapNotNull { it.musicTwoRowItemRenderer }
-            ?.mapNotNull(NewReleaseAlbumPage::fromMusicTwoRowItemRenderer)
-            .orEmpty()
+        val contents =
+            response.contents
+                ?.singleColumnBrowseResultsRenderer
+                ?.tabs
+                ?.firstOrNull()
+                ?.tabRenderer
+                ?.content
+                ?.sectionListRenderer
+                ?.contents
+                .orEmpty()
+
+        contents
+            .asSequence()
+            .flatMap { content ->
+                when {
+                    content.gridRenderer?.items != null -> {
+                        content.gridRenderer.items
+                            .asSequence()
+                            .mapNotNull { it.musicTwoRowItemRenderer }
+                            .mapNotNull(NewReleaseAlbumPage::fromMusicTwoRowItemRenderer)
+                    }
+
+                    content.musicCarouselShelfRenderer?.contents != null -> {
+                        content.musicCarouselShelfRenderer.contents
+                            .asSequence()
+                            .mapNotNull { it.musicTwoRowItemRenderer }
+                            .mapNotNull(NewReleaseAlbumPage::fromMusicTwoRowItemRenderer)
+                    }
+
+                    else -> emptySequence()
+                }
+            }
+            .toList()
     }
 
     suspend fun moodAndGenres(): Result<List<MoodAndGenres>> = runCatching {
