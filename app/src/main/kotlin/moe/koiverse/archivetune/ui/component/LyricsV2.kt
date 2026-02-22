@@ -213,23 +213,14 @@ fun LyricsV2(
                     val wordStartSec = lineStartSec + (currentOffsetMs / 1000.0)
                     val wordEndSec = wordStartSec + (wordDurMs / 1000.0)
 
+                    val wordText = if (wordIdx < tokens.lastIndex) "$token " else token
                     words.add(
                         WordTimestamp(
-                            text = token,
+                            text = wordText,
                             startTime = wordStartSec,
                             endTime = wordEndSec,
                         )
                     )
-                    // Insert space token between words
-                    if (wordIdx < tokens.lastIndex) {
-                        words.add(
-                            WordTimestamp(
-                                text = " ",
-                                startTime = wordEndSec,
-                                endTime = wordEndSec,
-                            )
-                        )
-                    }
                     currentOffsetMs += wordDurMs
                 }
                 entry.copy(words = words)
@@ -571,8 +562,8 @@ private fun LyricsLineV2(
     }
 
     // Split words into main and background
-    val mainWords = words.filter { !it.isBackground || it.text.isBlank() }
-    val bgWords = words.filter { it.isBackground && it.text.isNotBlank() }
+    val mainWords = words.filter { !it.isBackground }
+    val bgWords = words.filter { it.isBackground }
 
     // 1. Render main words First (if any)
     if (mainWords.isNotEmpty()) {
@@ -621,6 +612,17 @@ private fun LyricsLineV2(
             horizontalArrangement = arrangement,
         ) {
             bgWords.forEachIndexed { wordIndex, word ->
+                if (word.text == " ") {
+                    Text(
+                        text = " ",
+                        style = MaterialTheme.typography.headlineMedium.copy(
+                            fontSize = (baseFontSize * 0.65f).sp,
+                        ),
+                        color = Color.Transparent,
+                    )
+                    return@forEachIndexed
+                }
+                
                 AnimatedWordV2(
                     word = word,
                     wordIndex = wordIndex + mainWords.size,
@@ -630,7 +632,7 @@ private fun LyricsLineV2(
                     textColor = textColor,
                     inactiveAlpha = inactiveAlpha,
                     fontSize = baseFontSize * 0.65f, // ~65% size of main text
-                    isBackground = true, // Force italic/dimmer styling inside AnimatedWordV2
+                    isBackground = true, // Force dimmer styling inside AnimatedWordV2
                 )
             }
         }
@@ -708,7 +710,7 @@ private fun AnimatedWordV2(
             style = MaterialTheme.typography.headlineMedium.copy(
                 fontSize = actualFontSize.sp,
                 fontWeight = fontWeight,
-                fontStyle = if (isBackground) FontStyle.Italic else FontStyle.Normal,
+                fontStyle = FontStyle.Normal,
                 lineHeight = (actualFontSize * 1.35f).sp,
             ),
             color = textColor.copy(alpha = if (isBackground) inactiveAlpha * 0.7f else inactiveAlpha),
@@ -721,7 +723,7 @@ private fun AnimatedWordV2(
                 style = MaterialTheme.typography.headlineMedium.copy(
                     fontSize = actualFontSize.sp,
                     fontWeight = fontWeight,
-                    fontStyle = if (isBackground) FontStyle.Italic else FontStyle.Normal,
+                    fontStyle = FontStyle.Normal,
                     lineHeight = (actualFontSize * 1.35f).sp,
                     shadow = if (glowAlpha > 0f) {
                         Shadow(
