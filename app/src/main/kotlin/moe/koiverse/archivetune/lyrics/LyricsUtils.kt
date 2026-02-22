@@ -126,7 +126,7 @@ object LyricsUtils {
         return parsedLines.map { line ->
             val words =
                 line.words
-                    .filter { it.text.isNotBlank() }
+                    .filter { it.text.isNotEmpty() }
                     .map { word ->
                         WordTimestamp(
                             text = word.text,
