@@ -729,8 +729,10 @@ private fun AnimatedWordV2(
 
     // ── Glow intensity ──
     // "lines and words that are done animating shouldnt continue to glow"
-    val glowAlpha = if (isWordActive) progress * 0.45f else 0f
-    val glowRadius = if (isWordActive) progress * 12f else 0f
+    // Make glow build up faster: reach max intensity at 50% progress
+    val glowProgress = (progress * 2f).coerceAtMost(1f)
+    val glowAlpha = if (isWordActive) glowProgress * 0.45f else 0f
+    val glowRadius = if (isWordActive) glowProgress * 12f else 0f
 
     val actualFontSize = if (isBackground) fontSize * 0.85f else fontSize
     val fontWeight = FontWeight.SemiBold // Consistent weight — no thin→bold jump
