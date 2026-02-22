@@ -1617,6 +1617,7 @@ fun PlayerBackground(
                         }
 
                         fun oscillate(min: Float, max: Float, phase: Float, speed: Float = 1f): Float {
+                            // speed MUST be an integer to ensure seamless looping when progress wraps from 1f to 0f.
                             val v = kotlin.math.sin(2f * kotlin.math.PI.toFloat() * (progress * speed + phase)).toFloat()
                             return min + (max - min) * ((v + 1f) * 0.5f)
                         }
@@ -1629,28 +1630,28 @@ fun PlayerBackground(
                         val color6 = rotatedColorAt(5)
 
                         val o1x = oscillate(0.0f, 1.0f, 0.00f, 1.0f)
-                        val o1y = oscillate(0.0f, 0.5f, 0.07f, 1.1f)
-                        val r1 = oscillate(0.8f, 1.6f, 0.12f, 0.95f)
+                        val o1y = oscillate(0.0f, 0.5f, 0.07f, 1.0f)
+                        val r1 = oscillate(0.8f, 1.6f, 0.12f, 1.0f)
 
-                        val o2x = oscillate(1.0f, 0.0f, 0.2f, 1.05f)
-                        val o2y = oscillate(0.5f, 1.0f, 0.25f, 0.9f)
-                        val r2 = oscillate(0.7f, 1.5f, 0.18f, 1.02f)
+                        val o2x = oscillate(1.0f, 0.0f, 0.2f, 1.0f)
+                        val o2y = oscillate(0.5f, 1.0f, 0.25f, 1.0f)
+                        val r2 = oscillate(0.7f, 1.5f, 0.18f, 1.0f)
 
-                        val o3x = oscillate(0.2f, 0.8f, 0.33f, 0.98f)
-                        val o3y = oscillate(0.8f, 0.2f, 0.36f, 1.01f)
-                        val r3 = oscillate(0.6f, 1.4f, 0.29f, 0.97f)
+                        val o3x = oscillate(0.2f, 0.8f, 0.33f, 1.0f)
+                        val o3y = oscillate(0.8f, 0.2f, 0.36f, 1.0f)
+                        val r3 = oscillate(0.6f, 1.4f, 0.29f, 1.0f)
 
-                        val o4x = oscillate(0.3f, 0.7f, 0.44f, 1.03f)
-                        val o4y = oscillate(0.2f, 0.8f, 0.41f, 0.99f)
+                        val o4x = oscillate(0.3f, 0.7f, 0.44f, 1.0f)
+                        val o4y = oscillate(0.2f, 0.8f, 0.41f, 1.0f)
                         val r4 = oscillate(0.9f, 1.7f, 0.47f, 1.0f)
 
-                        val o5x = oscillate(0.4f, 0.6f, 0.55f, 0.95f)
-                        val o5y = oscillate(0.0f, 1.0f, 0.51f, 1.04f)
-                        val r5 = oscillate(0.7f, 1.5f, 0.58f, 1.06f)
+                        val o5x = oscillate(0.4f, 0.6f, 0.55f, 1.0f)
+                        val o5y = oscillate(0.0f, 1.0f, 0.51f, 1.0f)
+                        val r5 = oscillate(0.7f, 1.5f, 0.58f, 1.0f)
 
-                        val o6x = oscillate(0.0f, 1.0f, 0.66f, 1.08f)
-                        val o6y = oscillate(0.5f, 0.7f, 0.62f, 0.96f)
-                        val r6 = oscillate(0.8f, 1.8f, 0.69f, 1.01f)
+                        val o6x = oscillate(0.0f, 1.0f, 0.66f, 1.0f)
+                        val o6y = oscillate(0.5f, 0.7f, 0.62f, 1.0f)
+                        val r6 = oscillate(0.8f, 1.8f, 0.69f, 1.0f)
 
                         Box(
                             modifier = Modifier

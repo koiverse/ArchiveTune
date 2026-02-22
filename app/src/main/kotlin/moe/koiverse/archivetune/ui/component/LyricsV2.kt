@@ -199,7 +199,47 @@ fun LyricsV2(
                 val lineDurationMs = (nextEntryTime - entry.time).coerceAtLeast(500L)
                 val lineStartSec = entry.time / 1000.0
 
-                val tokens = entry.text.split(Regex("\\s+"))
+                val isCjkText = isJapanese(entry.text) || isChinese(entry.text) || isKorean(entry.text)
+                val tokens = if (isCjkText) {
+                    val chars = mutableListOf<String>()
+                    var currentWord = StringBuilder()
+                    entry.text.forEach { char ->
+                        if (char.isWhitespace()) {
+                            if (currentWord.isNotEmpty()) {
+                                chars.add(currentWord.toString())
+                                currentWord.clear()
+                            }
+                            chars.add(char.toString())
+                        } else if (isJapanese(char.toString()) || isChinese(char.toString()) || isKorean(char.toString())) {
+                            if (currentWord.isNotEmpty()) {
+                                chars.add(currentWord.toString())
+                                currentWord.clear()
+                            }
+                            chars.add(char.toString())
+                        } else {
+                            currentWord.append(char)
+                        }
+                    }
+                    if (currentWord.isNotEmpty()) {
+                        chars.add(currentWord.toString())
+                    }
+
+                    // Group spaces onto the preceding word
+                    val groupedTokens = mutableListOf<String>()
+                    var tempStr = StringBuilder()
+                    chars.forEachIndexed { i, c ->
+                        if (c.isBlank()) {
+                            if (groupedTokens.isNotEmpty()) {
+                                groupedTokens[groupedTokens.lastIndex] = groupedTokens.last() + c
+                            }
+                        } else {
+                            groupedTokens.add(c)
+                        }
+                    }
+                    groupedTokens
+                } else {
+                    entry.text.split(Regex("\\s+"))
+                }
                 if (tokens.isEmpty()) return@mapIndexed entry
 
                 // Weight each token by character count for proportional distribution
@@ -213,7 +253,7 @@ fun LyricsV2(
                     val wordStartSec = lineStartSec + (currentOffsetMs / 1000.0)
                     val wordEndSec = wordStartSec + (wordDurMs / 1000.0)
 
-                    val wordText = if (wordIdx < tokens.lastIndex) "$token " else token
+                    val wordText = if (wordIdx < tokens.lastIndex && !isCjkText) "$token " else token
                     words.add(
                         WordTimestamp(
                             text = wordText,
@@ -689,8 +729,10 @@ private fun AnimatedWordV2(
 
     // ── Glow intensity ──
     // "lines and words that are done animating shouldnt continue to glow"
-    val glowAlpha = if (isWordActive) progress * 0.45f else 0f
-    val glowRadius = if (isWordActive) progress * 12f else 0f
+    // Make glow build up faster: reach max intensity at 50% progress
+    val glowProgress = (progress * 2f).coerceAtMost(1f)
+    val glowAlpha = if (isWordActive) glowProgress * 0.45f else 0f
+    val glowRadius = if (isWordActive) glowProgress * 12f else 0f
 
     val actualFontSize = if (isBackground) fontSize * 0.85f else fontSize
     val fontWeight = FontWeight.SemiBold // Consistent weight — no thin→bold jump
@@ -741,12 +783,15 @@ private fun AnimatedWordV2(
                         .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
                         .drawWithContent {
                             drawContent()
-                            val fillWidth = size.width * progress
+                            val edgeWidth = 8.dp.toPx()
+                            val center = (size.width + edgeWidth * 2) * progress - edgeWidth
                             drawRect(
-                                color = Color.Transparent,
-                                topLeft = Offset(fillWidth, 0f),
-                                size = Size(size.width - fillWidth, size.height),
-                                blendMode = BlendMode.SrcIn,
+                                brush = androidx.compose.ui.graphics.Brush.horizontalGradient(
+                                    colors = listOf(Color.Black, Color.Transparent),
+                                    startX = center - edgeWidth,
+                                    endX = center + edgeWidth,
+                                ),
+                                blendMode = BlendMode.DstIn,
                             )
                         }
                 } else {
