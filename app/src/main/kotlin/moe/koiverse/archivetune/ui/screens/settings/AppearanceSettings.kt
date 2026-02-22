@@ -103,6 +103,7 @@ import moe.koiverse.archivetune.constants.ArchiveTuneCanvasKey
 import moe.koiverse.archivetune.constants.ThumbnailCornerRadiusKey
 import moe.koiverse.archivetune.constants.CropThumbnailToSquareKey
 import moe.koiverse.archivetune.constants.DisableBlurKey
+import moe.koiverse.archivetune.constants.UseLyricsV2Key
 import moe.koiverse.archivetune.ui.component.DefaultDialog
 import moe.koiverse.archivetune.ui.component.EnumListPreference
 import moe.koiverse.archivetune.ui.component.IconButton
@@ -193,6 +194,7 @@ fun AppearanceSettings(
     val (lyricsScroll, onLyricsScrollChange) = rememberPreference(LyricsScrollKey, defaultValue = true)
     val (lyricsTextSize, onLyricsTextSizeChange) = rememberPreference(LyricsTextSizeKey, defaultValue = 26f)
     val (lyricsLineSpacing, onLyricsLineSpacingChange) = rememberPreference(LyricsLineSpacingKey, defaultValue = 1.3f)
+    val (useLyricsV2, onUseLyricsV2Change) = rememberPreference(UseLyricsV2Key, defaultValue = false)
 
     val (sliderStyle, onSliderStyleChange) = rememberEnumPreference(
         SliderStyleKey,
@@ -677,6 +679,14 @@ fun AppearanceSettings(
 
         PreferenceGroupTitle(
             title = stringResource(R.string.lyrics),
+        )
+
+        SwitchPreference(
+            title = { Text("Lyrics V2 (Experimental)") },
+            description = "Use the new fluid word-synced lyrics engine",
+            icon = { Icon(painterResource(R.drawable.lyrics), null) },
+            checked = useLyricsV2,
+            onCheckedChange = onUseLyricsV2Change,
         )
 
         EnumListPreference(

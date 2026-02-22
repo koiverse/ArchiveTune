@@ -111,6 +111,8 @@ import moe.koiverse.archivetune.extensions.toggleRepeatMode
 import moe.koiverse.archivetune.lyrics.LyricsHelper
 import moe.koiverse.archivetune.models.MediaMetadata
 import moe.koiverse.archivetune.ui.component.Lyrics
+import moe.koiverse.archivetune.ui.component.LyricsV2
+import moe.koiverse.archivetune.constants.UseLyricsV2Key
 import moe.koiverse.archivetune.ui.component.LocalMenuState
 import moe.koiverse.archivetune.ui.component.PlayerSliderTrack
 import moe.koiverse.archivetune.ui.component.BigSeekBar
@@ -160,6 +162,7 @@ fun LyricsScreen(
     // slider style preference
     val sliderStyle by rememberEnumPreference(SliderStyleKey, SliderStyle.DEFAULT)
     val currentLyrics by playerConnection.currentLyrics.collectAsState(initial = null)
+    val (useLyricsV2) = rememberPreference(UseLyricsV2Key, defaultValue = false)
 
     // Auto-fetch lyrics when no lyrics found (same logic as refetch)
     LaunchedEffect(mediaMetadata.id, currentLyrics) {
@@ -416,9 +419,15 @@ fun LyricsScreen(
                                     .padding(horizontal = 16.dp),
                                 contentAlignment = Alignment.Center  // Center lyrics in landscape
                             ) {
-                                Lyrics(
-                                    sliderPositionProvider = { sliderPosition }
-                                )
+                                if (useLyricsV2) {
+                                    LyricsV2(
+                                        sliderPositionProvider = { sliderPosition }
+                                    )
+                                } else {
+                                    Lyrics(
+                                        sliderPositionProvider = { sliderPosition }
+                                    )
+                                }
                             }
                         }
                         
@@ -754,9 +763,15 @@ fun LyricsScreen(
                             .padding(horizontal = 16.dp),
                         contentAlignment = Alignment.TopCenter
                     ) {
-                        Lyrics(
-                            sliderPositionProvider = { sliderPosition }
-                        )
+                        if (useLyricsV2) {
+                            LyricsV2(
+                                sliderPositionProvider = { sliderPosition }
+                            )
+                        } else {
+                            Lyrics(
+                                sliderPositionProvider = { sliderPosition }
+                            )
+                        }
                     }
 
                     Column(
