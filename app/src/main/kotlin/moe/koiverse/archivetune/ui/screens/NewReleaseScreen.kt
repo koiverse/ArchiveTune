@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
-import androidx.compose.foundation.layout.calculateTopPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -41,6 +40,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -78,7 +78,7 @@ fun NewReleaseScreen(
     val uiState by viewModel.uiState.collectAsState()
 
     val coroutineScope = rememberCoroutineScope()
-    val systemBarsTopPadding = WindowInsets.systemBars.asPaddingValues().calculateTopPadding()
+    val systemBarsTopPadding = with(LocalDensity.current) { WindowInsets.systemBars.getTop(this).toDp() }
 
     Box(
         modifier =
