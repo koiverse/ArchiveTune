@@ -102,6 +102,7 @@ import moe.koiverse.archivetune.constants.CropThumbnailToSquareKey
 import moe.koiverse.archivetune.constants.HidePlayerThumbnailKey
 import moe.koiverse.archivetune.extensions.metadata
 import moe.koiverse.archivetune.innertube.YouTube
+import moe.koiverse.archivetune.innertube.models.YouTubeClient
 import moe.koiverse.archivetune.utils.rememberEnumPreference
 import moe.koiverse.archivetune.utils.rememberPreference
 import kotlinx.coroutines.Dispatchers
@@ -635,6 +636,46 @@ private fun CanvasArtworkPlayer(
             OkHttpClient
                 .Builder()
                 .proxy(YouTube.proxy)
+                .addInterceptor { chain ->
+                    val request = chain.request()
+                    val host = request.url.host
+                    val isYouTubeMediaHost =
+                        host.endsWith("googlevideo.com") ||
+                            host.endsWith("googleusercontent.com") ||
+                            host.endsWith("youtube.com") ||
+                            host.endsWith("youtube-nocookie.com") ||
+                            host.endsWith("ytimg.com")
+
+                    if (!isYouTubeMediaHost) return@addInterceptor chain.proceed(request)
+
+                    val clientParam = request.url.queryParameter("c")?.trim().orEmpty()
+                    val isWeb =
+                        clientParam.startsWith("WEB", ignoreCase = true) ||
+                            clientParam.startsWith("WEB_REMIX", ignoreCase = true) ||
+                            request.url.toString().contains("c=WEB", ignoreCase = true)
+
+                    val userAgent =
+                        when {
+                            clientParam.startsWith("WEB", ignoreCase = true) ||
+                                clientParam.startsWith("WEB_REMIX", ignoreCase = true) -> YouTubeClient.USER_AGENT_WEB
+
+                            clientParam.startsWith("IOS", ignoreCase = true) -> YouTubeClient.IOS.userAgent
+
+                            clientParam.startsWith("ANDROID_VR", ignoreCase = true) -> YouTubeClient.ANDROID_VR_NO_AUTH.userAgent
+
+                            clientParam.startsWith("ANDROID", ignoreCase = true) -> YouTubeClient.MOBILE.userAgent
+
+                            else -> YouTubeClient.USER_AGENT_WEB
+                        }
+
+                    val builder = request.newBuilder().header("User-Agent", userAgent)
+                    if (isWeb) {
+                        builder.header("Origin", YouTubeClient.ORIGIN_YOUTUBE_MUSIC)
+                        builder.header("Referer", YouTubeClient.REFERER_YOUTUBE_MUSIC)
+                    }
+
+                    chain.proceed(builder.build())
+                }
                 .build()
         }
     val mediaSourceFactory =

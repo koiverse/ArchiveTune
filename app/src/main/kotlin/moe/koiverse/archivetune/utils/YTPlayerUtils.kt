@@ -25,6 +25,7 @@ import moe.koiverse.archivetune.innertube.models.YouTubeClient.Companion.MOBILE
 import moe.koiverse.archivetune.innertube.models.YouTubeClient.Companion.TVHTML5
 import moe.koiverse.archivetune.innertube.models.YouTubeClient.Companion.WEB
 import moe.koiverse.archivetune.innertube.models.YouTubeClient.Companion.WEB_CREATOR
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.OkHttpClient
 import timber.log.Timber
 import java.util.concurrent.ConcurrentHashMap
@@ -251,12 +252,6 @@ object YTPlayerUtils {
             Timber.tag(logTag).i("Format found: ${format.mimeType}, bitrate: ${format.bitrate}")
             Timber.tag(logTag).v("Stream expires in: $streamExpiresInSeconds seconds")
 
-            streamUrlCache[buildCacheKey(videoId, format.itag)] =
-                CachedStreamUrl(
-                    url = streamUrl,
-                    expiresAtMs = System.currentTimeMillis() + (streamExpiresInSeconds * 1000L),
-                )
-
             if (isLast) {
                 Timber.tag(logTag).i("Using last client without validation: ${client.clientName}")
                 break
@@ -299,6 +294,13 @@ object YTPlayerUtils {
         }
 
         Timber.tag(logTag).i("Successfully obtained playback data with format: ${format.mimeType}, bitrate: ${format.bitrate}")
+
+        streamUrlCache[buildCacheKey(videoId, format.itag)] =
+            CachedStreamUrl(
+                url = streamUrl,
+                expiresAtMs = System.currentTimeMillis() + (streamExpiresInSeconds * 1000L),
+            )
+
         return PlaybackData(
             audioConfig,
             videoDetails,
@@ -443,11 +445,37 @@ object YTPlayerUtils {
     private fun validateStatus(url: String, userAgent: String): Boolean {
         Timber.tag(logTag).v("Validating stream URL status")
         try {
+            val httpUrl = url.toHttpUrlOrNull()
+            val clientParam = httpUrl?.queryParameter("c")?.trim().orEmpty()
+            val isWeb =
+                clientParam.startsWith("WEB", ignoreCase = true) ||
+                    clientParam.startsWith("WEB_REMIX", ignoreCase = true) ||
+                    url.contains("c=WEB", ignoreCase = true)
+
+            val resolvedUserAgent =
+                when {
+                    clientParam.startsWith("WEB", ignoreCase = true) ||
+                        clientParam.startsWith("WEB_REMIX", ignoreCase = true) -> YouTubeClient.USER_AGENT_WEB
+
+                    clientParam.startsWith("IOS", ignoreCase = true) -> YouTubeClient.IOS.userAgent
+
+                    clientParam.startsWith("ANDROID_VR", ignoreCase = true) -> YouTubeClient.ANDROID_VR_NO_AUTH.userAgent
+
+                    clientParam.startsWith("ANDROID", ignoreCase = true) -> YouTubeClient.MOBILE.userAgent
+
+                    else -> userAgent
+                }
+
             val headRequest =
                 okhttp3.Request.Builder()
                     .head()
-                    .header("User-Agent", userAgent)
-                    .url(url)
+                    .header("User-Agent", resolvedUserAgent)
+                    .apply {
+                        if (isWeb) {
+                            header("Origin", YouTubeClient.ORIGIN_YOUTUBE_MUSIC)
+                            header("Referer", YouTubeClient.REFERER_YOUTUBE_MUSIC)
+                        }
+                    }.url(url)
                     .build()
 
             val headOk =
@@ -460,9 +488,14 @@ object YTPlayerUtils {
             val rangeRequest =
                 okhttp3.Request.Builder()
                     .get()
-                    .header("User-Agent", userAgent)
+                    .header("User-Agent", resolvedUserAgent)
                     .header("Range", "bytes=0-0")
-                    .url(url)
+                    .apply {
+                        if (isWeb) {
+                            header("Origin", YouTubeClient.ORIGIN_YOUTUBE_MUSIC)
+                            header("Referer", YouTubeClient.REFERER_YOUTUBE_MUSIC)
+                        }
+                    }.url(url)
                     .build()
 
             return httpClient.newCall(rangeRequest).execute().use { response ->

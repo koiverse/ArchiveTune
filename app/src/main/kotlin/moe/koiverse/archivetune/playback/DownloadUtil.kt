@@ -89,13 +89,23 @@ constructor(
                         request.url.toString().contains("c=WEB", ignoreCase = true)
 
                 val userAgent =
-                    if (isWeb) {
-                        YouTubeClient.USER_AGENT_WEB
-                    } else {
-                        when (preferredStreamClient) {
-                            PlayerStreamClient.IOS -> YouTubeClient.IOS.userAgent
-                            else -> YouTubeClient.ANDROID_VR_NO_AUTH.userAgent
-                        }
+                    when {
+                        clientParam.startsWith("WEB", ignoreCase = true) ||
+                            clientParam.startsWith("WEB_REMIX", ignoreCase = true) -> YouTubeClient.USER_AGENT_WEB
+
+                        clientParam.startsWith("IOS", ignoreCase = true) -> YouTubeClient.IOS.userAgent
+
+                        clientParam.startsWith("ANDROID_VR", ignoreCase = true) -> YouTubeClient.ANDROID_VR_NO_AUTH.userAgent
+
+                        clientParam.startsWith("ANDROID", ignoreCase = true) -> YouTubeClient.MOBILE.userAgent
+
+                        isWeb -> YouTubeClient.USER_AGENT_WEB
+
+                        else ->
+                            when (preferredStreamClient) {
+                                PlayerStreamClient.IOS -> YouTubeClient.IOS.userAgent
+                                else -> YouTubeClient.ANDROID_VR_NO_AUTH.userAgent
+                            }
                     }
 
                 val builder = request.newBuilder().header("User-Agent", userAgent)
