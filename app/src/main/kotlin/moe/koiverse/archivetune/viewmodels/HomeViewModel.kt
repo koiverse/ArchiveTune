@@ -83,6 +83,10 @@ class HomeViewModel @Inject constructor(
     // Track if we're currently processing account data
     private var isProcessingAccountData = false
 
+    private fun filterHomeChips(chips: List<HomePage.Chip>?): List<HomePage.Chip>? {
+        return chips?.filterNot { it.title.contains("podcasts", ignoreCase = true) }
+    }
+
     private suspend fun getQuickPicks(){
         when (quickPicksEnum.first()) {
             QuickPicks.QUICK_PICKS -> quickPicks.value = database.quickPicks().first().shuffled().take(20)
@@ -117,6 +121,7 @@ class HomeViewModel @Inject constructor(
                 launch {
                         YouTube.home().onSuccess { page ->
                         homePage.value = page.copy(
+                            chips = filterHomeChips(page.chips),
                             sections = page.sections.map { section ->
                                 section.copy(items = section.items.filterExplicit(hideExplicit).filterVideo(hideVideo))
                             }

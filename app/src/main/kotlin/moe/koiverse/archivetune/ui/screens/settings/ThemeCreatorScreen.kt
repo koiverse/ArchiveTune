@@ -737,7 +737,7 @@ private fun ThemeRichPreview(
                                         color = MaterialTheme.colorScheme.surfaceContainerHigh,
                                     ) {
                                         Icon(
-                                            painter = painterResource(R.drawable.notifications_unread),
+                                            painter = painterResource(R.drawable.new_release),
                                             contentDescription = null,
                                             modifier = Modifier.padding(10.dp).size(18.dp),
                                         )
@@ -1028,7 +1028,7 @@ private fun ThemeRichPreview(
                                         color = MaterialTheme.colorScheme.secondaryContainer,
                                     ) {
                                         Icon(
-                                            painter = painterResource(R.drawable.library_music_filled),
+                                            painter = painterResource(R.drawable.library_filled),
                                             contentDescription = null,
                                             tint = MaterialTheme.colorScheme.onSecondaryContainer,
                                             modifier = Modifier.padding(10.dp).size(18.dp),
@@ -1095,7 +1095,7 @@ private fun ThemeRichPreview(
                             NavigationBarItem(
                                 selected = navSelected == 2,
                                 onClick = { navSelected = 2 },
-                                icon = { Icon(painter = painterResource(R.drawable.library_music_outlined), contentDescription = null) },
+                                icon = { Icon(painter = painterResource(R.drawable.library_filled), contentDescription = null) },
                                 label = { Text("Library") },
                             )
                         }

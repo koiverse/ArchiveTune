@@ -361,10 +361,11 @@ fun SelectionSongMenu(
                     )
                 },
                 modifier = Modifier.clickable {
+                    onDismiss()
                     if (allInLibrary) {
                         database.query {
                             songSelection.forEach { song ->
-                                inLibrary(song.id, null)
+                                update(song.song.toggleLibrary())
                             }
                         }
                     } else {
@@ -375,6 +376,7 @@ fun SelectionSongMenu(
                             }
                         }
                     }
+                    clearAction()
                 }
             )
         }
@@ -485,7 +487,6 @@ fun SelectionSongMenu(
                         )
                     },
                     modifier = Modifier.clickable {
-                        onDismiss()
                         coroutineScope.launch(Dispatchers.IO) {
                             database.withTransaction {
                                 var i = 0
@@ -495,8 +496,11 @@ fun SelectionSongMenu(
                                     i++
                                 }
                             }
+                            withContext(Dispatchers.Main) {
+                                onDismiss()
+                                clearAction()
+                            }
                         }
-                        clearAction()
                     }
                 )
             }

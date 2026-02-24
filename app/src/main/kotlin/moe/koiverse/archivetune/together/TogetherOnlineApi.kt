@@ -57,7 +57,7 @@ class TogetherOnlineApiException(
 
 class TogetherOnlineApi(
     private val baseUrl: String,
-    private val packageName: String? = null,
+    private val bearerToken: String? = null,
 ) {
     private val v1BaseUrl: String =
         baseUrl
@@ -111,40 +111,58 @@ class TogetherOnlineApi(
             root is java.io.IOException
     }
 
-    private fun requireSuccessfulResponse(resp: HttpResponse) {
-        val status = resp.status.value
-        if (status in 200..299) return
-        val detail =
-            when (status) {
-                400 -> "Bad request"
-                401 -> "Unauthorized"
-                403 -> "Forbidden"
-                404 -> "Session not found"
-                429 -> "Too many requests, please try again later"
-                in 500..599 -> "Server error ($status)"
-                else -> "Unexpected response ($status)"
-            }
-        throw TogetherOnlineApiException(detail, statusCode = status)
+    @Serializable
+    private data class TogetherOnlineErrorResponse(
+        val ok: Boolean? = null,
+        val error: String? = null,
+        val code: String? = null,
+    )
+
+    private fun errorMessageFromResponse(
+        status: Int,
+        rawBody: String,
+    ): String {
+        val parsedError =
+            runCatching { json.decodeFromString(TogetherOnlineErrorResponse.serializer(), rawBody) }
+                .getOrNull()
+        val specific = parsedError?.error?.trim()?.takeIf { it.isNotBlank() }
+        if (specific != null) return specific
+        return when (status) {
+            400 -> "Bad request"
+            401 -> "Unauthorized"
+            403 -> "Forbidden"
+            404 -> "Session not found"
+            429 -> "Too many requests, please try again later"
+            in 500..599 -> "Server error ($status)"
+            else -> "Unexpected response ($status)"
+        }
     }
+
+    private fun normalizedBearerTokenOrNull(): String? = bearerToken?.trim()?.takeIf { it.isNotBlank() }
 
     suspend fun createSession(
         hostDisplayName: String,
         settings: TogetherRoomSettings,
     ): TogetherOnlineCreateSessionResponse =
         withRetry {
+            val token = normalizedBearerTokenOrNull() ?: throw TogetherOnlineApiException("Together token is missing")
             val payload =
                 json.encodeToString(
                     TogetherOnlineCreateSessionRequest.serializer(),
-                    TogetherOnlineCreateSessionRequest(hostDisplayName = hostDisplayName, settings = settings),
+                    TogetherOnlineCreateSessionRequest(
+                        hostDisplayName = hostDisplayName,
+                        settings = settings,
+                    ),
                 )
             val resp =
                 client.post("$v1BaseUrl/together/sessions") {
-                    packageName?.trim()?.takeIf { it.isNotBlank() }?.let { header("x-package-name", it) }
+                    header("Authorization", "Bearer $token")
                     contentType(ContentType.Application.Json)
                     setBody(payload)
                 }
-            requireSuccessfulResponse(resp)
+            val status = resp.status.value
             val raw = resp.bodyAsText()
+            if (status !in 200..299) throw TogetherOnlineApiException(errorMessageFromResponse(status, raw), statusCode = status)
             json.decodeFromString(TogetherOnlineCreateSessionResponse.serializer(), raw)
         }
 
@@ -152,6 +170,7 @@ class TogetherOnlineApi(
         code: String,
     ): TogetherOnlineResolveResponse =
         withRetry {
+            val token = normalizedBearerTokenOrNull() ?: throw TogetherOnlineApiException("Together token is missing")
             val payload =
                 json.encodeToString(
                     TogetherOnlineResolveRequest.serializer(),
@@ -159,12 +178,13 @@ class TogetherOnlineApi(
                 )
             val resp =
                 client.post("$v1BaseUrl/together/sessions/resolve") {
-                    packageName?.trim()?.takeIf { it.isNotBlank() }?.let { header("x-package-name", it) }
+                    header("Authorization", "Bearer $token")
                     contentType(ContentType.Application.Json)
                     setBody(payload)
                 }
-            requireSuccessfulResponse(resp)
+            val status = resp.status.value
             val raw = resp.bodyAsText()
+            if (status !in 200..299) throw TogetherOnlineApiException(errorMessageFromResponse(status, raw), statusCode = status)
             json.decodeFromString(TogetherOnlineResolveResponse.serializer(), raw)
         }
 }

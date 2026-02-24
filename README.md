@@ -118,6 +118,11 @@
 </table>
 
 
+## ❓ Need Help or Have Questions?
+Join Our Telegram Channels for Support and Discussion.
+
+[![Telegram](https://img.shields.io/badge/Telegram-2CA5E0?style=for-the-badge&logo=telegram&logoColor=white)](https://t.me/ArchiveTuneGC)
+
 
 > [!IMPORTANT]  
 > **Geographic Availability:** If YouTube Music is not supported in your region, a VPN or Proxy set to a supported region is required for initial data fetching.

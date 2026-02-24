@@ -126,7 +126,7 @@ object LyricsUtils {
         return parsedLines.map { line ->
             val words =
                 line.words
-                    .filter { it.text.isNotBlank() }
+                    .filter { it.text.isNotEmpty() }
                     .map { word ->
                         WordTimestamp(
                             text = word.text,
@@ -140,6 +140,7 @@ object LyricsUtils {
                 time = (line.startTime * scale * 1000.0).toLong(),
                 text = line.text,
                 words = words,
+                agent = line.agent,
             )
         }.sorted()
     }

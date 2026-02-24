@@ -65,6 +65,27 @@ fun StarDialog(
                     try {
                         val intent = Intent(
                             Intent.ACTION_VIEW,
+                            Uri.parse("https://t.me/ArchiveTuneGC")
+                        )
+                        context.startActivity(intent)
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                },
+            ) {
+                Icon(
+                    painter = painterResource(id = R.drawable.telegram),
+                    contentDescription = "Telegram",
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.size(8.dp))
+                Text(text = "Telegram")
+            }
+            FilledTonalButton(
+                onClick = {
+                    try {
+                        val intent = Intent(
+                            Intent.ACTION_VIEW,
                             Uri.parse("https://github.com/koiverse/ArchiveTune")
                         )
                         context.startActivity(intent)

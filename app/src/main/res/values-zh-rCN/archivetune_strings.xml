@@ -58,8 +58,6 @@
     <string name="like_all">全部喜爱</string>
     <string name="dislike_all">全部不喜爱</string>
     <string name="sort_by_last_updated">更新的日期</string>
-    <string name="pin">固定</string>
-    <string name="unpin">解除固定</string>
     <string name="link_copied">链接已复制到剪贴板</string>
     <string name="starting_radio">正在开始广播</string>
     <string name="now_playing">正在播放</string>

@@ -55,6 +55,7 @@ import moe.koiverse.archivetune.constants.SimilarContent
 import moe.koiverse.archivetune.constants.SkipSilenceKey
 import moe.koiverse.archivetune.constants.StopMusicOnTaskClearKey
 import moe.koiverse.archivetune.constants.HistoryDuration
+import moe.koiverse.archivetune.constants.AudioCrossfadeDurationKey
 import moe.koiverse.archivetune.constants.PlayerStreamClient
 import moe.koiverse.archivetune.constants.PlayerStreamClientKey
 import moe.koiverse.archivetune.constants.SeekExtraSeconds
@@ -66,6 +67,7 @@ import moe.koiverse.archivetune.ui.component.ListDialog
 import moe.koiverse.archivetune.ui.component.PreferenceEntry
 import moe.koiverse.archivetune.ui.component.PreferenceGroupTitle
 import moe.koiverse.archivetune.ui.component.SliderPreference
+import moe.koiverse.archivetune.ui.component.CrossfadeSliderPreference
 import moe.koiverse.archivetune.ui.component.SwitchPreference
 import moe.koiverse.archivetune.ui.utils.backToMain
 import moe.koiverse.archivetune.utils.rememberEnumPreference
@@ -141,6 +143,11 @@ fun PlayerSettings(
         defaultValue = 30f
     )
 
+    val (audioCrossfadeSeconds, onAudioCrossfadeSecondsChange) = rememberPreference(
+        AudioCrossfadeDurationKey,
+        defaultValue = 0
+    )
+
     val (artistSeparators, onArtistSeparatorsChange) = rememberPreference(
         ArtistSeparatorsKey,
         defaultValue = ",;/&"
@@ -174,7 +181,7 @@ fun PlayerSettings(
             onDismiss = { showPlayerStreamClientDialog = false },
             modifier = Modifier.padding(horizontal = 8.dp),
         ) {
-            items(listOf(PlayerStreamClient.ANDROID_VR, PlayerStreamClient.WEB_REMIX)) { value ->
+            items(PlayerStreamClient.entries.toList()) { value ->
                 Row(
                     modifier =
                     Modifier
@@ -195,6 +202,8 @@ fun PlayerSettings(
                             when (value) {
                                 PlayerStreamClient.ANDROID_VR -> stringResource(R.string.player_stream_client_android_vr)
                                 PlayerStreamClient.WEB_REMIX -> stringResource(R.string.player_stream_client_web_remix)
+                                PlayerStreamClient.IOS -> stringResource(R.string.player_stream_client_ios)
+                                PlayerStreamClient.TVHTML5 -> stringResource(R.string.player_stream_client_tvhtml5)
                             },
                             style = MaterialTheme.typography.bodyLarge,
                         )
@@ -204,6 +213,8 @@ fun PlayerSettings(
                             when (value) {
                                 PlayerStreamClient.ANDROID_VR -> stringResource(R.string.player_stream_client_android_vr_desc)
                                 PlayerStreamClient.WEB_REMIX -> stringResource(R.string.player_stream_client_web_remix_desc)
+                                PlayerStreamClient.IOS -> stringResource(R.string.player_stream_client_ios_desc)
+                                PlayerStreamClient.TVHTML5 -> stringResource(R.string.player_stream_client_tvhtml5_desc)
                             },
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.secondary,
@@ -252,6 +263,8 @@ fun PlayerSettings(
             when (playerStreamClient) {
                 PlayerStreamClient.ANDROID_VR -> stringResource(R.string.player_stream_client_android_vr)
                 PlayerStreamClient.WEB_REMIX -> stringResource(R.string.player_stream_client_web_remix)
+                PlayerStreamClient.IOS -> stringResource(R.string.player_stream_client_ios)
+                PlayerStreamClient.TVHTML5 -> stringResource(R.string.player_stream_client_tvhtml5)
             },
             icon = { Icon(painterResource(R.drawable.integration), null) },
             onClick = { showPlayerStreamClientDialog = true }
@@ -270,6 +283,12 @@ fun PlayerSettings(
             icon = { Icon(painterResource(R.drawable.history), null) },
             value = historyDuration,
             onValueChange = onHistoryDurationChange,
+        )
+
+        CrossfadeSliderPreference(
+            value = audioCrossfadeSeconds,
+            onValueChange = onAudioCrossfadeSecondsChange,
+            isEnabled = !audioOffload,
         )
 
         SwitchPreference(

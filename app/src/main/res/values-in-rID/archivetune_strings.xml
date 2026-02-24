@@ -192,8 +192,6 @@
     <string name="lyrics_text_size">Ukuran teks lirik</string>
     <string name="resume_autoscroll">Lanjutkan gulir otomatis</string>
     <string name="assign_tags_to_playlists">Tambahkan ke daftar putar</string>
-    <string name="pin">Pin</string>
-    <string name="unpin">unpin</string>
     <string name="show_tags_in_library">Tampilkan tag di perpustakaan</string>
     <string name="show_tags_in_library_desc">Tampilkan filter tag chip di perpustakaan</string>
     <string name="year_in_music">Tahun dalam Musik</string>

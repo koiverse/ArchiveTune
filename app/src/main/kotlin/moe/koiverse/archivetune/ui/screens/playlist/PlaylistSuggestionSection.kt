@@ -7,7 +7,6 @@
 
 package moe.koiverse.archivetune.ui.screens.playlist
 
-import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -26,7 +25,10 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -35,13 +37,17 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import moe.koiverse.archivetune.LocalDatabase
 import moe.koiverse.archivetune.LocalPlayerConnection
 import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.extensions.toMediaItem
 import moe.koiverse.archivetune.extensions.togglePlayPause
 import moe.koiverse.archivetune.innertube.models.SongItem
 import moe.koiverse.archivetune.playback.queues.ListQueue
+import moe.koiverse.archivetune.ui.component.DefaultDialog
 import moe.koiverse.archivetune.ui.component.IconButton
 import moe.koiverse.archivetune.ui.component.NavigationTitle
 import moe.koiverse.archivetune.ui.component.YouTubeListItem
@@ -53,6 +59,7 @@ fun PlaylistSuggestionsSection(
     viewModel: LocalPlaylistViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
+    val database = LocalDatabase.current
     val coroutineScope = rememberCoroutineScope()
     val playerConnection = LocalPlayerConnection.current
     val isPlaying by playerConnection?.isPlaying?.collectAsState() ?: androidx.compose.runtime.mutableStateOf(false)
@@ -61,9 +68,58 @@ fun PlaylistSuggestionsSection(
     val playlistSuggestions by viewModel.playlistSuggestions.collectAsState()
     val isLoading by viewModel.isLoadingSuggestions.collectAsState()
     
+    // State for duplicate check dialog
+    var showDuplicateDialog by remember { mutableStateOf(false) }
+    var songToCheck by remember { mutableStateOf<SongItem?>(null) }
+    
     val currentSuggestions = playlistSuggestions
     if (currentSuggestions == null && !isLoading) return
     if (currentSuggestions != null && currentSuggestions.items.isEmpty() && !isLoading) return
+
+    // Duplicate Check Dialog
+    if (showDuplicateDialog && songToCheck != null) {
+        val song = songToCheck!!
+        DefaultDialog(
+            title = { Text(stringResource(R.string.duplicates)) },
+            buttons = {
+                TextButton(
+                    onClick = {
+                        showDuplicateDialog = false
+                        songToCheck = null
+                    }
+                ) {
+                    Text(stringResource(android.R.string.cancel))
+                }
+                TextButton(
+                    onClick = {
+                        coroutineScope.launch {
+                            // Add to current playlist anyway
+                            val browseId = viewModel.playlist.value?.playlist?.browseId
+                            viewModel.addSongToPlaylist(song, browseId)
+                            
+                            val playlistName = viewModel.playlist.value?.playlist?.name
+                            val message = if (playlistName != null) {
+                                context.getString(R.string.added_to_playlist, playlistName)
+                            } else {
+                                context.getString(R.string.add_to_playlist)
+                            }
+                            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+                        }
+                        showDuplicateDialog = false
+                        songToCheck = null
+                    }
+                ) {
+                    Text(stringResource(R.string.add_anyway))
+                }
+            },
+            onDismiss = {
+                showDuplicateDialog = false
+                songToCheck = null
+            }
+        ) {
+            Text(text = stringResource(R.string.duplicates_description_single))
+        }
+    }
 
     Column(
         modifier = modifier.fillMaxWidth()
@@ -96,35 +152,44 @@ fun PlaylistSuggestionsSection(
                     trailingContent = {
                         IconButton(
                             onClick = { 
-                                coroutineScope.launch {
-                                    try {
-                                        val songItem = item as? SongItem
-                                        if (songItem == null) {
-                                            Toast.makeText(context, R.string.error_unknown, Toast.LENGTH_SHORT).show()
-                                            return@launch
+                                val songItem = item as? SongItem
+                                if (songItem != null) {
+                                    // Check for duplicates in current playlist first
+                                    songToCheck = songItem
+                                    coroutineScope.launch {
+                                        val isDuplicate = withContext(Dispatchers.IO) {
+                                            val duplicates = database.playlistDuplicates(
+                                                viewModel.playlistId,
+                                                listOf(songItem.id)
+                                            )
+                                            duplicates.isNotEmpty()
                                         }
                                         
-                                        val browseId = viewModel.playlist.value?.playlist?.browseId
-                                        val success = viewModel.addSongToPlaylist(
-                                            song = songItem,
-                                            browseId = browseId
-                                        )
-                                        
-                                        if (success) {
-                                            val playlistName = viewModel.playlist.value?.playlist?.name
-                                            val message = if (playlistName != null) {
-                                                context.getString(R.string.added_to_playlist, playlistName)
-                                            } else {
-                                                context.getString(R.string.add_to_playlist)
-                                            }
-                                            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+                                        if (isDuplicate) {
+                                            showDuplicateDialog = true
                                         } else {
-                                            Toast.makeText(context, R.string.error_unknown, Toast.LENGTH_SHORT).show()
+                                            // No duplicate, add directly
+                                            val browseId = viewModel.playlist.value?.playlist?.browseId
+                                            val success = viewModel.addSongToPlaylist(
+                                                song = songItem,
+                                                browseId = browseId
+                                            )
+                                            
+                                            if (success) {
+                                                val playlistName = viewModel.playlist.value?.playlist?.name
+                                                val message = if (playlistName != null) {
+                                                    context.getString(R.string.added_to_playlist, playlistName)
+                                                } else {
+                                                    context.getString(R.string.add_to_playlist)
+                                                }
+                                                Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+                                            } else {
+                                                Toast.makeText(context, R.string.error_unknown, Toast.LENGTH_SHORT).show()
+                                            }
                                         }
-                                    } catch (e: Exception) {
-                                        Log.e("PlaylistSuggestions", "Error adding song to playlist", e)
-                                        Toast.makeText(context, R.string.error_unknown, Toast.LENGTH_SHORT).show()
                                     }
+                                } else {
+                                    Toast.makeText(context, R.string.error_unknown, Toast.LENGTH_SHORT).show()
                                 }
                             },
                             onLongClick = {}

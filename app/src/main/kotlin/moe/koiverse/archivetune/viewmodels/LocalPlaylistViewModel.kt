@@ -12,6 +12,9 @@ import android.content.Context
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -21,8 +24,11 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.Dispatchers
@@ -46,6 +52,7 @@ import moe.koiverse.archivetune.models.PlaylistSuggestion
 import moe.koiverse.archivetune.models.PlaylistSuggestionPage
 import moe.koiverse.archivetune.models.PlaylistSuggestionQuery
 import moe.koiverse.archivetune.utils.PlaylistSuggestionQueryBuilder
+import moe.koiverse.archivetune.utils.SyncUtils
 import moe.koiverse.archivetune.utils.dataStore
 import moe.koiverse.archivetune.utils.reportException
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -61,6 +68,7 @@ class LocalPlaylistViewModel
 constructor(
     @ApplicationContext private val context: Context,
     private val database: MusicDatabase,
+    private val syncUtils: SyncUtils,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
     val playlistId = savedStateHandle.get<String>("playlistId")!!
@@ -98,6 +106,13 @@ constructor(
             }.reversed(sortDescending && sortType != PlaylistSongSortType.CUSTOM)
         }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
     
+    private val _viewCounts = MutableStateFlow<Map<String, Int>>(emptyMap())
+    val viewCounts = _viewCounts.asStateFlow()
+
+    private val viewCountsMutex = Mutex()
+    private val viewCountsInFlight = mutableSetOf<String>()
+    private val viewCountsSemaphore = Semaphore(permits = 4)
+
     // Playlist Suggestions State
     private val _playlistSuggestions = MutableStateFlow<PlaylistSuggestion?>(null)
     val playlistSuggestions = combine(_playlistSuggestions, playlistSongs) { suggestions, songs ->
@@ -122,6 +137,9 @@ constructor(
     // Cache for current suggestion page
     private var currentSuggestionPage: PlaylistSuggestionPage? = null
 
+    private val _isRefreshing = MutableStateFlow(false)
+    val isRefreshing = _isRefreshing.asStateFlow()
+
     init {
         viewModelScope.launch {
             val sortedSongs =
@@ -132,6 +150,18 @@ constructor(
                         update(playlistSong.map.copy(position = index))
                     }
                 }
+            }
+        }
+
+        viewModelScope.launch {
+            playlistSongs.collect { songs ->
+                prefetchViewCounts(
+                    songs
+                        .asSequence()
+                        .filter { !it.song.song.isLocal }
+                        .map { it.song.id }
+                        .toList()
+                )
             }
         }
         
@@ -152,6 +182,58 @@ constructor(
                 if (suggestions != null && suggestions.items.isEmpty() && suggestions.hasMore && !_isLoadingSuggestions.value) {
                     loadMoreSuggestions()
                 }
+            }
+        }
+    }
+
+    private fun prefetchViewCounts(videoIds: List<String>) {
+        val uniqueIds = videoIds.distinct().filter { it.isNotBlank() }
+        if (uniqueIds.isEmpty()) return
+
+        viewModelScope.launch(Dispatchers.IO) {
+            coroutineScope {
+                uniqueIds.map { videoId ->
+                    async {
+                        val shouldFetch =
+                            viewCountsMutex.withLock {
+                                if (_viewCounts.value.containsKey(videoId) || viewCountsInFlight.contains(videoId)) {
+                                    false
+                                } else {
+                                    viewCountsInFlight.add(videoId)
+                                    true
+                                }
+                            }
+
+                        if (!shouldFetch) return@async
+
+                        try {
+                            viewCountsSemaphore.withPermit {
+                                val count = YouTube.getMediaInfo(videoId).getOrNull()?.viewCount
+                                if (count != null && count >= 0) {
+                                    _viewCounts.update { current -> current + (videoId to count) }
+                                }
+                            }
+                        } finally {
+                            viewCountsMutex.withLock { viewCountsInFlight.remove(videoId) }
+                        }
+                    }
+                }.awaitAll()
+            }
+        }
+    }
+
+    fun refresh() {
+        if (_isRefreshing.value) return
+        viewModelScope.launch(Dispatchers.IO) {
+            _isRefreshing.value = true
+            try {
+                val p = playlist.first() ?: return@launch
+                val browseId = p.playlist.browseId ?: return@launch
+                syncUtils.syncPlaylistNow(browseId = browseId, playlistId = playlistId)
+            } catch (e: Exception) {
+                reportException(e)
+            } finally {
+                _isRefreshing.value = false
             }
         }
     }
@@ -261,6 +343,21 @@ constructor(
     
     fun resetAndLoadPlaylistSuggestions() {
         loadPlaylistSuggestions(forceReset = true)
+    }
+    
+    /**
+     * Mark a suggested song as added to prevent it from appearing again
+     */
+    fun markSuggestionAsAdded(songId: String) {
+        suggestedSongIds.value = suggestedSongIds.value + songId
+        
+        // Also remove from current suggestions list
+        val currentSuggestions = _playlistSuggestions.value
+        if (currentSuggestions != null) {
+            _playlistSuggestions.value = currentSuggestions.copy(
+                items = currentSuggestions.items.filter { it.id != songId }
+            )
+        }
     }
     
     suspend fun addSongToPlaylist(song: moe.koiverse.archivetune.innertube.models.SongItem, browseId: String?): Boolean {

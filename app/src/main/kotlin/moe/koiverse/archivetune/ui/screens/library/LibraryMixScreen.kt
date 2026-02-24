@@ -256,10 +256,6 @@ fun LibraryMixScreen(
         val toIndex = to.index - listHeaderItems
         if (fromIndex !in mutableVisiblePlaylists.indices || toIndex !in mutableVisiblePlaylists.indices) return@rememberReorderableLazyListState
 
-        val fromPinned = mutableVisiblePlaylists[fromIndex].playlist.isPinned
-        val toPinned = mutableVisiblePlaylists[toIndex].playlist.isPinned
-        if (fromPinned != toPinned) return@rememberReorderableLazyListState
-
         val currentDragInfo = dragInfo
         dragInfo =
             if (currentDragInfo == null) {
@@ -305,59 +301,41 @@ fun LibraryMixScreen(
             (visiblePlaylists + sortedOtherItems).distinctBy { it.id }
         } else {
             val combinedItems = (albums.value + artist.value + visiblePlaylists).distinctBy { it.id }
-            val pinnedPlaylists = combinedItems.filterIsInstance<Playlist>().filter { it.playlist.isPinned }
-            val nonPinnedItems = combinedItems.filterNot { it is Playlist && it.playlist.isPinned }
-            val sortedPinned =
-                when (sortType) {
-                    MixSortType.CREATE_DATE -> pinnedPlaylists.sortedBy { it.playlist.createdAt }
-                    MixSortType.NAME ->
-                        pinnedPlaylists.sortedWith(
-                            compareBy(collator) { item -> item.playlist.name },
-                        )
-
-                    MixSortType.LAST_UPDATED -> pinnedPlaylists.sortedBy { it.playlist.lastUpdateTime }
-                }.let { list ->
-                    if (sortDescending) list.asReversed() else list
-                }
-
-            val sortedNonPinned =
-                when (sortType) {
-                    MixSortType.CREATE_DATE ->
-                        nonPinnedItems.sortedBy { item ->
-                            when (item) {
-                                is Album -> item.album.bookmarkedAt
-                                is Artist -> item.artist.bookmarkedAt
-                                is Playlist -> item.playlist.createdAt
-                                else -> null
-                            }
+            when (sortType) {
+                MixSortType.CREATE_DATE ->
+                    combinedItems.sortedBy { item ->
+                        when (item) {
+                            is Album -> item.album.bookmarkedAt
+                            is Artist -> item.artist.bookmarkedAt
+                            is Playlist -> item.playlist.createdAt
+                            else -> null
                         }
+                    }
 
-                    MixSortType.NAME ->
-                        nonPinnedItems.sortedWith(
-                            compareBy(collator) { item ->
-                                when (item) {
-                                    is Album -> item.album.title
-                                    is Artist -> item.artist.name
-                                    is Playlist -> item.playlist.name
-                                    else -> ""
-                                }
-                            },
-                        )
-
-                    MixSortType.LAST_UPDATED ->
-                        nonPinnedItems.sortedBy { item ->
+                MixSortType.NAME ->
+                    combinedItems.sortedWith(
+                        compareBy(collator) { item ->
                             when (item) {
-                                is Album -> item.album.lastUpdateTime
-                                is Artist -> item.artist.lastUpdateTime
-                                is Playlist -> item.playlist.lastUpdateTime
-                                else -> null
+                                is Album -> item.album.title
+                                is Artist -> item.artist.name
+                                is Playlist -> item.playlist.name
+                                else -> ""
                             }
-                        }
-                }.let { list ->
-                    if (sortDescending) list.asReversed() else list
-                }
+                        },
+                    )
 
-            sortedPinned + sortedNonPinned
+                MixSortType.LAST_UPDATED ->
+                    combinedItems.sortedBy { item ->
+                        when (item) {
+                            is Album -> item.album.lastUpdateTime
+                            is Artist -> item.artist.lastUpdateTime
+                            is Playlist -> item.playlist.lastUpdateTime
+                            else -> null
+                        }
+                    }
+            }.let { list ->
+                if (sortDescending) list.asReversed() else list
+            }
         }
 
     val backStackEntry by navController.currentBackStackEntryAsState()

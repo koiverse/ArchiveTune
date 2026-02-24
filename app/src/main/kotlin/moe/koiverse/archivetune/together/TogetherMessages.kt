@@ -24,7 +24,6 @@ data class ClientHello(
     val sessionKey: String,
     val clientId: String,
     val displayName: String,
-    val packageName: String? = null,
 ) : TogetherMessage
 
 @Serializable
@@ -193,6 +192,13 @@ sealed interface ControlAction {
     @SerialName("seek_to_index")
     data class SeekToIndex(
         val index: Int,
+        val positionMs: Long = 0L,
+    ) : ControlAction
+
+    @Serializable
+    @SerialName("seek_to_track")
+    data class SeekToTrack(
+        val trackId: String,
         val positionMs: Long = 0L,
     ) : ControlAction
 

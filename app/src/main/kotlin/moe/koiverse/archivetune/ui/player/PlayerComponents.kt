@@ -517,6 +517,106 @@ fun PlayerTopActions(
                 )
             }
         }
+
+        PlayerDesignStyle.V6 -> {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Surface(
+                    onClick = {
+                        val intent = Intent().apply {
+                            action = Intent.ACTION_SEND
+                            type = "text/plain"
+                            putExtra(
+                                Intent.EXTRA_TEXT,
+                                "https://music.youtube.com/watch?v=${mediaMetadata.id}"
+                            )
+                        }
+                        context.startActivity(Intent.createChooser(intent, null))
+                    },
+                    shape = RoundedCornerShape(
+                        topStart = 50.dp, bottomStart = 50.dp,
+                        topEnd = 6.dp, bottomEnd = 6.dp
+                    ),
+                    color = textBackgroundColor.copy(alpha = 0.12f),
+                    modifier = Modifier
+                        .height(42.dp)
+                        .width(42.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                        Icon(
+                            painter = painterResource(R.drawable.share),
+                            contentDescription = null,
+                            tint = textBackgroundColor,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
+
+                Surface(
+                    onClick = { playerConnection.toggleLike() },
+                    shape = RoundedCornerShape(50),
+                    color = if (currentSongLiked)
+                        MaterialTheme.colorScheme.error.copy(alpha = 0.18f)
+                    else textBackgroundColor.copy(alpha = 0.12f),
+                    modifier = Modifier
+                        .height(42.dp)
+                        .width(42.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                        Icon(
+                            painter = painterResource(
+                                if (currentSongLiked) R.drawable.favorite
+                                else R.drawable.favorite_border
+                            ),
+                            contentDescription = null,
+                            tint = if (currentSongLiked)
+                                MaterialTheme.colorScheme.error
+                            else textBackgroundColor,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
+
+                Surface(
+                    onClick = {
+                        menuState.show {
+                            PlayerMenu(
+                                mediaMetadata = mediaMetadata,
+                                navController = navController,
+                                playerBottomSheetState = state,
+                                onShowDetailsDialog = {
+                                    mediaMetadata.id.let {
+                                        bottomSheetPageState.show {
+                                            ShowMediaInfo(it)
+                                        }
+                                    }
+                                },
+                                onDismiss = menuState::dismiss,
+                            )
+                        }
+                    },
+                    shape = RoundedCornerShape(
+                        topStart = 6.dp, bottomStart = 6.dp,
+                        topEnd = 50.dp, bottomEnd = 50.dp
+                    ),
+                    color = textBackgroundColor.copy(alpha = 0.12f),
+                    modifier = Modifier
+                        .height(42.dp)
+                        .width(42.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                        Icon(
+                            painter = painterResource(R.drawable.more_horiz),
+                            contentDescription = null,
+                            tint = textBackgroundColor,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -532,48 +632,106 @@ fun PlayerSlider(
     onValueChange: (Long) -> Unit,
     onValueChangeFinished: () -> Unit
 ) {
+    StyledPlaybackSlider(
+        sliderStyle = sliderStyle,
+        value = (sliderPosition ?: position).toFloat(),
+        valueRange = 0f..(if (duration == C.TIME_UNSET) 0f else duration.toFloat()),
+        onValueChange = { onValueChange(it.toLong()) },
+        onValueChangeFinished = onValueChangeFinished,
+        activeColor = textButtonColor,
+        isPlaying = isPlaying,
+        modifier = Modifier.padding(horizontal = PlayerHorizontalPadding)
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun StyledPlaybackSlider(
+    sliderStyle: SliderStyle,
+    value: Float,
+    valueRange: ClosedFloatingPointRange<Float>,
+    onValueChange: (Float) -> Unit,
+    onValueChangeFinished: () -> Unit,
+    activeColor: Color,
+    isPlaying: Boolean,
+    modifier: Modifier = Modifier
+) {
     when (sliderStyle) {
-        SliderStyle.DEFAULT -> {
+        SliderStyle.Standard -> {
             Slider(
-                value = (sliderPosition ?: position).toFloat(),
-                valueRange = 0f..(if (duration == C.TIME_UNSET) 0f else duration.toFloat()),
-                onValueChange = { onValueChange(it.toLong()) },
+                value = value,
+                valueRange = valueRange,
+                onValueChange = onValueChange,
                 onValueChangeFinished = onValueChangeFinished,
-                colors = PlayerSliderColors.defaultSliderColors(textButtonColor),
-                modifier = Modifier.padding(horizontal = PlayerHorizontalPadding),
+                colors = PlayerSliderColors.standardSliderColors(activeColor),
+                modifier = modifier
             )
         }
 
-        SliderStyle.SQUIGGLY -> {
+        SliderStyle.Wavy -> {
             SquigglySlider(
-                value = (sliderPosition ?: position).toFloat(),
-                valueRange = 0f..(if (duration == C.TIME_UNSET) 0f else duration.toFloat()),
-                onValueChange = { onValueChange(it.toLong()) },
+                value = value,
+                valueRange = valueRange,
+                onValueChange = onValueChange,
                 onValueChangeFinished = onValueChangeFinished,
-                colors = PlayerSliderColors.squigglySliderColors(textButtonColor),
-                modifier = Modifier.padding(horizontal = PlayerHorizontalPadding),
-                squigglesSpec =
-                SquigglySlider.SquigglesSpec(
-                    amplitude = if (isPlaying) (2.dp).coerceAtLeast(2.dp) else 0.dp,
-                    strokeWidth = 3.dp,
-                ),
+                colors = PlayerSliderColors.wavySliderColors(activeColor),
+                modifier = modifier,
+                squigglesSpec = SquigglySlider.SquigglesSpec(
+                    amplitude = if (isPlaying) 2.dp else 0.dp,
+                    strokeWidth = 3.dp
+                )
             )
         }
 
-        SliderStyle.SLIM -> {
+        SliderStyle.Thick -> {
             Slider(
-                value = (sliderPosition ?: position).toFloat(),
-                valueRange = 0f..(if (duration == C.TIME_UNSET) 0f else duration.toFloat()),
-                onValueChange = { onValueChange(it.toLong()) },
+                value = value,
+                valueRange = valueRange,
+                onValueChange = onValueChange,
                 onValueChangeFinished = onValueChangeFinished,
+                colors = PlayerSliderColors.thickSliderColors(activeColor),
+                track = { sliderState ->
+                    PlayerSliderTrack(
+                        sliderState = sliderState,
+                        colors = PlayerSliderColors.thickSliderColors(activeColor),
+                        trackHeight = 12.dp
+                    )
+                },
+                modifier = modifier
+            )
+        }
+
+        SliderStyle.Circular -> {
+            SquigglySlider(
+                value = value,
+                valueRange = valueRange,
+                onValueChange = onValueChange,
+                onValueChangeFinished = onValueChangeFinished,
+                colors = PlayerSliderColors.circularSliderColors(activeColor),
+                modifier = modifier,
+                squigglesSpec = SquigglySlider.SquigglesSpec(
+                    amplitude = if (isPlaying) 2.dp else 0.dp,
+                    strokeWidth = 3.dp
+                )
+            )
+        }
+
+        SliderStyle.Simple -> {
+            Slider(
+                value = value,
+                valueRange = valueRange,
+                onValueChange = onValueChange,
+                onValueChangeFinished = onValueChangeFinished,
+                colors = PlayerSliderColors.simpleSliderColors(activeColor),
                 thumb = { Spacer(modifier = Modifier.size(0.dp)) },
                 track = { sliderState ->
                     PlayerSliderTrack(
                         sliderState = sliderState,
-                        colors = PlayerSliderColors.slimSliderColors(textButtonColor)
+                        colors = PlayerSliderColors.simpleSliderColors(activeColor),
+                        trackHeight = 3.dp
                     )
                 },
-                modifier = Modifier.padding(horizontal = PlayerHorizontalPadding)
+                modifier = modifier
             )
         }
     }
@@ -954,7 +1112,7 @@ fun PlayerPlaybackControls(
                             }
                         },
                         shape = RoundedCornerShape(28.dp),
-                        color = textBackgroundColor,
+                        color = textButtonColor,
                         modifier = Modifier
                             .padding(horizontal = 20.dp)
                             .size(88.dp)
@@ -1161,6 +1319,191 @@ fun PlayerPlaybackControls(
                             .align(Alignment.Center),
                         onClick = playerConnection::toggleLike,
                     )
+                }
+            }
+        }
+
+        PlayerDesignStyle.V6 -> {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = PlayerHorizontalPadding)
+            ) {
+                Surface(
+                    shape = RoundedCornerShape(28.dp),
+                    color = textBackgroundColor.copy(alpha = 0.08f),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(6.dp),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Surface(
+                            onClick = { playerConnection.seekToPrevious() },
+                            enabled = canSkipPrevious,
+                            shape = RoundedCornerShape(
+                                topStart = 22.dp, bottomStart = 22.dp,
+                                topEnd = 8.dp, bottomEnd = 8.dp
+                            ),
+                            color = MaterialTheme.colorScheme.secondaryContainer,
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(56.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    painter = painterResource(R.drawable.skip_previous),
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSecondaryContainer.copy(
+                                        alpha = if (canSkipPrevious) 1f else 0.4f
+                                    ),
+                                    modifier = Modifier.size(28.dp)
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.width(6.dp))
+
+                        Surface(
+                            onClick = {
+                                if (playbackState == STATE_ENDED) {
+                                    playerConnection.player.seekTo(0, 0)
+                                    playerConnection.player.playWhenReady = true
+                                } else {
+                                    playerConnection.player.togglePlayPause()
+                                }
+                            },
+                            shape = RoundedCornerShape(28.dp),
+                            color = textButtonColor,
+                            modifier = Modifier
+                                .size(width = 88.dp, height = 80.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                if (isLoading) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(40.dp),
+                                        color = iconButtonColor,
+                                        strokeWidth = 3.dp
+                                    )
+                                } else {
+                                    Icon(
+                                        painter = painterResource(
+                                            when {
+                                                playbackState == STATE_ENDED -> R.drawable.replay
+                                                isPlaying -> R.drawable.pause
+                                                else -> R.drawable.play
+                                            }
+                                        ),
+                                        contentDescription = null,
+                                        tint = iconButtonColor,
+                                        modifier = Modifier.size(44.dp)
+                                    )
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.width(6.dp))
+
+                        Surface(
+                            onClick = { playerConnection.seekToNext() },
+                            enabled = canSkipNext,
+                            shape = RoundedCornerShape(
+                                topStart = 8.dp, bottomStart = 8.dp,
+                                topEnd = 22.dp, bottomEnd = 22.dp
+                            ),
+                            color = MaterialTheme.colorScheme.secondaryContainer,
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(56.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    painter = painterResource(R.drawable.skip_next),
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSecondaryContainer.copy(
+                                        alpha = if (canSkipNext) 1f else 0.4f
+                                    ),
+                                    modifier = Modifier.size(28.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Row(
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Surface(
+                        onClick = {
+                            playerConnection.player.shuffleModeEnabled = !shuffleModeEnabled
+                        },
+                        shape = RoundedCornerShape(50),
+                        color = if (shuffleModeEnabled)
+                            MaterialTheme.colorScheme.tertiaryContainer
+                        else textBackgroundColor.copy(alpha = 0.08f),
+                        modifier = Modifier.size(40.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                painter = painterResource(R.drawable.shuffle),
+                                contentDescription = null,
+                                tint = if (shuffleModeEnabled)
+                                    MaterialTheme.colorScheme.onTertiaryContainer
+                                else textBackgroundColor.copy(alpha = 0.5f),
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.width(16.dp))
+
+                    Surface(
+                        onClick = { playerConnection.player.toggleRepeatMode() },
+                        shape = RoundedCornerShape(50),
+                        color = if (repeatMode != Player.REPEAT_MODE_OFF)
+                            MaterialTheme.colorScheme.tertiaryContainer
+                        else textBackgroundColor.copy(alpha = 0.08f),
+                        modifier = Modifier.size(40.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                painter = painterResource(
+                                    when (repeatMode) {
+                                        Player.REPEAT_MODE_ONE -> R.drawable.repeat_one
+                                        else -> R.drawable.repeat
+                                    }
+                                ),
+                                contentDescription = null,
+                                tint = if (repeatMode != Player.REPEAT_MODE_OFF)
+                                    MaterialTheme.colorScheme.onTertiaryContainer
+                                else textBackgroundColor.copy(alpha = 0.5f),
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -1617,6 +1960,7 @@ fun PlayerBackground(
                         }
 
                         fun oscillate(min: Float, max: Float, phase: Float, speed: Float = 1f): Float {
+                            // speed MUST be an integer to ensure seamless looping when progress wraps from 1f to 0f.
                             val v = kotlin.math.sin(2f * kotlin.math.PI.toFloat() * (progress * speed + phase)).toFloat()
                             return min + (max - min) * ((v + 1f) * 0.5f)
                         }
@@ -1629,28 +1973,28 @@ fun PlayerBackground(
                         val color6 = rotatedColorAt(5)
 
                         val o1x = oscillate(0.0f, 1.0f, 0.00f, 1.0f)
-                        val o1y = oscillate(0.0f, 0.5f, 0.07f, 1.1f)
-                        val r1 = oscillate(0.8f, 1.6f, 0.12f, 0.95f)
+                        val o1y = oscillate(0.0f, 0.5f, 0.07f, 1.0f)
+                        val r1 = oscillate(0.8f, 1.6f, 0.12f, 1.0f)
 
-                        val o2x = oscillate(1.0f, 0.0f, 0.2f, 1.05f)
-                        val o2y = oscillate(0.5f, 1.0f, 0.25f, 0.9f)
-                        val r2 = oscillate(0.7f, 1.5f, 0.18f, 1.02f)
+                        val o2x = oscillate(1.0f, 0.0f, 0.2f, 1.0f)
+                        val o2y = oscillate(0.5f, 1.0f, 0.25f, 1.0f)
+                        val r2 = oscillate(0.7f, 1.5f, 0.18f, 1.0f)
 
-                        val o3x = oscillate(0.2f, 0.8f, 0.33f, 0.98f)
-                        val o3y = oscillate(0.8f, 0.2f, 0.36f, 1.01f)
-                        val r3 = oscillate(0.6f, 1.4f, 0.29f, 0.97f)
+                        val o3x = oscillate(0.2f, 0.8f, 0.33f, 1.0f)
+                        val o3y = oscillate(0.8f, 0.2f, 0.36f, 1.0f)
+                        val r3 = oscillate(0.6f, 1.4f, 0.29f, 1.0f)
 
-                        val o4x = oscillate(0.3f, 0.7f, 0.44f, 1.03f)
-                        val o4y = oscillate(0.2f, 0.8f, 0.41f, 0.99f)
+                        val o4x = oscillate(0.3f, 0.7f, 0.44f, 1.0f)
+                        val o4y = oscillate(0.2f, 0.8f, 0.41f, 1.0f)
                         val r4 = oscillate(0.9f, 1.7f, 0.47f, 1.0f)
 
-                        val o5x = oscillate(0.4f, 0.6f, 0.55f, 0.95f)
-                        val o5y = oscillate(0.0f, 1.0f, 0.51f, 1.04f)
-                        val r5 = oscillate(0.7f, 1.5f, 0.58f, 1.06f)
+                        val o5x = oscillate(0.4f, 0.6f, 0.55f, 1.0f)
+                        val o5y = oscillate(0.0f, 1.0f, 0.51f, 1.0f)
+                        val r5 = oscillate(0.7f, 1.5f, 0.58f, 1.0f)
 
-                        val o6x = oscillate(0.0f, 1.0f, 0.66f, 1.08f)
-                        val o6y = oscillate(0.5f, 0.7f, 0.62f, 0.96f)
-                        val r6 = oscillate(0.8f, 1.8f, 0.69f, 1.01f)
+                        val o6x = oscillate(0.0f, 1.0f, 0.66f, 1.0f)
+                        val o6y = oscillate(0.5f, 0.7f, 0.62f, 1.0f)
+                        val r6 = oscillate(0.8f, 1.8f, 0.69f, 1.0f)
 
                         Box(
                             modifier = Modifier

@@ -96,11 +96,13 @@ import moe.koiverse.archivetune.constants.PlayerHorizontalPadding
 import moe.koiverse.archivetune.constants.SeekExtraSeconds
 import moe.koiverse.archivetune.constants.SwipeThumbnailKey
 import moe.koiverse.archivetune.constants.ArchiveTuneCanvasKey
+import moe.koiverse.archivetune.constants.MaxCanvasCacheSizeKey
 import moe.koiverse.archivetune.constants.ThumbnailCornerRadiusKey
 import moe.koiverse.archivetune.constants.CropThumbnailToSquareKey
 import moe.koiverse.archivetune.constants.HidePlayerThumbnailKey
 import moe.koiverse.archivetune.extensions.metadata
 import moe.koiverse.archivetune.innertube.YouTube
+import moe.koiverse.archivetune.innertube.models.YouTubeClient
 import moe.koiverse.archivetune.utils.rememberEnumPreference
 import moe.koiverse.archivetune.utils.rememberPreference
 import kotlinx.coroutines.Dispatchers
@@ -108,10 +110,64 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
+import java.util.LinkedHashMap
 import java.util.Locale
 import kotlin.math.abs
 import android.view.ViewGroup.LayoutParams.MATCH_PARENT
 import androidx.compose.ui.viewinterop.AndroidView
+
+object CanvasArtworkPlaybackCache {
+    private const val defaultMaxSize = 256
+    private val map = LinkedHashMap<String, CanvasArtwork>(defaultMaxSize, 0.75f, true)
+    @Volatile private var maxSize = defaultMaxSize
+
+    @Synchronized
+    fun get(mediaId: String): CanvasArtwork? {
+        if (maxSize <= 0) return null
+        return map[mediaId]
+    }
+
+    @Synchronized
+    fun put(mediaId: String, artwork: CanvasArtwork) {
+        val limit = maxSize
+        if (limit <= 0) return
+        if (mediaId.isBlank()) return
+        map[mediaId] = artwork
+        while (map.size > limit) {
+            val it = map.entries.iterator()
+            if (it.hasNext()) {
+                it.next()
+                it.remove()
+            }
+        }
+    }
+
+    @Synchronized
+    fun size(): Int = map.size
+
+    @Synchronized
+    fun clear() {
+        map.clear()
+    }
+
+    @Synchronized
+    fun setMaxSize(value: Int) {
+        maxSize = value.coerceAtLeast(0)
+        if (maxSize == 0) {
+            map.clear()
+            return
+        }
+        while (map.size > maxSize) {
+            val it = map.entries.iterator()
+            if (it.hasNext()) {
+                it.next()
+                it.remove()
+            } else {
+                break
+            }
+        }
+    }
+}
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -134,6 +190,10 @@ fun Thumbnail(
     val swipeThumbnail by rememberPreference(SwipeThumbnailKey, true)
     val hidePlayerThumbnail by rememberPreference(HidePlayerThumbnailKey, false)
     val archiveTuneCanvasEnabled by rememberPreference(ArchiveTuneCanvasKey, false)
+    val (maxCanvasCacheSize, _) = rememberPreference(
+        key = MaxCanvasCacheSizeKey,
+        defaultValue = 256,
+    )
     val (thumbnailCornerRadius, _) = rememberPreference(
         key = ThumbnailCornerRadiusKey,
         defaultValue = 16f
@@ -157,6 +217,10 @@ fun Thumbnail(
         PlayerBackgroundStyle.GLOW -> Color.White
         PlayerBackgroundStyle.GLOW_ANIMATED -> Color.White
         PlayerBackgroundStyle.CUSTOM -> Color.White
+    }
+
+    LaunchedEffect(maxCanvasCacheSize) {
+        CanvasArtworkPlaybackCache.setMaxSize(maxCanvasCacheSize)
     }
     
     // Grid state
@@ -361,6 +425,13 @@ fun Thumbnail(
                             LaunchedEffect(shouldAnimateCanvas, item.mediaId) {
                                 if (!shouldAnimateCanvas) return@LaunchedEffect
 
+                                CanvasArtworkPlaybackCache.get(item.mediaId)?.let { cached ->
+                                    canvasArtwork = cached
+                                    canvasFetchedAtMs = System.currentTimeMillis()
+                                    canvasFetchInFlight = false
+                                    return@LaunchedEffect
+                                }
+
                                 val songTitleRaw =
                                     itemMetadata?.title
                                         ?.takeIf { it.isNotBlank() }
@@ -403,6 +474,9 @@ fun Thumbnail(
                                     }
                                 canvasArtwork = fetched
                                 canvasFetchedAtMs = now
+                                if (fetched != null) {
+                                    CanvasArtworkPlaybackCache.put(item.mediaId, fetched)
+                                }
                                 canvasFetchInFlight = false
                             }
 
@@ -562,6 +636,46 @@ private fun CanvasArtworkPlayer(
             OkHttpClient
                 .Builder()
                 .proxy(YouTube.proxy)
+                .addInterceptor { chain ->
+                    val request = chain.request()
+                    val host = request.url.host
+                    val isYouTubeMediaHost =
+                        host.endsWith("googlevideo.com") ||
+                            host.endsWith("googleusercontent.com") ||
+                            host.endsWith("youtube.com") ||
+                            host.endsWith("youtube-nocookie.com") ||
+                            host.endsWith("ytimg.com")
+
+                    if (!isYouTubeMediaHost) return@addInterceptor chain.proceed(request)
+
+                    val clientParam = request.url.queryParameter("c")?.trim().orEmpty()
+                    val isWeb =
+                        clientParam.startsWith("WEB", ignoreCase = true) ||
+                            clientParam.startsWith("WEB_REMIX", ignoreCase = true) ||
+                            request.url.toString().contains("c=WEB", ignoreCase = true)
+
+                    val userAgent =
+                        when {
+                            clientParam.startsWith("WEB", ignoreCase = true) ||
+                                clientParam.startsWith("WEB_REMIX", ignoreCase = true) -> YouTubeClient.USER_AGENT_WEB
+
+                            clientParam.startsWith("IOS", ignoreCase = true) -> YouTubeClient.IOS.userAgent
+
+                            clientParam.startsWith("ANDROID_VR", ignoreCase = true) -> YouTubeClient.ANDROID_VR_NO_AUTH.userAgent
+
+                            clientParam.startsWith("ANDROID", ignoreCase = true) -> YouTubeClient.MOBILE.userAgent
+
+                            else -> YouTubeClient.USER_AGENT_WEB
+                        }
+
+                    val builder = request.newBuilder().header("User-Agent", userAgent)
+                    if (isWeb) {
+                        builder.header("Origin", YouTubeClient.ORIGIN_YOUTUBE_MUSIC)
+                        builder.header("Referer", YouTubeClient.REFERER_YOUTUBE_MUSIC)
+                    }
+
+                    chain.proceed(builder.build())
+                }
                 .build()
         }
     val mediaSourceFactory =

@@ -286,7 +286,6 @@ fun Queue(
                         textBackgroundColor = TextBackgroundColor,
                         sleepTimerEnabled = sleepTimerEnabled,
                         sleepTimerTimeLeft = sleepTimerTimeLeft,
-                        repeatMode = repeatMode,
                         onExpandQueue = { state.expandSoft() },
                         onSleepTimerClick = {
                             if (sleepTimerEnabled) {
@@ -296,7 +295,23 @@ fun Queue(
                             }
                         },
                         onShowLyrics = onShowLyrics,
-                        onRepeatModeClick = { playerConnection.player.toggleRepeatMode() }
+                        onMenuClick = {
+                            menuState.show {
+                                PlayerMenu(
+                                    mediaMetadata = mediaMetadata,
+                                    navController = navController,
+                                    playerBottomSheetState = playerBottomSheetState,
+                                    onShowDetailsDialog = {
+                                        mediaMetadata?.id?.let {
+                                            bottomSheetPageState.show {
+                                                ShowMediaInfo(it)
+                                            }
+                                        }
+                                    },
+                                    onDismiss = menuState::dismiss
+                                )
+                            }
+                        }
                     )
                 }
 
@@ -307,30 +322,6 @@ fun Queue(
                         textBackgroundColor = TextBackgroundColor,
                         sleepTimerEnabled = sleepTimerEnabled,
                         sleepTimerTimeLeft = sleepTimerTimeLeft,
-                        repeatMode = repeatMode,
-                        onExpandQueue = { state.expandSoft() },
-                        onSleepTimerClick = {
-                            if (sleepTimerEnabled) {
-                                playerConnection.service.sleepTimer.clear()
-                            } else {
-                                showSleepTimerDialog = true
-                            }
-                        },
-                        onShowLyrics = onShowLyrics,
-                        onRepeatModeClick = { playerConnection.player.toggleRepeatMode() }
-                    )
-                }
-                
-                PlayerDesignStyle.V4 -> {
-                    QueueCollapsedContentV4(
-                        showCodecOnPlayer = showCodecOnPlayer,
-                        currentFormat = currentFormat,
-                        textBackgroundColor = TextBackgroundColor,
-                        textButtonColor = textButtonColor,
-                        iconButtonColor = iconButtonColor,
-                        sleepTimerEnabled = sleepTimerEnabled,
-                        sleepTimerTimeLeft = sleepTimerTimeLeft,
-                        mediaMetadata = mediaMetadata,
                         onExpandQueue = { state.expandSoft() },
                         onSleepTimerClick = {
                             if (sleepTimerEnabled) {
@@ -360,6 +351,28 @@ fun Queue(
                     )
                 }
                 
+                PlayerDesignStyle.V4 -> {
+                    QueueCollapsedContentV4(
+                        showCodecOnPlayer = showCodecOnPlayer,
+                        currentFormat = currentFormat,
+                        textBackgroundColor = TextBackgroundColor,
+                        textButtonColor = textButtonColor,
+                        iconButtonColor = iconButtonColor,
+                        sleepTimerEnabled = sleepTimerEnabled,
+                        sleepTimerTimeLeft = sleepTimerTimeLeft,
+                        mediaMetadata = mediaMetadata,
+                        onExpandQueue = { state.expandSoft() },
+                        onSleepTimerClick = {
+                            if (sleepTimerEnabled) {
+                                playerConnection.service.sleepTimer.clear()
+                            } else {
+                                showSleepTimerDialog = true
+                            }
+                        },
+                        onShowLyrics = onShowLyrics
+                    )
+                }
+                
                 PlayerDesignStyle.V1 -> {
                     QueueCollapsedContentV1(
                         showCodecOnPlayer = showCodecOnPlayer,
@@ -367,6 +380,28 @@ fun Queue(
                         textBackgroundColor = TextBackgroundColor,
                         sleepTimerEnabled = sleepTimerEnabled,
                         sleepTimerTimeLeft = sleepTimerTimeLeft,
+                        onExpandQueue = { state.expandSoft() },
+                        onSleepTimerClick = {
+                            if (sleepTimerEnabled) {
+                                playerConnection.service.sleepTimer.clear()
+                            } else {
+                                showSleepTimerDialog = true
+                            }
+                        },
+                        onShowLyrics = onShowLyrics
+                    )
+                }
+
+                PlayerDesignStyle.V6 -> {
+                    QueueCollapsedContentV4(
+                        showCodecOnPlayer = showCodecOnPlayer,
+                        currentFormat = currentFormat,
+                        textBackgroundColor = TextBackgroundColor,
+                        textButtonColor = textButtonColor,
+                        iconButtonColor = iconButtonColor,
+                        sleepTimerEnabled = sleepTimerEnabled,
+                        sleepTimerTimeLeft = sleepTimerTimeLeft,
+                        mediaMetadata = mediaMetadata,
                         onExpandQueue = { state.expandSoft() },
                         onSleepTimerClick = {
                             if (sleepTimerEnabled) {
@@ -729,11 +764,34 @@ fun Queue(
                                                     if (index == currentWindowIndex) {
                                                         playerConnection.player.togglePlayPause()
                                                     } else {
-                                                        playerConnection.player.seekToDefaultPosition(
-                                                            window.firstPeriodIndex,
-                                                        )
-                                                        playerConnection.player.playWhenReady = true
-                                                        shouldScrollToCurrent = false
+                                                        val joined =
+                                                            togetherSessionState as? moe.koiverse.archivetune.together.TogetherSessionState.Joined
+                                                        val isGuest = joined?.role is moe.koiverse.archivetune.together.TogetherRole.Guest
+                                                        if (isGuest) {
+                                                            if (joined?.roomState?.settings?.allowGuestsToControlPlayback != true) {
+                                                                Toast.makeText(context, R.string.not_allowed, Toast.LENGTH_SHORT).show()
+                                                                return@combinedClickable
+                                                            }
+                                                            val trackId =
+                                                                window.mediaItem.metadata?.id?.trim().orEmpty().ifBlank {
+                                                                    window.mediaItem.mediaId.trim()
+                                                                }
+                                                            if (trackId.isBlank()) return@combinedClickable
+                                                            Toast.makeText(context, R.string.together_requesting_song_change, Toast.LENGTH_SHORT).show()
+                                                            playerConnection.service.requestTogetherControl(
+                                                                moe.koiverse.archivetune.together.ControlAction.SeekToTrack(
+                                                                    trackId = trackId,
+                                                                    positionMs = 0L,
+                                                                ),
+                                                            )
+                                                            shouldScrollToCurrent = false
+                                                        } else {
+                                                            playerConnection.player.seekToDefaultPosition(
+                                                                window.firstPeriodIndex,
+                                                            )
+                                                            playerConnection.player.playWhenReady = true
+                                                            shouldScrollToCurrent = false
+                                                        }
                                                     }
                                                 }
                                             },

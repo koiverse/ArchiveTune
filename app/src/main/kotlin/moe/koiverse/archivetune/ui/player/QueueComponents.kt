@@ -684,11 +684,10 @@ fun QueueCollapsedContentV3(
     textBackgroundColor: Color,
     sleepTimerEnabled: Boolean,
     sleepTimerTimeLeft: Long,
-    repeatMode: Int,
     onExpandQueue: () -> Unit,
     onSleepTimerClick: () -> Unit,
     onShowLyrics: () -> Unit,
-    onRepeatModeClick: () -> Unit,
+    onMenuClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
@@ -800,26 +799,18 @@ fun QueueCollapsedContentV3(
                 }
             }
 
-            // Repeat mode button
+            // Menu button
             Box(
                 modifier = Modifier
                     .size(36.dp)
                     .clip(RoundedCornerShape(8.dp))
-                    .clickable { onRepeatModeClick() },
+                    .clickable { onMenuClick() },
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    painter = painterResource(
-                        id = when (repeatMode) {
-                            Player.REPEAT_MODE_OFF, Player.REPEAT_MODE_ALL -> R.drawable.repeat
-                            Player.REPEAT_MODE_ONE -> R.drawable.repeat_one
-                            else -> R.drawable.repeat
-                        }
-                    ),
+                    painter = painterResource(id = R.drawable.more_vert),
                     contentDescription = null,
-                    modifier = Modifier
-                        .size(18.dp)
-                        .alpha(if (repeatMode == Player.REPEAT_MODE_OFF) 0.5f else 1f),
+                    modifier = Modifier.size(18.dp),
                     tint = textBackgroundColor.copy(alpha = 0.7f)
                 )
             }
@@ -985,7 +976,6 @@ fun QueueCollapsedContentV4(
     onExpandQueue: () -> Unit,
     onSleepTimerClick: () -> Unit,
     onShowLyrics: () -> Unit,
-    onMenuClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
@@ -1122,25 +1112,6 @@ fun QueueCollapsedContentV4(
                         maxLines = 1
                     )
                 }
-            }
-
-            Spacer(modifier = Modifier.width(10.dp))
-
-            // Menu button (circle)
-            Box(
-                modifier = Modifier
-                    .size(buttonSize)
-                    .clip(CircleShape)
-                    .background(textButtonColor)
-                    .clickable { onMenuClick() },
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    painter = painterResource(id = R.drawable.more_vert),
-                    contentDescription = null,
-                    modifier = Modifier.size(iconSize),
-                    tint = iconButtonColor
-                )
             }
         }
     }

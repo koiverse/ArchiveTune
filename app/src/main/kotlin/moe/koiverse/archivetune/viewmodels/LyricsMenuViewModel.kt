@@ -8,7 +8,6 @@
 
 package moe.koiverse.archivetune.viewmodels
 
-import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import moe.koiverse.archivetune.db.MusicDatabase
@@ -20,7 +19,6 @@ import moe.koiverse.archivetune.utils.NetworkConnectivityObserver
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -84,18 +82,18 @@ constructor(
         job = null
     }
 
-    suspend fun refetchLyrics(
+    fun refetchLyrics(
         mediaMetadata: MediaMetadata,
         lyricsEntity: LyricsEntity?,
     ) {
-        val lyrics = withContext(Dispatchers.IO) {
-            lyricsHelper.getLyrics(mediaMetadata)
-        }
-
-        withContext(Dispatchers.IO) {
-            database.query {
-                lyricsEntity?.let(::delete)
-                upsert(LyricsEntity(mediaMetadata.id, lyrics))
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val lyrics = lyricsHelper.getLyrics(mediaMetadata)
+                database.query {
+                    lyricsEntity?.let(::delete)
+                    upsert(LyricsEntity(mediaMetadata.id, lyrics))
+                }
+            } catch (_: Exception) {
             }
         }
     }

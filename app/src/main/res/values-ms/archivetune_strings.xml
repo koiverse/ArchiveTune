@@ -58,8 +58,6 @@
     <string name="like_all">Suka semua</string>
     <string name="dislike_all">Tidak suka semua</string>
     <string name="sort_by_last_updated">Tarikh dimuat naik</string>
-    <string name="pin">Pin</string>
-    <string name="unpin">Nyahpin</string>
     <string name="link_copied">Pautan disalin ke clipboard</string>
     <string name="starting_radio">Memulakan radio</string>
     <string name="now_playing">Kini memainkan</string>

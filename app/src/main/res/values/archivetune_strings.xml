@@ -57,8 +57,6 @@
     <string name="like_all">Like all</string>
     <string name="dislike_all">Dislike all</string>
     <string name="sort_by_last_updated">Date updated</string>
-    <string name="pin">Pin</string>
-    <string name="unpin">Unpin</string>
     <string name="link_copied">Link copied to clipboard</string>
     <string name="starting_radio">Starting radio</string>
     <string name="now_playing">Now Playing</string>
@@ -97,6 +95,7 @@
     <string name="player_design_v3">Minimal</string>
     <string name="player_design_v4">Cinematic</string>
     <string name="player_design_v5">Little</string>
+    <string name="player_design_v6">Expressive</string>
     <string name="new_mini_player_design">New mini player design</string>
     <string name="player_background_blur">Blur</string>
     <string name="coloring">Coloring</string>
@@ -160,6 +159,11 @@
     <string name="clear_song_cache_dialog">  Are you sure you want to clear all cached songs?</string>
     <string name="clear_image_cache_dialog">  Are you sure you want to clear all cached image?</string>
     <string name="clear_downloads_dialog">  Are you sure you want to clear all downloads?</string>
+    <string name="canvas_cache">Canvas Cache</string>
+    <string name="canvas_cache_items">%d items</string>
+    <string name="canvas_cache_usage">%1$s / %2$s</string>
+    <string name="clear_canvas_cache">Clear canvas cache</string>
+    <string name="clear_canvas_cache_dialog">Are you sure you want to clear all cached canvas?</string>
     <string name="disable">Disable</string>
     <string name="pause_remote_listen_history">Pause share listen history with YouTube Music</string>
     <string name="not_logged_in_youtube">Not logged in to YouTube</string>
@@ -184,12 +188,17 @@
     <string name="subscribed">Subscribed</string>
     <string name="playlist_not_found">Playlist not found</string>
     <string name="playlist_not_found_desc">The requested playlist could not be loaded</string>
+    <string name="playlist_private_title">This playlist was private</string>
+    <string name="playlist_private_desc">You don\'t have access to this playlist.</string>
     <string name="empty_playlist">Empty Playlist</string>
     <string name="empty_playlist_desc">This playlist doesn\'t contain any songs</string>
     <plurals name="seconds">
         <item quantity="one">1 second</item>
         <item quantity="other">%d seconds</item>
     </plurals>
+    <string name="audio_crossfade_title">Crossfade</string>
+    <string name="audio_crossfade_description">Smoothly transition between songs by fading out the end of each track.</string>
+    <string name="audio_crossfade_dialog_title">Crossfade duration</string>
     <string name="disable_load_more_when_repeat_all">Disable load more when repeat all</string>
     <string name="disable_load_more_when_repeat_all_desc">Don\'t auto load more songs and similar content when repeat all mode is enabled</string>
     <string name="player_stream_client">Playback client</string>
@@ -198,6 +207,10 @@
     <string name="player_stream_client_android_vr_desc">Streams directly without signature decryption, providing maximum speed. Suitable for the majority of users.</string>
     <string name="player_stream_client_web_remix">Web Remix</string>
     <string name="player_stream_client_web_remix_desc">Extended format support at the cost of speed. JavaScript signature decryption introduces a ~5–10 second startup delay.</string>
+    <string name="player_stream_client_ios">iOS</string>
+    <string name="player_stream_client_ios_desc">Uses the iOS YouTube client. Most reliable against YouTube restrictions.</string>
+    <string name="player_stream_client_tvhtml5">TV HTML5</string>
+    <string name="player_stream_client_tvhtml5_desc">Uses the Smart TV YouTube client. Good fallback when other clients are blocked.</string>
     <string name="settings_section_ui">User Interface</string>
     <string name="settings_section_privacy">Privacy &amp; Security</string>
     <string name="settings_section_player">Player &amp; Media</string>

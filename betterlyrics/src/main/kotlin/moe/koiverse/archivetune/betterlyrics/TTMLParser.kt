@@ -20,7 +20,8 @@ object TTMLParser {
         val startTime: Double,
         val endTime: Double,
         val words: List<ParsedWord>,
-        val isBackground: Boolean = false
+        val isBackground: Boolean = false,
+        val agent: String? = null,
     )
     
     data class ParsedWord(
@@ -87,6 +88,16 @@ object TTMLParser {
                         dur.isNotEmpty() -> startTime + parseTime(dur, timingContext)
                         else -> startTime + 5.0
                     }
+                    
+                    // Parse agent attribute (ttm:agent or similar)
+                    val agent = pElement.getAttribute("ttm:agent").takeIf { it.isNotEmpty() }
+                        ?: pElement.attributes?.let { attrs ->
+                            (0 until attrs.length)
+                                .map { attrs.item(it) }
+                                .firstOrNull { it.nodeName.endsWith("agent", ignoreCase = true) }
+                                ?.nodeValue?.takeIf { it.isNotEmpty() }
+                        }
+                    
                     val words = mutableListOf<ParsedWord>()
                     val lineText = StringBuilder()
                     
@@ -96,25 +107,53 @@ object TTMLParser {
                     // If words list is empty but we have text, we need to generate fallback word timings
                     if (words.isEmpty() && lineText.isNotEmpty()) {
                         val directText = lineText.toString()
-                        
-                        // Clear lineText slightly redundant but safe since we append back effectively via logic below? 
-                        // Actually better to just use directText to generate words
-                        
-                        // Split line into words and interpolate timing
                         val isCjkText = isCjk(directText)
                         val splitWords = if (isCjkText) {
-                            directText.map { it.toString() }
+                            val chars = mutableListOf<String>()
+                            var currentWord = StringBuilder()
+                            directText.forEach { char ->
+                                if (char.isWhitespace()) {
+                                    if (currentWord.isNotEmpty()) {
+                                        chars.add(currentWord.toString())
+                                        currentWord.clear()
+                                    }
+                                    chars.add(char.toString())
+                                } else if (isCjk(char.toString())) {
+                                    if (currentWord.isNotEmpty()) {
+                                        chars.add(currentWord.toString())
+                                        currentWord.clear()
+                                    }
+                                    chars.add(char.toString())
+                                } else {
+                                    currentWord.append(char)
+                                }
+                            }
+                            if (currentWord.isNotEmpty()) {
+                                chars.add(currentWord.toString())
+                            }
+
+                            val groupedTokens = mutableListOf<String>()
+                            chars.forEach { c ->
+                                if (c.isBlank()) {
+                                    if (groupedTokens.isNotEmpty()) {
+                                        groupedTokens[groupedTokens.lastIndex] = groupedTokens.last() + c
+                                    }
+                                } else {
+                                    groupedTokens.add(c)
+                                }
+                            }
+                            groupedTokens
                         } else {
                             directText.split(Regex("\\s+"))
                         }
                         
                         val totalDuration = endTime - startTime
-                        val totalLength = if (isCjkText) splitWords.size.toDouble() else directText.length.toDouble()
+                        val totalLength = splitWords.sumOf { it.length }.toDouble()
                         
                         var currentWordStart = startTime
                         
                         splitWords.forEachIndexed { index, word ->
-                            val wordLen = if (isCjkText) 1.0 else word.length.toDouble()
+                            val wordLen = word.length.toDouble()
                             val wordDuration = if (totalLength > 0) {
                                 (wordLen / totalLength) * totalDuration
                             } else {
@@ -122,27 +161,16 @@ object TTMLParser {
                             }
                             
                             val wordEnd = currentWordStart + wordDuration
+                            val wordText = if (index < splitWords.size - 1 && !isCjkText) "$word " else word
                             
                             words.add(
                                 ParsedWord(
-                                    text = word,
+                                    text = wordText,
                                     startTime = currentWordStart,
                                     endTime = wordEnd,
                                     isBackground = false
                                 )
                             )
-                            
-                            // Add space token if not the last word AND NOT CJK
-                            if (index < splitWords.size - 1 && !isCjkText) {
-                                 words.add(
-                                     ParsedWord(
-                                         text = " ",
-                                         startTime = wordEnd,
-                                         endTime = wordEnd,
-                                         isBackground = false
-                                     )
-                                 )
-                            }
                             currentWordStart = wordEnd
                         }
                     } else if (lineText.isEmpty()) {
@@ -150,22 +178,54 @@ object TTMLParser {
                         val directText = getDirectTextContent(pElement).trim()
                         if (directText.isNotEmpty()) {
                             lineText.append(directText)
-                            // ... same logic again ...
+                            
                             val isCjkText = isCjk(directText)
-                            // ...
-                             val splitWords = if (isCjkText) {
-                                directText.map { it.toString() }
+                            val splitWords = if (isCjkText) {
+                                val chars = mutableListOf<String>()
+                                var currentWord = StringBuilder()
+                                directText.forEach { char ->
+                                    if (char.isWhitespace()) {
+                                        if (currentWord.isNotEmpty()) {
+                                            chars.add(currentWord.toString())
+                                            currentWord.clear()
+                                        }
+                                        chars.add(char.toString())
+                                    } else if (isCjk(char.toString())) {
+                                        if (currentWord.isNotEmpty()) {
+                                            chars.add(currentWord.toString())
+                                            currentWord.clear()
+                                        }
+                                        chars.add(char.toString())
+                                    } else {
+                                        currentWord.append(char)
+                                    }
+                                }
+                                if (currentWord.isNotEmpty()) {
+                                    chars.add(currentWord.toString())
+                                }
+
+                                val groupedTokens = mutableListOf<String>()
+                                chars.forEach { c ->
+                                    if (c.isBlank()) {
+                                        if (groupedTokens.isNotEmpty()) {
+                                            groupedTokens[groupedTokens.lastIndex] = groupedTokens.last() + c
+                                        }
+                                    } else {
+                                        groupedTokens.add(c)
+                                    }
+                                }
+                                groupedTokens
                             } else {
                                 directText.split(Regex("\\s+"))
                             }
                             
                             val totalDuration = endTime - startTime
-                            val totalLength = if (isCjkText) splitWords.size.toDouble() else directText.length.toDouble()
+                            val totalLength = splitWords.sumOf { it.length }.toDouble()
                             
                             var currentWordStart = startTime
                             
                             splitWords.forEachIndexed { index, word ->
-                                val wordLen = if (isCjkText) 1.0 else word.length.toDouble()
+                                val wordLen = word.length.toDouble()
                                 val wordDuration = if (totalLength > 0) {
                                     (wordLen / totalLength) * totalDuration
                                 } else {
@@ -173,27 +233,16 @@ object TTMLParser {
                                 }
                                 
                                 val wordEnd = currentWordStart + wordDuration
+                                val wordText = if (index < splitWords.size - 1 && !isCjkText) "$word " else word
                                 
                                 words.add(
                                     ParsedWord(
-                                        text = word,
+                                        text = wordText,
                                         startTime = currentWordStart,
                                         endTime = wordEnd,
                                         isBackground = false
                                     )
                                 )
-                                
-                                // Add space token if not the last word AND NOT CJK
-                                if (index < splitWords.size - 1 && !isCjkText) {
-                                     words.add(
-                                         ParsedWord(
-                                             text = " ",
-                                             startTime = wordEnd,
-                                             endTime = wordEnd,
-                                             isBackground = false
-                                         )
-                                     )
-                                }
                                 currentWordStart = wordEnd
                             }
                         }
@@ -206,7 +255,8 @@ object TTMLParser {
                                 startTime = startTime,
                                 endTime = endTime,
                                 words = words,
-                                isBackground = false
+                                isBackground = false,
+                                agent = agent,
                             )
                         )
                     }
@@ -232,6 +282,16 @@ object TTMLParser {
                         dur.isNotEmpty() -> startTime + parseTime(dur, timingContext)
                         else -> startTime + 5.0
                     }
+                    
+                    // Parse agent attribute
+                    val agent = pElement.getAttribute("ttm:agent").takeIf { it.isNotEmpty() }
+                        ?: pElement.attributes?.let { attrs ->
+                            (0 until attrs.length)
+                                .map { attrs.item(it) }
+                                .firstOrNull { it.nodeName.endsWith("agent", ignoreCase = true) }
+                                ?.nodeValue?.takeIf { it.isNotEmpty() }
+                        }
+                    
                     val words = mutableListOf<ParsedWord>()
                     val lineText = StringBuilder()
                     
@@ -242,18 +302,51 @@ object TTMLParser {
                         
                          val isCjkText = isCjk(directText)
                             val splitWords = if (isCjkText) {
-                                directText.map { it.toString() }
+                                val chars = mutableListOf<String>()
+                                var currentWord = StringBuilder()
+                                directText.forEach { char ->
+                                    if (char.isWhitespace()) {
+                                        if (currentWord.isNotEmpty()) {
+                                            chars.add(currentWord.toString())
+                                            currentWord.clear()
+                                        }
+                                        chars.add(char.toString())
+                                    } else if (isCjk(char.toString())) {
+                                        if (currentWord.isNotEmpty()) {
+                                            chars.add(currentWord.toString())
+                                            currentWord.clear()
+                                        }
+                                        chars.add(char.toString())
+                                    } else {
+                                        currentWord.append(char)
+                                    }
+                                }
+                                if (currentWord.isNotEmpty()) {
+                                    chars.add(currentWord.toString())
+                                }
+
+                                val groupedTokens = mutableListOf<String>()
+                                chars.forEach { c ->
+                                    if (c.isBlank()) {
+                                        if (groupedTokens.isNotEmpty()) {
+                                            groupedTokens[groupedTokens.lastIndex] = groupedTokens.last() + c
+                                        }
+                                    } else {
+                                        groupedTokens.add(c)
+                                    }
+                                }
+                                groupedTokens
                             } else {
                                 directText.split(Regex("\\s+"))
                             }
                             
                             val totalDuration = endTime - startTime
-                            val totalLength = if (isCjkText) splitWords.size.toDouble() else directText.length.toDouble()
+                            val totalLength = splitWords.sumOf { it.length }.toDouble()
                             
                             var currentWordStart = startTime
                             
                             splitWords.forEachIndexed { index, word ->
-                                val wordLen = if (isCjkText) 1.0 else word.length.toDouble()
+                                val wordLen = word.length.toDouble()
                                 val wordDuration = if (totalLength > 0) {
                                     (wordLen / totalLength) * totalDuration
                                 } else {
@@ -262,25 +355,16 @@ object TTMLParser {
                                 
                                 val wordEnd = currentWordStart + wordDuration
                                 
+                                val wordText = if (index < splitWords.size - 1 && !isCjkText) "$word " else word
+                                
                                 words.add(
                                     ParsedWord(
-                                        text = word,
+                                        text = wordText,
                                         startTime = currentWordStart,
                                         endTime = wordEnd,
                                         isBackground = false
                                     )
                                 )
-                                
-                                if (index < splitWords.size - 1 && !isCjkText) {
-                                     words.add(
-                                         ParsedWord(
-                                             text = " ",
-                                             startTime = wordEnd,
-                                             endTime = wordEnd,
-                                             isBackground = false
-                                         )
-                                     )
-                                }
                                 currentWordStart = wordEnd
                             }
                     } else if (lineText.isEmpty()) {
@@ -291,18 +375,51 @@ object TTMLParser {
                             // Split line into words and interpolate timing
                             val isCjkText = isCjk(directText)
                             val splitWords = if (isCjkText) {
-                                directText.map { it.toString() }
+                                val chars = mutableListOf<String>()
+                                var currentWord = StringBuilder()
+                                directText.forEach { char ->
+                                    if (char.isWhitespace()) {
+                                        if (currentWord.isNotEmpty()) {
+                                            chars.add(currentWord.toString())
+                                            currentWord.clear()
+                                        }
+                                        chars.add(char.toString())
+                                    } else if (isCjk(char.toString())) {
+                                        if (currentWord.isNotEmpty()) {
+                                            chars.add(currentWord.toString())
+                                            currentWord.clear()
+                                        }
+                                        chars.add(char.toString())
+                                    } else {
+                                        currentWord.append(char)
+                                    }
+                                }
+                                if (currentWord.isNotEmpty()) {
+                                    chars.add(currentWord.toString())
+                                }
+
+                                val groupedTokens = mutableListOf<String>()
+                                chars.forEach { c ->
+                                    if (c.isBlank()) {
+                                        if (groupedTokens.isNotEmpty()) {
+                                            groupedTokens[groupedTokens.lastIndex] = groupedTokens.last() + c
+                                        }
+                                    } else {
+                                        groupedTokens.add(c)
+                                    }
+                                }
+                                groupedTokens
                             } else {
                                 directText.split(Regex("\\s+"))
                             }
                             
                             val totalDuration = endTime - startTime
-                            val totalLength = if (isCjkText) splitWords.size.toDouble() else directText.length.toDouble()
+                            val totalLength = splitWords.sumOf { it.length }.toDouble()
                             
                             var currentWordStart = startTime
                             
                             splitWords.forEachIndexed { index, word ->
-                                val wordLen = if (isCjkText) 1.0 else word.length.toDouble()
+                                val wordLen = word.length.toDouble()
                                 val wordDuration = if (totalLength > 0) {
                                     (wordLen / totalLength) * totalDuration
                                 } else {
@@ -311,25 +428,16 @@ object TTMLParser {
                                 
                                 val wordEnd = currentWordStart + wordDuration
                                 
+                                val wordText = if (index < splitWords.size - 1 && !isCjkText) "$word " else word
+                                
                                 words.add(
                                     ParsedWord(
-                                        text = word,
+                                        text = wordText,
                                         startTime = currentWordStart,
                                         endTime = wordEnd,
                                         isBackground = false
                                     )
                                 )
-                                
-                                if (index < splitWords.size - 1 && !isCjkText) {
-                                     words.add(
-                                         ParsedWord(
-                                             text = " ",
-                                             startTime = wordEnd,
-                                             endTime = wordEnd,
-                                             isBackground = false
-                                         )
-                                     )
-                                }
                                 currentWordStart = wordEnd
                             }
                         }
@@ -342,7 +450,8 @@ object TTMLParser {
                                 startTime = startTime,
                                 endTime = endTime,
                                 words = words,
-                                isBackground = false
+                                isBackground = false,
+                                agent = agent,
                             )
                         )
                     }
@@ -378,8 +487,9 @@ object TTMLParser {
                 Node.ELEMENT_NODE -> {
                     val childElement = node as Element
                     if (childElement.tagName.endsWith("span", ignoreCase = true)) {
-                        // Check if this is a background vocal span
-                        val role = childElement.getAttribute("role")
+                        // Check if this is a background vocal span (handles role="" and ttm:role="")
+                        val role = childElement.getAttribute("role").takeIf { it.isNotEmpty() }
+                            ?: childElement.getAttribute("ttm:role")
                         val isBgSpan = role == "x-bg" || isBackground
                         
                         val wordBegin = childElement.getAttribute("begin")
@@ -394,17 +504,9 @@ object TTMLParser {
                         } else {
                             // This is a leaf span with text
                             val wordText = getDirectTextContent(childElement)
-                            
                             if (wordText.isNotEmpty()) {
-                                // Check if we should merge with the previous word
-                                // Merge if:
-                                // 1. There is a previous word
-                                // 2. No space separator in lineText (from TextNodes)
-                                // 3. Current word doesn't explicitly start with space
-                                val shouldMerge = words.isNotEmpty() &&
-                                        lineText.isNotEmpty() &&
-                                        !lineText.last().isWhitespace() &&
-                                        !wordText.startsWith(" ")
+                                // Check if this span visually continues the previous word without a space
+                                val isSyllableContinuation = words.isNotEmpty() && !words.last().text.endsWith(" ")
 
                                 lineText.append(wordText)
 
@@ -428,23 +530,28 @@ object TTMLParser {
                                     fallback = lineEndTime,
                                 ).coerceAtLeast(wordStartTime)
                                 
-                                if (shouldMerge) {
-                                    val lastWord = words.removeAt(words.lastIndex)
-                                    words.add(
-                                        lastWord.copy(
-                                            text = lastWord.text + wordText.trim(),
-                                            endTime = wordEndTime // Extend the word to end of this syllable
-                                        )
+                                val trimmedText = wordText.trim()
+                                val newWord = ParsedWord(
+                                    text = trimmedText,
+                                    startTime = wordStartTime,
+                                    endTime = wordEndTime,
+                                    isBackground = isBgSpan
+                                )
+                                
+                                val lastWord = words.lastOrNull()
+                                if (isSyllableContinuation && lastWord != null && 
+                                    !lastWord.text.endsWith(" ") && 
+                                    lastWord.isBackground == isBgSpan && 
+                                    !isCjk(lastWord.text.trim()) && !isCjk(trimmedText) &&
+                                    trimmedText.isNotEmpty()
+                                ) {
+                                    // Merge non-CJK syllables into a single animated word to prevent visual tearing
+                                    words[words.lastIndex] = lastWord.copy(
+                                        text = lastWord.text + trimmedText,
+                                        endTime = wordEndTime
                                     )
-                                } else {
-                                    words.add(
-                                        ParsedWord(
-                                            text = wordText.trim(),
-                                            startTime = wordStartTime,
-                                            endTime = wordEndTime,
-                                            isBackground = isBgSpan
-                                        )
-                                    )
+                                } else if (trimmedText.isNotEmpty()) {
+                                    words.add(newWord)
                                 }
                             }
                         }
@@ -452,24 +559,16 @@ object TTMLParser {
                 }
                 Node.TEXT_NODE -> {
                     val text = node.textContent
-                    // If text node is purely whitespace, treat as a single space
+                    // If text node is purely whitespace, treat as a single space indicator
                     // If it has content, append as is
                     if (text.isNotBlank()) {
                          lineText.append(text)
-                    } else if (text.isNotEmpty()) {
-                         // Collapse multiple whitespace chars (like indentation) to single space
-                         // Only add if not already ending in whitespace to avoid double spaces
-                         if (lineText.isNotEmpty() && !lineText.last().isWhitespace()) {
+                    } else if (text.isNotEmpty() && !text.contains('\n')) {
+                         // Collapse multiple whitespace chars to single space
+                         if (words.isNotEmpty() && !words.last().text.endsWith(" ")) {
                              lineText.append(" ")
-                             val lastWordEndTime = words.lastOrNull()?.endTime ?: lineStartTime
-                             words.add(
-                                 ParsedWord(
-                                     text = " ",
-                                     startTime = lastWordEndTime,
-                                     endTime = lastWordEndTime,
-                                     isBackground = isBackground
-                                 )
-                             )
+                             val lastWord = words.last()
+                             words[words.lastIndex] = lastWord.copy(text = lastWord.text + " ")
                          }
                     }
                 }

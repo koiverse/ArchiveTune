@@ -102,6 +102,8 @@ import androidx.compose.ui.zIndex
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil3.compose.AsyncImage
+import coil3.request.ImageRequest
+import coil3.request.allowHardware
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import moe.koiverse.archivetune.LocalPlayerAwareWindowInsets
@@ -1278,6 +1280,19 @@ private fun PremiumHeroStoryCard(
     }
 }
 
+@Composable
+private fun rememberShareSafeImageRequest(data: Any?): Any? {
+    val context = LocalContext.current
+    return remember(data, context) {
+        data?.let {
+            ImageRequest.Builder(context)
+                .data(it)
+                .allowHardware(false)
+                .build()
+        }
+    }
+}
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun PremiumTopSongStoryCard(
@@ -1285,13 +1300,15 @@ private fun PremiumTopSongStoryCard(
     onClick: () -> Unit,
     onLongClick: () -> Unit
 ) {
+    val imageModel = rememberShareSafeImageRequest(song.thumbnailUrl)
+
     Box(
         modifier = Modifier
             .fillMaxSize()
             .combinedClickable(onClick = onClick, onLongClick = onLongClick)
     ) {
         AsyncImage(
-            model = song.thumbnailUrl,
+            model = imageModel,
             contentDescription = null,
             contentScale = ContentScale.Crop,
             modifier = Modifier
@@ -1340,7 +1357,7 @@ private fun PremiumTopSongStoryCard(
             }
 
             AsyncImage(
-                model = song.thumbnailUrl,
+                model = imageModel,
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
@@ -1391,13 +1408,15 @@ private fun PremiumTopArtistStoryCard(
     onClick: () -> Unit,
     onLongClick: () -> Unit
 ) {
+    val imageModel = rememberShareSafeImageRequest(artist.artist.thumbnailUrl)
+
     Box(
         modifier = Modifier
             .fillMaxSize()
             .combinedClickable(onClick = onClick, onLongClick = onLongClick)
     ) {
         AsyncImage(
-            model = artist.artist.thumbnailUrl,
+            model = imageModel,
             contentDescription = null,
             contentScale = ContentScale.Crop,
             modifier = Modifier
@@ -1467,7 +1486,7 @@ private fun PremiumTopArtistStoryCard(
                     }
             ) {
                 AsyncImage(
-                    model = artist.artist.thumbnailUrl,
+                    model = imageModel,
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
@@ -1514,6 +1533,7 @@ private fun PremiumTopAlbumStoryCard(
     onClick: () -> Unit
 ) {
     val artistNames = album.artists.take(2).joinToString(" • ") { it.name }
+    val imageModel = rememberShareSafeImageRequest(album.thumbnailUrl)
 
     Box(
         modifier = Modifier
@@ -1521,7 +1541,7 @@ private fun PremiumTopAlbumStoryCard(
             .clickable(onClick = onClick)
     ) {
         AsyncImage(
-            model = album.thumbnailUrl,
+            model = imageModel,
             contentDescription = null,
             contentScale = ContentScale.Crop,
             modifier = Modifier
@@ -1570,7 +1590,7 @@ private fun PremiumTopAlbumStoryCard(
             }
 
             AsyncImage(
-                model = album.thumbnailUrl,
+                model = imageModel,
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier

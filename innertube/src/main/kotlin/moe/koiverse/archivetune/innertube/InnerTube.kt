@@ -51,6 +51,7 @@ class InnerTube {
     )
     var visitorData: String? = null
     var dataSyncId: String? = null
+    var poToken: String? = null
     var cookie: String? = null
         set(value) {
             field = value
@@ -178,6 +179,7 @@ class InnerTube {
         videoId: String,
         playlistId: String?,
         signatureTimestamp: Int?,
+        poToken: String? = null,
     ) = withRetry {
         httpClient.post("player") {
         ytClient(client, setLogin = true)
@@ -201,6 +203,9 @@ class InnerTube {
                         )
                     )
                 } else null,
+                serviceIntegrityDimensions = poToken?.let {
+                    PlayerBody.ServiceIntegrityDimensions(poToken = it)
+                },
             )
         )
         }

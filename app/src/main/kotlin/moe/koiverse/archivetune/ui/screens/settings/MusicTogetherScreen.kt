@@ -37,6 +37,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -79,6 +80,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -113,21 +115,16 @@ fun MusicTogetherScreen(
     val playerConnection = LocalPlayerConnection.current
 
     val (welcomeShown, setWelcomeShown) = rememberPreference(TogetherWelcomeShownKey, false)
-    var showWelcome by rememberSaveable { mutableStateOf(false) }
-
-    LaunchedEffect(welcomeShown) {
-        if (!welcomeShown) {
-            showWelcome = true
-        }
-    }
+    var welcomeDismissedThisSession by rememberSaveable { mutableStateOf(false) }
+    val showWelcome = !welcomeShown && !welcomeDismissedThisSession
 
     if (showWelcome) {
         WelcomeDialog(
             onGotIt = { dontShowAgain ->
-                showWelcome = false
+                welcomeDismissedThisSession = true
                 if (dontShowAgain) setWelcomeShown(true)
             },
-            onDismiss = { showWelcome = false },
+            onDismiss = { welcomeDismissedThisSession = true },
         )
     }
 
@@ -733,17 +730,20 @@ private fun WelcomeDialog(
                         Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(14.dp))
-                            .clickable(
+                            .toggleable(
+                                value = dontShowAgain,
+                                role = Role.Checkbox,
                                 interactionSource = remember { MutableInteractionSource() },
                                 indication = null,
-                            ) { dontShowAgain = !dontShowAgain }
+                                onValueChange = { dontShowAgain = it },
+                            )
                             .padding(horizontal = 4.dp, vertical = 2.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     Checkbox(
                         checked = dontShowAgain,
-                        onCheckedChange = { dontShowAgain = it },
+                        onCheckedChange = null,
                     )
                     Text(
                         text = stringResource(R.string.together_dont_show_again),

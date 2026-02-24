@@ -58,8 +58,6 @@
     <string name="like_all">إعجاب للكل</string>
     <string name="dislike_all">إلغاء الإعجاب بالكل</string>
     <string name="sort_by_last_updated">تاريخ التعديل</string>
-    <string name="pin">تثبيت</string>
-    <string name="unpin">إلغاء التثبيت</string>
     <string name="link_copied">تم نسخ الرابط الى الحافظة</string>
     <string name="starting_radio">جار تشغيل الراديو</string>
     <string name="now_playing">يتم التشغيل..</string>

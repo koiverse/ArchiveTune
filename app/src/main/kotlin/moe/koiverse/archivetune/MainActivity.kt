@@ -152,7 +152,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
+import moe.koiverse.archivetune.utils.PreferenceStore
 import kotlinx.coroutines.withContext
 import moe.koiverse.archivetune.constants.AppBarHeight
 import moe.koiverse.archivetune.constants.AppLanguageKey
@@ -222,6 +222,7 @@ import moe.koiverse.archivetune.utils.SyncUtils
 import moe.koiverse.archivetune.utils.Updater
 import moe.koiverse.archivetune.utils.dataStore
 import moe.koiverse.archivetune.utils.get
+import moe.koiverse.archivetune.utils.getAsync
 import moe.koiverse.archivetune.utils.rememberEnumPreference
 import moe.koiverse.archivetune.utils.rememberPreference
 import moe.koiverse.archivetune.utils.reportException
@@ -386,11 +387,14 @@ class MainActivity : ComponentActivity() {
             try { DiscordPresenceManager.stop() } catch (_: Exception) {}
         }
 
-        if (dataStore.get(
-                StopMusicOnTaskClearKey,
+        val shouldStopOnTaskClear =
+            if (!isFinishing) {
                 false
-            ) && playerConnection?.isPlaying?.value == true && isFinishing
-        ) {
+            } else {
+                dataStore.get(StopMusicOnTaskClearKey, false)
+            }
+
+        if (shouldStopOnTaskClear) {
             safeUnbindMusicService()
             stopService(Intent(this, MusicService::class.java))
             playerConnection = null
@@ -415,9 +419,7 @@ class MainActivity : ComponentActivity() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
 
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
-            val initialLocale = runBlocking(Dispatchers.IO) {
-                dataStore.data.first()[AppLanguageKey]
-            }
+            val initialLocale = PreferenceStore.get(AppLanguageKey)
                 ?.takeUnless { it == SYSTEM_DEFAULT }
                 ?.let { Locale.forLanguageTag(it) }
                 ?: Locale.getDefault()
@@ -1214,7 +1216,7 @@ class MainActivity : ComponentActivity() {
                                                     }
                                                     IconButton(onClick = { navController.navigate("new_release") }) {
                                                         Icon(
-                                                            painter = painterResource(R.drawable.notifications_unread),
+                                                            painter = painterResource(R.drawable.new_release),
                                                             contentDescription = stringResource(R.string.new_release_albums)
                                                         )
                                                     }

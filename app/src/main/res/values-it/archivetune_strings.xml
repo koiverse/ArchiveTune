@@ -58,8 +58,6 @@
     <string name="like_all">Come tutti</string>
     <string name="dislike_all">Non mi piacciono tutti</string>
     <string name="sort_by_last_updated">Data aggiornata</string>
-    <string name="pin">Perno</string>
-    <string name="unpin">Sblocca</string>
     <string name="link_copied">Link copiato negli appunti</string>
     <string name="starting_radio">Avvio della radio</string>
     <string name="now_playing">Ora in riproduzione</string>

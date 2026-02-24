@@ -475,6 +475,17 @@ fun AboutScreen(
                         contentDescription = null
                     )
                 }
+
+                Spacer(Modifier.width(8.dp))
+
+                IconButton(
+                    onClick = { uriHandler.openUri("https://t.me/ArchiveTuneGC") },
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.telegram),
+                        contentDescription = null
+                    )
+                }
             }
 
             Spacer(Modifier.height(8.dp))

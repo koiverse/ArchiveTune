@@ -65,7 +65,7 @@
     <string name="liked_songs">Gefallene Lieder</string>
     <string name="downloaded_songs">Heruntergeladene Lieder</string>
     <string name="playlist_is_empty">Die Playlist ist leer</string>
-    <string name="remove_download_playlist_confirm">Möchten Sie wirklich alle \"%s\" Playlist-Songs aus dem Speicher für heruntergeladene Songs entfernen?</string>
+    <string name="remove_download_playlist_confirm">Möchten Sie wirklich alle \"%s\" Playlist-Lieder aus dem Speicher für heruntergeladene Songs entfernen?</string>
     <string name="delete_playlist_confirm">Möchten Sie die Playlist \"%s\" wirklich löschen?</string>
     <!-- Button -->
     <string name="retry">Wiederholen</string>
@@ -550,4 +550,33 @@
     <string name="new_version_available">Neue Version verfügbar</string>
     <string name="translation_models">Übersetzungsmodelle</string>
     <string name="clear_translation_models">Klare Übersetzungsmodelle</string>
+    <string name="change_playlist_cover">Playlist cover ändern</string>
+    <string name="remove_playlist_cover">Cover entfernen</string>
+    <string name="together_participants">Teilnehmer</string>
+    <string name="together_connected_count">%1$d verbunden</string>
+    <string name="together_role_host">Host</string>
+    <string name="together_role_guest">Gast</string>
+    <string name="together_pending_approval">Bestätigung ausstehend</string>
+    <string name="together_waiting_approval">Warte auf Bestätigung</string>
+    <string name="together_host_left_session">Host hat Sitzungen verlassen</string>
+    <string name="together_kick">Kick</string>
+    <string name="together_ban">Ban</string>
+    <string name="together_kick_confirm">Kick %1$s?</string>
+    <string name="together_ban_confirm">Ban %1$s?</string>
+    <string name="together_requesting_song_change">Frage Host das Lied zu wechseln…</string>
+    <string name="together_song_change_failed">Liedänderung nicht angewendet. Bitte erneut versuchen.</string>
+    <string name="tempo">Tempo</string>
+    <string name="pitch">Tonhöhe</string>
+    <string name="pitch_mode_semitones_short">st</string>
+    <string name="pitch_mode_multiplier_short">x</string>
+    <string name="added_to_playlist">Zu %s hinzugefügt</string>
+    <string name="added_n_songs_to_playlist">%1$d Lieder zu %2$s hinzugefügt</string>
+    <string name="added_to_n_playlists">Zu %d playlist hinzugefügt</string>
+    <string name="added_n_songs_to_n_playlists">%1$d Lieder zu %2$d Playlists hinzugefügt</string>
+    <string name="queue_continue_playing">Wiedergabe fortsetzen</string>
+    <string name="queue_autoplaying_similar">Ähnliche Musik automatisch abspielen</string>
+    <string name="random_theme_on_startup">Zufälliges Theme beim start</string>
+    <string name="random_theme_on_startup_desc">Wende eine zufällige Farbpalette bei jedem Appstart an</string>
+    <string name="use_system_font">Nutze Systemschriftart</string>
+    <string name="use_system_font_desc">Nutze die Geräteschriftar anstelle der Appschriftart</string>
 </resources>

@@ -109,6 +109,8 @@
     <string name="together_ban">Ban</string>
     <string name="together_kick_confirm">Kick %1$s?</string>
     <string name="together_ban_confirm">Ban %1$s?</string>
+    <string name="together_requesting_song_change">Requesting host to change the song\u2026</string>
+    <string name="together_song_change_failed">Song change not applied. Please try again.</string>
     <string name="remove_from_history">Remove from history</string>
     <string name="remove_from_playlist">Remove from playlist</string>
     <string name="remove_from_queue">Remove from queue</string>
@@ -233,6 +235,8 @@
     <string name="appearance">Appearance</string>
     <string name="theme">Theme</string>
     <string name="enable_dynamic_theme">Enable dynamic theme</string>
+    <string name="random_theme_on_startup">Random theme on startup</string>
+    <string name="random_theme_on_startup_desc">Apply a random color palette every time the app starts</string>
     <string name="use_system_font">Use system font</string>
     <string name="use_system_font_desc">Use the device font instead of the app font</string>
     <!-- Color Palette -->
@@ -375,6 +379,11 @@
     <string name="center">Center</string>
     <string name="right">Right</string>
     <string name="player_slider_style">Player slider style</string>
+    <string name="slider_style_standard">Standard</string>
+    <string name="slider_style_wavy">Wavy</string>
+    <string name="slider_style_thick">Thick</string>
+    <string name="slider_style_circular">Circular</string>
+    <string name="slider_style_simple">Simple</string>
     <string name="default_">Default</string>
     <string name="squiggly">Squiggly</string>
     <string name="misc">Misc</string>
@@ -404,6 +413,8 @@
     <string name="enable_proxy">Enable proxy</string>
     <string name="proxy_type">Proxy type</string>
     <string name="proxy_url">Proxy URL</string>
+    <string name="stream_bypass_proxy">Bypass proxy for streams</string>
+    <string name="stream_bypass_proxy_desc">Use your direct IP for stream playback to avoid IP mismatch</string>
     <string name="restart_to_take_effect">Restart to take effect</string>
     <string name="enable_betterlyrics">Enable BetterLyrics</string>
     <string name="enable_simpmusic_lyrics">Enable SimpMusic lyrics</string>
@@ -627,7 +638,7 @@ ArchiveTune will only extract your token, and everything else is stored locally.
     <string name="content_length_label">Content Length</string>
     <string name="unknown_content_length">Unknown content length</string>
     <string name="format_label">Format</string>
-    <string name="loading_format">Loading format...</string>
+    <string name="loading_format">Loading format…</string>
     <string name="buffer_health_label">Buffer Health</string>
     <string name="playback_speed_label">Playback Speed</string>
     <string name="state_label">State</string>
@@ -670,6 +681,10 @@ ArchiveTune will only extract your token, and everything else is stored locally.
     <string name="channel_nightly">Nightly</string>
     <string name="commit_history">Development</string>
     <string name="recent_commits">Recent Commits</string>
+    <string name="changelog">Changelog</string>
+    <string name="view_changelog">View Changelog</string>
+    <string name="error_loading_changelog">Error loading changelog</string>
+    <string name="no_releases">No releases found</string>
     <string name="update_notification_channel_name">App Updates</string>
     <string name="update_notification_channel_desc">Notifications for new app updates</string>
     <string name="update_notification_title">Update Available</string>
@@ -727,6 +742,7 @@ ArchiveTune will only extract your token, and everything else is stored locally.
     <string name="not_allowed">Not allowed</string>
     <string name="network_unavailable">Network unavailable</string>
     <string name="together_online_not_configured">Online sessions aren\'t configured</string>
+    <string name="together_token_missing">Online sessions aren\'t available in this build</string>
     <string name="together_server_unreachable">Server unreachable</string>
     <string name="together_connection_timed_out">Connection timed out</string>
     <string name="together_session_not_found">Session not found</string>

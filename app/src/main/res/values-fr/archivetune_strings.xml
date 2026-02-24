@@ -41,7 +41,6 @@
     <string name="added_to_play_next">Ajouté à la playlist</string>
     <string name="added_to_queue">Ajouté à la file d\'attente</string>
     <string name="remove_from_cache">Retirer du cache</string>
-    <string name="copy_link">Copier le lien</string>
     <string name="select">Tout sélectionner</string>
     <string name="like_all">Tout aimer</string>
     <string name="dislike_all">Ne pas aimer tout</string>
@@ -208,8 +207,6 @@
     <string name="share_summary">Partager le résumé</string>
     <string name="no_listening_data">Aucune donnée d\'écoute pour cette année</string>
     <string name="played">joués</string>
-    <string name="pin">Épingler</string>
-    <string name="unpin">Détacher</string>
     <string name="custom_theme">Thème personnalisé</string>
     <string name="import_theme">Importer un thème</string>
     <string name="export_theme">Exporter le thème</string>
@@ -257,4 +254,16 @@
     <string name="restore_step_restoring_settings">Restauration des paramètres</string>
     <string name="restore_step_restoring_file">Restauration de %1$s</string>
     <string name="restore_step_restarting">Redémarrer l\'application</string>
+    <string name="canvas_cache">Cache Canvas</string>
+    <string name="canvas_cache_items">%d éléments</string>
+    <string name="canvas_cache_usage">%1$s / %2$s</string>
+    <string name="clear_canvas_cache">Vider le cache du canevas</string>
+    <string name="clear_canvas_cache_dialog">Êtes-vous sûr de vouloir effacer tout le contenu mis en cache ?</string>
+    <string name="playlist_private_title">Cette playlist était privée.</string>
+    <string name="playlist_private_desc">Vous n\'avez pas accès à cette playlist.</string>
+    <string name="audio_crossfade_title">Fondu enchaîné</string>
+    <string name="audio_crossfade_description">Assurez une transition fluide entre les titres en atténuant progressivement la fin de chaque titre.</string>
+    <string name="audio_crossfade_dialog_title">Durée du fondu enchaîné</string>
+    <string name="player_stream_client_ios">iOS</string>
+    <string name="player_stream_client_ios_desc">Utilise le client YouTube iOS. Le plus fiable contre les restrictions YouTube.</string>
 </resources>

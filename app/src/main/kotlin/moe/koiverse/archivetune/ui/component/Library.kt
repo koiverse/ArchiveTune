@@ -182,29 +182,6 @@ fun LibraryPlaylistListItem(
 ) {
     val database = LocalDatabase.current
     val trailing: @Composable RowScope.() -> Unit = {
-        androidx.compose.material3.IconButton(
-            onClick = {
-                database.transaction {
-                    val newPinned = !playlist.playlist.isPinned
-                    val newOrder =
-                        if (newPinned) {
-                            (minPinnedCustomOrder() ?: 0) - 1
-                        } else {
-                            (maxUnpinnedCustomOrder() ?: (maxPlaylistCustomOrder() ?: 0)) + 1
-                        }
-                    setPlaylistPinned(playlist.id, newPinned)
-                    setPlaylistCustomOrder(playlist.id, newOrder)
-                }
-            },
-        ) {
-            Icon(
-                painter =
-                painterResource(
-                    if (playlist.playlist.isPinned) R.drawable.unpin else R.drawable.pin
-                ),
-                contentDescription = null,
-            )
-        }
         if (showDragHandle) {
             androidx.compose.material3.IconButton(
                 onClick = { },

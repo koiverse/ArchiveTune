@@ -68,6 +68,7 @@ import moe.koiverse.archivetune.ui.screens.settings.AccountSettings
 import moe.koiverse.archivetune.ui.screens.settings.AppearanceSettings
 import moe.koiverse.archivetune.ui.screens.settings.CustomizeBackground
 import moe.koiverse.archivetune.ui.screens.settings.BackupAndRestore
+import moe.koiverse.archivetune.ui.screens.settings.ChangelogScreen
 import moe.koiverse.archivetune.ui.screens.settings.ContentSettings
 import moe.koiverse.archivetune.ui.screens.settings.DarkMode
 import moe.koiverse.archivetune.ui.screens.settings.DiscordLoginScreen
@@ -349,6 +350,9 @@ fun NavGraphBuilder.navigationBuilder(
     }
     composable("settings/update") {
         UpdateScreen(navController, scrollBehavior)
+    }
+    composable("settings/changelog") {
+        ChangelogScreen(navController, scrollBehavior)
     }
     composable("settings/discord/login") {
         DiscordLoginScreen(navController)

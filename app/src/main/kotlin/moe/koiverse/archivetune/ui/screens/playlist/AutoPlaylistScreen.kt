@@ -108,9 +108,9 @@ import moe.koiverse.archivetune.LocalPlayerConnection
 import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.constants.DisableBlurKey
 import moe.koiverse.archivetune.constants.HideExplicitKey
-import moe.koiverse.archivetune.constants.SongSortDescendingKey
-import moe.koiverse.archivetune.constants.SongSortType
-import moe.koiverse.archivetune.constants.SongSortTypeKey
+import moe.koiverse.archivetune.constants.AutoPlaylistSongSortDescendingKey
+import moe.koiverse.archivetune.constants.AutoPlaylistSongSortType
+import moe.koiverse.archivetune.constants.AutoPlaylistSongSortTypeKey
 import moe.koiverse.archivetune.constants.YtmSyncKey
 import moe.koiverse.archivetune.db.entities.Song
 import moe.koiverse.archivetune.extensions.toMediaItem
@@ -197,10 +197,10 @@ fun AutoPlaylistScreen(
     }
 
     val (sortType, onSortTypeChange) = rememberEnumPreference(
-        SongSortTypeKey,
-        SongSortType.CREATE_DATE
+        AutoPlaylistSongSortTypeKey,
+        AutoPlaylistSongSortType.CREATE_DATE
     )
-    val (sortDescending, onSortDescendingChange) = rememberPreference(SongSortDescendingKey, true)
+    val (sortDescending, onSortDescendingChange) = rememberPreference(AutoPlaylistSongSortDescendingKey, true)
 
     val downloadUtil = LocalDownloadUtil.current
     var downloadState by remember { mutableIntStateOf(Download.STATE_STOPPED) }
@@ -349,6 +349,13 @@ fun AutoPlaylistScreen(
     val transparentAppBar by remember {
         derivedStateOf {
             !disableBlur && !selection && !showTopBarTitle
+        }
+    }
+
+    val headerItems by remember {
+        derivedStateOf {
+            val currentSongs = songs
+            if (currentSongs != null && currentSongs.isNotEmpty() && !isSearching) 2 else 0
         }
     }
 
@@ -729,10 +736,10 @@ fun AutoPlaylistScreen(
                                 onSortDescendingChange = onSortDescendingChange,
                                 sortTypeText = { sortType ->
                                     when (sortType) {
-                                        SongSortType.CREATE_DATE -> R.string.sort_by_create_date
-                                        SongSortType.NAME -> R.string.sort_by_name
-                                        SongSortType.ARTIST -> R.string.sort_by_artist
-                                        SongSortType.PLAY_TIME -> R.string.sort_by_play_time
+                                        AutoPlaylistSongSortType.CREATE_DATE -> R.string.sort_by_create_date
+                                        AutoPlaylistSongSortType.NAME -> R.string.sort_by_name
+                                        AutoPlaylistSongSortType.ARTIST -> R.string.sort_by_artist
+                                        AutoPlaylistSongSortType.PLAY_TIME -> R.string.sort_by_play_time
                                     }
                                 },
                                 modifier = Modifier.weight(1f),
@@ -813,7 +820,7 @@ fun AutoPlaylistScreen(
                 )
                 .align(Alignment.CenterEnd),
             scrollState = lazyListState,
-            headerItems = 2
+            headerItems = headerItems
         )
 
         TopAppBar(

@@ -82,9 +82,8 @@ fun AddToPlaylistDialogOnline(
 ) {
     val database = LocalDatabase.current
     val coroutineScope = rememberCoroutineScope()
-    var playlists by remember {
-        mutableStateOf(emptyList<Playlist>())
-    }
+    var allPlaylists by remember { mutableStateOf(emptyList<Playlist>()) }
+    val playlists = remember(allPlaylists) { playlistsForAddToPlaylist(allPlaylists).asReversed() }
 
     var showCreatePlaylistDialog by rememberSaveable {
         mutableStateOf(false)
@@ -102,8 +101,8 @@ fun AddToPlaylistDialogOnline(
 
 
     LaunchedEffect(Unit) {
-        database.editablePlaylistsByCreateDateAsc().collect {
-            playlists = it.asReversed()
+        database.playlistsByCreateDateAsc().collect {
+            allPlaylists = it
         }
     }
 

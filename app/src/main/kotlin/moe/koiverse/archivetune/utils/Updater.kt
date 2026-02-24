@@ -106,4 +106,26 @@ object Updater {
             baseUrl + "app-${architecture}-release.apk"
         }
     }
+
+    suspend fun getAllReleases(perPage: Int = 30): Result<List<ReleaseInfo>> =
+        runCatching {
+            val response =
+                client.get("https://api.github.com/repos/koiverse/ArchiveTune/releases?per_page=$perPage")
+                    .bodyAsText()
+            val jsonArray = JSONArray(response)
+            val releases = mutableListOf<ReleaseInfo>()
+            for (i in 0 until jsonArray.length()) {
+                val json = jsonArray.getJSONObject(i)
+                releases.add(
+                    ReleaseInfo(
+                        tagName = json.optString("tag_name", ""),
+                        name = json.optString("name", ""),
+                        body = if (json.has("body")) json.optString("body") else null,
+                        publishedAt = json.optString("published_at", ""),
+                        htmlUrl = json.optString("html_url", "")
+                    )
+                )
+            }
+            releases
+        }
 }

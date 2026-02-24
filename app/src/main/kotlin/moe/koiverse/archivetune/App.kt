@@ -25,6 +25,9 @@ import coil3.request.allowHardware
 import coil3.request.crossfade
 import moe.koiverse.archivetune.constants.*
 import moe.koiverse.archivetune.extensions.*
+import moe.koiverse.archivetune.ui.screens.settings.ThemePalettes
+import moe.koiverse.archivetune.ui.theme.ThemeSeedPalette
+import moe.koiverse.archivetune.ui.theme.ThemeSeedPaletteCodec
 import moe.koiverse.archivetune.utils.dataStore
 import moe.koiverse.archivetune.utils.PreferenceStore
 import moe.koiverse.archivetune.utils.get
@@ -134,10 +137,26 @@ class App : Application(), SingletonImageLoader.Factory {
                         }
                         reportException(e)
                     }
+                    YouTube.streamBypassProxy = prefs[StreamBypassProxyKey] == true
                 }
 
                 if (prefs[UseLoginForBrowse] != false) {
                     YouTube.useLoginForBrowse = true
+                }
+                
+                // Apply random theme on startup if enabled
+                if (prefs[RandomThemeOnStartupKey] == true) {
+                    val randomPalette = ThemePalettes.generateRandomPalette()
+                    val seedPalette = ThemeSeedPalette(
+                        primary = randomPalette.primary,
+                        secondary = randomPalette.secondary,
+                        tertiary = randomPalette.tertiary,
+                        neutral = randomPalette.neutral
+                    )
+                    val encodedPalette = ThemeSeedPaletteCodec.encodeForPreference(seedPalette, "Random")
+                    dataStore.edit { settings ->
+                        settings[CustomThemeColorKey] = encodedPalette
+                    }
                 }
                 
                 isInitialized = true
@@ -215,6 +234,14 @@ class App : Application(), SingletonImageLoader.Factory {
         }
         applicationScope.launch(Dispatchers.IO) {
             dataStore.data
+                .map { it[PoTokenKey] }
+                .distinctUntilChanged()
+                .collect { token ->
+                    YouTube.poToken = token?.takeIf { it.isNotBlank() }
+                }
+        }
+        applicationScope.launch(Dispatchers.IO) {
+            dataStore.data
                 .map { it[LastFMSessionKey] }
                 .distinctUntilChanged()
                 .collect { sessionKey ->
@@ -273,6 +300,7 @@ class App : Application(), SingletonImageLoader.Factory {
             CoroutineScope(Dispatchers.IO).launch {
                 context.dataStore.edit { settings ->
                     settings.remove(InnerTubeCookieKey)
+                    settings.remove(PoTokenKey)
                     settings.remove(VisitorDataKey)
                     settings.remove(DataSyncIdKey)
                     settings.remove(AccountNameKey)

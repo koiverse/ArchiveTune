@@ -538,6 +538,7 @@ fun SongMenu(
                     },
                     modifier =
                         Modifier.clickable {
+                            onDismiss()
                             database.query {
                                 update(song.song.toggleLibrary())
                             }
@@ -608,16 +609,23 @@ fun SongMenu(
                                     val map = playlistSong.map
                                     coroutineScope.launch(Dispatchers.IO) {
                                         database.withTransaction {
-                                            move(map.playlistId, map.position, Int.MAX_VALUE)
-                                            delete(map.copy(position = Int.MAX_VALUE))
+                                            val maxPosition = maxPlaylistSongPosition(map.playlistId) ?: map.position
+                                            if (map.position < maxPosition) {
+                                                move(map.playlistId, map.position, maxPosition)
+                                            }
+                                            delete(map)
                                         }
                                         val browseId = playlistBrowseId
-                                        val setVideoId = map.setVideoId
-                                        if (browseId != null && setVideoId != null) {
-                                            YouTube.removeFromPlaylist(browseId, map.songId, setVideoId)
+                                        if (browseId != null) {
+                                            val setVideoId = map.setVideoId ?: database.getSetVideoId(map.songId)?.setVideoId
+                                            if (setVideoId != null) {
+                                                YouTube.removeFromPlaylist(browseId, map.songId, setVideoId)
+                                            }
+                                        }
+                                        withContext(Dispatchers.Main) {
+                                            onDismiss()
                                         }
                                     }
-                                    onDismiss()
                                 },
                             colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                         )
