@@ -105,21 +105,49 @@ import moe.koiverse.archivetune.innertube.YouTube
 import moe.koiverse.archivetune.innertube.models.YouTubeClient
 import moe.koiverse.archivetune.utils.rememberEnumPreference
 import moe.koiverse.archivetune.utils.rememberPreference
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.builtins.MapSerializer
+import kotlinx.serialization.builtins.serializer
+import kotlinx.serialization.json.Json
 import okhttp3.OkHttpClient
+import timber.log.Timber
+import java.io.File
 import java.util.LinkedHashMap
 import java.util.Locale
 import kotlin.math.abs
+import android.content.Context
 import android.view.ViewGroup.LayoutParams.MATCH_PARENT
 import androidx.compose.ui.viewinterop.AndroidView
 
 object CanvasArtworkPlaybackCache {
     private const val defaultMaxSize = 256
+    private const val PERSIST_FILE = "canvas_artwork_cache.json"
+    private const val PERSIST_DEBOUNCE_MS = 2_000L
+
     private val map = LinkedHashMap<String, CanvasArtwork>(defaultMaxSize, 0.75f, true)
     @Volatile private var maxSize = defaultMaxSize
+    @Volatile private var cacheFile: File? = null
+
+    private val persistScope = CoroutineScope(Dispatchers.IO)
+    private var persistJob: Job? = null
+
+    private val json = Json {
+        ignoreUnknownKeys = true
+        isLenient = true
+        explicitNulls = false
+    }
+
+    private val mapSerializer = MapSerializer(String.serializer(), CanvasArtwork.serializer())
+
+    fun init(context: Context) {
+        cacheFile = File(context.filesDir, PERSIST_FILE)
+        loadFromDisk()
+    }
 
     @Synchronized
     fun get(mediaId: String): CanvasArtwork? {
@@ -140,6 +168,7 @@ object CanvasArtworkPlaybackCache {
                 it.remove()
             }
         }
+        schedulePersist()
     }
 
     @Synchronized
@@ -148,6 +177,7 @@ object CanvasArtworkPlaybackCache {
     @Synchronized
     fun clear() {
         map.clear()
+        schedulePersist()
     }
 
     @Synchronized
@@ -155,16 +185,68 @@ object CanvasArtworkPlaybackCache {
         maxSize = value.coerceAtLeast(0)
         if (maxSize == 0) {
             map.clear()
+            schedulePersist()
             return
         }
+        var evicted = false
         while (map.size > maxSize) {
             val it = map.entries.iterator()
             if (it.hasNext()) {
                 it.next()
                 it.remove()
+                evicted = true
             } else {
                 break
             }
+        }
+        if (evicted) schedulePersist()
+    }
+
+    @Synchronized
+    private fun loadFromDisk() {
+        val file = cacheFile ?: return
+        if (!file.exists()) return
+        try {
+            val raw = file.readText()
+            if (raw.isBlank()) return
+            val restored = json.decodeFromString(mapSerializer, raw)
+            map.clear()
+            map.putAll(restored)
+            while (maxSize > 0 && map.size > maxSize) {
+                val it = map.entries.iterator()
+                if (it.hasNext()) {
+                    it.next()
+                    it.remove()
+                } else {
+                    break
+                }
+            }
+            Timber.d("Canvas cache restored: ${map.size} entries from disk")
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to restore canvas cache from disk")
+            runCatching { file.delete() }
+        }
+    }
+
+    private fun schedulePersist() {
+        persistJob?.cancel()
+        persistJob = persistScope.launch {
+            delay(PERSIST_DEBOUNCE_MS)
+            writeToDisk()
+        }
+    }
+
+    private fun writeToDisk() {
+        val file = cacheFile ?: return
+        try {
+            val snapshot: Map<String, CanvasArtwork>
+            synchronized(this@CanvasArtworkPlaybackCache) {
+                snapshot = LinkedHashMap(map)
+            }
+            val raw = json.encodeToString(mapSerializer, snapshot)
+            file.writeText(raw)
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to persist canvas cache to disk")
         }
     }
 }
