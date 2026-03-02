@@ -48,6 +48,7 @@ import moe.koiverse.archivetune.constants.AudioQualityKey
 import moe.koiverse.archivetune.constants.NetworkMeteredKey
 import moe.koiverse.archivetune.constants.AutoDownloadOnLikeKey
 import moe.koiverse.archivetune.constants.AutoSkipNextOnErrorKey
+import moe.koiverse.archivetune.constants.PauseOnDeviceMuteKey
 import moe.koiverse.archivetune.constants.PermanentShuffleKey
 import moe.koiverse.archivetune.constants.PersistentQueueKey
 
@@ -123,6 +124,10 @@ fun PlayerSettings(
     )
     val (autoSkipNextOnError, onAutoSkipNextOnErrorChange) = rememberPreference(
         AutoSkipNextOnErrorKey,
+        defaultValue = false
+    )
+    val (pauseOnDeviceMute, onPauseOnDeviceMuteChange) = rememberPreference(
+        PauseOnDeviceMuteKey,
         defaultValue = false
     )
     val (stopMusicOnTaskClear, onStopMusicOnTaskClearChange) = rememberPreference(
@@ -310,6 +315,14 @@ fun PlayerSettings(
             icon = { Icon(painterResource(R.drawable.arrow_forward), null) },
             checked = seekExtraSeconds,
             onCheckedChange = onSeekExtraSeconds
+        )
+
+        SwitchPreference(
+            title = { Text(stringResource(R.string.pause_on_device_mute)) },
+            description = stringResource(R.string.pause_on_device_mute_desc),
+            icon = { Icon(painterResource(R.drawable.volume_off), null) },
+            checked = pauseOnDeviceMute,
+            onCheckedChange = onPauseOnDeviceMuteChange
         )
 
         PreferenceGroupTitle(

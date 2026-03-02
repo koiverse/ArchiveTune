@@ -109,6 +109,7 @@ import moe.koiverse.archivetune.constants.MediaSessionConstants.CommandToggleSta
 import moe.koiverse.archivetune.constants.MediaSessionConstants.CommandToggleRepeatMode
 import moe.koiverse.archivetune.constants.MediaSessionConstants.CommandToggleShuffle
 import moe.koiverse.archivetune.constants.PauseListenHistoryKey
+import moe.koiverse.archivetune.constants.PauseOnDeviceMuteKey
 import moe.koiverse.archivetune.constants.PermanentShuffleKey
 import moe.koiverse.archivetune.constants.PersistentQueueKey
 import moe.koiverse.archivetune.constants.PlayerStreamClient
@@ -249,6 +250,8 @@ class MusicService :
     private var audioFocusRequest: AudioFocusRequest? = null
     private var lastAudioFocusState = AudioManager.AUDIOFOCUS_NONE
     private var wasPlayingBeforeAudioFocusLoss = false
+    private var pauseOnDeviceMuteEnabled = false
+    private var wasAutoPausedByDeviceMute = false
     private var hasAudioFocus = false
 
     private var scopeJob = Job()
@@ -666,6 +669,18 @@ class MusicService :
             .distinctUntilChanged()
             .collectLatest(scope) {
                 player.skipSilenceEnabled = it
+            }
+
+        dataStore.data
+            .map { it[PauseOnDeviceMuteKey] ?: false }
+            .distinctUntilChanged()
+            .collectLatest(scope) { enabled ->
+                pauseOnDeviceMuteEnabled = enabled
+                if (!enabled) {
+                    wasAutoPausedByDeviceMute = false
+                } else {
+                    handleDeviceMuteStateChanged()
+                }
             }
 
         dataStore.data
@@ -1118,6 +1133,47 @@ class MusicService :
 
     fun hasAudioFocusForPlayback(): Boolean {
         return hasAudioFocus
+    }
+
+    private fun isDeviceMutedNow(): Boolean {
+        return player.isDeviceMuted || player.deviceVolume <= 0
+    }
+
+    private fun isTogetherGuestSession(): Boolean {
+        val joined = togetherSessionState.value as? moe.koiverse.archivetune.together.TogetherSessionState.Joined
+        return joined?.role is moe.koiverse.archivetune.together.TogetherRole.Guest
+    }
+
+    private fun handleDeviceMuteStateChanged() {
+        if (!pauseOnDeviceMuteEnabled || isTogetherGuestSession()) {
+            wasAutoPausedByDeviceMute = false
+            return
+        }
+
+        if (isDeviceMutedNow()) {
+            val canPauseNow =
+                player.currentMediaItem != null &&
+                    player.playWhenReady &&
+                    player.playbackState != Player.STATE_IDLE &&
+                    player.playbackState != Player.STATE_ENDED
+
+            if (canPauseNow) {
+                player.pause()
+                wasAutoPausedByDeviceMute = true
+            }
+            return
+        }
+
+        if (!wasAutoPausedByDeviceMute) return
+
+        wasAutoPausedByDeviceMute = false
+        val canResumeNow =
+            player.currentMediaItem != null &&
+                player.playbackState != Player.STATE_IDLE &&
+                player.playbackState != Player.STATE_ENDED
+        if (canResumeNow) {
+            player.play()
+        }
     }
 
     private fun waitOnNetworkError() {
@@ -3551,6 +3607,17 @@ class MusicService :
                 requestTogetherControl(action)
             }
         }
+    }
+    if (events.contains(Player.EVENT_DEVICE_VOLUME_CHANGED)) {
+        handleDeviceMuteStateChanged()
+    }
+    if (events.contains(Player.EVENT_PLAY_WHEN_READY_CHANGED) && isDeviceMutedNow() && this.player.playWhenReady) {
+        wasAutoPausedByDeviceMute = false
+    }
+    if (events.contains(Player.EVENT_PLAYBACK_STATE_CHANGED) &&
+        (this.player.playbackState == Player.STATE_IDLE || this.player.playbackState == Player.STATE_ENDED)
+    ) {
+        wasAutoPausedByDeviceMute = false
     }
     if (events.contains(Player.EVENT_AUDIO_SESSION_ID)) {
         val newSessionId = this.player.audioSessionId
