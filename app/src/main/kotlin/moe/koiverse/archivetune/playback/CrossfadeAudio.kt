@@ -58,6 +58,7 @@ internal class CrossfadeAudio(
     private val handoffReseekMinIntervalMs = 180L
     private val handoffDriftCorrectionThresholdMs = 220L
     private val handoffRampStartDriftToleranceMs = 120L
+    private val handoffTimeoutMs = 5000L
 
     fun start(scope: CoroutineScope) {
         if (loopJob?.isActive == true) return
@@ -95,15 +96,15 @@ internal class CrossfadeAudio(
                 continue
             }
 
-            if (handoffActive) {
-                updateVolumes()
-                delay(50)
-                continue
-            }
-
             if (!player.playWhenReady) {
                 stopOverlapCrossfade(resetMainFade = true)
                 delay(150)
+                continue
+            }
+
+            if (handoffActive) {
+                updateVolumes()
+                delay(50)
                 continue
             }
 
@@ -219,6 +220,16 @@ internal class CrossfadeAudio(
 
         if (handoffActive) {
             val nowElapsedMs = android.os.SystemClock.elapsedRealtime()
+
+            val overlapDead = overlap.playbackState == Player.STATE_IDLE || overlap.playbackState == Player.STATE_ENDED
+            val handoffElapsed = nowElapsedMs - handoffStartElapsedMs
+            val handoffTimedOut = handoffElapsed >= handoffTimeoutMs
+
+            if (overlapDead || handoffTimedOut) {
+                completeHandoffFromOverlap()
+                return
+            }
+
             val overlapPositionMs = overlap.currentPosition.coerceAtLeast(0L)
             val mainPositionMs = player.currentPosition.coerceAtLeast(0L)
             val positionDriftMs = mainPositionMs - overlapPositionMs
