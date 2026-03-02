@@ -1656,7 +1656,7 @@ fun PlayerBackground(
                             AsyncImage(
                                 model = thumbnailUrl,
                                 contentDescription = "Blurred background",
-                                contentScale = ContentScale.FillBounds,
+                                contentScale = ContentScale.Crop,
                                 modifier = Modifier.fillMaxSize().let {
                                     if (disableBlur) it else it.blur(radius = 60.dp)
                                 }
@@ -1757,7 +1757,7 @@ fun PlayerBackground(
                             AsyncImage(
                                 model = thumbnailUrl,
                                 contentDescription = "Blurred background",
-                                contentScale = ContentScale.FillBounds,
+                                contentScale = ContentScale.Crop,
                                 modifier = Modifier.fillMaxSize().let {
                                     if (disableBlur) it else it.blur(radius = 65.dp)
                                 }
@@ -1806,7 +1806,7 @@ fun PlayerBackground(
                             AsyncImage(
                                 model = Uri.parse(uri),
                                 contentDescription = "Custom background",
-                                contentScale = ContentScale.FillBounds,
+                                contentScale = ContentScale.Crop,
                                 modifier = Modifier.fillMaxSize().let {
                                     if (disableBlur) it else it.blur(radius = blurPx.dp)
                                 },
