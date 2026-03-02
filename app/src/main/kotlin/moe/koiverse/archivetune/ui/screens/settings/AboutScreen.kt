@@ -301,7 +301,7 @@ fun AboutScreen(
 
     val leadDeveloper = TeamMember(
         avatarUrl = "https://avatar-api.koiisannn.cloud/discord/avatar/886971572668219392",
-        name = "Charteux Westia",
+        name = "Chartreux Westia",
         position = "Eh?",
         profileUrl = "https://github.com/koiverse",
         github = "https://github.com/koiverse",

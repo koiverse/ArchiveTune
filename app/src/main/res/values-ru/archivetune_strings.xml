@@ -252,8 +252,6 @@
     <string name="audio_crossfade_title">Кроссфейд</string>
     <string name="audio_crossfade_description">Плавный переход между песнями за счет затухания звука в конце каждого трека.</string>
     <string name="audio_crossfade_dialog_title">Длительность кроссфейда</string>
-    <string name="player_stream_client_ios">iOS</string>
-    <string name="player_stream_client_ios_desc">Использует клиент YouTube для iOS. Самый надёжный вариант против ограничений YouTube.</string>
     <string name="theme_preview_primary_action">Основное действие</string>
     <string name="theme_preview_secondary_action">Вторичное действие</string>
     <string name="copy">Скопировать</string>

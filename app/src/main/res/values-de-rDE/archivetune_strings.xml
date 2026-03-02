@@ -216,6 +216,4 @@
     <string name="player_stream_client_android_vr_desc">Streamt direkt ohne Signatur Entschlüsselung für maximale Geschwindigkeit. Für die meisten Nutzer geeignet.</string>
     <string name="player_stream_client_web_remix">Web Remix</string>
     <string name="player_stream_client_web_remix_desc">Erwiter Format Unterstützung auf Kosten von Geschwindigkeit. JavaScript Signatur Entschlüsselung bringt eine ca. 5-10 Sekunden start Verzögerung mit sich.</string>
-    <string name="player_stream_client_ios">iOS</string>
-    <string name="player_stream_client_ios_desc">Nutzt den iOS YouTube Client. Am zuverlässigsten gehen YouTube Einschränkungen.</string>
 </resources>

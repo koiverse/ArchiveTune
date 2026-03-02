@@ -259,6 +259,4 @@
     <string name="audio_crossfade_title">Chuyển bài mượt mà</string>
     <string name="audio_crossfade_description">Chuyển tiếp mượt mà giữa các bài hát bằng cách làm mờ dần âm thanh ở cuối mỗi bản nhạc.</string>
     <string name="audio_crossfade_dialog_title">Thời gian chuyển</string>
-    <string name="player_stream_client_ios">iOS</string>
-    <string name="player_stream_client_ios_desc">Sử dụng ứng dụng YouTube trên iOS. Độ tin cậy cao nhất khi đối mặt với các hạn chế của YouTube.</string>
 </resources>

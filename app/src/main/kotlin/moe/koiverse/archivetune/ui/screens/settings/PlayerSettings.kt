@@ -172,7 +172,7 @@ fun PlayerSettings(
             onDismiss = { showPlayerStreamClientDialog = false },
             modifier = Modifier.padding(horizontal = 8.dp),
         ) {
-            items(PlayerStreamClient.entries.toList()) { value ->
+            items(listOf(PlayerStreamClient.ANDROID_VR, PlayerStreamClient.WEB_REMIX)) { value ->
                 Row(
                     modifier =
                     Modifier
@@ -192,10 +192,7 @@ fun PlayerSettings(
                             text =
                             when (value) {
                                 PlayerStreamClient.ANDROID_VR -> stringResource(R.string.player_stream_client_android_vr)
-                                PlayerStreamClient.WEB_REMIX -> stringResource(R.string.player_stream_client_web_remix)
-                                PlayerStreamClient.IOS -> stringResource(R.string.player_stream_client_ios)
-                                PlayerStreamClient.TVHTML5 -> stringResource(R.string.player_stream_client_tvhtml5)
-                                PlayerStreamClient.ANDROID_MUSIC -> stringResource(R.string.player_stream_client_android_music)
+                                else -> stringResource(R.string.player_stream_client_web_remix)
                             },
                             style = MaterialTheme.typography.bodyLarge,
                         )
@@ -204,10 +201,7 @@ fun PlayerSettings(
                             text =
                             when (value) {
                                 PlayerStreamClient.ANDROID_VR -> stringResource(R.string.player_stream_client_android_vr_desc)
-                                PlayerStreamClient.WEB_REMIX -> stringResource(R.string.player_stream_client_web_remix_desc)
-                                PlayerStreamClient.IOS -> stringResource(R.string.player_stream_client_ios_desc)
-                                PlayerStreamClient.TVHTML5 -> stringResource(R.string.player_stream_client_tvhtml5_desc)
-                                PlayerStreamClient.ANDROID_MUSIC -> stringResource(R.string.player_stream_client_android_music_desc)
+                                else -> stringResource(R.string.player_stream_client_web_remix_desc)
                             },
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.secondary,
@@ -255,10 +249,7 @@ fun PlayerSettings(
             description =
             when (playerStreamClient) {
                 PlayerStreamClient.ANDROID_VR -> stringResource(R.string.player_stream_client_android_vr)
-                PlayerStreamClient.WEB_REMIX -> stringResource(R.string.player_stream_client_web_remix)
-                PlayerStreamClient.IOS -> stringResource(R.string.player_stream_client_ios)
-                PlayerStreamClient.TVHTML5 -> stringResource(R.string.player_stream_client_tvhtml5)
-                PlayerStreamClient.ANDROID_MUSIC -> stringResource(R.string.player_stream_client_android_music)
+                else -> stringResource(R.string.player_stream_client_web_remix)
             },
             icon = { Icon(painterResource(R.drawable.integration), null) },
             onClick = { showPlayerStreamClientDialog = true }
