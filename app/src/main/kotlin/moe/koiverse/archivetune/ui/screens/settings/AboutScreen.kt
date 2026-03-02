@@ -700,7 +700,7 @@ private fun LeadDeveloperCard(
     Card(
         modifier = modifier,
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer,
+            containerColor = MaterialTheme.colorScheme.surfaceContainer,
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         shape = RoundedCornerShape(24.dp),
@@ -718,7 +718,7 @@ private fun LeadDeveloperCard(
                     .size(80.dp)
                     .clip(CircleShape)
                     .border(
-                        width = 3.dp,
+                        width = 1.dp,
                         color = MaterialTheme.colorScheme.primary,
                         shape = CircleShape
                     )
@@ -731,7 +731,7 @@ private fun LeadDeveloperCard(
                 text = member.name,
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                color = MaterialTheme.colorScheme.onSurface,
             )
 
             Spacer(Modifier.height(4.dp))
@@ -739,7 +739,7 @@ private fun LeadDeveloperCard(
             Text(
                 text = member.position,
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
+                color = MaterialTheme.colorScheme.secondary,
             )
 
             Spacer(Modifier.height(12.dp))
