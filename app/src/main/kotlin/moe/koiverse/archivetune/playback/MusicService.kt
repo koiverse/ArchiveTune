@@ -14,6 +14,11 @@ import android.app.PendingIntent
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
+import android.content.BroadcastReceiver
+import android.bluetooth.BluetoothDevice
+import android.bluetooth.BluetoothClass
+import android.content.pm.PackageManager
 import android.database.SQLException
 import android.media.AudioManager
 import android.media.AudioFocusRequest
@@ -89,6 +94,7 @@ import moe.koiverse.archivetune.constants.AudioQualityKey
 import moe.koiverse.archivetune.constants.AutoLoadMoreKey
 import moe.koiverse.archivetune.constants.AutoDownloadOnLikeKey
 import moe.koiverse.archivetune.constants.AutoSkipNextOnErrorKey
+import moe.koiverse.archivetune.constants.AutoStartOnBluetoothKey
 import moe.koiverse.archivetune.constants.InnerTubeCookieKey
 import moe.koiverse.archivetune.constants.DiscordTokenKey
 import moe.koiverse.archivetune.constants.EqualizerBandLevelsMbKey
@@ -253,6 +259,8 @@ class MusicService :
     private var pauseOnDeviceMuteEnabled = false
     private var wasAutoPausedByDeviceMute = false
     private var hasAudioFocus = false
+    private var autoStartOnBluetoothEnabled = false
+    private var bluetoothReceiverRegistered = false
 
     private var scopeJob = Job()
     private var scope = CoroutineScope(Dispatchers.Main + scopeJob)
@@ -680,6 +688,18 @@ class MusicService :
                     wasAutoPausedByDeviceMute = false
                 } else {
                     handleDeviceMuteStateChanged()
+                }
+            }
+
+        dataStore.data
+            .map { it[AutoStartOnBluetoothKey] ?: false }
+            .distinctUntilChanged()
+            .collectLatest(scope) { enabled ->
+                autoStartOnBluetoothEnabled = enabled
+                if (enabled) {
+                    registerBluetoothReceiver()
+                } else {
+                    unregisterBluetoothReceiver()
                 }
             }
 
@@ -1174,6 +1194,73 @@ class MusicService :
         if (canResumeNow) {
             player.play()
         }
+    }
+
+    private val bluetoothReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            if (intent.action != BluetoothDevice.ACTION_ACL_CONNECTED) return
+            if (!autoStartOnBluetoothEnabled) return
+
+            val device = intent.getParcelableExtra<BluetoothDevice>(BluetoothDevice.EXTRA_DEVICE) ?: return
+
+            val isAudioDevice = try {
+                val majorClass = device.bluetoothClass?.majorDeviceClass
+                majorClass == BluetoothClass.Device.Major.AUDIO_VIDEO ||
+                    majorClass == BluetoothClass.Device.Major.WEARABLE
+            } catch (_: SecurityException) {
+                true
+            }
+
+            if (!isAudioDevice) return
+
+            scope.launch {
+                delay(1500)
+                handleBluetoothAutoStart()
+            }
+        }
+    }
+
+    private fun handleBluetoothAutoStart() {
+        if (isTogetherGuestSession()) return
+
+        if (player.currentMediaItem != null &&
+            player.playbackState != Player.STATE_IDLE &&
+            player.playbackState != Player.STATE_ENDED
+        ) {
+            if (!player.playWhenReady) {
+                player.play()
+            }
+            return
+        }
+
+        if (player.mediaItemCount > 0) {
+            player.prepare()
+            player.play()
+        }
+    }
+
+    @Suppress("DEPRECATION")
+    private fun registerBluetoothReceiver() {
+        if (bluetoothReceiverRegistered) return
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+            checkSelfPermission(android.Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED
+        ) return
+
+        val filter = IntentFilter(BluetoothDevice.ACTION_ACL_CONNECTED)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(bluetoothReceiver, filter, RECEIVER_EXPORTED)
+        } else {
+            registerReceiver(bluetoothReceiver, filter)
+        }
+        bluetoothReceiverRegistered = true
+    }
+
+    private fun unregisterBluetoothReceiver() {
+        if (!bluetoothReceiverRegistered) return
+        try {
+            unregisterReceiver(bluetoothReceiver)
+        } catch (_: Exception) {}
+        bluetoothReceiverRegistered = false
     }
 
     private fun waitOnNetworkError() {
@@ -4463,6 +4550,7 @@ class MusicService :
 
     override fun onDestroy() {
         super.onDestroy()
+        unregisterBluetoothReceiver()
         try {
             scope.launch { stopTogetherInternal() }
         } catch (_: Exception) {}

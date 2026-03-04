@@ -47,6 +47,7 @@ import moe.koiverse.archivetune.constants.AudioQuality
 import moe.koiverse.archivetune.constants.AudioQualityKey
 import moe.koiverse.archivetune.constants.NetworkMeteredKey
 import moe.koiverse.archivetune.constants.AutoDownloadOnLikeKey
+import moe.koiverse.archivetune.constants.AutoStartOnBluetoothKey
 import moe.koiverse.archivetune.constants.AutoSkipNextOnErrorKey
 import moe.koiverse.archivetune.constants.PauseOnDeviceMuteKey
 import moe.koiverse.archivetune.constants.PermanentShuffleKey
@@ -128,6 +129,10 @@ fun PlayerSettings(
     )
     val (pauseOnDeviceMute, onPauseOnDeviceMuteChange) = rememberPreference(
         PauseOnDeviceMuteKey,
+        defaultValue = false
+    )
+    val (autoStartOnBluetooth, onAutoStartOnBluetoothChange) = rememberPreference(
+        AutoStartOnBluetoothKey,
         defaultValue = false
     )
     val (stopMusicOnTaskClear, onStopMusicOnTaskClearChange) = rememberPreference(
@@ -323,6 +328,14 @@ fun PlayerSettings(
             icon = { Icon(painterResource(R.drawable.volume_off), null) },
             checked = pauseOnDeviceMute,
             onCheckedChange = onPauseOnDeviceMuteChange
+        )
+
+        SwitchPreference(
+            title = { Text(stringResource(R.string.auto_start_on_bluetooth)) },
+            description = stringResource(R.string.auto_start_on_bluetooth_desc),
+            icon = { Icon(painterResource(R.drawable.bluetooth), null) },
+            checked = autoStartOnBluetooth,
+            onCheckedChange = onAutoStartOnBluetoothChange
         )
 
         PreferenceGroupTitle(
