@@ -66,6 +66,7 @@ constructor(
                 .album(albumId)
                 .onSuccess {
                     runCatching {
+                        val hasSongs = it.songs.isNotEmpty()
                         playlistId.value = it.album.playlistId
                         otherVersions.value = it.otherVersions
                         database.withTransaction {
@@ -75,7 +76,7 @@ constructor(
                                 update(album.album, it, album.artists)
                             }
                         }
-                        updateUiState(database.albumWithSongs(albumId).first())
+                        _uiState.value = if (hasSongs) AlbumUiState.Content else AlbumUiState.Empty
                     }.onFailure { throwable ->
                         reportException(throwable)
                         updateUiState(database.albumWithSongs(albumId).first())
