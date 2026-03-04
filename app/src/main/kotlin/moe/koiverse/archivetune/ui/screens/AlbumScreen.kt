@@ -387,7 +387,8 @@ fun AlbumScreen(
             contentPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues(),
         ) {
             val albumWithSongs = albumWithSongs
-            if (uiState == AlbumUiState.Content && albumWithSongs != null) {
+            val hasSongs = albumWithSongs?.songs?.isNotEmpty() == true
+            if (hasSongs) {
                 // Hero Header
                 item(key = "header") {
                     Column(
