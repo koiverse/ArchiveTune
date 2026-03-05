@@ -11,11 +11,13 @@ package moe.koiverse.archivetune.ui.screens.search
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.add
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBars
@@ -28,6 +30,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -197,13 +200,16 @@ fun OnlineSearchResult(
         state = lazyListState,
         contentPadding =
         LocalPlayerAwareWindowInsets.current
-            .add(WindowInsets(top = SearchFilterHeight))
+            .add(WindowInsets(top = SearchFilterHeight + 8.dp))
             .asPaddingValues(),
     ) {
         if (searchFilter == null) {
             searchSummary?.summaries?.forEach { summary ->
                 item {
-                    NavigationTitle(summary.title)
+                    NavigationTitle(
+                        summary.title,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
+                    )
                 }
 
                 items(
@@ -211,6 +217,10 @@ fun OnlineSearchResult(
                     key = { "${summary.title}/${it.id}/${summary.items.indexOf(it)}" },
                     itemContent = ytItemContent,
                 )
+
+                item {
+                    Spacer(Modifier.height(8.dp))
+                }
             }
 
             if (searchSummary?.summaries?.isEmpty() == true) {
@@ -259,30 +269,32 @@ fun OnlineSearchResult(
         }
     }
 
-    ChipsRow(
-        chips =
-        listOf(
-            null to stringResource(R.string.filter_all),
-            FILTER_SONG to stringResource(R.string.filter_songs),
-            FILTER_VIDEO to stringResource(R.string.filter_videos),
-            FILTER_ALBUM to stringResource(R.string.filter_albums),
-            FILTER_ARTIST to stringResource(R.string.filter_artists),
-            FILTER_COMMUNITY_PLAYLIST to stringResource(R.string.filter_community_playlists),
-            FILTER_FEATURED_PLAYLIST to stringResource(R.string.filter_featured_playlists),
-        ),
-        currentValue = searchFilter,
-        onValueUpdate = {
-            if (viewModel.filter.value != it) {
-                viewModel.filter.value = it
-            }
-            coroutineScope.launch {
-                lazyListState.animateScrollToItem(0)
-            }
-        },
-        modifier =
-        Modifier
-            .background(MaterialTheme.colorScheme.surface)
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        modifier = Modifier
             .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Top).add(WindowInsets(top = AppBarHeight)))
             .fillMaxWidth()
-    )
+    ) {
+        ChipsRow(
+            chips =
+            listOf(
+                null to stringResource(R.string.filter_all),
+                FILTER_SONG to stringResource(R.string.filter_songs),
+                FILTER_VIDEO to stringResource(R.string.filter_videos),
+                FILTER_ALBUM to stringResource(R.string.filter_albums),
+                FILTER_ARTIST to stringResource(R.string.filter_artists),
+                FILTER_COMMUNITY_PLAYLIST to stringResource(R.string.filter_community_playlists),
+                FILTER_FEATURED_PLAYLIST to stringResource(R.string.filter_featured_playlists),
+            ),
+            currentValue = searchFilter,
+            onValueUpdate = {
+                if (viewModel.filter.value != it) {
+                    viewModel.filter.value = it
+                }
+                coroutineScope.launch {
+                    lazyListState.animateScrollToItem(0)
+                }
+            },
+        )
+    }
 }

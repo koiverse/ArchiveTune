@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -31,7 +32,6 @@ import androidx.navigation.NavController
 import moe.koiverse.archivetune.LocalPlayerConnection
 import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.constants.CONTENT_TYPE_LIST
-import moe.koiverse.archivetune.constants.ListItemHeight
 import moe.koiverse.archivetune.db.entities.Album
 import moe.koiverse.archivetune.db.entities.Artist
 import moe.koiverse.archivetune.db.entities.Playlist
@@ -86,52 +86,65 @@ fun LocalSearchScreen(
             .fillMaxSize()
             .background(if (pureBlack) Color.Black else MaterialTheme.colorScheme.background)
     ) {
-        ChipsRow(
-            chips = listOf(
-                LocalFilter.ALL to stringResource(R.string.filter_all),
-                LocalFilter.SONG to stringResource(R.string.filter_songs),
-                LocalFilter.ALBUM to stringResource(R.string.filter_albums),
-                LocalFilter.ARTIST to stringResource(R.string.filter_artists),
-                LocalFilter.PLAYLIST to stringResource(R.string.filter_playlists),
-            ),
-            currentValue = searchFilter,
-            onValueUpdate = { viewModel.filter.value = it },
-        )
+        Surface(
+            color = if (pureBlack) Color.Black else MaterialTheme.colorScheme.surfaceContainer,
+        ) {
+            ChipsRow(
+                chips = listOf(
+                    LocalFilter.ALL to stringResource(R.string.filter_all),
+                    LocalFilter.SONG to stringResource(R.string.filter_songs),
+                    LocalFilter.ALBUM to stringResource(R.string.filter_albums),
+                    LocalFilter.ARTIST to stringResource(R.string.filter_artists),
+                    LocalFilter.PLAYLIST to stringResource(R.string.filter_playlists),
+                ),
+                currentValue = searchFilter,
+                onValueUpdate = { viewModel.filter.value = it },
+            )
+        }
 
         LazyColumn(
             state = lazyListState,
+            contentPadding = PaddingValues(top = 4.dp),
             modifier = Modifier.weight(1f),
         ) {
             result.map.forEach { (filter, items) ->
                 if (result.filter == LocalFilter.ALL) {
                     item(key = filter) {
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(16.dp),
-                            verticalAlignment = Alignment.CenterVertically,
+                        Surface(
+                            shape = RoundedCornerShape(16.dp),
+                            color = if (pureBlack) Color.DarkGray.copy(alpha = 0.3f) else MaterialTheme.colorScheme.surfaceContainerLow,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(ListItemHeight)
-                                .clickable { viewModel.filter.value = filter }
-                                .padding(start = 12.dp, end = 18.dp),
+                                .padding(horizontal = 12.dp, vertical = 4.dp)
                         ) {
-                            Text(
-                                text = stringResource(
-                                    when (filter) {
-                                        LocalFilter.SONG -> R.string.filter_songs
-                                        LocalFilter.ALBUM -> R.string.filter_albums
-                                        LocalFilter.ARTIST -> R.string.filter_artists
-                                        LocalFilter.PLAYLIST -> R.string.filter_playlists
-                                        LocalFilter.ALL -> error("")
-                                    }
-                                ),
-                                style = MaterialTheme.typography.titleLarge,
-                                modifier = Modifier.weight(1f),
-                            )
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier
+                                    .clickable { viewModel.filter.value = filter }
+                                    .padding(horizontal = 16.dp, vertical = 14.dp),
+                            ) {
+                                Text(
+                                    text = stringResource(
+                                        when (filter) {
+                                            LocalFilter.SONG -> R.string.filter_songs
+                                            LocalFilter.ALBUM -> R.string.filter_albums
+                                            LocalFilter.ARTIST -> R.string.filter_artists
+                                            LocalFilter.PLAYLIST -> R.string.filter_playlists
+                                            LocalFilter.ALL -> error("")
+                                        }
+                                    ),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    modifier = Modifier.weight(1f),
+                                )
 
-                            Icon(
-                                painter = painterResource(R.drawable.navigate_next),
-                                contentDescription = null,
-                            )
+                                Icon(
+                                    painter = painterResource(R.drawable.navigate_next),
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
                         }
                     }
                 }

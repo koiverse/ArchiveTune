@@ -65,6 +65,7 @@ fun <E> ChipsRow(
         modifier =
         modifier
             .fillMaxWidth()
+            .padding(vertical = 8.dp)
             .horizontalScroll(rememberScrollState()),
     ) {
         Spacer(Modifier.width(12.dp))
@@ -75,10 +76,17 @@ fun <E> ChipsRow(
                 selected = currentValue == value,
                 colors = FilterChipDefaults.filterChipColors(
                     containerColor = containerColor,
+                    selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
+                    selectedLabelColor = MaterialTheme.colorScheme.onSecondaryContainer,
                 ),
                 onClick = { onValueUpdate(value) },
-                shape = RoundedCornerShape(16.dp),
-                border = null
+                shape = RoundedCornerShape(20.dp),
+                border = FilterChipDefaults.filterChipBorder(
+                    enabled = true,
+                    selected = currentValue == value,
+                    borderColor = Color.Transparent,
+                    selectedBorderColor = Color.Transparent,
+                )
             )
 
             Spacer(Modifier.width(8.dp))
