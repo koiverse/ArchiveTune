@@ -21,11 +21,13 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
@@ -87,7 +89,9 @@ fun LocalSearchScreen(
             .background(if (pureBlack) Color.Black else MaterialTheme.colorScheme.background)
     ) {
         Surface(
-            color = if (pureBlack) Color.Black else MaterialTheme.colorScheme.surfaceContainer,
+            color = if (pureBlack) Color.Black else MaterialTheme.colorScheme.surface,
+            tonalElevation = if (pureBlack) 0.dp else 2.dp,
+            shadowElevation = if (pureBlack) 0.dp else 4.dp,
         ) {
             ChipsRow(
                 chips = listOf(
@@ -104,47 +108,67 @@ fun LocalSearchScreen(
 
         LazyColumn(
             state = lazyListState,
-            contentPadding = PaddingValues(top = 4.dp),
+            contentPadding = PaddingValues(top = 8.dp),
             modifier = Modifier.weight(1f),
         ) {
             result.map.forEach { (filter, items) ->
                 if (result.filter == LocalFilter.ALL) {
                     item(key = filter) {
-                        Surface(
-                            shape = RoundedCornerShape(16.dp),
-                            color = if (pureBlack) Color.DarkGray.copy(alpha = 0.3f) else MaterialTheme.colorScheme.surfaceContainerLow,
+                        val filterIcon = when (filter) {
+                            LocalFilter.SONG -> R.drawable.music_note
+                            LocalFilter.ALBUM -> R.drawable.album
+                            LocalFilter.ARTIST -> R.drawable.person
+                            LocalFilter.PLAYLIST -> R.drawable.queue_music
+                            LocalFilter.ALL -> R.drawable.search
+                        }
+
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 12.dp, vertical = 4.dp)
+                                .clickable { viewModel.filter.value = filter }
+                                .padding(horizontal = 16.dp, vertical = 12.dp),
                         ) {
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                                verticalAlignment = Alignment.CenterVertically,
+                            Box(
+                                contentAlignment = Alignment.Center,
                                 modifier = Modifier
-                                    .clickable { viewModel.filter.value = filter }
-                                    .padding(horizontal = 16.dp, vertical = 14.dp),
+                                    .size(36.dp)
+                                    .background(
+                                        color = if (pureBlack) Color.White.copy(alpha = 0.08f) else MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
+                                        shape = RoundedCornerShape(10.dp)
+                                    )
                             ) {
-                                Text(
-                                    text = stringResource(
-                                        when (filter) {
-                                            LocalFilter.SONG -> R.string.filter_songs
-                                            LocalFilter.ALBUM -> R.string.filter_albums
-                                            LocalFilter.ARTIST -> R.string.filter_artists
-                                            LocalFilter.PLAYLIST -> R.string.filter_playlists
-                                            LocalFilter.ALL -> error("")
-                                        }
-                                    ),
-                                    style = MaterialTheme.typography.titleMedium,
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                    modifier = Modifier.weight(1f),
-                                )
-
                                 Icon(
-                                    painter = painterResource(R.drawable.navigate_next),
+                                    painter = painterResource(filterIcon),
                                     contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    tint = if (pureBlack) Color.White.copy(alpha = 0.7f) else MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(18.dp)
                                 )
                             }
+
+                            Spacer(Modifier.width(14.dp))
+
+                            Text(
+                                text = stringResource(
+                                    when (filter) {
+                                        LocalFilter.SONG -> R.string.filter_songs
+                                        LocalFilter.ALBUM -> R.string.filter_albums
+                                        LocalFilter.ARTIST -> R.string.filter_artists
+                                        LocalFilter.PLAYLIST -> R.string.filter_playlists
+                                        LocalFilter.ALL -> error("")
+                                    }
+                                ),
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.SemiBold,
+                                color = if (pureBlack) Color.White.copy(alpha = 0.9f) else MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.weight(1f),
+                            )
+
+                            Icon(
+                                painter = painterResource(R.drawable.navigate_next),
+                                contentDescription = null,
+                                tint = if (pureBlack) Color.White.copy(alpha = 0.3f) else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                            )
                         }
                     }
                 }
