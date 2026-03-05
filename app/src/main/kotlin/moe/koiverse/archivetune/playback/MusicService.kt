@@ -937,7 +937,7 @@ class MusicService :
                     withContext(Dispatchers.Main) {
                         player.repeatMode = playerState.repeatMode
                         player.shuffleModeEnabled = playerState.shuffleModeEnabled
-                        player.volume = playerState.volume
+                        playerVolume.value = playerState.volume
                         
                         if (playerState.currentMediaItemIndex < player.mediaItemCount) {
                             player.seekTo(playerState.currentMediaItemIndex, playerState.currentPosition)
@@ -4510,7 +4510,7 @@ class MusicService :
         val playWhenReady = player.playWhenReady
         val repeatMode = player.repeatMode
         val shuffleModeEnabled = player.shuffleModeEnabled
-        val volume = player.volume
+        val volume = playerVolume.value
         val playbackState = player.playbackState
 
         withContext(Dispatchers.IO) {
@@ -4576,7 +4576,7 @@ class MusicService :
                 val automixSnapshot = automixItems.value.mapNotNull { it.metadata }
                 val repeatMode = player.repeatMode
                 val shuffleModeEnabled = player.shuffleModeEnabled
-                val volume = player.volume
+                val volume = playerVolume.value
                 val playbackState = player.playbackState
                 val playWhenReady = player.playWhenReady
                 runBlocking(Dispatchers.IO) {
