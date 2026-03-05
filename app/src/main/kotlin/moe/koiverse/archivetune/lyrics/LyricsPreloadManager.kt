@@ -160,12 +160,10 @@ class LyricsPreloadManager @Inject constructor(
      * This is a simplified version that gets lyrics from enabled providers.
      */
     private suspend fun fetchLyricsForSong(song: MediaMetadata): String? {
-        // Create a temporary LyricsHelper instance
-        // Note: In production, this should be injected via Hilt
         val lyricsHelper = LyricsHelper(context, networkConnectivity)
         
         return try {
-            lyricsHelper.getLyrics(song)
+            lyricsHelper.getLyrics(song, preferredProviderOnly = true)
         } catch (e: Exception) {
             Log.w(TAG, "Error fetching lyrics for ${song.title}: ${e.message}")
             null
