@@ -11,15 +11,15 @@ package moe.koiverse.archivetune.viewmodels
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
 import moe.koiverse.archivetune.innertube.YouTube
 import moe.koiverse.archivetune.innertube.models.AlbumItem
 import moe.koiverse.archivetune.db.MusicDatabase
-import moe.koiverse.archivetune.db.entities.AlbumWithSongs
 import moe.koiverse.archivetune.utils.reportException
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -37,6 +37,12 @@ sealed interface AlbumUiState {
     ) : AlbumUiState
 }
 
+private sealed interface FetchState {
+    data object Pending : FetchState
+    data object Success : FetchState
+    data class Failed(val isNotFound: Boolean = false) : FetchState
+}
+
 @HiltViewModel
 class AlbumViewModel
 @Inject
@@ -46,13 +52,25 @@ constructor(
 ) : ViewModel() {
     val albumId = savedStateHandle.get<String>("albumId")!!
     val playlistId = MutableStateFlow("")
-    private val _uiState = MutableStateFlow<AlbumUiState>(AlbumUiState.Loading)
-    val uiState: StateFlow<AlbumUiState> = _uiState
     val albumWithSongs =
         database
             .albumWithSongs(albumId)
             .stateIn(viewModelScope, SharingStarted.Eagerly, null)
     var otherVersions = MutableStateFlow<List<AlbumItem>>(emptyList())
+
+    private val _fetchState = MutableStateFlow<FetchState>(FetchState.Pending)
+
+    val uiState: StateFlow<AlbumUiState> =
+        combine(albumWithSongs, _fetchState) { data, fetch ->
+            when {
+                data != null && data.songs.isNotEmpty() -> AlbumUiState.Content
+                fetch is FetchState.Pending -> AlbumUiState.Loading
+                fetch is FetchState.Failed && data == null -> AlbumUiState.Error(fetch.isNotFound)
+                fetch is FetchState.Success && (data == null || data.songs.isEmpty()) -> AlbumUiState.Empty
+                fetch is FetchState.Failed && data != null && data.songs.isNotEmpty() -> AlbumUiState.Content
+                else -> AlbumUiState.Loading
+            }
+        }.stateIn(viewModelScope, SharingStarted.Eagerly, AlbumUiState.Loading)
 
     init {
         retry()
@@ -60,53 +78,31 @@ constructor(
 
     fun retry() {
         viewModelScope.launch {
-            _uiState.value = AlbumUiState.Loading
+            _fetchState.value = FetchState.Pending
             val album = database.album(albumId).first()
             YouTube
                 .album(albumId)
                 .onSuccess {
-                    runCatching {
-                        val hasSongs = it.songs.isNotEmpty()
-                        playlistId.value = it.album.playlistId
-                        otherVersions.value = it.otherVersions
-                        database.withTransaction {
-                            if (album == null) {
-                                insert(it)
-                            } else {
-                                update(album.album, it, album.artists)
-                            }
+                    playlistId.value = it.album.playlistId
+                    otherVersions.value = it.otherVersions
+                    database.transaction {
+                        if (album == null) {
+                            insert(it)
+                        } else {
+                            update(album.album, it, album.artists)
                         }
-                        _uiState.value = if (hasSongs) AlbumUiState.Content else AlbumUiState.Empty
-                    }.onFailure { throwable ->
-                        reportException(throwable)
-                        updateUiState(database.albumWithSongs(albumId).first())
                     }
+                    _fetchState.value = FetchState.Success
                 }.onFailure {
                     reportException(it)
                     val isNotFound = it.message?.contains("NOT_FOUND") == true
                     if (isNotFound) {
-                        album?.album?.let { albumEntity ->
-                            database.withTransaction {
-                                delete(albumEntity)
-                            }
+                        database.query {
+                            album?.album?.let(::delete)
                         }
                     }
-                    val cachedAlbum = database.albumWithSongs(albumId).first()
-                    if (cachedAlbum != null) {
-                        updateUiState(cachedAlbum)
-                    } else {
-                        _uiState.value = AlbumUiState.Error(isNotFound = isNotFound)
-                    }
+                    _fetchState.value = FetchState.Failed(isNotFound = isNotFound)
                 }
         }
-    }
-
-    private fun updateUiState(albumWithSongs: AlbumWithSongs?) {
-        _uiState.value =
-            when {
-                albumWithSongs == null -> AlbumUiState.Error()
-                albumWithSongs.songs.isEmpty() -> AlbumUiState.Empty
-                else -> AlbumUiState.Content
-            }
     }
 }
