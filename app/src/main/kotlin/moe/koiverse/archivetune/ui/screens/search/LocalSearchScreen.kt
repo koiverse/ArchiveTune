@@ -103,6 +103,13 @@ fun LocalSearchScreen(
                 ),
                 currentValue = searchFilter,
                 onValueUpdate = { viewModel.filter.value = it },
+                icons = mapOf(
+                    LocalFilter.ALL to R.drawable.search,
+                    LocalFilter.SONG to R.drawable.music_note,
+                    LocalFilter.ALBUM to R.drawable.album,
+                    LocalFilter.ARTIST to R.drawable.person,
+                    LocalFilter.PLAYLIST to R.drawable.queue_music,
+                ),
             )
         }
 
