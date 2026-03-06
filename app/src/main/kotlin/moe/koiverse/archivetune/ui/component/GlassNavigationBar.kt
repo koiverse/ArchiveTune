@@ -61,14 +61,15 @@ fun GlassNavigationBar(
     slimNav: Boolean,
     pureBlack: Boolean,
     bottomInset: Dp,
+    bottomPadding: Dp,
     slideOffset: Dp,
     modifier: Modifier = Modifier,
 ) {
     val isDark = pureBlack || MaterialTheme.colorScheme.background.luminance() < 0.5f
     val glassStyle = GlassEffectDefaults.navigationBarStyle(isDark, pureBlack)
     val navBarHeight = if (slimNav) SlimNavBarHeight else NavigationBarHeight
-    val totalHeight = bottomInset + navBarHeight
-    val glassShape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
+    val totalHeight = bottomInset + bottomPadding + navBarHeight
+    val glassShape = RoundedCornerShape(28.dp)
 
     val supportsBackdrop = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
     val supportsLens = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
@@ -87,47 +88,52 @@ fun GlassNavigationBar(
             .offset { IntOffset(0, slideOffset.roundToPx()) }
     ) {
         Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(totalHeight)
-                .clip(glassShape)
-                .then(
-                    if (supportsBackdrop) {
-                        Modifier.drawBackdrop(
-                            backdrop = backdrop,
-                            shape = { glassShape },
-                            effects = {
-                                if (glassStyle.useVibrancy) vibrancy()
-                                blur(with(density) { glassStyle.blurRadius.toPx() })
-                                if (supportsLens && glassStyle.useLens) {
-                                    lens(
-                                        with(density) { glassStyle.lensHeight.toPx() },
-                                        with(density) { glassStyle.lensAmount.toPx() }
-                                    )
+            modifier =
+                Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(start = 12.dp, end = 12.dp, bottom = bottomInset + bottomPadding)
+                    .fillMaxWidth()
+                    .height(navBarHeight)
+                    .clip(glassShape)
+                    .then(
+                        if (supportsBackdrop) {
+                            Modifier.drawBackdrop(
+                                backdrop = backdrop,
+                                shape = { glassShape },
+                                effects = {
+                                    if (glassStyle.useVibrancy) vibrancy()
+                                    blur(with(density) { glassStyle.blurRadius.toPx() })
+                                    if (supportsLens && glassStyle.useLens) {
+                                        lens(
+                                            with(density) { glassStyle.lensHeight.toPx() },
+                                            with(density) { glassStyle.lensAmount.toPx() }
+                                        )
+                                    }
+                                },
+                                onDrawSurface = {
+                                    drawRect(glassStyle.surfaceTint.copy(alpha = glassStyle.surfaceAlpha))
+                                    drawRect(glassStyle.overlayColor.copy(alpha = glassStyle.overlayAlpha))
                                 }
-                            },
-                            onDrawSurface = {
-                                drawRect(glassStyle.surfaceTint.copy(alpha = glassStyle.surfaceAlpha))
-                                drawRect(glassStyle.overlayColor.copy(alpha = glassStyle.overlayAlpha))
-                            }
-                        )
-                    } else {
-                        Modifier.background(
-                            if (pureBlack) Color.Black
-                            else MaterialTheme.colorScheme.surfaceContainer
-                        )
-                    }
-                )
-                .border(
-                    width = 0.5.dp,
-                    brush = Brush.verticalGradient(
-                        colors = listOf(
-                            glassStyle.borderColor.copy(alpha = glassStyle.borderAlpha),
-                            Color.Transparent,
-                        )
-                    ),
-                    shape = glassShape
-                )
+                            )
+                        } else {
+                            Modifier.background(
+                                if (pureBlack) Color.Black
+                                else MaterialTheme.colorScheme.surfaceContainer
+                            )
+                        }
+                    )
+                    .border(
+                        width = 0.5.dp,
+                        brush =
+                            Brush.verticalGradient(
+                                colors =
+                                    listOf(
+                                        glassStyle.borderColor.copy(alpha = glassStyle.borderAlpha),
+                                        glassStyle.borderColor.copy(alpha = glassStyle.borderAlpha * 0.25f),
+                                    )
+                            ),
+                        shape = glassShape
+                    )
         ) {
             GlassNavigationBarContent(
                 navigationItems = navigationItems,
@@ -136,10 +142,7 @@ fun GlassNavigationBar(
                 slimNav = slimNav,
                 pureBlack = pureBlack,
                 isDark = isDark,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(navBarHeight)
-                    .align(Alignment.TopCenter)
+                modifier = Modifier.fillMaxWidth().height(navBarHeight),
             )
         }
     }
