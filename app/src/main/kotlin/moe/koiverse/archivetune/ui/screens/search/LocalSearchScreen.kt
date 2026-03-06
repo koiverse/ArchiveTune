@@ -90,7 +90,7 @@ fun LocalSearchScreen(
     ) {
         Surface(
             color = if (pureBlack) Color.Black else MaterialTheme.colorScheme.surface,
-            tonalElevation = if (pureBlack) 0.dp else 2.dp,
+            tonalElevation = if (pureBlack) 0.dp else 0.dp,
             shadowElevation = if (pureBlack) 0.dp else 4.dp,
         ) {
             ChipsRow(
