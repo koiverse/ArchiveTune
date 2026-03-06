@@ -121,6 +121,7 @@ val AutoStartOnBluetoothKey = booleanPreferencesKey("autoStartOnBluetooth")
 val StopMusicOnTaskClearKey = booleanPreferencesKey("stopMusicOnTaskClear")
 val ArtistSeparatorsKey = stringPreferencesKey("artistSeparators")
 val PlaylistTagsFilterKey = stringPreferencesKey("playlistTagsFilter")
+val ShowHomeCategoryChipsKey = booleanPreferencesKey("showHomeCategoryChips")
 val ShowTagsInLibraryKey = booleanPreferencesKey("showTagsInLibrary")
 
 val EqualizerEnabledKey = booleanPreferencesKey("equalizerEnabled")

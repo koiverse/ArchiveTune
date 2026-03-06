@@ -166,7 +166,7 @@ fun AutoPlaylistScreen(
 
     val (ytmSync) = rememberPreference(YtmSyncKey, true)
     val hideExplicit by rememberPreference(key = HideExplicitKey, defaultValue = false)
-    val (disableBlur) = rememberPreference(DisableBlurKey, false)
+    val (disableBlur) = rememberPreference(DisableBlurKey, true)
 
     val likeLength = remember(songs) {
         songs?.fastSumBy { it.song.duration } ?: 0

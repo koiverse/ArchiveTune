@@ -55,6 +55,7 @@ import moe.koiverse.archivetune.LocalPlayerConnection
 import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.constants.InnerTubeCookieKey
 import moe.koiverse.archivetune.constants.DisableBlurKey
+import moe.koiverse.archivetune.constants.ShowHomeCategoryChipsKey
 import moe.koiverse.archivetune.db.entities.Album
 import moe.koiverse.archivetune.db.entities.Artist
 import moe.koiverse.archivetune.db.entities.Playlist
@@ -113,7 +114,8 @@ fun HomeScreen(
     val accountName by viewModel.accountName.collectAsState()
     val accountImageUrl by viewModel.accountImageUrl.collectAsState()
     val innerTubeCookie by rememberPreference(InnerTubeCookieKey, "")
-    val (disableBlur) = rememberPreference(DisableBlurKey, false)
+    val (disableBlur) = rememberPreference(DisableBlurKey, true)
+    val (showHomeCategoryChips) = rememberPreference(ShowHomeCategoryChipsKey, true)
     val isLoggedIn = remember(innerTubeCookie) {
         "SAPISID" in parseCookieString(innerTubeCookie)
     }
@@ -145,6 +147,12 @@ fun HomeScreen(
     if (selectedChip != null) {
         BackHandler {
             // if a chip is selected, go back to the normal homepage first
+            viewModel.toggleChip(selectedChip)
+        }
+    }
+
+    LaunchedEffect(showHomeCategoryChips, selectedChip) {
+        if (!showHomeCategoryChips && selectedChip != null) {
             viewModel.toggleChip(selectedChip)
         }
     }
@@ -291,19 +299,19 @@ fun HomeScreen(
                 state = lazylistState,
                 contentPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues()
             ) {
-            item {
-                val visibleHomeChips = homePage?.chips.orEmpty()
-                    .filterNot { it.title.contains("podcasts", ignoreCase = true) }
-                ChipsRow(
-                    chips = visibleHomeChips.map { it to it.title },
-                    currentValue = selectedChip,
-                    onValueUpdate = {
-                        viewModel.toggleChip(it)
+                if (showHomeCategoryChips) {
+                    item {
+                        ChipsRow(
+                            chips = homePage?.chips.orEmpty().map { it to it.title },
+                            currentValue = selectedChip,
+                            onValueUpdate = {
+                                viewModel.toggleChip(it)
+                            }
+                        )
                     }
-                )
-            }
+                }
 
-            quickPicks?.takeIf { it.isNotEmpty() }?.let { picks ->
+                quickPicks?.takeIf { it.isNotEmpty() }?.let { picks ->
             /*
                 item {
                     NavigationTitle(

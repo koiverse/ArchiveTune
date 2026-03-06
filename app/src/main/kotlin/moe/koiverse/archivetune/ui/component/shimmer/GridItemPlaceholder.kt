@@ -23,13 +23,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.dp
+import moe.koiverse.archivetune.constants.GridThumbnailCornerRadius
 import moe.koiverse.archivetune.constants.GridThumbnailHeight
-import moe.koiverse.archivetune.constants.ThumbnailCornerRadius
 
 @Composable
 fun GridItemPlaceHolder(
     modifier: Modifier = Modifier,
-    thumbnailShape: Shape = RoundedCornerShape(ThumbnailCornerRadius),
+    thumbnailShape: Shape = RoundedCornerShape(GridThumbnailCornerRadius),
     fillMaxWidth: Boolean = false,
 ) {
     Column(

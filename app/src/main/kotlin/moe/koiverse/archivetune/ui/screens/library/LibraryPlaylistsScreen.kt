@@ -288,7 +288,7 @@ fun LibraryPlaylistsScreen(
     }
 
     val (ytmSync) = rememberPreference(YtmSyncKey, true)
-    val (disableBlur) = rememberPreference(DisableBlurKey, false)
+    val (disableBlur) = rememberPreference(DisableBlurKey, true)
 
     LaunchedEffect(Unit) {
         if (ytmSync) {

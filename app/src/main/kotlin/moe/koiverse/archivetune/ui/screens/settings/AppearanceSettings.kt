@@ -89,6 +89,7 @@ import moe.koiverse.archivetune.constants.SliderStyleKey
 import moe.koiverse.archivetune.constants.SlimNavBarKey
 import moe.koiverse.archivetune.constants.ShowLikedPlaylistKey
 import moe.koiverse.archivetune.constants.ShowDownloadedPlaylistKey
+import moe.koiverse.archivetune.constants.ShowHomeCategoryChipsKey
 import moe.koiverse.archivetune.constants.ShowTopPlaylistKey
 import moe.koiverse.archivetune.constants.ShowCachedPlaylistKey
 import moe.koiverse.archivetune.constants.ShowTagsInLibraryKey
@@ -249,6 +250,10 @@ fun AppearanceSettings(
     )
     val (showTagsInLibrary, onShowTagsInLibraryChange) = rememberPreference(
         ShowTagsInLibraryKey,
+        defaultValue = true
+    )
+    val (showHomeCategoryChips, onShowHomeCategoryChipsChange) = rememberPreference(
+        ShowHomeCategoryChipsKey,
         defaultValue = true
     )
 
@@ -848,6 +853,14 @@ fun AppearanceSettings(
                 }
             },
             onValueSelected = onDefaultChipChange,
+        )
+
+        SwitchPreference(
+            title = { Text(stringResource(R.string.show_home_category_chips)) },
+            description = stringResource(R.string.show_home_category_chips_desc),
+            icon = { Icon(painterResource(R.drawable.home_outlined), null) },
+            checked = showHomeCategoryChips,
+            onCheckedChange = onShowHomeCategoryChipsChange,
         )
 
         SwitchPreference(
