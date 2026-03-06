@@ -11,7 +11,6 @@ package moe.koiverse.archivetune.ui.component
 import android.annotation.SuppressLint
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandIn
@@ -21,16 +20,13 @@ import androidx.compose.animation.shrinkOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -49,15 +45,11 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.ui.screens.OptionStats
@@ -69,6 +61,7 @@ fun <E> ChipsRow(
     onValueUpdate: (E) -> Unit,
     modifier: Modifier = Modifier,
     containerColor: Color = MaterialTheme.colorScheme.surfaceContainer,
+    icons: Map<E, Int> = emptyMap(),
 ) {
     Row(
         modifier =
@@ -81,43 +74,33 @@ fun <E> ChipsRow(
 
         chips.forEach { (value, label) ->
             val isSelected = currentValue == value
-            val animatedBg by animateColorAsState(
-                targetValue = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerHighest,
-                animationSpec = tween(durationMillis = 250),
-                label = "chipBg"
-            )
-            val animatedTextColor by animateColorAsState(
-                targetValue = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
-                animationSpec = tween(durationMillis = 250),
-                label = "chipText"
-            )
-            val animatedElevation by animateFloatAsState(
-                targetValue = if (isSelected) 4f else 0f,
-                animationSpec = tween(durationMillis = 250),
-                label = "chipElev"
-            )
+            val iconRes = icons[value]
 
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier
-                    .height(36.dp)
-                    .shadow(
-                        elevation = animatedElevation.dp,
-                        shape = RoundedCornerShape(18.dp),
-                        clip = false
-                    )
-                    .clip(RoundedCornerShape(18.dp))
-                    .background(animatedBg)
-                    .clickable { onValueUpdate(value) }
-                    .padding(horizontal = 16.dp)
-            ) {
-                Text(
-                    text = label,
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
-                    color = animatedTextColor,
-                )
-            }
+            FilterChip(
+                selected = isSelected,
+                onClick = { onValueUpdate(value) },
+                label = { Text(label) },
+                leadingIcon = {
+                    if (isSelected) {
+                        Icon(
+                            painter = painterResource(R.drawable.done),
+                            contentDescription = null,
+                            modifier = Modifier.size(FilterChipDefaults.IconSize),
+                        )
+                    } else if (iconRes != null) {
+                        Icon(
+                            painter = painterResource(iconRes),
+                            contentDescription = null,
+                            modifier = Modifier.size(FilterChipDefaults.IconSize),
+                        )
+                    }
+                },
+                shape = RoundedCornerShape(16.dp),
+                border = null,
+                colors = FilterChipDefaults.filterChipColors(
+                    containerColor = containerColor,
+                ),
+            )
 
             Spacer(Modifier.width(8.dp))
         }
