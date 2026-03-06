@@ -73,6 +73,12 @@ fun LibraryScreen(navController: NavController) {
                                 it
                             }
                     },
+                    icons = mapOf(
+                        LibraryFilter.PLAYLISTS to R.drawable.queue_music,
+                        LibraryFilter.SONGS to R.drawable.music_note,
+                        LibraryFilter.ALBUMS to R.drawable.album,
+                        LibraryFilter.ARTISTS to R.drawable.person,
+                    ),
                     modifier = Modifier.weight(1f),
                 )
             }

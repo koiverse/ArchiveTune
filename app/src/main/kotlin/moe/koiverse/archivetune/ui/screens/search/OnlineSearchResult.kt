@@ -307,7 +307,7 @@ fun OnlineSearchResult(
     Surface(
         color = MaterialTheme.colorScheme.surface,
         tonalElevation = 0.dp,
-        shadowElevation = 4.dp,
+        shadowElevation = 1.dp,
         modifier = Modifier
             .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Top).add(WindowInsets(top = AppBarHeight)))
             .fillMaxWidth()
