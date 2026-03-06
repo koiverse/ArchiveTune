@@ -332,6 +332,15 @@ fun OnlineSearchResult(
                     lazyListState.animateScrollToItem(0)
                 }
             },
+            icons = mapOf(
+                null to R.drawable.search,
+                FILTER_SONG to R.drawable.music_note,
+                FILTER_VIDEO to R.drawable.slow_motion_video,
+                FILTER_ALBUM to R.drawable.album,
+                FILTER_ARTIST to R.drawable.person,
+                FILTER_COMMUNITY_PLAYLIST to R.drawable.queue_music,
+                FILTER_FEATURED_PLAYLIST to R.drawable.playlist_play,
+            ),
         )
     }
 }
