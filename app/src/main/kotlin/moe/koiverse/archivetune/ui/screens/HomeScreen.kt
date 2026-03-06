@@ -304,12 +304,14 @@ fun HomeScreen(
             }
 
             quickPicks?.takeIf { it.isNotEmpty() }?.let { picks ->
+            /*
                 item {
                     NavigationTitle(
                         title = stringResource(R.string.quick_picks),
                         modifier = Modifier.animateItem()
                     )
                 }
+            */
 
                 item {
                     QuickPicksSection(
