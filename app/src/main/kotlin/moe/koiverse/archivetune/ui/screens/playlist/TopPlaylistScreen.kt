@@ -163,7 +163,7 @@ fun TopPlaylistScreen(
     }
 
     var selection by remember { mutableStateOf(false) }
-    val (disableBlur) = rememberPreference(DisableBlurKey, true)
+    val (disableBlur) = rememberPreference(DisableBlurKey, false)
 
     if (isSearching) {
         BackHandler {
