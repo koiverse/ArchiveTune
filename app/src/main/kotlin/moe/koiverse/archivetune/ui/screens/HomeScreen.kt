@@ -108,7 +108,6 @@ fun HomeScreen(
     val isRefreshing by viewModel.isRefreshing.collectAsState()
     val pullRefreshState = rememberPullToRefreshState()
 
-    val quickPicksLazyGridState = rememberLazyGridState()
     val forgottenFavoritesLazyGridState = rememberLazyGridState()
 
     val accountName by viewModel.accountName.collectAsState()
@@ -148,10 +147,6 @@ fun HomeScreen(
             // if a chip is selected, go back to the normal homepage first
             viewModel.toggleChip(selectedChip)
         }
-    }
-
-    LaunchedEffect(quickPicks) {
-        quickPicksLazyGridState.scrollToItem(0)
     }
 
     LaunchedEffect(forgottenFavorites) {
@@ -283,14 +278,6 @@ fun HomeScreen(
         ) {
             val horizontalLazyGridItemWidthFactor = if (maxWidth * 0.475f >= 320.dp) 0.475f else 0.9f
             val horizontalLazyGridItemWidth = maxWidth * horizontalLazyGridItemWidthFactor
-            val quickPicksSnapLayoutInfoProvider = remember(quickPicksLazyGridState) {
-                SnapLayoutInfoProvider(
-                    lazyGridState = quickPicksLazyGridState,
-                    positionInLayout = { layoutSize, itemSize ->
-                        (layoutSize * horizontalLazyGridItemWidthFactor / 2f - itemSize / 2f)
-                    }
-                )
-            }
             val forgottenFavoritesSnapLayoutInfoProvider = remember(forgottenFavoritesLazyGridState) {
                 SnapLayoutInfoProvider(
                     lazyGridState = forgottenFavoritesLazyGridState,
@@ -329,9 +316,6 @@ fun HomeScreen(
                         quickPicks = picks,
                         mediaMetadata = mediaMetadata,
                         isPlaying = isPlaying,
-                        horizontalLazyGridItemWidth = horizontalLazyGridItemWidth,
-                        lazyGridState = quickPicksLazyGridState,
-                        snapLayoutInfoProvider = quickPicksSnapLayoutInfoProvider,
                         navController = navController,
                         playerConnection = playerConnection,
                         menuState = menuState,
