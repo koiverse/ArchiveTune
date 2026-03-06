@@ -66,7 +66,7 @@ constructor(
                 data != null && data.songs.isNotEmpty() -> AlbumUiState.Content
                 fetch is FetchState.Pending -> AlbumUiState.Loading
                 fetch is FetchState.Failed && data == null -> AlbumUiState.Error(fetch.isNotFound)
-                fetch is FetchState.Success && (data == null || data.songs.isEmpty()) -> AlbumUiState.Empty
+                fetch is FetchState.Success && data != null && data.songs.isEmpty() -> AlbumUiState.Empty
                 fetch is FetchState.Failed && data != null && data.songs.isNotEmpty() -> AlbumUiState.Content
                 else -> AlbumUiState.Loading
             }
@@ -85,7 +85,7 @@ constructor(
                 .onSuccess {
                     playlistId.value = it.album.playlistId
                     otherVersions.value = it.otherVersions
-                    database.transaction {
+                    database.withTransaction {
                         if (album == null) {
                             insert(it)
                         } else {
