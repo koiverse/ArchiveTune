@@ -1124,7 +1124,10 @@ fun LocalPlaylistScreen(
                         }
 
                         val dismissBoxState = rememberSwipeToDismissBoxState(
-                            positionalThreshold = { totalDistance -> totalDistance }
+                            positionalThreshold = { totalDistance -> totalDistance },
+                            confirmValueChange = { targetValue ->
+                                targetValue == SwipeToDismissBoxValue.Settled || !lazyListState.isScrollInProgress
+                            }
                         )
                         var processedDismiss by remember { mutableStateOf(false) }
                         LaunchedEffect(dismissBoxState.currentValue) {
@@ -1149,6 +1152,7 @@ fun LocalPlaylistScreen(
                                     viewCounts[song.song.id]?.let { count -> formatCompactCount(count.toLong()) },
                                 isActive = song.song.id == mediaMetadata?.id,
                                 isPlaying = isPlaying,
+                                isSwipeable = locked || selection,
                                 showInLibraryIcon = true,
                                 trailingContent = {
                                     IconButton(
@@ -1251,7 +1255,10 @@ fun LocalPlaylistScreen(
                         }
 
                         val dismissBoxState = rememberSwipeToDismissBoxState(
-                            positionalThreshold = { totalDistance -> totalDistance }
+                            positionalThreshold = { totalDistance -> totalDistance },
+                            confirmValueChange = { targetValue ->
+                                targetValue == SwipeToDismissBoxValue.Settled || !lazyListState.isScrollInProgress
+                            }
                         )
                         var processedDismiss2 by remember { mutableStateOf(false) }
                         LaunchedEffect(dismissBoxState.currentValue) {
@@ -1276,6 +1283,7 @@ fun LocalPlaylistScreen(
                                     viewCounts[songWrapper.item.song.id]?.let { count -> formatCompactCount(count.toLong()) },
                                 isActive = songWrapper.item.song.id == mediaMetadata?.id,
                                 isPlaying = isPlaying,
+                                isSwipeable = locked || !editable,
                                 showInLibraryIcon = true,
                                 trailingContent = {
                                     IconButton(
