@@ -268,6 +268,11 @@
     <string name="theme_preview_trackline">A premium preview card</string>
     <string name="theme_preview_primary_action">Primary Action</string>
     <string name="theme_preview_secondary_action">Secondary Action</string>
+    <string name="check_for_update">Check for update</string>
+
+    <string name="install">Install</string>
+    <string name="download_progress">Downloading: %1$d%%</string>
+    <string name="download_failed">Download failed</string>
 
     <string name="copy">Copy</string>
     <string name="backup_in_progress">Backup in progress</string>

@@ -669,6 +669,9 @@ ArchiveTune will only extract your token, and everything else is stored locally.
     <string name="view_changelog">View Changelog</string>
     <string name="error_loading_changelog">Error loading changelog</string>
     <string name="no_releases">No releases found</string>
+    <string name="no_updates_available">No updates available</string>
+    <string name="checking_for_updates">Checking for updates...</string>
+    <string name="update_check_failed">Update check failed: %1$s</string>
     <string name="update_notification_channel_name">App Updates</string>
     <string name="update_notification_channel_desc">Notifications for new app updates</string>
     <string name="update_notification_title">Update Available</string>

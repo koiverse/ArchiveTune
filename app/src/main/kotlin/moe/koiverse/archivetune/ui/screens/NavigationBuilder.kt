@@ -83,11 +83,12 @@ import moe.koiverse.archivetune.ui.screens.settings.PoTokenScreen
 import moe.koiverse.archivetune.ui.screens.settings.PrivacySettings
 import moe.koiverse.archivetune.ui.screens.settings.SettingsScreen
 import moe.koiverse.archivetune.ui.screens.settings.StorageSettings
-import moe.koiverse.archivetune.ui.screens.settings.ThemeCreatorScreen
-import moe.koiverse.archivetune.ui.screens.settings.UpdateScreen
-import moe.koiverse.archivetune.ui.utils.ShowMediaInfo
-import moe.koiverse.archivetune.utils.rememberEnumPreference
-import moe.koiverse.archivetune.utils.rememberPreference
+ import moe.koiverse.archivetune.ui.screens.settings.ThemeCreatorScreen
+ import moe.koiverse.archivetune.ui.screens.settings.UpdateScreen
+ import moe.koiverse.archivetune.ui.utils.ShowMediaInfo
+ import moe.koiverse.archivetune.utils.rememberEnumPreference
+ import moe.koiverse.archivetune.utils.rememberPreference
+ import moe.koiverse.archivetune.ui.screens.NewUpdateAvailableScreen
 
 @OptIn(ExperimentalMaterial3Api::class)
 fun NavGraphBuilder.navigationBuilder(
@@ -356,16 +357,19 @@ fun NavGraphBuilder.navigationBuilder(
     composable("settings/discord/login") {
         DiscordLoginScreen(navController)
     }
-    composable("settings/about") {
-        AboutScreen(navController, scrollBehavior)
-    }
-    composable("settings/po_token") {
-        PoTokenScreen(navController, scrollBehavior)
-    }
-    composable("customize_background") {
-        CustomizeBackground(navController)
-    }
-    composable("login") {
-        LoginScreen(navController)
-    }
+     composable("settings/about") {
+         AboutScreen(navController, scrollBehavior)
+     }
+     composable("settings/po_token") {
+         PoTokenScreen(navController, scrollBehavior)
+     }
+     composable("customize_background") {
+         CustomizeBackground(navController)
+     }
+      composable("login") {
+          LoginScreen(navController)
+      }
+       composable("new_update_available") {
+           NewUpdateAvailableScreen(navController)
+       }
 }
