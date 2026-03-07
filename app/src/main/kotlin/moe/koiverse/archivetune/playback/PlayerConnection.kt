@@ -20,7 +20,6 @@ import androidx.media3.common.Player.REPEAT_MODE_OFF
 import androidx.media3.common.Player.STATE_ENDED
 import androidx.media3.common.Timeline
 import moe.koiverse.archivetune.db.MusicDatabase
-import moe.koiverse.archivetune.extensions.currentMetadata
 import moe.koiverse.archivetune.extensions.getCurrentQueueIndex
 import moe.koiverse.archivetune.extensions.getQueueWindows
 import moe.koiverse.archivetune.extensions.metadata
@@ -56,7 +55,7 @@ class PlayerConnection(
             SharingStarted.Lazily,
             player.playWhenReady && player.playbackState != STATE_ENDED
         )
-    val mediaMetadata = MutableStateFlow(player.currentMetadata)
+    val mediaMetadata = service.currentMediaMetadata
     val currentSong =
         mediaMetadata.flatMapLatest {
             database.song(it?.id)
@@ -90,21 +89,12 @@ class PlayerConnection(
         playbackState.value = player.playbackState
         playWhenReady.value = player.playWhenReady
         playbackParameters.value = player.playbackParameters
-        val currentMeta = player.currentMetadata ?: service.currentMediaMetadata.value
-        mediaMetadata.value = currentMeta
         queueTitle.value = service.queueTitle
         queueWindows.value = player.getQueueWindows()
         currentWindowIndex.value = player.getCurrentQueueIndex()
         currentMediaItemIndex.value = player.currentMediaItemIndex
         shuffleModeEnabled.value = player.shuffleModeEnabled
         repeatMode.value = player.repeatMode
-        
-        if (currentMeta == null && player.mediaItemCount > 0) {
-            val mediaItem = player.currentMediaItem
-            if (mediaItem != null) {
-                mediaMetadata.value = mediaItem.metadata
-            }
-        }
     }
 
     fun playQueue(queue: Queue) {
@@ -185,8 +175,6 @@ class PlayerConnection(
         mediaItem: MediaItem?,
         reason: Int,
     ) {
-        val meta = mediaItem?.metadata ?: service.currentMediaMetadata.value
-        mediaMetadata.value = meta
         currentMediaItemIndex.value = player.currentMediaItemIndex
         currentWindowIndex.value = player.getCurrentQueueIndex()
         updateCanSkipPreviousAndNext()

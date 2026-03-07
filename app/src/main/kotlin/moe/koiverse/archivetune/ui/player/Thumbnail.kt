@@ -101,6 +101,7 @@ import moe.koiverse.archivetune.constants.ThumbnailCornerRadiusKey
 import moe.koiverse.archivetune.constants.CropThumbnailToSquareKey
 import moe.koiverse.archivetune.constants.HidePlayerThumbnailKey
 import moe.koiverse.archivetune.extensions.metadata
+import moe.koiverse.archivetune.extensions.toMediaItem
 import moe.koiverse.archivetune.innertube.YouTube
 import moe.koiverse.archivetune.innertube.models.YouTubeClient
 import moe.koiverse.archivetune.utils.rememberEnumPreference
@@ -338,9 +339,19 @@ fun Thumbnail(
         } else null
     } else null
 
-    val currentMediaItem = try {
-        playerConnection.player.currentMediaItem
-    } catch (e: Exception) { null }
+    val currentMediaItem = remember(mediaMetadata) {
+        // Fallback to player's current item if mediaMetadata is null, 
+        // but prefer mediaMetadata for immediate updates during crossfade.
+        val metadata = mediaMetadata
+        if (metadata != null) {
+            // Use extension to convert metadata to a proper MediaItem with all fields (uri, artwork, tag)
+            metadata.toMediaItem()
+        } else {
+            try {
+                playerConnection.player.currentMediaItem
+            } catch (e: Exception) { null }
+        }
+    }
 
     val mediaItems = listOfNotNull(previousMediaMetadata, currentMediaItem, nextMediaMetadata)
     val currentMediaIndex = mediaItems.indexOf(currentMediaItem)
@@ -379,7 +390,7 @@ fun Thumbnail(
     }
 
     // Update position when song changes
-    LaunchedEffect(mediaMetadata, canSkipPrevious, canSkipNext) {
+    LaunchedEffect(mediaMetadata, currentMediaItem?.mediaId, canSkipPrevious, canSkipNext) {
         val index = maxOf(0, currentMediaIndex)
         if (index >= 0 && index < mediaItems.size) {
             try {
@@ -390,7 +401,7 @@ fun Thumbnail(
         }
     }
 
-    LaunchedEffect(playerConnection.player.currentMediaItemIndex) {
+    LaunchedEffect(playerConnection.player.currentMediaItemIndex, currentMediaItem?.mediaId) {
         val index = mediaItems.indexOf(currentMediaItem)
         if (index >= 0 && index != currentItem) {
             thumbnailLazyGridState.scrollToItem(index)

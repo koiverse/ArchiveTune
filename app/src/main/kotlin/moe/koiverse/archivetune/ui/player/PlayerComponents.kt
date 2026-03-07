@@ -632,10 +632,13 @@ fun PlayerSlider(
     onValueChange: (Long) -> Unit,
     onValueChangeFinished: () -> Unit
 ) {
+    val safeDuration = if (duration <= 0L) 0f else duration.toFloat()
+    val safeValue = (sliderPosition ?: position).toFloat().coerceIn(0f, maxOf(0f, safeDuration))
+    
     StyledPlaybackSlider(
         sliderStyle = sliderStyle,
-        value = (sliderPosition ?: position).toFloat(),
-        valueRange = 0f..(if (duration == C.TIME_UNSET) 0f else duration.toFloat()),
+        value = safeValue,
+        valueRange = 0f..maxOf(1f, safeDuration),
         onValueChange = { onValueChange(it.toLong()) },
         onValueChangeFinished = onValueChangeFinished,
         activeColor = textButtonColor,

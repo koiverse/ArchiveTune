@@ -285,10 +285,10 @@ fun BottomSheetPlayer(
 
     val sliderStyle by rememberEnumPreference(SliderStyleKey, SliderStyle.Standard)
 
-    var position by rememberSaveable(playbackState) {
+    var position by rememberSaveable(mediaMetadata?.id) {
         mutableLongStateOf(playerConnection.player.currentPosition)
     }
-    var duration by rememberSaveable(playbackState) {
+    var duration by rememberSaveable(mediaMetadata?.id) {
         mutableLongStateOf(playerConnection.player.duration)
     }
     var sliderPosition by remember {
@@ -512,12 +512,30 @@ fun BottomSheetPlayer(
         mutableStateOf(false)
     }
 
-    LaunchedEffect(playbackState) {
+    LaunchedEffect(mediaMetadata?.id, playbackState) {
+        val startTime = SystemClock.elapsedRealtime()
         if (playbackState == STATE_READY) {
             while (isActive) {
                 delay(100)
-                position = playerConnection.player.currentPosition
-                duration = playerConnection.player.duration
+                val isTransitioning = playerConnection.player.currentMediaItem?.mediaId != mediaMetadata?.id
+                
+                if (isTransitioning) {
+                    val elapsedSinceStart = SystemClock.elapsedRealtime() - startTime
+                    position = elapsedSinceStart
+                    mediaMetadata?.let {
+                        val metaDuration = it.duration.toLong() * 1000
+                        duration = if (metaDuration > 0) metaDuration else 0L
+                    }
+                } else {
+                    position = playerConnection.player.currentPosition
+                    duration = playerConnection.player.duration
+                }
+            }
+        } else {
+            mediaMetadata?.let {
+                val metaDuration = it.duration.toLong() * 1000
+                duration = if (metaDuration > 0) metaDuration else 0L
+                position = 0L
             }
         }
     }
@@ -614,7 +632,15 @@ fun BottomSheetPlayer(
         val onSliderValueChange: (Long) -> Unit = { sliderPosition = it }
         val onSliderValueChangeFinished: () -> Unit = {
             sliderPosition?.let {
-                playerConnection.player.seekTo(it)
+                val isTransitioning = playerConnection.player.currentMediaItem?.mediaId != mediaMetadata?.id
+                if (isTransitioning) {
+                    // During crossfade, we want to seek in the NEXT song (the one UI is showing)
+                    // The easiest way is to skip to it and then seek
+                    playerConnection.player.seekToNext()
+                    playerConnection.player.seekTo(it)
+                } else {
+                    playerConnection.player.seekTo(it)
+                }
                 position = it
             }
             sliderPosition = null

@@ -756,6 +756,33 @@ class MusicService :
                         .setSeekForwardIncrementMs(5000)
                         .build()
                 },
+                onCrossfadeStart = { mediaItem ->
+                    val metadata = mediaItem.metadata
+                    currentMediaMetadata.value = metadata
+                    // immediate update when media item transitions to avoid stale presence
+                    scope.launch {
+                        try {
+                            val token = dataStore.get(DiscordTokenKey, "")
+                            if (token.isNotBlank() && DiscordPresenceManager.isRunning()) {
+                                val mediaId = mediaItem.mediaId
+                                val song = if (mediaId != null) withContext(Dispatchers.IO) { database.song(mediaId).first() } else null
+                                val finalSong = song ?: metadata?.let { createTransientSongFromMedia(it) }
+
+                                if (canUpdatePresence()) {
+                                    DiscordPresenceManager.updateNow(
+                                        context = this@MusicService,
+                                        token = token,
+                                        song = finalSong,
+                                        positionMs = 0L,
+                                        isPaused = false
+                                    )
+                                }
+                            }
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                        }
+                    }
+                }
             ).also { it.start(scope) }
 
         // Initialize lyrics pre-load manager
@@ -3670,6 +3697,11 @@ class MusicService :
 
 
     override fun onEvents(player: Player, events: Player.Events) {
+        if (events.contains(Player.EVENT_MEDIA_METADATA_CHANGED)) {
+            if (crossfadeAudio?.isCrossfading() != true) {
+                currentMediaMetadata.value = player.currentMetadata
+            }
+        }
     val joined = togetherSessionState.value as? moe.koiverse.archivetune.together.TogetherSessionState.Joined
     if (joined?.role is moe.koiverse.archivetune.together.TogetherRole.Guest &&
         events.contains(Player.EVENT_PLAY_WHEN_READY_CHANGED)
@@ -3743,7 +3775,9 @@ class MusicService :
     }
 
        if (events.containsAny(EVENT_TIMELINE_CHANGED, EVENT_POSITION_DISCONTINUITY)) {
-            currentMediaMetadata.value = player.currentMetadata
+            if (crossfadeAudio?.isCrossfading() != true) {
+                currentMediaMetadata.value = player.currentMetadata
+            }
             // immediate update when media item transitions to avoid stale presence
             scope.launch {
                 try {
