@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.ui.unit.Dp
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -77,6 +78,7 @@ fun AdaptiveSettingsLayout(
     state: SettingsContentState,
     modifier: Modifier = Modifier,
     listState: LazyListState = rememberLazyListState(),
+    topPadding: Dp = 0.dp,
 ) {
     val layoutMode = resolveLayoutMode()
 
@@ -117,6 +119,7 @@ fun AdaptiveSettingsLayout(
                 quickActionsVisible = quickActionsVisible,
                 integrationsVisible = integrationsVisible,
                 categoriesVisible = categoriesVisible,
+                topPadding = topPadding,
                 modifier = modifier,
             )
         }
@@ -129,6 +132,7 @@ fun AdaptiveSettingsLayout(
                 quickActionsVisible = quickActionsVisible,
                 integrationsVisible = integrationsVisible,
                 categoriesVisible = categoriesVisible,
+                topPadding = topPadding,
                 modifier = modifier,
             )
         }
@@ -141,6 +145,7 @@ fun AdaptiveSettingsLayout(
                 quickActionsVisible = quickActionsVisible,
                 integrationsVisible = integrationsVisible,
                 categoriesVisible = categoriesVisible,
+                topPadding = topPadding,
                 modifier = modifier,
             )
         }
@@ -157,6 +162,7 @@ private fun CompactSettingsLayout(
     quickActionsVisible: Boolean,
     integrationsVisible: Boolean,
     categoriesVisible: Boolean,
+    topPadding: Dp,
     modifier: Modifier = Modifier,
 ) {
     val pad = SettingsDimensions.ScreenHorizontalPadding
@@ -171,16 +177,8 @@ private fun CompactSettingsLayout(
                     WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom
                 )
             ),
-        contentPadding = PaddingValues(bottom = 32.dp),
+        contentPadding = PaddingValues(top = topPadding, bottom = 32.dp),
     ) {
-        item(key = "topSpacer") {
-            Spacer(
-                Modifier.windowInsetsPadding(
-                    LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Top)
-                )
-            )
-        }
-
         item(key = "hero") {
             AnimatedVisibility(
                 visible = heroVisible,
@@ -334,6 +332,7 @@ private fun MediumSettingsLayout(
     quickActionsVisible: Boolean,
     integrationsVisible: Boolean,
     categoriesVisible: Boolean,
+    topPadding: Dp,
     modifier: Modifier = Modifier,
 ) {
     val pad = SettingsDimensions.ScreenHorizontalPadding
@@ -354,16 +353,8 @@ private fun MediumSettingsLayout(
             modifier = Modifier
                 .weight(SettingsDimensions.MediumPaneLeftWeight)
                 .fillMaxHeight(),
-            contentPadding = PaddingValues(bottom = 32.dp),
+            contentPadding = PaddingValues(top = topPadding, bottom = 32.dp),
         ) {
-            item(key = "topSpacer") {
-                Spacer(
-                    Modifier.windowInsetsPadding(
-                        LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Top)
-                    )
-                )
-            }
-
             item(key = "hero") {
                 AnimatedVisibility(
                     visible = heroVisible,
@@ -440,16 +431,8 @@ private fun MediumSettingsLayout(
             modifier = Modifier
                 .weight(SettingsDimensions.MediumPaneRightWeight)
                 .fillMaxHeight(),
-            contentPadding = PaddingValues(bottom = 32.dp),
+            contentPadding = PaddingValues(top = topPadding, bottom = 32.dp),
         ) {
-            item(key = "topSpacer") {
-                Spacer(
-                    Modifier.windowInsetsPadding(
-                        LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Top)
-                    )
-                )
-            }
-
             if (state.isSearchActive && !state.hasSearchResults) {
                 item(key = "empty") {
                     Spacer(modifier = Modifier.height(24.dp))
@@ -504,6 +487,7 @@ private fun ExpandedSettingsLayout(
     quickActionsVisible: Boolean,
     integrationsVisible: Boolean,
     categoriesVisible: Boolean,
+    topPadding: Dp,
     modifier: Modifier = Modifier,
 ) {
     val pad = SettingsDimensions.ScreenHorizontalPadding
@@ -524,16 +508,8 @@ private fun ExpandedSettingsLayout(
             modifier = Modifier
                 .width(SettingsDimensions.ExpandedListPaneWidth)
                 .fillMaxHeight(),
-            contentPadding = PaddingValues(bottom = 32.dp),
+            contentPadding = PaddingValues(top = topPadding, bottom = 32.dp),
         ) {
-            item(key = "topSpacer") {
-                Spacer(
-                    Modifier.windowInsetsPadding(
-                        LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Top)
-                    )
-                )
-            }
-
             item(key = "hero") {
                 AnimatedVisibility(
                     visible = heroVisible,
@@ -610,16 +586,8 @@ private fun ExpandedSettingsLayout(
             modifier = Modifier
                 .weight(1f)
                 .fillMaxHeight(),
-            contentPadding = PaddingValues(bottom = 32.dp),
+            contentPadding = PaddingValues(top = topPadding, bottom = 32.dp),
         ) {
-            item(key = "topSpacer") {
-                Spacer(
-                    Modifier.windowInsetsPadding(
-                        LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Top)
-                    )
-                )
-            }
-
             if (state.isSearchActive && !state.hasSearchResults) {
                 item(key = "empty") {
                     Spacer(modifier = Modifier.height(24.dp))
