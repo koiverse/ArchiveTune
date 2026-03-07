@@ -132,6 +132,7 @@ import moe.koiverse.archivetune.constants.PlaylistEditLockKey
 import moe.koiverse.archivetune.constants.PlaylistSongSortDescendingKey
 import moe.koiverse.archivetune.constants.PlaylistSongSortType
 import moe.koiverse.archivetune.constants.PlaylistSongSortTypeKey
+import moe.koiverse.archivetune.constants.SwipeToSongKey
 import moe.koiverse.archivetune.db.entities.Playlist
 import moe.koiverse.archivetune.db.entities.PlaylistSong
 import moe.koiverse.archivetune.db.entities.PlaylistSongMap
@@ -208,6 +209,7 @@ fun LocalPlaylistScreen(
         true
     )
     var locked by rememberPreference(PlaylistEditLockKey, defaultValue = true)
+    val swipeToSongEnabled by rememberPreference(SwipeToSongKey, defaultValue = false)
     val (disableBlur) = rememberPreference(DisableBlurKey, false)
     var showAssignTagsDialog by remember { mutableStateOf(false) }
 
@@ -1152,7 +1154,6 @@ fun LocalPlaylistScreen(
                                     viewCounts[song.song.id]?.let { count -> formatCompactCount(count.toLong()) },
                                 isActive = song.song.id == mediaMetadata?.id,
                                 isPlaying = isPlaying,
-                                isSwipeable = locked || selection,
                                 showInLibraryIcon = true,
                                 trailingContent = {
                                     IconButton(
@@ -1218,7 +1219,7 @@ fun LocalPlaylistScreen(
                             )
                         }
 
-                        if (locked || selection) {
+                        if (locked || selection || swipeToSongEnabled) {
                             content()
                         } else {
                             SwipeToDismissBox(
@@ -1283,7 +1284,6 @@ fun LocalPlaylistScreen(
                                     viewCounts[songWrapper.item.song.id]?.let { count -> formatCompactCount(count.toLong()) },
                                 isActive = songWrapper.item.song.id == mediaMetadata?.id,
                                 isPlaying = isPlaying,
-                                isSwipeable = locked || !editable,
                                 showInLibraryIcon = true,
                                 trailingContent = {
                                     IconButton(
@@ -1352,7 +1352,7 @@ fun LocalPlaylistScreen(
                             )
                         }
 
-                        if (locked || !editable) {
+                        if (locked || !editable || swipeToSongEnabled) {
                             content()
                         } else {
                             SwipeToDismissBox(
