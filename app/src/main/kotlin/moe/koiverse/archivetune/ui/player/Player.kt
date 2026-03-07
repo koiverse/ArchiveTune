@@ -98,6 +98,15 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.Layout
 import android.net.Uri
+import androidx.compose.foundation.focusable
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.isShiftPressed
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -222,6 +231,9 @@ fun BottomSheetPlayer(
     
     val (disableBlur) = rememberPreference(DisableBlurKey, true)
     val (showCodecOnPlayer) = rememberPreference(booleanPreferencesKey("show_codec_on_player"), false)
+    val (incrementalSeekSkipEnabled) = rememberPreference(moe.koiverse.archivetune.constants.SeekExtraSeconds, defaultValue = false)
+    var keyboardSkipMultiplier by remember { mutableStateOf(1) }
+    var lastKeyboardTapTime by remember { mutableLongStateOf(0L) }
 
     val playerButtonsStyle by rememberEnumPreference(
         key = PlayerButtonsStyleKey,
@@ -578,9 +590,78 @@ fun BottomSheetPlayer(
         }
     }
 
+    val focusRequester = remember { FocusRequester() }
+
+    LaunchedEffect(state.isExpanded) {
+        if (state.isExpanded) {
+            focusRequester.requestFocus()
+        }
+    }
+
     BottomSheet(
         state = state,
-        modifier = modifier,
+        modifier = modifier
+            .focusRequester(focusRequester)
+            .focusable()
+            .onKeyEvent { keyEvent ->
+            if (keyEvent.type != KeyEventType.KeyDown || state.isCollapsed) return@onKeyEvent false
+
+            when (keyEvent.key) {
+                Key.DirectionLeft -> {
+                    val now = SystemClock.uptimeMillis()
+                    if (incrementalSeekSkipEnabled && now - lastKeyboardTapTime < 1000) {
+                        keyboardSkipMultiplier++
+                    } else {
+                        keyboardSkipMultiplier = 1
+                    }
+                    lastKeyboardTapTime = now
+                    val skipAmount = 5000L * keyboardSkipMultiplier
+                    playerConnection.player.seekTo((playerConnection.player.currentPosition - skipAmount).coerceAtLeast(0))
+                    true
+                }
+                Key.DirectionRight -> {
+                    val now = SystemClock.uptimeMillis()
+                    if (incrementalSeekSkipEnabled && now - lastKeyboardTapTime < 1000) {
+                        keyboardSkipMultiplier++
+                    } else {
+                        keyboardSkipMultiplier = 1
+                    }
+                    lastKeyboardTapTime = now
+                    val skipAmount = 5000L * keyboardSkipMultiplier
+                    playerConnection.player.seekTo((playerConnection.player.currentPosition + skipAmount).coerceAtMost(playerConnection.player.duration))
+                    true
+                }
+                Key.DirectionUp -> {
+                    playerConnection.service.playerVolume.value = (playerConnection.service.playerVolume.value + 0.05f).coerceAtMost(1f)
+                    true
+                }
+                Key.DirectionDown -> {
+                    playerConnection.service.playerVolume.value = (playerConnection.service.playerVolume.value - 0.05f).coerceAtLeast(0f)
+                    true
+                }
+                Key.Spacebar -> {
+                    playerConnection.player.togglePlayPause()
+                    true
+                }
+                Key.N -> {
+                    if (keyEvent.isShiftPressed) {
+                        playerConnection.seekToNext()
+                        true
+                    } else false
+                }
+                Key.P -> {
+                    if (keyEvent.isShiftPressed) {
+                        playerConnection.seekToPrevious()
+                        true
+                    } else false
+                }
+                Key.L -> {
+                    playerConnection.toggleLike()
+                    true
+                }
+                else -> false
+            }
+        },
         backgroundColor = when (playerBackground) {
             PlayerBackgroundStyle.BLUR, PlayerBackgroundStyle.GRADIENT -> {
                 // Apply same enhanced fade logic to blur/gradient backgrounds
@@ -971,7 +1052,7 @@ fun BottomSheetPlayer(
             onShowLyrics = { lyricsSheetState.expandSoft() },
             pureBlack = pureBlack,
         )
-        
+
         // Lyrics BottomSheet - separate from Queue
         mediaMetadata?.let { metadata ->
             BottomSheet(
