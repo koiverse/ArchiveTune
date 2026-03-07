@@ -17,6 +17,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -24,6 +25,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
@@ -173,110 +175,118 @@ fun SettingsScreen(
         onUpdateClick = { navController.navigate("settings/update") },
     )
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        if (!showSearchBar) {
-            AdaptiveSettingsLayout(
-                state = contentState,
-                listState = listState,
-                modifier = Modifier.fillMaxSize(),
-            )
-        }
+    Scaffold(
+        topBar = {
+            if (!showSearchBar) {
+                LargeTopAppBar(
+                    title = {
+                        Text(
+                            text = stringResource(R.string.settings),
+                            fontWeight = FontWeight.Bold,
+                        )
+                    },
+                    navigationIcon = {
+                        IconButton(
+                            onClick = navController::navigateUp,
+                            onLongClick = navController::backToMain,
+                        ) {
+                            Icon(
+                                painterResource(R.drawable.arrow_back),
+                                contentDescription = null,
+                            )
+                        }
+                    },
+                    actions = {
+                        IconButton(
+                            onClick = { isSearching = true },
+                            onLongClick = {},
+                        ) {
+                            Icon(
+                                painter = painterResource(R.drawable.search),
+                                contentDescription = null,
+                            )
+                        }
+                    },
+                    scrollBehavior = scrollBehavior,
+                    colors = TopAppBarDefaults.largeTopAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
+                        scrolledContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
+                    ),
+                )
+            }
+        },
+        containerColor = MaterialTheme.colorScheme.surface,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
+        modifier = Modifier.fillMaxSize(),
+    ) { innerPadding ->
+        Box(modifier = Modifier.fillMaxSize()) {
+            if (!showSearchBar) {
+                AdaptiveSettingsLayout(
+                    state = contentState,
+                    listState = listState,
+                    topPadding = innerPadding.calculateTopPadding(),
+                    modifier = Modifier.fillMaxSize(),
+                )
+            }
 
-        if (!showSearchBar) {
-            LargeTopAppBar(
-                title = {
-                    Text(
-                        text = stringResource(R.string.settings),
-                        fontWeight = FontWeight.Bold,
-                    )
-                },
-                navigationIcon = {
-                    IconButton(
-                        onClick = navController::navigateUp,
-                        onLongClick = navController::backToMain,
-                    ) {
-                        Icon(
-                            painterResource(R.drawable.arrow_back),
-                            contentDescription = null,
-                        )
-                    }
-                },
-                actions = {
-                    IconButton(
-                        onClick = { isSearching = true },
-                        onLongClick = {},
-                    ) {
-                        Icon(
-                            painter = painterResource(R.drawable.search),
-                            contentDescription = null,
-                        )
-                    }
-                },
-                scrollBehavior = scrollBehavior,
-                colors = TopAppBarDefaults.largeTopAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
-                    scrolledContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
-                ),
-            )
-        }
-
-        AnimatedVisibility(
-            visible = showSearchBar,
-            enter = fadeIn(tween(durationMillis = 220)),
-            exit = fadeOut(tween(durationMillis = 160)),
-        ) {
-            TopSearch(
-                query = query,
-                onQueryChange = { query = it },
-                onSearch = { focusManager.clearFocus() },
-                active = showSearchBar,
-                onActiveChange = { active ->
-                    if (active) {
-                        isSearching = true
-                    } else {
-                        resetSearch()
-                    }
-                },
-                placeholder = { Text(text = stringResource(R.string.search)) },
-                leadingIcon = {
-                    IconButton(
-                        onClick = { resetSearch() },
-                        onLongClick = {
-                            if (queryText.isBlank()) {
-                                navController.backToMain()
-                            }
-                        },
-                    ) {
-                        Icon(
-                            painterResource(R.drawable.arrow_back),
-                            contentDescription = null,
-                        )
-                    }
-                },
-                trailingIcon = {
-                    Row {
-                        if (query.text.isNotBlank()) {
-                            IconButton(
-                                onClick = { query = TextFieldValue() },
-                                onLongClick = {},
-                            ) {
-                                Icon(
-                                    painter = painterResource(R.drawable.close),
-                                    contentDescription = null,
-                                )
+            AnimatedVisibility(
+                visible = showSearchBar,
+                enter = fadeIn(tween(durationMillis = 220)),
+                exit = fadeOut(tween(durationMillis = 160)),
+            ) {
+                TopSearch(
+                    query = query,
+                    onQueryChange = { query = it },
+                    onSearch = { focusManager.clearFocus() },
+                    active = showSearchBar,
+                    onActiveChange = { active ->
+                        if (active) {
+                            isSearching = true
+                        } else {
+                            resetSearch()
+                        }
+                    },
+                    placeholder = { Text(text = stringResource(R.string.search)) },
+                    leadingIcon = {
+                        IconButton(
+                            onClick = { resetSearch() },
+                            onLongClick = {
+                                if (queryText.isBlank()) {
+                                    navController.backToMain()
+                                }
+                            },
+                        ) {
+                            Icon(
+                                painterResource(R.drawable.arrow_back),
+                                contentDescription = null,
+                            )
+                        }
+                    },
+                    trailingIcon = {
+                        Row {
+                            if (query.text.isNotBlank()) {
+                                IconButton(
+                                    onClick = { query = TextFieldValue() },
+                                    onLongClick = {},
+                                ) {
+                                    Icon(
+                                        painter = painterResource(R.drawable.close),
+                                        contentDescription = null,
+                                    )
+                                }
                             }
                         }
-                    }
-                },
-                focusRequester = focusRequester,
-            ) {
-                val searchState = contentState.copy(
-                    isSearchActive = true,
-                )
-                AdaptiveSettingsLayout(
-                    state = searchState,
-                    modifier = Modifier.fillMaxWidth(),
-                )
+                    },
+                    focusRequester = focusRequester,
+                ) {
+                    val searchState = contentState.copy(
+                        isSearchActive = true,
+                    )
+                    AdaptiveSettingsLayout(
+                        state = searchState,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
             }
         }
     }
