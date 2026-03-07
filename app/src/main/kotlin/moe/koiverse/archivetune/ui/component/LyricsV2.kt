@@ -59,6 +59,8 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -79,6 +81,7 @@ import moe.koiverse.archivetune.constants.LyricsRomanizeJapaneseKey
 import moe.koiverse.archivetune.constants.LyricsRomanizeKoreanKey
 import moe.koiverse.archivetune.constants.PlayerBackgroundStyle
 import moe.koiverse.archivetune.constants.PlayerBackgroundStyleKey
+import moe.koiverse.archivetune.constants.UseSystemFontKey
 import moe.koiverse.archivetune.db.entities.LyricsEntity.Companion.LYRICS_NOT_FOUND
 import moe.koiverse.archivetune.lyrics.LyricsEntry
 import moe.koiverse.archivetune.lyrics.LyricsUtils.findCurrentLineIndex
@@ -147,6 +150,10 @@ fun LyricsV2(
     val (lyricsLineSpacing) = rememberPreference(LyricsLineSpacingKey, defaultValue = 1.3f)
     val (romanizeJapanese) = rememberPreference(LyricsRomanizeJapaneseKey, defaultValue = true)
     val (romanizeKorean) = rememberPreference(LyricsRomanizeKoreanKey, defaultValue = true)
+    val (useSystemFont) = rememberPreference(UseSystemFontKey, defaultValue = false)
+    val lyricsFontFamily = remember(useSystemFont) {
+        if (useSystemFont) null else FontFamily(Font(R.font.sfprodisplaybold))
+    }
     val playerBackground by rememberEnumPreference(PlayerBackgroundStyleKey, PlayerBackgroundStyle.DEFAULT)
 
     // ── Text colour derived from background style ──
@@ -494,6 +501,7 @@ fun LyricsV2(
                             baseFontSize = lyricsTextSize,
                             isLineAllBackground = isAllBackground,
                             textAlign = textAlign,
+                            lyricsFontFamily = lyricsFontFamily,
                         )
                     } else {
                         // ── Plain text rendering ──
@@ -504,6 +512,7 @@ fun LyricsV2(
                                 fontWeight = if (isActive) FontWeight.Bold else FontWeight.Medium,
                                 fontStyle = if (isAllBackground) FontStyle.Italic else FontStyle.Normal,
                                 lineHeight = (lyricsTextSize * lyricsLineSpacing).sp,
+                                fontFamily = lyricsFontFamily ?: MaterialTheme.typography.headlineMedium.fontFamily,
                             ),
                             color = textColor.copy(alpha = if (isActive) 1f else inactiveAlpha),
                             textAlign = textAlign,
@@ -521,6 +530,7 @@ fun LyricsV2(
                                 lineHeight = (lyricsTextSize * 0.75f).sp,
                                 fontWeight = FontWeight.Normal,
                                 fontStyle = if (isAllBackground) FontStyle.Italic else FontStyle.Normal,
+                                fontFamily = lyricsFontFamily ?: MaterialTheme.typography.bodyMedium.fontFamily,
                             ),
                             color = textColor.copy(alpha = if (isActive) 0.75f else inactiveAlpha * 0.7f),
                             textAlign = textAlign,
@@ -582,6 +592,7 @@ private fun LyricsLineV2(
     baseFontSize: Float,
     isLineAllBackground: Boolean,
     textAlign: TextAlign,
+    lyricsFontFamily: FontFamily?,
 ) {
     val arrangement = when (textAlign) {
         TextAlign.Center -> Arrangement.Center
@@ -605,6 +616,7 @@ private fun LyricsLineV2(
                         text = " ",
                         style = MaterialTheme.typography.headlineMedium.copy(
                             fontSize = if (isLineAllBackground) (baseFontSize * 0.82f).sp else baseFontSize.sp,
+                            fontFamily = lyricsFontFamily ?: MaterialTheme.typography.headlineMedium.fontFamily,
                         ),
                         color = Color.Transparent,
                     )
@@ -625,6 +637,7 @@ private fun LyricsLineV2(
                     inactiveAlpha = inactiveAlpha,
                     fontSize = if (isLineAllBackground) baseFontSize * 0.82f else baseFontSize,
                     isBackground = isLineAllBackground,
+                    lyricsFontFamily = lyricsFontFamily,
                 )
             }
         }
@@ -645,6 +658,7 @@ private fun LyricsLineV2(
                         text = " ",
                         style = MaterialTheme.typography.headlineMedium.copy(
                             fontSize = (baseFontSize * 0.65f).sp,
+                            fontFamily = lyricsFontFamily ?: MaterialTheme.typography.headlineMedium.fontFamily,
                         ),
                         color = Color.Transparent,
                     )
@@ -661,6 +675,7 @@ private fun LyricsLineV2(
                     inactiveAlpha = inactiveAlpha,
                     fontSize = baseFontSize * 0.65f, // ~65% size of main text
                     isBackground = true, // Force dimmer styling inside AnimatedWordV2
+                    lyricsFontFamily = lyricsFontFamily,
                 )
             }
         }
@@ -683,6 +698,7 @@ private fun AnimatedWordV2(
     inactiveAlpha: Float,
     fontSize: Float,
     isBackground: Boolean,
+    lyricsFontFamily: FontFamily?,
 ) {
     val wordStartMs = (word.startTime * 1000).toLong()
     val wordEndMs = (word.endTime * 1000).toLong()
@@ -742,6 +758,7 @@ private fun AnimatedWordV2(
                 fontWeight = fontWeight,
                 fontStyle = FontStyle.Normal,
                 lineHeight = (actualFontSize * 1.35f).sp,
+                fontFamily = lyricsFontFamily ?: MaterialTheme.typography.headlineMedium.fontFamily,
             ),
             color = textColor.copy(alpha = if (isBackground) inactiveAlpha * 0.7f else inactiveAlpha),
         )
@@ -755,6 +772,7 @@ private fun AnimatedWordV2(
                     fontWeight = fontWeight,
                     fontStyle = FontStyle.Normal,
                     lineHeight = (actualFontSize * 1.35f).sp,
+                    fontFamily = lyricsFontFamily ?: MaterialTheme.typography.headlineMedium.fontFamily,
                     shadow = if (glowAlpha > 0f) {
                         Shadow(
                             color = textColor.copy(alpha = glowAlpha),

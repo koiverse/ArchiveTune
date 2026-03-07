@@ -9,6 +9,7 @@
 package moe.koiverse.archivetune.playback.queues
 
 import androidx.media3.common.MediaItem
+import moe.koiverse.archivetune.extensions.ExtraIsMusicVideo
 import moe.koiverse.archivetune.extensions.metadata
 import moe.koiverse.archivetune.models.MediaMetadata
 
@@ -58,7 +59,7 @@ fun List<MediaItem>.filterExplicit(enabled: Boolean = true) =
 fun List<MediaItem>.filterVideo(enabled: Boolean = true) =
     if (enabled) {
         filterNot {
-            it.metadata?.setVideoId != null
+            it.mediaMetadata.extras?.getBoolean(ExtraIsMusicVideo, false) == true
         }
     } else {
         this

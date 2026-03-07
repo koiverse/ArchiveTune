@@ -82,6 +82,7 @@ class PlayerConnection(
 
     val error = MutableStateFlow<PlaybackException?>(null)
     val waitingForNetworkConnection = service.waitingForNetworkConnection
+    val queueRestoreCompleted = service.queueRestoreCompleted
 
     init {
         player.addListener(this)

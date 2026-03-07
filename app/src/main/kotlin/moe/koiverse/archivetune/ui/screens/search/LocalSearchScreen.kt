@@ -16,22 +16,24 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
 import moe.koiverse.archivetune.LocalPlayerConnection
 import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.constants.CONTENT_TYPE_LIST
-import moe.koiverse.archivetune.constants.ListItemHeight
 import moe.koiverse.archivetune.db.entities.Album
 import moe.koiverse.archivetune.db.entities.Artist
 import moe.koiverse.archivetune.db.entities.Playlist
@@ -86,34 +88,73 @@ fun LocalSearchScreen(
             .fillMaxSize()
             .background(if (pureBlack) Color.Black else MaterialTheme.colorScheme.background)
     ) {
-        ChipsRow(
-            chips = listOf(
-                LocalFilter.ALL to stringResource(R.string.filter_all),
-                LocalFilter.SONG to stringResource(R.string.filter_songs),
-                LocalFilter.ALBUM to stringResource(R.string.filter_albums),
-                LocalFilter.ARTIST to stringResource(R.string.filter_artists),
-                LocalFilter.PLAYLIST to stringResource(R.string.filter_playlists),
-            ),
-            currentValue = searchFilter,
-            onValueUpdate = { viewModel.filter.value = it },
-        )
+        Surface(
+            color = if (pureBlack) Color.Black else MaterialTheme.colorScheme.surface,
+            tonalElevation = if (pureBlack) 0.dp else 0.dp,
+            shadowElevation = if (pureBlack) 0.dp else 1.dp,
+        ) {
+            ChipsRow(
+                chips = listOf(
+                    LocalFilter.ALL to stringResource(R.string.filter_all),
+                    LocalFilter.SONG to stringResource(R.string.filter_songs),
+                    LocalFilter.ALBUM to stringResource(R.string.filter_albums),
+                    LocalFilter.ARTIST to stringResource(R.string.filter_artists),
+                    LocalFilter.PLAYLIST to stringResource(R.string.filter_playlists),
+                ),
+                currentValue = searchFilter,
+                onValueUpdate = { viewModel.filter.value = it },
+                icons = mapOf(
+                    LocalFilter.ALL to R.drawable.search,
+                    LocalFilter.SONG to R.drawable.music_note,
+                    LocalFilter.ALBUM to R.drawable.album,
+                    LocalFilter.ARTIST to R.drawable.person,
+                    LocalFilter.PLAYLIST to R.drawable.queue_music,
+                ),
+            )
+        }
 
         LazyColumn(
             state = lazyListState,
+            contentPadding = PaddingValues(top = 8.dp),
             modifier = Modifier.weight(1f),
         ) {
             result.map.forEach { (filter, items) ->
                 if (result.filter == LocalFilter.ALL) {
                     item(key = filter) {
+                        val filterIcon = when (filter) {
+                            LocalFilter.SONG -> R.drawable.music_note
+                            LocalFilter.ALBUM -> R.drawable.album
+                            LocalFilter.ARTIST -> R.drawable.person
+                            LocalFilter.PLAYLIST -> R.drawable.queue_music
+                            LocalFilter.ALL -> R.drawable.search
+                        }
+
                         Row(
-                            horizontalArrangement = Arrangement.spacedBy(16.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(ListItemHeight)
                                 .clickable { viewModel.filter.value = filter }
-                                .padding(start = 12.dp, end = 18.dp),
+                                .padding(horizontal = 16.dp, vertical = 12.dp),
                         ) {
+                            Box(
+                                contentAlignment = Alignment.Center,
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .background(
+                                        color = if (pureBlack) Color.White.copy(alpha = 0.08f) else MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
+                                        shape = RoundedCornerShape(10.dp)
+                                    )
+                            ) {
+                                Icon(
+                                    painter = painterResource(filterIcon),
+                                    contentDescription = null,
+                                    tint = if (pureBlack) Color.White.copy(alpha = 0.7f) else MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+
+                            Spacer(Modifier.width(14.dp))
+
                             Text(
                                 text = stringResource(
                                     when (filter) {
@@ -124,13 +165,16 @@ fun LocalSearchScreen(
                                         LocalFilter.ALL -> error("")
                                     }
                                 ),
-                                style = MaterialTheme.typography.titleLarge,
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.SemiBold,
+                                color = if (pureBlack) Color.White.copy(alpha = 0.9f) else MaterialTheme.colorScheme.onSurface,
                                 modifier = Modifier.weight(1f),
                             )
 
                             Icon(
                                 painter = painterResource(R.drawable.navigate_next),
                                 contentDescription = null,
+                                tint = if (pureBlack) Color.White.copy(alpha = 0.3f) else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                             )
                         }
                     }

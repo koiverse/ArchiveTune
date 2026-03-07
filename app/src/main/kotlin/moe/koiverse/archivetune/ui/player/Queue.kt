@@ -198,7 +198,7 @@ fun Queue(
 
     val playerDesignStyle by rememberEnumPreference(
         key = PlayerDesignStyleKey,
-        defaultValue = PlayerDesignStyle.V2
+        defaultValue = PlayerDesignStyle.V4
     )
 
     val snackbarHostState = remember { SnackbarHostState() }
@@ -434,6 +434,8 @@ fun Queue(
         val queueTitle by playerConnection.queueTitle.collectAsState()
         val queueWindows by playerConnection.queueWindows.collectAsState()
         val automix by playerConnection.service.automixItems.collectAsState()
+        val automixLoading by playerConnection.service.automixLoading.collectAsState()
+        val automixError by playerConnection.service.automixError.collectAsState()
         val mutableQueueWindows = remember { mutableStateListOf<Timeline.Window>() }
         val queueLength by remember {
             derivedStateOf {
@@ -442,6 +444,15 @@ fun Queue(
         }
 
         val coroutineScope = rememberCoroutineScope()
+
+        LaunchedEffect(automixError) {
+            val error = automixError ?: return@LaunchedEffect
+            snackbarHostState.showSnackbar(
+                message = error,
+                duration = SnackbarDuration.Short
+            )
+            playerConnection.service.automixError.value = null
+        }
 
         val headerItems = 1
         val lazyListState = rememberLazyListState()
@@ -572,6 +583,7 @@ fun Queue(
                     songCount = queueWindows.size,
                     queueDuration = queueLength,
                     infiniteQueueEnabled = infiniteQueueEnabled,
+                    automixLoading = automixLoading,
                     backgroundColor = backgroundColor,
                     onBackgroundColor = onBackgroundColor,
                     onToggleLike = {

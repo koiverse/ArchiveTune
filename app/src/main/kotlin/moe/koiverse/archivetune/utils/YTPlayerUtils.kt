@@ -19,10 +19,18 @@ import moe.koiverse.archivetune.innertube.models.YouTubeClient.Companion.IOS
 import moe.koiverse.archivetune.innertube.models.YouTubeClient.Companion.TVHTML5_SIMPLY_EMBEDDED_PLAYER
 import moe.koiverse.archivetune.innertube.models.YouTubeClient.Companion.WEB_REMIX
 import moe.koiverse.archivetune.innertube.models.response.PlayerResponse
-import moe.koiverse.archivetune.innertube.models.YouTubeClient.Companion.ANDROID_VR_NO_AUTH
 import moe.koiverse.archivetune.innertube.models.YouTubeClient.Companion.ANDROID_CREATOR
+import moe.koiverse.archivetune.innertube.models.YouTubeClient.Companion.ANDROID_MUSIC
+import moe.koiverse.archivetune.innertube.models.YouTubeClient.Companion.ANDROID_TESTSUITE
+import moe.koiverse.archivetune.innertube.models.YouTubeClient.Companion.ANDROID_UNPLUGGED
+import moe.koiverse.archivetune.innertube.models.YouTubeClient.Companion.ANDROID_VR_1_43_32
+import moe.koiverse.archivetune.innertube.models.YouTubeClient.Companion.ANDROID_VR_1_61_48
+import moe.koiverse.archivetune.innertube.models.YouTubeClient.Companion.ANDROID_VR_NO_AUTH
+import moe.koiverse.archivetune.innertube.models.YouTubeClient.Companion.IPADOS
+import moe.koiverse.archivetune.innertube.models.YouTubeClient.Companion.IOS_MUSIC
 import moe.koiverse.archivetune.innertube.models.YouTubeClient.Companion.MOBILE
 import moe.koiverse.archivetune.innertube.models.YouTubeClient.Companion.TVHTML5
+import moe.koiverse.archivetune.innertube.models.YouTubeClient.Companion.VISIONOS
 import moe.koiverse.archivetune.innertube.models.YouTubeClient.Companion.WEB
 import moe.koiverse.archivetune.innertube.models.YouTubeClient.Companion.WEB_CREATOR
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
@@ -64,10 +72,18 @@ object YTPlayerUtils {
     private val STREAM_FALLBACK_CLIENTS: Array<YouTubeClient> = arrayOf(
         IOS,
         MOBILE,
-        TVHTML5,
-        ANDROID_CREATOR,
-        TVHTML5_SIMPLY_EMBEDDED_PLAYER,
+        ANDROID_MUSIC,
+        IOS_MUSIC,
         ANDROID_VR_NO_AUTH,
+        ANDROID_VR_1_61_48,
+        ANDROID_VR_1_43_32,
+        ANDROID_CREATOR,
+        ANDROID_TESTSUITE,
+        ANDROID_UNPLUGGED,
+        IPADOS,
+        VISIONOS,
+        TVHTML5,
+        TVHTML5_SIMPLY_EMBEDDED_PLAYER,
         WEB,
         WEB_CREATOR,
         WEB_REMIX
@@ -204,6 +220,7 @@ object YTPlayerUtils {
                 PlayerStreamClient.WEB_REMIX -> WEB_REMIX
                 PlayerStreamClient.IOS -> IOS
                 PlayerStreamClient.TVHTML5 -> TVHTML5
+                PlayerStreamClient.ANDROID_MUSIC -> ANDROID_MUSIC
             }
 
         val metadataClient =
@@ -229,6 +246,8 @@ object YTPlayerUtils {
                 }
                 blocked
             }
+
+        val botDetectedClients = mutableSetOf<String>()
 
         for ((index, client) in streamClients.withIndex()) {
             format = null
@@ -256,9 +275,14 @@ object YTPlayerUtils {
             if (streamPlayerResponse == null) continue
 
             if (streamPlayerResponse.playabilityStatus.status != "OK") {
+                val reason = streamPlayerResponse.playabilityStatus.reason.orEmpty()
+                val isBotDetection = isBotDetectionError(reason)
                 Timber.tag(logTag).w(
-                    "Player response status not OK: ${streamPlayerResponse.playabilityStatus.status}, reason: ${streamPlayerResponse.playabilityStatus.reason}"
+                    "Player response status not OK: ${streamPlayerResponse.playabilityStatus.status}, reason: $reason, botDetection: $isBotDetection"
                 )
+                if (isBotDetection) {
+                    botDetectedClients.add(client.clientName)
+                }
                 continue
             }
 
@@ -316,6 +340,14 @@ object YTPlayerUtils {
         }
 
         if (streamPlayerResponse == null) {
+            if (botDetectedClients.isNotEmpty()) {
+                Timber.tag(logTag).e("Bot detection triggered on clients: $botDetectedClients - all clients failed")
+                throw PlaybackException(
+                    "Sign in to confirm you're not a bot",
+                    null,
+                    PlaybackException.ERROR_CODE_REMOTE_ERROR
+                )
+            }
             Timber.tag(logTag).e("Bad stream player response - all clients failed")
             throw Exception("Bad stream player response")
         }
@@ -577,5 +609,24 @@ object YTPlayerUtils {
 
     private fun buildCacheKey(videoId: String, itag: Int): String {
         return "$videoId:$itag"
+    }
+
+    private fun isBotDetectionError(reason: String): Boolean {
+        val lower = reason.lowercase(Locale.US)
+        return "sign in" in lower ||
+            "bot" in lower ||
+            "confirm" in lower && "not a" in lower ||
+            "verify" in lower && "human" in lower
+    }
+
+    fun isBotDetectionException(error: PlaybackException): Boolean {
+        val message = error.message.orEmpty()
+        if (isBotDetectionError(message)) return true
+        var cause: Throwable? = error.cause
+        while (cause != null) {
+            if (isBotDetectionError(cause.message.orEmpty())) return true
+            cause = cause.cause
+        }
+        return false
     }
 }

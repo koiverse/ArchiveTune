@@ -126,6 +126,7 @@ import moe.koiverse.archivetune.ui.utils.ItemWrapper
 import moe.koiverse.archivetune.ui.utils.backToMain
 import moe.koiverse.archivetune.utils.makeTimeString
 import moe.koiverse.archivetune.utils.rememberPreference
+import moe.koiverse.archivetune.viewmodels.AlbumUiState
 import moe.koiverse.archivetune.viewmodels.AlbumViewModel
 import com.valentinilk.shimmer.shimmer
 
@@ -149,6 +150,7 @@ fun AlbumScreen(
 
     val playlistId by viewModel.playlistId.collectAsState()
     val albumWithSongs by viewModel.albumWithSongs.collectAsState()
+    val uiState by viewModel.uiState.collectAsState()
     val otherVersions by viewModel.otherVersions.collectAsState()
     val hideExplicit by rememberPreference(key = HideExplicitKey, defaultValue = false)
     val (disableBlur) = rememberPreference(DisableBlurKey, false)
@@ -385,7 +387,8 @@ fun AlbumScreen(
             contentPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues(),
         ) {
             val albumWithSongs = albumWithSongs
-            if (albumWithSongs != null && albumWithSongs.songs.isNotEmpty()) {
+            val hasSongs = albumWithSongs?.songs?.isNotEmpty() == true
+            if (hasSongs) {
                 // Hero Header
                 item(key = "header") {
                     Column(
@@ -798,99 +801,152 @@ fun AlbumScreen(
                     }
                 }
             } else {
-                // Shimmer Loading State
-                item(key = "shimmer") {
-                    ShimmerHost {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(top = systemBarsTopPadding + AppBarHeight),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            // Album art placeholder
-                            Box(
-                                modifier = Modifier
-                                    .padding(top = 8.dp, bottom = 20.dp)
-                                    .size(240.dp)
-                                    .shimmer()
-                                    .clip(RoundedCornerShape(16.dp))
-                                    .background(MaterialTheme.colorScheme.onSurface)
-                            )
-
-                            // Title placeholder
-                            TextPlaceholder(
-                                height = 28.dp,
-                                modifier = Modifier
-                                    .fillMaxWidth(0.6f)
-                                    .padding(horizontal = 32.dp)
-                            )
-
-                            Spacer(modifier = Modifier.height(8.dp))
-
-                            // Artist placeholder
-                            TextPlaceholder(
-                                height = 20.dp,
-                                modifier = Modifier.fillMaxWidth(0.4f)
-                            )
-
-                            Spacer(modifier = Modifier.height(16.dp))
-
-                            // Metadata chips placeholder
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 48.dp),
-                                horizontalArrangement = Arrangement.SpaceEvenly
-                            ) {
-                                repeat(3) {
-                                    TextPlaceholder(
-                                        height = 32.dp,
-                                        modifier = Modifier.width(70.dp)
+                when (val state = uiState) {
+                    AlbumUiState.Loading,
+                    AlbumUiState.Content -> {
+                        item(key = "shimmer") {
+                            ShimmerHost {
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(top = systemBarsTopPadding + AppBarHeight),
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .padding(top = 8.dp, bottom = 20.dp)
+                                            .size(240.dp)
+                                            .shimmer()
+                                            .clip(RoundedCornerShape(16.dp))
+                                            .background(MaterialTheme.colorScheme.onSurface)
                                     )
+
+                                    TextPlaceholder(
+                                        height = 28.dp,
+                                        modifier = Modifier
+                                            .fillMaxWidth(0.6f)
+                                            .padding(horizontal = 32.dp)
+                                    )
+
+                                    Spacer(modifier = Modifier.height(8.dp))
+
+                                    TextPlaceholder(
+                                        height = 20.dp,
+                                        modifier = Modifier.fillMaxWidth(0.4f)
+                                    )
+
+                                    Spacer(modifier = Modifier.height(16.dp))
+
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 48.dp),
+                                        horizontalArrangement = Arrangement.SpaceEvenly
+                                    ) {
+                                        repeat(3) {
+                                            TextPlaceholder(
+                                                height = 32.dp,
+                                                modifier = Modifier.width(70.dp)
+                                            )
+                                        }
+                                    }
+
+                                    Spacer(modifier = Modifier.height(24.dp))
+
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 24.dp),
+                                        horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally)
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(48.dp)
+                                                .shimmer()
+                                                .clip(CircleShape)
+                                                .background(MaterialTheme.colorScheme.onSurface)
+                                        )
+                                        ButtonPlaceholder(
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .height(48.dp)
+                                        )
+                                        ButtonPlaceholder(
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .height(48.dp)
+                                        )
+                                        Box(
+                                            modifier = Modifier
+                                                .size(48.dp)
+                                                .shimmer()
+                                                .clip(CircleShape)
+                                                .background(MaterialTheme.colorScheme.onSurface)
+                                        )
+                                    }
+
+                                    Spacer(modifier = Modifier.height(24.dp))
+                                }
+
+                                repeat(6) {
+                                    ListItemPlaceHolder()
                                 }
                             }
+                        }
+                    }
 
-                            Spacer(modifier = Modifier.height(24.dp))
-
-                            // Buttons placeholder
-                            Row(
+                    AlbumUiState.Empty -> {
+                        item(key = "empty") {
+                            Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(horizontal = 24.dp),
-                                horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally)
+                                    .padding(top = systemBarsTopPadding + AppBarHeight)
+                                    .padding(32.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
                             ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(48.dp)
-                                        .shimmer()
-                                        .clip(CircleShape)
-                                        .background(MaterialTheme.colorScheme.onSurface)
+                                Text(
+                                    text = stringResource(R.string.empty_album),
+                                    style = MaterialTheme.typography.titleLarge,
+                                    textAlign = TextAlign.Center
                                 )
-                                ButtonPlaceholder(
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .height(48.dp)
-                                )
-                                ButtonPlaceholder(
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .height(48.dp)
-                                )
-                                Box(
-                                    modifier = Modifier
-                                        .size(48.dp)
-                                        .shimmer()
-                                        .clip(CircleShape)
-                                        .background(MaterialTheme.colorScheme.onSurface)
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = stringResource(R.string.empty_album_desc),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    textAlign = TextAlign.Center
                                 )
                             }
-
-                            Spacer(modifier = Modifier.height(24.dp))
                         }
+                    }
 
-                        // Songs placeholder
-                        repeat(6) {
-                            ListItemPlaceHolder()
+                    is AlbumUiState.Error -> {
+                        item(key = "error") {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = systemBarsTopPadding + AppBarHeight)
+                                    .padding(32.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text(
+                                    text = if (state.isNotFound) stringResource(R.string.album_not_found) else stringResource(R.string.error_unknown),
+                                    style = MaterialTheme.typography.titleLarge,
+                                    color = if (state.isNotFound) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.error,
+                                    textAlign = TextAlign.Center
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = if (state.isNotFound) stringResource(R.string.album_not_found_desc) else stringResource(R.string.error_unknown),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    textAlign = TextAlign.Center
+                                )
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Button(onClick = { viewModel.retry() }) {
+                                    Text(stringResource(R.string.retry))
+                                }
+                            }
                         }
                     }
                 }

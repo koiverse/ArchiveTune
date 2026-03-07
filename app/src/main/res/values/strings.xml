@@ -54,6 +54,7 @@
     <string name="filter_featured_playlists">Featured playlists</string>
     <string name="filter_bookmarked">Bookmarked</string>
     <string name="no_results_found">No results found</string>
+    <string name="top_results">Top Results</string>
     <!-- Library -->
     <string name="library_song_empty">Library songs will show up here</string>
     <string name="library_artist_empty">Library artists will show up here</string>
@@ -438,9 +439,13 @@
     <string name="audio_normalization">Audio normalization</string>
     <string name="audio_offload">Audio offload</string>
     <string name="audio_offload_desc">Let supported devices play audio using low-power hardware decoding. Some audio processing features are disabled.</string>
+    <string name="pause_on_device_mute">Pause when device volume is 0</string>
+    <string name="pause_on_device_mute_desc">Automatically pause music when muted and resume when unmuted</string>
     <string name="auto_skip_next_on_error">Auto skip to next song when error occurs</string>
     <string name="auto_skip_next_on_error_desc">Ensure your continuous playback experience</string>
     <string name="stop_music_on_task_clear">Stop music on task clear</string>
+    <string name="auto_start_on_bluetooth">Auto-start on Bluetooth connect</string>
+    <string name="auto_start_on_bluetooth_desc">Automatically resume playback when a Bluetooth audio device connects</string>
     <string name="artist_separators">Symbols to split artists</string>
     <string name="artist_separators_desc">Symbols used to split multiple artists</string>
     <string name="add_symbol">Add symbol</string>

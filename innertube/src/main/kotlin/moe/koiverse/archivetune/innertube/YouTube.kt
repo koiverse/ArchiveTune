@@ -145,11 +145,10 @@ object YouTube {
         if (explicit != null) return explicit
         if (!needsServiceIntegrity(client)) return null
 
-        val generated = poTokenPlayer?.takeIf { it.isNotBlank() }
-        if (generated != null) return generated
+        val userExtracted = poTokenPlayer?.takeIf { it.isNotBlank() }
+        if (userExtracted != null) return userExtracted
 
-        val sessionIdentifier = dataSyncId?.takeIf { it.isNotBlank() } ?: visitorData?.takeIf { it.isNotBlank() }
-        return sessionIdentifier?.let { PoTokenGenerator.generateContentToken(it, videoId) }
+        return null
     }
 
     internal fun resolveGvsPoToken(): String? {

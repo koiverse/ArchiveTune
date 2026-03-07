@@ -44,7 +44,7 @@ import moe.koiverse.archivetune.utils.rememberPreference
 @Composable
 fun LibraryScreen(navController: NavController) {
     var filterType by rememberEnumPreference(ChipSortTypeKey, LibraryFilter.LIBRARY)
-    val (disableBlur) = rememberPreference(DisableBlurKey, false)
+    val (disableBlur) = rememberPreference(DisableBlurKey, true)
 
     val database = LocalDatabase.current
     val (showTagsInLibrary) = rememberPreference(ShowTagsInLibraryKey, true)
@@ -73,6 +73,12 @@ fun LibraryScreen(navController: NavController) {
                                 it
                             }
                     },
+                    icons = mapOf(
+                        LibraryFilter.PLAYLISTS to R.drawable.queue_music,
+                        LibraryFilter.SONGS to R.drawable.music_note,
+                        LibraryFilter.ALBUMS to R.drawable.album,
+                        LibraryFilter.ARTISTS to R.drawable.person,
+                    ),
                     modifier = Modifier.weight(1f),
                 )
             }

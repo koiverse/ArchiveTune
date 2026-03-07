@@ -24,6 +24,8 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -161,6 +163,7 @@ import moe.koiverse.archivetune.constants.LyricsTextSizeKey
 import moe.koiverse.archivetune.constants.LyricsLineSpacingKey
 import moe.koiverse.archivetune.constants.PlayerBackgroundStyle
 import moe.koiverse.archivetune.constants.PlayerBackgroundStyleKey
+import moe.koiverse.archivetune.constants.UseSystemFontKey
 import moe.koiverse.archivetune.db.entities.LyricsEntity.Companion.LYRICS_NOT_FOUND
 import moe.koiverse.archivetune.lyrics.LyricsEntry
 import moe.koiverse.archivetune.lyrics.LyricsUtils.isChinese
@@ -442,6 +445,10 @@ fun Lyrics(
     val lyricsAnimationStyle by rememberEnumPreference(LyricsAnimationStyleKey, LyricsAnimationStyle.APPLE)
     val lyricsTextSize by rememberPreference(LyricsTextSizeKey, 26f)
     val lyricsLineSpacing by rememberPreference(LyricsLineSpacingKey, 1.3f)
+    val useSystemFont by rememberPreference(UseSystemFontKey, false)
+    val lyricsFontFamily = remember(useSystemFont) {
+        if (useSystemFont) null else FontFamily(Font(R.font.sfprodisplaybold))
+    }
 
     val verticalLineSpacing = with(LocalDensity.current) {
         (lyricsTextSize.sp * (lyricsLineSpacing - 1f)).toDp().coerceAtLeast(0.dp)
@@ -1032,14 +1039,17 @@ fun Lyrics(
                     }
 
                     CompositionLocalProvider(LocalLayoutDirection provides lineLayoutDirection) {
-                        Column(
-                            modifier = itemModifier,
-                            horizontalAlignment = when (lyricsTextPosition) {
-                                LyricsPosition.LEFT -> Alignment.Start
-                                LyricsPosition.CENTER -> Alignment.CenterHorizontally
-                                LyricsPosition.RIGHT -> Alignment.End
-                            }
+                        CompositionLocalProvider(
+                            LocalTextStyle provides LocalTextStyle.current.copy(fontFamily = lyricsFontFamily)
                         ) {
+                            Column(
+                                modifier = itemModifier,
+                                horizontalAlignment = when (lyricsTextPosition) {
+                                    LyricsPosition.LEFT -> Alignment.Start
+                                    LyricsPosition.CENTER -> Alignment.CenterHorizontally
+                                    LyricsPosition.RIGHT -> Alignment.End
+                                }
+                            ) {
                         val isActiveLine = index == displayedCurrentLineIndex && isSynced
                         val lineColor = remember(isActiveLine, lyricsBaseColor) {
                             if (isActiveLine) lyricsBaseColor else lyricsBaseColor.copy(alpha = 0.7f)
@@ -2078,6 +2088,7 @@ fun Lyrics(
                                         modifier = Modifier.padding(top = 2.dp)
                                     )
                                 }
+                            }
                             }
                         }
                     }

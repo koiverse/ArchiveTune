@@ -220,7 +220,7 @@ fun BottomSheetPlayer(
     val (playerCustomContrast) = rememberPreference(PlayerCustomContrastKey, 1f)
     val (playerCustomBrightness) = rememberPreference(PlayerCustomBrightnessKey, 1f)
     
-    val (disableBlur) = rememberPreference(DisableBlurKey, false)
+    val (disableBlur) = rememberPreference(DisableBlurKey, true)
     val (showCodecOnPlayer) = rememberPreference(booleanPreferencesKey("show_codec_on_player"), false)
 
     val playerButtonsStyle by rememberEnumPreference(
@@ -628,6 +628,25 @@ fun BottomSheetPlayer(
                 queueWindows.getOrNull(currentWindowIndex + 1)?.mediaItem?.metadata
             }
 
+        val enrichedMetadata = remember(mediaMetadata, currentSong) {
+            val meta = mediaMetadata ?: return@remember null
+            if (meta.album != null) return@remember meta
+            val dbAlbum = currentSong?.album
+            val dbAlbumId = currentSong?.song?.albumId
+            when {
+                dbAlbum != null -> meta.copy(
+                    album = MediaMetadata.Album(id = dbAlbum.id, title = dbAlbum.title)
+                )
+                dbAlbumId != null -> meta.copy(
+                    album = MediaMetadata.Album(
+                        id = dbAlbumId,
+                        title = currentSong?.song?.albumName.orEmpty()
+                    )
+                )
+                else -> meta
+            }
+        }
+
         val controlsContent: @Composable ColumnScope.(MediaMetadata) -> Unit = { mediaMetadata ->
             PlayerControlsContent(
                 mediaMetadata = mediaMetadata,
@@ -721,7 +740,7 @@ fun BottomSheetPlayer(
                                     )
                                 ),
                         ) {
-                            mediaMetadata?.let { metadata ->
+                            enrichedMetadata?.let { metadata ->
                                 LittlePlayerContent(
                                     mediaMetadata = metadata,
                                     sliderPosition = sliderPosition,
@@ -779,7 +798,7 @@ fun BottomSheetPlayer(
                         ) {
                             Spacer(Modifier.weight(1f))
 
-                            mediaMetadata?.let {
+                            enrichedMetadata?.let {
                                 controlsContent(it)
                             }
 
@@ -837,7 +856,7 @@ fun BottomSheetPlayer(
                                     )
                                 ),
                         ) {
-                            mediaMetadata?.let { metadata ->
+                            enrichedMetadata?.let { metadata ->
                                 LandscapeLikeBox(modifier = Modifier.fillMaxSize()) {
                                     LittlePlayerContent(
                                         mediaMetadata = metadata,
@@ -888,7 +907,7 @@ fun BottomSheetPlayer(
                             )
                         }
 
-                        mediaMetadata?.let {
+                        enrichedMetadata?.let {
                             controlsContent(it)
                         }
 

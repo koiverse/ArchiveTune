@@ -67,6 +67,8 @@
     <string name="hide_player_thumbnail_desc">Replace album artwork with app logo in player</string>
     <string name="crop_thumbnail_to_square">Crop thumbnails to 1:1</string>
     <string name="crop_thumbnail_to_square_desc">Display YouTube thumbnails in square format instead of 16:9</string>
+    <string name="show_home_category_chips">Show home category chips</string>
+    <string name="show_home_category_chips_desc">Show category filter chips on the home screen</string>
     <string name="show_tags_in_library">Show tags in library</string>
     <string name="show_tags_in_library_desc">Show tag filter chips in the library</string>
     <string name="already_in_playlist">Already in playlist:</string>
@@ -190,10 +192,14 @@
     <string name="subscribed">Subscribed</string>
     <string name="playlist_not_found">Playlist not found</string>
     <string name="playlist_not_found_desc">The requested playlist could not be loaded</string>
+    <string name="album_not_found">Album not found</string>
+    <string name="album_not_found_desc">The requested album could not be loaded</string>
     <string name="playlist_private_title">This playlist was private</string>
     <string name="playlist_private_desc">You don\'t have access to this playlist.</string>
     <string name="empty_playlist">Empty Playlist</string>
     <string name="empty_playlist_desc">This playlist doesn\'t contain any songs</string>
+    <string name="empty_album">Empty Album</string>
+    <string name="empty_album_desc">This album doesn\'t contain any songs</string>
     <plurals name="seconds">
         <item quantity="one">1 second</item>
         <item quantity="other">%d seconds</item>
@@ -209,10 +215,6 @@
     <string name="player_stream_client_android_vr_desc">Streams directly without signature decryption, providing maximum speed. Suitable for the majority of users.</string>
     <string name="player_stream_client_web_remix">Web Remix</string>
     <string name="player_stream_client_web_remix_desc">Extended format support at the cost of speed. JavaScript signature decryption introduces a ~5–10 second startup delay.</string>
-    <string name="player_stream_client_ios">iOS</string>
-    <string name="player_stream_client_ios_desc">Uses the iOS YouTube client. Most reliable against YouTube restrictions.</string>
-    <string name="player_stream_client_tvhtml5">TV HTML5</string>
-    <string name="player_stream_client_tvhtml5_desc">Uses the Smart TV YouTube client. Good fallback when other clients are blocked.</string>
     <string name="settings_section_ui">User Interface</string>
     <string name="settings_section_privacy">Privacy &amp; Security</string>
     <string name="settings_section_player">Player &amp; Media</string>
@@ -220,6 +222,9 @@
     <string name="settings_section_storage">Storage &amp; Data</string>
     <string name="settings_section_system">System &amp; About</string>
     <string name="similar_content">Similar content</string>
+    <string name="error_no_song_playing">No song is currently playing</string>
+    <string name="error_no_similar_songs">No similar songs found</string>
+    <string name="error_automix_failed">Failed to load similar songs</string>
     <string name="year_in_music">Year in Music</string>
     <string name="your_year_in_music">Your %d Year in Music</string>
     <string name="total_listening_time">Total Listening Time</string>

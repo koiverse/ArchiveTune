@@ -210,8 +210,6 @@
     <string name="player_stream_client_desc">Saad hallata missugune YouTube\'i klient laadib voogedfastust alla</string>
     <string name="player_stream_client_android_vr_desc">Voogedastus ilma allkirjade dekrüptimiseta, tagades sellega parima kiiruse. Sobib enamusele kasutajatele.</string>
     <string name="player_stream_client_web_remix_desc">Täiendavate vormingute tugi, aga seda kiiruse arvel JavaScripti-põhine allkirjade dekrüptimine lisab algusele umbes 5-10 sekundilise viivituse.</string>
-    <string name="player_stream_client_ios">iOS</string>
-    <string name="player_stream_client_ios_desc">Kasutab iOS-i YouTube\'i klienti. Kõige töökindlam YouTube\'i piirangute vastu.</string>
     <string name="your_year_in_music">Sinu muusaikaasta - %d</string>
     <string name="year_in_music">Aasta muusikas</string>
     <string name="total_listening_time">Kuulamisaeg kokku</string>

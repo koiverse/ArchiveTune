@@ -40,6 +40,7 @@ import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -376,30 +377,30 @@ fun PoTokenScreen(
 
                 Spacer(Modifier.height(12.dp))
 
-                Button(
+                ExtendedFloatingActionButton(
                     onClick = {
                         showRegenerateSheet = true
                     },
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor = MaterialTheme.colorScheme.onPrimary,
-                    ),
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
                     shape = MaterialTheme.shapes.medium,
-                ) {
-                    Icon(
+                    icon = {
+                        Icon(
                         painter = painterResource(R.drawable.sync),
                         contentDescription = null,
                         modifier = Modifier.size(18.dp),
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    Text(
-                        text = stringResource(R.string.regenerate),
-                        style = MaterialTheme.typography.labelLarge,
-                    )
-                }
+                        )
+                    },
+                    text = {
+                        Text(
+                            text = stringResource(R.string.regenerate),
+                            style = MaterialTheme.typography.labelLarge,
+                        )
+                    },
+                )
 
                 Spacer(Modifier.height(24.dp))
             }

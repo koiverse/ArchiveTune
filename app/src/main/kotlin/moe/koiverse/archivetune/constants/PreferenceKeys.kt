@@ -104,6 +104,7 @@ enum class PlayerStreamClient {
     WEB_REMIX,
     IOS,
     TVHTML5,
+    ANDROID_MUSIC,
 }
 
 val PersistentQueueKey = booleanPreferencesKey("persistentQueue")
@@ -115,9 +116,12 @@ val AudioCrossfadeDurationKey = intPreferencesKey("audioCrossfadeDuration")
 val AutoLoadMoreKey = booleanPreferencesKey("autoLoadMore")
 val AutoDownloadOnLikeKey = booleanPreferencesKey("autoDownloadOnLike")
 val AutoSkipNextOnErrorKey = booleanPreferencesKey("autoSkipNextOnError")
+val PauseOnDeviceMuteKey = booleanPreferencesKey("pauseOnDeviceMute")
+val AutoStartOnBluetoothKey = booleanPreferencesKey("autoStartOnBluetooth")
 val StopMusicOnTaskClearKey = booleanPreferencesKey("stopMusicOnTaskClear")
 val ArtistSeparatorsKey = stringPreferencesKey("artistSeparators")
 val PlaylistTagsFilterKey = stringPreferencesKey("playlistTagsFilter")
+val ShowHomeCategoryChipsKey = booleanPreferencesKey("showHomeCategoryChips")
 val ShowTagsInLibraryKey = booleanPreferencesKey("showTagsInLibrary")
 
 val EqualizerEnabledKey = booleanPreferencesKey("equalizerEnabled")

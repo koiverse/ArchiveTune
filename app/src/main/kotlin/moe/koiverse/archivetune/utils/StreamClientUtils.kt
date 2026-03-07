@@ -37,9 +37,17 @@ object StreamClientUtils {
                 c.equals("TVHTML5_SIMPLY_EMBEDDED_PLAYER", ignoreCase = true) ||
                 c.equals("TVHTML5_SIMPLY", ignoreCase = true) -> YouTubeClient.TVHTML5.userAgent
 
+            c.equals("IOS_MUSIC", ignoreCase = true) -> YouTubeClient.IOS_MUSIC.userAgent
+
             c.startsWith("IOS", ignoreCase = true) -> YouTubeClient.IOS.userAgent
 
             c.startsWith("ANDROID_VR", ignoreCase = true) -> YouTubeClient.ANDROID_VR_NO_AUTH.userAgent
+
+            c.equals("ANDROID_MUSIC", ignoreCase = true) -> YouTubeClient.ANDROID_MUSIC.userAgent
+
+            c.equals("ANDROID_TESTSUITE", ignoreCase = true) -> YouTubeClient.ANDROID_TESTSUITE.userAgent
+
+            c.equals("ANDROID_UNPLUGGED", ignoreCase = true) -> YouTubeClient.ANDROID_UNPLUGGED.userAgent
 
             c.startsWith("ANDROID_CREATOR", ignoreCase = true) -> YouTubeClient.ANDROID_CREATOR.userAgent
 

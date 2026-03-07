@@ -47,7 +47,9 @@ import moe.koiverse.archivetune.constants.AudioQuality
 import moe.koiverse.archivetune.constants.AudioQualityKey
 import moe.koiverse.archivetune.constants.NetworkMeteredKey
 import moe.koiverse.archivetune.constants.AutoDownloadOnLikeKey
+import moe.koiverse.archivetune.constants.AutoStartOnBluetoothKey
 import moe.koiverse.archivetune.constants.AutoSkipNextOnErrorKey
+import moe.koiverse.archivetune.constants.PauseOnDeviceMuteKey
 import moe.koiverse.archivetune.constants.PermanentShuffleKey
 import moe.koiverse.archivetune.constants.PersistentQueueKey
 
@@ -125,6 +127,14 @@ fun PlayerSettings(
         AutoSkipNextOnErrorKey,
         defaultValue = false
     )
+    val (pauseOnDeviceMute, onPauseOnDeviceMuteChange) = rememberPreference(
+        PauseOnDeviceMuteKey,
+        defaultValue = false
+    )
+    val (autoStartOnBluetooth, onAutoStartOnBluetoothChange) = rememberPreference(
+        AutoStartOnBluetoothKey,
+        defaultValue = false
+    )
     val (stopMusicOnTaskClear, onStopMusicOnTaskClearChange) = rememberPreference(
         StopMusicOnTaskClearKey,
         defaultValue = false
@@ -172,7 +182,7 @@ fun PlayerSettings(
             onDismiss = { showPlayerStreamClientDialog = false },
             modifier = Modifier.padding(horizontal = 8.dp),
         ) {
-            items(PlayerStreamClient.entries.toList()) { value ->
+            items(listOf(PlayerStreamClient.ANDROID_VR, PlayerStreamClient.WEB_REMIX)) { value ->
                 Row(
                     modifier =
                     Modifier
@@ -192,9 +202,7 @@ fun PlayerSettings(
                             text =
                             when (value) {
                                 PlayerStreamClient.ANDROID_VR -> stringResource(R.string.player_stream_client_android_vr)
-                                PlayerStreamClient.WEB_REMIX -> stringResource(R.string.player_stream_client_web_remix)
-                                PlayerStreamClient.IOS -> stringResource(R.string.player_stream_client_ios)
-                                PlayerStreamClient.TVHTML5 -> stringResource(R.string.player_stream_client_tvhtml5)
+                                else -> stringResource(R.string.player_stream_client_web_remix)
                             },
                             style = MaterialTheme.typography.bodyLarge,
                         )
@@ -203,9 +211,7 @@ fun PlayerSettings(
                             text =
                             when (value) {
                                 PlayerStreamClient.ANDROID_VR -> stringResource(R.string.player_stream_client_android_vr_desc)
-                                PlayerStreamClient.WEB_REMIX -> stringResource(R.string.player_stream_client_web_remix_desc)
-                                PlayerStreamClient.IOS -> stringResource(R.string.player_stream_client_ios_desc)
-                                PlayerStreamClient.TVHTML5 -> stringResource(R.string.player_stream_client_tvhtml5_desc)
+                                else -> stringResource(R.string.player_stream_client_web_remix_desc)
                             },
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.secondary,
@@ -253,9 +259,7 @@ fun PlayerSettings(
             description =
             when (playerStreamClient) {
                 PlayerStreamClient.ANDROID_VR -> stringResource(R.string.player_stream_client_android_vr)
-                PlayerStreamClient.WEB_REMIX -> stringResource(R.string.player_stream_client_web_remix)
-                PlayerStreamClient.IOS -> stringResource(R.string.player_stream_client_ios)
-                PlayerStreamClient.TVHTML5 -> stringResource(R.string.player_stream_client_tvhtml5)
+                else -> stringResource(R.string.player_stream_client_web_remix)
             },
             icon = { Icon(painterResource(R.drawable.integration), null) },
             onClick = { showPlayerStreamClientDialog = true }
@@ -316,6 +320,22 @@ fun PlayerSettings(
             icon = { Icon(painterResource(R.drawable.arrow_forward), null) },
             checked = seekExtraSeconds,
             onCheckedChange = onSeekExtraSeconds
+        )
+
+        SwitchPreference(
+            title = { Text(stringResource(R.string.pause_on_device_mute)) },
+            description = stringResource(R.string.pause_on_device_mute_desc),
+            icon = { Icon(painterResource(R.drawable.volume_off), null) },
+            checked = pauseOnDeviceMute,
+            onCheckedChange = onPauseOnDeviceMuteChange
+        )
+
+        SwitchPreference(
+            title = { Text(stringResource(R.string.auto_start_on_bluetooth)) },
+            description = stringResource(R.string.auto_start_on_bluetooth_desc),
+            icon = { Icon(painterResource(R.drawable.bluetooth), null) },
+            checked = autoStartOnBluetooth,
+            onCheckedChange = onAutoStartOnBluetoothChange
         )
 
         PreferenceGroupTitle(

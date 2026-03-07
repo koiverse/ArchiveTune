@@ -36,6 +36,7 @@ import moe.koiverse.archivetune.innertube.YouTube
 import moe.koiverse.archivetune.innertube.models.YouTubeLocale
 import moe.koiverse.archivetune.kugou.KuGou
 import moe.koiverse.archivetune.lastfm.LastFM
+import moe.koiverse.archivetune.ui.player.CanvasArtworkPlaybackCache
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
@@ -94,6 +95,8 @@ class App : Application(), SingletonImageLoader.Factory {
     }
 
     private fun initializeCriticalSync() {
+        CanvasArtworkPlaybackCache.init(this)
+
         val locale = Locale.getDefault()
         val languageTag = locale.toLanguageTag().replace("-Hant", "")
         YouTube.locale = YouTubeLocale(

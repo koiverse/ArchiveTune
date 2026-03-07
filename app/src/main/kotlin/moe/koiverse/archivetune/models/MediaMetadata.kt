@@ -30,16 +30,28 @@ data class MediaMetadata(
     val likedDate: LocalDateTime? = null,
     val inLibrary: LocalDateTime? = null,
 ) : Serializable {
+    companion object {
+        private const val serialVersionUID = 1L
+    }
+
     data class Artist(
         val id: String?,
         val name: String,
         val thumbnailUrl: String? = null,
-    ) : Serializable
+    ) : Serializable {
+        companion object {
+            private const val serialVersionUID = 1L
+        }
+    }
 
     data class Album(
         val id: String,
         val title: String,
-    ) : Serializable
+    ) : Serializable {
+        companion object {
+            private const val serialVersionUID = 1L
+        }
+    }
 
     fun toSongEntity() =
         SongEntity(

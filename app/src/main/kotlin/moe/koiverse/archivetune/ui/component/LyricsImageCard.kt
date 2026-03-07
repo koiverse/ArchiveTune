@@ -35,6 +35,8 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
@@ -49,7 +51,9 @@ import com.kyant.backdrop.effects.lens
 import com.kyant.backdrop.effects.vibrancy
 import com.kyant.backdrop.backdrops.rememberCanvasBackdrop
 import moe.koiverse.archivetune.R
+import moe.koiverse.archivetune.constants.UseSystemFontKey
 import moe.koiverse.archivetune.models.MediaMetadata
+import moe.koiverse.archivetune.utils.rememberPreference
 
 @Composable
 fun rememberAdjustedFontSize(
@@ -146,6 +150,10 @@ fun LyricsImageCard(
 ) {
     val context = LocalContext.current
     val density = LocalDensity.current
+    val (useSystemFont) = rememberPreference(UseSystemFontKey, defaultValue = false)
+    val lyricsFontFamily = remember(useSystemFont) {
+        if (useSystemFont) null else FontFamily(Font(R.font.sfprodisplaybold))
+    }
 
     val cardSizeDp = 340.dp
     val glassCornerRadius = 24.dp
@@ -329,6 +337,7 @@ fun LyricsImageCard(
                             fontWeight = FontWeight.SemiBold,
                             textAlign = TextAlign.Center,
                             letterSpacing = (-0.01).em,
+                            fontFamily = lyricsFontFamily,
                         )
 
                         val textMeasurer = rememberTextMeasurer()

@@ -31,6 +31,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -47,8 +48,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
@@ -90,6 +89,7 @@ fun CurrentSongHeader(
     songCount: Int,
     queueDuration: Int,
     infiniteQueueEnabled: Boolean,
+    automixLoading: Boolean,
     backgroundColor: Color,
     onBackgroundColor: Color,
     onToggleLike: () -> Unit,
@@ -106,7 +106,6 @@ fun CurrentSongHeader(
             .background(backgroundColor)
             .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal))
             .bottomSheetDraggable(sheetState)
-            .pointerInput(Unit) { detectTapGestures { } } // Block clicks while allowing drag
             .padding(horizontal = 16.dp, vertical = 12.dp)
     ) {
         // Drag handle
@@ -278,13 +277,22 @@ fun CurrentSongHeader(
                     .clickable { onInfiniteQueueClick() },
                 contentAlignment = Alignment.Center
             ) {
-                Icon(
-                    painter = painterResource(R.drawable.all_inclusive),
-                    contentDescription = stringResource(R.string.similar_content),
-                    tint = if (infiniteQueueEnabled) MaterialTheme.colorScheme.onPrimary
-                           else onBackgroundColor.copy(alpha = 0.5f),
-                    modifier = Modifier.size(22.dp)
-                )
+                if (automixLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(18.dp),
+                        color = if (infiniteQueueEnabled) MaterialTheme.colorScheme.onPrimary
+                               else onBackgroundColor,
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Icon(
+                        painter = painterResource(R.drawable.all_inclusive),
+                        contentDescription = stringResource(R.string.similar_content),
+                        tint = if (infiniteQueueEnabled) MaterialTheme.colorScheme.onPrimary
+                               else onBackgroundColor.copy(alpha = 0.5f),
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
             }
         }
         

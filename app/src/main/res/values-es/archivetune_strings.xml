@@ -262,6 +262,4 @@
     <string name="restore_step_restoring_file">Restaurando %1$s</string>
     <string name="restore_step_restarting">Reiniciar la aplicación</string>
     <string name="discord">Discord</string>
-    <string name="player_stream_client_ios">iOS</string>
-    <string name="player_stream_client_ios_desc">Utiliza el cliente de YouTube de iOS. El más fiable frente a las restricciones de YouTube.</string>
 </resources>
