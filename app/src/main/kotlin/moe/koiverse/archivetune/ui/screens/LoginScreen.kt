@@ -9,6 +9,7 @@
 package moe.koiverse.archivetune.ui.screens
 
 import android.annotation.SuppressLint
+import android.net.Uri
 import android.webkit.CookieManager
 import android.webkit.JavascriptInterface
 import android.webkit.WebView
@@ -44,14 +45,24 @@ import moe.koiverse.archivetune.utils.reportException
 import moe.koiverse.archivetune.innertube.YouTube
 import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.DelicateCoroutinesApi
-import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
+
+const val LOGIN_ROUTE = "login"
+const val LOGIN_URL_ARGUMENT = "url"
+
+fun buildLoginRoute(startUrl: String? = null): String {
+    val resolvedUrl = startUrl?.trim().takeUnless { it.isNullOrBlank() } ?: return LOGIN_ROUTE
+    return "$LOGIN_ROUTE?$LOGIN_URL_ARGUMENT=${Uri.encode(resolvedUrl)}"
+}
+
+private const val DEFAULT_LOGIN_URL = "https://accounts.google.com/ServiceLogin?continue=https%3A%2F%2Fmusic.youtube.com"
 
 @SuppressLint("SetJavaScriptEnabled")
 @OptIn(ExperimentalMaterial3Api::class, DelicateCoroutinesApi::class)
 @Composable
 fun LoginScreen(
     navController: NavController,
+    startUrl: String? = null,
 ) {
     val coroutineScope = rememberCoroutineScope()
     var visitorData by rememberPreference(VisitorDataKey, "")
@@ -70,14 +81,20 @@ fun LoginScreen(
             .fillMaxSize(),
         factory = { context ->
             WebView(context).apply {
+                val cookieManager = CookieManager.getInstance()
+                cookieManager.setAcceptCookie(true)
                 webViewClient = object : WebViewClient() {
                     override fun onPageFinished(view: WebView, url: String?) {
-                        loadUrl("javascript:Android.onRetrieveVisitorData(window.yt.config_.VISITOR_DATA)")
-                        loadUrl("javascript:Android.onRetrieveDataSyncId(window.yt.config_.DATASYNC_ID)")
-                        loadUrl("javascript:void((function(){try{var c=window.ytcfg;if(c&&c.get){var t=c.get('PO_TOKEN');if(t){Android.onRetrievePoToken(t);return}}var s=document.querySelectorAll('script');for(var i=0;i<s.length;i++){var m=s[i].textContent.match(/\"PO_TOKEN\":\"([^\"]+)\"/);if(m){Android.onRetrievePoToken(m[1]);return}}}catch(e){}})())")
+                        val isYouTubePage = url?.contains("youtube.com", ignoreCase = true) == true
+                        if (isYouTubePage) {
+                            loadUrl("javascript:Android.onRetrieveVisitorData(window.yt.config_.VISITOR_DATA)")
+                            loadUrl("javascript:Android.onRetrieveDataSyncId(window.yt.config_.DATASYNC_ID)")
+                            loadUrl("javascript:void((function(){try{var c=window.ytcfg;if(c&&c.get){var t=c.get('PO_TOKEN');if(t){Android.onRetrievePoToken(t);return}}var s=document.querySelectorAll('script');for(var i=0;i<s.length;i++){var m=s[i].textContent.match(/\"PO_TOKEN\":\"([^\"]+)\"/);if(m){Android.onRetrievePoToken(m[1]);return}}}catch(e){}})())")
+                        }
 
-                        if (url?.startsWith("https://music.youtube.com") == true) {
-                            innerTubeCookie = CookieManager.getInstance().getCookie(url)
+                        val mergedCookie = mergeYouTubeCookies(cookieManager)
+                        if (!mergedCookie.isNullOrBlank()) {
+                            innerTubeCookie = mergedCookie
                             coroutineScope.launch {
                                 YouTube.accountInfo().onSuccess {
                                     accountName = it.name
@@ -117,7 +134,7 @@ fun LoginScreen(
                     }
                 }, "Android")
                 webView = this
-                loadUrl("https://accounts.google.com/ServiceLogin?continue=https%3A%2F%2Fmusic.youtube.com")
+                loadUrl(startUrl?.takeIf { it.isNotBlank() } ?: DEFAULT_LOGIN_URL)
             }
         }
     )
@@ -140,4 +157,33 @@ fun LoginScreen(
     BackHandler(enabled = webView?.canGoBack() == true) {
         webView?.goBack()
     }
+}
+
+private fun mergeYouTubeCookies(cookieManager: CookieManager): String? {
+    val cookieParts = linkedMapOf<String, String>()
+
+    listOf(
+        "https://music.youtube.com",
+        "https://www.youtube.com",
+        "https://youtube.com",
+    ).forEach { url ->
+        cookieManager.getCookie(url)
+            ?.split(";")
+            ?.map(String::trim)
+            ?.filter(String::isNotBlank)
+            ?.forEach { part ->
+                val separatorIndex = part.indexOf('=')
+                if (separatorIndex <= 0) return@forEach
+
+                val key = part.substring(0, separatorIndex).trim()
+                val value = part.substring(separatorIndex + 1).trim()
+                if (key.isNotEmpty()) {
+                    cookieParts[key] = value
+                }
+            }
+    }
+
+    return cookieParts.takeIf { it.isNotEmpty() }
+        ?.entries
+        ?.joinToString(separator = "; ") { (key, value) -> "$key=$value" }
 }
