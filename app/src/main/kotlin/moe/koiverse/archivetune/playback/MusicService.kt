@@ -11,6 +11,7 @@
 package moe.koiverse.archivetune.playback
 
 import android.app.PendingIntent
+import android.app.ActivityManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
@@ -30,6 +31,7 @@ import android.media.audiofx.LoudnessEnhancer
 import android.media.MediaCodecList
 import android.media.audiofx.Virtualizer
 import android.net.ConnectivityManager
+import android.net.Uri
 import android.os.Binder
 import android.widget.Toast
 import androidx.core.content.getSystemService
@@ -330,6 +332,8 @@ class MusicService :
     private var lastPresenceToken: String? = null
     @Volatile
     private var lastPresenceUpdateTime = 0L
+    @Volatile
+    private var lastLoginRecoveryPrompt: Pair<String, Long>? = null
 
     val currentMediaMetadata = MutableStateFlow<moe.koiverse.archivetune.models.MediaMetadata?>(null)
     val queueRestoreCompleted = MutableStateFlow(false)
@@ -352,6 +356,37 @@ class MusicService :
     private val audioNormalizationEnabled = MutableStateFlow(true)
     private var crossfadeAudio: CrossfadeAudio? = null
     private var lyricsPreloadManager: LyricsPreloadManager? = null
+
+    private fun isAppInForeground(): Boolean {
+        val activityManager = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+        val appProcesses = activityManager.runningAppProcesses ?: return false
+        return appProcesses.any { processInfo ->
+            processInfo.importance == ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND &&
+                processInfo.processName == packageName
+        }
+    }
+
+    private fun promptLoginRecovery(mediaId: String, targetUrl: String) {
+        if (!isAppInForeground()) return
+
+        val now = System.currentTimeMillis()
+        val lastPrompt = lastLoginRecoveryPrompt
+        if (lastPrompt?.first == mediaId && now - lastPrompt.second < 10000L) return
+        lastLoginRecoveryPrompt = mediaId to now
+
+        val deepLink = Uri.parse("archivetune://login?url=${Uri.encode(targetUrl)}")
+        val intent = Intent(Intent.ACTION_VIEW, deepLink, this, MainActivity::class.java).apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
+            addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
+        }
+
+        runCatching {
+            startActivity(intent)
+        }.onFailure {
+            Timber.e(it, "Failed to open login recovery for %s", mediaId)
+        }
+    }
 
     lateinit var sleepTimer: SleepTimer
 
@@ -4173,6 +4208,15 @@ class MusicService :
                 )
             }.getOrElse { throwable ->
                 when (throwable) {
+                    is YTPlayerUtils.LoginRequiredForPlaybackException -> {
+                        promptLoginRecovery(mediaId, throwable.targetUrl)
+                        throw PlaybackException(
+                            getString(R.string.playback_requires_youtube_music_confirmation),
+                            throwable,
+                            PlaybackException.ERROR_CODE_REMOTE_ERROR
+                        )
+                    }
+
                     is PlaybackException -> throw throwable
 
                     is java.net.ConnectException, is java.net.UnknownHostException -> {
