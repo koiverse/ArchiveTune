@@ -36,7 +36,7 @@ kuromojiIpadic = "0.9.0"
 extractor = "2d2d9ed"
 rhino = "1.9.1"
 multiplatformMarkdown = "0.39.2"
-jaudiotagger = "3.0.1"
+ffmpegKit = "6.0-2"
 
 [libraries]
 annotation = { module = "androidx.annotation:annotation", version.ref = "annotation" }
@@ -122,7 +122,7 @@ kuromoji-ipadic = { module = "com.atilika.kuromoji:kuromoji-ipadic", version.ref
 
 multiplatform-markdown = { module = "com.mikepenz:multiplatform-markdown-renderer-m3", version.ref = "multiplatformMarkdown" }
 
-jaudiotagger = { module = "net.jthink:jaudiotagger", version.ref = "jaudiotagger" }
+ffmpeg-kit = { module = "com.arthenica:ffmpeg-kit-full-gpl", version.ref = "ffmpegKit" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "androidGradlePlugin" }
