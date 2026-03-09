@@ -208,7 +208,9 @@ import moe.koiverse.archivetune.ui.component.rememberBottomSheetState
 import moe.koiverse.archivetune.ui.component.shimmer.ShimmerTheme
 import moe.koiverse.archivetune.ui.menu.YouTubeSongMenu
 import moe.koiverse.archivetune.ui.player.BottomSheetPlayer
+import moe.koiverse.archivetune.ui.screens.LOGIN_URL_ARGUMENT
 import moe.koiverse.archivetune.ui.screens.Screens
+import moe.koiverse.archivetune.ui.screens.buildLoginRoute
 import moe.koiverse.archivetune.ui.screens.navigationBuilder
 import moe.koiverse.archivetune.ui.screens.search.LocalSearchScreen
 import moe.koiverse.archivetune.ui.screens.search.OnlineSearchScreen
@@ -1781,6 +1783,11 @@ class MainActivity : ComponentActivity() {
             pendingTogetherJoinLink = uri.toString()
             startMusicServiceSafely()
             joinPendingTogetherIfReady()
+            return
+        }
+
+        if (uri.scheme.equals("archivetune", ignoreCase = true) && authority == "login") {
+            navController.navigate(buildLoginRoute(uri.getQueryParameter(LOGIN_URL_ARGUMENT)))
             return
         }
 
