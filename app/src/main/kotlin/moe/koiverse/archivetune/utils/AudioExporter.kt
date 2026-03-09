@@ -75,7 +75,7 @@ object AudioExporter {
 
     fun fileExtension(format: FormatEntity): String = when {
         format.mimeType.contains("mp4") -> ".m4a"
-        format.mimeType.contains("webm") -> ".webm"
+        format.mimeType.contains("webm") -> ".weba"
         format.mimeType.contains("ogg") -> ".ogg"
         else -> ".${format.codecs}"
     }
@@ -85,6 +85,13 @@ object AudioExporter {
         format.mimeType.contains("webm") -> "audio/webm"
         format.mimeType.contains("ogg") -> "audio/ogg"
         else -> "audio/*"
+    }
+
+    private fun safMimeType(format: FormatEntity): String = when {
+        format.mimeType.contains("mp4") -> "audio/mp4"
+        format.mimeType.contains("webm") -> "application/octet-stream"
+        format.mimeType.contains("ogg") -> "audio/ogg"
+        else -> "application/octet-stream"
     }
 
     fun exportSong(
@@ -161,7 +168,7 @@ object AudioExporter {
 
             val contentValues = ContentValues().apply {
                 put(MediaStore.MediaColumns.DISPLAY_NAME, actualFileName)
-                put(MediaStore.MediaColumns.MIME_TYPE, mimeTypeForExport(format))
+                put(MediaStore.MediaColumns.MIME_TYPE, safMimeType(format))
                 put(MediaStore.MediaColumns.RELATIVE_PATH, RELATIVE_PATH)
                 put(MediaStore.Audio.AudioColumns.TITLE, song.song.title)
                 put(MediaStore.Audio.AudioColumns.ARTIST, song.artists.firstOrNull()?.name ?: "Unknown Artist")
@@ -255,7 +262,7 @@ object AudioExporter {
             fileName
         }
 
-        val mimeType = mimeTypeForExport(format)
+        val mimeType = safMimeType(format)
         val docFile = parentDocument.createFile(mimeType, actualFileName.removeSuffix(extension))
             ?: return ExportResult.Failed(song.id, "Failed to create file")
 
