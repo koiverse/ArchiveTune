@@ -43,6 +43,18 @@ object YTPlayerUtils {
     private const val logTag = "YTPlayerUtils"
     private const val FAILED_CLIENT_BACKOFF_MS = 10 * 60 * 1000L
 
+    class LoginRequiredForPlaybackException(
+        val videoId: String,
+        val targetUrl: String,
+        reason: String?,
+    ) : IllegalStateException(reason)
+
+    private data class PlaybackGateFailure(
+        val clientName: String,
+        val status: String,
+        val reason: String?,
+    )
+
     @Volatile private var streamClientPair: Pair<java.net.Proxy?, OkHttpClient>? = null
 
     private fun currentStreamClient(): OkHttpClient {
@@ -248,6 +260,7 @@ object YTPlayerUtils {
             }
 
         val botDetectedClients = mutableSetOf<String>()
+        var gateFailure: PlaybackGateFailure? = null
 
         for ((index, client) in streamClients.withIndex()) {
             format = null
@@ -276,11 +289,18 @@ object YTPlayerUtils {
 
             if (streamPlayerResponse.playabilityStatus.status != "OK") {
                 val reason = streamPlayerResponse.playabilityStatus.reason.orEmpty()
+                val isLoginRecovery = isLoginRecoveryError(reason)
                 val isBotDetection = isBotDetectionError(reason)
                 Timber.tag(logTag).w(
-                    "Player response status not OK: ${streamPlayerResponse.playabilityStatus.status}, reason: $reason, botDetection: $isBotDetection"
+                    "Player response status not OK: ${streamPlayerResponse.playabilityStatus.status}, reason: $reason, loginRecovery: $isLoginRecovery, botDetection: $isBotDetection"
                 )
-                if (isBotDetection) {
+                if (isLoginRecovery) {
+                    gateFailure = PlaybackGateFailure(
+                        clientName = client.clientName,
+                        status = streamPlayerResponse.playabilityStatus.status,
+                        reason = streamPlayerResponse.playabilityStatus.reason,
+                    )
+                } else if (isBotDetection) {
                     botDetectedClients.add(client.clientName)
                 }
                 continue
@@ -340,6 +360,16 @@ object YTPlayerUtils {
         }
 
         if (streamPlayerResponse == null) {
+            gateFailure?.let { failure ->
+                Timber.tag(logTag).w(
+                    "Playback requires login recovery for $videoId via ${failure.clientName} (${failure.status}): ${failure.reason.orEmpty()}"
+                )
+                throw LoginRequiredForPlaybackException(
+                    videoId = videoId,
+                    targetUrl = "https://music.youtube.com/watch?v=$videoId",
+                    reason = failure.reason,
+                )
+            }
             if (botDetectedClients.isNotEmpty()) {
                 Timber.tag(logTag).e("Bot detection triggered on clients: $botDetectedClients - all clients failed")
                 throw PlaybackException(
@@ -354,6 +384,14 @@ object YTPlayerUtils {
 
         if (streamPlayerResponse.playabilityStatus.status != "OK") {
             val errorReason = streamPlayerResponse.playabilityStatus.reason
+            if (isLoginRecoveryError(errorReason.orEmpty())) {
+                Timber.tag(logTag).w("Playback requires login recovery for $videoId: $errorReason")
+                throw LoginRequiredForPlaybackException(
+                    videoId = videoId,
+                    targetUrl = "https://music.youtube.com/watch?v=$videoId",
+                    reason = errorReason,
+                )
+            }
             Timber.tag(logTag).e("Playability status not OK: $errorReason")
             throw PlaybackException(
                 errorReason,
@@ -613,10 +651,23 @@ object YTPlayerUtils {
 
     private fun isBotDetectionError(reason: String): Boolean {
         val lower = reason.lowercase(Locale.US)
-        return "sign in" in lower ||
-            "bot" in lower ||
+        return "bot" in lower ||
+            "unusual traffic" in lower ||
+            "automated" in lower ||
             "confirm" in lower && "not a" in lower ||
+            "not a robot" in lower ||
             "verify" in lower && "human" in lower
+    }
+
+    private fun isLoginRecoveryError(reason: String): Boolean {
+        val lower = reason.lowercase(Locale.US)
+        return "confirm your age" in lower ||
+            "age-restricted" in lower ||
+            "age restricted" in lower ||
+            "inappropriate for some users" in lower ||
+            "mature audiences" in lower ||
+            "adult" in lower && "sign in" in lower ||
+            "allow" in lower && "youtube music" in lower
     }
 
     fun isBotDetectionException(error: PlaybackException): Boolean {
