@@ -36,7 +36,7 @@ kuromojiIpadic = "0.9.0"
 extractor = "2d2d9ed"
 rhino = "1.9.1"
 multiplatformMarkdown = "0.39.2"
-ffmpegKit = "v6.0.LTS"
+ffmpegKit = "v6.0"
 
 [libraries]
 annotation = { module = "androidx.annotation:annotation", version.ref = "annotation" }
