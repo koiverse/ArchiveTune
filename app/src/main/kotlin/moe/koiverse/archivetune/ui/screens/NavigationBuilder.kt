@@ -77,6 +77,7 @@ import moe.koiverse.archivetune.ui.screens.settings.DiscordSettings
 import moe.koiverse.archivetune.ui.screens.settings.DebugSettings
 import moe.koiverse.archivetune.ui.screens.settings.IntegrationScreen
 import moe.koiverse.archivetune.ui.screens.settings.LastFMSettings
+import moe.koiverse.archivetune.ui.screens.settings.ExportSongsScreen
 import moe.koiverse.archivetune.ui.screens.settings.MusicTogetherScreen
 import moe.koiverse.archivetune.ui.screens.settings.PalettePickerScreen
 import moe.koiverse.archivetune.ui.screens.settings.PlayerSettings
@@ -323,6 +324,9 @@ fun NavGraphBuilder.navigationBuilder(
     }
     composable("settings/storage") {
         StorageSettings(navController, scrollBehavior)
+    }
+    composable("settings/export_songs") {
+        ExportSongsScreen(navController, scrollBehavior)
     }
     composable("settings/privacy") {
         PrivacySettings(navController, scrollBehavior)

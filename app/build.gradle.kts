@@ -200,6 +200,7 @@ dependencies {
     implementation(libs.room.ktx)
 
     implementation(libs.apache.lang3)
+    implementation(libs.jaudiotagger)
 
     implementation(libs.hilt)
     implementation(libs.jsoup)

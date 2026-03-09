@@ -221,6 +221,20 @@ fun StorageSettings(
             isEnabled = isSmartTrimmerAvailable,
         )
 
+        CacheCard(
+            icon = R.drawable.export,
+            title = stringResource(R.string.export_songs),
+            description = stringResource(R.string.export_songs_subtitle),
+            progress = null,
+            actions = {
+                PreferenceEntry(
+                    title = { Text(stringResource(R.string.export_songs)) },
+                    icon = { Icon(painterResource(R.drawable.open_in_new), contentDescription = null) },
+                    onClick = { navController.navigate("settings/export_songs") },
+                )
+            }
+        )
+
         // --- Section: Downloads ---
         CacheCard(
             icon = R.drawable.ic_download,
