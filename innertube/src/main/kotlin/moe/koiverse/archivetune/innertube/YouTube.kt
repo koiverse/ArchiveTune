@@ -148,6 +148,9 @@ object YouTube {
         val userExtracted = poTokenPlayer?.takeIf { it.isNotBlank() }
         if (userExtracted != null) return userExtracted
 
+        val webFallback = poToken?.takeIf { it.isNotBlank() }
+        if (webFallback != null) return webFallback
+
         return null
     }
 
