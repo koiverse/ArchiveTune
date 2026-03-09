@@ -113,7 +113,7 @@ junit = { module = "junit:junit", version.ref = "junit" }
 
 timber = { module = "com.jakewharton.timber:timber", version.ref = "timber" }
 
-newpipe-extractor = { module = "com.github.teamnewpipe:NewPipeExtractor", version = "v0.26.0" }
+newpipe-extractor = { module = "com.github.teamnewpipe:NewPipeExtractor", version = "0.24.8" }
 #newpipe-extractor = { module = "com.github.libre-tube:NewPipeExtractor", version = "70be3a4" }
 #newpipe-extractor = { module = "com.github.teamnewpipe:NewPipeExtractor", version = "master-SNAPSHOT" }
 
