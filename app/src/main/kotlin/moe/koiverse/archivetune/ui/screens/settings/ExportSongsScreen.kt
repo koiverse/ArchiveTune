@@ -17,7 +17,6 @@ import android.provider.DocumentsContract
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -38,16 +37,19 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -81,6 +83,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil3.compose.AsyncImage
@@ -113,12 +117,23 @@ fun ExportSongsScreen(
     val searchQuery by viewModel.searchQuery.collectAsState()
     val sourceFilter by viewModel.sourceFilter.collectAsState()
 
+    var showConfigDialog by remember { mutableStateOf(false) }
+
     val safLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenDocumentTree()
     ) { uri ->
         uri?.let {
             viewModel.updateConfig(config.copy(destination = ExportDestination.SAF, safUri = it))
         }
+    }
+
+    if (showConfigDialog) {
+        ExportOptionsDialog(
+            config = config,
+            onConfigChange = viewModel::updateConfig,
+            onBrowseFolder = { safLauncher.launch(null) },
+            onDismiss = { showConfigDialog = false },
+        )
     }
 
     Scaffold(
@@ -152,6 +167,15 @@ fun ExportSongsScreen(
                                 ),
                             )
                         }
+                        IconButton(
+                            onClick = { showConfigDialog = true },
+                            onLongClick = {},
+                        ) {
+                            Icon(
+                                painterResource(R.drawable.settings),
+                                contentDescription = stringResource(R.string.export_configuration),
+                            )
+                        }
                     }
                 },
             )
@@ -161,7 +185,6 @@ fun ExportSongsScreen(
             ExportState.IDLE -> SongSelectionContent(
                 paddingValues = paddingValues,
                 songs = songs,
-                config = config,
                 searchQuery = searchQuery,
                 sourceFilter = sourceFilter,
                 selectedCount = viewModel.selectedCount,
@@ -169,8 +192,6 @@ fun ExportSongsScreen(
                 onSearchQueryChange = viewModel::setSearchQuery,
                 onSourceFilterChange = viewModel::setSourceFilter,
                 onToggleSelection = viewModel::toggleSelection,
-                onConfigChange = viewModel::updateConfig,
-                onBrowseFolder = { safLauncher.launch(null) },
                 onStartExport = viewModel::startExport,
             )
             ExportState.EXPORTING -> ExportProgressContent(
@@ -196,7 +217,6 @@ fun ExportSongsScreen(
 private fun SongSelectionContent(
     paddingValues: PaddingValues,
     songs: List<ExportableSong>,
-    config: ExportConfig,
     searchQuery: String,
     sourceFilter: ExportSource,
     selectedCount: Int,
@@ -204,11 +224,8 @@ private fun SongSelectionContent(
     onSearchQueryChange: (String) -> Unit,
     onSourceFilterChange: (ExportSource) -> Unit,
     onToggleSelection: (String) -> Unit,
-    onConfigChange: (ExportConfig) -> Unit,
-    onBrowseFolder: () -> Unit,
     onStartExport: () -> Unit,
 ) {
-    var showConfigSection by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -277,18 +294,6 @@ private fun SongSelectionContent(
                 ExportSongItem(
                     item = item,
                     onToggle = { onToggleSelection(item.song.id) },
-                )
-            }
-
-            item {
-                Spacer(Modifier.height(8.dp))
-
-                ExportConfigCard(
-                    config = config,
-                    expanded = showConfigSection,
-                    onToggleExpanded = { showConfigSection = !showConfigSection },
-                    onConfigChange = onConfigChange,
-                    onBrowseFolder = onBrowseFolder,
                 )
             }
 
@@ -457,70 +462,75 @@ private fun EmptyState() {
 }
 
 @Composable
-private fun ExportConfigCard(
+private fun ExportOptionsDialog(
     config: ExportConfig,
-    expanded: Boolean,
-    onToggleExpanded: () -> Unit,
     onConfigChange: (ExportConfig) -> Unit,
     onBrowseFolder: () -> Unit,
+    onDismiss: () -> Unit,
 ) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .animateContentSize(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        shape = MaterialTheme.shapes.large,
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false),
     ) {
-        Column {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable(onClick = onToggleExpanded)
-                    .padding(16.dp),
-            ) {
-                Card(
-                    shape = MaterialTheme.shapes.small,
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
-                    ),
+        Card(
+            modifier = Modifier
+                .fillMaxWidth(0.92f)
+                .padding(vertical = 24.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            shape = MaterialTheme.shapes.extraLarge,
+        ) {
+            Column {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f))
+                        .padding(horizontal = 20.dp, vertical = 16.dp),
                 ) {
-                    Box(
-                        modifier = Modifier.padding(8.dp),
-                        contentAlignment = Alignment.Center,
+                    Card(
+                        shape = CircleShape,
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+                        ),
                     ) {
-                        Icon(
-                            painterResource(R.drawable.settings),
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
+                        Box(
+                            modifier = Modifier.padding(10.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Icon(
+                                painterResource(R.drawable.settings),
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(22.dp),
+                            )
+                        }
+                    }
+                    Spacer(Modifier.width(14.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            stringResource(R.string.export_configuration),
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                        Text(
+                            buildConfigSummary(config),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                 }
-                Spacer(Modifier.width(12.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        stringResource(R.string.export_configuration),
-                        style = MaterialTheme.typography.titleMedium,
-                    )
-                    Text(
-                        buildConfigSummary(config),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                Icon(
-                    painterResource(
-                        if (expanded) R.drawable.expand_less else R.drawable.expand_more
-                    ),
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
 
-            AnimatedVisibility(visible = expanded) {
-                Column(modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 16.dp)) {
-                    SectionTitle(stringResource(R.string.export_destination))
+                Column(
+                    modifier = Modifier
+                        .weight(1f, fill = false)
+                        .verticalScroll(rememberScrollState())
+                        .padding(horizontal = 20.dp, vertical = 12.dp),
+                ) {
+                    DialogSectionHeader(
+                        icon = R.drawable.export,
+                        title = stringResource(R.string.export_destination),
+                    )
 
                     DestinationOption(
                         selected = config.destination == ExportDestination.MEDIA_STORE,
@@ -555,43 +565,65 @@ private fun ExportConfigCard(
                         },
                     )
 
-                    Spacer(Modifier.height(16.dp))
-                    SectionTitle(stringResource(R.string.export_filename_template))
+                    HorizontalDivider(
+                        modifier = Modifier.padding(vertical = 12.dp),
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                    )
+
+                    DialogSectionHeader(
+                        icon = R.drawable.edit,
+                        title = stringResource(R.string.export_filename_template),
+                    )
 
                     FilenameTemplate.entries.forEach { template ->
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier
                                 .fillMaxWidth()
+                                .clip(RoundedCornerShape(8.dp))
                                 .clickable {
                                     onConfigChange(config.copy(filenameTemplate = template))
                                 }
-                                .padding(vertical = 6.dp),
+                                .padding(vertical = 4.dp),
                         ) {
                             RadioButton(
                                 selected = config.filenameTemplate == template,
                                 onClick = { onConfigChange(config.copy(filenameTemplate = template)) },
                             )
-                            Text(
-                                text = templateDisplayName(template),
-                                style = MaterialTheme.typography.bodyMedium,
-                                modifier = Modifier.padding(start = 8.dp),
-                            )
+                            Column(modifier = Modifier.padding(start = 4.dp)) {
+                                Text(
+                                    text = templateDisplayName(template),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                )
+                                Text(
+                                    text = template.format("Song Title", "Artist", "Album"),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                                )
+                            }
                         }
                     }
 
-                    Spacer(Modifier.height(16.dp))
-                    SectionTitle(stringResource(R.string.export_duplicate_handling))
+                    HorizontalDivider(
+                        modifier = Modifier.padding(vertical = 12.dp),
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                    )
+
+                    DialogSectionHeader(
+                        icon = R.drawable.info,
+                        title = stringResource(R.string.export_duplicate_handling),
+                    )
 
                     DuplicateHandling.entries.forEach { handling ->
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier
                                 .fillMaxWidth()
+                                .clip(RoundedCornerShape(8.dp))
                                 .clickable {
                                     onConfigChange(config.copy(duplicateHandling = handling))
                                 }
-                                .padding(vertical = 6.dp),
+                                .padding(vertical = 4.dp),
                         ) {
                             RadioButton(
                                 selected = config.duplicateHandling == handling,
@@ -602,23 +634,34 @@ private fun ExportConfigCard(
                             Text(
                                 text = duplicateDisplayName(handling),
                                 style = MaterialTheme.typography.bodyMedium,
-                                modifier = Modifier.padding(start = 8.dp),
+                                modifier = Modifier.padding(start = 4.dp),
                             )
                         }
                     }
 
-                    Spacer(Modifier.height(16.dp))
+                    HorizontalDivider(
+                        modifier = Modifier.padding(vertical = 12.dp),
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                    )
+
+                    DialogSectionHeader(
+                        icon = R.drawable.lyrics,
+                        title = stringResource(R.string.export_embed_metadata),
+                    )
 
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(vertical = 8.dp),
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.5f))
+                            .padding(horizontal = 12.dp, vertical = 10.dp),
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 stringResource(R.string.export_embed_metadata),
                                 style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.Medium,
                             )
                             Text(
                                 stringResource(R.string.export_embed_metadata_desc),
@@ -626,6 +669,7 @@ private fun ExportConfigCard(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
+                        Spacer(Modifier.width(8.dp))
                         Switch(
                             checked = config.embedMetadata,
                             onCheckedChange = {
@@ -643,17 +687,22 @@ private fun ExportConfigCard(
                         )
                     }
 
+                    Spacer(Modifier.height(8.dp))
+
                     AnimatedVisibility(visible = config.embedMetadata) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(vertical = 8.dp, horizontal = 8.dp),
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.5f))
+                                .padding(horizontal = 12.dp, vertical = 10.dp),
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
                                     stringResource(R.string.export_include_cover_art),
                                     style = MaterialTheme.typography.bodyLarge,
+                                    fontWeight = FontWeight.Medium,
                                 )
                                 Text(
                                     stringResource(R.string.export_include_cover_art_desc),
@@ -661,6 +710,7 @@ private fun ExportConfigCard(
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                             }
+                            Spacer(Modifier.width(8.dp))
                             Switch(
                                 checked = config.includeCoverArt,
                                 onCheckedChange = {
@@ -680,19 +730,46 @@ private fun ExportConfigCard(
                         }
                     }
                 }
+
+                HorizontalDivider(
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
+                )
+
+                Row(
+                    horizontalArrangement = Arrangement.End,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                ) {
+                    Button(onClick = onDismiss) {
+                        Text(stringResource(R.string.export_done))
+                    }
+                }
             }
         }
     }
 }
 
 @Composable
-private fun SectionTitle(text: String) {
-    Text(
-        text = text,
-        style = MaterialTheme.typography.labelLarge,
-        color = MaterialTheme.colorScheme.primary,
-        modifier = Modifier.padding(bottom = 4.dp),
-    )
+private fun DialogSectionHeader(icon: Int, title: String) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.padding(bottom = 6.dp),
+    ) {
+        Icon(
+            painterResource(icon),
+            contentDescription = null,
+            modifier = Modifier.size(18.dp),
+            tint = MaterialTheme.colorScheme.primary,
+        )
+        Spacer(Modifier.width(8.dp))
+        Text(
+            text = title,
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.primary,
+            fontWeight = FontWeight.SemiBold,
+        )
+    }
 }
 
 @Composable
