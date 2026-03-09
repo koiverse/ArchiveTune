@@ -322,6 +322,7 @@ object YTPlayerUtils {
 
             for (candidate in candidates.asSequence().take(6)) {
                 if (isLoggedIn && expectedDurationMs != null && isLikelyPreview(candidate, expectedDurationMs)) continue
+                if (shouldSkipCipheredWebCandidate(client, candidate)) continue
                 val cacheKey = buildCacheKey(videoId, candidate.itag)
                 val cached = streamUrlCache[cacheKey]
                 val candidateUrl =
@@ -542,6 +543,24 @@ object YTPlayerUtils {
     private fun extractCodec(mimeType: String): String? {
         val match = Regex("""codecs="([^"]+)"""").find(mimeType) ?: return null
         return match.groupValues.getOrNull(1)?.split(",")?.firstOrNull()?.trim()
+    }
+
+    private fun isCipheredFormat(format: PlayerResponse.StreamingData.Format): Boolean {
+        return format.url == null && (format.signatureCipher != null || format.cipher != null)
+    }
+
+    private fun shouldSkipCipheredWebCandidate(
+        client: YouTubeClient,
+        format: PlayerResponse.StreamingData.Format,
+    ): Boolean {
+        if (!YouTube.webClientPoTokenEnabled) return false
+        if (!StreamClientUtils.isWebClient(client.clientName)) return false
+        if (!isCipheredFormat(format)) return false
+
+        Timber.tag(logTag).w(
+            "Skipping ciphered ${client.clientName} stream candidate while Web PoToken is enabled; using a direct URL or fallback client instead"
+        )
+        return true
     }
 
     private fun codecRank(codec: String?): Int =
