@@ -119,3 +119,9 @@
 -keep class androidx.media3.** { *; }
 -keep interface androidx.media3.** { *; }
 -dontwarn androidx.media3.**
+
+## JAudioTagger - suppress missing AWT/ImageIO classes (not available on Android)
+-dontwarn java.awt.**
+-dontwarn javax.imageio.**
+-dontwarn javax.swing.**
+-keep class org.jaudiotagger.** { *; }
