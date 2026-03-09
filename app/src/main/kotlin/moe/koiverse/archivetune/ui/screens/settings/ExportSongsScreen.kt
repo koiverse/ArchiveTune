@@ -139,7 +139,8 @@ fun ExportSongsScreen(
                         IconButton(
                             onClick = {
                                 if (anySelected) viewModel.deselectAll() else viewModel.selectAll()
-                            }
+                            },
+                            onLongClick = {},
                         ) {
                             Icon(
                                 painterResource(
