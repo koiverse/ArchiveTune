@@ -75,16 +75,23 @@ object AudioExporter {
 
     fun fileExtension(format: FormatEntity): String = when {
         format.mimeType.contains("mp4") -> ".m4a"
-        format.mimeType.contains("webm") -> ".weba"
+        format.mimeType.contains("webm") -> ".ogg"
         format.mimeType.contains("ogg") -> ".ogg"
         else -> ".${format.codecs}"
     }
 
     fun mimeTypeForExport(format: FormatEntity): String = when {
         format.mimeType.contains("mp4") -> "audio/mp4"
-        format.mimeType.contains("webm") -> "audio/webm"
+        format.mimeType.contains("webm") -> "audio/ogg"
         format.mimeType.contains("ogg") -> "audio/ogg"
         else -> "audio/*"
+    }
+
+    private fun mediaStoreMimeType(format: FormatEntity): String = when {
+        format.mimeType.contains("mp4") -> "audio/mp4"
+        format.mimeType.contains("webm") -> "audio/ogg"
+        format.mimeType.contains("ogg") -> "audio/ogg"
+        else -> "audio/mpeg"
     }
 
     private fun safMimeType(format: FormatEntity): String = when {
@@ -168,7 +175,7 @@ object AudioExporter {
 
             val contentValues = ContentValues().apply {
                 put(MediaStore.MediaColumns.DISPLAY_NAME, actualFileName)
-                put(MediaStore.MediaColumns.MIME_TYPE, safMimeType(format))
+                put(MediaStore.MediaColumns.MIME_TYPE, mediaStoreMimeType(format))
                 put(MediaStore.MediaColumns.RELATIVE_PATH, RELATIVE_PATH)
                 put(MediaStore.Audio.AudioColumns.TITLE, song.song.title)
                 put(MediaStore.Audio.AudioColumns.ARTIST, song.artists.firstOrNull()?.name ?: "Unknown Artist")
