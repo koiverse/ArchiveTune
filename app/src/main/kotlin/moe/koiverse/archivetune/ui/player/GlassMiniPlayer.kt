@@ -21,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.IntOffset
@@ -78,6 +79,13 @@ fun GlassMiniPlayer(
                 .fillMaxWidth()
                 .height(MiniPlayerHeight)
                 .offset { IntOffset(offsetX.roundToInt(), 0) }
+                .graphicsLayer {
+                    shadowElevation = glassStyle.shadowElevation.toPx()
+                    shape = pillShape
+                    clip = false
+                    ambientShadowColor = glassStyle.shadowColor
+                    spotShadowColor = glassStyle.shadowColor
+                }
                 .clip(pillShape)
                 .then(
                     if (supportsBackdrop) {
@@ -97,6 +105,17 @@ fun GlassMiniPlayer(
                             onDrawSurface = {
                                 drawRect(glassStyle.surfaceTint.copy(alpha = glassStyle.surfaceAlpha))
                                 drawRect(glassStyle.overlayColor.copy(alpha = glassStyle.overlayAlpha))
+                                drawRect(
+                                    brush = Brush.verticalGradient(
+                                        colors = listOf(
+                                            Color.White.copy(alpha = glassStyle.topHighlightAlpha),
+                                            Color.Transparent,
+                                        ),
+                                        startY = 0f,
+                                        endY = size.height * 0.45f,
+                                    ),
+                                    size = size,
+                                )
                             }
                         )
                     } else {
@@ -104,11 +123,11 @@ fun GlassMiniPlayer(
                     }
                 )
                 .border(
-                    width = 0.5.dp,
+                    width = 0.75.dp,
                     brush = Brush.verticalGradient(
                         colors = listOf(
                             glassStyle.borderColor.copy(alpha = glassStyle.borderAlpha),
-                            glassStyle.borderColor.copy(alpha = glassStyle.borderAlpha * 0.3f),
+                            glassStyle.borderColor.copy(alpha = glassStyle.borderAlpha * 0.15f),
                         )
                     ),
                     shape = pillShape
