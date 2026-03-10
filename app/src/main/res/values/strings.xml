@@ -758,30 +758,4 @@ ArchiveTune will only extract your token, and everything else is stored locally.
     <string name="together_welcome_join_body">Open the shared link, or enter code and tap Join. Your queue and playback will follow the host.</string>
     <string name="together_welcome_permissions_title">Permissions and safety</string>
     <string name="together_welcome_permissions_body">Hosts can decide whether guests can add songs, control playback, or require approval to join.</string>
-
-    <string name="po_token_generation">PO Token Generation</string>
-    <string name="po_token_generation_subtitle">Generate and manage web client PO tokens</string>
-    <string name="web_client_po_token">Web Client PO Token</string>
-    <string name="web_client_po_token_desc">Enable PO token generation for web-based player clients</string>
-    <string name="po_token_gvs">PO Token (GVS)</string>
-    <string name="po_token_player">PO Token (Player)</string>
-    <string name="visitor_data">Visitor Data</string>
-    <string name="supported_clients">Supported Clients</string>
-    <string name="generated_tokens">Generated Tokens</string>
-    <string name="token_settings">Token Settings</string>
-    <string name="use_visitor_data">Use Visitor Data</string>
-    <string name="use_visitor_data_desc">Use visitor data for token generation. Requires cookies to be disabled.</string>
-    <string name="cookies_must_be_disabled">Cookies must be disabled to use visitor data</string>
-    <string name="regenerate">Re-generate</string>
-    <string name="regenerate_token">Regenerate Token</string>
-    <string name="regenerate_desc">Refresh all tokens</string>
-    <string name="source_url">Source URL</string>
-    <string name="source_url_placeholder">https://youtube.com/account</string>
-    <string name="generating_tokens">Generating tokens…</string>
-    <string name="tokens_generated">Tokens generated successfully</string>
-    <string name="token_generation_failed">Token generation failed</string>
-    <string name="open_account_before_extract">Open and sign in on youtube.com/account before extracting</string>
-    <string name="token_copied">Token copied to clipboard</string>
-    <string name="no_visitor_data">No visitor data available. Tokens cannot be generated.</string>
-    <string name="extracting_from_url">Extracting tokens from URL…</string>
 </resources>

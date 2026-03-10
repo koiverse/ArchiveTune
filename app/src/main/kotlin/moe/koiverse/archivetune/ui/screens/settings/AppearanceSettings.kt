@@ -621,8 +621,8 @@ fun AppearanceSettings(
         )
 
         SwitchPreference(
-            title = { Text("Lyrics V2 (Experimental)") },
-            description = "Use the new fluid word-synced lyrics engine",
+            title = { Text(stringResource(R.string.lyrics_v2)) },
+            description = stringResource(R.string.lyrics_v2_desc),
             icon = { Icon(painterResource(R.drawable.lyrics), null) },
             checked = useLyricsV2,
             onCheckedChange = onUseLyricsV2Change,

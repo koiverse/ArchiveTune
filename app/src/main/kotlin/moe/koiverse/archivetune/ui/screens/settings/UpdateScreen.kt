@@ -498,7 +498,7 @@ fun UpdateScreen(
                                 onClick = { uriHandler.openUri(nightlyInstallUrl) },
                                 modifier = Modifier.fillMaxWidth()
                             ) {
-                                Text("Install")
+                                Text(stringResource(R.string.install))
                             }
                         }
                     }

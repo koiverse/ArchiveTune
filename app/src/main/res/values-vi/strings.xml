@@ -419,9 +419,13 @@
     <string name="audio_normalization">Chuẩn hóa âm thanh</string>
     <string name="audio_offload">Giải phóng âm thanh</string>
     <string name="audio_offload_desc">Cho phép các thiết bị được hỗ trợ phát âm thanh bằng giải mã phần cứng công suất thấp. Một số tính năng xử lý âm thanh sẽ bị vô hiệu hóa.</string>
+    <string name="pause_on_device_mute">Tạm dừng khi âm lượng thiết bị là 0</string>
+    <string name="pause_on_device_mute_desc">Tự động tạm dừng nhạc khi tắt tiếng và tiếp tục khi bật tiếng</string>
     <string name="auto_skip_next_on_error">Tự động chuyển sang bài tiếp theo khi có lỗi</string>
     <string name="auto_skip_next_on_error_desc">Đảm bảo trải nghiệm phát nhạc liên tục của bạn</string>
     <string name="stop_music_on_task_clear">Dừng nhạc khi xóa tác vụ</string>
+    <string name="auto_start_on_bluetooth">Tự động bắt đầu khi kết nối Bluetooth</string>
+    <string name="auto_start_on_bluetooth_desc">Tự động tiếp tục phát khi thiết bị âm thanh Bluetooth kết nối</string>
     <string name="artist_separators">Ký tự để tách nghệ sĩ</string>
     <string name="artist_separators_desc">Ký tự được sử dụng để tách nhiều nghệ sĩ</string>
     <string name="add_symbol">Thêm ký tự</string>
