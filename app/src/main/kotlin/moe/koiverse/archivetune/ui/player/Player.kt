@@ -189,8 +189,11 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
 import me.saket.squiggles.SquigglySlider
 import moe.koiverse.archivetune.playback.PlayerConnection
+import kotlin.math.abs
 import kotlin.math.roundToInt
 import kotlin.math.roundToLong
+
+private const val SeekbarSettleToleranceMs = 1_500L
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -303,8 +306,11 @@ fun BottomSheetPlayer(
     var duration by rememberSaveable(mediaMetadata?.id) {
         mutableLongStateOf(playerConnection.player.duration)
     }
-    var sliderPosition by remember {
+    var sliderPosition by remember(mediaMetadata?.id) {
         mutableStateOf<Long?>(null)
+    }
+    var isUserSeeking by remember(mediaMetadata?.id) {
+        mutableStateOf(false)
     }
     
     // Track loading state: when buffering or when user is seeking
@@ -530,6 +536,8 @@ fun BottomSheetPlayer(
             while (isActive) {
                 delay(100)
                 val isTransitioning = playerConnection.player.currentMediaItem?.mediaId != mediaMetadata?.id
+                val currentPlayerPosition = playerConnection.player.currentPosition
+                val currentPlayerDuration = playerConnection.player.duration
                 
                 if (isTransitioning) {
                     val elapsedSinceStart = SystemClock.elapsedRealtime() - startTime
@@ -539,15 +547,31 @@ fun BottomSheetPlayer(
                         duration = if (metaDuration > 0) metaDuration else 0L
                     }
                 } else {
-                    position = playerConnection.player.currentPosition
-                    duration = playerConnection.player.duration
+                    position = currentPlayerPosition
+                    duration = currentPlayerDuration
+                    if (!isUserSeeking) {
+                        sliderPosition?.let { targetPosition ->
+                            val clampedTargetPosition = when {
+                                currentPlayerDuration > 0L && currentPlayerDuration != C.TIME_UNSET -> {
+                                    targetPosition.coerceIn(0L, currentPlayerDuration)
+                                }
+                                else -> targetPosition.coerceAtLeast(0L)
+                            }
+                            if (abs(currentPlayerPosition - clampedTargetPosition) <= SeekbarSettleToleranceMs) {
+                                sliderPosition = null
+                            }
+                        }
+                    }
                 }
             }
         } else {
             mediaMetadata?.let {
                 val metaDuration = it.duration.toLong() * 1000
                 duration = if (metaDuration > 0) metaDuration else 0L
-                position = 0L
+            }
+            val currentPlayerPosition = playerConnection.player.currentPosition
+            if (sliderPosition == null && currentPlayerPosition > 0L) {
+                position = currentPlayerPosition
             }
         }
     }
@@ -710,7 +734,10 @@ fun BottomSheetPlayer(
             )
         },
     ) {
-        val onSliderValueChange: (Long) -> Unit = { sliderPosition = it }
+        val onSliderValueChange: (Long) -> Unit = {
+            isUserSeeking = true
+            sliderPosition = it
+        }
         val onSliderValueChangeFinished: () -> Unit = {
             sliderPosition?.let {
                 val isTransitioning = playerConnection.player.currentMediaItem?.mediaId != mediaMetadata?.id
@@ -724,7 +751,7 @@ fun BottomSheetPlayer(
                 }
                 position = it
             }
-            sliderPosition = null
+            isUserSeeking = false
         }
         val seekEnabled = duration > 0L && duration != C.TIME_UNSET
         val updatedOnSliderValueChange by rememberUpdatedState(onSliderValueChange)
