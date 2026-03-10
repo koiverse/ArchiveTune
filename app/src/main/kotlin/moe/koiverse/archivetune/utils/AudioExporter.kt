@@ -10,6 +10,8 @@ package moe.koiverse.archivetune.utils
 
 import android.content.ContentValues
 import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Build
 import android.os.Environment
@@ -24,6 +26,7 @@ import org.jaudiotagger.audio.AudioFileIO
 import org.jaudiotagger.tag.FieldKey
 import org.jaudiotagger.tag.Tag
 import org.jaudiotagger.tag.images.ArtworkFactory
+import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.OutputStream
 import java.net.URL
@@ -78,20 +81,29 @@ object AudioExporter {
     private const val BUFFER_SIZE = 8192
     private const val RELATIVE_PATH = "Music/ArchiveTune"
 
-    fun fileExtension(format: FormatEntity): String = ".mp3"
+    fun fileExtension(format: FormatEntity): String {
+        val mimeType = format.mimeType.lowercase()
+        return when {
+            mimeType.contains("mp4") -> ".m4a"
+            mimeType.contains("webm") -> ".webm"
+            mimeType.contains("ogg") -> ".ogg"
+            mimeType.contains("mpeg") || mimeType.contains("mp3") -> ".mp3"
+            else -> ".bin"
+        }
+    }
 
     private fun sourceFileExtension(format: FormatEntity): String = when {
         format.mimeType.contains("mp4") -> ".m4a"
-        format.mimeType.contains("webm") -> ".ogg"
+        format.mimeType.contains("webm") -> ".webm"
         format.mimeType.contains("ogg") -> ".ogg"
         else -> ".${format.codecs.substringBefore(',').substringBefore(' ').trim().ifBlank { "bin" }}"
     }
 
-    fun mimeTypeForExport(format: FormatEntity): String = "audio/mpeg"
+    fun mimeTypeForExport(format: FormatEntity): String = format.mimeType
 
-    private fun mediaStoreMimeType(format: FormatEntity): String = "audio/mpeg"
+    private fun mediaStoreMimeType(format: FormatEntity): String = format.mimeType
 
-    private fun safMimeType(format: FormatEntity): String = "audio/mpeg"
+    private fun safMimeType(format: FormatEntity): String = format.mimeType
 
     fun exportSong(
         context: Context,
@@ -295,9 +307,7 @@ object AudioExporter {
                 }
                 embedMetadataToFile(tempFile, song, metadata, config)
                 tempFile.inputStream().use { input ->
-                    context.contentResolver.openOutputStream(docFile.uri, "wt")?.use { output ->
-                        input.copyTo(output)
-                    }
+                    openRewriteOutputStream(context, docFile.uri).use { output -> input.copyTo(output) }
                 }
             } finally {
                 tempFile.delete()
@@ -344,7 +354,7 @@ object AudioExporter {
     }
 
     private fun canTagFormat(format: FormatEntity): Boolean =
-        format.mimeType.contains("mp4") || format.mimeType.contains("ogg")
+        format.mimeType.contains("mp4") || format.mimeType.contains("ogg") || format.mimeType.contains("mpeg") || format.mimeType.contains("mp3")
 
     private fun embedMetadataToFile(
         file: File,
@@ -391,9 +401,7 @@ object AudioExporter {
             }
             embedMetadataToFile(tempFile, song, metadata, config)
             tempFile.inputStream().use { input ->
-                context.contentResolver.openOutputStream(uri, "wt")?.use { output ->
-                    input.copyTo(output)
-                }
+                openRewriteOutputStream(context, uri).use { output -> input.copyTo(output) }
             }
         } finally {
             tempFile.delete()
@@ -401,7 +409,7 @@ object AudioExporter {
     }
 
     private fun retaggedTempFile(context: Context, format: FormatEntity): File =
-        File(context.cacheDir, "export_tag_temp_${System.nanoTime()}${sourceFileExtension(format)}")
+        File(context.cacheDir, "export_tag_temp_${System.nanoTime()}${fileExtension(format)}")
 
     private fun buildComment(song: Song, recordingDate: String?): String = buildList {
         add("Exported from ArchiveTune")
@@ -428,12 +436,48 @@ object AudioExporter {
         val artworkUrl = resolveArtworkUrl(song) ?: return
         runCatching {
             val imageBytes = URL(artworkUrl).readBytes()
+            val (finalBytes, finalMimeType) = prepareArtwork(imageBytes)
             val artwork = ArtworkFactory.getNew().apply {
-                binaryData = imageBytes
-                mimeType = "image/jpeg"
+                binaryData = finalBytes
+                mimeType = finalMimeType
             }
             tag.setField(artwork)
         }
+    }
+
+    private fun prepareArtwork(originalBytes: ByteArray): Pair<ByteArray, String> {
+        val originalMimeType = sniffImageMimeType(originalBytes)
+        if (originalMimeType == "image/jpeg" || originalMimeType == "image/png") {
+            return originalBytes to originalMimeType
+        }
+
+        val bitmap = BitmapFactory.decodeByteArray(originalBytes, 0, originalBytes.size) ?: return originalBytes to "image/jpeg"
+        val safeBitmap = if (bitmap.config == Bitmap.Config.HARDWARE) bitmap.copy(Bitmap.Config.ARGB_8888, false) else bitmap
+        val out = ByteArrayOutputStream()
+        val written = runCatching { safeBitmap.compress(Bitmap.CompressFormat.JPEG, 92, out) }.getOrDefault(false)
+        val jpegBytes = if (written) out.toByteArray() else originalBytes
+        return jpegBytes to "image/jpeg"
+    }
+
+    private fun sniffImageMimeType(bytes: ByteArray): String {
+        if (bytes.size >= 12) {
+            if (bytes[0] == 0x52.toByte() && bytes[1] == 0x49.toByte() && bytes[2] == 0x46.toByte() && bytes[3] == 0x46.toByte()) {
+                if (bytes[8] == 0x57.toByte() && bytes[9] == 0x45.toByte() && bytes[10] == 0x42.toByte() && bytes[11] == 0x50.toByte()) {
+                    return "image/webp"
+                }
+            }
+        }
+        if (bytes.size >= 8) {
+            if (bytes[0] == 0x89.toByte() && bytes[1] == 0x50.toByte() && bytes[2] == 0x4E.toByte() && bytes[3] == 0x47.toByte()) {
+                return "image/png"
+            }
+        }
+        if (bytes.size >= 2) {
+            if (bytes[0] == 0xFF.toByte() && bytes[1] == 0xD8.toByte()) {
+                return "image/jpeg"
+            }
+        }
+        return "image/jpeg"
     }
 
     private fun resolveArtworkUrl(song: Song): String? {
@@ -495,5 +539,12 @@ object AudioExporter {
             candidate = "$baseName ($counter)$extension"
         }
         return candidate
+    }
+
+    private fun openRewriteOutputStream(context: Context, uri: Uri): OutputStream {
+        return context.contentResolver.openOutputStream(uri, "rwt")
+            ?: context.contentResolver.openOutputStream(uri, "wt")
+            ?: context.contentResolver.openOutputStream(uri, "w")
+            ?: throw IllegalStateException("Failed to open output stream for rewrite")
     }
 }
