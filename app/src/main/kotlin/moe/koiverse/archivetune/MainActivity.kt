@@ -572,7 +572,7 @@ class MainActivity : ComponentActivity() {
                     }
 
             val enableDynamicTheme by rememberPreference(DynamicThemeKey, defaultValue = true)
-            val useDynamicThemeWallpaper by rememberPreference(DynamicThemeWallpaperKey, defaultValue = true)
+            val useDynamicThemeWallpaper by rememberPreference(DynamicThemeWallpaperKey, defaultValue = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
             val customThemeColorValue by rememberPreference(CustomThemeColorKey, defaultValue = "default")
             val darkTheme by rememberEnumPreference(DarkModeKey, defaultValue = DarkMode.AUTO)
             val useSystemFont by rememberPreference(UseSystemFontKey, defaultValue = false)
@@ -658,13 +658,16 @@ class MainActivity : ComponentActivity() {
 
             val currentMediaItem by playerConnection?.service?.currentMediaMetadata?.collectAsState(null) ?: remember { mutableStateOf(null) }
 
+            val isSOrAbove = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+            val actualUseWallpaper = useDynamicThemeWallpaper && isSOrAbove
+
             ArchiveTuneTheme(
                 darkTheme = useDarkTheme,
                 pureBlack = pureBlack,
                 themeColor = themeColor,
-                seedPalette = if (!enableDynamicTheme || (!useDynamicThemeWallpaper && currentMediaItem == null)) customThemeSeedPalette else null,
+                seedPalette = if (!enableDynamicTheme || (!actualUseWallpaper && currentMediaItem == null)) customThemeSeedPalette else null,
                 useSystemFont = useSystemFont,
-                useSystemDynamicColor = enableDynamicTheme && useDynamicThemeWallpaper && currentMediaItem == null,
+                useSystemDynamicColor = enableDynamicTheme && actualUseWallpaper && currentMediaItem == null,
             ) {
                     BoxWithConstraints(
                         modifier =

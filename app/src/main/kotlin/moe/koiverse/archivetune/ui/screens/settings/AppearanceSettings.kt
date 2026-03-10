@@ -136,7 +136,7 @@ fun AppearanceSettings(
     )
     val (dynamicThemeWallpaper, onDynamicThemeWallpaperChange) = rememberPreference(
         DynamicThemeWallpaperKey,
-        defaultValue = true
+        defaultValue = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
     )
     val (randomThemeOnStartup, onRandomThemeOnStartupChange) = rememberPreference(
         RandomThemeOnStartupKey,
