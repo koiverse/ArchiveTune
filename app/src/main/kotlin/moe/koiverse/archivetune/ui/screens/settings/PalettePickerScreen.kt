@@ -103,15 +103,20 @@ import moe.koiverse.archivetune.LocalPlayerAwareWindowInsets
 import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.constants.CustomThemeColorKey
 import moe.koiverse.archivetune.constants.RandomThemeOnStartupKey
+import moe.koiverse.archivetune.constants.SavedPresetsKey
 import moe.koiverse.archivetune.ui.component.ActionPromptDialog
 import moe.koiverse.archivetune.ui.component.IconButton
 import moe.koiverse.archivetune.ui.theme.ThemeSeedPalette
 import moe.koiverse.archivetune.ui.theme.ThemeSeedPaletteCodec
 import moe.koiverse.archivetune.ui.utils.backToMain
 import moe.koiverse.archivetune.utils.rememberPreference
+import androidx.compose.ui.text.input.TextFieldValue
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.decodeFromString
 
 data class ThemePalette(
     val id: String,
@@ -120,6 +125,7 @@ data class ThemePalette(
     val secondary: Color,
     val tertiary: Color,
     val neutral: Color,
+    val displayName: String? = null,
     val onPrimary: Color = if (primary.luminance() > 0.5f) Color.Black else Color.White
 )
 
@@ -911,7 +917,32 @@ fun PalettePickerScreen(
         defaultValue = false
     )
 
+    val (savedPresetsJson, onSavedPresetsChange) = rememberPreference(
+        SavedPresetsKey,
+        defaultValue = ""
+    )
+
+    val userPresets = remember(savedPresetsJson) {
+        runCatching {
+            Json.decodeFromString<List<String>>(savedPresetsJson)
+        }.getOrElse { emptyList() }.mapNotNull { encoded ->
+            ThemeSeedPaletteCodec.decodeFromPreference(encoded)?.let { seed ->
+                ThemePalette(
+                    id = encoded,
+                    nameResId = R.string.palette_custom,
+                    primary = seed.primary,
+                    secondary = seed.secondary,
+                    tertiary = seed.tertiary,
+                    neutral = seed.neutral,
+                    displayName = ThemeSeedPaletteCodec.extractNameFromPreference(encoded)
+                )
+            }
+        }
+    }
+
     var showRandomWarningDialog by remember { mutableStateOf(false) }
+    var showSavePresetDialog by remember { mutableStateOf(false) }
+    var presetName by remember { mutableStateOf(TextFieldValue("")) }
     var pendingPalette by remember { mutableStateOf<ThemePalette?>(null) }
     
     val selectedPalette = remember(customThemeColor) {
@@ -999,9 +1030,56 @@ fun PalettePickerScreen(
                     containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
                     contentColor = MaterialTheme.colorScheme.onSurface,
                 )
+
+                if (randomThemeOnStartup) {
+                    ExtendedFloatingActionButton(
+                        text = { Text(stringResource(R.string.save_as_preset)) },
+                        icon = {
+                            Icon(
+                                painter = painterResource(R.drawable.add),
+                                contentDescription = null
+                            )
+                        },
+                        onClick = { showSavePresetDialog = true },
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                    )
+                }
             }
         }
     ) { paddingValues ->
+        if (showSavePresetDialog) {
+            moe.koiverse.archivetune.ui.component.TextFieldDialog(
+                title = { Text(stringResource(R.string.save_preset_dialog_title)) },
+                placeholder = { Text(stringResource(R.string.preset_name)) },
+                initialTextFieldValue = presetName,
+                onDismiss = { showSavePresetDialog = false },
+                onDone = { name ->
+                    val paletteToSave = selectedPalette
+                    val seedPalette = ThemeSeedPalette(
+                        primary = paletteToSave.primary,
+                        secondary = paletteToSave.secondary,
+                        tertiary = paletteToSave.tertiary,
+                        neutral = paletteToSave.neutral
+                    )
+                    val encoded = ThemeSeedPaletteCodec.encodeForPreference(seedPalette, name)
+                    
+                    // Add to saved presets list
+                    val currentPresets = runCatching {
+                        Json.decodeFromString<List<String>>(savedPresetsJson)
+                    }.getOrElse { emptyList() }.toMutableList()
+                    
+                    if (!currentPresets.contains(encoded)) {
+                        currentPresets.add(0, encoded)
+                        onSavedPresetsChange(Json.encodeToString(currentPresets))
+                    }
+
+                    onCustomThemeColorChange(encoded)
+                    onRandomThemeOnStartupChange(false)
+                    Toast.makeText(context, context.getString(R.string.preset_saved), Toast.LENGTH_SHORT).show()
+                }
+            )
+        }
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -1018,7 +1096,38 @@ fun PalettePickerScreen(
             )
             
             Spacer(modifier = Modifier.height(24.dp))
+
+            if (userPresets.isNotEmpty()) {
+                Text(
+                    text = stringResource(R.string.your_presets),
+                    style = MaterialTheme.typography.titleSmall,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp, vertical = 8.dp)
+                )
+                ColorPaletteSelector(
+                    palettes = userPresets,
+                    selectedPalette = selectedPalette,
+                    onPaletteSelected = { palette ->
+                        if (randomThemeOnStartup) {
+                            pendingPalette = palette
+                            showRandomWarningDialog = true
+                        } else {
+                            onCustomThemeColorChange(palette.id)
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+            }
             
+            Text(
+                text = stringResource(R.string.default_palettes),
+                style = MaterialTheme.typography.titleSmall,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp, vertical = 8.dp)
+            )
             ColorPaletteSelector(
                 palettes = ThemePalettes.allPalettes,
                 selectedPalette = selectedPalette,
@@ -1248,7 +1357,7 @@ private fun ThemePreviewCard(
                 shadowElevation = 4.dp
             ) {
                 Text(
-                    text = stringResource(palette.nameResId),
+                    text = palette.displayName ?: stringResource(palette.nameResId),
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Bold,
                     color = palette.onPrimary,

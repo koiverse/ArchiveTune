@@ -214,6 +214,13 @@
     <string name="import_theme">Nhập Giao diện</string>
     <string name="export_theme">Xuất Giao diện</string>
     <string name="palette_custom">Tùy chỉnh</string>
+    <string name="your_presets">Preset của bạn</string>
+    <string name="default_palettes">Bảng màu mặc định</string>
+    <string name="save_as_preset">Lưu thành preset</string>
+    <string name="save_preset_dialog_title">Lưu bảng màu</string>
+    <string name="save_preset_dialog_desc">Nhập tên cho bảng màu này</string>
+    <string name="preset_name">Tên preset</string>
+    <string name="preset_saved">Đã lưu preset</string>
     <string name="theme_creator_title">Công cụ Tạo Giao diện</string>
     <string name="theme_creator_subtitle">Điều chỉnh màu sắc, xem trước kết quả, sau đó xuất hoặc nhập.</string>
     <string name="theme_meta_title">Chi tiết Giao diện</string>

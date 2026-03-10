@@ -284,6 +284,13 @@
     <string name="export_theme">Export Theme</string>
 
     <string name="palette_custom">Custom</string>
+    <string name="your_presets">Your Presets</string>
+    <string name="default_palettes">Default Palettes</string>
+    <string name="save_as_preset">Save as preset</string>
+    <string name="save_preset_dialog_title">Save Palette</string>
+    <string name="save_preset_dialog_desc">Enter a name for this color palette</string>
+    <string name="preset_name">Preset name</string>
+    <string name="preset_saved">Preset saved</string>
 
     <string name="theme_creator_title">Theme Creator</string>
     <string name="theme_creator_subtitle">Tune colors, preview the result, then export or import.</string>
