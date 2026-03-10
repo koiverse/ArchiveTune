@@ -22,6 +22,7 @@ import moe.koiverse.archivetune.db.entities.FormatEntity
 import moe.koiverse.archivetune.db.entities.Song
 import org.jaudiotagger.audio.AudioFileIO
 import org.jaudiotagger.tag.FieldKey
+import org.jaudiotagger.tag.Tag
 import org.jaudiotagger.tag.images.ArtworkFactory
 import java.io.File
 import java.io.OutputStream
@@ -62,6 +63,10 @@ data class ExportConfig(
     val includeCoverArt: Boolean = true,
 )
 
+data class ExportMetadata(
+    val lyrics: String? = null,
+)
+
 sealed class ExportResult {
     data class Success(val songId: String, val path: String) : ExportResult()
     data class Failed(val songId: String, val reason: String) : ExportResult()
@@ -73,33 +78,20 @@ object AudioExporter {
     private const val BUFFER_SIZE = 8192
     private const val RELATIVE_PATH = "Music/ArchiveTune"
 
-    fun fileExtension(format: FormatEntity): String = when {
+    fun fileExtension(format: FormatEntity): String = ".mp3"
+
+    private fun sourceFileExtension(format: FormatEntity): String = when {
         format.mimeType.contains("mp4") -> ".m4a"
         format.mimeType.contains("webm") -> ".ogg"
         format.mimeType.contains("ogg") -> ".ogg"
-        else -> ".${format.codecs}"
+        else -> ".${format.codecs.substringBefore(',').substringBefore(' ').trim().ifBlank { "bin" }}"
     }
 
-    fun mimeTypeForExport(format: FormatEntity): String = when {
-        format.mimeType.contains("mp4") -> "audio/mp4"
-        format.mimeType.contains("webm") -> "audio/ogg"
-        format.mimeType.contains("ogg") -> "audio/ogg"
-        else -> "audio/*"
-    }
+    fun mimeTypeForExport(format: FormatEntity): String = "audio/mpeg"
 
-    private fun mediaStoreMimeType(format: FormatEntity): String = when {
-        format.mimeType.contains("mp4") -> "audio/mp4"
-        format.mimeType.contains("webm") -> "audio/ogg"
-        format.mimeType.contains("ogg") -> "audio/ogg"
-        else -> "audio/mpeg"
-    }
+    private fun mediaStoreMimeType(format: FormatEntity): String = "audio/mpeg"
 
-    private fun safMimeType(format: FormatEntity): String = when {
-        format.mimeType.contains("mp4") -> "audio/mp4"
-        format.mimeType.contains("webm") -> "application/octet-stream"
-        format.mimeType.contains("ogg") -> "audio/ogg"
-        else -> "application/octet-stream"
-    }
+    private fun safMimeType(format: FormatEntity): String = "audio/mpeg"
 
     fun exportSong(
         context: Context,
@@ -107,6 +99,7 @@ object AudioExporter {
         downloadCache: Cache,
         playerCache: Cache,
         config: ExportConfig,
+        metadata: ExportMetadata = ExportMetadata(),
         onProgress: (bytesWritten: Long, totalBytes: Long) -> Unit = { _, _ -> },
     ): ExportResult {
         val format = song.format
@@ -128,11 +121,11 @@ object AudioExporter {
         return try {
             when (config.destination) {
                 ExportDestination.MEDIA_STORE -> exportToMediaStore(
-                    context, song, downloadCache, playerCache, config, format,
+                    context, song, metadata, downloadCache, playerCache, config, format,
                     fileName, baseName, extension, contentLength, onProgress
                 )
                 ExportDestination.SAF -> exportToSaf(
-                    context, song, downloadCache, playerCache, config, format,
+                    context, song, metadata, downloadCache, playerCache, config, format,
                     fileName, baseName, extension, contentLength, onProgress
                 )
             }
@@ -144,6 +137,7 @@ object AudioExporter {
     private fun exportToMediaStore(
         context: Context,
         song: Song,
+        metadata: ExportMetadata,
         downloadCache: Cache,
         playerCache: Cache,
         config: ExportConfig,
@@ -195,7 +189,7 @@ object AudioExporter {
             } ?: return ExportResult.Failed(song.id, "Failed to open output stream")
 
             if (config.embedMetadata && canTagFormat(format)) {
-                embedMetadataViaMediaStore(context, uri, song, format, config)
+                embedMetadataViaMediaStore(context, uri, song, metadata, format, config)
             }
 
             return ExportResult.Success(song.id, "$RELATIVE_PATH/$actualFileName")
@@ -226,7 +220,22 @@ object AudioExporter {
             }
 
             if (config.embedMetadata && canTagFormat(format)) {
-                embedMetadataToFile(actualFile, song, format, config)
+                val taggedFile = retaggedTempFile(context, format)
+                try {
+                    actualFile.inputStream().use { input ->
+                        taggedFile.outputStream().use { output ->
+                            input.copyTo(output)
+                        }
+                    }
+                    embedMetadataToFile(taggedFile, song, metadata, config)
+                    taggedFile.inputStream().use { input ->
+                        actualFile.outputStream().use { output ->
+                            input.copyTo(output)
+                        }
+                    }
+                } finally {
+                    taggedFile.delete()
+                }
             }
 
             return ExportResult.Success(song.id, actualFile.absolutePath)
@@ -236,6 +245,7 @@ object AudioExporter {
     private fun exportToSaf(
         context: Context,
         song: Song,
+        metadata: ExportMetadata,
         downloadCache: Cache,
         playerCache: Cache,
         config: ExportConfig,
@@ -278,12 +288,12 @@ object AudioExporter {
         } ?: return ExportResult.Failed(song.id, "Failed to open output stream")
 
         if (config.embedMetadata && canTagFormat(format)) {
-            val tempFile = File(context.cacheDir, "export_temp$extension")
+            val tempFile = retaggedTempFile(context, format)
             try {
                 context.contentResolver.openInputStream(docFile.uri)?.use { input ->
                     tempFile.outputStream().use { output -> input.copyTo(output) }
                 }
-                embedMetadataToFile(tempFile, song, format, config)
+                embedMetadataToFile(tempFile, song, metadata, config)
                 tempFile.inputStream().use { input ->
                     context.contentResolver.openOutputStream(docFile.uri, "wt")?.use { output ->
                         input.copyTo(output)
@@ -339,56 +349,48 @@ object AudioExporter {
     private fun embedMetadataToFile(
         file: File,
         song: Song,
-        format: FormatEntity,
+        metadata: ExportMetadata,
         config: ExportConfig,
     ) {
-        try {
-            val audioFile = AudioFileIO.read(file)
-            val tag = audioFile.tagOrCreateAndSetDefault
+        val audioFile = AudioFileIO.read(file)
+        val tag = audioFile.tagOrCreateAndSetDefault
+        val primaryArtist = song.artists.firstOrNull()?.name
+        val allArtists = song.artists.joinToString(", ") { it.name }.ifBlank { null }
+        val albumTitle = song.song.albumName ?: song.album?.title
+        val year = song.song.year ?: song.album?.year
+        val recordingDate = song.song.date?.toLocalDate()?.toString()
+        val lyrics = metadata.lyrics?.takeIf { it.isNotBlank() }
 
-            tag.setField(FieldKey.TITLE, song.song.title)
-            song.artists.firstOrNull()?.name?.let { tag.setField(FieldKey.ARTIST, it) }
-            song.song.albumName?.let { tag.setField(FieldKey.ALBUM, it) }
-            song.song.year?.let { tag.setField(FieldKey.YEAR, it.toString()) }
-            tag.setField(FieldKey.COMMENT, "Exported from ArchiveTune")
+        setTextField(tag, FieldKey.TITLE, song.song.title)
+        setTextField(tag, FieldKey.ARTIST, primaryArtist)
+        setTextField(tag, FieldKey.ALBUM, albumTitle)
+        setTextField(tag, FieldKey.ALBUM_ARTIST, allArtists)
+        setTextField(tag, FieldKey.YEAR, year?.toString())
+        setTextField(tag, FieldKey.DATE, recordingDate ?: year?.toString())
+        setTextField(tag, FieldKey.LYRICS, lyrics)
+        setTextField(tag, FieldKey.COMMENT, buildComment(song))
 
-            val allArtists = song.artists.joinToString(", ") { it.name }
-            if (allArtists.isNotBlank()) {
-                tag.setField(FieldKey.ALBUM_ARTIST, allArtists)
-            }
-
-            if (config.includeCoverArt && song.song.thumbnailUrl != null) {
-                try {
-                    val url = song.song.thumbnailUrl!!
-                        .replace("w60-h60", "w544-h544")
-                        .replace("w120-h120", "w544-h544")
-                    val imageBytes = URL(url).readBytes()
-                    val artwork = ArtworkFactory.getNew()
-                    artwork.binaryData = imageBytes
-                    artwork.mimeType = "image/jpeg"
-                    tag.setField(artwork)
-                } catch (_: Exception) {
-                }
-            }
-
-            audioFile.commit()
-        } catch (_: Exception) {
+        if (config.includeCoverArt) {
+            embedArtwork(tag, song)
         }
+
+        audioFile.commit()
     }
 
     private fun embedMetadataViaMediaStore(
         context: Context,
         uri: Uri,
         song: Song,
+        metadata: ExportMetadata,
         format: FormatEntity,
         config: ExportConfig,
     ) {
-        val tempFile = File(context.cacheDir, "export_tag_temp${fileExtension(format)}")
+        val tempFile = retaggedTempFile(context, format)
         try {
             context.contentResolver.openInputStream(uri)?.use { input ->
                 tempFile.outputStream().use { output -> input.copyTo(output) }
             }
-            embedMetadataToFile(tempFile, song, format, config)
+            embedMetadataToFile(tempFile, song, metadata, config)
             tempFile.inputStream().use { input ->
                 context.contentResolver.openOutputStream(uri, "wt")?.use { output ->
                     input.copyTo(output)
@@ -397,6 +399,51 @@ object AudioExporter {
         } finally {
             tempFile.delete()
         }
+    }
+
+    private fun retaggedTempFile(context: Context, format: FormatEntity): File =
+        File(context.cacheDir, "export_tag_temp_${System.nanoTime()}${sourceFileExtension(format)}")
+
+    private fun buildComment(song: Song): String = buildList {
+        add("Exported from ArchiveTune")
+        if (song.song.explicit) {
+            add("Explicit")
+        }
+    }.joinToString(" • ")
+
+    private fun setTextField(tag: Tag, fieldKey: FieldKey, value: String?) {
+        value
+            ?.trim()
+            ?.takeIf { it.isNotEmpty() }
+            ?.let {
+                runCatching {
+                    tag.setField(fieldKey, it)
+                }
+            }
+    }
+
+    private fun embedArtwork(tag: Tag, song: Song) {
+        val artworkUrl = resolveArtworkUrl(song) ?: return
+        runCatching {
+            val imageBytes = URL(artworkUrl).readBytes()
+            val artwork = ArtworkFactory.getNew().apply {
+                binaryData = imageBytes
+                mimeType = "image/jpeg"
+            }
+            tag.setField(artwork)
+        }
+    }
+
+    private fun resolveArtworkUrl(song: Song): String? {
+        val artworkSource = song.song.thumbnailUrl
+            ?: song.album?.thumbnailUrl
+            ?: song.artists.firstOrNull { !it.thumbnailUrl.isNullOrBlank() }?.thumbnailUrl
+            ?: return null
+
+        return artworkSource
+            .replace("w60-h60", "w1200-h1200")
+            .replace("w120-h120", "w1200-h1200")
+            .replace("w544-h544", "w1200-h1200")
     }
 
     private fun findExistingMediaStore(context: Context, fileName: String): Uri? {
