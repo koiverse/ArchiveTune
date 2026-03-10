@@ -231,6 +231,7 @@
     <string name="enable_dynamic_theme">Bật giao diện động</string>
     <string name="random_theme_on_startup">Chủ đề ngẫu nhiên khi khởi động</string>
     <string name="random_theme_on_startup_desc">Áp dụng bảng màu ngẫu nhiên mỗi khi app khởi động</string>
+    <string name="regenerate_random_theme">Tạo lại chủ đề ngẫu nhiên</string>
     <string name="use_system_font">Sử dụng font hệ thống</string>
     <string name="use_system_font_desc">Sử dụng font thiết bị thay vì font ứng dụng</string>
     <!-- Color Palette -->

@@ -29,6 +29,7 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -98,6 +99,7 @@ import moe.koiverse.archivetune.constants.SwipeSensitivityKey
 import moe.koiverse.archivetune.constants.SwipeToSongKey
 import moe.koiverse.archivetune.constants.HidePlayerThumbnailKey
 import moe.koiverse.archivetune.constants.ArchiveTuneCanvasKey
+import moe.koiverse.archivetune.constants.CustomThemeColorKey
 import moe.koiverse.archivetune.constants.ThumbnailCornerRadiusKey
 import moe.koiverse.archivetune.constants.CropThumbnailToSquareKey
 import moe.koiverse.archivetune.constants.DisableBlurKey
@@ -112,6 +114,8 @@ import moe.koiverse.archivetune.ui.component.PreferenceEntry
 import moe.koiverse.archivetune.ui.component.PreferenceGroupTitle
 import moe.koiverse.archivetune.ui.component.SwitchPreference
 import moe.koiverse.archivetune.ui.component.ThumbnailCornerRadiusSelectorButton
+import moe.koiverse.archivetune.ui.theme.ThemeSeedPalette
+import moe.koiverse.archivetune.ui.theme.ThemeSeedPaletteCodec
 import moe.koiverse.archivetune.ui.player.StyledPlaybackSlider
 import moe.koiverse.archivetune.ui.utils.backToMain
 import moe.koiverse.archivetune.utils.rememberEnumPreference
@@ -132,6 +136,10 @@ fun AppearanceSettings(
     val (randomThemeOnStartup, onRandomThemeOnStartupChange) = rememberPreference(
         RandomThemeOnStartupKey,
         defaultValue = false
+    )
+    val (customThemeColor, onCustomThemeColorChange) = rememberPreference(
+        CustomThemeColorKey,
+        defaultValue = ""
     )
     val (darkMode, onDarkModeChange) = rememberEnumPreference(
         DarkModeKey,
@@ -343,13 +351,64 @@ fun AppearanceSettings(
         )
 
         AnimatedVisibility(visible = !dynamicTheme || Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
-            SwitchPreference(
-                title = { Text(stringResource(R.string.random_theme_on_startup)) },
-                description = stringResource(R.string.random_theme_on_startup_desc),
-                icon = { Icon(painterResource(R.drawable.shuffle), null) },
-                checked = randomThemeOnStartup,
-                onCheckedChange = onRandomThemeOnStartupChange,
-            )
+            Column {
+                SwitchPreference(
+                    title = { Text(stringResource(R.string.random_theme_on_startup)) },
+                    description = stringResource(R.string.random_theme_on_startup_desc),
+                    icon = { Icon(painterResource(R.drawable.shuffle), null) },
+                    checked = randomThemeOnStartup,
+                    onCheckedChange = onRandomThemeOnStartupChange,
+                )
+
+                AnimatedVisibility(visible = randomThemeOnStartup) {
+                    val currentPalette = remember(customThemeColor) {
+                        ThemeSeedPaletteCodec.decodeFromPreference(customThemeColor)
+                    }
+                    PreferenceEntry(
+                        title = { Text(stringResource(R.string.regenerate_random_theme)) },
+                        icon = { Icon(painterResource(R.drawable.sync), null) },
+                        trailingContent = {
+                            if (currentPalette != null) {
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                    modifier = Modifier.padding(end = 8.dp)
+                                ) {
+                                    listOf(
+                                        currentPalette.primary,
+                                        currentPalette.secondary,
+                                        currentPalette.tertiary,
+                                        currentPalette.neutral
+                                    ).forEach { color ->
+                                        Box(
+                                            modifier = Modifier
+                                                .size(12.dp)
+                                                .clip(CircleShape)
+                                                .background(color)
+                                                .border(
+                                                    width = 0.5.dp,
+                                                    color = MaterialTheme.colorScheme.outlineVariant,
+                                                    shape = CircleShape
+                                                )
+                                        )
+                                    }
+                                }
+                            }
+                        },
+                        onClick = {
+                            val randomPalette = ThemePalettes.generateRandomPalette()
+                            val seedPalette = ThemeSeedPalette(
+                                primary = randomPalette.primary,
+                                secondary = randomPalette.secondary,
+                                tertiary = randomPalette.tertiary,
+                                neutral = randomPalette.neutral
+                            )
+                            onCustomThemeColorChange(
+                                ThemeSeedPaletteCodec.encodeForPreference(seedPalette, "Random")
+                            )
+                        }
+                    )
+                }
+            }
         }
 
         AnimatedVisibility(visible = !dynamicTheme || Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
