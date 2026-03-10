@@ -761,4 +761,6 @@ ArchiveTune will only extract your token, and everything else is stored locally.
     <string name="together_welcome_join_body">Open the shared link, or enter code and tap Join. Your queue and playback will follow the host.</string>
     <string name="together_welcome_permissions_title">Permissions and safety</string>
     <string name="together_welcome_permissions_body">Hosts can decide whether guests can add songs, control playback, or require approval to join.</string>
+    <string name="wait_a_minute">Wait a minute!</string>
+    <string name="random_theme_warning">You have \"Random theme on startup\" enabled. If you select this color palette, the \"Random theme on startup\" feature will be disabled. Are you sure you want to select this color palette?</string>
 </resources>

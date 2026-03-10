@@ -102,6 +102,8 @@ import androidx.navigation.compose.rememberNavController
 import moe.koiverse.archivetune.LocalPlayerAwareWindowInsets
 import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.constants.CustomThemeColorKey
+import moe.koiverse.archivetune.constants.RandomThemeOnStartupKey
+import moe.koiverse.archivetune.ui.component.ActionPromptDialog
 import moe.koiverse.archivetune.ui.component.IconButton
 import moe.koiverse.archivetune.ui.theme.ThemeSeedPalette
 import moe.koiverse.archivetune.ui.theme.ThemeSeedPaletteCodec
@@ -903,6 +905,14 @@ fun PalettePickerScreen(
         CustomThemeColorKey,
         defaultValue = ThemePalettes.Default.id
     )
+
+    val (randomThemeOnStartup, onRandomThemeOnStartupChange) = rememberPreference(
+        RandomThemeOnStartupKey,
+        defaultValue = false
+    )
+
+    var showRandomWarningDialog by remember { mutableStateOf(false) }
+    var pendingPalette by remember { mutableStateOf<ThemePalette?>(null) }
     
     val selectedPalette = remember(customThemeColor) {
         val custom = ThemeSeedPaletteCodec.decodeFromPreference(customThemeColor)
@@ -1013,12 +1023,35 @@ fun PalettePickerScreen(
                 palettes = ThemePalettes.allPalettes,
                 selectedPalette = selectedPalette,
                 onPaletteSelected = { palette ->
-                    onCustomThemeColorChange(palette.id)
+                    if (randomThemeOnStartup) {
+                        pendingPalette = palette
+                        showRandomWarningDialog = true
+                    } else {
+                        onCustomThemeColorChange(palette.id)
+                    }
                 },
                 modifier = Modifier.fillMaxWidth()
             )
             
             Spacer(modifier = Modifier.height(32.dp))
+        }
+
+        if (showRandomWarningDialog) {
+            ActionPromptDialog(
+                title = stringResource(R.string.wait_a_minute),
+                onDismiss = { showRandomWarningDialog = false },
+                onConfirm = {
+                    onRandomThemeOnStartupChange(false)
+                    pendingPalette?.let { onCustomThemeColorChange(it.id) }
+                    showRandomWarningDialog = false
+                },
+                onCancel = { showRandomWarningDialog = false }
+            ) {
+                Text(
+                    text = stringResource(R.string.random_theme_warning),
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
         }
     }
 }

@@ -745,4 +745,6 @@ ArchiveTune sẽ chỉ trích xuất token của bạn, và mọi thứ khác đ
     <string name="together_requesting_song_change">Yêu cầu chủ trì đổi bài hát…</string>
     <string name="together_song_change_failed">Yêu cầu thay đổi bài hát không được áp dụng. Vui lòng thử lại.</string>
     <string name="together_token_missing">Phiên bản này không hỗ trợ phát nhạc trực tuyến</string>
+    <string name="wait_a_minute">Chờ chút đã!</string>
+    <string name="random_theme_warning">Bạn đang bật \"Chủ đề ngẫu nhiên khi khởi động\". Nếu bạn chọn bảng màu này thì tính năng \"Chủ đề ngẫu nhiên khi khởi động\" sẽ bị tắt. Bạn có chắc chắn muốn chọn bảng màu này chứ?</string>
 </resources>
