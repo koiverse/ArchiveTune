@@ -428,19 +428,21 @@ fun AppearanceSettings(
             onCheckedChange = onUseNewMiniPlayerDesignChange,
         )
 
-        SwitchPreference(
-            title = { Text(stringResource(R.string.glass_mini_player)) },
-            icon = { Icon(painterResource(R.drawable.auto_awesome), null) },
-            checked = glassMiniPlayer,
-            onCheckedChange = onGlassMiniPlayerChange,
-        )
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            SwitchPreference(
+                title = { Text(stringResource(R.string.glass_mini_player)) },
+                icon = { Icon(painterResource(R.drawable.auto_awesome), null) },
+                checked = glassMiniPlayer,
+                onCheckedChange = onGlassMiniPlayerChange,
+            )
 
-        SwitchPreference(
-            title = { Text(stringResource(R.string.glass_navigation_bar)) },
-            icon = { Icon(painterResource(R.drawable.blur_on), null) },
-            checked = glassNavigationBar,
-            onCheckedChange = onGlassNavigationBarChange,
-        )
+            SwitchPreference(
+                title = { Text(stringResource(R.string.glass_navigation_bar)) },
+                icon = { Icon(painterResource(R.drawable.blur_on), null) },
+                checked = glassNavigationBar,
+                onCheckedChange = onGlassNavigationBarChange,
+            )
+        }
 
         SwitchPreference(
             title = { Text(stringResource(R.string.new_library_design)) },

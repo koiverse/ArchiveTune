@@ -234,6 +234,49 @@
     <string name="no_listening_data">No listening data for this year</string>
     <string name="played">played</string>
 
+    <string name="support_development">Support development</string>
+    <string name="star_dialog_text">Hey there! I\'m Koiverse, the developer of ArchiveTune. I have been putting a lot of love into making this app better every day. \n\nIf you enjoy using ArchiveTune, you can support its development by giving the project a star — it really helps and keeps me motivated to keep improving it!\n\nThanks a bunch for your support and for being part of this journey!</string>
+    <string name="telegram">Telegram</string>
+    <string name="star">Star</string>
+    <string name="later">Later</string>
+    <string name="light">Light</string>
+    <string name="dark">Dark</string>
+    <string name="premium_look">Premium look</string>
+    <string name="hues_contrasts_elevation">Hues, contrasts, and elevation</string>
+
+    <string name="lead_developer">Lead Developer</string>
+    <string name="collaborators">Collaborators</string>
+    <string name="contributors">Contributors</string>
+
+    <string name="github">GitHub</string>
+    <string name="website">Website</string>
+    <string name="debug">DEBUG</string>
+    <string name="koiverse">Koiverse</string>
+    <string name="total_time_listened">Total Time Listened</string>
+
+    <string name="crash_report">Crash Report</string>
+    <string name="application_crashed">Application crashed</string>
+    <string name="device_info">Device info</string>
+    <string name="stack_trace">Stack trace</string>
+    <string name="restart">Restart</string>
+    <string name="nightly_builds">Nightly Builds</string>
+    <string name="nightly_builds_description">Latest features and fixes from the development branch. May contain experimental features and occasional bugs</string>
+    <string name="resume">Resume</string>
+    <string name="together_default_port">42117</string>
+
+    <string name="update_channels_intro">ArchiveTune provides two download channels for builds:</string>
+    <string name="stable_builds">• Stable builds</string>
+    <string name="stable_builds_dist">Distributed via official GitHub Releases.</string>
+    <string name="stable_builds_desc">These versions are tested and recommended for most users.</string>
+    <string name="nightly_builds_bullet">• Nightly builds</string>
+    <string name="nightly_builds_dist">Automatically generated development builds hosted via nightly.link.</string>
+    <string name="nightly_builds_detail">Nightly builds may include experimental features, unfinished changes, or temporary regressions.</string>
+    <string name="nightly_warning">Nightly builds are provided for testing and early access only.\nStability, compatibility, and functionality are not guaranteed.</string>
+    <string name="nightly_risk_ack">By continuing, you acknowledge that nightly builds may be unstable and use them at your own risk.</string>
+    <string name="components_surfaces">Components &amp; surfaces</string>
+    <string name="version_footer">Version %1$s (%2$s)</string>
+    <string name="tap_to_continue">Tap to continue →</string>
+
     <string name="custom_theme">Custom Theme</string>
     <string name="import_theme">Import Theme</string>
     <string name="export_theme">Export Theme</string>

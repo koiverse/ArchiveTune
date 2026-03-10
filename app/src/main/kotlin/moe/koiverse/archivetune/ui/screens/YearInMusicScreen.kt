@@ -1272,7 +1272,7 @@ private fun PremiumHeroStoryCard(
             Spacer(modifier = Modifier.height(32.dp))
 
             Text(
-                text = "Tap to continue →",
+                text = stringResource(R.string.tap_to_continue),
                 style = MaterialTheme.typography.bodyMedium,
                 color = SoftWhite.copy(alpha = 0.5f)
             )
@@ -1694,7 +1694,7 @@ private fun PremiumSummaryStoryCard(
                     }
                     Column {
                         Text(
-                            text = "ArchiveTune",
+                            text = stringResource(R.string.app_name),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = SoftWhite

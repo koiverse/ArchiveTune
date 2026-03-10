@@ -791,7 +791,7 @@ class MainActivity : ComponentActivity() {
                                 bottomInset +
                                     (if (shouldShowNavigationBar && !useRail) floatingBarsBottomPadding else 0.dp) +
                                     getBottomNavPadding() +
-                                    (if (useNewMiniPlayerDesign || glassMiniPlayer) MiniPlayerBottomSpacing else 0.dp) +
+                                    (if (useNewMiniPlayerDesign || (glassMiniPlayer && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)) MiniPlayerBottomSpacing else 0.dp) +
                                     MiniPlayerHeight,
                             expandedBound = maxHeight,
                         )

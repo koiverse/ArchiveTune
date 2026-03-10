@@ -239,7 +239,7 @@ fun MusicTogetherScreen(
     if (showPortDialog) {
         TextFieldDialog(
             title = { Text(text = stringResource(R.string.together_port)) },
-            placeholder = { Text(text = "42117") },
+            placeholder = { Text(text = stringResource(R.string.together_default_port)) },
             isInputValid = { it.trim().toIntOrNull() in 1..65535 },
             onDone = { setPort(it.trim().toInt()) },
             onDismiss = { showPortDialog = false },

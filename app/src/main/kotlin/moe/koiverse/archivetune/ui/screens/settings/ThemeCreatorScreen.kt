@@ -671,7 +671,7 @@ private fun ThemeRichPreview(
                                 overflow = TextOverflow.Ellipsis,
                             )
                             Text(
-                                text = "Components & surfaces",
+                                text = stringResource(R.string.components_surfaces),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 maxLines = 1,
@@ -689,12 +689,12 @@ private fun ThemeRichPreview(
                             ) {
                                 PreviewSegment(
                                     selected = !isDark,
-                                    text = "Light",
+                                    text = stringResource(R.string.light),
                                     onClick = { isDark = false },
                                 )
                                 PreviewSegment(
                                     selected = isDark,
-                                    text = "Dark",
+                                    text = stringResource(R.string.dark),
                                     onClick = { isDark = true },
                                 )
                             }
@@ -723,7 +723,7 @@ private fun ThemeRichPreview(
                                 }
                                 Spacer(Modifier.width(10.dp))
                                 Text(
-                                    text = "Premium look",
+                                    text = stringResource(R.string.premium_look),
                                     style = MaterialTheme.typography.titleSmall,
                                     modifier = Modifier.weight(1f),
                                     maxLines = 1,
@@ -781,13 +781,13 @@ private fun ThemeRichPreview(
                                     )
                                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                                         Text(
-                                            text = "Now playing",
+                                            text = stringResource(R.string.now_playing),
                                             style = MaterialTheme.typography.titleSmall,
                                             maxLines = 1,
                                             overflow = TextOverflow.Ellipsis,
                                         )
                                         Text(
-                                            text = "Hues, contrasts, and elevation",
+                                            text = stringResource(R.string.hues_contrasts_elevation),
                                             style = MaterialTheme.typography.bodySmall,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                                             maxLines = 1,

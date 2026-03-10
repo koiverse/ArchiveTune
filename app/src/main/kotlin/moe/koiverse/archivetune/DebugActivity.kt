@@ -45,6 +45,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.AnnotatedString
@@ -152,7 +153,7 @@ private fun CrashReportScaffold(
             TopAppBar(
                 title = {
                     Text(
-                        text = "Crash Report",
+                        text = stringResource(R.string.crash_report),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
@@ -216,7 +217,7 @@ private fun CrashReportScaffold(
                             modifier = Modifier.size(22.dp),
                         )
                         Text(
-                            text = "Application crashed",
+                            text = stringResource(R.string.application_crashed),
                             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
                             color = MaterialTheme.colorScheme.onErrorContainer,
                         )
@@ -251,7 +252,7 @@ private fun CrashReportScaffold(
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     Text(
-                        text = "Device info",
+                        text = stringResource(R.string.device_info),
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
                     )
                     deviceInfo.forEachIndexed { index, (k, v) ->
@@ -279,7 +280,7 @@ private fun CrashReportScaffold(
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     Text(
-                        text = "Stack trace",
+                        text = stringResource(R.string.stack_trace),
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
                     )
                     SelectionContainer {
@@ -305,7 +306,7 @@ private fun CrashReportScaffold(
                     shape = RoundedCornerShape(14.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                 ) {
-                    Text("Restart")
+                    Text(stringResource(R.string.restart))
                 }
                 Button(
                     onClick = onClose,
@@ -313,7 +314,7 @@ private fun CrashReportScaffold(
                     shape = RoundedCornerShape(14.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
                 ) {
-                    Text("Close")
+                    Text(stringResource(R.string.close))
                 }
             }
 

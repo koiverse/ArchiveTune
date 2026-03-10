@@ -662,7 +662,7 @@ fun ArtistPieChart(
         // Text Info
         Column {
             Text(
-                text = "Total Time Listened",
+                text = stringResource(R.string.total_time_listened),
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.secondary
             )
