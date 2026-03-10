@@ -30,9 +30,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
@@ -94,6 +97,13 @@ fun GlassNavigationBar(
                     .padding(start = 12.dp, end = 12.dp, bottom = bottomInset + bottomPadding)
                     .fillMaxWidth()
                     .height(navBarHeight)
+                    .graphicsLayer {
+                        shadowElevation = glassStyle.shadowElevation.toPx()
+                        shape = glassShape
+                        clip = false
+                        ambientShadowColor = glassStyle.shadowColor
+                        spotShadowColor = glassStyle.shadowColor
+                    }
                     .clip(glassShape)
                     .then(
                         if (supportsBackdrop) {
@@ -113,6 +123,17 @@ fun GlassNavigationBar(
                                 onDrawSurface = {
                                     drawRect(glassStyle.surfaceTint.copy(alpha = glassStyle.surfaceAlpha))
                                     drawRect(glassStyle.overlayColor.copy(alpha = glassStyle.overlayAlpha))
+                                    drawRect(
+                                        brush = Brush.verticalGradient(
+                                            colors = listOf(
+                                                Color.White.copy(alpha = glassStyle.topHighlightAlpha),
+                                                Color.Transparent,
+                                            ),
+                                            startY = 0f,
+                                            endY = size.height * 0.45f,
+                                        ),
+                                        size = size,
+                                    )
                                 }
                             )
                         } else {
@@ -123,13 +144,13 @@ fun GlassNavigationBar(
                         }
                     )
                     .border(
-                        width = 0.5.dp,
+                        width = 0.75.dp,
                         brush =
                             Brush.verticalGradient(
                                 colors =
                                     listOf(
                                         glassStyle.borderColor.copy(alpha = glassStyle.borderAlpha),
-                                        glassStyle.borderColor.copy(alpha = glassStyle.borderAlpha * 0.25f),
+                                        glassStyle.borderColor.copy(alpha = glassStyle.borderAlpha * 0.15f),
                                     )
                             ),
                         shape = glassShape
