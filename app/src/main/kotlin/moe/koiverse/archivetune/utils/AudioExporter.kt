@@ -366,9 +366,8 @@ object AudioExporter {
         setTextField(tag, FieldKey.ALBUM, albumTitle)
         setTextField(tag, FieldKey.ALBUM_ARTIST, allArtists)
         setTextField(tag, FieldKey.YEAR, year?.toString())
-        setTextField(tag, FieldKey.DATE, recordingDate ?: year?.toString())
         setTextField(tag, FieldKey.LYRICS, lyrics)
-        setTextField(tag, FieldKey.COMMENT, buildComment(song))
+        setTextField(tag, FieldKey.COMMENT, buildComment(song, recordingDate))
 
         if (config.includeCoverArt) {
             embedArtwork(tag, song)
@@ -404,8 +403,11 @@ object AudioExporter {
     private fun retaggedTempFile(context: Context, format: FormatEntity): File =
         File(context.cacheDir, "export_tag_temp_${System.nanoTime()}${sourceFileExtension(format)}")
 
-    private fun buildComment(song: Song): String = buildList {
+    private fun buildComment(song: Song, recordingDate: String?): String = buildList {
         add("Exported from ArchiveTune")
+        recordingDate?.let {
+            add("Recorded $it")
+        }
         if (song.song.explicit) {
             add("Explicit")
         }
