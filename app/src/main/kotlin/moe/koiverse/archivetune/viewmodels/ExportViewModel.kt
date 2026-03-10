@@ -24,11 +24,13 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import moe.koiverse.archivetune.db.MusicDatabase
+import moe.koiverse.archivetune.db.entities.LyricsEntity
 import moe.koiverse.archivetune.db.entities.Song
 import moe.koiverse.archivetune.di.DownloadCache
 import moe.koiverse.archivetune.di.PlayerCache
 import moe.koiverse.archivetune.utils.AudioExporter
 import moe.koiverse.archivetune.utils.ExportConfig
+import moe.koiverse.archivetune.utils.ExportMetadata
 import moe.koiverse.archivetune.utils.ExportResult
 import javax.inject.Inject
 
@@ -218,12 +220,19 @@ class ExportViewModel @Inject constructor(
                     currentTotalBytes = item.fileSize,
                 )
 
+                val exportMetadata = ExportMetadata(
+                    lyrics = database.getLyricsById(item.song.id)
+                        ?.lyrics
+                        ?.takeUnless { it == LyricsEntity.LYRICS_NOT_FOUND }
+                )
+
                 val result = AudioExporter.exportSong(
                     context = context,
                     song = item.song,
                     downloadCache = downloadCache,
                     playerCache = playerCache,
                     config = config,
+                    metadata = exportMetadata,
                 ) { bytesWritten, totalBytes ->
                     _exportProgress.value = _exportProgress.value.copy(
                         currentBytesWritten = bytesWritten,
