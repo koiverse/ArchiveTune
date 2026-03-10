@@ -229,6 +229,8 @@
     <string name="appearance">Giao diện</string>
     <string name="theme">Giao diện</string>
     <string name="enable_dynamic_theme">Bật giao diện động</string>
+    <string name="dynamic_theme_wallpaper">Sử dụng màu hình nền</string>
+    <string name="dynamic_theme_wallpaper_desc">Tạo màu chủ đề từ hình nền hiện tại của bạn (Android 12+)</string>
     <string name="random_theme_on_startup">Chủ đề ngẫu nhiên khi khởi động</string>
     <string name="random_theme_on_startup_desc">Áp dụng bảng màu ngẫu nhiên mỗi khi app khởi động</string>
     <string name="regenerate_random_theme">Tạo lại chủ đề ngẫu nhiên</string>

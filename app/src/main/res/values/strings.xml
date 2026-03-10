@@ -239,6 +239,8 @@
     <string name="appearance">Appearance</string>
     <string name="theme">Theme</string>
     <string name="enable_dynamic_theme">Enable dynamic theme</string>
+    <string name="dynamic_theme_wallpaper">Use wallpaper colors</string>
+    <string name="dynamic_theme_wallpaper_desc">Generate theme colors from your current wallpaper (Android 12+)</string>
     <string name="random_theme_on_startup">Random theme on startup</string>
     <string name="random_theme_on_startup_desc">Apply a random color palette every time the app starts</string>
     <string name="regenerate_random_theme">Regenerate random theme</string>

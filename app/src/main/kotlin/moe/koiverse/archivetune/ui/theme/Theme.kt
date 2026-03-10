@@ -59,11 +59,10 @@ fun ArchiveTuneTheme(
     themeColor: Color = DefaultThemeColor,
     seedPalette: ThemeSeedPalette? = null,
     useSystemFont: Boolean = false,
+    useSystemDynamicColor: Boolean = (seedPalette == null && themeColor == DefaultThemeColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S),
     content: @Composable () -> Unit,
 ) {
     val context = LocalContext.current
-    val useSystemDynamicColor =
-        (seedPalette == null && themeColor == DefaultThemeColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
 
     val typography = remember(useSystemFont) {
         if (useSystemFont) SystemTypography else AppTypography
@@ -86,7 +85,7 @@ fun ArchiveTuneTheme(
         }
 
     val baseColorScheme =
-        if (useSystemDynamicColor) {
+        if (useSystemDynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         } else {
             appColorScheme

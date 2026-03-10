@@ -162,6 +162,7 @@ import moe.koiverse.archivetune.constants.DarkModeKey
 import moe.koiverse.archivetune.constants.DefaultOpenTabKey
 import moe.koiverse.archivetune.constants.DisableScreenshotKey
 import moe.koiverse.archivetune.constants.DynamicThemeKey
+import moe.koiverse.archivetune.constants.DynamicThemeWallpaperKey
 import moe.koiverse.archivetune.constants.HasPressedStarKey
 import moe.koiverse.archivetune.constants.LaunchCountKey
 import moe.koiverse.archivetune.constants.MiniPlayerBottomSpacing
@@ -571,6 +572,7 @@ class MainActivity : ComponentActivity() {
                     }
 
             val enableDynamicTheme by rememberPreference(DynamicThemeKey, defaultValue = true)
+            val useDynamicThemeWallpaper by rememberPreference(DynamicThemeWallpaperKey, defaultValue = true)
             val customThemeColorValue by rememberPreference(CustomThemeColorKey, defaultValue = "default")
             val darkTheme by rememberEnumPreference(DarkModeKey, defaultValue = DarkMode.AUTO)
             val useSystemFont by rememberPreference(UseSystemFontKey, defaultValue = false)
@@ -621,7 +623,7 @@ class MainActivity : ComponentActivity() {
                 mutableStateOf(DefaultThemeColor)
             }
 
-            LaunchedEffect(playerConnection, enableDynamicTheme, isSystemInDarkTheme, customThemeColor) {
+            LaunchedEffect(playerConnection, enableDynamicTheme, useDynamicThemeWallpaper, isSystemInDarkTheme, customThemeColor) {
                 val playerConnection = playerConnection
                 if (!enableDynamicTheme || playerConnection == null) {
                     themeColor = if (!enableDynamicTheme) customThemeColor else DefaultThemeColor
@@ -640,30 +642,29 @@ class MainActivity : ComponentActivity() {
                                 )
                                 val extractedColor = result.image?.toBitmap()?.extractThemeColor()
                                 withContext(Dispatchers.Main) {
-                                    themeColor = extractedColor ?: DefaultThemeColor
+                                    themeColor = extractedColor ?: customThemeColor
                                 }
                             } catch (e: Exception) {
                                 withContext(Dispatchers.Main) {
-                                    themeColor = DefaultThemeColor
+                                    themeColor = customThemeColor
                                 }
                             }
                         }
                     } else {
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                            themeColor = DefaultThemeColor
-                        } else {
-                            themeColor = customThemeColor
-                        }
+                        themeColor = customThemeColor
                     }
                 }
             }
+
+            val currentMediaItem by playerConnection?.service?.currentMediaMetadata?.collectAsState(null) ?: remember { mutableStateOf(null) }
 
             ArchiveTuneTheme(
                 darkTheme = useDarkTheme,
                 pureBlack = pureBlack,
                 themeColor = themeColor,
-                seedPalette = if (!enableDynamicTheme) customThemeSeedPalette else null,
+                seedPalette = if (!enableDynamicTheme || (!useDynamicThemeWallpaper && currentMediaItem == null)) customThemeSeedPalette else null,
                 useSystemFont = useSystemFont,
+                useSystemDynamicColor = enableDynamicTheme && useDynamicThemeWallpaper && currentMediaItem == null,
             ) {
                     BoxWithConstraints(
                         modifier =

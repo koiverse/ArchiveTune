@@ -65,6 +65,7 @@ import moe.koiverse.archivetune.constants.ChipSortTypeKey
 import moe.koiverse.archivetune.constants.DarkModeKey
 import moe.koiverse.archivetune.constants.DefaultOpenTabKey
 import moe.koiverse.archivetune.constants.DynamicThemeKey
+import moe.koiverse.archivetune.constants.DynamicThemeWallpaperKey
 import moe.koiverse.archivetune.constants.GridItemSize
 import moe.koiverse.archivetune.constants.GridItemsSizeKey
 import moe.koiverse.archivetune.constants.LibraryFilter
@@ -131,6 +132,10 @@ fun AppearanceSettings(
 ) {
     val (dynamicTheme, onDynamicThemeChange) = rememberPreference(
         DynamicThemeKey,
+        defaultValue = true
+    )
+    val (dynamicThemeWallpaper, onDynamicThemeWallpaperChange) = rememberPreference(
+        DynamicThemeWallpaperKey,
         defaultValue = true
     )
     val (randomThemeOnStartup, onRandomThemeOnStartupChange) = rememberPreference(
@@ -350,7 +355,18 @@ fun AppearanceSettings(
             onCheckedChange = onDynamicThemeChange,
         )
 
-        AnimatedVisibility(visible = !dynamicTheme || Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
+        AnimatedVisibility(visible = dynamicTheme && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            SwitchPreference(
+                title = { Text(stringResource(R.string.dynamic_theme_wallpaper)) },
+                description = stringResource(R.string.dynamic_theme_wallpaper_desc),
+                icon = { Icon(painterResource(R.drawable.image), null) },
+                checked = dynamicThemeWallpaper,
+                onCheckedChange = onDynamicThemeWallpaperChange,
+                modifier = Modifier.padding(start = 16.dp)
+            )
+        }
+
+        AnimatedVisibility(visible = !dynamicTheme || (dynamicTheme && !dynamicThemeWallpaper) || Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
             Column {
                 SwitchPreference(
                     title = { Text(stringResource(R.string.random_theme_on_startup)) },
@@ -411,7 +427,7 @@ fun AppearanceSettings(
             }
         }
 
-        AnimatedVisibility(visible = !dynamicTheme || Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
+        AnimatedVisibility(visible = !dynamicTheme || !dynamicThemeWallpaper || Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
             PreferenceEntry(
                 title = { Text(stringResource(R.string.color_palette)) },
                 description = stringResource(R.string.customize_theme_colors),
