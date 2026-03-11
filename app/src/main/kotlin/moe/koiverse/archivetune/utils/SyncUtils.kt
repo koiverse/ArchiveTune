@@ -414,43 +414,68 @@ class SyncUtils @Inject constructor(
             val selectedCsv = context.dataStore[SelectedYtmPlaylistsKey] ?: ""
             val selectedIds = selectedCsv.split(',').map { it.trim() }.filter { it.isNotEmpty() }.toSet()
 
-            val playlistsToSync = if (selectedIds.isNotEmpty()) remotePlaylists.filter { it.id in selectedIds } else remotePlaylists
-            val remoteIds = playlistsToSync.map { it.id }.toSet()
-
             val localPlaylists = database.playlistsByNameAsc().first()
             if (!isSyncStillEnabled(gen)) return@onSuccess
-            localPlaylists.filterNot { it.playlist.browseId in remoteIds }
-                .filterNot { it.playlist.browseId == null }
-                .forEach { database.update(it.playlist.localToggleLike()) }
 
-            for (playlist in playlistsToSync) {
+            val now = LocalDateTime.now()
+            val remoteLikedIds = remotePlaylists.map { it.id }.toSet()
+
+            localPlaylists
+                .asSequence()
+                .map { it.playlist }
+                .filter { it.browseId != null }
+                .filter { it.browseId !in remoteLikedIds }
+                .forEach { database.update(it.copy(bookmarkedAt = null, lastUpdateTime = now)) }
+
+            val localPlaylistIdByBrowseId = HashMap<String, String>(remotePlaylists.size)
+            for (playlist in remotePlaylists) {
                 if (!isSyncStillEnabled(gen)) return@onSuccess
                 try {
                     val existingPlaylist = database.playlistByBrowseId(playlist.id).firstOrNull()
-                    
-                    val playlistEntity: PlaylistEntity
                     if (existingPlaylist == null) {
-                        playlistEntity = PlaylistEntity(
+                        val playlistEntity = PlaylistEntity(
                             name = playlist.title,
                             browseId = playlist.id,
                             thumbnailUrl = playlist.thumbnail,
                             isEditable = playlist.isEditable,
-                            bookmarkedAt = LocalDateTime.now(),
+                            bookmarkedAt = now,
                             remoteSongCount = playlist.songCountText?.let { Regex("""\d+""").find(it)?.value?.toIntOrNull() },
                             playEndpointParams = playlist.playEndpoint?.params,
                             shuffleEndpointParams = playlist.shuffleEndpoint?.params,
                             radioEndpointParams = playlist.radioEndpoint?.params
                         )
                         database.insert(playlistEntity)
+                        localPlaylistIdByBrowseId[playlist.id] = playlistEntity.id
                         Timber.d("syncSavedPlaylists: Created new playlist ${playlist.title} (${playlist.id})")
                     } else {
-                        playlistEntity = existingPlaylist.playlist
-                        database.update(playlistEntity, playlist)
+                        val baseEntity = existingPlaylist.playlist
+                        val likedEntity = if (baseEntity.bookmarkedAt == null) {
+                            baseEntity.copy(bookmarkedAt = now, lastUpdateTime = now)
+                        } else {
+                            baseEntity
+                        }
+                        database.update(likedEntity, playlist)
+                        localPlaylistIdByBrowseId[playlist.id] = likedEntity.id
                         Timber.d("syncSavedPlaylists: Updated existing playlist ${playlist.title} (${playlist.id})")
                     }
-                    
-                    if (!isSyncStillEnabled(gen)) return@onSuccess
-                    syncPlaylist(playlist.id, playlistEntity.id)
+                } catch (e: Exception) {
+                    Timber.e(e, "syncSavedPlaylists: Failed to upsert playlist ${playlist.title}")
+                }
+            }
+
+            val playlistsToSync =
+                if (selectedIds.isNotEmpty()) remotePlaylists.filter { it.id in selectedIds } else remotePlaylists
+            if (selectedIds.isNotEmpty() && playlistsToSync.isEmpty()) {
+                Timber.w("syncSavedPlaylists: Selected playlists not found in remote library; skipping song sync (selected=${selectedIds.size}, remote=${remotePlaylists.size})")
+            }
+
+            for (playlist in playlistsToSync) {
+                if (!isSyncStillEnabled(gen)) return@onSuccess
+                try {
+                    val playlistId = localPlaylistIdByBrowseId[playlist.id]
+                        ?: database.playlistByBrowseId(playlist.id).firstOrNull()?.playlist?.id
+                        ?: continue
+                    syncPlaylist(playlist.id, playlistId)
                 } catch (e: Exception) {
                     Timber.e(e, "Failed to sync playlist ${playlist.title}")
                 }
