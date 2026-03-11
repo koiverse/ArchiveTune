@@ -166,6 +166,7 @@ import moe.koiverse.archivetune.constants.HasPressedStarKey
 import moe.koiverse.archivetune.constants.LaunchCountKey
 import moe.koiverse.archivetune.constants.MiniPlayerBottomSpacing
 import moe.koiverse.archivetune.constants.MiniPlayerHeight
+import moe.koiverse.archivetune.constants.MiniPlayerLastAnchorKey
 import moe.koiverse.archivetune.constants.NavigationBarAnimationSpec
 import moe.koiverse.archivetune.constants.NavigationBarHeight
 import moe.koiverse.archivetune.constants.PauseSearchHistoryKey
@@ -695,6 +696,10 @@ class MainActivity : ComponentActivity() {
                     val (glassNavigationBar) = rememberPreference(GlassNavigationBarKey, defaultValue = false)
                     val (glassMiniPlayer) = rememberPreference(GlassMiniPlayerKey, defaultValue = false)
                     val (useNewMiniPlayerDesign) = rememberPreference(UseNewMiniPlayerDesignKey, defaultValue = true)
+                    val (savedMiniPlayerAnchor, setSavedMiniPlayerAnchor) = rememberPreference(
+                        MiniPlayerLastAnchorKey,
+                        defaultValue = COLLAPSED_ANCHOR
+                    )
                     val defaultOpenTab by rememberEnumPreference(DefaultOpenTabKey, NavigationTab.HOME)
                     val pauseSearchHistory by rememberPreference(PauseSearchHistoryKey, defaultValue = false)
                     val tabOpenedFromShortcut =
@@ -795,6 +800,26 @@ class MainActivity : ComponentActivity() {
                                     MiniPlayerHeight,
                             expandedBound = maxHeight,
                         )
+
+                    val miniPlayerAnchor by remember {
+                        derivedStateOf {
+                            when {
+                                playerBottomSheetState.isExpanded -> EXPANDED_ANCHOR
+                                playerBottomSheetState.isDismissed -> DISMISSED_ANCHOR
+                                else -> COLLAPSED_ANCHOR
+                            }
+                        }
+                    }
+
+                    var miniPlayerAnchorPersistenceEnabled by remember(playerConnection) {
+                        mutableStateOf(false)
+                    }
+
+                    LaunchedEffect(miniPlayerAnchor, isYearInMusicScreen, miniPlayerAnchorPersistenceEnabled) {
+                        if (!isYearInMusicScreen && miniPlayerAnchorPersistenceEnabled) {
+                            setSavedMiniPlayerAnchor(miniPlayerAnchor)
+                        }
+                    }
 
                     var yearInMusicSavedPlayerAnchor by rememberSaveable { mutableStateOf(-1) }
 
@@ -943,7 +968,10 @@ class MainActivity : ComponentActivity() {
                         }
                     }
 
-                    LaunchedEffect(playerConnection) {
+                    var restoredMiniPlayerAnchor by remember(playerConnection) { mutableStateOf(false) }
+
+                    LaunchedEffect(playerConnection, savedMiniPlayerAnchor, isYearInMusicScreen) {
+                        if (restoredMiniPlayerAnchor) return@LaunchedEffect
                         val player = playerConnection?.player ?: return@LaunchedEffect
                         val connection = playerConnection ?: return@LaunchedEffect
                         connection.queueRestoreCompleted.first { it }
@@ -952,10 +980,17 @@ class MainActivity : ComponentActivity() {
                                 playerBottomSheetState.dismiss()
                             }
                         } else {
-                            if (!isYearInMusicScreen && playerBottomSheetState.isDismissed) {
-                                playerBottomSheetState.collapseSoft()
+                            if (!isYearInMusicScreen) {
+                                when (savedMiniPlayerAnchor) {
+                                    EXPANDED_ANCHOR -> playerBottomSheetState.expandSoft()
+                                    COLLAPSED_ANCHOR -> playerBottomSheetState.collapseSoft()
+                                    DISMISSED_ANCHOR -> playerBottomSheetState.dismiss()
+                                    else -> playerBottomSheetState.collapseSoft()
+                                }
                             }
                         }
+                        restoredMiniPlayerAnchor = true
+                        miniPlayerAnchorPersistenceEnabled = true
                     }
 
                     DisposableEffect(playerConnection, playerBottomSheetState) {
