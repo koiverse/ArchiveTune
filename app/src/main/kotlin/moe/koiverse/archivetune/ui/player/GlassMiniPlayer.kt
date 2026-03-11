@@ -87,17 +87,21 @@ fun GlassMiniPlayer(
                 }
                 .clip(pillShape)
                 .cloudy(radius = glassStyle.cloudyRadius)
-                .liquidGlass(
-                    lensCenter = lensCenter,
-                    lensSize = lensSize,
-                    cornerRadius = glassStyle.glassCornerRadius,
-                    refraction = glassStyle.refraction,
-                    curve = glassStyle.curve,
-                    dispersion = glassStyle.dispersion,
-                    saturation = glassStyle.glassSaturation,
-                    contrast = glassStyle.glassContrast,
-                    tint = glassStyle.glassTint,
-                    edge = glassStyle.glassEdge,
+                .then(
+                    if (componentSize.width > 0f && componentSize.height > 0f) {
+                        Modifier.liquidGlass(
+                            lensCenter = lensCenter,
+                            lensSize = lensSize,
+                            cornerRadius = glassStyle.glassCornerRadius,
+                            refraction = glassStyle.refraction,
+                            curve = glassStyle.curve,
+                            dispersion = glassStyle.dispersion,
+                            saturation = glassStyle.glassSaturation,
+                            contrast = glassStyle.glassContrast,
+                            tint = glassStyle.glassTint,
+                            edge = glassStyle.glassEdge,
+                        )
+                    } else Modifier
                 )
                 .drawWithContent {
                     drawContent()
