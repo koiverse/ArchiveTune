@@ -38,6 +38,7 @@ val SeekExtraSeconds = booleanPreferencesKey("seekExtraSeconds")
 val DisableBlurKey = booleanPreferencesKey("disableBlur")
 val GlassNavigationBarKey = booleanPreferencesKey("glassNavigationBar")
 val GlassMiniPlayerKey = booleanPreferencesKey("glassMiniPlayer")
+val MiniPlayerLastAnchorKey = intPreferencesKey("miniPlayerLastAnchor")
 
 enum class SliderStyle {
     Standard,
