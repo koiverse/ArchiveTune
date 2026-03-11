@@ -325,9 +325,6 @@ fun NavGraphBuilder.navigationBuilder(
     composable("settings/storage") {
         StorageSettings(navController, scrollBehavior)
     }
-    composable("settings/export_songs") {
-        ExportSongsScreen(navController, scrollBehavior)
-    }
     composable("settings/privacy") {
         PrivacySettings(navController, scrollBehavior)
     }

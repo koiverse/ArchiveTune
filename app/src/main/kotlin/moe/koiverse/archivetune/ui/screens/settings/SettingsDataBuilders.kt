@@ -173,14 +173,6 @@ fun buildSettingsGroups(
                         keywords = listOf("backup", "restore", "import", "export", "migration"),
                         onClick = { resetSearch(); navController.navigate("settings/backup_restore") },
                     ),
-                    SettingsItem(
-                        icon = painterResource(R.drawable.export),
-                        title = stringResource(R.string.export_songs),
-                        subtitle = stringResource(R.string.export_songs_subtitle),
-                        accentColor = MaterialTheme.colorScheme.primary,
-                        keywords = listOf("export", "songs", "download", "cache", "save", "storage", "music"),
-                        onClick = { resetSearch(); navController.navigate("settings/export_songs") },
-                    ),
                 ),
             ),
         )
