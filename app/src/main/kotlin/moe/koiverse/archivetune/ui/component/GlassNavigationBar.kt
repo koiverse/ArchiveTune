@@ -1,7 +1,6 @@
 package moe.koiverse.archivetune.ui.component
 
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -31,7 +30,6 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.luminance
@@ -101,18 +99,6 @@ fun GlassNavigationBar(
                         spotShadowColor = glassStyle.shadowColor
                     }
                     .clip(glassShape)
-                    .border(
-                        width = 0.75.dp,
-                        brush =
-                            Brush.verticalGradient(
-                                colors =
-                                    listOf(
-                                        glassStyle.borderColor.copy(alpha = glassStyle.borderAlpha),
-                                        glassStyle.borderColor.copy(alpha = glassStyle.borderAlpha * 0.15f),
-                                    )
-                            ),
-                        shape = glassShape
-                    )
         ) {
             Box(
                 modifier = Modifier
@@ -139,17 +125,6 @@ fun GlassNavigationBar(
                         drawRect(glassStyle.backgroundDimColor.copy(alpha = glassStyle.backgroundDimAlpha))
                         drawRect(glassStyle.surfaceTint.copy(alpha = glassStyle.surfaceAlpha))
                         drawRect(glassStyle.overlayColor.copy(alpha = glassStyle.overlayAlpha))
-                        drawRect(
-                            brush = Brush.verticalGradient(
-                                colors = listOf(
-                                    Color.White.copy(alpha = glassStyle.topHighlightAlpha),
-                                    Color.Transparent,
-                                ),
-                                startY = 0f,
-                                endY = size.height * 0.45f,
-                            ),
-                            size = size,
-                        )
                     }
             )
 

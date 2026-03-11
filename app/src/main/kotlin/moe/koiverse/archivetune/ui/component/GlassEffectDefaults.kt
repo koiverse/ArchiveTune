@@ -18,13 +18,10 @@ data class GlassSurfaceStyle(
     val glassEdge: Float,
     val glassCornerRadius: Float,
     val glassTint: Color,
-    val borderColor: Color,
-    val borderAlpha: Float,
     val backgroundDimAlpha: Float,
     val backgroundDimColor: Color,
     val shadowElevation: Dp,
     val shadowColor: Color,
-    val topHighlightAlpha: Float,
 )
 
 object GlassEffectDefaults {
@@ -43,13 +40,10 @@ object GlassEffectDefaults {
         glassEdge = 0.2f,
         glassCornerRadius = 50f,
         glassTint = Color(0xFF0D0D1A).copy(alpha = 0.22f),
-        borderColor = Color.White,
-        borderAlpha = 0.22f,
         backgroundDimAlpha = 0.22f,
         backgroundDimColor = Color.Black,
         shadowElevation = 12.dp,
         shadowColor = Color.Black.copy(alpha = 0.35f),
-        topHighlightAlpha = 0.10f,
     )
 
     val NavigationBarLight = GlassSurfaceStyle(
@@ -66,13 +60,10 @@ object GlassEffectDefaults {
         glassEdge = 0.25f,
         glassCornerRadius = 50f,
         glassTint = Color(0xFFF5F5FA).copy(alpha = 0.10f),
-        borderColor = Color.White,
-        borderAlpha = 0.45f,
         backgroundDimAlpha = 0.10f,
         backgroundDimColor = Color.Black,
         shadowElevation = 8.dp,
         shadowColor = Color.Black.copy(alpha = 0.12f),
-        topHighlightAlpha = 0.18f,
     )
 
     val NavigationBarPureBlack = GlassSurfaceStyle(
@@ -89,13 +80,10 @@ object GlassEffectDefaults {
         glassEdge = 0.15f,
         glassCornerRadius = 50f,
         glassTint = Color(0xFF050508).copy(alpha = 0.38f),
-        borderColor = Color.White,
-        borderAlpha = 0.08f,
         backgroundDimAlpha = 0.38f,
         backgroundDimColor = Color.Black,
         shadowElevation = 10.dp,
         shadowColor = Color.Black.copy(alpha = 0.50f),
-        topHighlightAlpha = 0.05f,
     )
 
     val MiniPlayerDark = GlassSurfaceStyle(
@@ -112,13 +100,10 @@ object GlassEffectDefaults {
         glassEdge = 0.2f,
         glassCornerRadius = 56f,
         glassTint = Color(0xFF0D0D1A).copy(alpha = 0.20f),
-        borderColor = Color.White,
-        borderAlpha = 0.24f,
         backgroundDimAlpha = 0.20f,
         backgroundDimColor = Color.Black,
         shadowElevation = 14.dp,
         shadowColor = Color.Black.copy(alpha = 0.40f),
-        topHighlightAlpha = 0.12f,
     )
 
     val MiniPlayerLight = GlassSurfaceStyle(
@@ -135,13 +120,10 @@ object GlassEffectDefaults {
         glassEdge = 0.25f,
         glassCornerRadius = 56f,
         glassTint = Color(0xFFF5F5FA).copy(alpha = 0.08f),
-        borderColor = Color.White,
-        borderAlpha = 0.40f,
         backgroundDimAlpha = 0.08f,
         backgroundDimColor = Color.Black,
         shadowElevation = 10.dp,
         shadowColor = Color.Black.copy(alpha = 0.10f),
-        topHighlightAlpha = 0.20f,
     )
 
     val MiniPlayerPureBlack = GlassSurfaceStyle(
@@ -158,13 +140,10 @@ object GlassEffectDefaults {
         glassEdge = 0.15f,
         glassCornerRadius = 56f,
         glassTint = Color(0xFF050508).copy(alpha = 0.35f),
-        borderColor = Color.White,
-        borderAlpha = 0.08f,
         backgroundDimAlpha = 0.35f,
         backgroundDimColor = Color.Black,
         shadowElevation = 12.dp,
         shadowColor = Color.Black.copy(alpha = 0.55f),
-        topHighlightAlpha = 0.04f,
     )
 
     fun navigationBarStyle(isDark: Boolean, isPureBlack: Boolean): GlassSurfaceStyle {

@@ -1,6 +1,5 @@
 package moe.koiverse.archivetune.ui.player
 
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -18,8 +17,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.layout.onSizeChanged
@@ -86,16 +83,6 @@ fun GlassMiniPlayer(
                     spotShadowColor = glassStyle.shadowColor
                 }
                 .clip(pillShape)
-                .border(
-                    width = 0.75.dp,
-                    brush = Brush.verticalGradient(
-                        colors = listOf(
-                            glassStyle.borderColor.copy(alpha = glassStyle.borderAlpha),
-                            glassStyle.borderColor.copy(alpha = glassStyle.borderAlpha * 0.15f),
-                        )
-                    ),
-                    shape = pillShape
-                )
         ) {
             Box(
                 modifier = Modifier
@@ -122,17 +109,6 @@ fun GlassMiniPlayer(
                         drawRect(glassStyle.backgroundDimColor.copy(alpha = glassStyle.backgroundDimAlpha))
                         drawRect(glassStyle.surfaceTint.copy(alpha = glassStyle.surfaceAlpha))
                         drawRect(glassStyle.overlayColor.copy(alpha = glassStyle.overlayAlpha))
-                        drawRect(
-                            brush = Brush.verticalGradient(
-                                colors = listOf(
-                                    Color.White.copy(alpha = glassStyle.topHighlightAlpha),
-                                    Color.Transparent,
-                                ),
-                                startY = 0f,
-                                endY = size.height * 0.45f,
-                            ),
-                            size = size,
-                        )
                     }
             )
 
