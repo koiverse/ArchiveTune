@@ -4576,10 +4576,53 @@ class MusicService :
         }
     }
 
-    private suspend fun saveQueueToDisk() {
-        if (currentQueue == EmptyQueue) return
+    private fun MediaItem.toPersistableMetadata(): moe.koiverse.archivetune.models.MediaMetadata? {
+        val tagged = metadata
+        if (tagged != null) return tagged
 
-        val mediaItemsSnapshot = player.mediaItems.mapNotNull { it.metadata }
+        val id =
+            mediaId.trim().ifBlank {
+                localConfiguration?.uri?.toString()?.trim().orEmpty()
+            }.takeIf { it.isNotBlank() } ?: return null
+
+        val title =
+            mediaMetadata.title?.toString()?.trim().takeIf { !it.isNullOrBlank() }
+                ?: id
+
+        val artistText =
+            mediaMetadata.artist?.toString()?.trim().takeIf { !it.isNullOrBlank() }
+                ?: mediaMetadata.subtitle?.toString()?.trim().takeIf { !it.isNullOrBlank() }
+
+        val artists =
+            artistText
+                ?.split(",")
+                ?.mapNotNull { it.trim().takeIf(String::isNotBlank) }
+                ?.map { name -> moe.koiverse.archivetune.models.MediaMetadata.Artist(id = null, name = name) }
+                .orEmpty()
+
+        val thumbnailUrl = mediaMetadata.artworkUri?.toString()
+        val albumTitle = mediaMetadata.albumTitle?.toString()?.trim().takeIf { !it.isNullOrBlank() }
+        val album =
+            albumTitle?.let { titleValue ->
+                moe.koiverse.archivetune.models.MediaMetadata.Album(id = titleValue, title = titleValue)
+            }
+
+        return moe.koiverse.archivetune.models.MediaMetadata(
+            id = id,
+            title = title,
+            artists = artists,
+            duration = -1,
+            thumbnailUrl = thumbnailUrl,
+            album = album,
+            explicit = false,
+            liked = false,
+            likedDate = null,
+            inLibrary = null,
+        )
+    }
+
+    private suspend fun saveQueueToDisk() {
+        val mediaItemsSnapshot = player.mediaItems.mapNotNull { it.toPersistableMetadata() }
         if (mediaItemsSnapshot.isEmpty()) return
 
         val currentMediaItemIndex = player.currentMediaItemIndex
