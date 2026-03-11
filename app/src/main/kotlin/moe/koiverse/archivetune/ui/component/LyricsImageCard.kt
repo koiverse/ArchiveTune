@@ -9,7 +9,6 @@
 package moe.koiverse.archivetune.ui.component
 
 import android.annotation.SuppressLint
-import android.os.Build
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -19,9 +18,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -30,6 +29,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
@@ -45,11 +45,8 @@ import androidx.compose.ui.unit.*
 import coil3.compose.rememberAsyncImagePainter
 import coil3.request.ImageRequest
 import coil3.request.crossfade
-import com.kyant.backdrop.drawBackdrop
-import com.kyant.backdrop.effects.blur
-import com.kyant.backdrop.effects.lens
-import com.kyant.backdrop.effects.vibrancy
-import com.kyant.backdrop.backdrops.rememberCanvasBackdrop
+import com.skydoves.cloudy.cloudy
+import com.skydoves.cloudy.liquidGlass
 import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.constants.UseSystemFontKey
 import moe.koiverse.archivetune.models.MediaMetadata
@@ -170,15 +167,12 @@ fun LyricsImageCard(
             .build()
     )
 
-    val supportsBackdrop = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
-    val supportsLens = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
-
-    val artworkBackdrop = rememberCanvasBackdrop {
-        drawImage(artworkPainter)
-        drawRect(
-            color = Color.Black.copy(alpha = glassStyle.backgroundDimAlpha),
-            size = size
-        )
+    var glassComponentSize by remember { mutableStateOf(Size.Zero) }
+    val lensCenter = remember(glassComponentSize) {
+        Offset(glassComponentSize.width / 2f, glassComponentSize.height / 2f)
+    }
+    val lensSize = remember(glassComponentSize) {
+        Size(glassComponentSize.width, glassComponentSize.height)
     }
 
     Box(
@@ -197,13 +191,7 @@ fun LyricsImageCard(
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .fillMaxSize()
-                    .then(
-                        if (!supportsBackdrop) {
-                            Modifier.blur(20.dp)
-                        } else {
-                            Modifier
-                        }
-                    )
+                    .cloudy(radius = glassStyle.cloudyRadius)
             )
 
             Box(
@@ -226,49 +214,39 @@ fun LyricsImageCard(
                 modifier = Modifier
                     .padding(14.dp)
                     .fillMaxSize()
-                    .then(
-                        if (supportsBackdrop) {
-                            Modifier.drawBackdrop(
-                                backdrop = artworkBackdrop,
-                                shape = { glassShape },
-                                effects = {
-                                    if (glassStyle.useVibrancy) vibrancy()
-                                    blur(with(density) { glassStyle.blurRadius.toPx() })
-                                    if (supportsLens && glassStyle.useLens) {
-                                        lens(
-                                            with(density) { glassStyle.lensHeight.toPx() },
-                                            with(density) { glassStyle.lensAmount.toPx() }
-                                        )
-                                    }
-                                },
-                                onDrawSurface = {
-                                    drawRect(glassStyle.surfaceTint.copy(alpha = glassStyle.surfaceAlpha))
-                                    drawRect(glassStyle.overlayColor.copy(alpha = glassStyle.overlayAlpha))
-                                }
-                            )
-                        } else {
-                            Modifier
-                                .clip(glassShape)
-                                .background(glassStyle.surfaceTint.copy(alpha = glassStyle.surfaceAlpha + 0.2f))
-                        }
-                    )
-                    .then(
-                        if (!supportsBackdrop) {
-                            Modifier
-                                .drawBehind {
-                                    drawRoundRect(
-                                        color = Color.White.copy(alpha = 0.08f),
-                                        cornerRadius = CornerRadius(20.dp.toPx()),
-                                        size = Size(size.width, 1.dp.toPx()),
-                                        topLeft = Offset.Zero
-                                    )
-                                }
-                        } else {
-                            Modifier
-                        }
-                    ),
+                    .onSizeChanged { size ->
+                        glassComponentSize = Size(size.width.toFloat(), size.height.toFloat())
+                    }
+                    .clip(glassShape),
                 contentAlignment = Alignment.Center
             ) {
+                Box(
+                    modifier = Modifier
+                        .matchParentSize()
+                        .cloudy(radius = glassStyle.cloudyRadius)
+                        .then(
+                            if (glassComponentSize.width > 0f && glassComponentSize.height > 0f) {
+                                Modifier.liquidGlass(
+                                    lensCenter = lensCenter,
+                                    lensSize = lensSize,
+                                    cornerRadius = glassStyle.glassCornerRadius,
+                                    refraction = glassStyle.refraction,
+                                    curve = glassStyle.curve,
+                                    dispersion = glassStyle.dispersion,
+                                    saturation = glassStyle.glassSaturation,
+                                    contrast = glassStyle.glassContrast,
+                                    tint = glassStyle.glassTint,
+                                    edge = glassStyle.glassEdge,
+                                )
+                            } else Modifier
+                        )
+                        .drawWithContent {
+                            drawContent()
+                            drawRect(glassStyle.surfaceTint.copy(alpha = glassStyle.surfaceAlpha))
+                            drawRect(glassStyle.overlayColor.copy(alpha = glassStyle.overlayAlpha))
+                        }
+                )
+
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
@@ -407,13 +385,5 @@ fun LyricsImageCard(
                 }
             }
         }
-    }
-}
-
-private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawImage(
-    painter: androidx.compose.ui.graphics.painter.Painter
-) {
-    with(painter) {
-        draw(size)
     }
 }

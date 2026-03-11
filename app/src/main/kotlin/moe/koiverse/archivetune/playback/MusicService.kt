@@ -976,13 +976,7 @@ class MusicService :
             if (dataStore.get(PersistentQueueKey, true)) {
                 readPersistentObject<PersistQueue>(PERSISTENT_QUEUE_FILE)
                     ?.let { persistedQueue ->
-                    val restoredQueue = persistedQueue.toQueue()
-                    withContext(Dispatchers.Main) {
-                        playQueue(
-                            queue = restoredQueue,
-                            playWhenReady = false,
-                        )
-                    }
+                    restorePersistentQueue(persistedQueue)
                 }
                 readPersistentObject<PersistQueue>(PERSISTENT_AUTOMIX_FILE)
                     ?.let { persistedAutomix ->
@@ -1001,8 +995,14 @@ class MusicService :
                         player.shuffleModeEnabled = playerState.shuffleModeEnabled
                         playerVolume.value = playerState.volume
                         
-                        if (playerState.currentMediaItemIndex < player.mediaItemCount) {
-                            player.seekTo(playerState.currentMediaItemIndex, playerState.currentPosition)
+                        if (player.mediaItemCount > 0) {
+                            val index =
+                                if (playerState.currentMediaItemIndex in 0 until player.mediaItemCount) {
+                                    playerState.currentMediaItemIndex
+                                } else {
+                                    player.currentMediaItemIndex.coerceIn(0, player.mediaItemCount - 1)
+                                }
+                            player.seekTo(index, playerState.currentPosition)
                         }
                         
                         currentMediaMetadata.value = player.currentMetadata
@@ -1038,6 +1038,57 @@ class MusicService :
         }
         if (!ioScope.isActive) {
             ioScope = CoroutineScope(Dispatchers.IO + scopeJob)
+        }
+    }
+
+    private suspend fun restorePersistentQueue(persistedQueue: PersistQueue) {
+        val restoredQueue = persistedQueue.toQueue()
+        val hideExplicit = dataStore.get(HideExplicitKey, false)
+        val hideVideo = dataStore.get(HideVideoKey, false)
+        val initialStatus =
+            restoredQueue
+                .getInitialStatus()
+                .filterExplicit(hideExplicit)
+                .filterVideo(hideVideo)
+
+        withContext(Dispatchers.Main) {
+            currentQueue = restoredQueue
+            queueTitle = initialStatus.title
+
+            val items = initialStatus.items
+            if (items.isEmpty()) {
+                return@withContext
+            }
+
+            val fullIndex = initialStatus.mediaItemIndex.coerceIn(0, items.lastIndex)
+            val windowStart = (fullIndex - 20).coerceAtLeast(0)
+            val windowEnd = (fullIndex + 50).coerceAtMost(items.size)
+
+            val initialChunk = items.subList(windowStart, windowEnd)
+            val relativeIndex = (fullIndex - windowStart).coerceIn(0, initialChunk.lastIndex)
+
+            player.setMediaItems(
+                initialChunk,
+                relativeIndex,
+                initialStatus.position,
+            )
+            player.prepare()
+            player.playWhenReady = false
+            currentMediaMetadata.value = player.currentMetadata
+            updateNotification()
+
+            if (items.size > initialChunk.size) {
+                scope.launch(SilentHandler) {
+                    delay(2000)
+                    if (!isActive || player.mediaItemCount == 0) return@launch
+                    if (windowStart > 0) {
+                        player.addMediaItems(0, items.subList(0, windowStart))
+                    }
+                    if (windowEnd < items.size) {
+                        player.addMediaItems(items.subList(windowEnd, items.size))
+                    }
+                }
+            }
         }
     }
 
@@ -4576,10 +4627,53 @@ class MusicService :
         }
     }
 
-    private suspend fun saveQueueToDisk() {
-        if (currentQueue == EmptyQueue) return
+    private fun MediaItem.toPersistableMetadata(): moe.koiverse.archivetune.models.MediaMetadata? {
+        val tagged = metadata
+        if (tagged != null) return tagged
 
-        val mediaItemsSnapshot = player.mediaItems.mapNotNull { it.metadata }
+        val id =
+            mediaId.trim().ifBlank {
+                localConfiguration?.uri?.toString()?.trim().orEmpty()
+            }.takeIf { it.isNotBlank() } ?: return null
+
+        val title =
+            mediaMetadata.title?.toString()?.trim().takeIf { !it.isNullOrBlank() }
+                ?: id
+
+        val artistText =
+            mediaMetadata.artist?.toString()?.trim().takeIf { !it.isNullOrBlank() }
+                ?: mediaMetadata.subtitle?.toString()?.trim().takeIf { !it.isNullOrBlank() }
+
+        val artists =
+            artistText
+                ?.split(",")
+                ?.mapNotNull { it.trim().takeIf(String::isNotBlank) }
+                ?.map { name -> moe.koiverse.archivetune.models.MediaMetadata.Artist(id = null, name = name) }
+                .orEmpty()
+
+        val thumbnailUrl = mediaMetadata.artworkUri?.toString()
+        val albumTitle = mediaMetadata.albumTitle?.toString()?.trim().takeIf { !it.isNullOrBlank() }
+        val album =
+            albumTitle?.let { titleValue ->
+                moe.koiverse.archivetune.models.MediaMetadata.Album(id = titleValue, title = titleValue)
+            }
+
+        return moe.koiverse.archivetune.models.MediaMetadata(
+            id = id,
+            title = title,
+            artists = artists,
+            duration = -1,
+            thumbnailUrl = thumbnailUrl,
+            album = album,
+            explicit = false,
+            liked = false,
+            likedDate = null,
+            inLibrary = null,
+        )
+    }
+
+    private suspend fun saveQueueToDisk() {
+        val mediaItemsSnapshot = player.mediaItems.mapNotNull { it.toPersistableMetadata() }
         if (mediaItemsSnapshot.isEmpty()) return
 
         val currentMediaItemIndex = player.currentMediaItemIndex
