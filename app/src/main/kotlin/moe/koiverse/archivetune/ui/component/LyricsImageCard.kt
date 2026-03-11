@@ -217,31 +217,36 @@ fun LyricsImageCard(
                     .onSizeChanged { size ->
                         glassComponentSize = Size(size.width.toFloat(), size.height.toFloat())
                     }
-                    .clip(glassShape)
-                    .cloudy(radius = glassStyle.cloudyRadius)
-                    .then(
-                        if (glassComponentSize.width > 0f && glassComponentSize.height > 0f) {
-                            Modifier.liquidGlass(
-                                lensCenter = lensCenter,
-                                lensSize = lensSize,
-                                cornerRadius = glassStyle.glassCornerRadius,
-                                refraction = glassStyle.refraction,
-                                curve = glassStyle.curve,
-                                dispersion = glassStyle.dispersion,
-                                saturation = glassStyle.glassSaturation,
-                                contrast = glassStyle.glassContrast,
-                                tint = glassStyle.glassTint,
-                                edge = glassStyle.glassEdge,
-                            )
-                        } else Modifier
-                    )
-                    .drawWithContent {
-                        drawContent()
-                        drawRect(glassStyle.surfaceTint.copy(alpha = glassStyle.surfaceAlpha))
-                        drawRect(glassStyle.overlayColor.copy(alpha = glassStyle.overlayAlpha))
-                    },
+                    .clip(glassShape),
                 contentAlignment = Alignment.Center
             ) {
+                Box(
+                    modifier = Modifier
+                        .matchParentSize()
+                        .cloudy(radius = glassStyle.cloudyRadius)
+                        .then(
+                            if (glassComponentSize.width > 0f && glassComponentSize.height > 0f) {
+                                Modifier.liquidGlass(
+                                    lensCenter = lensCenter,
+                                    lensSize = lensSize,
+                                    cornerRadius = glassStyle.glassCornerRadius,
+                                    refraction = glassStyle.refraction,
+                                    curve = glassStyle.curve,
+                                    dispersion = glassStyle.dispersion,
+                                    saturation = glassStyle.glassSaturation,
+                                    contrast = glassStyle.glassContrast,
+                                    tint = glassStyle.glassTint,
+                                    edge = glassStyle.glassEdge,
+                                )
+                            } else Modifier
+                        )
+                        .drawWithContent {
+                            drawContent()
+                            drawRect(glassStyle.surfaceTint.copy(alpha = glassStyle.surfaceAlpha))
+                            drawRect(glassStyle.overlayColor.copy(alpha = glassStyle.overlayAlpha))
+                        }
+                )
+
                 Column(
                     modifier = Modifier
                         .fillMaxSize()

@@ -86,40 +86,6 @@ fun GlassMiniPlayer(
                     spotShadowColor = glassStyle.shadowColor
                 }
                 .clip(pillShape)
-                .cloudy(radius = glassStyle.cloudyRadius)
-                .then(
-                    if (componentSize.width > 0f && componentSize.height > 0f) {
-                        Modifier.liquidGlass(
-                            lensCenter = lensCenter,
-                            lensSize = lensSize,
-                            cornerRadius = glassStyle.glassCornerRadius,
-                            refraction = glassStyle.refraction,
-                            curve = glassStyle.curve,
-                            dispersion = glassStyle.dispersion,
-                            saturation = glassStyle.glassSaturation,
-                            contrast = glassStyle.glassContrast,
-                            tint = glassStyle.glassTint,
-                            edge = glassStyle.glassEdge,
-                        )
-                    } else Modifier
-                )
-                .drawWithContent {
-                    drawContent()
-                    drawRect(glassStyle.backgroundDimColor.copy(alpha = glassStyle.backgroundDimAlpha))
-                    drawRect(glassStyle.surfaceTint.copy(alpha = glassStyle.surfaceAlpha))
-                    drawRect(glassStyle.overlayColor.copy(alpha = glassStyle.overlayAlpha))
-                    drawRect(
-                        brush = Brush.verticalGradient(
-                            colors = listOf(
-                                Color.White.copy(alpha = glassStyle.topHighlightAlpha),
-                                Color.Transparent,
-                            ),
-                            startY = 0f,
-                            endY = size.height * 0.45f,
-                        ),
-                        size = size,
-                    )
-                }
                 .border(
                     width = 0.75.dp,
                     brush = Brush.verticalGradient(
@@ -131,6 +97,45 @@ fun GlassMiniPlayer(
                     shape = pillShape
                 )
         ) {
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .cloudy(radius = glassStyle.cloudyRadius)
+                    .then(
+                        if (componentSize.width > 0f && componentSize.height > 0f) {
+                            Modifier.liquidGlass(
+                                lensCenter = lensCenter,
+                                lensSize = lensSize,
+                                cornerRadius = glassStyle.glassCornerRadius,
+                                refraction = glassStyle.refraction,
+                                curve = glassStyle.curve,
+                                dispersion = glassStyle.dispersion,
+                                saturation = glassStyle.glassSaturation,
+                                contrast = glassStyle.glassContrast,
+                                tint = glassStyle.glassTint,
+                                edge = glassStyle.glassEdge,
+                            )
+                        } else Modifier
+                    )
+                    .drawWithContent {
+                        drawContent()
+                        drawRect(glassStyle.backgroundDimColor.copy(alpha = glassStyle.backgroundDimAlpha))
+                        drawRect(glassStyle.surfaceTint.copy(alpha = glassStyle.surfaceAlpha))
+                        drawRect(glassStyle.overlayColor.copy(alpha = glassStyle.overlayAlpha))
+                        drawRect(
+                            brush = Brush.verticalGradient(
+                                colors = listOf(
+                                    Color.White.copy(alpha = glassStyle.topHighlightAlpha),
+                                    Color.Transparent,
+                                ),
+                                startY = 0f,
+                                endY = size.height * 0.45f,
+                            ),
+                            size = size,
+                        )
+                    }
+            )
+
             NewMiniPlayerContent(
                 pureBlack = pureBlack,
                 position = position,

@@ -101,6 +101,22 @@ fun GlassNavigationBar(
                         spotShadowColor = glassStyle.shadowColor
                     }
                     .clip(glassShape)
+                    .border(
+                        width = 0.75.dp,
+                        brush =
+                            Brush.verticalGradient(
+                                colors =
+                                    listOf(
+                                        glassStyle.borderColor.copy(alpha = glassStyle.borderAlpha),
+                                        glassStyle.borderColor.copy(alpha = glassStyle.borderAlpha * 0.15f),
+                                    )
+                            ),
+                        shape = glassShape
+                    )
+        ) {
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
                     .cloudy(radius = glassStyle.cloudyRadius)
                     .then(
                         if (componentSize.width > 0f && componentSize.height > 0f) {
@@ -135,19 +151,8 @@ fun GlassNavigationBar(
                             size = size,
                         )
                     }
-                    .border(
-                        width = 0.75.dp,
-                        brush =
-                            Brush.verticalGradient(
-                                colors =
-                                    listOf(
-                                        glassStyle.borderColor.copy(alpha = glassStyle.borderAlpha),
-                                        glassStyle.borderColor.copy(alpha = glassStyle.borderAlpha * 0.15f),
-                                    )
-                            ),
-                        shape = glassShape
-                    )
-        ) {
+            )
+
             GlassNavigationBarContent(
                 navigationItems = navigationItems,
                 isRouteSelected = isRouteSelected,
