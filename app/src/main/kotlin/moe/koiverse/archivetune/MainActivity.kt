@@ -1695,8 +1695,7 @@ class MainActivity : ComponentActivity() {
                         if (showAccountDialog) {
                             AccountSettingsDialog(
                                 navController = navController,
-                                onDismiss = { showAccountDialog = false },
-                                latestVersionName = latestVersionName
+                                onDismiss = { showAccountDialog = false }
                             )
                         }
 
