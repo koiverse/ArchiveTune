@@ -37,7 +37,6 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -72,8 +71,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.core.content.ContextCompat
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationRail
 import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.Scaffold
@@ -163,20 +160,22 @@ import moe.koiverse.archivetune.constants.DarkModeKey
 import moe.koiverse.archivetune.constants.DefaultOpenTabKey
 import moe.koiverse.archivetune.constants.DisableScreenshotKey
 import moe.koiverse.archivetune.constants.DynamicThemeKey
+import moe.koiverse.archivetune.constants.FloatingToolbarBottomPadding
+import moe.koiverse.archivetune.constants.FloatingToolbarHeight
+import moe.koiverse.archivetune.constants.FloatingToolbarHorizontalPadding
 import moe.koiverse.archivetune.constants.HasPressedStarKey
 import moe.koiverse.archivetune.constants.LaunchCountKey
 import moe.koiverse.archivetune.constants.MiniPlayerBottomSpacing
 import moe.koiverse.archivetune.constants.MiniPlayerHeight
 import moe.koiverse.archivetune.constants.MiniPlayerLastAnchorKey
 import moe.koiverse.archivetune.constants.NavigationBarAnimationSpec
-import moe.koiverse.archivetune.constants.NavigationBarHeight
 import moe.koiverse.archivetune.constants.PauseSearchHistoryKey
 import moe.koiverse.archivetune.constants.PureBlackKey
 import moe.koiverse.archivetune.constants.RemindAfterKey
 import moe.koiverse.archivetune.constants.SYSTEM_DEFAULT
 import moe.koiverse.archivetune.constants.SearchSource
 import moe.koiverse.archivetune.constants.SearchSourceKey
-import moe.koiverse.archivetune.constants.SlimNavBarHeight
+import moe.koiverse.archivetune.constants.SlimFloatingToolbarHeight
 import moe.koiverse.archivetune.constants.SlimNavBarKey
 import moe.koiverse.archivetune.constants.StopMusicOnTaskClearKey
 import moe.koiverse.archivetune.constants.UseNewMiniPlayerDesignKey
@@ -197,6 +196,7 @@ import moe.koiverse.archivetune.ui.component.BottomSheetPage
 import moe.koiverse.archivetune.ui.component.COLLAPSED_ANCHOR
 import moe.koiverse.archivetune.ui.component.DISMISSED_ANCHOR
 import moe.koiverse.archivetune.ui.component.EXPANDED_ANCHOR
+import moe.koiverse.archivetune.ui.component.FloatingNavigationToolbar
 import moe.koiverse.archivetune.ui.component.IconButton
 import moe.koiverse.archivetune.ui.component.LocalBottomSheetPageState
 import moe.koiverse.archivetune.ui.component.LocalMenuState
@@ -770,14 +770,14 @@ class MainActivity : ComponentActivity() {
 
                     fun getBottomNavPadding(): Dp {
                         return if (shouldShowNavigationBar && !useRail) {
-                            if (slimNav) SlimNavBarHeight else NavigationBarHeight
+                            if (slimNav) SlimFloatingToolbarHeight else FloatingToolbarHeight
                         } else {
                             0.dp
                         }
                     }
 
-                    val floatingBarsBottomPadding = 8.dp
-                    val navVisibleHeight = if (slimNav) SlimNavBarHeight else NavigationBarHeight
+                    val floatingBarsBottomPadding = FloatingToolbarBottomPadding
+                    val navVisibleHeight = if (slimNav) SlimFloatingToolbarHeight else FloatingToolbarHeight
 
                     val bottomNavigationBarHeight by animateDpAsState(
                         targetValue = if (shouldShowNavigationBar && !useRail) navVisibleHeight else 0.dp,
@@ -1511,104 +1511,45 @@ class MainActivity : ComponentActivity() {
                                                         }
                                                     },
                                         ) {
-                                            val barColor =
-                                                if (pureBlack) Color.Black
-                                                else MaterialTheme.colorScheme.surfaceContainer
-
-                                            Surface(
+                                            FloatingNavigationToolbar(
+                                                items = navigationItems,
+                                                slim = slimNav,
+                                                pureBlack = pureBlack,
                                                 modifier =
                                                     Modifier
                                                         .align(Alignment.BottomCenter)
                                                         .padding(
-                                                            start = 12.dp,
-                                                            end = 12.dp,
+                                                            start = FloatingToolbarHorizontalPadding,
+                                                            end = FloatingToolbarHorizontalPadding,
                                                             bottom = bottomInset + floatingBarsBottomPadding,
                                                         )
-                                                        .fillMaxWidth()
                                                         .height(navVisibleHeight),
-                                                shape = RoundedCornerShape(28.dp),
-                                                color = barColor,
-                                                contentColor =
-                                                    if (pureBlack) Color.White
-                                                    else MaterialTheme.colorScheme.onSurfaceVariant,
-                                                shadowElevation = if (pureBlack) 0.dp else 6.dp,
-                                            ) {
-                                                Box(
-                                                    modifier =
-                                                        Modifier
-                                                            .fillMaxSize()
-                                                            .border(
-                                                                width = 1.dp,
-                                                                color =
-                                                                    if (pureBlack) {
-                                                                        Color.White.copy(alpha = 0.08f)
-                                                                    } else {
-                                                                        MaterialTheme.colorScheme.outline.copy(alpha = 0.18f)
-                                                                    },
-                                                                shape = RoundedCornerShape(28.dp),
-                                                            ),
-                                                ) {
-                                                    NavigationBar(
-                                                        modifier = Modifier.fillMaxSize(),
-                                                        windowInsets = WindowInsets(left = 0.dp, top = 0.dp, right = 0.dp, bottom = 0.dp),
-                                                        containerColor = Color.Transparent,
-                                                        contentColor =
-                                                            if (pureBlack) Color.White
-                                                            else MaterialTheme.colorScheme.onSurfaceVariant,
-                                                    ) {
-                                                        navigationItems.fastForEach { screen ->
-                                                            val isSelected =
-                                                                navBackStackEntry?.destination?.hierarchy?.any { it.route == screen.route } ==
-                                                                    true
-
-                                                            NavigationBarItem(
-                                                                selected = isSelected,
-                                                                icon = {
-                                                                    Icon(
-                                                                        painter =
-                                                                            painterResource(
-                                                                                id =
-                                                                                    if (isSelected) screen.iconIdActive
-                                                                                    else screen.iconIdInactive
-                                                                            ),
-                                                                        contentDescription = null,
-                                                                    )
-                                                                },
-                                                                label = {
-                                                                    if (!slimNav) {
-                                                                        Text(
-                                                                            text = stringResource(screen.titleId),
-                                                                            maxLines = 1,
-                                                                            overflow = TextOverflow.Ellipsis
-                                                                        )
-                                                                    }
-                                                                },
-                                                                onClick = {
-                                                                    if (screen.route == Screens.Search.route) {
-                                                                        onActiveChange(true)
-                                                                    } else if (isSelected) {
-                                                                        navController.currentBackStackEntry?.savedStateHandle?.set(
-                                                                            "scrollToTop",
-                                                                            true
-                                                                        )
-                                                                        coroutineScope.launch {
-                                                                            searchBarScrollBehavior.state.resetHeightOffset()
-                                                                        }
-                                                                    } else {
-                                                                        navController.navigate(screen.route) {
-                                                                            popUpTo(navController.graph.startDestinationId) {
-                                                                                saveState = true
-                                                                            }
-                                                                            launchSingleTop = true
-                                                                            restoreState = true
-                                                                        }
-                                                                    }
-                                                                },
-                                                            )
+                                                isSelected = { screen ->
+                                                    navBackStackEntry?.destination?.hierarchy?.any { it.route == screen.route } ==
+                                                        true
+                                                },
+                                                onItemClick = { screen, isSelected ->
+                                                    if (screen.route == Screens.Search.route) {
+                                                        onActiveChange(true)
+                                                    } else if (isSelected) {
+                                                        navController.currentBackStackEntry?.savedStateHandle?.set(
+                                                            "scrollToTop",
+                                                            true
+                                                        )
+                                                        coroutineScope.launch {
+                                                            searchBarScrollBehavior.state.resetHeightOffset()
+                                                        }
+                                                    } else {
+                                                        navController.navigate(screen.route) {
+                                                            popUpTo(navController.graph.startDestinationId) {
+                                                                saveState = true
+                                                            }
+                                                            launchSingleTop = true
+                                                            restoreState = true
                                                         }
                                                     }
-                                                }
-                                            }
+                                                },
+                                            )
                                         }
                                     }
                                 },
