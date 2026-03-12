@@ -84,7 +84,6 @@ import moe.koiverse.archivetune.constants.MiniPlayerHeight
 import moe.koiverse.archivetune.constants.SwipeSensitivityKey
 import moe.koiverse.archivetune.constants.ThumbnailCornerRadius
 import moe.koiverse.archivetune.constants.UseNewMiniPlayerDesignKey
-import moe.koiverse.archivetune.constants.GlassMiniPlayerKey
 import moe.koiverse.archivetune.constants.CropThumbnailToSquareKey
 import moe.koiverse.archivetune.db.entities.ArtistEntity
 import moe.koiverse.archivetune.extensions.togglePlayPause
@@ -103,17 +102,8 @@ fun MiniPlayer(
     pureBlack: Boolean,
 ) {
     val useNewMiniPlayerDesign by rememberPreference(UseNewMiniPlayerDesignKey, true)
-    val glassMiniPlayer by rememberPreference(GlassMiniPlayerKey, false)
-    val useGlass = glassMiniPlayer && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S
 
-    if (useGlass) {
-        GlassMiniPlayer(
-            position = position,
-            duration = duration,
-            modifier = modifier,
-            pureBlack = pureBlack
-        )
-    } else if (useNewMiniPlayerDesign) {
+    if (useNewMiniPlayerDesign) {
         NewMiniPlayer(
             position = position,
             duration = duration,
