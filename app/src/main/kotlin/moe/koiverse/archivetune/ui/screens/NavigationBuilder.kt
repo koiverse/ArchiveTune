@@ -8,6 +8,7 @@
 
 package moe.koiverse.archivetune.ui.screens
 
+import android.net.Uri
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -357,19 +358,31 @@ fun NavGraphBuilder.navigationBuilder(
     composable("settings/discord/login") {
         DiscordLoginScreen(navController)
     }
-     composable("settings/about") {
-         AboutScreen(navController, scrollBehavior)
-     }
-     composable("settings/po_token") {
-         PoTokenScreen(navController, scrollBehavior)
-     }
-     composable("customize_background") {
-         CustomizeBackground(navController)
-     }
-      composable("login") {
-          LoginScreen(navController)
-      }
-       composable("new_update_available") {
-           NewUpdateAvailableScreen(navController)
-       }
+    composable("settings/about") {
+        AboutScreen(navController, scrollBehavior)
+    }
+    composable("new_update_available") {
+        NewUpdateAvailableScreen(navController)
+    }
+    composable("settings/po_token") {
+        PoTokenScreen(navController, scrollBehavior)
+    }
+    composable("customize_background") {
+        CustomizeBackground(navController)
+    }
+    composable(
+        route = "$LOGIN_ROUTE?$LOGIN_URL_ARGUMENT={$LOGIN_URL_ARGUMENT}",
+        arguments = listOf(
+            navArgument(LOGIN_URL_ARGUMENT) {
+                type = NavType.StringType
+                nullable = true
+                defaultValue = null
+            }
+        )
+    ) { backStackEntry ->
+        LoginScreen(
+            navController,
+            startUrl = backStackEntry.arguments?.getString(LOGIN_URL_ARGUMENT)?.let(Uri::decode)
+        )
+    }
 }

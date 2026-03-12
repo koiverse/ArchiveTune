@@ -112,6 +112,7 @@ object YouTube {
         set(value) {
             innerTube.poToken = value
         }
+    var webClientPoTokenEnabled: Boolean = false
     var poTokenGvs: String? = null
     var poTokenPlayer: String? = null
     var proxy: Proxy?
@@ -143,15 +144,20 @@ object YouTube {
     private fun resolvePlayerPoToken(client: YouTubeClient, videoId: String, explicitPoToken: String?): String? {
         val explicit = explicitPoToken?.takeIf { it.isNotBlank() }
         if (explicit != null) return explicit
+        if (!webClientPoTokenEnabled) return null
         if (!needsServiceIntegrity(client)) return null
 
         val userExtracted = poTokenPlayer?.takeIf { it.isNotBlank() }
         if (userExtracted != null) return userExtracted
 
+        val webFallback = poToken?.takeIf { it.isNotBlank() }
+        if (webFallback != null) return webFallback
+
         return null
     }
 
     internal fun resolveGvsPoToken(): String? {
+        if (!webClientPoTokenEnabled) return null
         return poTokenGvs?.takeIf { it.isNotBlank() }
             ?: poToken?.takeIf { it.isNotBlank() }
     }

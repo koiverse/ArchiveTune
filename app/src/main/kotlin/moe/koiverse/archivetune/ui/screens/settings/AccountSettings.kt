@@ -105,6 +105,7 @@ import moe.koiverse.archivetune.innertube.utils.completed
 import moe.koiverse.archivetune.innertube.utils.parseCookieString
 import moe.koiverse.archivetune.ui.component.InfoLabel
 import moe.koiverse.archivetune.ui.component.TextFieldDialog
+import moe.koiverse.archivetune.ui.screens.buildLoginRoute
 import moe.koiverse.archivetune.utils.Updater
 import moe.koiverse.archivetune.utils.dataStore
 import moe.koiverse.archivetune.utils.rememberPreference
@@ -166,7 +167,7 @@ fun AccountSettings(
                     if (isLoggedIn) {
                         navController.navigate("account")
                     } else {
-                        navController.navigate("login")
+                        navController.navigate(buildLoginRoute())
                     }
                 },
                 onLogout = {

@@ -237,6 +237,14 @@ class App : Application(), SingletonImageLoader.Factory {
         }
         applicationScope.launch(Dispatchers.IO) {
             dataStore.data
+                .map { it[WebClientPoTokenEnabledKey] ?: false }
+                .distinctUntilChanged()
+                .collect { enabled ->
+                    YouTube.webClientPoTokenEnabled = enabled
+                }
+        }
+        applicationScope.launch(Dispatchers.IO) {
+            dataStore.data
                 .map { it[PoTokenKey] }
                 .distinctUntilChanged()
                 .collect { token ->

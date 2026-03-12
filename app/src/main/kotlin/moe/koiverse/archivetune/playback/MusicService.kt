@@ -11,6 +11,7 @@
 package moe.koiverse.archivetune.playback
 
 import android.app.PendingIntent
+import android.app.ActivityManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
@@ -30,6 +31,7 @@ import android.media.audiofx.LoudnessEnhancer
 import android.media.MediaCodecList
 import android.media.audiofx.Virtualizer
 import android.net.ConnectivityManager
+import android.net.Uri
 import android.os.Binder
 import android.widget.Toast
 import androidx.core.content.getSystemService
@@ -330,6 +332,8 @@ class MusicService :
     private var lastPresenceToken: String? = null
     @Volatile
     private var lastPresenceUpdateTime = 0L
+    @Volatile
+    private var lastLoginRecoveryPrompt: Pair<String, Long>? = null
 
     val currentMediaMetadata = MutableStateFlow<moe.koiverse.archivetune.models.MediaMetadata?>(null)
     val queueRestoreCompleted = MutableStateFlow(false)
@@ -352,6 +356,37 @@ class MusicService :
     private val audioNormalizationEnabled = MutableStateFlow(true)
     private var crossfadeAudio: CrossfadeAudio? = null
     private var lyricsPreloadManager: LyricsPreloadManager? = null
+
+    private fun isAppInForeground(): Boolean {
+        val activityManager = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+        val appProcesses = activityManager.runningAppProcesses ?: return false
+        return appProcesses.any { processInfo ->
+            processInfo.importance == ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND &&
+                processInfo.processName == packageName
+        }
+    }
+
+    private fun promptLoginRecovery(mediaId: String, targetUrl: String) {
+        if (!isAppInForeground()) return
+
+        val now = System.currentTimeMillis()
+        val lastPrompt = lastLoginRecoveryPrompt
+        if (lastPrompt?.first == mediaId && now - lastPrompt.second < 10000L) return
+        lastLoginRecoveryPrompt = mediaId to now
+
+        val deepLink = Uri.parse("archivetune://login?url=${Uri.encode(targetUrl)}")
+        val intent = Intent(Intent.ACTION_VIEW, deepLink, this, MainActivity::class.java).apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
+            addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
+        }
+
+        runCatching {
+            startActivity(intent)
+        }.onFailure {
+            Timber.e(it, "Failed to open login recovery for %s", mediaId)
+        }
+    }
 
     lateinit var sleepTimer: SleepTimer
 
@@ -756,6 +791,33 @@ class MusicService :
                         .setSeekForwardIncrementMs(5000)
                         .build()
                 },
+                onCrossfadeStart = { mediaItem ->
+                    val metadata = mediaItem.metadata
+                    currentMediaMetadata.value = metadata
+                    // immediate update when media item transitions to avoid stale presence
+                    scope.launch {
+                        try {
+                            val token = dataStore.get(DiscordTokenKey, "")
+                            if (token.isNotBlank() && DiscordPresenceManager.isRunning()) {
+                                val mediaId = mediaItem.mediaId
+                                val song = if (mediaId != null) withContext(Dispatchers.IO) { database.song(mediaId).first() } else null
+                                val finalSong = song ?: metadata?.let { createTransientSongFromMedia(it) }
+
+                                if (canUpdatePresence()) {
+                                    DiscordPresenceManager.updateNow(
+                                        context = this@MusicService,
+                                        token = token,
+                                        song = finalSong,
+                                        positionMs = 0L,
+                                        isPaused = false
+                                    )
+                                }
+                            }
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                        }
+                    }
+                }
             ).also { it.start(scope) }
 
         // Initialize lyrics pre-load manager
@@ -914,13 +976,7 @@ class MusicService :
             if (dataStore.get(PersistentQueueKey, true)) {
                 readPersistentObject<PersistQueue>(PERSISTENT_QUEUE_FILE)
                     ?.let { persistedQueue ->
-                    val restoredQueue = persistedQueue.toQueue()
-                    withContext(Dispatchers.Main) {
-                        playQueue(
-                            queue = restoredQueue,
-                            playWhenReady = false,
-                        )
-                    }
+                    restorePersistentQueue(persistedQueue)
                 }
                 readPersistentObject<PersistQueue>(PERSISTENT_AUTOMIX_FILE)
                     ?.let { persistedAutomix ->
@@ -939,8 +995,14 @@ class MusicService :
                         player.shuffleModeEnabled = playerState.shuffleModeEnabled
                         playerVolume.value = playerState.volume
                         
-                        if (playerState.currentMediaItemIndex < player.mediaItemCount) {
-                            player.seekTo(playerState.currentMediaItemIndex, playerState.currentPosition)
+                        if (player.mediaItemCount > 0) {
+                            val index =
+                                if (playerState.currentMediaItemIndex in 0 until player.mediaItemCount) {
+                                    playerState.currentMediaItemIndex
+                                } else {
+                                    player.currentMediaItemIndex.coerceIn(0, player.mediaItemCount - 1)
+                                }
+                            player.seekTo(index, playerState.currentPosition)
                         }
                         
                         currentMediaMetadata.value = player.currentMetadata
@@ -976,6 +1038,57 @@ class MusicService :
         }
         if (!ioScope.isActive) {
             ioScope = CoroutineScope(Dispatchers.IO + scopeJob)
+        }
+    }
+
+    private suspend fun restorePersistentQueue(persistedQueue: PersistQueue) {
+        val restoredQueue = persistedQueue.toQueue()
+        val hideExplicit = dataStore.get(HideExplicitKey, false)
+        val hideVideo = dataStore.get(HideVideoKey, false)
+        val initialStatus =
+            restoredQueue
+                .getInitialStatus()
+                .filterExplicit(hideExplicit)
+                .filterVideo(hideVideo)
+
+        withContext(Dispatchers.Main) {
+            currentQueue = restoredQueue
+            queueTitle = initialStatus.title
+
+            val items = initialStatus.items
+            if (items.isEmpty()) {
+                return@withContext
+            }
+
+            val fullIndex = initialStatus.mediaItemIndex.coerceIn(0, items.lastIndex)
+            val windowStart = (fullIndex - 20).coerceAtLeast(0)
+            val windowEnd = (fullIndex + 50).coerceAtMost(items.size)
+
+            val initialChunk = items.subList(windowStart, windowEnd)
+            val relativeIndex = (fullIndex - windowStart).coerceIn(0, initialChunk.lastIndex)
+
+            player.setMediaItems(
+                initialChunk,
+                relativeIndex,
+                initialStatus.position,
+            )
+            player.prepare()
+            player.playWhenReady = false
+            currentMediaMetadata.value = player.currentMetadata
+            updateNotification()
+
+            if (items.size > initialChunk.size) {
+                scope.launch(SilentHandler) {
+                    delay(2000)
+                    if (!isActive || player.mediaItemCount == 0) return@launch
+                    if (windowStart > 0) {
+                        player.addMediaItems(0, items.subList(0, windowStart))
+                    }
+                    if (windowEnd < items.size) {
+                        player.addMediaItems(items.subList(windowEnd, items.size))
+                    }
+                }
+            }
         }
     }
 
@@ -3670,6 +3783,11 @@ class MusicService :
 
 
     override fun onEvents(player: Player, events: Player.Events) {
+        if (events.contains(Player.EVENT_MEDIA_METADATA_CHANGED)) {
+            if (crossfadeAudio?.isCrossfading() != true) {
+                currentMediaMetadata.value = player.currentMetadata
+            }
+        }
     val joined = togetherSessionState.value as? moe.koiverse.archivetune.together.TogetherSessionState.Joined
     if (joined?.role is moe.koiverse.archivetune.together.TogetherRole.Guest &&
         events.contains(Player.EVENT_PLAY_WHEN_READY_CHANGED)
@@ -3743,7 +3861,9 @@ class MusicService :
     }
 
        if (events.containsAny(EVENT_TIMELINE_CHANGED, EVENT_POSITION_DISCONTINUITY)) {
-            currentMediaMetadata.value = player.currentMetadata
+            if (crossfadeAudio?.isCrossfading() != true) {
+                currentMediaMetadata.value = player.currentMetadata
+            }
             // immediate update when media item transitions to avoid stale presence
             scope.launch {
                 try {
@@ -4139,6 +4259,15 @@ class MusicService :
                 )
             }.getOrElse { throwable ->
                 when (throwable) {
+                    is YTPlayerUtils.LoginRequiredForPlaybackException -> {
+                        promptLoginRecovery(mediaId, throwable.targetUrl)
+                        throw PlaybackException(
+                            getString(R.string.playback_requires_youtube_music_confirmation),
+                            throwable,
+                            PlaybackException.ERROR_CODE_REMOTE_ERROR
+                        )
+                    }
+
                     is PlaybackException -> throw throwable
 
                     is java.net.ConnectException, is java.net.UnknownHostException -> {
@@ -4498,10 +4627,53 @@ class MusicService :
         }
     }
 
-    private suspend fun saveQueueToDisk() {
-        if (currentQueue == EmptyQueue) return
+    private fun MediaItem.toPersistableMetadata(): moe.koiverse.archivetune.models.MediaMetadata? {
+        val tagged = metadata
+        if (tagged != null) return tagged
 
-        val mediaItemsSnapshot = player.mediaItems.mapNotNull { it.metadata }
+        val id =
+            mediaId.trim().ifBlank {
+                localConfiguration?.uri?.toString()?.trim().orEmpty()
+            }.takeIf { it.isNotBlank() } ?: return null
+
+        val title =
+            mediaMetadata.title?.toString()?.trim().takeIf { !it.isNullOrBlank() }
+                ?: id
+
+        val artistText =
+            mediaMetadata.artist?.toString()?.trim().takeIf { !it.isNullOrBlank() }
+                ?: mediaMetadata.subtitle?.toString()?.trim().takeIf { !it.isNullOrBlank() }
+
+        val artists =
+            artistText
+                ?.split(",")
+                ?.mapNotNull { it.trim().takeIf(String::isNotBlank) }
+                ?.map { name -> moe.koiverse.archivetune.models.MediaMetadata.Artist(id = null, name = name) }
+                .orEmpty()
+
+        val thumbnailUrl = mediaMetadata.artworkUri?.toString()
+        val albumTitle = mediaMetadata.albumTitle?.toString()?.trim().takeIf { !it.isNullOrBlank() }
+        val album =
+            albumTitle?.let { titleValue ->
+                moe.koiverse.archivetune.models.MediaMetadata.Album(id = titleValue, title = titleValue)
+            }
+
+        return moe.koiverse.archivetune.models.MediaMetadata(
+            id = id,
+            title = title,
+            artists = artists,
+            duration = -1,
+            thumbnailUrl = thumbnailUrl,
+            album = album,
+            explicit = false,
+            liked = false,
+            likedDate = null,
+            inLibrary = null,
+        )
+    }
+
+    private suspend fun saveQueueToDisk() {
+        val mediaItemsSnapshot = player.mediaItems.mapNotNull { it.toPersistableMetadata() }
         if (mediaItemsSnapshot.isEmpty()) return
 
         val currentMediaItemIndex = player.currentMediaItemIndex

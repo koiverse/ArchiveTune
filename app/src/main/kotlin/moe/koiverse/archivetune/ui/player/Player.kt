@@ -98,6 +98,15 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.Layout
 import android.net.Uri
+import androidx.compose.foundation.focusable
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.isShiftPressed
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -180,8 +189,11 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
 import me.saket.squiggles.SquigglySlider
 import moe.koiverse.archivetune.playback.PlayerConnection
+import kotlin.math.abs
 import kotlin.math.roundToInt
 import kotlin.math.roundToLong
+
+private const val SeekbarSettleToleranceMs = 1_500L
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -222,6 +234,9 @@ fun BottomSheetPlayer(
     
     val (disableBlur) = rememberPreference(DisableBlurKey, true)
     val (showCodecOnPlayer) = rememberPreference(booleanPreferencesKey("show_codec_on_player"), false)
+    val (incrementalSeekSkipEnabled) = rememberPreference(moe.koiverse.archivetune.constants.SeekExtraSeconds, defaultValue = false)
+    var keyboardSkipMultiplier by remember { mutableStateOf(1) }
+    var lastKeyboardTapTime by remember { mutableLongStateOf(0L) }
 
     val playerButtonsStyle by rememberEnumPreference(
         key = PlayerButtonsStyleKey,
@@ -285,14 +300,17 @@ fun BottomSheetPlayer(
 
     val sliderStyle by rememberEnumPreference(SliderStyleKey, SliderStyle.Standard)
 
-    var position by rememberSaveable(playbackState) {
+    var position by rememberSaveable(mediaMetadata?.id) {
         mutableLongStateOf(playerConnection.player.currentPosition)
     }
-    var duration by rememberSaveable(playbackState) {
+    var duration by rememberSaveable(mediaMetadata?.id) {
         mutableLongStateOf(playerConnection.player.duration)
     }
-    var sliderPosition by remember {
+    var sliderPosition by remember(mediaMetadata?.id) {
         mutableStateOf<Long?>(null)
+    }
+    var isUserSeeking by remember(mediaMetadata?.id) {
+        mutableStateOf(false)
     }
     
     // Track loading state: when buffering or when user is seeking
@@ -512,12 +530,48 @@ fun BottomSheetPlayer(
         mutableStateOf(false)
     }
 
-    LaunchedEffect(playbackState) {
+    LaunchedEffect(mediaMetadata?.id, playbackState) {
+        val startTime = SystemClock.elapsedRealtime()
         if (playbackState == STATE_READY) {
             while (isActive) {
                 delay(100)
-                position = playerConnection.player.currentPosition
-                duration = playerConnection.player.duration
+                val isTransitioning = playerConnection.player.currentMediaItem?.mediaId != mediaMetadata?.id
+                val currentPlayerPosition = playerConnection.player.currentPosition
+                val currentPlayerDuration = playerConnection.player.duration
+                
+                if (isTransitioning) {
+                    val elapsedSinceStart = SystemClock.elapsedRealtime() - startTime
+                    position = elapsedSinceStart
+                    mediaMetadata?.let {
+                        val metaDuration = it.duration.toLong() * 1000
+                        duration = if (metaDuration > 0) metaDuration else 0L
+                    }
+                } else {
+                    position = currentPlayerPosition
+                    duration = currentPlayerDuration
+                    if (!isUserSeeking) {
+                        sliderPosition?.let { targetPosition ->
+                            val clampedTargetPosition = when {
+                                currentPlayerDuration > 0L && currentPlayerDuration != C.TIME_UNSET -> {
+                                    targetPosition.coerceIn(0L, currentPlayerDuration)
+                                }
+                                else -> targetPosition.coerceAtLeast(0L)
+                            }
+                            if (abs(currentPlayerPosition - clampedTargetPosition) <= SeekbarSettleToleranceMs) {
+                                sliderPosition = null
+                            }
+                        }
+                    }
+                }
+            }
+        } else {
+            mediaMetadata?.let {
+                val metaDuration = it.duration.toLong() * 1000
+                duration = if (metaDuration > 0) metaDuration else 0L
+            }
+            val currentPlayerPosition = playerConnection.player.currentPosition
+            if (sliderPosition == null && currentPlayerPosition > 0L) {
+                position = currentPlayerPosition
             }
         }
     }
@@ -560,9 +614,78 @@ fun BottomSheetPlayer(
         }
     }
 
+    val focusRequester = remember { FocusRequester() }
+
+    LaunchedEffect(state.isExpanded) {
+        if (state.isExpanded) {
+            focusRequester.requestFocus()
+        }
+    }
+
     BottomSheet(
         state = state,
-        modifier = modifier,
+        modifier = modifier
+            .focusRequester(focusRequester)
+            .focusable()
+            .onKeyEvent { keyEvent ->
+            if (keyEvent.type != KeyEventType.KeyDown || state.isCollapsed) return@onKeyEvent false
+
+            when (keyEvent.key) {
+                Key.DirectionLeft -> {
+                    val now = SystemClock.uptimeMillis()
+                    if (incrementalSeekSkipEnabled && now - lastKeyboardTapTime < 1000) {
+                        keyboardSkipMultiplier++
+                    } else {
+                        keyboardSkipMultiplier = 1
+                    }
+                    lastKeyboardTapTime = now
+                    val skipAmount = 5000L * keyboardSkipMultiplier
+                    playerConnection.player.seekTo((playerConnection.player.currentPosition - skipAmount).coerceAtLeast(0))
+                    true
+                }
+                Key.DirectionRight -> {
+                    val now = SystemClock.uptimeMillis()
+                    if (incrementalSeekSkipEnabled && now - lastKeyboardTapTime < 1000) {
+                        keyboardSkipMultiplier++
+                    } else {
+                        keyboardSkipMultiplier = 1
+                    }
+                    lastKeyboardTapTime = now
+                    val skipAmount = 5000L * keyboardSkipMultiplier
+                    playerConnection.player.seekTo((playerConnection.player.currentPosition + skipAmount).coerceAtMost(playerConnection.player.duration))
+                    true
+                }
+                Key.DirectionUp -> {
+                    playerConnection.service.playerVolume.value = (playerConnection.service.playerVolume.value + 0.05f).coerceAtMost(1f)
+                    true
+                }
+                Key.DirectionDown -> {
+                    playerConnection.service.playerVolume.value = (playerConnection.service.playerVolume.value - 0.05f).coerceAtLeast(0f)
+                    true
+                }
+                Key.Spacebar -> {
+                    playerConnection.player.togglePlayPause()
+                    true
+                }
+                Key.N -> {
+                    if (keyEvent.isShiftPressed) {
+                        playerConnection.seekToNext()
+                        true
+                    } else false
+                }
+                Key.P -> {
+                    if (keyEvent.isShiftPressed) {
+                        playerConnection.seekToPrevious()
+                        true
+                    } else false
+                }
+                Key.L -> {
+                    playerConnection.toggleLike()
+                    true
+                }
+                else -> false
+            }
+        },
         backgroundColor = when (playerBackground) {
             PlayerBackgroundStyle.BLUR, PlayerBackgroundStyle.GRADIENT -> {
                 // Apply same enhanced fade logic to blur/gradient backgrounds
@@ -611,13 +734,24 @@ fun BottomSheetPlayer(
             )
         },
     ) {
-        val onSliderValueChange: (Long) -> Unit = { sliderPosition = it }
+        val onSliderValueChange: (Long) -> Unit = {
+            isUserSeeking = true
+            sliderPosition = it
+        }
         val onSliderValueChangeFinished: () -> Unit = {
             sliderPosition?.let {
-                playerConnection.player.seekTo(it)
+                val isTransitioning = playerConnection.player.currentMediaItem?.mediaId != mediaMetadata?.id
+                if (isTransitioning) {
+                    // During crossfade, we want to seek in the NEXT song (the one UI is showing)
+                    // The easiest way is to skip to it and then seek
+                    playerConnection.player.seekToNext()
+                    playerConnection.player.seekTo(it)
+                } else {
+                    playerConnection.player.seekTo(it)
+                }
                 position = it
             }
-            sliderPosition = null
+            isUserSeeking = false
         }
         val seekEnabled = duration > 0L && duration != C.TIME_UNSET
         val updatedOnSliderValueChange by rememberUpdatedState(onSliderValueChange)
@@ -945,7 +1079,7 @@ fun BottomSheetPlayer(
             onShowLyrics = { lyricsSheetState.expandSoft() },
             pureBlack = pureBlack,
         )
-        
+
         // Lyrics BottomSheet - separate from Queue
         mediaMetadata?.let { metadata ->
             BottomSheet(

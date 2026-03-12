@@ -35,6 +35,7 @@ internal class CrossfadeAudio(
     private val audioNormalizationEnabled: MutableStateFlow<Boolean>,
     private val maxSafeGainFactor: Float,
     private val overlapPlayerFactory: () -> ExoPlayer,
+    private val onCrossfadeStart: (MediaItem) -> Unit = {},
 ) {
     private var loopJob: Job? = null
 
@@ -59,6 +60,8 @@ internal class CrossfadeAudio(
     private val handoffDriftCorrectionThresholdMs = 220L
     private val handoffRampStartDriftToleranceMs = 120L
     private val handoffTimeoutMs = 5000L
+
+    fun isCrossfading(): Boolean = crossfadeActive
 
     fun start(scope: CoroutineScope) {
         if (loopJob?.isActive == true) return
@@ -202,6 +205,12 @@ internal class CrossfadeAudio(
 
     private fun beginOverlapCrossfade(fadeMs: Int, remainingMs: Long) {
         if (overlapPlayer == null) return
+
+        val targetIndex = overlapPrimedIndex
+        if (targetIndex != C.INDEX_UNSET && targetIndex < player.mediaItemCount) {
+            onCrossfadeStart(player.getMediaItemAt(targetIndex))
+        }
+
         crossfadeActive = true
         crossfadeStartElapsedMs = android.os.SystemClock.elapsedRealtime()
         crossfadeActiveDurationMs = min(fadeMs.toLong(), remainingMs).toInt().coerceAtLeast(1)
