@@ -74,10 +74,13 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.navigation.NavController
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import moe.koiverse.archivetune.BuildConfig
 import moe.koiverse.archivetune.LocalPlayerAwareWindowInsets
 import moe.koiverse.archivetune.R
+import moe.koiverse.archivetune.constants.DebugEnableUpdateCheckKey
 import moe.koiverse.archivetune.constants.EnableUpdateNotificationKey
 import moe.koiverse.archivetune.constants.UpdateChannel
 import moe.koiverse.archivetune.constants.UpdateChannelKey
@@ -89,6 +92,7 @@ import moe.koiverse.archivetune.ui.utils.backToMain
 import moe.koiverse.archivetune.utils.GitCommit
 import moe.koiverse.archivetune.utils.UpdateNotificationManager
 import moe.koiverse.archivetune.utils.Updater
+import moe.koiverse.archivetune.utils.dataStore
 import moe.koiverse.archivetune.utils.rememberEnumPreference
 import moe.koiverse.archivetune.utils.rememberPreference
 import java.text.SimpleDateFormat
@@ -114,6 +118,11 @@ fun UpdateScreen(
     val (updateChannel, onUpdateChannelChange) = rememberEnumPreference(
         UpdateChannelKey,
         defaultValue = UpdateChannel.STABLE
+    )
+
+    val (debugCheckEnabled, onDebugCheckEnabledChange) = rememberPreference(
+        DebugEnableUpdateCheckKey,
+        defaultValue = false
     )
 
     var commits by remember { mutableStateOf<List<GitCommit>>(emptyList()) }
@@ -301,8 +310,11 @@ fun UpdateScreen(
 
     LaunchedEffect(Unit) {
         coroutineScope.launch {
-            Updater.getLatestVersionName().onSuccess {
-                latestVersion = it
+            val debugCheckEnabledFirst = context.dataStore.data.map { it[DebugEnableUpdateCheckKey] ?: false }.first()
+            if (!BuildConfig.DEBUG || debugCheckEnabledFirst) {
+                Updater.getLatestVersionName().onSuccess {
+                    latestVersion = it
+                }
             }
             Updater.getCommitHistory(30).onSuccess {
                 commits = it
@@ -435,7 +447,7 @@ fun UpdateScreen(
                                 }
                             },
                             modifier = Modifier.fillMaxWidth(),
-                            enabled = !isCheckingForUpdates
+                            enabled = !isCheckingForUpdates && (!BuildConfig.DEBUG || debugCheckEnabled)
                         ) {
                             if (isCheckingForUpdates) {
                                 CircularProgressIndicator(
@@ -452,7 +464,12 @@ fun UpdateScreen(
                                     modifier = Modifier.size(18.dp)
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
-                                Text(stringResource(R.string.check_for_update))
+                                Text(
+                                    text = if (BuildConfig.DEBUG && !debugCheckEnabled)
+                                        "Update check disabled in DEBUG" 
+                                    else 
+                                        stringResource(R.string.check_for_update)
+                                )
                             }
                         }
 

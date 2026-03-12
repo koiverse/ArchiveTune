@@ -43,6 +43,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
@@ -62,6 +63,7 @@ import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -96,8 +98,10 @@ import androidx.navigation.NavController
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import moe.koiverse.archivetune.BuildConfig
 import moe.koiverse.archivetune.LocalPlayerConnection
 import moe.koiverse.archivetune.R
+import moe.koiverse.archivetune.constants.DebugEnableUpdateCheckKey
 import moe.koiverse.archivetune.ui.component.IconButton
 import moe.koiverse.archivetune.ui.component.PreferenceGroupTitle
 import moe.koiverse.archivetune.ui.component.SwitchPreference
@@ -107,12 +111,14 @@ import moe.koiverse.archivetune.utils.LogEntry
 import moe.koiverse.archivetune.utils.makeTimeString
 import moe.koiverse.archivetune.utils.rememberPreference
 import kotlin.math.roundToInt
+import kotlin.system.exitProcess
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DebugSettings(
     navController: NavController
 ) {
+    val context = LocalContext.current
     val (showDevDebug, onShowDevDebugChange) = rememberPreference(
         key = booleanPreferencesKey("dev_show_discord_debug"),
         defaultValue = false
@@ -127,6 +133,12 @@ fun DebugSettings(
         key = booleanPreferencesKey("show_codec_on_player"),
         defaultValue = false
     )
+
+    val (debugEnableUpdateCheck, onDebugEnableUpdateCheckChange) = rememberPreference(
+        key = DebugEnableUpdateCheckKey,
+        defaultValue = false
+    )
+    var showRestartDialog by remember { mutableStateOf(false) }
 
     val playerConnection = LocalPlayerConnection.current
 
@@ -162,6 +174,45 @@ fun DebugSettings(
             PreferenceGroupTitle(
                 title = stringResource(R.string.experimental_features)
             )
+
+            if (BuildConfig.DEBUG) {
+                SwitchPreference(
+                    title = { Text("Debug Update Check") },
+                    description = "Allow checking for updates even on debug builds. Requires app restart.",
+                    icon = { Icon(painterResource(R.drawable.update), null) },
+                    checked = debugEnableUpdateCheck,
+                    onCheckedChange = {
+                        onDebugEnableUpdateCheckChange(it)
+                        showRestartDialog = true
+                    }
+                )
+
+                if (showRestartDialog) {
+                    AlertDialog(
+                        onDismissRequest = { showRestartDialog = false },
+                        title = { Text("Restart Required") },
+                        text = { Text("Please restart the app for the changes to take effect.") },
+                        confirmButton = {
+                            TextButton(
+                                onClick = {
+                                    showRestartDialog = false
+                                    val intent = context.packageManager.getLaunchIntentForPackage(context.packageName)
+                                    val mainIntent = Intent.makeRestartActivityTask(intent?.component)
+                                    context.startActivity(mainIntent)
+                                    exitProcess(0)
+                                }
+                            ) {
+                                Text("Restart Now")
+                            }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = { showRestartDialog = false }) {
+                                Text(stringResource(android.R.string.cancel))
+                            }
+                        }
+                    )
+                }
+            }
 
             SwitchPreference(
                 title = { Text(stringResource(R.string.show_discord_debug_ui)) },

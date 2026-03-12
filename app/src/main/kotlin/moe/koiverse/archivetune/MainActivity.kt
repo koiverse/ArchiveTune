@@ -160,6 +160,7 @@ import moe.koiverse.archivetune.constants.AppBarHeight
 import moe.koiverse.archivetune.constants.AppLanguageKey
 import moe.koiverse.archivetune.constants.CustomThemeColorKey
 import moe.koiverse.archivetune.constants.DarkModeKey
+import moe.koiverse.archivetune.constants.DebugEnableUpdateCheckKey
 import moe.koiverse.archivetune.constants.DefaultOpenTabKey
 import moe.koiverse.archivetune.constants.DisableScreenshotKey
 import moe.koiverse.archivetune.constants.DynamicThemeKey
@@ -487,12 +488,15 @@ class MainActivity : ComponentActivity() {
                     notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
                 }
 
-                if (System.currentTimeMillis() - Updater.lastCheckTime > 1.days.inWholeMilliseconds) {
+                val debugCheckEnabled = dataStore.data.map { it[DebugEnableUpdateCheckKey] ?: false }.first()
+                if ((!BuildConfig.DEBUG || debugCheckEnabled) && System.currentTimeMillis() - Updater.lastCheckTime > 1.days.inWholeMilliseconds) {
                     Updater.getLatestVersionName().onSuccess {
                         latestVersionName = it
                     }
                 }
-                moe.koiverse.archivetune.utils.UpdateNotificationManager.checkForUpdates(this@MainActivity)
+                if (!BuildConfig.DEBUG || debugCheckEnabled) {
+                    moe.koiverse.archivetune.utils.UpdateNotificationManager.checkForUpdates(this@MainActivity)
+                }
             }
 
                     // Use remembered instances so the same state object is used everywhere
