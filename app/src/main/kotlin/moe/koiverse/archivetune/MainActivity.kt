@@ -179,8 +179,6 @@ import moe.koiverse.archivetune.constants.SearchSource
 import moe.koiverse.archivetune.constants.SearchSourceKey
 import moe.koiverse.archivetune.constants.SlimNavBarHeight
 import moe.koiverse.archivetune.constants.SlimNavBarKey
-import moe.koiverse.archivetune.constants.GlassNavigationBarKey
-import moe.koiverse.archivetune.constants.GlassMiniPlayerKey
 import moe.koiverse.archivetune.constants.StopMusicOnTaskClearKey
 import moe.koiverse.archivetune.constants.UseNewMiniPlayerDesignKey
 import moe.koiverse.archivetune.constants.UseSystemFontKey
@@ -201,7 +199,6 @@ import moe.koiverse.archivetune.ui.component.COLLAPSED_ANCHOR
 import moe.koiverse.archivetune.ui.component.DISMISSED_ANCHOR
 import moe.koiverse.archivetune.ui.component.EXPANDED_ANCHOR
 import moe.koiverse.archivetune.ui.component.IconButton
-import moe.koiverse.archivetune.ui.component.GlassNavigationBar
 import moe.koiverse.archivetune.ui.component.LocalBottomSheetPageState
 import moe.koiverse.archivetune.ui.component.LocalMenuState
 import moe.koiverse.archivetune.ui.component.StarDialog
@@ -698,8 +695,6 @@ class MainActivity : ComponentActivity() {
 
                     val navigationItems = remember { Screens.MainScreens }
                     val (slimNav) = rememberPreference(SlimNavBarKey, defaultValue = false)
-                    val (glassNavigationBar) = rememberPreference(GlassNavigationBarKey, defaultValue = false)
-                    val (glassMiniPlayer) = rememberPreference(GlassMiniPlayerKey, defaultValue = false)
                     val (useNewMiniPlayerDesign) = rememberPreference(UseNewMiniPlayerDesignKey, defaultValue = true)
                     val (savedMiniPlayerAnchor, setSavedMiniPlayerAnchor) = rememberPreference(
                         MiniPlayerLastAnchorKey,
@@ -824,7 +819,7 @@ class MainActivity : ComponentActivity() {
                         if (!isYearInMusicScreen && miniPlayerAnchorPersistenceEnabled) {
                             setSavedMiniPlayerAnchor(miniPlayerAnchor)
                         }
-                    }
+                        }
 
                     var yearInMusicSavedPlayerAnchor by rememberSaveable { mutableStateOf(-1) }
 
@@ -916,19 +911,19 @@ class MainActivity : ComponentActivity() {
 
                     LaunchedEffect(navBackStackEntry) {
                         val currentRoute = navBackStackEntry?.destination?.route
-                        val wasOnNonTopLevelScreen = previousRoute != null && 
-                            previousRoute !in topLevelScreens && 
+                        val wasOnNonTopLevelScreen = previousRoute != null &&
+                            previousRoute !in topLevelScreens &&
                             previousRoute?.startsWith("search/") != true
-                        val isReturningToHomeOrLibrary = currentRoute == Screens.Home.route || 
+                        val isReturningToHomeOrLibrary = currentRoute == Screens.Home.route ||
                             currentRoute == Screens.Library.route
-                        
+
                         if (wasOnNonTopLevelScreen && isReturningToHomeOrLibrary) {
                             searchBarScrollBehavior.state.resetHeightOffset()
                             topAppBarScrollBehavior.state.resetHeightOffset()
                         }
-                        
+
                         previousRoute = currentRoute
-                        
+
                         if (navBackStackEntry?.destination?.route?.startsWith("search/") == true) {
                             val searchQuery =
                                 withContext(Dispatchers.IO) {
@@ -1489,181 +1484,131 @@ class MainActivity : ComponentActivity() {
 
                                         if(useRail) return@Box
 
-                                        val glassNavBarEnabled = glassNavigationBar && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
-
                                         val navSlideDistance =
                                             bottomInset + floatingBarsBottomPadding + navVisibleHeight
 
-                                        if (glassNavBarEnabled) {
-                                            val slideOffsetDp = with(LocalDensity.current) {
-                                                if (bottomNavigationBarHeight == 0.dp) {
-                                                    navSlideDistance
-                                                } else {
-                                                    val slideOffset =
-                                                        navSlideDistance *
-                                                                playerBottomSheetState.progress.coerceIn(0f, 1f)
-                                                    val hideOffset =
-                                                        navSlideDistance *
-                                                            (1 - bottomNavigationBarHeight / navVisibleHeight)
-                                                    slideOffset + hideOffset
-                                                }
-                                            }
+                                        Box(
+                                            modifier =
+                                                Modifier
+                                                    .align(Alignment.BottomCenter)
+                                                    .height(navSlideDistance)
+                                                    .offset {
+                                                        if (bottomNavigationBarHeight == 0.dp) {
+                                                            IntOffset(
+                                                                x = 0,
+                                                                y = navSlideDistance.roundToPx(),
+                                                            )
+                                                        } else {
+                                                            val slideOffset =
+                                                                navSlideDistance *
+                                                                    playerBottomSheetState.progress.coerceIn(
+                                                                        0f,
+                                                                        1f,
+                                                                    )
+                                                            val hideOffset =
+                                                                navSlideDistance *
+                                                                    (1 - bottomNavigationBarHeight / navVisibleHeight)
+                                                            IntOffset(
+                                                                x = 0,
+                                                                y = (slideOffset + hideOffset).roundToPx(),
+                                                            )
+                                                        }
+                                                    },
+                                        ) {
+                                            val barColor =
+                                                if (pureBlack) Color.Black
+                                                else MaterialTheme.colorScheme.surfaceContainer
 
-                                            GlassNavigationBar(
-                                                navigationItems = navigationItems,
-                                                currentRoute = navBackStackEntry?.destination?.route,
-                                                isRouteSelected = { screen ->
-                                                    navBackStackEntry?.destination?.hierarchy?.any { it.route == screen.route } == true
-                                                },
-                                                onItemClick = { screen ->
-                                                    if (screen.route == Screens.Search.route) {
-                                                        onActiveChange(true)
-                                                    } else if (navBackStackEntry?.destination?.hierarchy?.any { it.route == screen.route } == true) {
-                                                        navController.currentBackStackEntry?.savedStateHandle?.set("scrollToTop", true)
-                                                        coroutineScope.launch {
-                                                            searchBarScrollBehavior.state.resetHeightOffset()
-                                                        }
-                                                    } else {
-                                                        navController.navigate(screen.route) {
-                                                            popUpTo(navController.graph.startDestinationId) {
-                                                                saveState = true
-                                                            }
-                                                            launchSingleTop = true
-                                                            restoreState = true
-                                                        }
-                                                    }
-                                                },
-                                                slimNav = slimNav,
-                                                pureBlack = pureBlack,
-                                                bottomInset = bottomInset,
-                                                bottomPadding = floatingBarsBottomPadding,
-                                                slideOffset = slideOffsetDp,
-                                                modifier = Modifier.align(Alignment.BottomCenter),
-                                            )
-                                        } else {
-                                            Box(
+                                            Surface(
                                                 modifier =
                                                     Modifier
                                                         .align(Alignment.BottomCenter)
-                                                        .height(navSlideDistance)
-                                                        .offset {
-                                                            if (bottomNavigationBarHeight == 0.dp) {
-                                                                IntOffset(
-                                                                    x = 0,
-                                                                    y = navSlideDistance.roundToPx(),
-                                                                )
-                                                            } else {
-                                                                val slideOffset =
-                                                                    navSlideDistance *
-                                                                        playerBottomSheetState.progress.coerceIn(
-                                                                            0f,
-                                                                            1f,
-                                                                        )
-                                                                val hideOffset =
-                                                                    navSlideDistance *
-                                                                        (1 - bottomNavigationBarHeight / navVisibleHeight)
-                                                                IntOffset(
-                                                                    x = 0,
-                                                                    y = (slideOffset + hideOffset).roundToPx(),
-                                                                )
-                                                            }
-                                                        },
+                                                        .padding(
+                                                            start = 12.dp,
+                                                            end = 12.dp,
+                                                            bottom = bottomInset + floatingBarsBottomPadding,
+                                                        )
+                                                        .fillMaxWidth()
+                                                        .height(navVisibleHeight),
+                                                shape = RoundedCornerShape(28.dp),
+                                                color = barColor,
+                                                contentColor =
+                                                    if (pureBlack) Color.White
+                                                    else MaterialTheme.colorScheme.onSurfaceVariant,
+                                                shadowElevation = if (pureBlack) 0.dp else 6.dp,
                                             ) {
-                                                val barColor =
-                                                    if (pureBlack) Color.Black
-                                                    else MaterialTheme.colorScheme.surfaceContainer
-
-                                                Surface(
+                                                Box(
                                                     modifier =
                                                         Modifier
-                                                            .align(Alignment.BottomCenter)
-                                                            .padding(
-                                                                start = 12.dp,
-                                                                end = 12.dp,
-                                                                bottom = bottomInset + floatingBarsBottomPadding,
-                                                            )
-                                                            .fillMaxWidth()
-                                                            .height(navVisibleHeight),
-                                                    shape = RoundedCornerShape(28.dp),
-                                                    color = barColor,
-                                                    contentColor =
-                                                        if (pureBlack) Color.White
-                                                        else MaterialTheme.colorScheme.onSurfaceVariant,
-                                                    shadowElevation = if (pureBlack) 0.dp else 6.dp,
+                                                            .fillMaxSize()
+                                                            .border(
+                                                                width = 1.dp,
+                                                                color =
+                                                                    if (pureBlack) {
+                                                                        Color.White.copy(alpha = 0.08f)
+                                                                    } else {
+                                                                        MaterialTheme.colorScheme.outline.copy(alpha = 0.18f)
+                                                                    },
+                                                                shape = RoundedCornerShape(28.dp),
+                                                            ),
                                                 ) {
-                                                    Box(
-                                                        modifier =
-                                                            Modifier
-                                                                .fillMaxSize()
-                                                                .border(
-                                                                    width = 1.dp,
-                                                                    color =
-                                                                        if (pureBlack) {
-                                                                            Color.White.copy(alpha = 0.08f)
-                                                                        } else {
-                                                                            MaterialTheme.colorScheme.outline.copy(alpha = 0.18f)
-                                                                        },
-                                                                    shape = RoundedCornerShape(28.dp),
-                                                                ),
+                                                    NavigationBar(
+                                                        modifier = Modifier.fillMaxSize(),
+                                                        windowInsets = WindowInsets(left = 0.dp, top = 0.dp, right = 0.dp, bottom = 0.dp),
+                                                        containerColor = Color.Transparent,
+                                                        contentColor =
+                                                            if (pureBlack) Color.White
+                                                            else MaterialTheme.colorScheme.onSurfaceVariant,
                                                     ) {
-                                                        NavigationBar(
-                                                            modifier = Modifier.fillMaxSize(),
-                                                            windowInsets = WindowInsets(left = 0.dp, top = 0.dp, right = 0.dp, bottom = 0.dp),
-                                                            containerColor = Color.Transparent,
-                                                            contentColor =
-                                                                if (pureBlack) Color.White
-                                                                else MaterialTheme.colorScheme.onSurfaceVariant,
-                                                        ) {
-                                                            navigationItems.fastForEach { screen ->
-                                                                val isSelected =
-                                                                    navBackStackEntry?.destination?.hierarchy?.any { it.route == screen.route } ==
-                                                                        true
+                                                        navigationItems.fastForEach { screen ->
+                                                            val isSelected =
+                                                                navBackStackEntry?.destination?.hierarchy?.any { it.route == screen.route } ==
+                                                                    true
 
-                                                                NavigationBarItem(
-                                                                    selected = isSelected,
-                                                                    icon = {
-                                                                        Icon(
-                                                                            painter =
-                                                                                painterResource(
-                                                                                    id =
-                                                                                        if (isSelected) screen.iconIdActive
-                                                                                        else screen.iconIdInactive
-                                                                                ),
-                                                                            contentDescription = null,
+                                                            NavigationBarItem(
+                                                                selected = isSelected,
+                                                                icon = {
+                                                                    Icon(
+                                                                        painter =
+                                                                            painterResource(
+                                                                                id =
+                                                                                    if (isSelected) screen.iconIdActive
+                                                                                    else screen.iconIdInactive
+                                                                            ),
+                                                                        contentDescription = null,
+                                                                    )
+                                                                },
+                                                                label = {
+                                                                    if (!slimNav) {
+                                                                        Text(
+                                                                            text = stringResource(screen.titleId),
+                                                                            maxLines = 1,
+                                                                            overflow = TextOverflow.Ellipsis
                                                                         )
-                                                                    },
-                                                                    label = {
-                                                                        if (!slimNav) {
-                                                                            Text(
-                                                                                text = stringResource(screen.titleId),
-                                                                                maxLines = 1,
-                                                                                overflow = TextOverflow.Ellipsis
-                                                                            )
+                                                                    }
+                                                                },
+                                                                onClick = {
+                                                                    if (screen.route == Screens.Search.route) {
+                                                                        onActiveChange(true)
+                                                                    } else if (isSelected) {
+                                                                        navController.currentBackStackEntry?.savedStateHandle?.set(
+                                                                            "scrollToTop",
+                                                                            true
+                                                                        )
+                                                                        coroutineScope.launch {
+                                                                            searchBarScrollBehavior.state.resetHeightOffset()
                                                                         }
-                                                                    },
-                                                                    onClick = {
-                                                                        if (screen.route == Screens.Search.route) {
-                                                                            onActiveChange(true)
-                                                                        } else if (isSelected) {
-                                                                            navController.currentBackStackEntry?.savedStateHandle?.set(
-                                                                                "scrollToTop",
-                                                                                true
-                                                                            )
-                                                                            coroutineScope.launch {
-                                                                                searchBarScrollBehavior.state.resetHeightOffset()
+                                                                    } else {
+                                                                        navController.navigate(screen.route) {
+                                                                            popUpTo(navController.graph.startDestinationId) {
+                                                                                saveState = true
                                                                             }
-                                                                        } else {
-                                                                            navController.navigate(screen.route) {
-                                                                                popUpTo(navController.graph.startDestinationId) {
-                                                                                    saveState = true
-                                                                                }
-                                                                                launchSingleTop = true
-                                                                                restoreState = true
-                                                                            }
+                                                                            launchSingleTop = true
+                                                                            restoreState = true
                                                                         }
-                                                                    },
-                                                                )
-                                                            }
+                                                                    }
+                                                                },
+                                                            )
                                                         }
                                                     }
                                                 }

@@ -117,10 +117,6 @@
     <string name="lyrics_romanize_korean">Romanize korean lyrics</string>
     <string name="slim">Slim</string>
     <string name="slim_navbar">Slim bottom navigation bar</string>
-    <string name="glass_navigation_bar">Glass Navigation Bar (Beta)</string>
-    <string name="glass_mini_player">Glass MiniPlayer (Beta)</string>
-    <string name="lyrics_v2">Lyrics V2 (Experimental)</string>
-    <string name="lyrics_v2_desc">Use the new fluid word-synced lyrics engine</string>
     <string name="auto_playlists">Auto playlists</string>
     <string name="show_liked_playlist">Show \"Liked\" playlist</string>
     <string name="show_downloaded_playlist">Show \"Downloaded\" playlist</string>
