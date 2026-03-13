@@ -559,93 +559,89 @@ fun PlayerMenu(
             }
         }
         item {
-            when (download?.state) {
-                Download.STATE_COMPLETED -> {
-                    MenuSurfaceSection(modifier = Modifier.padding(vertical = 6.dp)) {
+            MenuSurfaceSection(modifier = Modifier.padding(vertical = 6.dp)) {
+                when (download?.state) {
+                    Download.STATE_COMPLETED -> {
                         ListItem(
-                        headlineContent = {
-                            Text(
-                                text = stringResource(R.string.remove_download),
-                                color = MaterialTheme.colorScheme.error
-                            )
-                        },
-                        leadingContent = {
-                            Icon(
-                                painter = painterResource(R.drawable.offline),
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.error,
-                            )
-                        },
-                        modifier = Modifier.clickable {
-                            DownloadService.sendRemoveDownload(
-                                context,
-                                ExoDownloadService::class.java,
-                                mediaMetadata.id,
-                                false,
-                            )
-                        }
-                        , colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                            headlineContent = {
+                                Text(
+                                    text = stringResource(R.string.remove_download),
+                                    color = MaterialTheme.colorScheme.error,
+                                )
+                            },
+                            leadingContent = {
+                                Icon(
+                                    painter = painterResource(R.drawable.offline),
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.error,
+                                )
+                            },
+                            modifier = Modifier.clickable {
+                                DownloadService.sendRemoveDownload(
+                                    context,
+                                    ExoDownloadService::class.java,
+                                    mediaMetadata.id,
+                                    false,
+                                )
+                            },
+                            colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                        )
+                    }
+                    Download.STATE_QUEUED, Download.STATE_DOWNLOADING -> {
+                        ListItem(
+                            headlineContent = { Text(text = stringResource(R.string.downloading)) },
+                            leadingContent = {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(24.dp),
+                                    strokeWidth = 2.dp,
+                                )
+                            },
+                            modifier = Modifier.clickable {
+                                DownloadService.sendRemoveDownload(
+                                    context,
+                                    ExoDownloadService::class.java,
+                                    mediaMetadata.id,
+                                    false,
+                                )
+                            },
+                            colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                        )
+                    }
+                    else -> {
+                        ListItem(
+                            headlineContent = { Text(text = stringResource(R.string.action_download)) },
+                            leadingContent = {
+                                Icon(
+                                    painter = painterResource(R.drawable.download),
+                                    contentDescription = null,
+                                )
+                            },
+                            modifier = Modifier.clickable {
+                                database.transaction {
+                                    insert(mediaMetadata)
+                                }
+                                val downloadRequest =
+                                    DownloadRequest
+                                        .Builder(mediaMetadata.id, mediaMetadata.id.toUri())
+                                        .setCustomCacheKey(mediaMetadata.id)
+                                        .setData(mediaMetadata.title.toByteArray())
+                                        .build()
+                                DownloadService.sendAddDownload(
+                                    context,
+                                    ExoDownloadService::class.java,
+                                    downloadRequest,
+                                    false,
+                                )
+                            },
+                            colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                         )
                     }
                 }
-                Download.STATE_QUEUED, Download.STATE_DOWNLOADING -> {
-                    MenuSurfaceSection(modifier = Modifier.padding(vertical = 6.dp)) {
-                        ListItem(
-                        headlineContent = { Text(text = stringResource(R.string.downloading)) },
-                        leadingContent = {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(24.dp),
-                                strokeWidth = 2.dp
-                            )
-                        },
-                        modifier = Modifier.clickable {
-                            DownloadService.sendRemoveDownload(
-                                context,
-                                ExoDownloadService::class.java,
-                                mediaMetadata.id,
-                                false,
-                            )
-                        }
-                        , colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-                        )
-                    }
-                }
-                else -> {
-                    MenuSurfaceSection(modifier = Modifier.padding(vertical = 6.dp)) {
-                        ListItem(
-                        headlineContent = { Text(text = stringResource(R.string.action_download)) },
-                        leadingContent = {
-                            Icon(
-                                painter = painterResource(R.drawable.download),
-                                contentDescription = null,
-                            )
-                        },
-                        modifier = Modifier.clickable {
-                            database.transaction {
-                                insert(mediaMetadata)
-                            }
-                            val downloadRequest =
-                                DownloadRequest
-                                    .Builder(mediaMetadata.id, mediaMetadata.id.toUri())
-                                    .setCustomCacheKey(mediaMetadata.id)
-                                    .setData(mediaMetadata.title.toByteArray())
-                                    .build()
-                            DownloadService.sendAddDownload(
-                                context,
-                                ExoDownloadService::class.java,
-                                downloadRequest,
-                                false,
-                            )
-                        }
-                        , colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-                        )
-                    }
-                }
-            }
-        }
-        if (externalDownloaderEnabled) {
-            item {
-                MenuSurfaceSection(modifier = Modifier.padding(vertical = 6.dp)) {
+                if (externalDownloaderEnabled) {
+                    HorizontalDivider(
+                        modifier = Modifier.padding(start = 56.dp),
+                        color = MaterialTheme.colorScheme.outlineVariant,
+                    )
                     ListItem(
                         headlineContent = { Text(text = stringResource(R.string.open_with_downloader)) },
                         leadingContent = {
