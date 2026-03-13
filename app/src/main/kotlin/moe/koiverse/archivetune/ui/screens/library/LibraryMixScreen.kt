@@ -284,8 +284,9 @@ fun LibraryMixScreen(
         if (!canReorderPlaylists || reorderableState.isAnyItemDragging) return@LaunchedEffect
 
         dragInfo ?: return@LaunchedEffect
+        val playlistsToReorder = mutableVisiblePlaylists.toList()
         database.transaction {
-            mutableVisiblePlaylists.forEachIndexed { index, playlist ->
+            playlistsToReorder.forEachIndexed { index, playlist ->
                 setPlaylistCustomOrder(playlist.id, index)
             }
         }
