@@ -31,8 +31,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -102,6 +107,7 @@ fun MoodAndGenresScreen(
             ) { item ->
                 MoodAndGenresButton(
                     title = item.title,
+                    stripeColor = item.stripeColor,
                     onClick = {
                         navController.navigate("youtube_browse/${item.endpoint.browseId}?params=${item.endpoint.params}")
                     },
@@ -118,26 +124,45 @@ fun MoodAndGenresScreen(
 @Composable
 fun MoodAndGenresButton(
     title: String,
+    stripeColor: Long,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val base = Color(stripeColor)
+    val darkVariant = Color(
+        red = (base.red * 0.65f).coerceIn(0f, 1f),
+        green = (base.green * 0.65f).coerceIn(0f, 1f),
+        blue = (base.blue * 0.65f).coerceIn(0f, 1f),
+    )
+    val gradient = Brush.linearGradient(
+        colors = listOf(base, darkVariant),
+        start = Offset(0f, 0f),
+        end = Offset(Float.POSITIVE_INFINITY, Float.POSITIVE_INFINITY),
+    )
     Box(
-        contentAlignment = Alignment.CenterStart,
-        modifier =
-        modifier
+        contentAlignment = Alignment.BottomStart,
+        modifier = modifier
             .height(MoodAndGenresButtonHeight)
-            .clip(RoundedCornerShape(6.dp))
-            .background(MaterialTheme.colorScheme.surfaceContainer)
+            .clip(RoundedCornerShape(16.dp))
+            .background(gradient)
             .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp),
+            .padding(horizontal = 14.dp, vertical = 12.dp),
     ) {
         Text(
             text = title,
-            style = MaterialTheme.typography.labelLarge,
-            maxLines = 1,
+            style = MaterialTheme.typography.titleSmall.copy(
+                fontWeight = FontWeight.Bold,
+                shadow = Shadow(
+                    color = Color.Black.copy(alpha = 0.35f),
+                    offset = Offset(0f, 1f),
+                    blurRadius = 4f,
+                ),
+            ),
+            color = Color.White,
+            maxLines = 2,
             overflow = TextOverflow.Ellipsis,
         )
     }
 }
 
-val MoodAndGenresButtonHeight = 48.dp
+val MoodAndGenresButtonHeight = 88.dp
