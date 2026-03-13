@@ -41,6 +41,8 @@ import androidx.navigation.NavController
 import moe.koiverse.archivetune.LocalPlayerAwareWindowInsets
 import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.constants.ArtistSeparatorsKey
+import moe.koiverse.archivetune.constants.ExternalDownloaderEnabledKey
+import moe.koiverse.archivetune.constants.ExternalDownloaderPackageKey
 import moe.koiverse.archivetune.constants.AudioNormalizationKey
 import moe.koiverse.archivetune.constants.AudioOffload
 import moe.koiverse.archivetune.constants.AudioQuality
@@ -62,6 +64,7 @@ import moe.koiverse.archivetune.constants.PlayerStreamClientKey
 import moe.koiverse.archivetune.constants.SeekExtraSeconds
 import moe.koiverse.archivetune.ui.component.ArtistSeparatorsDialog
 import moe.koiverse.archivetune.ui.component.TagsManagementDialog
+import moe.koiverse.archivetune.ui.component.TextFieldDialog
 import moe.koiverse.archivetune.ui.component.EnumListPreference
 import moe.koiverse.archivetune.ui.component.IconButton
 import moe.koiverse.archivetune.ui.component.ListDialog
@@ -153,10 +156,19 @@ fun PlayerSettings(
         ArtistSeparatorsKey,
         defaultValue = ",;/&"
     )
+    val (externalDownloaderEnabled, onExternalDownloaderEnabledChange) = rememberPreference(
+        ExternalDownloaderEnabledKey,
+        defaultValue = false
+    )
+    val (externalDownloaderPackage, onExternalDownloaderPackageChange) = rememberPreference(
+        ExternalDownloaderPackageKey,
+        defaultValue = ""
+    )
 
     var showArtistSeparatorsDialog by remember { mutableStateOf(false) }
     var showTagsManagementDialog by remember { mutableStateOf(false) }
     var showPlayerStreamClientDialog by remember { mutableStateOf(false) }
+    var showExternalDownloaderPackageDialog by remember { mutableStateOf(false) }
     val database = LocalDatabase.current
 
     if (showArtistSeparatorsDialog) {
@@ -174,6 +186,19 @@ fun PlayerSettings(
         TagsManagementDialog(
             database = database,
             onDismiss = { showTagsManagementDialog = false }
+        )
+    }
+
+    if (showExternalDownloaderPackageDialog) {
+        TextFieldDialog(
+            initialTextFieldValue = androidx.compose.ui.text.input.TextFieldValue(externalDownloaderPackage),
+            onDone = { pkg ->
+                onExternalDownloaderPackageChange(pkg)
+                showExternalDownloaderPackageDialog = false
+            },
+            onDismiss = { showExternalDownloaderPackageDialog = false },
+            singleLine = true,
+            maxLines = 1,
         )
     }
 
@@ -397,6 +422,22 @@ fun PlayerSettings(
             description = stringResource(R.string.manage_playlist_tags_desc),
             icon = { Icon(painterResource(R.drawable.style), null) },
             onClick = { showTagsManagementDialog = true }
+        )
+
+        SwitchPreference(
+            title = { Text(stringResource(R.string.external_downloader)) },
+            description = stringResource(R.string.external_downloader_desc),
+            icon = { Icon(painterResource(R.drawable.download), null) },
+            checked = externalDownloaderEnabled,
+            onCheckedChange = onExternalDownloaderEnabledChange
+        )
+
+        PreferenceEntry(
+            title = { Text(stringResource(R.string.external_downloader_package)) },
+            description = externalDownloaderPackage.ifEmpty { stringResource(R.string.external_downloader_package_desc) },
+            icon = { Icon(painterResource(R.drawable.integration), null) },
+            onClick = { showExternalDownloaderPackageDialog = true },
+            isEnabled = externalDownloaderEnabled
         )
     }
 

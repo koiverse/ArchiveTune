@@ -449,6 +449,13 @@
     <string name="auto_start_on_bluetooth_desc">Automatically resume playback when a Bluetooth audio device connects</string>
     <string name="artist_separators">Symbols to split artists</string>
     <string name="artist_separators_desc">Symbols used to split multiple artists</string>
+    <string name="external_downloader">External Downloader</string>
+    <string name="external_downloader_desc">Download songs through an external app by package name</string>
+    <string name="external_downloader_package">Downloader App Package</string>
+    <string name="external_downloader_package_desc">Package name of the external downloader app (e.g. com.deniscerri.ytdl)</string>
+    <string name="open_with_downloader">Open with Downloader</string>
+    <string name="external_downloader_not_installed">External downloader app is not installed</string>
+    <string name="external_downloader_not_configured">No external downloader configured. Set one in Settings → Player.</string>
     <string name="add_symbol">Add symbol</string>
     <string name="enter_symbol">Enter symbol</string>
     <string name="equalizer">Equalizer</string>

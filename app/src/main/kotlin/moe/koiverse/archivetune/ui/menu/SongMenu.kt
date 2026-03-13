@@ -84,6 +84,8 @@ import moe.koiverse.archivetune.LocalPlayerConnection
 import moe.koiverse.archivetune.LocalSyncUtils
 import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.constants.ArtistSeparatorsKey
+import moe.koiverse.archivetune.constants.ExternalDownloaderEnabledKey
+import moe.koiverse.archivetune.constants.ExternalDownloaderPackageKey
 import moe.koiverse.archivetune.constants.ListItemHeight
 import moe.koiverse.archivetune.constants.ListThumbnailSize
 import moe.koiverse.archivetune.db.entities.ArtistEntity
@@ -142,6 +144,8 @@ fun SongMenu(
 
     // Artist separators for splitting artist names
     val (artistSeparators) = rememberPreference(ArtistSeparatorsKey, defaultValue = ",;/&")
+    val (externalDownloaderEnabled) = rememberPreference(ExternalDownloaderEnabledKey, defaultValue = false)
+    val (externalDownloaderPackage) = rememberPreference(ExternalDownloaderPackageKey, defaultValue = "")
 
     val orderedArtists by produceState(initialValue = emptyList<ArtistEntity>(), song) {
         withContext(Dispatchers.IO) {
@@ -742,6 +746,45 @@ fun SongMenu(
                             )
                         }
                     }
+                }
+            }
+        }
+
+        if (externalDownloaderEnabled) {
+            item {
+                Spacer(modifier = Modifier.height(12.dp))
+            }
+
+            item {
+                MenuSurfaceSection(modifier = Modifier.padding(vertical = 6.dp)) {
+                    ListItem(
+                        headlineContent = { Text(text = stringResource(R.string.open_with_downloader)) },
+                        leadingContent = {
+                            Icon(
+                                painter = painterResource(R.drawable.download),
+                                contentDescription = null,
+                            )
+                        },
+                        modifier = Modifier.clickable {
+                            onDismiss()
+                            val url = "https://music.youtube.com/watch?v=${song.id}"
+                            if (externalDownloaderPackage.isBlank()) {
+                                Toast.makeText(context, context.getString(R.string.external_downloader_not_configured), Toast.LENGTH_LONG).show()
+                                return@clickable
+                            }
+                            val intent = android.content.Intent(android.content.Intent.ACTION_VIEW).apply {
+                                setPackage(externalDownloaderPackage)
+                                data = android.net.Uri.parse(url)
+                                addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                            }
+                            try {
+                                context.startActivity(intent)
+                            } catch (e: android.content.ActivityNotFoundException) {
+                                Toast.makeText(context, context.getString(R.string.external_downloader_not_installed), Toast.LENGTH_SHORT).show()
+                            }
+                        },
+                        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                    )
                 }
             }
         }
