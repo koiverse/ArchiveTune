@@ -1797,7 +1797,7 @@ class MusicService :
         if (!dataStore.get(AutoLoadMoreKey, true)) return
         if (player.repeatMode != REPEAT_MODE_OFF) return
         if (suppressAutoPlayback) return
-        if (player.playbackState == STATE_IDLE || player.mediaItemCount == 0) return
+        if (player.mediaItemCount == 0) return
 
         val currentMeta = player.currentMetadata ?: return
         val seedMediaId = currentMeta.id.trim().ifBlank { return }
@@ -3596,7 +3596,7 @@ class MusicService :
         !currentQueue.hasNextPage()
     ) {
         scope.launch(SilentHandler) {
-            if (suppressAutoPlayback || player.playbackState == STATE_IDLE || player.mediaItemCount == 0) return@launch
+            if (suppressAutoPlayback || player.mediaItemCount == 0) return@launch
             val queueIds = (0 until player.mediaItemCount).map { player.getMediaItemAt(it).mediaId }.toSet()
             val currentMediaMetadata = player.currentMetadata
             val currentMediaId = currentMediaMetadata?.id?.trim().orEmpty()
@@ -3611,6 +3611,7 @@ class MusicService :
                     emptyList()
                 }
             if (existingAutomix.isNotEmpty()) {
+                if (player.playbackState == STATE_IDLE) return@launch
                 val filteredAutomix = existingAutomix.filter { it.mediaId !in queueIds }
                 if (filteredAutomix.isNotEmpty()) {
                     player.addMediaItems(filteredAutomix)
