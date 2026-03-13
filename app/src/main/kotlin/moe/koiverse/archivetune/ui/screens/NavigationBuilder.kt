@@ -113,8 +113,8 @@ fun NavGraphBuilder.navigationBuilder(
     composable("year_in_music") {
         YearInMusicScreen(navController)
     }
-    composable("mood_and_genres") {
-        MoodAndGenresScreen(navController, scrollBehavior)
+    composable(Screens.MoodAndGenres.route) {
+        MoodAndGenresScreen(navController)
     }
     composable("account") {
         AccountScreen(navController, scrollBehavior)

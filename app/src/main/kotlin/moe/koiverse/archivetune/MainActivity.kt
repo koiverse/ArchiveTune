@@ -201,6 +201,7 @@ import moe.koiverse.archivetune.playback.PlayerConnection
 import moe.koiverse.archivetune.playback.queues.LocalAlbumRadio
 import moe.koiverse.archivetune.playback.queues.ListQueue
 import moe.koiverse.archivetune.playback.queues.YouTubeAlbumRadio
+import moe.koiverse.archivetune.playback.queues.YouTubeQueue
 import moe.koiverse.archivetune.ui.component.AccountSettingsDialog
 import moe.koiverse.archivetune.ui.component.BottomSheetMenu
 import moe.koiverse.archivetune.ui.component.BottomSheetPage
@@ -726,6 +727,7 @@ class MainActivity : ComponentActivity() {
                         listOf(
                             Screens.Home.route,
                             Screens.Search.route,
+                            Screens.MoodAndGenres.route,
                             Screens.Library.route,
                             "settings",
                         )
@@ -1209,13 +1211,17 @@ class MainActivity : ComponentActivity() {
                             Scaffold(
                                 topBar = {
                                     if (shouldShowTopBar) {
-                                        val shouldShowBlurBackground = remember(navBackStackEntry) {
+                                        val shouldUseFloatingTopBar = remember(navBackStackEntry) {
                                             navBackStackEntry?.destination?.route == Screens.Home.route ||
-                                                    navBackStackEntry?.destination?.route == Screens.Library.route
+                                                navBackStackEntry?.destination?.route == Screens.MoodAndGenres.route ||
+                                                navBackStackEntry?.destination?.route == Screens.Library.route
+                                        }
+                                        val shouldShowBlurBackground = remember(navBackStackEntry) {
+                                            shouldUseFloatingTopBar
                                         }
 
                                         val surfaceColor = MaterialTheme.colorScheme.surface
-                                        val currentScrollBehavior = if (navBackStackEntry?.destination?.route == Screens.Home.route || navBackStackEntry?.destination?.route == Screens.Library.route) searchBarScrollBehavior else topAppBarScrollBehavior
+                                        val currentScrollBehavior = if (shouldUseFloatingTopBar) searchBarScrollBehavior else topAppBarScrollBehavior
 
                                         Box(
                                             modifier = Modifier.offset {
@@ -1312,10 +1318,10 @@ class MainActivity : ComponentActivity() {
                                                         }
                                                     }
                                                 },
-                                                scrollBehavior = if (navBackStackEntry?.destination?.route == Screens.Home.route || navBackStackEntry?.destination?.route == Screens.Library.route) searchBarScrollBehavior else topAppBarScrollBehavior,
+                                                scrollBehavior = if (shouldUseFloatingTopBar) searchBarScrollBehavior else topAppBarScrollBehavior,
                                                 colors = TopAppBarDefaults.topAppBarColors(
-                                                    containerColor = if (navBackStackEntry?.destination?.route == Screens.Home.route || navBackStackEntry?.destination?.route == Screens.Library.route) Color.Transparent else if (pureBlack) Color.Black else MaterialTheme.colorScheme.surface,
-                                                    scrolledContainerColor = if (navBackStackEntry?.destination?.route == Screens.Home.route || navBackStackEntry?.destination?.route == Screens.Library.route) Color.Transparent else if (pureBlack) Color.Black else MaterialTheme.colorScheme.surface,
+                                                    containerColor = if (shouldUseFloatingTopBar) Color.Transparent else if (pureBlack) Color.Black else MaterialTheme.colorScheme.surface,
+                                                    scrolledContainerColor = if (shouldUseFloatingTopBar) Color.Transparent else if (pureBlack) Color.Black else MaterialTheme.colorScheme.surface,
                                                     titleContentColor = MaterialTheme.colorScheme.onSurface,
                                                     actionIconContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                                                     navigationIconContentColor = MaterialTheme.colorScheme.onSurfaceVariant

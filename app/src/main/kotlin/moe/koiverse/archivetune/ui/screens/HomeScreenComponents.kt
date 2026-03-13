@@ -108,7 +108,6 @@ import moe.koiverse.archivetune.ui.menu.YouTubeArtistMenu
 import moe.koiverse.archivetune.ui.menu.YouTubePlaylistMenu
 import moe.koiverse.archivetune.ui.menu.YouTubeSongMenu
 import androidx.compose.foundation.gestures.snapping.SnapLayoutInfoProvider
-import moe.koiverse.archivetune.innertube.pages.MoodAndGenres
 import moe.koiverse.archivetune.models.SimilarRecommendation
 import kotlin.math.min
 
@@ -508,34 +507,6 @@ fun HomePageSectionContent(
 }
 
 /**
- * Mood and Genres section
- */
-@Composable
-fun MoodAndGenresSection(
-    moodAndGenres: List<MoodAndGenres.Item>,
-    navController: NavController,
-    modifier: Modifier = Modifier
-) {
-    LazyHorizontalGrid(
-        rows = GridCells.Fixed(4),
-        contentPadding = PaddingValues(6.dp),
-        modifier = modifier.height((MoodAndGenresButtonHeight + 12.dp) * 4 + 12.dp)
-    ) {
-        items(moodAndGenres) {
-            MoodAndGenresButton(
-                title = it.title,
-                onClick = {
-                    navController.navigate("youtube_browse/${it.endpoint.browseId}?params=${it.endpoint.params}")
-                },
-                modifier = Modifier
-                    .padding(6.dp)
-                    .width(180.dp)
-            )
-        }
-    }
-}
-
-/**
  * Loading shimmer for home page sections
  */
 @Composable
@@ -550,34 +521,6 @@ fun HomeLoadingShimmer(modifier: Modifier = Modifier) {
         LazyRow {
             items(4) {
                 GridItemPlaceHolder()
-            }
-        }
-    }
-}
-
-/**
- * Loading shimmer for mood and genres
- */
-@Composable
-fun MoodAndGenresLoadingShimmer(modifier: Modifier = Modifier) {
-    ShimmerHost(modifier = modifier) {
-        TextPlaceholder(
-            height = 36.dp,
-            modifier = Modifier
-                .padding(vertical = 12.dp, horizontal = 12.dp)
-                .width(250.dp),
-        )
-        repeat(4) {
-            Row {
-                repeat(2) {
-                    TextPlaceholder(
-                        height = MoodAndGenresButtonHeight,
-                        shape = RoundedCornerShape(6.dp),
-                        modifier = Modifier
-                            .padding(horizontal = 12.dp)
-                            .width(200.dp)
-                    )
-                }
             }
         }
     }
@@ -848,7 +791,7 @@ fun HomePageSectionTitle(
         onClick = section.endpoint?.browseId?.let { browseId ->
             {
                 if (browseId == "FEmusic_moods_and_genres")
-                    navController.navigate("mood_and_genres")
+                    navController.navigate(Screens.MoodAndGenres.route)
                 else
                     navController.navigate("browse/$browseId")
             }

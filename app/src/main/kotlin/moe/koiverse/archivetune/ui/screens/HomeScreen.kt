@@ -79,12 +79,10 @@ fun HomeScreen(
     val forgottenFavorites by viewModel.forgottenFavorites.collectAsState()
     val keepListening by viewModel.keepListening.collectAsState()
     val homePage by viewModel.homePage.collectAsState()
-    val explorePage by viewModel.explorePage.collectAsState()
 
     val selectedChip by viewModel.selectedChip.collectAsState()
 
     val isLoading: Boolean by viewModel.isLoading.collectAsState()
-    val isMoodAndGenresLoading = isLoading && explorePage?.moodAndGenres == null
     val isRefreshing by viewModel.isRefreshing.collectAsState()
     val pullRefreshState = rememberPullToRefreshState()
 
@@ -409,28 +407,6 @@ fun HomeScreen(
             if (isLoading || homePage?.continuation != null && homePage?.sections?.isNotEmpty() == true) {
                 item {
                     HomeLoadingShimmer(modifier = Modifier.animateItem())
-                }
-            }
-
-            explorePage?.moodAndGenres?.let { genres ->
-                item {
-                    NavigationTitle(
-                        title = stringResource(R.string.mood_and_genres),
-                        onClick = { navController.navigate("mood_and_genres") },
-                        modifier = Modifier.animateItem()
-                    )
-                }
-                item {
-                    MoodAndGenresSection(
-                        moodAndGenres = genres,
-                        navController = navController
-                    )
-                }
-            }
-
-            if (isMoodAndGenresLoading) {
-                item {
-                    MoodAndGenresLoadingShimmer(modifier = Modifier.animateItem())
                 }
             }
             }
