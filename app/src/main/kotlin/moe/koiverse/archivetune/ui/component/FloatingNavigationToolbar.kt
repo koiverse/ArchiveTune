@@ -11,21 +11,20 @@ package moe.koiverse.archivetune.ui.component
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.FloatingToolbarDefaults
+import androidx.compose.material3.HorizontalFloatingToolbar
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -40,39 +39,40 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import moe.koiverse.archivetune.ui.screens.Screens
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun FloatingNavigationToolbar(
     items: List<Screens>,
     slim: Boolean,
     pureBlack: Boolean,
     modifier: Modifier = Modifier,
+    onShuffleClick: (() -> Unit)? = null,
+    shuffleIconRes: Int? = null,
+    shuffleContentDescription: String = "",
     isSelected: (Screens) -> Boolean,
     onItemClick: (Screens, Boolean) -> Unit,
 ) {
-    val containerColor =
-        if (pureBlack) Color.Black else MaterialTheme.colorScheme.surfaceContainer
-    val borderColor =
-        if (pureBlack) {
-            Color.White.copy(alpha = 0.08f)
-        } else {
-            MaterialTheme.colorScheme.outline.copy(alpha = 0.18f)
-        }
+    val toolbarColors = FloatingToolbarDefaults.standardFloatingToolbarColors(
+        toolbarContainerColor = if (pureBlack) Color.Black else MaterialTheme.colorScheme.surfaceContainer,
+    )
 
-    Surface(
-        modifier = modifier.widthIn(max = 420.dp),
-        shape = RoundedCornerShape(32.dp),
-        color = containerColor,
-        contentColor =
-            if (pureBlack) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
-        shadowElevation = if (pureBlack) 0.dp else 8.dp,
-    ) {
-        Row(
-            modifier =
-                Modifier
-                    .border(width = 1.dp, color = borderColor, shape = RoundedCornerShape(32.dp))
-                    .padding(horizontal = 8.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-            verticalAlignment = Alignment.CenterVertically,
+    if (onShuffleClick != null && shuffleIconRes != null) {
+        HorizontalFloatingToolbar(
+            expanded = !slim,
+            floatingActionButton = {
+                FloatingToolbarDefaults.VibrantFloatingActionButton(
+                    onClick = onShuffleClick,
+                    containerColor = if (pureBlack) Color.White.copy(alpha = 0.12f) else MaterialTheme.colorScheme.tertiaryContainer,
+                    contentColor = if (pureBlack) Color.White else MaterialTheme.colorScheme.onTertiaryContainer,
+                ) {
+                    Icon(
+                        painter = painterResource(shuffleIconRes),
+                        contentDescription = shuffleContentDescription,
+                    )
+                }
+            },
+            modifier = modifier.widthIn(max = 480.dp),
+            colors = toolbarColors,
         ) {
             items.forEach { screen ->
                 val selected = isSelected(screen)
@@ -86,50 +86,23 @@ fun FloatingNavigationToolbar(
                 )
             }
         }
-    }
-}
-
-@Composable
-fun FloatingToolbarActionButton(
-    iconRes: Int,
-    contentDescription: String,
-    pureBlack: Boolean,
-    modifier: Modifier = Modifier,
-    onClick: () -> Unit,
-) {
-    val containerColor =
-        if (pureBlack) Color.White.copy(alpha = 0.12f)
-        else MaterialTheme.colorScheme.secondaryContainer
-    val borderColor =
-        if (pureBlack) {
-            Color.White.copy(alpha = 0.08f)
-        } else {
-            MaterialTheme.colorScheme.outline.copy(alpha = 0.14f)
-        }
-    val contentColor =
-        if (pureBlack) Color.White else MaterialTheme.colorScheme.onSecondaryContainer
-
-    Surface(
-        modifier = modifier,
-        shape = RoundedCornerShape(24.dp),
-        color = containerColor,
-        contentColor = contentColor,
-        shadowElevation = if (pureBlack) 0.dp else 8.dp,
-    ) {
-        Box(
-            modifier =
-                Modifier
-                    .fillMaxSize()
-                    .border(width = 1.dp, color = borderColor, shape = RoundedCornerShape(24.dp))
-                    .clickable(role = Role.Button, onClick = onClick)
-                    .padding(12.dp),
-            contentAlignment = Alignment.Center,
+    } else {
+        HorizontalFloatingToolbar(
+            expanded = !slim,
+            modifier = modifier.widthIn(max = 420.dp),
+            colors = toolbarColors,
         ) {
-            Icon(
-                painter = painterResource(iconRes),
-                contentDescription = contentDescription,
-                tint = contentColor,
-            )
+            items.forEach { screen ->
+                val selected = isSelected(screen)
+
+                FloatingNavigationToolbarItem(
+                    screen = screen,
+                    selected = selected,
+                    slim = slim,
+                    pureBlack = pureBlack,
+                    onClick = { onItemClick(screen, selected) },
+                )
+            }
         }
     }
 }
