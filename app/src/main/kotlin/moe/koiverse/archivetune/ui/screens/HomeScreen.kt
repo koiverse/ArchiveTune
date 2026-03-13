@@ -44,39 +44,21 @@ import androidx.compose.material3.MaterialTheme
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
-import moe.koiverse.archivetune.innertube.models.AlbumItem
-import moe.koiverse.archivetune.innertube.models.ArtistItem
-import moe.koiverse.archivetune.innertube.models.PlaylistItem
-import moe.koiverse.archivetune.innertube.models.SongItem
 import moe.koiverse.archivetune.innertube.utils.parseCookieString
-import moe.koiverse.archivetune.LocalDatabase
 import moe.koiverse.archivetune.LocalPlayerAwareWindowInsets
 import moe.koiverse.archivetune.LocalPlayerConnection
 import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.constants.InnerTubeCookieKey
 import moe.koiverse.archivetune.constants.DisableBlurKey
 import moe.koiverse.archivetune.constants.ShowHomeCategoryChipsKey
-import moe.koiverse.archivetune.db.entities.Album
-import moe.koiverse.archivetune.db.entities.Artist
-import moe.koiverse.archivetune.db.entities.Playlist
-import moe.koiverse.archivetune.db.entities.Song
-import moe.koiverse.archivetune.models.toMediaMetadata
-import moe.koiverse.archivetune.playback.queues.LocalAlbumRadio
-import moe.koiverse.archivetune.playback.queues.YouTubeAlbumRadio
-import moe.koiverse.archivetune.playback.queues.YouTubeQueue
 import moe.koiverse.archivetune.ui.component.ChipsRow
-import moe.koiverse.archivetune.ui.component.HideOnScrollFAB
 import moe.koiverse.archivetune.ui.component.LocalBottomSheetPageState
 import moe.koiverse.archivetune.ui.component.LocalMenuState
 import moe.koiverse.archivetune.ui.component.NavigationTitle
 import moe.koiverse.archivetune.ui.utils.SnapLayoutInfoProvider
 import moe.koiverse.archivetune.utils.rememberPreference
 import moe.koiverse.archivetune.viewmodels.HomeViewModel
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import kotlin.random.Random
 
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
@@ -87,7 +69,6 @@ fun HomeScreen(
 ) {
     val menuState = LocalMenuState.current
     val bottomSheetPageState = LocalBottomSheetPageState.current
-    val database = LocalDatabase.current
     val playerConnection = LocalPlayerConnection.current ?: return
     val haptic = LocalHapticFeedback.current
 
@@ -100,8 +81,6 @@ fun HomeScreen(
     val homePage by viewModel.homePage.collectAsState()
     val explorePage by viewModel.explorePage.collectAsState()
 
-    val allLocalItems by viewModel.allLocalItems.collectAsState()
-    val allYtItems by viewModel.allYtItems.collectAsState()
     val selectedChip by viewModel.selectedChip.collectAsState()
 
     val isLoading: Boolean by viewModel.isLoading.collectAsState()
@@ -455,47 +434,6 @@ fun HomeScreen(
                 }
             }
             }
-
-            HideOnScrollFAB(
-                visible = allLocalItems.isNotEmpty() || allYtItems.isNotEmpty(),
-                lazyListState = lazylistState,
-                icon = R.drawable.shuffle,
-                onClick = {
-                    val local = when {
-                        allLocalItems.isNotEmpty() && allYtItems.isNotEmpty() -> Random.nextFloat() < 0.5
-                        allLocalItems.isNotEmpty() -> true
-                        else -> false
-                    }
-                    scope.launch(Dispatchers.Main) {
-                        if (local) {
-                            when (val luckyItem = allLocalItems.random()) {
-                                is Song -> playerConnection.playQueue(YouTubeQueue.radio(luckyItem.toMediaMetadata()))
-                                is Album -> {
-                                    val albumWithSongs = withContext(Dispatchers.IO) {
-                                        database.albumWithSongs(luckyItem.id).first()
-                                    }
-                                    albumWithSongs?.let {
-                                        playerConnection.playQueue(LocalAlbumRadio(it))
-                                    }
-                                }
-                                is Artist -> {}
-                                is Playlist -> {}
-                            }
-                        } else {
-                            when (val luckyItem = allYtItems.random()) {
-                                is SongItem -> playerConnection.playQueue(YouTubeQueue.radio(luckyItem.toMediaMetadata()))
-                                is AlbumItem -> playerConnection.playQueue(YouTubeAlbumRadio(luckyItem.playlistId))
-                                is ArtistItem -> luckyItem.radioEndpoint?.let {
-                                    playerConnection.playQueue(YouTubeQueue(it))
-                                }
-                                is PlaylistItem -> luckyItem.playEndpoint?.let {
-                                    playerConnection.playQueue(YouTubeQueue(it))
-                                }
-                            }
-                        }
-                    }
-                }
-            )
 
             Indicator(
                 isRefreshing = isRefreshing,

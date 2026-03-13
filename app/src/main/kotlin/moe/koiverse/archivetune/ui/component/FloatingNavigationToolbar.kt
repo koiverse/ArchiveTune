@@ -13,10 +13,12 @@ import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
@@ -83,6 +85,51 @@ fun FloatingNavigationToolbar(
                     onClick = { onItemClick(screen, selected) },
                 )
             }
+        }
+    }
+}
+
+@Composable
+fun FloatingToolbarActionButton(
+    iconRes: Int,
+    contentDescription: String,
+    pureBlack: Boolean,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+) {
+    val containerColor =
+        if (pureBlack) Color.White.copy(alpha = 0.12f)
+        else MaterialTheme.colorScheme.secondaryContainer
+    val borderColor =
+        if (pureBlack) {
+            Color.White.copy(alpha = 0.08f)
+        } else {
+            MaterialTheme.colorScheme.outline.copy(alpha = 0.14f)
+        }
+    val contentColor =
+        if (pureBlack) Color.White else MaterialTheme.colorScheme.onSecondaryContainer
+
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(24.dp),
+        color = containerColor,
+        contentColor = contentColor,
+        shadowElevation = if (pureBlack) 0.dp else 8.dp,
+    ) {
+        Box(
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .border(width = 1.dp, color = borderColor, shape = RoundedCornerShape(24.dp))
+                    .clickable(role = Role.Button, onClick = onClick)
+                    .padding(12.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                painter = painterResource(iconRes),
+                contentDescription = contentDescription,
+                tint = contentColor,
+            )
         }
     }
 }
