@@ -410,6 +410,7 @@ fun ExploreScreen(
                         items(moodAndGenres) {
                             MoodAndGenresButton(
                                 title = it.title,
+                                stripeColor = it.stripeColor,
                                 onClick = {
                                     navController.navigate("youtube_browse/${it.endpoint.browseId}?params=${it.endpoint.params}")
                                 },
