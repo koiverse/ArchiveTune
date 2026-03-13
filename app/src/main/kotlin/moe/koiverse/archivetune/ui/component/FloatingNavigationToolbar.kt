@@ -58,7 +58,7 @@ fun FloatingNavigationToolbar(
 
     if (onShuffleClick != null && shuffleIconRes != null) {
         HorizontalFloatingToolbar(
-            expanded = !slim,
+            expanded = true,
             floatingActionButton = {
                 FloatingToolbarDefaults.VibrantFloatingActionButton(
                     onClick = onShuffleClick,
@@ -88,7 +88,7 @@ fun FloatingNavigationToolbar(
         }
     } else {
         HorizontalFloatingToolbar(
-            expanded = !slim,
+            expanded = true,
             modifier = modifier.widthIn(max = 420.dp),
             colors = toolbarColors,
         ) {
