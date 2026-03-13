@@ -94,7 +94,7 @@ fun PreferenceEntry(
 
     val rowContent: @Composable () -> Unit = {
         Row(
-            verticalAlignment = Alignment.CenterVertically,
+            verticalAlignment = Alignment.Top,
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable(
@@ -109,6 +109,7 @@ fun PreferenceEntry(
             if (icon != null) {
                 Box(
                     modifier = Modifier
+                        .padding(top = 1.dp)
                         .size(36.dp)
                         .clip(RoundedCornerShape(12.dp))
                         .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
@@ -127,13 +128,11 @@ fun PreferenceEntry(
                     title()
                 }
                 if (description != null) {
-                    Spacer(Modifier.height(1.dp))
+                    Spacer(Modifier.height(2.dp))
                     Text(
                         text = description,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
                     )
                 }
                 content?.invoke()
