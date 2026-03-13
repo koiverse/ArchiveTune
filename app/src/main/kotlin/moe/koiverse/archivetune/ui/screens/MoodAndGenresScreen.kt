@@ -12,12 +12,10 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.asPaddingValues
-import androidx.compose.foundation.layout.calculateBottomPadding
-import androidx.compose.foundation.layout.calculateTopPadding
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -33,6 +31,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -54,7 +53,10 @@ fun MoodAndGenresScreen(
 ) {
     val moodAndGenres by viewModel.moodAndGenres.collectAsState()
     val gridState = rememberLazyGridState()
-    val insets = LocalPlayerAwareWindowInsets.current.asPaddingValues()
+    val density = LocalDensity.current
+    val windowInsets = LocalPlayerAwareWindowInsets.current
+    val topPadding = with(density) { windowInsets.getTop(this).toDp() }
+    val bottomPadding = with(density) { windowInsets.getBottom(this).toDp() }
     val backStackEntry by navController.currentBackStackEntryAsState()
     val scrollToTop =
         backStackEntry?.savedStateHandle?.getStateFlow("scrollToTop", false)?.collectAsState()
@@ -69,11 +71,11 @@ fun MoodAndGenresScreen(
     LazyVerticalGrid(
         columns = GridCells.Adaptive(minSize = 180.dp),
         state = gridState,
-        contentPadding = androidx.compose.foundation.layout.PaddingValues(
+        contentPadding = PaddingValues(
             start = 6.dp,
-            top = insets.calculateTopPadding(),
+            top = topPadding,
             end = 6.dp,
-            bottom = insets.calculateBottomPadding(),
+            bottom = bottomPadding,
         ),
     ) {
         item(span = { GridItemSpan(maxLineSpan) }) {
