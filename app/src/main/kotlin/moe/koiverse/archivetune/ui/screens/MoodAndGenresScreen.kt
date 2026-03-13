@@ -98,7 +98,7 @@ fun MoodAndGenresScreen(
         } else {
             items(
                 items = moodAndGenres.orEmpty(),
-                key = { item -> "${item.endpoint.browseId}:${item.title}" },
+                key = { item -> "${item.title}:${item.endpoint.browseId}:${item.endpoint.params}" },
             ) { item ->
                 MoodAndGenresButton(
                     title = item.title,
