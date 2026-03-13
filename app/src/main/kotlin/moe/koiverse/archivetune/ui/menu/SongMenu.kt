@@ -746,45 +746,40 @@ fun SongMenu(
                             )
                         }
                     }
-                }
-            }
-        }
-
-        if (externalDownloaderEnabled) {
-            item {
-                Spacer(modifier = Modifier.height(12.dp))
-            }
-
-            item {
-                MenuSurfaceSection(modifier = Modifier.padding(vertical = 6.dp)) {
-                    ListItem(
-                        headlineContent = { Text(text = stringResource(R.string.open_with_downloader)) },
-                        leadingContent = {
-                            Icon(
-                                painter = painterResource(R.drawable.download),
-                                contentDescription = null,
-                            )
-                        },
-                        modifier = Modifier.clickable {
-                            onDismiss()
-                            val url = "https://music.youtube.com/watch?v=${song.id}"
-                            if (externalDownloaderPackage.isBlank()) {
-                                Toast.makeText(context, context.getString(R.string.external_downloader_not_configured), Toast.LENGTH_LONG).show()
-                                return@clickable
-                            }
-                            val intent = android.content.Intent(android.content.Intent.ACTION_VIEW).apply {
-                                setPackage(externalDownloaderPackage)
-                                data = android.net.Uri.parse(url)
-                                addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
-                            }
-                            try {
-                                context.startActivity(intent)
-                            } catch (e: android.content.ActivityNotFoundException) {
-                                Toast.makeText(context, context.getString(R.string.external_downloader_not_installed), Toast.LENGTH_SHORT).show()
-                            }
-                        },
-                        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-                    )
+                    if (externalDownloaderEnabled) {
+                        HorizontalDivider(
+                            modifier = Modifier.padding(start = 56.dp),
+                            color = MaterialTheme.colorScheme.outlineVariant,
+                        )
+                        ListItem(
+                            headlineContent = { Text(text = stringResource(R.string.open_with_downloader)) },
+                            leadingContent = {
+                                Icon(
+                                    painter = painterResource(R.drawable.download),
+                                    contentDescription = null,
+                                )
+                            },
+                            modifier = Modifier.clickable {
+                                onDismiss()
+                                val url = "https://music.youtube.com/watch?v=${song.id}"
+                                if (externalDownloaderPackage.isBlank()) {
+                                    Toast.makeText(context, context.getString(R.string.external_downloader_not_configured), Toast.LENGTH_LONG).show()
+                                    return@clickable
+                                }
+                                val intent = android.content.Intent(android.content.Intent.ACTION_VIEW).apply {
+                                    setPackage(externalDownloaderPackage)
+                                    data = android.net.Uri.parse(url)
+                                    addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                                }
+                                try {
+                                    context.startActivity(intent)
+                                } catch (e: android.content.ActivityNotFoundException) {
+                                    Toast.makeText(context, context.getString(R.string.external_downloader_not_installed), Toast.LENGTH_SHORT).show()
+                                }
+                            },
+                            colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                        )
+                    }
                 }
             }
         }
