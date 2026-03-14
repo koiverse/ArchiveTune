@@ -94,7 +94,7 @@ fun PreferenceEntry(
 
     val rowContent: @Composable () -> Unit = {
         Row(
-            verticalAlignment = Alignment.Top,
+            verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable(
@@ -109,7 +109,7 @@ fun PreferenceEntry(
             if (icon != null) {
                 Box(
                     modifier = Modifier
-                        .padding(top = 1.dp)
+                        .align(Alignment.CenterVertically)
                         .size(36.dp)
                         .clip(RoundedCornerShape(12.dp))
                         .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
@@ -140,7 +140,9 @@ fun PreferenceEntry(
 
             if (trailingContent != null) {
                 Spacer(Modifier.width(12.dp))
-                trailingContent()
+                Box(modifier = Modifier.align(Alignment.CenterVertically)) {
+                    trailingContent()
+                }
             }
         }
     }
