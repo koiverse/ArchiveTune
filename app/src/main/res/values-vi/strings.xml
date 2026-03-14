@@ -24,6 +24,9 @@
     <string name="new_release_albums">Album mới phát hành</string>
     <string name="select_playlist_to_sync">Chọn Danh sách phát để Đồng bộ</string>
     <string name="integration">Tích hợp</string>
+    <string name="integrations">Các tích hợp</string>
+    <string name="internal_subcategory_settings">Cài đặt nội bộ &amp; danh mục phụ</string>
+    <string name="search_try_different">Thử với cụm từ tìm kiếm khác</string>
     <!-- History -->
     <string name="today">Hôm nay</string>
     <string name="yesterday">Hôm qua</string>
@@ -51,6 +54,7 @@
     <string name="filter_featured_playlists">Danh sách phát nổi bật</string>
     <string name="filter_bookmarked">Đã đánh dấu</string>
     <string name="no_results_found">Không tìm thấy kết quả</string>
+    <string name="top_results">Kết quả hàng đầu</string>
     <!-- Library -->
     <string name="library_song_empty">Bài hát trong thư viện sẽ hiển thị ở đây</string>
     <string name="library_artist_empty">Nghệ sĩ trong thư viện sẽ hiển thị ở đây</string>
@@ -159,31 +163,24 @@
     <string name="duplicates_description_multiple">%d bài hát đã có trong danh sách phát của bạn</string>
     <!-- Noun -->
     <plurals name="n_song">
-        <item quantity="one">%d bài hát</item>
         <item quantity="other">%d bài hát</item>
     </plurals>
     <plurals name="n_artist">
-        <item quantity="one">%d nghệ sĩ</item>
         <item quantity="other">%d nghệ sĩ</item>
     </plurals>
     <plurals name="n_album">
-        <item quantity="one">%d album</item>
         <item quantity="other">%d album</item>
     </plurals>
     <plurals name="n_playlist">
-        <item quantity="one">%d danh sách phát</item>
         <item quantity="other">%d danh sách phát</item>
     </plurals>
     <plurals name="n_week">
-        <item quantity="one">%d tuần</item>
         <item quantity="other">%d tuần</item>
     </plurals>
     <plurals name="n_month">
-        <item quantity="one">%d tháng</item>
         <item quantity="other">%d tháng</item>
     </plurals>
     <plurals name="n_year">
-        <item quantity="one">%d năm</item>
         <item quantity="other">%d năm</item>
     </plurals>
     <!-- Snackbar -->
@@ -200,7 +197,6 @@
     <string name="sleep_timer">Hẹn giờ ngủ</string>
     <string name="end_of_song">Cuối bài hát</string>
     <plurals name="minute">
-        <item quantity="one">1 phút</item>
         <item quantity="other">%d phút</item>
     </plurals>
     <string name="error_no_stream">Không có luồng phát nào khả dụng</string>
@@ -371,6 +367,11 @@
     <string name="center">Giữa</string>
     <string name="right">Phải</string>
     <string name="player_slider_style">Kiểu thanh trượt trình phát</string>
+    <string name="slider_style_standard">Tiêu chuẩn</string>
+    <string name="slider_style_wavy">Lượn sóng</string>
+    <string name="slider_style_thick">Dày</string>
+    <string name="slider_style_circular">Tròn</string>
+    <string name="slider_style_simple">Đơn giản</string>
     <string name="default_">Mặc định</string>
     <string name="squiggly">Lượn sóng</string>
     <string name="misc">Khác</string>
@@ -400,6 +401,8 @@
     <string name="enable_proxy">Bật proxy</string>
     <string name="proxy_type">Loại proxy</string>
     <string name="proxy_url">URL proxy</string>
+    <string name="stream_bypass_proxy">Bỏ qua proxy cho luồng phát</string>
+    <string name="stream_bypass_proxy_desc">Sử dụng IP trực tiếp của bạn để phát luồng nhằm tránh sai lệch IP</string>
     <string name="restart_to_take_effect">Khởi động lại để có hiệu lực</string>
     <string name="enable_betterlyrics">Bật BetterLyrics</string>
     <string name="enable_simpmusic_lyrics">Bật lời bài hát SimpMusic</string>
@@ -419,9 +422,13 @@
     <string name="audio_normalization">Chuẩn hóa âm thanh</string>
     <string name="audio_offload">Giải phóng âm thanh</string>
     <string name="audio_offload_desc">Cho phép các thiết bị được hỗ trợ phát âm thanh bằng giải mã phần cứng công suất thấp. Một số tính năng xử lý âm thanh sẽ bị vô hiệu hóa.</string>
+    <string name="pause_on_device_mute">Tạm dừng khi âm lượng thiết bị bằng 0</string>
+    <string name="pause_on_device_mute_desc">Tự động tạm dừng nhạc khi tắt tiếng và tiếp tục khi bật tiếng</string>
     <string name="auto_skip_next_on_error">Tự động chuyển sang bài tiếp theo khi có lỗi</string>
     <string name="auto_skip_next_on_error_desc">Đảm bảo trải nghiệm phát nhạc liên tục của bạn</string>
     <string name="stop_music_on_task_clear">Dừng nhạc khi xóa tác vụ</string>
+    <string name="auto_start_on_bluetooth">Tự động bắt đầu khi kết nối Bluetooth</string>
+    <string name="auto_start_on_bluetooth_desc">Tự động tiếp tục phát khi thiết bị âm thanh Bluetooth kết nối</string>
     <string name="artist_separators">Ký tự để tách nghệ sĩ</string>
     <string name="artist_separators_desc">Ký tự được sử dụng để tách nhiều nghệ sĩ</string>
     <string name="add_symbol">Thêm ký tự</string>
@@ -738,4 +745,30 @@ ArchiveTune sẽ chỉ trích xuất token của bạn, và mọi thứ khác đ
     <string name="together_requesting_song_change">Yêu cầu chủ trì đổi bài hát…</string>
     <string name="together_song_change_failed">Yêu cầu thay đổi bài hát không được áp dụng. Vui lòng thử lại.</string>
     <string name="together_token_missing">Phiên bản này không hỗ trợ phát nhạc trực tuyến</string>
+
+    <string name="po_token_generation">Tạo PO Token</string>
+    <string name="po_token_generation_subtitle">Tạo và quản lý các PO token cho web client</string>
+    <string name="web_client_po_token">Web Client PO Token</string>
+    <string name="web_client_po_token_desc">Bật tạo PO token cho các trình phát dựa trên web</string>
+    <string name="po_token_gvs">PO Token (GVS)</string>
+    <string name="po_token_player">PO Token (Player)</string>
+    <string name="visitor_data">Dữ liệu khách truy cập</string>
+    <string name="supported_clients">Các client được hỗ trợ</string>
+    <string name="generated_tokens">Các token đã tạo</string>
+    <string name="token_settings">Cài đặt Token</string>
+    <string name="use_visitor_data">Sử dụng dữ liệu khách truy cập</string>
+    <string name="use_visitor_data_desc">Sử dụng dữ liệu khách truy cập để tạo token. Yêu cầu phải tắt cookie.</string>
+    <string name="cookies_must_be_disabled">Phải tắt cookie để sử dụng dữ liệu khách truy cập</string>
+    <string name="regenerate">Tạo lại</string>
+    <string name="regenerate_token">Tạo lại Token</string>
+    <string name="regenerate_desc">Làm mới tất cả các token</string>
+    <string name="source_url">URL nguồn</string>
+    <string name="source_url_placeholder">https://youtube.com/account</string>
+    <string name="generating_tokens">Đang tạo token…</string>
+    <string name="tokens_generated">Đã tạo token thành công</string>
+    <string name="token_generation_failed">Tạo token thất bại</string>
+    <string name="open_account_before_extract">Mở và đăng nhập vào youtube.com/account trước khi trích xuất</string>
+    <string name="token_copied">Đã sao chép token vào clipboard</string>
+    <string name="no_visitor_data">Không có dữ liệu khách truy cập. Không thể tạo token.</string>
+    <string name="extracting_from_url">Đang trích xuất token từ URL…</string>
 </resources>

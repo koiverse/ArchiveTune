@@ -67,15 +67,15 @@
     <string name="hide_player_thumbnail_desc">Thay thế artwork album bằng logo ứng dụng trong trình phát</string>
     <string name="crop_thumbnail_to_square">Cắt hình thu nhỏ thành 1:1</string>
     <string name="crop_thumbnail_to_square_desc">Hiển thị hình thu nhỏ YouTube ở định dạng vuông thay vì 16:9</string>
+    <string name="show_home_category_chips">Hiển thị chip danh mục trang chủ</string>
+    <string name="show_home_category_chips_desc">Hiển thị các chip lọc danh mục trên màn hình chính</string>
     <string name="show_tags_in_library">Hiển thị thẻ trong thư viện</string>
     <string name="show_tags_in_library_desc">Hiển thị chip lọc thẻ trong thư viện</string>
     <string name="already_in_playlist">Đã có trong danh sách phát:</string>
     <plurals name="n_element">
-        <item quantity="one">%d phần tử</item>
         <item quantity="other">%d phần tử</item>
     </plurals>
     <plurals name="n_time">
-        <item quantity="one">%d lần</item>
         <item quantity="other">%d lần</item>
     </plurals>
     <string name="seek_backward">Lùi 5 giây</string>
@@ -94,6 +94,8 @@
     <string name="player_design_v2">Hiện đại</string>
     <string name="player_design_v3">Tối giản</string>
     <string name="player_design_v4">Điện ảnh</string>
+    <string name="player_design_v5">Nhỏ nhắn</string>
+    <string name="player_design_v6">Biểu cảm</string>
     <string name="new_mini_player_design">Thiết kế trình phát mini mới</string>
     <string name="player_background_blur">Làm mờ</string>
     <string name="coloring">Tô màu</string>
@@ -113,6 +115,8 @@
     <string name="lyrics_romanize_korean">Roman hóa lời bài hát tiếng Hàn</string>
     <string name="slim">Mỏng</string>
     <string name="slim_navbar">Thanh điều hướng dưới mỏng</string>
+    <string name="glass_navigation_bar">Thanh điều hướng gương (Beta)</string>
+    <string name="glass_mini_player">Trình phát mini gương (Beta)</string>
     <string name="auto_playlists">Danh sách phát tự động</string>
     <string name="show_liked_playlist">Hiển thị danh sách phát \"Đã thích\"</string>
     <string name="show_downloaded_playlist">Hiển thị danh sách phát \"Đã tải xuống\"</string>
@@ -181,10 +185,13 @@
     <string name="subscribed">Đã đăng ký</string>
     <string name="playlist_not_found">Không tìm thấy danh sách phát</string>
     <string name="playlist_not_found_desc">Không thể tải danh sách phát được yêu cầu</string>
+    <string name="album_not_found">Không tìm thấy album</string>
+    <string name="album_not_found_desc">Không thể tải album được yêu cầu</string>
     <string name="empty_playlist">Danh sách phát trống</string>
     <string name="empty_playlist_desc">Danh sách phát này không chứa bài hát nào</string>
+    <string name="empty_album">Album trống</string>
+    <string name="empty_album_desc">Album này không chứa bài hát nào</string>
     <plurals name="seconds">
-        <item quantity="one">1 giây</item>
         <item quantity="other">%d giây</item>
     </plurals>
     <string name="disable_load_more_when_repeat_all">Tắt tải thêm khi lặp tất cả</string>
@@ -232,7 +239,6 @@
     <string name="theme_preview_primary_action">Hành động Chính</string>
     <string name="theme_preview_secondary_action">Hành động Phụ</string>
     <string name="copy">Sao chép</string>
-    <string name="player_design_v5">Nhỏ nhắn</string>
     <string name="player_stream_client">Client phát nhạc</string>
     <string name="player_stream_client_desc">Kiểm soát client YouTube nào được sử dụng để lấy luồng phát</string>
     <string name="player_stream_client_android_vr">Android VR</string>
@@ -259,4 +265,7 @@
     <string name="audio_crossfade_title">Chuyển bài mượt mà</string>
     <string name="audio_crossfade_description">Chuyển tiếp mượt mà giữa các bài hát bằng cách làm mờ dần âm thanh ở cuối mỗi bản nhạc.</string>
     <string name="audio_crossfade_dialog_title">Thời gian chuyển</string>
+    <string name="error_no_song_playing">Không có bài hát nào đang phát</string>
+    <string name="error_no_similar_songs">Không tìm thấy bài hát tương tự</string>
+    <string name="error_automix_failed">Không thể tải các bài hát tương tự</string>
 </resources>
