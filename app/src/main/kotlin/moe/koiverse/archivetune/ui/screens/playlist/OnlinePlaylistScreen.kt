@@ -812,22 +812,21 @@ fun OnlinePlaylistScreen(
                                     horizontalArrangement = Arrangement.Center,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Button(
-                                        onClick = {
-                                            playlist.shuffleEndpoint?.let { shuffleEndpoint ->
-                                                playerConnection.playQueue(
-                                                    YouTubeQueue(shuffleEndpoint)
-                                                )
-                                            }
-                                        },
-                                        shape = RoundedCornerShape(24.dp),
-                                        modifier = Modifier.weight(1f).height(48.dp)
-                                    ) {
-                                        Icon(
-                                            painter = painterResource(R.drawable.mix),
-                                            contentDescription = "Start Mix",
-                                            modifier = Modifier.size(24.dp)
-                                        )
+                                    val mixEndpoint = playlist.shuffleEndpoint ?: playlist.radioEndpoint
+                                    if (mixEndpoint != null) {
+                                        Button(
+                                            onClick = {
+                                                playerConnection.playQueue(YouTubeQueue(mixEndpoint))
+                                            },
+                                            shape = RoundedCornerShape(24.dp),
+                                            modifier = Modifier.weight(1f).height(48.dp)
+                                        ) {
+                                            Icon(
+                                                painter = painterResource(R.drawable.mix),
+                                                contentDescription = "Start Mix",
+                                                modifier = Modifier.size(24.dp)
+                                            )
+                                        }
                                     }
                                 }
 
