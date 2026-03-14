@@ -152,11 +152,10 @@ fun AccountSettings(
 
     val hasUpdate = latestVersionName != BuildConfig.VERSION_NAME
 
-    LaunchedEffect(innerTubeCookie, accountEmail, accountName, accountImageUrl) {
+    LaunchedEffect(innerTubeCookie, accountEmail, accountNamePref, accountImageUrl) {
         val valid = innerTubeCookie.isNotEmpty()
             && "SAPISID" in parseCookieString(innerTubeCookie)
-            && accountName.isNotEmpty()
-            && accountName != "Guest"
+            && accountNamePref.isNotEmpty()
         if (!valid) return@LaunchedEffect
         val accountId = accountEmail.ifEmpty { innerTubeCookie.take(32) }
         AccountManager.addOrUpdateInList(
@@ -167,7 +166,7 @@ fun AccountSettings(
                 poToken = poToken,
                 visitorData = visitorData,
                 dataSyncId = dataSyncId,
-                name = accountName,
+                name = accountNamePref,
                 email = accountEmail,
                 channelHandle = accountChannelHandle,
                 avatarUrl = accountImageUrl,
@@ -198,8 +197,27 @@ fun AccountSettings(
                         coroutineScope.launch { AccountManager.removeAccount(context, account.id) }
                     },
                     onAddAccount = {
-                        onClose()
-                        navController.navigate(buildLoginRoute())
+                        coroutineScope.launch {
+                            if (isLoggedIn && accountNamePref.isNotEmpty()) {
+                                val id = accountEmail.ifEmpty { innerTubeCookie.take(32) }
+                                AccountManager.addOrUpdateInList(
+                                    context = context,
+                                    account = SavedAccount(
+                                        id = id,
+                                        cookie = innerTubeCookie,
+                                        poToken = poToken,
+                                        visitorData = visitorData,
+                                        dataSyncId = dataSyncId,
+                                        name = accountNamePref,
+                                        email = accountEmail,
+                                        channelHandle = accountChannelHandle,
+                                        avatarUrl = accountImageUrl,
+                                    )
+                                )
+                            }
+                            onClose()
+                            navController.navigate(buildLoginRoute())
+                        }
                     }
                 )
             } else {
