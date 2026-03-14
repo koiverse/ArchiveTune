@@ -14,6 +14,7 @@ import androidx.work.WorkerParameters
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import moe.koiverse.archivetune.BuildConfig
+import moe.koiverse.archivetune.constants.DebugEnableUpdateCheckKey
 import moe.koiverse.archivetune.constants.EnableUpdateNotificationKey
 import moe.koiverse.archivetune.constants.UpdateChannel
 import moe.koiverse.archivetune.constants.UpdateChannelKey
@@ -24,9 +25,10 @@ class UpdateCheckWorker(
 ) : CoroutineWorker(context, params) {
 
     override suspend fun doWork(): Result {
+        val dataStore = applicationContext.dataStore
+        val debugCheckEnabled = dataStore.data.map { it[DebugEnableUpdateCheckKey] ?: false }.first()
+        if (BuildConfig.DEBUG && !debugCheckEnabled) return Result.success()
         return try {
-            val dataStore = applicationContext.dataStore
-
             val isEnabled = dataStore.data.map { it[EnableUpdateNotificationKey] ?: false }.first()
             if (!isEnabled) return Result.success()
 

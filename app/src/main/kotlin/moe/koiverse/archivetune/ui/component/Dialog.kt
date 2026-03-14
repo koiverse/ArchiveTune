@@ -187,8 +187,7 @@ fun DefaultDialog(
 @Composable
 fun AccountSettingsDialog(
     navController: NavController,
-    onDismiss: () -> Unit,
-    latestVersionName: String
+    onDismiss: () -> Unit
 ) {
     Dialog(
         onDismissRequest = onDismiss,
@@ -219,8 +218,7 @@ fun AccountSettingsDialog(
             ) {
                 AccountSettings(
                     navController = navController,
-                    onClose = onDismiss,
-                    latestVersionName = latestVersionName
+                    onClose = onDismiss
                 )
             }
         }

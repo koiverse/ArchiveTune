@@ -32,6 +32,7 @@ import kotlinx.coroutines.launch
 import moe.koiverse.archivetune.BuildConfig
 import moe.koiverse.archivetune.MainActivity
 import moe.koiverse.archivetune.R
+import moe.koiverse.archivetune.constants.DebugEnableUpdateCheckKey
 import moe.koiverse.archivetune.constants.EnableUpdateNotificationKey
 import moe.koiverse.archivetune.constants.LastNotifiedVersionKey
 import moe.koiverse.archivetune.constants.LastUpdateCheckKey
@@ -87,6 +88,11 @@ object UpdateNotificationManager {
         scope.launch {
             try {
                 val dataStore = context.dataStore
+                val debugCheckEnabled = dataStore.data.map { it[DebugEnableUpdateCheckKey] ?: false }.first()
+                if (BuildConfig.DEBUG && !debugCheckEnabled) {
+                    cancelPeriodicUpdateCheck(context)
+                    return@launch
+                }
 
                 val isEnabled = dataStore.data.map { it[EnableUpdateNotificationKey] ?: false }.first()
                 if (!isEnabled) {
@@ -123,8 +129,10 @@ object UpdateNotificationManager {
     }
 
     suspend fun notifyIfNewVersion(context: Context, latestVersion: String) {
+        val dataStore = context.dataStore
+        val debugCheckEnabled = dataStore.data.map { it[DebugEnableUpdateCheckKey] ?: false }.first()
+        if (BuildConfig.DEBUG && !debugCheckEnabled) return
         try {
-            val dataStore = context.dataStore
             val lastNotified = dataStore.data.map { it[LastNotifiedVersionKey] ?: "" }.first()
 
             if (latestVersion != lastNotified && latestVersion != BuildConfig.VERSION_NAME) {

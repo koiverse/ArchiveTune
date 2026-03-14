@@ -37,7 +37,9 @@ data class ReleaseInfo(
     val name: String,
     val body: String?,
     val publishedAt: String,
-    val htmlUrl: String
+    val htmlUrl: String,
+    val apkUrl: String,
+    val apkSize: Long
 )
 
 private data class ReleasesNetworkResult(
@@ -59,13 +61,28 @@ object Updater {
         val releases = ArrayList<ReleaseInfo>(jsonArray.length())
         for (i in 0 until jsonArray.length()) {
             val item = jsonArray.getJSONObject(i)
+            val assets = item.optJSONArray("assets")
+            var apkUrl = ""
+            var apkSize = 0L
+            if (assets != null) {
+                for (j in 0 until assets.length()) {
+                    val asset = assets.getJSONObject(j)
+                    if (asset.optString("content_type") == "application/vnd.android.package-archive") {
+                        apkUrl = asset.optString("browser_download_url", "")
+                        apkSize = asset.optLong("size", 0L)
+                        break
+                    }
+                }
+            }
             releases.add(
                 ReleaseInfo(
                     tagName = item.optString("tag_name", ""),
                     name = item.optString("name", ""),
                     body = if (item.has("body")) item.optString("body") else null,
                     publishedAt = item.optString("published_at", ""),
-                    htmlUrl = item.optString("html_url", "")
+                    htmlUrl = item.optString("html_url", ""),
+                    apkUrl = apkUrl,
+                    apkSize = apkSize
                 )
             )
         }
@@ -164,13 +181,17 @@ object Updater {
             commits
         }
 
-    fun getLatestDownloadUrl(): String {
-        val baseUrl = "https://github.com/koiverse/ArchiveTune/releases/latest/download/"
-        val architecture = BuildConfig.ARCHITECTURE
-        return if (architecture == "universal") {
-            baseUrl + "ArchiveTune.apk"
+    fun getLatestDownloadUrl(releaseInfo: ReleaseInfo? = null): String {
+        return if (releaseInfo?.apkUrl?.isNotBlank() == true) {
+            releaseInfo.apkUrl
         } else {
-            baseUrl + "app-${architecture}-release.apk"
+            val baseUrl = "https://github.com/koiverse/ArchiveTune/releases/latest/download/"
+            val architecture = BuildConfig.ARCHITECTURE
+            if (architecture == "universal") {
+                baseUrl + "ArchiveTune.apk"
+            } else {
+                baseUrl + "app-${architecture}-release.apk"
+            }
         }
     }
 

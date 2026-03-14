@@ -50,6 +50,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarScrollBehavior
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -71,10 +74,13 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.navigation.NavController
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import moe.koiverse.archivetune.BuildConfig
 import moe.koiverse.archivetune.LocalPlayerAwareWindowInsets
 import moe.koiverse.archivetune.R
+import moe.koiverse.archivetune.constants.DebugEnableUpdateCheckKey
 import moe.koiverse.archivetune.constants.EnableUpdateNotificationKey
 import moe.koiverse.archivetune.constants.UpdateChannel
 import moe.koiverse.archivetune.constants.UpdateChannelKey
@@ -86,6 +92,7 @@ import moe.koiverse.archivetune.ui.utils.backToMain
 import moe.koiverse.archivetune.utils.GitCommit
 import moe.koiverse.archivetune.utils.UpdateNotificationManager
 import moe.koiverse.archivetune.utils.Updater
+import moe.koiverse.archivetune.utils.dataStore
 import moe.koiverse.archivetune.utils.rememberEnumPreference
 import moe.koiverse.archivetune.utils.rememberPreference
 import java.text.SimpleDateFormat
@@ -101,6 +108,7 @@ fun UpdateScreen(
     val context = LocalContext.current
     val uriHandler = LocalUriHandler.current
     val coroutineScope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
     val nightlyInstallUrl = "https://nightly.link/koiverse/ArchiveTune/workflows/build/dev/app-universal-release"
 
     val (enableUpdateNotification, onEnableUpdateNotificationChange) = rememberPreference(
@@ -110,6 +118,11 @@ fun UpdateScreen(
     val (updateChannel, onUpdateChannelChange) = rememberEnumPreference(
         UpdateChannelKey,
         defaultValue = UpdateChannel.STABLE
+    )
+
+    val (debugCheckEnabled, onDebugCheckEnabledChange) = rememberPreference(
+        DebugEnableUpdateCheckKey,
+        defaultValue = false
     )
 
     var commits by remember { mutableStateOf<List<GitCommit>>(emptyList()) }
@@ -130,6 +143,7 @@ fun UpdateScreen(
             }
         )
     }
+    var isCheckingForUpdates by remember { mutableStateOf(false) }
 
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
@@ -296,8 +310,11 @@ fun UpdateScreen(
 
     LaunchedEffect(Unit) {
         coroutineScope.launch {
-            Updater.getLatestVersionName().onSuccess {
-                latestVersion = it
+            val debugCheckEnabledFirst = context.dataStore.data.map { it[DebugEnableUpdateCheckKey] ?: false }.first()
+            if (!BuildConfig.DEBUG || debugCheckEnabledFirst) {
+                Updater.getLatestVersionName().onSuccess {
+                    latestVersion = it
+                }
             }
             Updater.getCommitHistory(30).onSuccess {
                 commits = it
@@ -330,7 +347,8 @@ fun UpdateScreen(
                 },
                 scrollBehavior = scrollBehavior
             )
-        }
+        },
+        snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { paddingValues ->
         LazyColumn(
             modifier = Modifier
@@ -353,50 +371,121 @@ fun UpdateScreen(
                         containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
                     )
                 ) {
-                    Row(
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                            .padding(16.dp)
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .size(48.dp)
-                                .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
-                            contentAlignment = Alignment.Center
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Icon(
-                                painter = painterResource(R.drawable.update),
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(24.dp)
-                            )
-                        }
+                            Box(
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    painter = painterResource(R.drawable.update),
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            }
 
-                        Spacer(modifier = Modifier.width(16.dp))
+                            Spacer(modifier = Modifier.width(16.dp))
 
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = stringResource(R.string.current_version),
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Text(
-                                text = BuildConfig.VERSION_NAME,
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold
-                            )
-                            latestVersion?.let { latest ->
-                                if (latest != BuildConfig.VERSION_NAME) {
-                                    Spacer(modifier = Modifier.height(4.dp))
-                                    Text(
-                                        text = stringResource(R.string.latest_version_format, latest),
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = stringResource(R.string.current_version),
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Text(
+                                    text = BuildConfig.VERSION_NAME,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                latestVersion?.let { latest ->
+                                    if (latest != BuildConfig.VERSION_NAME) {
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Text(
+                                            text = stringResource(R.string.latest_version_format, latest),
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
                                 }
                             }
+                        }
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        Button(
+                            onClick = {
+                                isCheckingForUpdates = true
+                                coroutineScope.launch {
+                                    Updater.getLatestVersionName().onSuccess { latestVersionName ->
+                                        latestVersion = latestVersionName
+                                        if (latestVersionName != BuildConfig.VERSION_NAME) {
+                                            navController.navigate("new_update_available")
+                                        } else {
+                                            snackbarHostState.showSnackbar(
+                                                message = context.getString(R.string.no_updates_available),
+                                                duration = SnackbarDuration.Short
+                                            )
+                                        }
+                                    }.onFailure { error ->
+                                        snackbarHostState.showSnackbar(
+                                            message = context.getString(R.string.update_check_failed, error.message ?: "Unknown error"),
+                                            duration = SnackbarDuration.Long
+                                        )
+                                    }.also {
+                                        isCheckingForUpdates = false
+                                    }
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            enabled = !isCheckingForUpdates && (!BuildConfig.DEBUG || debugCheckEnabled)
+                        ) {
+                            if (isCheckingForUpdates) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(18.dp),
+                                    strokeWidth = 2.dp,
+                                    color = MaterialTheme.colorScheme.onPrimary
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(stringResource(R.string.checking_for_updates))
+                            } else {
+                                Icon(
+                                    painter = painterResource(R.drawable.update),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = if (BuildConfig.DEBUG && !debugCheckEnabled)
+                                        "Update check disabled in DEBUG" 
+                                    else 
+                                        stringResource(R.string.check_for_update)
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        Button(
+                            onClick = { navController.navigate("settings/changelog") },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Icon(
+                                painter = painterResource(R.drawable.history),
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(stringResource(R.string.view_changelog))
                         }
                     }
                 }
@@ -446,21 +535,7 @@ fun UpdateScreen(
                 )
             }
 
-            item {
-                Spacer(modifier = Modifier.height(8.dp))
-                Button(
-                    onClick = { navController.navigate("settings/changelog") },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Icon(
-                        painter = painterResource(R.drawable.update),
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(stringResource(R.string.view_changelog))
-                }
-            }
+
 
             item {
                 AnimatedVisibility(visible = updateChannel == UpdateChannel.NIGHTLY) {

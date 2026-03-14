@@ -561,6 +561,7 @@ val RemindAfterKey = intPreferencesKey("remind_after")
 
 // Update settings
 val EnableUpdateNotificationKey = booleanPreferencesKey("enableUpdateNotification")
+val DebugEnableUpdateCheckKey = booleanPreferencesKey("debug_enable_update_check")
 val UpdateChannelKey = stringPreferencesKey("updateChannel")
 val LastUpdateCheckKey = longPreferencesKey("lastUpdateCheck")
 val LastNotifiedVersionKey = stringPreferencesKey("lastNotifiedVersion")
