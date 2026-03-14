@@ -196,6 +196,13 @@ class SyncUtils @Inject constructor(
         YouTube.playlist("LM").completed().onSuccess { page ->
             if (!isSyncStillEnabled(gen)) return@onSuccess
             val remoteSongs = page.songs.orEmpty()
+            val remoteIds = remoteSongs.map { it.id }.toSet()
+            val localLikedSongs = database.likedSongsByRowIdAsc().first()
+
+            if (!isSyncStillEnabled(gen)) return@onSuccess
+            localLikedSongs.filterNot { it.id in remoteIds }
+                .forEach { database.update(it.song.copy(liked = false, likedDate = null)) }
+
             if (remoteSongs.isEmpty()) {
                 Timber.w("syncLikedSongs: Remote playlist is empty")
                 return@onSuccess
