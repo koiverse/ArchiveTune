@@ -408,6 +408,11 @@
     <string name="action_logout">Log out</string>
     <string name="action_login">Log in</string>
     <string name="login">Login</string>
+    <string name="accounts">Accounts</string>
+    <string name="add_account">Add Account</string>
+    <string name="add_account_desc">Sign in with another Google account</string>
+    <string name="active_account">Active</string>
+    <string name="remove_account">Remove account</string>
     <string name="not_logged_in">Not logged in</string>
     <string name="login_failed">Login failed</string>
     <string name="playback_requires_youtube_music_confirmation">Confirm playback in YouTube Music, then return to ArchiveTune.</string>

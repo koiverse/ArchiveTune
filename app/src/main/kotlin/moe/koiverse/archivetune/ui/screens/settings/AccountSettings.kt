@@ -92,6 +92,7 @@ import moe.koiverse.archivetune.BuildConfig
 import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.constants.AccountChannelHandleKey
 import moe.koiverse.archivetune.constants.AccountEmailKey
+import moe.koiverse.archivetune.constants.AccountListKey
 import moe.koiverse.archivetune.constants.AccountNameKey
 import moe.koiverse.archivetune.constants.DataSyncIdKey
 import moe.koiverse.archivetune.constants.InnerTubeCookieKey
@@ -103,9 +104,11 @@ import moe.koiverse.archivetune.constants.YtmSyncKey
 import moe.koiverse.archivetune.innertube.YouTube
 import moe.koiverse.archivetune.innertube.utils.completed
 import moe.koiverse.archivetune.innertube.utils.parseCookieString
+import moe.koiverse.archivetune.models.SavedAccount
 import moe.koiverse.archivetune.ui.component.InfoLabel
 import moe.koiverse.archivetune.ui.component.TextFieldDialog
 import moe.koiverse.archivetune.ui.screens.buildLoginRoute
+import moe.koiverse.archivetune.utils.AccountManager
 import moe.koiverse.archivetune.utils.Updater
 import moe.koiverse.archivetune.utils.dataStore
 import moe.koiverse.archivetune.utils.rememberPreference
@@ -138,11 +141,39 @@ fun AccountSettings(
     val accountName by viewModel.accountName.collectAsState()
     val accountImageUrl by viewModel.accountImageUrl.collectAsState()
 
+    val coroutineScope = rememberCoroutineScope()
+
+    val (accountListRaw, _) = rememberPreference(AccountListKey, "")
+    val accounts = remember(accountListRaw) { AccountManager.decodeAccounts(accountListRaw) }
+
     var showToken by remember { mutableStateOf(false) }
     var showTokenEditor by remember { mutableStateOf(false) }
     var showPlaylistDialog by remember { mutableStateOf(false) }
 
     val hasUpdate = latestVersionName != BuildConfig.VERSION_NAME
+
+    LaunchedEffect(innerTubeCookie, accountEmail, accountName, accountImageUrl) {
+        val valid = innerTubeCookie.isNotEmpty()
+            && "SAPISID" in parseCookieString(innerTubeCookie)
+            && accountName.isNotEmpty()
+            && accountName != "Guest"
+        if (!valid) return@LaunchedEffect
+        val accountId = accountEmail.ifEmpty { innerTubeCookie.take(32) }
+        AccountManager.addOrUpdateInList(
+            context = context,
+            account = SavedAccount(
+                id = accountId,
+                cookie = innerTubeCookie,
+                poToken = poToken,
+                visitorData = visitorData,
+                dataSyncId = dataSyncId,
+                name = accountName,
+                email = accountEmail,
+                channelHandle = accountChannelHandle,
+                avatarUrl = accountImageUrl,
+            )
+        )
+    }
 
     Column(
         modifier = Modifier
@@ -156,25 +187,38 @@ fun AccountSettings(
             modifier = Modifier.padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // Account Card
-            AccountCard(
-                isLoggedIn = isLoggedIn,
-                accountName = accountName,
-                accountEmail = accountEmail,
-                accountImageUrl = accountImageUrl,
-                onAccountClick = {
-                    onClose()
-                    if (isLoggedIn) {
-                        navController.navigate("account")
-                    } else {
+            if (accounts.isNotEmpty()) {
+                MultiAccountSection(
+                    accounts = accounts,
+                    activeCookie = innerTubeCookie,
+                    onSwitch = { account ->
+                        coroutineScope.launch { AccountManager.switchAccount(context, account) }
+                    },
+                    onRemove = { account ->
+                        coroutineScope.launch { AccountManager.removeAccount(context, account.id) }
+                    },
+                    onAddAccount = {
+                        onClose()
                         navController.navigate(buildLoginRoute())
                     }
-                },
-                onLogout = {
-                    onInnerTubeCookieChange("")
-                    forgetAccount(context)
-                }
-            )
+                )
+            } else {
+                AccountCard(
+                    isLoggedIn = isLoggedIn,
+                    accountName = accountName,
+                    accountEmail = accountEmail,
+                    accountImageUrl = accountImageUrl,
+                    onAccountClick = {
+                        onClose()
+                        if (isLoggedIn) navController.navigate("account")
+                        else navController.navigate(buildLoginRoute())
+                    },
+                    onLogout = {
+                        onInnerTubeCookieChange("")
+                        forgetAccount(context)
+                    }
+                )
+            }
 
             // Token Editor Dialog
             if (showTokenEditor) {
@@ -971,4 +1015,211 @@ private fun PlaylistSelectionDialog(onDismiss: () -> Unit) {
             }
         }
     )
+}
+
+@Composable
+private fun MultiAccountSection(
+    accounts: List<SavedAccount>,
+    activeCookie: String,
+    onSwitch: (SavedAccount) -> Unit,
+    onRemove: (SavedAccount) -> Unit,
+    onAddAccount: () -> Unit,
+) {
+    SettingsSection(title = stringResource(R.string.accounts)) {
+        accounts.forEachIndexed { index, account ->
+            if (index > 0) {
+                HorizontalDivider(
+                    modifier = Modifier.padding(start = 76.dp),
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
+                )
+            }
+            AccountRow(
+                account = account,
+                isActive = account.cookie == activeCookie,
+                onSwitch = { onSwitch(account) },
+                onRemove = { onRemove(account) },
+            )
+        }
+
+        if (accounts.size < AccountManager.MAX_ACCOUNTS) {
+            HorizontalDivider(
+                modifier = Modifier.padding(start = 76.dp),
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
+            )
+            AddAccountRow(onClick = onAddAccount)
+        }
+    }
+}
+
+@Composable
+private fun AccountRow(
+    account: SavedAccount,
+    isActive: Boolean,
+    onSwitch: () -> Unit,
+    onRemove: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .then(if (!isActive) Modifier.clickable(onClick = onSwitch) else Modifier)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            modifier = Modifier.size(48.dp),
+            contentAlignment = Alignment.BottomEnd,
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(CircleShape)
+                    .background(
+                        if (isActive)
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+                        else
+                            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.08f)
+                    ),
+                contentAlignment = Alignment.Center,
+            ) {
+                if (account.avatarUrl != null) {
+                    AsyncImage(
+                        model = account.avatarUrl,
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .size(48.dp)
+                            .clip(CircleShape),
+                    )
+                } else {
+                    Icon(
+                        painter = painterResource(R.drawable.account),
+                        contentDescription = null,
+                        modifier = Modifier.size(24.dp),
+                        tint = if (isActive)
+                            MaterialTheme.colorScheme.primary
+                        else
+                            MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+
+            if (isActive) {
+                Box(
+                    modifier = Modifier
+                        .size(16.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.primary),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.check),
+                        contentDescription = null,
+                        modifier = Modifier.size(10.dp),
+                        tint = MaterialTheme.colorScheme.onPrimary,
+                    )
+                }
+            }
+        }
+
+        Spacer(Modifier.width(12.dp))
+
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = account.name,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = if (isActive) FontWeight.SemiBold else FontWeight.Normal,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            if (account.email.isNotEmpty()) {
+                Text(
+                    text = account.email,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
+
+        if (isActive) {
+            Spacer(Modifier.width(6.dp))
+            Surface(
+                shape = RoundedCornerShape(6.dp),
+                color = MaterialTheme.colorScheme.primaryContainer,
+            ) {
+                Text(
+                    text = stringResource(R.string.active_account),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                )
+            }
+            Spacer(Modifier.width(2.dp))
+        }
+
+        IconButton(
+            onClick = onRemove,
+            modifier = Modifier.size(36.dp),
+            colors = IconButtonDefaults.iconButtonColors(
+                contentColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+            ),
+        ) {
+            Icon(
+                painter = painterResource(R.drawable.close),
+                contentDescription = stringResource(R.string.remove_account),
+                modifier = Modifier.size(18.dp),
+            )
+        }
+    }
+}
+
+@Composable
+private fun AddAccountRow(onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(MaterialTheme.colorScheme.secondary.copy(alpha = 0.1f)),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                painter = painterResource(R.drawable.add_circle),
+                contentDescription = null,
+                modifier = Modifier.size(22.dp),
+                tint = MaterialTheme.colorScheme.secondary,
+            )
+        }
+
+        Spacer(Modifier.width(14.dp))
+
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = stringResource(R.string.add_account),
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Text(
+                text = stringResource(R.string.add_account_desc),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+
+        Icon(
+            painter = painterResource(R.drawable.arrow_forward),
+            contentDescription = null,
+            modifier = Modifier.size(20.dp),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+        )
+    }
 }
