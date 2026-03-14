@@ -7,6 +7,7 @@
 package moe.koiverse.archivetune.utils
 
 import android.content.Context
+import android.content.Intent
 import androidx.datastore.preferences.core.edit
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -25,6 +26,13 @@ object AccountManager {
     const val MAX_ACCOUNTS = 3
 
     private val json = Json { ignoreUnknownKeys = true }
+
+    private fun restartApp(context: Context) {
+        val intent = context.packageManager.getLaunchIntentForPackage(context.packageName)
+            ?.apply { addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK) }
+            ?: return
+        context.startActivity(intent)
+    }
 
     fun decodeAccounts(raw: String): List<SavedAccount> {
         if (raw.isBlank()) return emptyList()
@@ -48,6 +56,7 @@ object AccountManager {
             prefs[AccountEmailKey] = account.email
             prefs[AccountChannelHandleKey] = account.channelHandle
         }
+        restartApp(context)
     }
 
     suspend fun addOrUpdateInList(context: Context, account: SavedAccount) {
@@ -63,6 +72,7 @@ object AccountManager {
     }
 
     suspend fun removeAccount(context: Context, accountId: String) {
+        var shouldRestart = false
         context.dataStore.edit { prefs ->
             val existing = decodeAccounts(prefs[AccountListKey] ?: "").toMutableList()
             val removed = existing.firstOrNull { it.id == accountId } ?: return@edit
@@ -70,6 +80,7 @@ object AccountManager {
             existing.remove(removed)
             prefs[AccountListKey] = encodeAccounts(existing)
             if (wasActive) {
+                shouldRestart = true
                 val next = existing.firstOrNull()
                 if (next != null) {
                     prefs[InnerTubeCookieKey] = next.cookie
@@ -90,5 +101,6 @@ object AccountManager {
                 }
             }
         }
+        if (shouldRestart) restartApp(context)
     }
 }
