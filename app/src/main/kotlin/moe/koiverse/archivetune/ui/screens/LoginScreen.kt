@@ -97,6 +97,7 @@ fun LoginScreen(
                         val mergedCookie = mergeYouTubeCookies(cookieManager)
                         if (!mergedCookie.isNullOrBlank()) {
                             coroutineScope.launch {
+                                YouTube.cookie = mergedCookie
                                 YouTube.accountInfo().onSuccess { info ->
                                     context.dataStore.edit { prefs ->
                                         prefs[InnerTubeCookieKey] = mergedCookie
