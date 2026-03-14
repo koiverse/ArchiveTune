@@ -33,6 +33,7 @@ import android.media.audiofx.Virtualizer
 import android.net.ConnectivityManager
 import android.net.Uri
 import android.os.Binder
+import android.os.PowerManager
 import android.widget.Toast
 import androidx.core.content.getSystemService
 import androidx.core.net.toUri
@@ -129,6 +130,7 @@ import moe.koiverse.archivetune.constants.SkipSilenceKey
 import moe.koiverse.archivetune.constants.MaxSongCacheSizeKey
 import moe.koiverse.archivetune.constants.SmartTrimmerKey
 import moe.koiverse.archivetune.constants.StopMusicOnTaskClearKey
+import moe.koiverse.archivetune.constants.WakelockKey
 import moe.koiverse.archivetune.constants.YtmSyncKey
 import moe.koiverse.archivetune.db.MusicDatabase
 import moe.koiverse.archivetune.db.entities.Event
@@ -263,6 +265,8 @@ class MusicService :
     private var hasAudioFocus = false
     private var autoStartOnBluetoothEnabled = false
     private var bluetoothReceiverRegistered = false
+    private var wakeLock: PowerManager.WakeLock? = null
+    private var wakelockEnabled = false
 
     private var scopeJob = Job()
     private var scope = CoroutineScope(Dispatchers.Main + scopeJob)
@@ -600,6 +604,9 @@ class MusicService :
                 }
 
         audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
+        wakeLock = (getSystemService(Context.POWER_SERVICE) as PowerManager)
+            .newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "ArchiveTune:Playback")
+            .also { it.setReferenceCounted(false) }
         setupAudioFocusRequest()
 
         mediaLibrarySessionCallback.apply {
@@ -761,6 +768,14 @@ class MusicService :
             .distinctUntilChanged()
             .collectLatest(scope) {
                 crossfadeDurationMs.value = it
+            }
+
+        dataStore.data
+            .map { it[WakelockKey] ?: false }
+            .distinctUntilChanged()
+            .collectLatest(scope) { enabled ->
+                wakelockEnabled = enabled
+                updateWakeLock()
             }
 
         crossfadeAudio =
@@ -3859,6 +3874,7 @@ class MusicService :
         } else {
             closeAudioEffectSession()
         }
+        updateWakeLock()
     }
 
        if (events.containsAny(EVENT_TIMELINE_CHANGED, EVENT_POSITION_DISCONTINUITY)) {
@@ -4426,6 +4442,16 @@ class MusicService :
         player.setOffloadEnabled(enabled)
     }
 
+    private fun updateWakeLock() {
+        val wl = wakeLock ?: return
+        val shouldHold = wakelockEnabled && player.isPlaying
+        if (shouldHold && !wl.isHeld) {
+            wl.acquire()
+        } else if (!shouldHold && wl.isHeld) {
+            wl.release()
+        }
+    }
+
     private fun createRenderersFactory() =
         object : DefaultRenderersFactory(this) {
             override fun buildAudioSink(
@@ -4787,6 +4813,9 @@ class MusicService :
         try {
             crossfadeAudio?.release()
             crossfadeAudio = null
+        } catch (_: Exception) {}
+        try {
+            if (wakeLock?.isHeld == true) wakeLock?.release()
         } catch (_: Exception) {}
         try {
             player.removeListener(this)

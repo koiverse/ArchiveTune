@@ -445,6 +445,8 @@
     <string name="auto_skip_next_on_error">Auto skip to next song when error occurs</string>
     <string name="auto_skip_next_on_error_desc">Ensure your continuous playback experience</string>
     <string name="stop_music_on_task_clear">Stop music on task clear</string>
+    <string name="wakelock">Keep CPU awake during playback</string>
+    <string name="wakelock_desc">Prevents the system from interrupting music by holding a CPU wake lock</string>
     <string name="auto_start_on_bluetooth">Auto-start on Bluetooth connect</string>
     <string name="auto_start_on_bluetooth_desc">Automatically resume playback when a Bluetooth audio device connects</string>
     <string name="artist_separators">Symbols to split artists</string>

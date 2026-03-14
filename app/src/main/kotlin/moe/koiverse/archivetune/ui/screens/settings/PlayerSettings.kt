@@ -57,6 +57,7 @@ import moe.koiverse.archivetune.constants.PersistentQueueKey
 
 import moe.koiverse.archivetune.constants.SkipSilenceKey
 import moe.koiverse.archivetune.constants.StopMusicOnTaskClearKey
+import moe.koiverse.archivetune.constants.WakelockKey
 import moe.koiverse.archivetune.constants.HistoryDuration
 import moe.koiverse.archivetune.constants.AudioCrossfadeDurationKey
 import moe.koiverse.archivetune.constants.PlayerStreamClient
@@ -163,6 +164,11 @@ fun PlayerSettings(
     val (externalDownloaderPackage, onExternalDownloaderPackageChange) = rememberPreference(
         ExternalDownloaderPackageKey,
         defaultValue = ""
+    )
+
+    val (wakelockEnabled, onWakelockChange) = rememberPreference(
+        WakelockKey,
+        defaultValue = false
     )
 
     var showArtistSeparatorsDialog by remember { mutableStateOf(false) }
@@ -408,6 +414,14 @@ fun PlayerSettings(
             icon = { Icon(painterResource(R.drawable.clear_all), null) },
             checked = stopMusicOnTaskClear,
             onCheckedChange = onStopMusicOnTaskClearChange
+        )
+
+        SwitchPreference(
+            title = { Text(stringResource(R.string.wakelock)) },
+            description = stringResource(R.string.wakelock_desc),
+            icon = { Icon(painterResource(R.drawable.bolt), null) },
+            checked = wakelockEnabled,
+            onCheckedChange = onWakelockChange
         )
 
         PreferenceEntry(
