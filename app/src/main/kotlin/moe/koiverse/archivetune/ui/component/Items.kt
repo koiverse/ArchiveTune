@@ -684,7 +684,7 @@ fun OverlayPlaylistListItem(
 ) {
     var showPreview by remember { mutableStateOf(false) }
     val backgroundUrl = playlist.thumbnails.getOrNull(0)
-    val (disableBlur) = rememberPreference(DisableBlurKey, true)
+    val (disableBlur) = rememberPreference(DisableBlurKey, false)
 
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
