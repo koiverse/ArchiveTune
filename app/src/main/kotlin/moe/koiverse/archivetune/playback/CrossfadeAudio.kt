@@ -255,7 +255,6 @@ internal class CrossfadeAudio(
                 val currentIndex = player.currentMediaItemIndex
                 if (currentIndex != C.INDEX_UNSET) {
                     player.seekTo(currentIndex, handoffTargetPositionMs)
-                    player.prepare()
                     handoffLastSyncSeekElapsedMs = nowElapsedMs
                 }
                 playbackFadeFactor.value = 0f
