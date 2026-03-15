@@ -41,7 +41,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.carousel.HorizontalUncontainedCarousel
+import androidx.compose.material3.carousel.HorizontalMultiBrowseCarousel
 import androidx.compose.material3.carousel.rememberCarouselState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
@@ -132,9 +132,9 @@ fun QuickPicksSection(
 ) {
     val distinctQuickPicks = remember(quickPicks) { quickPicks.distinctBy { it.id } }
 
-    HorizontalUncontainedCarousel(
+    HorizontalMultiBrowseCarousel(
         state = rememberCarouselState { distinctQuickPicks.size },
-        itemWidth = 250.dp,
+        preferredItemWidth = 250.dp,
         itemSpacing = 8.dp,
         contentPadding = PaddingValues(horizontal = 16.dp),
         modifier = modifier
