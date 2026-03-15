@@ -1145,6 +1145,18 @@ fun OnlinePlaylistScreen(
                 .align(Alignment.TopCenter)
                 .padding(LocalPlayerAwareWindowInsets.current.asPaddingValues()),
         )
+
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier =
+                Modifier.windowInsetsPadding(
+                        LocalPlayerAwareWindowInsets.current.union(WindowInsets.ime)
+                    )
+                    .align(Alignment.BottomCenter),
+        )
+    }
+}
+
 @Composable
 private fun MD3ExpressivePullToRefreshIndicator(
     isRefreshing: Boolean,
@@ -1159,17 +1171,6 @@ private fun MD3ExpressivePullToRefreshIndicator(
                 modifier = Modifier.size(40.dp)
             )
         }
-    }
-}
-
-        SnackbarHost(
-            hostState = snackbarHostState,
-            modifier =
-                Modifier.windowInsetsPadding(
-                        LocalPlayerAwareWindowInsets.current.union(WindowInsets.ime)
-                    )
-                    .align(Alignment.BottomCenter),
-        )
     }
 }
 
