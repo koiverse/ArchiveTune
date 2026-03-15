@@ -56,7 +56,7 @@ import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
-import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.pulltorefresh.pullToRefresh
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.material3.rememberSwipeToDismissBoxState
@@ -1525,13 +1525,28 @@ fun LocalPlaylistScreen(
             }
         )
 
-        PullToRefreshDefaults.Indicator(
+        MD3ExpressivePullToRefreshIndicator(
             isRefreshing = isRefreshing,
-            state = pullRefreshState,
             modifier = Modifier
                 .align(Alignment.TopCenter)
                 .padding(LocalPlayerAwareWindowInsets.current.asPaddingValues()),
         )
+@Composable
+private fun MD3ExpressivePullToRefreshIndicator(
+    isRefreshing: Boolean,
+    modifier: Modifier = Modifier
+) {
+    if (isRefreshing) {
+        Box(modifier = modifier) {
+            CircularProgressIndicator(
+                color = MaterialTheme.colorScheme.primary,
+                trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                strokeWidth = 4.dp,
+                modifier = Modifier.size(40.dp)
+            )
+        }
+    }
+}
 
         SnackbarHost(
             hostState = snackbarHostState,
