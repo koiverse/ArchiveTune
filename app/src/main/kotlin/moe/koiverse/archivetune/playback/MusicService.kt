@@ -662,9 +662,10 @@ class MusicService :
             connectivityObserver.networkStatus.collect { isConnected ->
                 isNetworkConnected.value = isConnected
                 if (isConnected && waitingForNetworkConnection.value) {
-                    // Simple auto-play logic like OuterTune
                     waitingForNetworkConnection.value = false
-                    if (player.currentMediaItem != null && player.playWhenReady) {
+                    if (player.currentMediaItem != null && player.playWhenReady &&
+                        player.playbackState == Player.STATE_IDLE
+                    ) {
                         player.prepare()
                         player.play()
                     }
@@ -3833,7 +3834,7 @@ class MusicService :
         handleDeviceMuteStateChanged()
     }
     if (events.contains(Player.EVENT_PLAY_WHEN_READY_CHANGED) && isDeviceMutedNow() && this.player.playWhenReady) {
-        wasAutoPausedByDeviceMute = false
+        handleDeviceMuteStateChanged()
     }
     if (events.contains(Player.EVENT_PLAYBACK_STATE_CHANGED) &&
         (this.player.playbackState == Player.STATE_IDLE || this.player.playbackState == Player.STATE_ENDED)
@@ -4102,6 +4103,7 @@ class MusicService :
             Timber.tag("MusicService").w(
                 "Skipping redundant stream refresh for $currentMediaId after validated recovery; resuming playback without URL refresh"
             )
+            refreshValidatedPlayingMediaId = null
             player.prepare()
             player.playWhenReady = true
             return
