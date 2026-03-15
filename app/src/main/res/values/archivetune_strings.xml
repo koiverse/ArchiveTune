@@ -102,7 +102,6 @@
     <string name="player_background_blur">Blur</string>
     <string name="coloring">Coloring</string>
     <string name="blur_gradient">Blur Gradient</string>
-    <string name="glow">Glow</string>
     <string name="player_buttons_style">Player button colors</string>
     <string name="default_style">Default</string>
     <string name="secondary_color_style">Secondary</string>
@@ -123,7 +122,6 @@
     <string name="show_top_playlist">Show \"Top\" playlist</string>
     <string name="show_cached_playlist">Show \"Cached\" playlist</string>
     <string name="google">Google</string>
-    <string name="discord">Discord</string>
     <string name="advanced_login">Login with token</string>
     <string name="token_hidden">Tap to show token</string>
     <string name="token_shown">Tap again to copy or edit</string>

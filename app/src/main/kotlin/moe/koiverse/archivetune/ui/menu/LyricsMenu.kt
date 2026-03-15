@@ -196,7 +196,7 @@ fun LyricsMenu(
                         
                         // Show warning only if network is definitely unavailable
                         if (!isNetworkAvailable) {
-                            Toast.makeText(context, context.getString(R.string.error_no_internet), Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, R.string.error_no_internet, Toast.LENGTH_SHORT).show()
                         }
                     },
                 ) {
@@ -386,7 +386,7 @@ fun LyricsMenu(
                                     if (lang == null) {
                                         Toast.makeText(
                                             context,
-                                            "Unsupported language: $languageName",
+                                            context.getString(R.string.error_unsupported_language, languageName),
                                             Toast.LENGTH_SHORT
                                         ).show()
                                         return@launch

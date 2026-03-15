@@ -1043,7 +1043,7 @@ fun LocalPlaylistScreen(
                                     ) {
                                         Icon(
                                             painter = painterResource(R.drawable.mix),
-                                            contentDescription = "Start Mix",
+                                            contentDescription = stringResource(R.string.start_mix),
                                             modifier = Modifier.size(24.dp)
                                         )
                                     }

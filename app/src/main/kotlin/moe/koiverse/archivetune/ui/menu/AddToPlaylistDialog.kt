@@ -50,6 +50,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -185,14 +186,15 @@ fun AddToPlaylistDialog(
 
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    text = "Add to playlist",
+                                    text = stringResource(R.string.add_to_playlist),
                                     style = MaterialTheme.typography.titleLarge,
                                     fontWeight = FontWeight.SemiBold,
                                     color = MaterialTheme.colorScheme.onSurface,
                                 )
                                 if (selectedPlaylistIds.isNotEmpty()) {
+                                    val count = selectedPlaylistIds.size
                                     Text(
-                                        text = "${selectedPlaylistIds.size} selected",
+                                        text = pluralStringResource(R.plurals.n_selected, count, count),
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.primary,
                                     )
@@ -304,7 +306,7 @@ fun AddToPlaylistDialog(
                                 .height(96.dp)
                         ) {
                             Text(
-                                text = "No playlists yet",
+                                text = stringResource(R.string.no_playlists_yet),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
@@ -401,9 +403,9 @@ fun AddToPlaylistDialog(
                                 Spacer(modifier = Modifier.width(ButtonDefaults.IconSpacing))
                                 Text(
                                     text = if (selectedPlaylistIds.size > 1)
-                                        "Add to ${selectedPlaylistIds.size}"
+                                        stringResource(R.string.add_to_n, selectedPlaylistIds.size)
                                     else
-                                        "Add"
+                                        stringResource(R.string.add_label)
                                 )
                             }
                         }

@@ -588,7 +588,7 @@ fun YouTubePlaylistMenu(
                                 } catch (e: Exception) {
                                     e.printStackTrace()
                                     withContext(Dispatchers.Main) {
-                                        val errorMsg = context.getString(R.string.import_failed) + ": ${e.message ?: "Unknown error"}"
+                                        val errorMsg = context.getString(R.string.import_failed) + ": ${e.message ?: context.getString(R.string.error_unknown)}"
                                         if (snackbarHostState != null) {
                                             snackbarHostState.showSnackbar(errorMsg)
                                         } else {

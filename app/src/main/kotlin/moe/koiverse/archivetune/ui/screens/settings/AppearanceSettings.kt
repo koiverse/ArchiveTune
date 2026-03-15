@@ -438,7 +438,7 @@ fun AppearanceSettings(
                     PlayerBackgroundStyle.COLORING -> stringResource(R.string.coloring)
                     PlayerBackgroundStyle.BLUR_GRADIENT -> stringResource(R.string.blur_gradient)
                     PlayerBackgroundStyle.GLOW -> stringResource(R.string.glow)
-                    PlayerBackgroundStyle.GLOW_ANIMATED -> "Glow Animated"
+                    PlayerBackgroundStyle.GLOW_ANIMATED -> stringResource(R.string.glow_animated)
                 }
             },
         )
@@ -593,8 +593,8 @@ fun AppearanceSettings(
         )
 
         SwitchPreference(
-            title = { Text("Lyrics V2 (Experimental)") },
-            description = "Use the new fluid word-synced lyrics engine",
+            title = { Text(stringResource(R.string.lyrics_v2_title)) },
+            description = stringResource(R.string.lyrics_v2_desc),
             icon = { Icon(painterResource(R.drawable.lyrics), null) },
             checked = useLyricsV2,
             onCheckedChange = onUseLyricsV2Change,
@@ -695,7 +695,7 @@ fun AppearanceSettings(
                     )
 
                     Text(
-                        text = "${tempTextSize.roundToInt()} sp",
+                        text = stringResource(R.string.sp_format, tempTextSize.roundToInt()),
                         style = MaterialTheme.typography.bodyLarge,
                         modifier = Modifier.padding(bottom = 16.dp)
                     )
@@ -768,7 +768,7 @@ fun AppearanceSettings(
                     )
 
                     Text(
-                        text = "${String.format("%.1f", tempLineSpacing)}x",
+                        text = stringResource(R.string.multiplier_format_short, tempLineSpacing),
                         style = MaterialTheme.typography.bodyLarge,
                         modifier = Modifier.padding(bottom = 16.dp)
                     )

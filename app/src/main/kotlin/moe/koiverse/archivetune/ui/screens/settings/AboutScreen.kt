@@ -302,7 +302,7 @@ fun AboutScreen(
     val leadDeveloper = TeamMember(
         avatarUrl = "https://avatar-api.koiisannn.cloud/discord/avatar/886971572668219392",
         name = "Chartreux Westia",
-        position = "Eh?",
+        position = stringResource(R.string.lead_dev_role),
         profileUrl = "https://github.com/koiverse",
         github = "https://github.com/koiverse",
         website = "https://koiiverse.cloud",
@@ -313,7 +313,7 @@ fun AboutScreen(
         TeamMember(
             avatarUrl = "https://avatars.githubusercontent.com/u/93458424?v=4",
             name = "WTTexe",
-            position = "Word Synced Lyrics, Gradients and UI Changes for the better!",
+            position = stringResource(R.string.collaborator_wtt_role),
             profileUrl = "https://github.com/Windowstechtips",
             github = "https://github.com/Windowstechtips",
             website = null,
@@ -322,7 +322,7 @@ fun AboutScreen(
         TeamMember(
             avatarUrl = "https://avatars.githubusercontent.com/u/80542861?v=4",
             name = "MO AGAMY",
-            position = "Metrolist Dev",
+            position = stringResource(R.string.collaborator_mo_role),
             profileUrl = "https://github.com/mostafaalagamy",
             github = "https://github.com/mostafaalagamy",
             website = null,
@@ -383,7 +383,7 @@ fun AboutScreen(
                 verticalAlignment = Alignment.Top,
             ) {
                 Text(
-                    text = "ArchiveTune",
+                    text = stringResource(R.string.app_name),
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(top = 8.dp, bottom = 4.dp),
@@ -413,7 +413,7 @@ fun AboutScreen(
                     Spacer(Modifier.width(4.dp))
 
                     Text(
-                        text = "DEBUG",
+                        text = stringResource(R.string.debug_label),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.secondary,
                         modifier = Modifier
@@ -494,7 +494,7 @@ fun AboutScreen(
             Spacer(Modifier.height(16.dp))
 
             SectionHeader(
-                title = "Lead Developer",
+                title = stringResource(R.string.lead_developer),
                 modifier = Modifier.padding(horizontal = 16.dp)
             )
 
@@ -511,7 +511,7 @@ fun AboutScreen(
             Spacer(Modifier.height(24.dp))
 
             SectionHeader(
-                title = "Collaborators",
+                title = stringResource(R.string.collaborators),
                 modifier = Modifier.padding(horizontal = 16.dp)
             )
 
@@ -534,7 +534,7 @@ fun AboutScreen(
             Spacer(Modifier.height(24.dp))
 
             SectionHeader(
-                title = "Contributors",
+                title = stringResource(R.string.contributors),
                 modifier = Modifier.padding(horizontal = 16.dp)
             )
 
@@ -751,7 +751,7 @@ private fun LeadDeveloperCard(
                 member.github?.let { url ->
                     OutlinedIconChip(
                         iconRes = R.drawable.github,
-                        text = "GitHub",
+                        text = stringResource(R.string.github),
                         onClick = { onOpenUri(url) },
                     )
                 }
@@ -759,7 +759,7 @@ private fun LeadDeveloperCard(
                 member.website?.takeIf { it.isNotBlank() }?.let { url ->
                     OutlinedIconChip(
                         iconRes = R.drawable.website,
-                        text = "Website",
+                        text = stringResource(R.string.website),
                         onClick = { onOpenUri(url) },
                     )
                 }
@@ -767,7 +767,7 @@ private fun LeadDeveloperCard(
                 member.discord?.let { url ->
                     OutlinedIconChip(
                         iconRes = R.drawable.alternate_email,
-                        text = "Discord",
+                        text = stringResource(R.string.discord),
                         onClick = { onOpenUri(url) },
                     )
                 }
@@ -841,7 +841,7 @@ private fun CollaboratorCard(
                 member.github?.let { url ->
                     OutlinedIconChipMembers(
                         iconRes = R.drawable.github,
-                        contentDescription = "GitHub",
+                        contentDescription = stringResource(R.string.github),
                         onClick = { onOpenUri(url) },
                     )
                 }
@@ -849,7 +849,7 @@ private fun CollaboratorCard(
                 member.website?.takeIf { it.isNotBlank() }?.let { url ->
                     OutlinedIconChipMembers(
                         iconRes = R.drawable.website,
-                        contentDescription = "Website",
+                        contentDescription = stringResource(R.string.website),
                         onClick = { onOpenUri(url) },
                     )
                 }
@@ -857,7 +857,7 @@ private fun CollaboratorCard(
                 member.discord?.let { url ->
                     OutlinedIconChipMembers(
                         iconRes = R.drawable.alternate_email,
-                        contentDescription = "Discord",
+                        contentDescription = stringResource(R.string.discord),
                         onClick = { onOpenUri(url) },
                     )
                 }

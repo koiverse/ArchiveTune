@@ -420,6 +420,7 @@ fun CodecInfoRow(
     textColor: Color,
     modifier: Modifier = Modifier
 ) {
+    val unknownText = stringResource(R.string.unknown)
     Row(
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically,
@@ -430,7 +431,7 @@ fun CodecInfoRow(
         Text(
             text = buildString {
                 append(codec)
-                if (bitrate != "Unknown") {
+                if (bitrate != unknownText) {
                     append(" • ")
                     append(bitrate)
                 }
@@ -490,7 +491,7 @@ fun QueueCollapsedContentV2(
                 if (currentFormat.bitrate > 0) {
                     "${currentFormat.bitrate / 1000} kbps"
                 } else {
-                    "Unknown"
+                    stringResource(R.string.unknown)
                 }
 
             val sampleRateText =
@@ -702,7 +703,7 @@ fun QueueCollapsedContentV3(
     Column(modifier = modifier.fillMaxWidth()) {
         if (showCodecOnPlayer && currentFormat != null) {
             val codec = currentFormat.mimeType.substringAfter("/").uppercase()
-            val bitrate = "${currentFormat.bitrate / 1000} kbps"
+            val bitrate = if (currentFormat.bitrate > 0) "${currentFormat.bitrate / 1000} kbps" else stringResource(R.string.unknown)
             
             CodecInfoRow(
                 codec = codec,
@@ -845,7 +846,7 @@ fun QueueCollapsedContentV1(
     Column(modifier = modifier.fillMaxWidth()) {
         if (showCodecOnPlayer && currentFormat != null) {
             val codec = currentFormat.mimeType.substringAfter("/").uppercase()
-            val bitrate = "${currentFormat.bitrate / 1000} kbps"
+            val bitrate = if (currentFormat.bitrate > 0) "${currentFormat.bitrate / 1000} kbps" else stringResource(R.string.unknown)
             val fileSize = if (currentFormat.contentLength > 0) {
                 "${(currentFormat.contentLength / 1024.0 / 1024.0).roundToInt()} MB"
             } else ""
@@ -990,7 +991,7 @@ fun QueueCollapsedContentV4(
     Column(modifier = modifier.fillMaxWidth()) {
         if (showCodecOnPlayer && currentFormat != null) {
             val codec = currentFormat.mimeType.substringAfter("/").uppercase()
-            val bitrate = "${currentFormat.bitrate / 1000} kbps"
+            val bitrate = if (currentFormat.bitrate > 0) "${currentFormat.bitrate / 1000} kbps" else stringResource(R.string.unknown)
             val fileSize = if (currentFormat.contentLength > 0) {
                 "${(currentFormat.contentLength / 1024.0 / 1024.0).roundToInt()} MB"
             } else ""

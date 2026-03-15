@@ -45,6 +45,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
@@ -80,6 +81,7 @@ fun LastFMSettings(
     navController: NavController,
     scrollBehavior: TopAppBarScrollBehavior,
 ) {
+    val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
 
     var lastfmUsername by rememberPreference(LastFMUsernameKey, "")
@@ -193,12 +195,12 @@ fun LastFMSettings(
                 TextButton(
                     onClick = {
                         if (tempUsername.isBlank() || tempPassword.isBlank()) {
-                            loginError = "Please enter username and password"
+                            loginError = context.getString(R.string.error_enter_credentials)
                             return@TextButton
                         }
                         
                         if (!LastFM.isInitialized()) {
-                            loginError = "Last.fm API key not configured"
+                            loginError = context.getString(R.string.error_lastfm_not_configured)
                             Timber.e("Last.fm API key not configured")
                             return@TextButton
                         }
@@ -224,24 +226,19 @@ fun LastFMSettings(
                                         isLoggingIn = false
                                         val errorMessage = when (exception) {
                                             is LastFM.LastFmException -> {
-                                                // Last.fm API error codes:
-                                                // 4 = Invalid authentication token
-                                                // 10 = Invalid API key
-                                                // 13 = Invalid method signature
-                                                // 26 = API key suspended
                                                 when (exception.code) {
-                                                    4 -> "Invalid username or password"
-                                                    10 -> "Invalid API key. Please contact the developer."
-                                                    13 -> "Authentication error. Please try again."
-                                                    26 -> "API key suspended. Please contact the developer."
+                                                    4 -> context.getString(R.string.error_lastfm_auth)
+                                                    10 -> context.getString(R.string.error_lastfm_api_key)
+                                                    13 -> context.getString(R.string.error_lastfm_generic_auth)
+                                                    26 -> context.getString(R.string.error_lastfm_suspended)
                                                     else -> exception.message
                                                 }
                                             }
                                             else -> when {
                                                 exception.message?.contains("network", ignoreCase = true) == true ||
                                                 exception.message?.contains("connect", ignoreCase = true) == true ->
-                                                    "Network error. Check your connection."
-                                                else -> exception.message ?: "Login failed. Please try again."
+                                                    context.getString(R.string.error_network)
+                                                else -> exception.message ?: context.getString(R.string.error_login_failed)
                                             }
                                         }
                                         loginError = errorMessage
@@ -355,7 +352,7 @@ fun LastFMSettings(
                         modifier = Modifier.padding(16.dp)
                     ) {
                         Text(
-                            text = "${tempMinTrackDuration}s",
+                            text = stringResource(R.string.seconds_short_format, tempMinTrackDuration),
                             style = MaterialTheme.typography.bodyLarge,
                             modifier = Modifier.padding(bottom = 16.dp)
                         )

@@ -991,7 +991,7 @@ private fun NerdStatsSection(playerConnection: moe.koiverse.archivetune.playback
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(
-                            text = "$bufferPercentage% ($bufferDuration sec ahead)",
+                            text = stringResource(R.string.buffer_ahead_format, bufferPercentage, bufferDuration),
                             style = MaterialTheme.typography.bodySmall,
                             fontFamily = FontFamily.Monospace,
                             fontWeight = FontWeight.Medium

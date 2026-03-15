@@ -500,10 +500,10 @@ fun LyricsScreen(
                                             }
                                         ),
                                         contentDescription = when (repeatMode) {
-                                            Player.REPEAT_MODE_OFF -> "Repeat Off"
-                                            Player.REPEAT_MODE_ALL -> "Repeat All"
-                                            Player.REPEAT_MODE_ONE -> "Repeat One"
-                                            else -> "Repeat"
+                                            Player.REPEAT_MODE_OFF -> stringResource(R.string.repeat_mode_off)
+                                            Player.REPEAT_MODE_ALL -> stringResource(R.string.repeat_mode_all)
+                                            Player.REPEAT_MODE_ONE -> stringResource(R.string.repeat_mode_one)
+                                            else -> null
                                         },
                                         tint = if (repeatMode == Player.REPEAT_MODE_OFF) {
                                             textBackgroundColor.copy(alpha = 0.4f)
@@ -543,7 +543,7 @@ fun LyricsScreen(
                                             painter = painterResource(
                                                 if (isPlaying) R.drawable.pause else R.drawable.play
                                             ),
-                                            contentDescription = if (isPlaying) "Pause" else stringResource(R.string.play),
+                                            contentDescription = if (isPlaying) stringResource(R.string.pause) else stringResource(R.string.play),
                                             tint = textBackgroundColor,
                                             modifier = Modifier.size(36.dp)
                                         )
@@ -790,10 +790,10 @@ fun LyricsScreen(
                                         }
                                     ),
                                     contentDescription = when (repeatMode) {
-                                        Player.REPEAT_MODE_OFF -> "Repeat Off"
-                                        Player.REPEAT_MODE_ALL -> "Repeat All"
-                                        Player.REPEAT_MODE_ONE -> "Repeat One"
-                                        else -> "Repeat"
+                                        Player.REPEAT_MODE_OFF -> stringResource(R.string.repeat_mode_off)
+                                        Player.REPEAT_MODE_ALL -> stringResource(R.string.repeat_mode_all)
+                                        Player.REPEAT_MODE_ONE -> stringResource(R.string.repeat_mode_one)
+                                        else -> null
                                     },
                                     tint = if (repeatMode == Player.REPEAT_MODE_OFF) {
                                         // Inactive state - low opacity
@@ -835,7 +835,7 @@ fun LyricsScreen(
                                         painter = painterResource(
                                             if (isPlaying) R.drawable.pause else R.drawable.play
                                         ),
-                                        contentDescription = if (isPlaying) "Pause" else stringResource(R.string.play),
+                                        contentDescription = if (isPlaying) stringResource(R.string.pause) else stringResource(R.string.play),
                                         tint = textBackgroundColor,
                                         modifier = Modifier.size(36.dp)
                                     )

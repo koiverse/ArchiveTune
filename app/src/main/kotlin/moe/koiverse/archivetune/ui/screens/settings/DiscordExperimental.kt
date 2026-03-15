@@ -235,10 +235,10 @@ fun DiscordExperimental(
                                 urlOptions.forEach { opt ->
                                     val display =
                                         when (opt) {
-                                            "songurl" -> "Song URL"
-                                            "artisturl" -> "Artist URL"
-                                            "albumurl" -> "Album URL"
-                                            "custom" -> "Custom URL"
+                                            "songurl" -> stringResource(R.string.song_url_label)
+                                            "artisturl" -> stringResource(R.string.artist_url_label)
+                                            "albumurl" -> stringResource(R.string.album_url_label)
+                                            "custom" -> stringResource(R.string.custom_url_label)
                                             else -> opt
                                         }
                                     DropdownMenuItem(
@@ -255,7 +255,7 @@ fun DiscordExperimental(
                             title = stringResource(R.string.discord_activity_button1_label),
                             iconRes = R.drawable.buttons,
                             value = button1Label,
-                            defaultValue = "Listen on YouTube Music",
+                            defaultValue = stringResource(R.string.default_button_ytm),
                             onValueChange = onButton1LabelChange
                         )
                         if (button1UrlSource == "custom") {
@@ -311,10 +311,10 @@ fun DiscordExperimental(
                                 urlOptions.forEach { opt ->
                                     val display =
                                         when (opt) {
-                                            "songurl" -> "Song URL"
-                                            "artisturl" -> "Artist URL"
-                                            "albumurl" -> "Album URL"
-                                            "custom" -> "Custom URL"
+                                            "songurl" -> stringResource(R.string.song_url_label)
+                                            "artisturl" -> stringResource(R.string.artist_url_label)
+                                            "albumurl" -> stringResource(R.string.album_url_label)
+                                            "custom" -> stringResource(R.string.custom_url_label)
                                             else -> opt
                                         }
                                     DropdownMenuItem(
@@ -331,7 +331,7 @@ fun DiscordExperimental(
                             title = stringResource(R.string.discord_activity_button2_label),
                             iconRes = R.drawable.buttons,
                             value = button2Label,
-                            defaultValue = "Go to ArchiveTune",
+                            defaultValue = stringResource(R.string.default_button_archivetune),
                             onValueChange = onButton2LabelChange
                         )
                         if (button2UrlSource == "custom") {

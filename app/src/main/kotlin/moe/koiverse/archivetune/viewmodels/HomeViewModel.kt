@@ -21,6 +21,7 @@ import moe.koiverse.archivetune.innertube.pages.ExplorePage
 import moe.koiverse.archivetune.innertube.pages.HomePage
 import moe.koiverse.archivetune.innertube.utils.completed
 import moe.koiverse.archivetune.innertube.utils.parseCookieString
+import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.constants.HideExplicitKey
 import moe.koiverse.archivetune.constants.HideVideoKey
 import moe.koiverse.archivetune.constants.InnerTubeCookieKey
@@ -75,7 +76,7 @@ class HomeViewModel @Inject constructor(
     val allYtItems = MutableStateFlow<List<YTItem>>(emptyList())
 
     // Account display info
-    val accountName = MutableStateFlow("Guest")
+    val accountName = MutableStateFlow(context.getString(R.string.guest))
     val accountImageUrl = MutableStateFlow<String?>(null)
     
     // Track last processed cookie to avoid unnecessary updates
@@ -321,7 +322,7 @@ class HomeViewModel @Inject constructor(
                         }
                     }
                 } else {
-                    accountName.value = "Guest"
+                    accountName.value = context.getString(R.string.guest)
                     accountImageUrl.value = null
                     accountPlaylists.value = null
                 }
@@ -404,13 +405,13 @@ class HomeViewModel @Inject constructor(
                                 }
                             }
                         } else {
-                            accountName.value = "Guest"
+                            accountName.value = context.getString(R.string.guest)
                             accountImageUrl.value = null
                             accountPlaylists.value = null
                         }
                     } catch (e: Exception) {
                         timber.log.Timber.e(e, "Error processing cookie change")
-                        accountName.value = "Guest"
+                        accountName.value = context.getString(R.string.guest)
                         accountImageUrl.value = null
                         accountPlaylists.value = null
                     } finally {

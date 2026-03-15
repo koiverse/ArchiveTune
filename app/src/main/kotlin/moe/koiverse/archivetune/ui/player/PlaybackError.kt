@@ -74,13 +74,13 @@ fun PlaybackError(
         remember(error, reason, httpCode) {
             buildString {
                 appendLine(reason)
-                appendLine("Code: ${error.errorCode}")
-                if (httpCode != null) appendLine("HTTP: $httpCode")
+                appendLine(context.getString(R.string.error_code_label, error.errorCode))
+                if (httpCode != null) appendLine(context.getString(R.string.http_code_label, httpCode))
 
                 val rootMessage = error.message?.trim().orEmpty()
                 if (rootMessage.isNotBlank() && rootMessage != reason) {
                     appendLine()
-                    appendLine("Message: $rootMessage")
+                    appendLine(context.getString(R.string.message_label, rootMessage))
                 }
 
                 var t: Throwable? = error.cause
@@ -89,7 +89,8 @@ fun PlaybackError(
                     val name = t.javaClass.simpleName.ifBlank { t.javaClass.name }
                     val msg = t.message?.trim().orEmpty()
                     appendLine()
-                    appendLine("Cause: $name${if (msg.isNotBlank()) ": $msg" else ""}")
+                    val causeContent = "$name${if (msg.isNotBlank()) ": $msg" else ""}"
+                    appendLine(context.getString(R.string.cause_label, causeContent))
                     t = t.cause
                     depth++
                 }

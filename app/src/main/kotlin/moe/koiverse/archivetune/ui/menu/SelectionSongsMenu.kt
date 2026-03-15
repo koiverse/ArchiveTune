@@ -160,7 +160,7 @@ fun SelectionSongMenu(
             onDismiss = { showRemoveDownloadDialog = false },
             content = {
                 Text(
-                    text = stringResource(R.string.remove_download_playlist_confirm, "selection"),
+                    text = stringResource(R.string.remove_download_playlist_confirm, stringResource(R.string.selection).lowercase()),
                     style = MaterialTheme.typography.bodyLarge,
                     modifier = Modifier.padding(horizontal = 18.dp),
                 )
@@ -225,7 +225,7 @@ fun SelectionSongMenu(
                             onDismiss()
                             playerConnection.playQueue(
                                 ListQueue(
-                                    title = "Selection",
+                                    title = context.getString(R.string.selection),
                                     items = songSelection.map { it.toMediaItem() },
                                 ),
                             )
@@ -246,7 +246,7 @@ fun SelectionSongMenu(
                             onDismiss()
                             playerConnection.playQueue(
                                 ListQueue(
-                                    title = "Selection",
+                                    title = context.getString(R.string.selection),
                                     items = songSelection.shuffled().map { it.toMediaItem() },
                                 ),
                             )
@@ -284,7 +284,7 @@ fun SelectionSongMenu(
                     onDismiss()
                     playerConnection.playQueue(
                         ListQueue(
-                            title = "Selection",
+                            title = context.getString(R.string.selection),
                             items = songSelection.map { it.toMediaItem() },
                         ),
                     )
@@ -305,7 +305,7 @@ fun SelectionSongMenu(
                     onDismiss()
                     playerConnection.playQueue(
                         ListQueue(
-                            title = "Selection",
+                            title = context.getString(R.string.selection),
                             items = songSelection.shuffled().map { it.toMediaItem() },
                         ),
                     )
@@ -586,7 +586,7 @@ fun SelectionMediaMetadataMenu(
             onDismiss = { showRemoveDownloadDialog = false },
             content = {
                 Text(
-                    text = stringResource(R.string.remove_download_playlist_confirm, "selection"),
+                    text = stringResource(R.string.remove_download_playlist_confirm, stringResource(R.string.selection).lowercase()),
                     style = MaterialTheme.typography.bodyLarge,
                     modifier = Modifier.padding(horizontal = 18.dp),
                 )
@@ -663,7 +663,7 @@ fun SelectionMediaMetadataMenu(
                     onDismiss()
                     playerConnection.playQueue(
                         ListQueue(
-                            title = "Selection",
+                            title = context.getString(R.string.selection),
                             items = songSelection.map { it.toMediaItem() },
                         ),
                     )
@@ -684,7 +684,7 @@ fun SelectionMediaMetadataMenu(
                     onDismiss()
                     playerConnection.playQueue(
                         ListQueue(
-                            title = "Selection",
+                            title = context.getString(R.string.selection),
                             items = songSelection.shuffled().map { it.toMediaItem() },
                         ),
                     )

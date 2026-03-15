@@ -465,6 +465,7 @@ val PoTokenKey = stringPreferencesKey("poToken")
 val AccountNameKey = stringPreferencesKey("accountName")
 val AccountEmailKey = stringPreferencesKey("accountEmail")
 val AccountChannelHandleKey = stringPreferencesKey("accountChannelHandle")
+val AccountListKey = stringPreferencesKey("savedAccounts")
 val UseLoginForBrowse = booleanPreferencesKey("useLoginForBrowse")
 
 val WebClientPoTokenEnabledKey = booleanPreferencesKey("webClientPoTokenEnabled")

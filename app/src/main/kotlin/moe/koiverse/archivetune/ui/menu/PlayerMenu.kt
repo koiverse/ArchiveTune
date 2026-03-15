@@ -726,7 +726,11 @@ fun PlayerMenu(
                             supportingContent = {
                                 val playbackParameters by playerConnection.playbackParameters.collectAsState()
                                 Text(
-                                    text = "x${formatMultiplier(playbackParameters.speed)} • x${formatMultiplier(playbackParameters.pitch)}",
+                                    text = stringResource(
+                                        R.string.bullet_format,
+                                        stringResource(R.string.tempo_multiplier_format, playbackParameters.speed),
+                                        stringResource(R.string.pitch_multiplier_format, playbackParameters.pitch)
+                                    ),
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis,
                                 )
@@ -901,7 +905,7 @@ fun TempoPitchDialog(onDismiss: () -> Unit) {
                     )
 
                     Text(
-                        text = "x${formatMultiplier(tempo)}",
+                        text = stringResource(R.string.tempo_multiplier_format, tempo),
                         style = MaterialTheme.typography.titleMedium,
                         textAlign = TextAlign.End,
                     )
@@ -969,7 +973,7 @@ fun TempoPitchDialog(onDismiss: () -> Unit) {
                                 tempo = preset
                                 applyPlaybackParameters(tempo, pitch)
                             },
-                            label = { Text("x${formatMultiplier(preset)}") },
+                            label = { Text(stringResource(R.string.tempo_multiplier_format, preset)) },
                         )
                     }
                 }
@@ -998,10 +1002,10 @@ fun TempoPitchDialog(onDismiss: () -> Unit) {
                         when (pitchMode) {
                             PitchMode.Semitones -> {
                                 val semitones = pitchToSemitones(pitch)
-                                "${if (semitones > 0) "+" else ""}$semitones"
+                                stringResource(R.string.pitch_semitones_format, semitones)
                             }
 
-                            PitchMode.Multiplier -> "x${formatMultiplier(pitch)}"
+                            PitchMode.Multiplier -> stringResource(R.string.pitch_multiplier_format, pitch)
                         },
                         style = MaterialTheme.typography.titleMedium,
                         textAlign = TextAlign.End,
@@ -1062,7 +1066,7 @@ fun TempoPitchDialog(onDismiss: () -> Unit) {
                                         pitch = semitonesToPitch(preset)
                                         applyPlaybackParameters(tempo, pitch)
                                     },
-                                    label = { Text("${if (preset > 0) "+" else ""}$preset") },
+                                    label = { Text(stringResource(R.string.pitch_semitones_format, preset)) },
                                 )
                             }
                         }
@@ -1131,7 +1135,7 @@ fun TempoPitchDialog(onDismiss: () -> Unit) {
                                         pitch = preset
                                         applyPlaybackParameters(tempo, pitch)
                                     },
-                                    label = { Text("x${formatMultiplier(preset)}") },
+                                    label = { Text(stringResource(R.string.pitch_multiplier_format, preset)) },
                                 )
                             }
                         }
@@ -1178,9 +1182,6 @@ private fun isPitchSemitoneAligned(pitch: Float): Boolean {
     return abs(reconstructed - pitch) < 0.0015f
 }
 
-private fun formatMultiplier(multiplier: Float): String {
-    return String.format("%.2f", multiplier)
-}
 
 private fun sliderToMultiplier(slider: Float): Float {
     val t = slider.coerceIn(0f, 1f)

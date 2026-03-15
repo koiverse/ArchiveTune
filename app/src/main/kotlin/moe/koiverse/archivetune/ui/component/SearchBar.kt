@@ -58,6 +58,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import moe.koiverse.archivetune.R
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -272,27 +274,29 @@ private fun SearchBarInputField(
             leadingIcon()
         }
 
-        BasicTextField(
-            value = query,
-            onValueChange = onQueryChange,
-            modifier = Modifier
-                .weight(1f)
-                .focusRequester(focusRequester)
-                .pointerInput(Unit) {
-                    awaitEachGesture {
-                        awaitFirstDown(pass = PointerEventPass.Initial)
-                        val upEvent = waitForUpOrCancellation(pass = PointerEventPass.Initial)
-                        if (upEvent != null) {
-                            onActiveChange(true)
-                        }
+    val searchDescription = stringResource(R.string.search)
+    val suggestionsAvailable = stringResource(R.string.suggestions_available)
+    BasicTextField(
+        value = query,
+        onValueChange = onQueryChange,
+        modifier = Modifier
+            .weight(1f)
+            .focusRequester(focusRequester)
+            .pointerInput(Unit) {
+                awaitEachGesture {
+                    awaitFirstDown(pass = PointerEventPass.Initial)
+                    val upEvent = waitForUpOrCancellation(pass = PointerEventPass.Initial)
+                    if (upEvent != null) {
+                        onActiveChange(true)
                     }
                 }
-                .semantics {
-                    contentDescription = "Search"
-                    if (active) {
-                        stateDescription = "Suggestions available"
-                    }
+            }
+            .semantics {
+                contentDescription = searchDescription
+                if (active) {
+                    stateDescription = suggestionsAvailable
                 }
+            }
                 .onKeyEvent {
                     if (it.key == Key.Enter) {
                         onSearch(query.text)

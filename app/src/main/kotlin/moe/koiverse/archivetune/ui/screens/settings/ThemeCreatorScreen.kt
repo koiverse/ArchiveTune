@@ -671,7 +671,7 @@ private fun ThemeRichPreview(
                                 overflow = TextOverflow.Ellipsis,
                             )
                             Text(
-                                text = "Components & surfaces",
+                                text = stringResource(R.string.components_and_surfaces),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 maxLines = 1,
@@ -689,12 +689,12 @@ private fun ThemeRichPreview(
                             ) {
                                 PreviewSegment(
                                     selected = !isDark,
-                                    text = "Light",
+                                    text = stringResource(R.string.light),
                                     onClick = { isDark = false },
                                 )
                                 PreviewSegment(
                                     selected = isDark,
-                                    text = "Dark",
+                                    text = stringResource(R.string.dark),
                                     onClick = { isDark = true },
                                 )
                             }
@@ -723,7 +723,7 @@ private fun ThemeRichPreview(
                                 }
                                 Spacer(Modifier.width(10.dp))
                                 Text(
-                                    text = "Premium look",
+                                    text = stringResource(R.string.premium_look),
                                     style = MaterialTheme.typography.titleSmall,
                                     modifier = Modifier.weight(1f),
                                     maxLines = 1,
@@ -781,13 +781,13 @@ private fun ThemeRichPreview(
                                     )
                                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                                         Text(
-                                            text = "Now playing",
+                                            text = stringResource(R.string.now_playing_label),
                                             style = MaterialTheme.typography.titleSmall,
                                             maxLines = 1,
                                             overflow = TextOverflow.Ellipsis,
                                         )
                                         Text(
-                                            text = "Hues, contrasts, and elevation",
+                                            text = stringResource(R.string.theme_preview_desc),
                                             style = MaterialTheme.typography.bodySmall,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                                             maxLines = 1,
@@ -817,21 +817,21 @@ private fun ThemeRichPreview(
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
                     ) {
                         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                            PreviewSectionTitle("Buttons")
+                            PreviewSectionTitle(stringResource(R.string.buttons_label))
                             Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
                                 Button(
                                     onClick = { },
                                     modifier = Modifier.weight(1f),
                                     contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp),
                                 ) {
-                                    Text("Primary")
+                                    Text(stringResource(R.string.primary_label))
                                 }
                                 ElevatedButton(
                                     onClick = { },
                                     modifier = Modifier.weight(1f),
                                     contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp),
                                 ) {
-                                    Text("Elevated")
+                                    Text(stringResource(R.string.elevated_label))
                                 }
                             }
                             Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
@@ -840,7 +840,7 @@ private fun ThemeRichPreview(
                                     modifier = Modifier.weight(1f),
                                     contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp),
                                 ) {
-                                    Text("Outlined")
+                                    Text(stringResource(R.string.outlined_label))
                                 }
                                 TextButton(
                                     onClick = {
@@ -850,7 +850,7 @@ private fun ThemeRichPreview(
                                     },
                                     modifier = Modifier.weight(1f),
                                 ) {
-                                    Text("Text")
+                                    Text(stringResource(R.string.text_label))
                                 }
                             }
                         }
@@ -862,7 +862,7 @@ private fun ThemeRichPreview(
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
                     ) {
                         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                            PreviewSectionTitle("Chips")
+                            PreviewSectionTitle(stringResource(R.string.chips_label))
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -872,7 +872,7 @@ private fun ThemeRichPreview(
                             ) {
                                 AssistChip(
                                     onClick = { },
-                                    label = { Text("Assist") },
+                                    label = { Text(stringResource(R.string.assist_label)) },
                                     leadingIcon = {
                                         Icon(painter = painterResource(R.drawable.tune), contentDescription = null, modifier = Modifier.size(18.dp))
                                     },
@@ -885,7 +885,7 @@ private fun ThemeRichPreview(
                                 FilterChip(
                                     selected = chipSelected,
                                     onClick = { chipSelected = !chipSelected },
-                                    label = { Text(if (chipSelected) "Selected" else "Filter") },
+                                    label = { Text(if (chipSelected) stringResource(R.string.selected_label) else stringResource(R.string.filter_label)) },
                                     leadingIcon = {
                                         Icon(
                                             painter = painterResource(if (chipSelected) R.drawable.check else R.drawable.filter_alt),
@@ -901,7 +901,7 @@ private fun ThemeRichPreview(
                                 )
                                 AssistChip(
                                     onClick = { },
-                                    label = { Text("Tertiary") },
+                                    label = { Text(stringResource(R.string.tertiary_label)) },
                                     colors = AssistChipDefaults.assistChipColors(
                                         containerColor = MaterialTheme.colorScheme.tertiaryContainer,
                                         labelColor = MaterialTheme.colorScheme.onTertiaryContainer,
@@ -917,7 +917,7 @@ private fun ThemeRichPreview(
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
                     ) {
                         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                            PreviewSectionTitle("Inputs")
+                            PreviewSectionTitle(stringResource(R.string.inputs_label))
                             TextField(
                                 value = query,
                                 onValueChange = { query = it.take(32) },
@@ -940,15 +940,15 @@ private fun ThemeRichPreview(
                                         }
                                     }
                                 },
-                                placeholder = { Text("Search") },
+                                placeholder = { Text(stringResource(R.string.search)) },
                                 modifier = Modifier.fillMaxWidth(),
                             )
                             OutlinedTextField(
-                                value = "Outline",
+                                value = stringResource(R.string.outlined_label),
                                 onValueChange = { },
                                 singleLine = true,
                                 enabled = false,
-                                label = { Text("Disabled") },
+                                label = { Text(stringResource(R.string.disabled_label)) },
                                 modifier = Modifier.fillMaxWidth(),
                             )
                         }
@@ -960,15 +960,15 @@ private fun ThemeRichPreview(
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
                     ) {
                         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                            PreviewSectionTitle("Toggles")
+                            PreviewSectionTitle(stringResource(R.string.toggles_label))
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
                                 Column(Modifier.weight(1f)) {
-                                    Text("Switch", style = MaterialTheme.typography.labelLarge)
-                                    Text("On/off states", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text(stringResource(R.string.switch_label), style = MaterialTheme.typography.labelLarge)
+                                    Text(stringResource(R.string.on_off_states), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
                                 androidx.compose.material3.Switch(
                                     checked = switchOn,
@@ -981,8 +981,9 @@ private fun ThemeRichPreview(
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
                                 Checkbox(checked = checkboxOn, onCheckedChange = { checkboxOn = it })
-                                Text("Checkbox", style = MaterialTheme.typography.labelLarge, modifier = Modifier.weight(1f))
+                                Text(stringResource(R.string.checkbox_label), style = MaterialTheme.typography.labelLarge, modifier = Modifier.weight(1f))
                                 RadioButton(selected = radioSelected == 0, onClick = { radioSelected = 0 })
+                                Text(stringResource(R.string.radio_button_label), style = MaterialTheme.typography.labelMedium)
                                 RadioButton(selected = radioSelected == 1, onClick = { radioSelected = 1 })
                             }
                             Slider(
@@ -999,14 +1000,14 @@ private fun ThemeRichPreview(
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
                     ) {
                         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                            PreviewSectionTitle("Progress")
+                            PreviewSectionTitle(stringResource(R.string.progress_label))
                             LinearProgressIndicator(progress = { sliderValue }, modifier = Modifier.fillMaxWidth())
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
-                                Text("Loading", style = MaterialTheme.typography.labelLarge)
+                                Text(stringResource(R.string.loading_label), style = MaterialTheme.typography.labelLarge)
                                 CircularProgressIndicator(strokeWidth = 3.dp, modifier = Modifier.size(22.dp))
                             }
                         }
@@ -1018,10 +1019,10 @@ private fun ThemeRichPreview(
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
                     ) {
                         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                            PreviewSectionTitle("List")
+                            PreviewSectionTitle(stringResource(R.string.list_label))
                             ListItem(
-                                headlineContent = { Text("Playlist") },
-                                supportingContent = { Text("Curated picks • 24 tracks") },
+                                headlineContent = { Text(stringResource(R.string.playlists)) },
+                                supportingContent = { Text(stringResource(R.string.curated_picks_format, 24)) },
                                 leadingContent = {
                                     Surface(
                                         shape = RoundedCornerShape(14.dp),
@@ -1045,8 +1046,8 @@ private fun ThemeRichPreview(
                             )
                             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f))
                             ListItem(
-                                headlineContent = { Text("Liked songs") },
-                                supportingContent = { Text("Smart collection") },
+                                headlineContent = { Text(stringResource(R.string.liked_songs)) },
+                                supportingContent = { Text(stringResource(R.string.smart_collection)) },
                                 leadingContent = {
                                     Surface(
                                         shape = RoundedCornerShape(14.dp),
@@ -1079,7 +1080,7 @@ private fun ThemeRichPreview(
                                         contentDescription = null
                                     )
                                 },
-                                label = { Text("Home") },
+                                label = { Text(stringResource(R.string.home)) },
                             )
                             NavigationBarItem(
                                 selected = navSelected == 1,
@@ -1090,13 +1091,13 @@ private fun ThemeRichPreview(
                                         contentDescription = null
                                     )
                                 },
-                                label = { Text("Explore") },
+                                label = { Text(stringResource(R.string.explore)) },
                             )
                             NavigationBarItem(
                                 selected = navSelected == 2,
                                 onClick = { navSelected = 2 },
                                 icon = { Icon(painter = painterResource(R.drawable.library_filled), contentDescription = null) },
-                                label = { Text("Library") },
+                                label = { Text(stringResource(R.string.filter_library)) },
                             )
                         }
                     }

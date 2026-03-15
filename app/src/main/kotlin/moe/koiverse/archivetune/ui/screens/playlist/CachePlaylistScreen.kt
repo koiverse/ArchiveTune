@@ -479,7 +479,7 @@ fun CachePlaylistScreen(
                                     onClick = {
                                         playerConnection.playQueue(
                                             ListQueue(
-                                                title = "Cache Songs",
+                                                title = context.getString(R.string.cached_playlist),
                                                 items = filteredSongs.map { it.item.toMediaItem() },
                                             )
                                         )
@@ -501,7 +501,7 @@ fun CachePlaylistScreen(
                                     onClick = {
                                         playerConnection.playQueue(
                                             ListQueue(
-                                                title = "Cache Songs",
+                                                title = context.getString(R.string.cached_playlist),
                                                 items = filteredSongs.shuffled().map { it.item.toMediaItem() },
                                             )
                                         )
@@ -609,7 +609,7 @@ fun CachePlaylistScreen(
                                         } else {
                                             playerConnection.playQueue(
                                                 ListQueue(
-                                                    title = "Cache Songs",
+                                                    title = context.getString(R.string.cached_playlist),
                                                     items = cachedSongs.map { it.toMediaItem() },
                                                     startIndex = cachedSongs.indexOfFirst { it.id == songWrapper.item.id }
                                                 )

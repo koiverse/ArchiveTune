@@ -239,7 +239,7 @@ class BackupRestoreViewModel @Inject constructor(
                             completedUnits++
                         }
                     }
-                } ?: throw IllegalStateException("Failed to open output stream")
+                } ?: throw IllegalStateException(context.getString(R.string.error_output_stream))
 
                 withContext(Dispatchers.Main) {
                     Toast.makeText(context, R.string.backup_create_success, Toast.LENGTH_SHORT).show()
@@ -279,7 +279,7 @@ class BackupRestoreViewModel @Inject constructor(
                         }
                     }
                 }
-                if (!hasDb) throw IllegalStateException("Backup missing database")
+                if (!hasDb) throw IllegalStateException(context.getString(R.string.error_backup_missing_db))
 
                 val restoreEntries =
                     entryNames.filter { name ->
@@ -584,7 +584,7 @@ class BackupRestoreViewModel @Inject constructor(
         if (songs.isEmpty()) {
             Toast.makeText(
                 context,
-                "No songs found. Invalid file, or perhaps no song matches were found.",
+                R.string.error_no_songs_found,
                 Toast.LENGTH_SHORT
             ).show()
         }
@@ -638,7 +638,7 @@ class BackupRestoreViewModel @Inject constructor(
         if (songs.isEmpty()) {
             Toast.makeText(
                 context,
-                "No songs found. Invalid file, or perhaps no song matches were found.",
+                R.string.error_no_songs_found,
                 Toast.LENGTH_SHORT
             ).show()
         }

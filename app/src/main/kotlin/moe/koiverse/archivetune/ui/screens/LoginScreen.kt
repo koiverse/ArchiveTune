@@ -29,6 +29,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.navigation.NavController
+import androidx.datastore.preferences.core.edit
 import moe.koiverse.archivetune.LocalPlayerAwareWindowInsets
 import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.constants.AccountChannelHandleKey
@@ -40,6 +41,7 @@ import moe.koiverse.archivetune.constants.PoTokenKey
 import moe.koiverse.archivetune.constants.VisitorDataKey
 import moe.koiverse.archivetune.ui.component.IconButton
 import moe.koiverse.archivetune.ui.utils.backToMain
+import moe.koiverse.archivetune.utils.dataStore
 import moe.koiverse.archivetune.utils.rememberPreference
 import moe.koiverse.archivetune.utils.reportException
 import moe.koiverse.archivetune.innertube.YouTube
@@ -67,11 +69,7 @@ fun LoginScreen(
     val coroutineScope = rememberCoroutineScope()
     var visitorData by rememberPreference(VisitorDataKey, "")
     var dataSyncId by rememberPreference(DataSyncIdKey, "")
-    var innerTubeCookie by rememberPreference(InnerTubeCookieKey, "")
     var poToken by rememberPreference(PoTokenKey, "")
-    var accountName by rememberPreference(AccountNameKey, "")
-    var accountEmail by rememberPreference(AccountEmailKey, "")
-    var accountChannelHandle by rememberPreference(AccountChannelHandleKey, "")
 
     var webView: WebView? = null
 
@@ -82,7 +80,11 @@ fun LoginScreen(
         factory = { context ->
             WebView(context).apply {
                 val cookieManager = CookieManager.getInstance()
+                cookieManager.removeAllCookies(null)
+                cookieManager.flush()
                 cookieManager.setAcceptCookie(true)
+                clearCache(true)
+                clearHistory()
                 webViewClient = object : WebViewClient() {
                     override fun onPageFinished(view: WebView, url: String?) {
                         val isYouTubePage = url?.contains("youtube.com", ignoreCase = true) == true
@@ -94,13 +96,19 @@ fun LoginScreen(
 
                         val mergedCookie = mergeYouTubeCookies(cookieManager)
                         if (!mergedCookie.isNullOrBlank()) {
-                            innerTubeCookie = mergedCookie
                             coroutineScope.launch {
-                                YouTube.accountInfo().onSuccess {
-                                    accountName = it.name
-                                    accountEmail = it.email.orEmpty()
-                                    accountChannelHandle = it.channelHandle.orEmpty()
+                                YouTube.cookie = mergedCookie
+                                YouTube.accountInfo().onSuccess { info ->
+                                    context.dataStore.edit { prefs ->
+                                        prefs[InnerTubeCookieKey] = mergedCookie
+                                        prefs[AccountNameKey] = info.name
+                                        prefs[AccountEmailKey] = info.email.orEmpty()
+                                        prefs[AccountChannelHandleKey] = info.channelHandle.orEmpty()
+                                    }
                                 }.onFailure {
+                                    context.dataStore.edit { prefs ->
+                                        prefs[InnerTubeCookieKey] = mergedCookie
+                                    }
                                     reportException(it)
                                 }
                             }
