@@ -74,6 +74,7 @@ import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.buildAnnotatedString
@@ -145,9 +146,9 @@ fun PlayerTitleSection(
                         }
                     },
                     onLongClick = {
-                        val clip = ClipData.newPlainText("Copied Title", title)
+                        val clip = ClipData.newPlainText(context.getString(R.string.song_title), title)
                         clipboardManager.setPrimaryClip(clip)
-                        Toast.makeText(context, "Copied Title", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, R.string.copied_title, Toast.LENGTH_SHORT).show()
                     }
                 ),
         )
@@ -214,9 +215,9 @@ fun PlayerTitleSection(
                         }
                     },
                     onLongClick = {
-                        val clip = ClipData.newPlainText("Copied Artist", annotatedString)
+                        val clip = ClipData.newPlainText(context.getString(R.string.song_artists), annotatedString)
                         clipboardManager.setPrimaryClip(clip)
-                        Toast.makeText(context, "Copied Artist", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, R.string.copied_artist, Toast.LENGTH_SHORT).show()
                     }
                 )
         )
@@ -1658,7 +1659,7 @@ fun PlayerBackground(
                         Box(modifier = Modifier.fillMaxSize()) {
                             AsyncImage(
                                 model = thumbnailUrl,
-                                contentDescription = "Blurred background",
+                                contentDescription = stringResource(R.string.blurred_background),
                                 contentScale = ContentScale.Crop,
                                 modifier = Modifier.fillMaxSize().let {
                                     if (disableBlur) it else it.blur(radius = 60.dp)
@@ -1759,7 +1760,7 @@ fun PlayerBackground(
                         Box(modifier = Modifier.fillMaxSize()) {
                             AsyncImage(
                                 model = thumbnailUrl,
-                                contentDescription = "Blurred background",
+                                contentDescription = stringResource(R.string.blurred_background),
                                 contentScale = ContentScale.Crop,
                                 modifier = Modifier.fillMaxSize().let {
                                     if (disableBlur) it else it.blur(radius = 65.dp)
@@ -1808,7 +1809,7 @@ fun PlayerBackground(
 
                             AsyncImage(
                                 model = Uri.parse(uri),
-                                contentDescription = "Custom background",
+                                contentDescription = stringResource(R.string.custom_background),
                                 contentScale = ContentScale.Crop,
                                 modifier = Modifier.fillMaxSize().let {
                                     if (disableBlur) it else it.blur(radius = blurPx.dp)

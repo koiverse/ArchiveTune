@@ -190,7 +190,7 @@ fun ShowMediaInfo(videoId: String) {
                                     onClick = {
                                         // LocalClipboard API may not expose direct setText; use Android ClipboardManager
                                         val cm = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as ClipboardManager
-                                        cm.setPrimaryClip(ClipData.newPlainText("text", displayText))
+                                        cm.setPrimaryClip(ClipData.newPlainText(label, displayText))
                                         Toast.makeText(
                                             context,
                                             R.string.copied,

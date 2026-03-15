@@ -662,7 +662,7 @@ fun ArtistPieChart(
         // Text Info
         Column {
             Text(
-                text = "Total Time Listened",
+                text = stringResource(R.string.total_time_listened),
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.secondary
             )
@@ -725,9 +725,13 @@ fun StatsHighlightsSection(
     ) {
         if (topArtist != null) {
             StatsHighlightCard(
-                title = "Your Favourite Artist",
+                title = stringResource(R.string.your_favourite_artist),
                 mainText = topArtist.artist.name,
-                subText = "${topArtist.songCount} songs played • ${makeTimeString(topArtist.timeListened?.toLong())}",
+                subText = stringResource(
+                    R.string.bullet_format,
+                    stringResource(R.string.n_songs_played, topArtist.songCount),
+                    makeTimeString(topArtist.timeListened?.toLong())
+                ),
                 imageUrl = topArtist.artist.thumbnailUrl,
                 onClick = { navController.navigate("artist/${topArtist.id}") }
             )
@@ -735,9 +739,13 @@ fun StatsHighlightsSection(
 
         if (topSong != null && topSongEntity != null) {
             StatsHighlightCard(
-                title = "Your Favourite Song",
+                title = stringResource(R.string.your_favourite_song),
                 mainText = topSong.title,
-                subText = "${topSong.songCountListened} plays • ${makeTimeString(topSong.timeListened)}",
+                subText = stringResource(
+                    R.string.bullet_format,
+                    stringResource(R.string.n_plays, topSong.songCountListened),
+                    makeTimeString(topSong.timeListened)
+                ),
                 imageUrl = topSong.thumbnailUrl,
                 onClick = { /* Navigate to player or something? For now just no-op or maybe play? */ }
             )

@@ -256,7 +256,7 @@ fun ThumbnailCornerRadiusModal(
                             keyboardOptions = KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
                             trailingIcon = {
                                 Text(
-                                    text = "dp",
+                                    text = stringResource(R.string.dp),
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )

@@ -1272,7 +1272,7 @@ private fun PremiumHeroStoryCard(
             Spacer(modifier = Modifier.height(32.dp))
 
             Text(
-                text = "Tap to continue →",
+                text = stringResource(R.string.tap_to_continue),
                 style = MaterialTheme.typography.bodyMedium,
                 color = SoftWhite.copy(alpha = 0.5f)
             )
@@ -1349,7 +1349,7 @@ private fun PremiumTopSongStoryCard(
                     .padding(horizontal = 12.dp, vertical = 6.dp)
             ) {
                 Text(
-                    text = "#1 " + stringResource(R.string.top_songs),
+                    text = stringResource(R.string.rank_one_format, stringResource(R.string.top_songs)),
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Bold,
                     color = SoftWhite
@@ -1456,7 +1456,7 @@ private fun PremiumTopArtistStoryCard(
                     .padding(horizontal = 12.dp, vertical = 6.dp)
             ) {
                 Text(
-                    text = "#1 " + stringResource(R.string.top_artists),
+                    text = stringResource(R.string.rank_one_format, stringResource(R.string.top_artists)),
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Bold,
                     color = SoftWhite
@@ -1582,7 +1582,7 @@ private fun PremiumTopAlbumStoryCard(
                     .padding(horizontal = 12.dp, vertical = 6.dp)
             ) {
                 Text(
-                    text = "#1 " + stringResource(R.string.albums),
+                    text = stringResource(R.string.rank_one_format, stringResource(R.string.albums)),
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Bold,
                     color = DeepBlack
@@ -1694,7 +1694,7 @@ private fun PremiumSummaryStoryCard(
                     }
                     Column {
                         Text(
-                            text = "ArchiveTune",
+                            text = stringResource(R.string.app_name),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = SoftWhite
@@ -1834,7 +1834,7 @@ private fun PremiumSummaryStoryCard(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = joinByBullet("ArchiveTune", year.toString()),
+                        text = joinByBullet(stringResource(R.string.app_name), year.toString()),
                         style = MaterialTheme.typography.labelMedium,
                         color = SoftWhite.copy(alpha = 0.5f)
                     )

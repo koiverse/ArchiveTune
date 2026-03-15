@@ -136,7 +136,7 @@ class App : Application(), SingletonImageLoader.Factory {
                         )
                     } catch (e: Exception) {
                         withContext(Dispatchers.Main) {
-                            Toast.makeText(this@App, "Failed to parse proxy url.", LENGTH_SHORT).show()
+                            Toast.makeText(this@App, R.string.error_proxy_url_parse, LENGTH_SHORT).show()
                         }
                         reportException(e)
                     }
@@ -156,7 +156,7 @@ class App : Application(), SingletonImageLoader.Factory {
                         tertiary = randomPalette.tertiary,
                         neutral = randomPalette.neutral
                     )
-                    val encodedPalette = ThemeSeedPaletteCodec.encodeForPreference(seedPalette, "Random")
+                    val encodedPalette = ThemeSeedPaletteCodec.encodeForPreference(seedPalette, getString(R.string.random_label))
                     dataStore.edit { settings ->
                         settings[CustomThemeColorKey] = encodedPalette
                     }

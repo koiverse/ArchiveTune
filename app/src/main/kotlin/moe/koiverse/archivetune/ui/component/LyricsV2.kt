@@ -662,7 +662,7 @@ fun LyricsV2(
                 shape = RoundedCornerShape(24.dp),
             ) {
                 Text(
-                    text = "Resume",
+                    text = stringResource(R.string.resume_autoscroll),
                     style = MaterialTheme.typography.labelLarge,
                 )
             }
@@ -794,12 +794,15 @@ fun LyricsV2(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clickable {
-                                val songLink = "https://music.youtube.com/watch?v=${mediaMetadata?.id}"
-                                val shareIntent = Intent().apply {
-                                    action = Intent.ACTION_SEND
-                                    type = "text/plain"
-                                    putExtra(Intent.EXTRA_TEXT, "\"$lyricsText\"\n\n$songTitle - $artists\n$songLink")
-                                }
+                                    val songLink = "https://music.youtube.com/watch?v=${mediaMetadata?.id}"
+                                    val shareIntent = Intent().apply {
+                                        action = Intent.ACTION_SEND
+                                        type = "text/plain"
+                                        putExtra(
+                                            Intent.EXTRA_TEXT,
+                                            context.getString(R.string.share_lyrics_format, lyricsText, songTitle, artists, songLink)
+                                        )
+                                    }
                                 context.startActivity(Intent.createChooser(shareIntent, context.getString(R.string.share_lyrics)))
                                 showShareDialog = false
                             }
@@ -1015,9 +1018,9 @@ fun LyricsV2(
                                         putExtra(Intent.EXTRA_STREAM, uri)
                                         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                                     }
-                                    context.startActivity(Intent.createChooser(shareIntent, "Share Lyrics"))
+                                    context.startActivity(Intent.createChooser(shareIntent, context.getString(R.string.share_lyrics)))
                                 } catch (e: Exception) {
-                                    Toast.makeText(context, "Failed to create image: ${e.message}", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(context, context.getString(R.string.failed_to_create_image, e.message.orEmpty()), Toast.LENGTH_SHORT).show()
                                 } finally {
                                     showProgressDialog = false
                                 }

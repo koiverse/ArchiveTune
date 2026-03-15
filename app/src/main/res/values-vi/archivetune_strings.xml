@@ -67,6 +67,8 @@
     <string name="hide_player_thumbnail_desc">Thay thế artwork album bằng logo ứng dụng trong trình phát</string>
     <string name="crop_thumbnail_to_square">Cắt hình thu nhỏ thành 1:1</string>
     <string name="crop_thumbnail_to_square_desc">Hiển thị hình thu nhỏ YouTube ở định dạng vuông thay vì 16:9</string>
+    <string name="show_home_category_chips">Hiển thị các chip danh mục trang chủ</string>
+    <string name="show_home_category_chips_desc">Hiển thị các chip lọc danh mục trên màn hình chính</string>
     <string name="show_tags_in_library">Hiển thị thẻ trong thư viện</string>
     <string name="show_tags_in_library_desc">Hiển thị chip lọc thẻ trong thư viện</string>
     <string name="already_in_playlist">Đã có trong danh sách phát:</string>
@@ -98,7 +100,6 @@
     <string name="player_background_blur">Làm mờ</string>
     <string name="coloring">Tô màu</string>
     <string name="blur_gradient">Gradient làm mờ</string>
-    <string name="glow">Phát sáng</string>
     <string name="player_buttons_style">Màu sắc nút trình phát</string>
     <string name="default_style">Mặc định</string>
     <string name="secondary_color_style">Phụ</string>
@@ -119,7 +120,6 @@
     <string name="show_top_playlist">Hiển thị danh sách phát \"Hàng đầu\"</string>
     <string name="show_cached_playlist">Hiển thị danh sách phát \"Đã cache\"</string>
     <string name="google">Google</string>
-    <string name="discord">Discord</string>
     <string name="advanced_login">Đăng nhập bằng token</string>
     <string name="token_hidden">Nhấn để hiện token</string>
     <string name="token_shown">Nhấn lại để sao chép hoặc chỉnh sửa</string>
@@ -181,8 +181,12 @@
     <string name="subscribed">Đã đăng ký</string>
     <string name="playlist_not_found">Không tìm thấy danh sách phát</string>
     <string name="playlist_not_found_desc">Không thể tải danh sách phát được yêu cầu</string>
+    <string name="album_not_found">Không tìm thấy album</string>
+    <string name="album_not_found_desc">Không thể tải album được yêu cầu</string>
     <string name="empty_playlist">Danh sách phát trống</string>
     <string name="empty_playlist_desc">Danh sách phát này không chứa bài hát nào</string>
+    <string name="empty_album">Album trống</string>
+    <string name="empty_album_desc">Album này không chứa bài hát nào</string>
     <plurals name="seconds">
         <item quantity="one">1 giây</item>
         <item quantity="other">%d giây</item>
@@ -233,6 +237,7 @@
     <string name="theme_preview_secondary_action">Hành động Phụ</string>
     <string name="copy">Sao chép</string>
     <string name="player_design_v5">Nhỏ nhắn</string>
+    <string name="player_design_v6">Diễn cảm</string>
     <string name="player_stream_client">Client phát nhạc</string>
     <string name="player_stream_client_desc">Kiểm soát client YouTube nào được sử dụng để lấy luồng phát</string>
     <string name="player_stream_client_android_vr">Android VR</string>

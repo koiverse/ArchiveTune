@@ -49,12 +49,12 @@ fun StarDialog(
     AlertDialog(
         onDismissRequest = onDismissRequest,
         title = {
-            Text(text = "Support development", style = MaterialTheme.typography.titleLarge)
+            Text(text = stringResource(R.string.support_development), style = MaterialTheme.typography.titleLarge)
         },
         text = {
             Column {
                 Text(
-                    text = "Hey there! I\'m Koiverse, the developer of ArchiveTune. I have been putting a lot of love into making this app better every day. \n\nIf you enjoy using ArchiveTune, you can support its development by giving the project a star — it really helps and keeps me motivated to keep improving it!\n\nThanks a bunch for your support and for being part of this journey!",
+                    text = stringResource(R.string.star_dialog_text),
                     style = MaterialTheme.typography.bodyMedium,
                 )
             }
@@ -75,11 +75,11 @@ fun StarDialog(
             ) {
                 Icon(
                     painter = painterResource(id = R.drawable.telegram),
-                    contentDescription = "Telegram",
+                    contentDescription = stringResource(R.string.telegram),
                     modifier = Modifier.size(18.dp)
                 )
                 Spacer(modifier = Modifier.size(8.dp))
-                Text(text = "Telegram")
+                Text(text = stringResource(R.string.telegram))
             }
             FilledTonalButton(
                 onClick = {
@@ -98,16 +98,16 @@ fun StarDialog(
             ) {
                 Icon(
                     painter = painterResource(id = R.drawable.star),
-                    contentDescription = "Star",
+                    contentDescription = stringResource(R.string.star),
                     modifier = Modifier.size(18.dp)
                 )
                 Spacer(modifier = Modifier.size(8.dp))
-                Text(text = "Star")
+                Text(text = stringResource(R.string.star))
             }
         },
         dismissButton = {
             TextButton(onClick = onLater) {
-                Text(text = "Later")
+                Text(text = stringResource(R.string.later))
             }
         }
     )

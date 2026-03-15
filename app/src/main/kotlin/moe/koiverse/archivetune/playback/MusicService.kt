@@ -2333,7 +2333,7 @@ class MusicService :
                 scope.launch(SilentHandler) {
                     togetherSessionState.value =
                         moe.koiverse.archivetune.together.TogetherSessionState.Error(
-                            message = "Connection failed: Invalid server websocket URL",
+                            message = getString(R.string.together_error_invalid_ws_url),
                             recoverable = true,
                         )
                 }
@@ -2786,7 +2786,7 @@ class MusicService :
                 scope.launch(SilentHandler) {
                     togetherSessionState.value =
                         moe.koiverse.archivetune.together.TogetherSessionState.Error(
-                            message = "Connection failed: Invalid server websocket URL",
+                            message = getString(R.string.together_error_invalid_ws_url),
                             recoverable = true,
                         )
                 }

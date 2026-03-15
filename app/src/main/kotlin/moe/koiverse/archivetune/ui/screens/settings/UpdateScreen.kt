@@ -151,48 +151,48 @@ fun UpdateScreen(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
-                        text = "ArchiveTune provides two download channels for builds:",
+                        text = stringResource(R.string.update_channel_intro),
                         style = MaterialTheme.typography.bodyMedium
                     )
 
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         Text(
-                            text = "• Stable builds",
+                            text = stringResource(R.string.update_stable_title),
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.SemiBold
                         )
                         Text(
-                            text = "Distributed via official GitHub Releases.",
+                            text = stringResource(R.string.update_stable_description),
                             style = MaterialTheme.typography.bodySmall
                         )
                         Text(
-                            text = "These versions are tested and recommended for most users.",
+                            text = stringResource(R.string.update_stable_recommendation),
                             style = MaterialTheme.typography.bodySmall
                         )
                     }
 
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         Text(
-                            text = "• Nightly builds",
+                            text = stringResource(R.string.update_nightly_title),
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.SemiBold
                         )
                         Text(
-                            text = "Automatically generated development builds hosted via nightly.link.",
+                            text = stringResource(R.string.update_nightly_description_intro),
                             style = MaterialTheme.typography.bodySmall
                         )
                         Text(
-                            text = "Nightly builds may include experimental features, unfinished changes, or temporary regressions.",
+                            text = stringResource(R.string.update_nightly_warning),
                             style = MaterialTheme.typography.bodySmall
                         )
                     }
 
                     Text(
-                        text = "Nightly builds are provided for testing and early access only.\nStability, compatibility, and functionality are not guaranteed.",
+                        text = stringResource(R.string.update_nightly_risk_notice),
                         style = MaterialTheme.typography.bodySmall
                     )
                     Text(
-                        text = "By continuing, you acknowledge that nightly builds may be unstable and use them at your own risk.",
+                        text = stringResource(R.string.update_nightly_risk_acknowledgement),
                         style = MaterialTheme.typography.bodySmall
                     )
                 }
@@ -230,48 +230,48 @@ fun UpdateScreen(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
-                        text = "ArchiveTune provides two download channels for builds:",
+                        text = stringResource(R.string.update_channel_intro),
                         style = MaterialTheme.typography.bodyMedium
                     )
 
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         Text(
-                            text = "• Stable builds",
+                            text = stringResource(R.string.update_stable_title),
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.SemiBold
                         )
                         Text(
-                            text = "Distributed via official GitHub Releases.",
+                            text = stringResource(R.string.update_stable_description),
                             style = MaterialTheme.typography.bodySmall
                         )
                         Text(
-                            text = "These versions are tested and recommended for most users.",
+                            text = stringResource(R.string.update_stable_recommendation),
                             style = MaterialTheme.typography.bodySmall
                         )
                     }
 
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         Text(
-                            text = "• Nightly builds",
+                            text = stringResource(R.string.update_nightly_title),
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.SemiBold
                         )
                         Text(
-                            text = "Automatically generated development builds hosted via nightly.link.",
+                            text = stringResource(R.string.update_nightly_description_intro),
                             style = MaterialTheme.typography.bodySmall
                         )
                         Text(
-                            text = "Nightly builds may include experimental features, unfinished changes, or temporary regressions.",
+                            text = stringResource(R.string.update_nightly_warning),
                             style = MaterialTheme.typography.bodySmall
                         )
                     }
 
                     Text(
-                        text = "Nightly builds are provided for testing and early access only.\nStability, compatibility, and functionality are not guaranteed.",
+                        text = stringResource(R.string.update_nightly_risk_notice),
                         style = MaterialTheme.typography.bodySmall
                     )
                     Text(
-                        text = "By continuing, you acknowledge that nightly builds may be unstable and use them at your own risk.",
+                        text = stringResource(R.string.update_nightly_risk_acknowledgement),
                         style = MaterialTheme.typography.bodySmall
                     )
                 }
@@ -476,13 +476,13 @@ fun UpdateScreen(
                     ) {
                         Column(modifier = Modifier.padding(16.dp)) {
                             Text(
-                                text = "Nightly Builds",
+                                text = stringResource(R.string.nightly_builds),
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold
                             )
                             Spacer(modifier = Modifier.height(6.dp))
                             Text(
-                                text = "Latest features and fixes from the development branch. May contain experimental features and occasional bugs",
+                                text = stringResource(R.string.nightly_description),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -498,7 +498,7 @@ fun UpdateScreen(
                                 onClick = { uriHandler.openUri(nightlyInstallUrl) },
                                 modifier = Modifier.fillMaxWidth()
                             ) {
-                                Text("Install")
+                                Text(stringResource(R.string.install))
                             }
                         }
                     }
