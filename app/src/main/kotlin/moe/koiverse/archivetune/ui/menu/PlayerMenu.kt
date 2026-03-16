@@ -755,8 +755,8 @@ private fun PlayerVolumeCard(
         modifier = modifier.fillMaxWidth(),
     ) {
         Column(
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 14.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -770,17 +770,44 @@ private fun PlayerVolumeCard(
 
                 Text(
                     text = "${(safeVolume * 100).roundToInt()}%",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.primary,
                 )
             }
 
-            VolumeSliderL(
-                value = safeVolume,
-                onValueChange = onVolumeChange,
+            Surface(
+                shape = RoundedCornerShape(18.dp),
+                color = MaterialTheme.colorScheme.surfaceContainerHighest,
                 modifier = Modifier.fillMaxWidth(),
-            )
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.volume_off),
+                        contentDescription = stringResource(R.string.minimum_volume),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(18.dp),
+                    )
 
+                    VolumeSliderL(
+                        value = safeVolume,
+                        onValueChange = onVolumeChange,
+                        modifier = Modifier.weight(1f),
+                    )
+
+                    Icon(
+                        painter = painterResource(R.drawable.volume_up),
+                        contentDescription = stringResource(R.string.maximum_volume),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(18.dp),
+                    )
+                }
+            }
         }
     }
 }
@@ -800,28 +827,34 @@ private fun VolumeSliderL(
         if (!isDragging) sliderValue = safeValue
     }
 
-    val insetIcon = if (sliderValue <= 0f) R.drawable.volume_off else R.drawable.volume_up
-
-        Slider(
-            value = sliderValue,
-            onValueChange = { updated ->
-                isDragging = true
-                val coerced = updated.coerceIn(0f, 1f)
-                sliderValue = coerced
-                onValueChange(coerced)
-            },
-            onValueChangeFinished = { isDragging = false },
-            valueRange = 0f..1f,
-            modifier = Modifier.height(56.dp),
-            thumb = {
-                Icon(
-                    painter = painterResource(insetIcon),
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            },
-            colors = SliderDefaults.colors(),
-        )
+    Slider(
+        value = sliderValue,
+        onValueChange = { updated ->
+            isDragging = true
+            val coerced = updated.coerceIn(0f, 1f)
+            sliderValue = coerced
+            onValueChange(coerced)
+        },
+        onValueChangeFinished = { isDragging = false },
+        valueRange = 0f..1f,
+        modifier = modifier.height(36.dp),
+        thumb = {
+            Box(
+                modifier =
+                    Modifier
+                        .size(14.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.primary),
+            )
+        },
+        colors = SliderDefaults.colors(
+            thumbColor = MaterialTheme.colorScheme.primary,
+            activeTrackColor = MaterialTheme.colorScheme.primary,
+            inactiveTrackColor = MaterialTheme.colorScheme.surfaceVariant,
+            activeTickColor = Color.Transparent,
+            inactiveTickColor = Color.Transparent,
+        ),
+    )
 }
 
 @Composable
