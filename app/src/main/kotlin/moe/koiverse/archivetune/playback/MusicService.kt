@@ -3867,11 +3867,14 @@ class MusicService :
             Player.EVENT_PLAY_WHEN_READY_CHANGED
         )
     ) {
-        val isBufferingOrReady =
-            player.playbackState == Player.STATE_BUFFERING || player.playbackState == Player.STATE_READY
-        if (isBufferingOrReady && player.playWhenReady) {
-            val focusGranted = requestAudioFocus()
-            if (focusGranted) openAudioEffectSession()
+        val playbackState = player.playbackState
+        val keepAudioEffectSessionOpen =
+            playbackState == Player.STATE_BUFFERING || playbackState == Player.STATE_READY
+        if (player.playWhenReady && keepAudioEffectSessionOpen) {
+            requestAudioFocus()
+        }
+        if (keepAudioEffectSessionOpen) {
+            openAudioEffectSession()
         } else {
             closeAudioEffectSession()
         }
