@@ -48,6 +48,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -284,6 +285,7 @@ fun Thumbnail(
     val cropThumbnailToSquare by rememberPreference(CropThumbnailToSquareKey, false)
     val canSkipPrevious by playerConnection.canSkipPrevious.collectAsState()
     val canSkipNext by playerConnection.canSkipNext.collectAsState()
+    val currentMediaItemIndex by playerConnection.currentMediaItemIndex.collectAsState()
     
     // Player background style for consistent theming
     val playerBackground by rememberEnumPreference(
@@ -371,6 +373,19 @@ fun Thumbnail(
     // Current item tracking
     val currentItem by remember { derivedStateOf { thumbnailLazyGridState.firstVisibleItemIndex } }
     val itemScrollOffset by remember { derivedStateOf { thumbnailLazyGridState.firstVisibleItemScrollOffset } }
+    var previousMediaItemIndex by remember { mutableIntStateOf(currentMediaItemIndex) }
+    var pendingSlideDirection by remember { mutableIntStateOf(0) }
+
+    LaunchedEffect(currentMediaItemIndex) {
+        if (
+            currentMediaItemIndex >= 0 &&
+            previousMediaItemIndex >= 0 &&
+            currentMediaItemIndex != previousMediaItemIndex
+        ) {
+            pendingSlideDirection = if (currentMediaItemIndex > previousMediaItemIndex) 1 else -1
+        }
+        previousMediaItemIndex = currentMediaItemIndex
+    }
 
     // Handle swipe to change song
     LaunchedEffect(itemScrollOffset) {
@@ -394,9 +409,22 @@ fun Thumbnail(
         val index = maxOf(0, currentMediaIndex)
         if (index >= 0 && index < mediaItems.size) {
             try {
+                val startIndex =
+                    when {
+                        pendingSlideDirection > 0 -> (index - 1).coerceAtLeast(0)
+                        pendingSlideDirection < 0 -> (index + 1).coerceAtMost(mediaItems.lastIndex)
+                        else -> index
+                    }
+
+                if (startIndex != index) {
+                    thumbnailLazyGridState.scrollToItem(startIndex)
+                }
+
                 thumbnailLazyGridState.animateScrollToItem(index)
             } catch (e: Exception) {
                 thumbnailLazyGridState.scrollToItem(index)
+            } finally {
+                pendingSlideDirection = 0
             }
         }
     }
