@@ -262,8 +262,10 @@ fun SpeedDialSection(
     val context = LocalContext.current
     val distinctSpeedDial = remember(speedDialSongs) { speedDialSongs.distinctBy { it.id }.take(8) }
     val speedDialIndexById = remember(distinctSpeedDial) { distinctSpeedDial.mapIndexed { index, song -> song.id to index }.toMap() }
+    val tileSize = 130.dp
+    val spacing = 10.dp
     val rowCount = min(3, distinctSpeedDial.size + 1)
-    val gridHeight = (104.dp * rowCount) + (10.dp * (rowCount - 1))
+    val gridHeight = (tileSize * rowCount) + (spacing * (rowCount - 1))
 
     fun playSpeedDialQueue(startIndex: Int) {
         if (distinctSpeedDial.isEmpty()) return
@@ -278,8 +280,8 @@ fun SpeedDialSection(
 
     LazyHorizontalGrid(
         rows = GridCells.Fixed(rowCount),
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+        horizontalArrangement = Arrangement.spacedBy(spacing),
+        verticalArrangement = Arrangement.spacedBy(spacing),
         contentPadding = WindowInsets.systemBars.only(WindowInsetsSides.Horizontal).asPaddingValues(),
         modifier = modifier
             .fillMaxWidth()
@@ -295,7 +297,7 @@ fun SpeedDialSection(
 
             Box(
                 modifier = Modifier
-                    .width(130.dp)
+                    .width(tileSize)
                     .aspectRatio(1f)
                     .clip(RoundedCornerShape(16.dp))
                     .combinedClickable(
@@ -374,7 +376,7 @@ fun SpeedDialSection(
                 color = MaterialTheme.colorScheme.secondaryContainer,
                 shape = RoundedCornerShape(16.dp),
                 modifier = Modifier
-                    .width(130.dp)
+                    .width(tileSize)
                     .aspectRatio(1f)
                     .combinedClickable(
                         onClick = {
