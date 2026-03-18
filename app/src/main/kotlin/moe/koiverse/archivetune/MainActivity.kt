@@ -1456,37 +1456,37 @@ class MainActivity : ComponentActivity() {
 
                                         if(useRail) return@Box
 
-                                        val navSlideDistance =
-                                            bottomInset + floatingBarsBottomPadding + navVisibleHeight
+                        val navSlideDistance =
+                            bottomInset + floatingBarsBottomPadding + navVisibleHeight
 
-                                        Box(
-                                            modifier =
-                                                Modifier
-                                                    .align(Alignment.BottomCenter)
-                                                    .height(navSlideDistance)
-                                                    .offset {
-                                                        if (bottomNavigationBarHeight == 0.dp) {
-                                                            IntOffset(
-                                                                x = 0,
-                                                                y = navSlideDistance.roundToPx(),
-                                                            )
-                                                        } else {
-                                                            val slideOffset =
-                                                                navSlideDistance *
-                                                                    playerBottomSheetState.progress.coerceIn(
-                                                                        0f,
-                                                                        1f,
-                                                                    )
-                                                            val hideOffset =
-                                                                navSlideDistance *
-                                                                    (1 - bottomNavigationBarHeight / navVisibleHeight)
-                                                            IntOffset(
-                                                                x = 0,
-                                                                y = (slideOffset + hideOffset).roundToPx(),
-                                                            )
-                                                        }
-                                                    },
-                                        ) {
+                        Box(
+                            modifier =
+                                Modifier
+                                    .align(Alignment.BottomCenter)
+                                    .height(navSlideDistance)
+                                    .offset {
+                                        if (bottomNavigationBarHeight == 0.dp) {
+                                            IntOffset(
+                                                x = 0,
+                                                y = navSlideDistance.roundToPx(),
+                                            )
+                                        } else {
+                                            val slideOffset =
+                                                navSlideDistance *
+                                                    playerBottomSheetState.progress.coerceIn(
+                                                        0f,
+                                                        1f,
+                                                    )
+                                            val hideOffset =
+                                                navSlideDistance *
+                                                    (1 - bottomNavigationBarHeight.coerceAtMost(navVisibleHeight) / navVisibleHeight)
+                                            IntOffset(
+                                                x = 0,
+                                                y = (slideOffset + hideOffset).roundToPx(),
+                                            )
+                                        }
+                                    },
+                        ) {
                                             FloatingNavigationToolbar(
                                                 items = navigationItems,
                                                 slim = slimNav,
