@@ -31,7 +31,10 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -843,7 +846,6 @@ private fun ResultCard(
             val cover = result.coverArtHqUrl ?: result.coverArtUrl
             val title = result.title
             val artist = result.artist
-            val meta = buildMetadata(result)
 
             val primary = MaterialTheme.colorScheme.primary
             val tertiary = MaterialTheme.colorScheme.tertiary
@@ -856,7 +858,7 @@ private fun ResultCard(
                     )
                 }
 
-            Box(
+            BoxWithConstraints(
                 modifier =
                     Modifier
                         .fillMaxWidth()
@@ -867,54 +869,121 @@ private fun ResultCard(
                         )
                         .padding(16.dp),
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    CoverArt(
-                        coverUrl = cover,
-                        modifier = Modifier.size(96.dp),
-                    )
+                val isCompact = maxWidth < 380.dp
 
-                    Spacer(modifier = Modifier.width(14.dp))
+                if (isCompact) {
+                    Column {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            CoverArt(
+                                coverUrl = cover,
+                                modifier = Modifier.size(88.dp),
+                            )
 
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = title,
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.SemiBold,
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = artist,
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
+                            Spacer(modifier = Modifier.width(14.dp))
 
-                        Spacer(modifier = Modifier.height(10.dp))
+                            Column(modifier = Modifier.weight(1f, fill = true)) {
+                                Text(
+                                    text = title,
+                                    style = MaterialTheme.typography.titleLarge,
+                                    fontWeight = FontWeight.SemiBold,
+                                    maxLines = 2,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = artist,
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
                         FlowChips(
                             album = result.album,
                             genre = result.genre,
                             releaseDate = result.releaseDate,
                             isrc = result.isrc,
                         )
-                    }
 
-                    if (!result.shazamUrl.isNullOrBlank()) {
-                        OutlinedButton(
-                            onClick = {
-                                context.startActivity(
-                                    Intent(Intent.ACTION_VIEW, Uri.parse(result.shazamUrl)),
+                        if (!result.shazamUrl.isNullOrBlank()) {
+                            Spacer(modifier = Modifier.height(12.dp))
+                            OutlinedButton(
+                                onClick = {
+                                    context.startActivity(
+                                        Intent(Intent.ACTION_VIEW, Uri.parse(result.shazamUrl)),
+                                    )
+                                },
+                                modifier = Modifier.fillMaxWidth().heightIn(min = 44.dp),
+                            ) {
+                                Icon(
+                                    painter = painterResource(R.drawable.link),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp),
                                 )
-                            },
-                            modifier = Modifier.heightIn(min = 40.dp),
-                        ) {
-                            Icon(
-                                painter = painterResource(R.drawable.link),
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp),
+                                Spacer(modifier = Modifier.width(10.dp))
+                                Text(
+                                    text = stringResource(R.string.music_recognition_open_shazam),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    softWrap = false,
+                                )
+                            }
+                        }
+                    }
+                } else {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        CoverArt(
+                            coverUrl = cover,
+                            modifier = Modifier.size(96.dp),
+                        )
+
+                        Spacer(modifier = Modifier.width(14.dp))
+
+                        Column(modifier = Modifier.weight(1f, fill = true)) {
+                            Text(
+                                text = title,
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.SemiBold,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis,
                             )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = artist,
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+
+                            Spacer(modifier = Modifier.height(10.dp))
+                            FlowChips(
+                                album = result.album,
+                                genre = result.genre,
+                                releaseDate = result.releaseDate,
+                                isrc = result.isrc,
+                            )
+                        }
+
+                        if (!result.shazamUrl.isNullOrBlank()) {
+                            OutlinedButton(
+                                onClick = {
+                                    context.startActivity(
+                                        Intent(Intent.ACTION_VIEW, Uri.parse(result.shazamUrl)),
+                                    )
+                                },
+                                modifier = Modifier.heightIn(min = 40.dp),
+                            ) {
+                                Icon(
+                                    painter = painterResource(R.drawable.link),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp),
+                                )
+                            }
                         }
                     }
                 }
@@ -1032,6 +1101,7 @@ private fun CoverArt(
 }
 
 @Composable
+@OptIn(ExperimentalLayoutApi::class)
 private fun FlowChips(
     album: String?,
     genre: String?,
@@ -1053,12 +1123,12 @@ private fun FlowChips(
     val containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
     val labelColor = MaterialTheme.colorScheme.onSurfaceVariant
 
-    Row(
+    FlowRow(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalAlignment = Alignment.CenterVertically,
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        items.take(2).forEach { chip ->
+        items.forEach { chip ->
             AssistChip(
                 onClick = {},
                 label = {
@@ -1066,6 +1136,7 @@ private fun FlowChips(
                         text = chip.label,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
+                        softWrap = false,
                     )
                 },
                 leadingIcon = {
@@ -1083,38 +1154,6 @@ private fun FlowChips(
                     ),
                 border = null,
             )
-        }
-    }
-
-    if (items.size > 2) {
-        Spacer(modifier = Modifier.height(8.dp))
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            items.drop(2).forEach { chip ->
-                Surface(
-                    shape = RoundedCornerShape(16.dp),
-                    color = containerColor,
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Icon(
-                            painter = painterResource(chip.iconRes),
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp),
-                            tint = labelColor,
-                        )
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Text(
-                            text = chip.label,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = labelColor,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
-                }
-            }
         }
     }
 }
