@@ -203,5 +203,5 @@ ArchiveTune is an independent third-party client.
   <img src="https://raw.githubusercontent.com/koiverse/ArchiveTune/refs/heads/dev/fastlane/metadata/android/en-US/images/ArchiveTuneFull.png" alt="ArchiveTune Banner" style="width: 100%; max-width: 500px;">
   <p><b>If ArchiveTune elevated your music experience, please consider giving us a ⭐</b></p>
   <br />
-  <img src="https://raw.githubusercontent.com/koiverse/ArchiveTune/refs/heads/dev/assets/badge_part.png" alt="ArchiveTune Banner" style="width: 50;">
+  <img src="https://raw.githubusercontent.com/koiverse/ArchiveTune/refs/heads/dev/assets/badge_part.png" alt="ArchiveTune Banner" width="160" height="160">
 </div>
