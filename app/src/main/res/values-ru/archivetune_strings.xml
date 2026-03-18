@@ -268,8 +268,6 @@
     <string name="show_home_category_chips">Показать вкладки домашней категории</string>
     <string name="show_home_category_chips_desc">Показать вкладки фильтров категорий на главной вкладке</string>
     <string name="player_design_v6">Выразительный</string>
-    <string name="glass_navigation_bar">Стеклянная панель навигации (Бета)</string>
-    <string name="glass_mini_player">Стеклянный мини-плеер (Бета)</string>
     <string name="album_not_found">Альбом не найден</string>
     <string name="album_not_found_desc">Запрашиваемый альбом не может быть загружен</string>
     <string name="empty_album">Пустой альбом</string>

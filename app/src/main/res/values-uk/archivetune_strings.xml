@@ -154,8 +154,6 @@
     <string name="lyrics_romanize_korean">Транслітерація текстів пісень корейською</string>
     <string name="slim">Тонкий</string>
     <string name="slim_navbar">Вузька нижня панель навігації</string>
-    <string name="glass_navigation_bar">Скляна панель навігації (бета)</string>
-    <string name="glass_mini_player">Скляний мініплеєр (бета)</string>
     <string name="auto_playlists">Автоматичні плейлісти</string>
     <string name="show_liked_playlist">Показати плейліст «Сподобалося»</string>
     <string name="show_downloaded_playlist">Показати плейліст «Завантажено»</string>

@@ -267,8 +267,6 @@
     <string name="show_home_category_chips_desc">Afficher les icônes de filtrage par catégorie sur l\'écran d\'accueil</string>
     <string name="show_home_category_chips">Afficher les icônes de catégorie d\'accueil</string>
     <string name="player_design_v6">Expressif</string>
-    <string name="glass_navigation_bar">Barre de navigation en verre (Bêta)</string>
-    <string name="glass_mini_player">Mini-lecteur en verre (Bêta)</string>
     <string name="album_not_found">Album introuvable</string>
     <string name="album_not_found_desc">L\'album demandé n\'a pas pu être chargé</string>
     <string name="empty_album">Album vide</string>
