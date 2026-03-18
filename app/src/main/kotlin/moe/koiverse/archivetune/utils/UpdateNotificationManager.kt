@@ -63,6 +63,7 @@ object UpdateNotificationManager {
     fun schedulePeriodicUpdateCheck(context: Context) {
         val constraints = Constraints.Builder()
             .setRequiredNetworkType(NetworkType.CONNECTED)
+            .setRequiresBatteryNotLow(true)
             .build()
 
         val updateCheckRequest = PeriodicWorkRequestBuilder<UpdateCheckWorker>(
