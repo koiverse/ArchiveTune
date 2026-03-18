@@ -40,6 +40,7 @@ import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import android.widget.Toast
+import java.time.LocalDateTime
 
 @Composable
 fun ImportPlaylistDialog(
@@ -117,6 +118,16 @@ fun ImportPlaylistDialog(
                         if (browseId != null) {
                             val existing = database.playlistByBrowseId(browseId).firstOrNull()
                             if (existing != null) {
+                                if (existing.playlist.bookmarkedAt == null) {
+                                    database.query {
+                                        update(
+                                            existing.playlist.copy(
+                                                bookmarkedAt = LocalDateTime.now(),
+                                                lastUpdateTime = LocalDateTime.now()
+                                            )
+                                        )
+                                    }
+                                }
                                 withContext(Dispatchers.Main) {
                                     existingPlaylistId = existing.playlist.id
                                     isImporting = false
@@ -129,6 +140,8 @@ fun ImportPlaylistDialog(
                         val newPlaylist = PlaylistEntity(
                             name = finalName,
                             browseId = browseId,
+                            isEditable = browseId == null,
+                            bookmarkedAt = LocalDateTime.now()
                         )
                         database.query { insert(newPlaylist) }
 
@@ -199,6 +212,16 @@ fun ImportPlaylistDialog(
 
                                 val playlist = database.playlist(existingPlaylistId!!).firstOrNull()
                                 if (playlist != null) {
+                                    if (playlist.playlist.bookmarkedAt == null) {
+                                        database.query {
+                                            update(
+                                                playlist.playlist.copy(
+                                                    bookmarkedAt = LocalDateTime.now(),
+                                                    lastUpdateTime = LocalDateTime.now()
+                                                )
+                                            )
+                                        }
+                                    }
                                     val existingSongIds = database.playlistSongs(playlist.id).firstOrNull()
                                         ?.map { it.song.id }?.toSet() ?: emptySet()
                                     val newSongIds = ids.filterNot { it in existingSongIds }
@@ -258,7 +281,8 @@ fun ImportPlaylistDialog(
 
                                 val newPlaylist = PlaylistEntity(
                                     name = currentPlaylistName,
-                                    browseId = null
+                                    browseId = null,
+                                    bookmarkedAt = LocalDateTime.now()
                                 )
                                 database.query { insert(newPlaylist) }
 
