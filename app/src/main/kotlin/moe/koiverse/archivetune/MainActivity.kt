@@ -1609,6 +1609,10 @@ class MainActivity : ComponentActivity() {
                                                 } else null,
                                                 shuffleIconRes = if (shouldShowHomeShuffleButton) R.drawable.shuffle else null,
                                                 shuffleContentDescription = if (shouldShowHomeShuffleButton) stringResource(R.string.shuffle) else "",
+                                                onMusicRecognitionClick = if (shouldShowHomeShuffleButton) {
+                                                    { navController.navigate(moe.koiverse.archivetune.ui.screens.musicrecognition.MusicRecognitionRoute) }
+                                                } else null,
+                                                musicRecognitionContentDescription = if (shouldShowHomeShuffleButton) stringResource(R.string.music_recognition) else "",
                                                 isSelected = { screen ->
                                                     navBackStackEntry?.destination?.hierarchy?.any { it.route == screen.route } ==
                                                         true

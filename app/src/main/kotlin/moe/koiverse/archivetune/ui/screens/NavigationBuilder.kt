@@ -86,6 +86,8 @@ import moe.koiverse.archivetune.ui.screens.settings.SettingsScreen
 import moe.koiverse.archivetune.ui.screens.settings.StorageSettings
 import moe.koiverse.archivetune.ui.screens.settings.ThemeCreatorScreen
 import moe.koiverse.archivetune.ui.screens.settings.UpdateScreen
+import moe.koiverse.archivetune.ui.screens.musicrecognition.MusicRecognitionRoute
+import moe.koiverse.archivetune.ui.screens.musicrecognition.MusicRecognitionScreen
 import moe.koiverse.archivetune.ui.utils.ShowMediaInfo
 import moe.koiverse.archivetune.utils.rememberEnumPreference
 import moe.koiverse.archivetune.utils.rememberPreference
@@ -112,6 +114,9 @@ fun NavGraphBuilder.navigationBuilder(
     }
     composable("year_in_music") {
         YearInMusicScreen(navController)
+    }
+    composable(MusicRecognitionRoute) {
+        MusicRecognitionScreen(navController)
     }
     composable(Screens.MoodAndGenres.route) {
         MoodAndGenresScreen(navController)

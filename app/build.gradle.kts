@@ -214,6 +214,7 @@ dependencies {
     implementation(project(":kizzy"))
     implementation(project(":simpmusic"))
     implementation(project(":canvas"))
+    implementation(project(":shazamkit"))
     implementation("com.github.Kyant0:m3color:2025.4")
     implementation(libs.compose.cloudy)
 
