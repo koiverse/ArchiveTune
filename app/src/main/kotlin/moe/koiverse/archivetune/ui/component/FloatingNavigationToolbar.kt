@@ -89,7 +89,7 @@ fun FloatingNavigationToolbar(
                         contentColor = if (pureBlack) Color.White else MaterialTheme.colorScheme.onTertiaryContainer,
                     ) {
                         Icon(
-                            painter = painterResource(shuffleIconRes),
+                            painter = painterResource(R.drawable.more_horiz),
                             contentDescription =
                                 shuffleContentDescription.ifEmpty {
                                     stringResource(R.string.more)
@@ -124,7 +124,7 @@ fun FloatingNavigationToolbar(
                                 ) {
                                     Box(contentAlignment = Alignment.Center) {
                                         Icon(
-                                            painter = painterResource(R.drawable.discover_tune),
+                                            painter = painterResource(R.drawable.mic),
                                             contentDescription =
                                                 musicRecognitionContentDescription.ifEmpty {
                                                     stringResource(R.string.music_recognition)
