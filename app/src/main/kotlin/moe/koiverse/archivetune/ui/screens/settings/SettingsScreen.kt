@@ -51,6 +51,7 @@ import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.ui.component.IconButton
 import moe.koiverse.archivetune.ui.component.TopSearch
 import moe.koiverse.archivetune.ui.utils.backToMain
+import moe.koiverse.archivetune.utils.Updater
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -109,7 +110,7 @@ fun SettingsScreen(
     }
 
     val shouldShowPermissionHint = !isStorageGranted || !isNotificationGranted
-    val hasUpdate = latestVersionName != BuildConfig.VERSION_NAME
+    val hasUpdate = !Updater.isSameVersion(latestVersionName, BuildConfig.VERSION_NAME)
 
     val resetSearch: () -> Unit = {
         isSearching = false
