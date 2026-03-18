@@ -169,7 +169,7 @@ fun AppearanceSettings(
             defaultValue = PlayerBackgroundStyle.DEFAULT,
         )
     val (pureBlack, onPureBlackChange) = rememberPreference(PureBlackKey, defaultValue = false)
-    val (disableBlur, onDisableBlurChange) = rememberPreference(DisableBlurKey, defaultValue = true)
+    val (disableBlur, onDisableBlurChange) = rememberPreference(DisableBlurKey, defaultValue = false)
     val (blurRadius, onBlurRadiusChange) = rememberPreference(BlurRadiusKey, defaultValue = 36f)
     val (useSystemFont, onUseSystemFontChange) = rememberPreference(UseSystemFontKey, defaultValue = false)
     val (defaultOpenTab, onDefaultOpenTabChange) = rememberEnumPreference(

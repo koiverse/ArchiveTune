@@ -198,7 +198,7 @@ fun LyricsScreen(
     val isLoading = playbackState == STATE_BUFFERING || sliderPosition != null
 
     val playerBackground by rememberEnumPreference(PlayerBackgroundStyleKey, PlayerBackgroundStyle.DEFAULT)
-    val (disableBlur) = rememberPreference(DisableBlurKey, true)
+    val (disableBlur) = rememberPreference(DisableBlurKey, false)
     val (blurRadius) = rememberPreference(BlurRadiusKey, 36f)
 
     val (playerCustomImageUri) = rememberPreference(PlayerCustomImageUriKey, "")

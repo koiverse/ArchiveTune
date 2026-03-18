@@ -92,7 +92,7 @@ fun HomeScreen(
     val accountName by viewModel.accountName.collectAsState()
     val accountImageUrl by viewModel.accountImageUrl.collectAsState()
     val innerTubeCookie by rememberPreference(InnerTubeCookieKey, "")
-    val (disableBlur) = rememberPreference(DisableBlurKey, true)
+    val (disableBlur) = rememberPreference(DisableBlurKey, false)
     val (showHomeCategoryChips) = rememberPreference(ShowHomeCategoryChipsKey, true)
     val isLoggedIn = remember(innerTubeCookie) {
         "SAPISID" in parseCookieString(innerTubeCookie)

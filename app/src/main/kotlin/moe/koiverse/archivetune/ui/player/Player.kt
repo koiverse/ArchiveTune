@@ -233,7 +233,7 @@ fun BottomSheetPlayer(
     val (playerCustomContrast) = rememberPreference(PlayerCustomContrastKey, 1f)
     val (playerCustomBrightness) = rememberPreference(PlayerCustomBrightnessKey, 1f)
     
-    val (disableBlur) = rememberPreference(DisableBlurKey, true)
+    val (disableBlur) = rememberPreference(DisableBlurKey, false)
     val (blurRadius) = rememberPreference(BlurRadiusKey, 36f)
     val (showCodecOnPlayer) = rememberPreference(booleanPreferencesKey("show_codec_on_player"), false)
     val (incrementalSeekSkipEnabled) = rememberPreference(moe.koiverse.archivetune.constants.SeekExtraSeconds, defaultValue = false)

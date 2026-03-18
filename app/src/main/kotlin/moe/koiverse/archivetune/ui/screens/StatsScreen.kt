@@ -207,7 +207,7 @@ fun StatsScreen(
             emptyList()
         }
 
-    val (disableBlur) = rememberPreference(DisableBlurKey, true)
+    val (disableBlur) = rememberPreference(DisableBlurKey, false)
     val color1 = MaterialTheme.colorScheme.primary
     val color2 = MaterialTheme.colorScheme.secondary
     val color3 = MaterialTheme.colorScheme.tertiary

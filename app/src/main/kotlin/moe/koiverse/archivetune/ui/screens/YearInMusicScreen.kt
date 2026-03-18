@@ -185,7 +185,7 @@ fun YearInMusicScreen(
     var recapCurrentPage by remember { mutableIntStateOf(0) }
     var recapLastPage by remember { mutableIntStateOf(0) }
 
-    val (disableBlur) = rememberPreference(DisableBlurKey, true)
+    val (disableBlur) = rememberPreference(DisableBlurKey, false)
     val shareBackgroundArgb = DeepBlack.toArgb()
     val view = LocalView.current
 
