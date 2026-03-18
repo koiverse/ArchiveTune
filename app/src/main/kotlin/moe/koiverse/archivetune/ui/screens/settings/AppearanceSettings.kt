@@ -116,7 +116,6 @@ import moe.koiverse.archivetune.ui.utils.backToMain
 import moe.koiverse.archivetune.utils.rememberEnumPreference
 import moe.koiverse.archivetune.utils.rememberPreference
 import kotlin.math.roundToInt
-import timber.log.Timber
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -382,34 +381,23 @@ fun AppearanceSettings(
             onCheckedChange = onDisableBlurChange,
         )
 
-        Column(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = stringResource(R.string.blur_intensity),
-                    style = MaterialTheme.typography.titleMedium
-                )
-                Text(
-                    text = stringResource(R.string.blur_intensity_value, blurRadius.roundToInt()),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+        PreferenceEntry(
+            title = { Text(stringResource(R.string.blur_intensity)) },
+            description = stringResource(R.string.blur_intensity_value, blurRadius.roundToInt()),
+            icon = { Icon(painterResource(R.drawable.blur_on), null) },
+            isEnabled = !disableBlur,
+            content = {
+                Spacer(modifier = Modifier.height(10.dp))
+                Slider(
+                    value = blurRadius,
+                    onValueChange = onBlurRadiusChange,
+                    valueRange = 0f..48f,
+                    steps = 47,
+                    enabled = !disableBlur,
+                    modifier = Modifier.fillMaxWidth()
                 )
             }
-            Slider(
-                value = blurRadius,
-                onValueChange = onBlurRadiusChange,
-                valueRange = 0f..48f,
-                steps = 47,
-                enabled = !disableBlur,
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
+        )
 
         SwitchPreference(
             title = { Text(stringResource(R.string.use_system_font)) },
@@ -501,10 +489,7 @@ fun AppearanceSettings(
       
 
         ThumbnailCornerRadiusSelectorButton(
-            modifier = Modifier.padding(16.dp),
-            onRadiusSelected = { selectedRadius ->
-                Timber.tag("Thumbnail").d("Radius Selector: $selectedRadius")
-            }
+            onRadiusSelected = {}
         )
 
         SwitchPreference(
