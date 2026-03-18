@@ -124,6 +124,7 @@ import moe.koiverse.archivetune.constants.PlayerCustomBlurKey
 import moe.koiverse.archivetune.constants.PlayerCustomContrastKey
 import moe.koiverse.archivetune.constants.PlayerCustomBrightnessKey
 import moe.koiverse.archivetune.constants.DisableBlurKey
+import moe.koiverse.archivetune.constants.BlurRadiusKey
 import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -198,6 +199,7 @@ fun LyricsScreen(
 
     val playerBackground by rememberEnumPreference(PlayerBackgroundStyleKey, PlayerBackgroundStyle.DEFAULT)
     val (disableBlur) = rememberPreference(DisableBlurKey, true)
+    val (blurRadius) = rememberPreference(BlurRadiusKey, 36f)
 
     val (playerCustomImageUri) = rememberPreference(PlayerCustomImageUriKey, "")
     val (playerCustomBlur) = rememberPreference(PlayerCustomBlurKey, 0f)
@@ -301,6 +303,7 @@ fun LyricsScreen(
                 mediaMetadata = mediaMetadata,
                 gradientColors = gradientColors,
                 disableBlur = disableBlur,
+                blurRadius = blurRadius,
                 playerCustomImageUri = playerCustomImageUri,
                 playerCustomBlur = playerCustomBlur,
                 playerCustomContrast = playerCustomContrast,

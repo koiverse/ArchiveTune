@@ -152,6 +152,7 @@ import moe.koiverse.archivetune.constants.PlayerCustomBlurKey
 import moe.koiverse.archivetune.constants.PlayerCustomContrastKey
 import moe.koiverse.archivetune.constants.PlayerCustomBrightnessKey
 import moe.koiverse.archivetune.constants.DisableBlurKey
+import moe.koiverse.archivetune.constants.BlurRadiusKey
 import moe.koiverse.archivetune.constants.PlayerButtonsStyle
 import moe.koiverse.archivetune.constants.PlayerButtonsStyleKey
 import moe.koiverse.archivetune.ui.theme.PlayerBackgroundColorUtils
@@ -233,6 +234,7 @@ fun BottomSheetPlayer(
     val (playerCustomBrightness) = rememberPreference(PlayerCustomBrightnessKey, 1f)
     
     val (disableBlur) = rememberPreference(DisableBlurKey, true)
+    val (blurRadius) = rememberPreference(BlurRadiusKey, 36f)
     val (showCodecOnPlayer) = rememberPreference(booleanPreferencesKey("show_codec_on_player"), false)
     val (incrementalSeekSkipEnabled) = rememberPreference(moe.koiverse.archivetune.constants.SeekExtraSeconds, defaultValue = false)
     var keyboardSkipMultiplier by remember { mutableStateOf(1) }
@@ -817,6 +819,7 @@ fun BottomSheetPlayer(
                 mediaMetadata = mediaMetadata,
                 gradientColors = gradientColors,
                 disableBlur = disableBlur,
+                blurRadius = blurRadius,
                 playerCustomImageUri = playerCustomImageUri,
                 playerCustomBlur = playerCustomBlur,
                 playerCustomContrast = playerCustomContrast,

@@ -378,6 +378,8 @@
     <string name="pure_black">Pure black</string>
     <string name="disable_blur">Disable blur effects</string>
     <string name="disable_blur_desc">Disable blur effects throughout the app</string>
+    <string name="blur_intensity">Blur intensity</string>
+    <string name="blur_intensity_value">%1$d dp</string>
     <string name="customize_navigation_tabs">Customize navigation tabs</string>
     <string name="player">Player</string>
     <string name="player_text_alignment">Player text alignment</string>
