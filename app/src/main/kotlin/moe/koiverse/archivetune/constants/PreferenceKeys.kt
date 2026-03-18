@@ -369,6 +369,7 @@ enum class MyTopFilter {
 enum class QuickPicks {
     QUICK_PICKS,
     LAST_LISTEN,
+    DONT_SHOW,
 }
 
 enum class PreferredLyricsProvider {
