@@ -312,6 +312,27 @@ fun HomeScreen(
                 }
             }
 
+            speedDialSongs.takeIf { it.isNotEmpty() }?.let { songs ->
+                item {
+                    NavigationTitle(
+                        title = stringResource(R.string.speed_dial),
+                        modifier = Modifier.animateItem()
+                    )
+                }
+
+                item {
+                    SpeedDialSection(
+                        speedDialSongs = songs,
+                        mediaMetadata = mediaMetadata,
+                        isPlaying = isPlaying,
+                        navController = navController,
+                        playerConnection = playerConnection,
+                        menuState = menuState,
+                        haptic = haptic
+                    )
+                }
+            }
+
             keepListening?.takeIf { it.isNotEmpty() }?.let { items ->
                 item {
                     NavigationTitle(
@@ -330,27 +351,6 @@ fun HomeScreen(
                         menuState = menuState,
                         haptic = haptic,
                         scope = scope
-                    )
-                }
-            }
-
-            speedDialSongs.takeIf { it.isNotEmpty() }?.let { songs ->
-                item {
-                    NavigationTitle(
-                        title = stringResource(R.string.speed_dial),
-                        modifier = Modifier.animateItem()
-                    )
-                }
-
-                item {
-                    SpeedDialSection(
-                        speedDialSongs = songs,
-                        mediaMetadata = mediaMetadata,
-                        isPlaying = isPlaying,
-                        navController = navController,
-                        playerConnection = playerConnection,
-                        menuState = menuState,
-                        haptic = haptic
                     )
                 }
             }
