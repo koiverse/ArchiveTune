@@ -15,6 +15,7 @@ import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
@@ -193,11 +194,13 @@ fun MusicRecognitionScreen(
         containerColor = Color.Transparent,
         modifier = Modifier.fillMaxSize(),
     ) { padding ->
+        val primary = MaterialTheme.colorScheme.primary
+        val tertiary = MaterialTheme.colorScheme.tertiary
         val gradient =
-            remember {
+            remember(primary, tertiary) {
                 listOf(
-                    MaterialTheme.colorScheme.primary.copy(alpha = 0.35f),
-                    MaterialTheme.colorScheme.tertiary.copy(alpha = 0.18f),
+                    primary.copy(alpha = 0.35f),
+                    tertiary.copy(alpha = 0.18f),
                     Color.Transparent,
                 )
             }
