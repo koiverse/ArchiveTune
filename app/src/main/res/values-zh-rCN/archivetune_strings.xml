@@ -41,7 +41,6 @@
     <string name="added_to_play_next">添加下一播放</string>
     <string name="added_to_queue">加入队列</string>
     <string name="remove_from_cache">从缓存中删除</string>
-    <string name="copy_link">复制链接</string>
     <string name="select">全部选择</string>
     <string name="manage_tags">管理标签</string>
     <string name="add_tag">添加标签</string>

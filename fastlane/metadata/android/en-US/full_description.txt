@@ -1,4 +1,4 @@
-Enhanced Music Streaming Client for Android With Material 3 Expressive
+The Cutest Material 3 Expressive Youtube Music client for Android, built for performance and extensibility.
 
 Features:
 
