@@ -29,6 +29,8 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -235,11 +237,13 @@ fun MusicRecognitionScreen(
                     .padding(padding)
                     .statusBarsPadding(),
         ) {
+            val scrollState = rememberScrollState()
             Column(
                 modifier =
                     Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = 20.dp),
+                        .fillMaxWidth()
+                        .verticalScroll(scrollState)
+                        .padding(horizontal = 20.dp, vertical = 12.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Spacer(modifier = Modifier.height(24.dp))
@@ -352,8 +356,6 @@ fun MusicRecognitionScreen(
                         ResultCard(result = result)
                     }
                 }
-
-                Spacer(modifier = Modifier.weight(1f))
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
