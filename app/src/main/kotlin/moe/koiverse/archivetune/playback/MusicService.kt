@@ -167,6 +167,8 @@ import moe.koiverse.archivetune.playback.queues.Queue
 import moe.koiverse.archivetune.playback.queues.YouTubeQueue
 import moe.koiverse.archivetune.playback.queues.filterExplicit
 import moe.koiverse.archivetune.playback.queues.filterVideo
+import moe.koiverse.archivetune.playback.SmartShuffleManager
+import moe.koiverse.archivetune.constants.EnableSmartShuffleKey
 import moe.koiverse.archivetune.utils.CoilBitmapLoader
 import moe.koiverse.archivetune.utils.DiscordRPC
 import moe.koiverse.archivetune.ui.screens.settings.DiscordPresenceManager
@@ -434,6 +436,9 @@ class MusicService :
     private var lastDiscordUpdateTime = 0L
 
     private var scrobbleManager: moe.koiverse.archivetune.utils.ScrobbleManager? = null
+
+    // Smart Shuffle Manager - @cenzer0
+    private val smartShuffleManager = SmartShuffleManager()
 
     val automixItems = MutableStateFlow<List<MediaItem>>(emptyList())
     val automixLoading = MutableStateFlow(false)
@@ -1749,13 +1754,41 @@ class MusicService :
         val count = player.mediaItemCount
         if (count <= 1) return
         val currentIndex = player.currentMediaItemIndex.coerceIn(0, count - 1)
-        val shuffledIndices = IntArray(count) { it }
-        shuffledIndices.shuffle()
-        val currentPos = shuffledIndices.indexOf(currentIndex)
-        if (currentPos >= 0) {
-            shuffledIndices[currentPos] = shuffledIndices[0]
+        
+        // Check if Smart Shuffle is enabled
+        val enableSmartShuffle = dataStore.get(EnableSmartShuffleKey, false)
+        
+        val shuffledIndices = if (enableSmartShuffle) {
+            // Use Smart Shuffle algorithm
+            try {
+                val mediaItems = (0 until count).map { player.getMediaItemAt(it) }
+                val shuffledItems = runBlocking {
+                    smartShuffleManager.smartShuffle(mediaItems, currentIndex)
+                }
+                
+                // Convert shuffled items back to indices
+                val indexMap = mediaItems.withIndex().associate { it.value.mediaId to it.index }
+                shuffledItems.mapNotNull { indexMap[it.mediaId] }.toIntArray()
+            } catch (e: Exception) {
+                // Fallback to standard shuffle if smart shuffle fails
+                val indices = IntArray(count) { it }
+                indices.shuffle()
+                indices
+            }
+        } else {
+            // Standard shuffle
+            val indices = IntArray(count) { it }
+            indices.shuffle()
+            indices
         }
-        shuffledIndices[0] = currentIndex
+        
+        // Ensure current track is first
+        val currentPos = shuffledIndices.indexOf(currentIndex)
+        if (currentPos >= 0 && currentPos != 0) {
+            shuffledIndices[currentPos] = shuffledIndices[0]
+            shuffledIndices[0] = currentIndex
+        }
+        
         player.setShuffleOrder(DefaultShuffleOrder(shuffledIndices, System.currentTimeMillis()))
     }
 
@@ -3574,6 +3607,11 @@ class MusicService :
 
     override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
     super.onMediaItemTransition(mediaItem, reason)
+
+    // Track for Smart Shuffle - @cenzer0
+    mediaItem?.mediaId?.let { mediaId ->
+        smartShuffleManager.markAsPlayed(mediaId)
+    }
 
     clearStreamRefreshGuards(
         mediaItem?.mediaId

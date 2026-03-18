@@ -109,6 +109,14 @@ fun NavGraphBuilder.navigationBuilder(
     composable("history") {
         HistoryScreen(navController)
     }
+    composable("listening_history") {
+        ListeningHistoryScreen(
+            onBackClick = { navController.popBackStack() },
+            onItemClick = { mediaId ->
+                navController.navigate("song/$mediaId")
+            }
+        )
+    }
     composable("stats") {
         StatsScreen(navController)
     }

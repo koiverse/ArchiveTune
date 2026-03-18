@@ -53,6 +53,7 @@ import moe.koiverse.archivetune.constants.AutoStartOnBluetoothKey
 import moe.koiverse.archivetune.constants.AutoSkipNextOnErrorKey
 import moe.koiverse.archivetune.constants.PauseOnDeviceMuteKey
 import moe.koiverse.archivetune.constants.PermanentShuffleKey
+import moe.koiverse.archivetune.constants.EnableSmartShuffleKey
 import moe.koiverse.archivetune.constants.PersistentQueueKey
 
 import moe.koiverse.archivetune.constants.SkipSilenceKey
@@ -103,6 +104,10 @@ fun PlayerSettings(
     )
     val (permanentShuffle, onPermanentShuffleChange) = rememberPreference(
         PermanentShuffleKey,
+        defaultValue = false
+    )
+    val (enableSmartShuffle, onEnableSmartShuffleChange) = rememberPreference(
+        EnableSmartShuffleKey,
         defaultValue = false
     )
     val (skipSilence, onSkipSilenceChange) = rememberPreference(
@@ -387,6 +392,14 @@ fun PlayerSettings(
             icon = { Icon(painterResource(R.drawable.shuffle), null) },
             checked = permanentShuffle,
             onCheckedChange = onPermanentShuffleChange
+        )
+
+        SwitchPreference(
+            title = { Text("Smart Shuffle") },
+            description = "Intelligent shuffle that distributes artists evenly and avoids repetition",
+            icon = { Icon(painterResource(R.drawable.smart_shuffle), null) },
+            checked = enableSmartShuffle,
+            onCheckedChange = onEnableSmartShuffleChange
         )
 
         SwitchPreference(

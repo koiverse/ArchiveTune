@@ -583,3 +583,18 @@ enum class UpdateChannel {
     STABLE,
     NIGHTLY,
 }
+
+// Smart Shuffle - @cenzer0
+val EnableSmartShuffleKey = booleanPreferencesKey("enableSmartShuffle")
+
+// Listening History - @cenzer0
+val EnableListeningHistoryKey = booleanPreferencesKey("enableListeningHistory")
+val ListeningHistoryMaxItemsKey = intPreferencesKey("listeningHistoryMaxItems")
+
+// Enhanced UI Features - @cenzer0 v4
+val EnableGestureControlsKey = booleanPreferencesKey("enableGestureControls")
+val EnableAnimatedNowPlayingKey = booleanPreferencesKey("enableAnimatedNowPlaying")
+val EnableAudioVisualizerKey = booleanPreferencesKey("enableAudioVisualizer")
+val AudioVisualizerStyleKey = stringPreferencesKey("audioVisualizerStyle")
+val EnableSmartQueueKey = booleanPreferencesKey("enableSmartQueue")
+val EnableHapticFeedbackKey = booleanPreferencesKey("enableHapticFeedback")

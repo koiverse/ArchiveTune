@@ -23,8 +23,8 @@ android {
     applicationId = "moe.koiverse.archivetune"
         minSdk = 26
         targetSdk = 36
-        versionCode = 132
-        versionName = "13.0.1"
+        versionCode = 140
+        versionName = "13.2.0-cenzer0-dev-v4"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
@@ -99,6 +99,21 @@ android {
         debug {
             applicationIdSuffix = ".debug"
             isDebuggable = true
+        }
+        create("devCenzer0") {
+            initWith(getByName("debug"))
+            applicationIdSuffix = ".cenzer0dev"
+            versionNameSuffix = "-TESTING"
+            isDebuggable = true
+            isMinifyEnabled = false
+            
+            // Custom build config fields for dev version
+            buildConfigField("String", "DEV_VERSION", "\"cenzer0-dev\"")
+            buildConfigField("String", "DEV_FEATURES", "\"YearWrapped,EnhancedQueue,GestureControls\"")
+            buildConfigField("boolean", "IS_DEV_BUILD", "true")
+            
+            // Ensure it can update from previous versions
+            matchingFallbacks += listOf("debug", "release")
         }
     }
 

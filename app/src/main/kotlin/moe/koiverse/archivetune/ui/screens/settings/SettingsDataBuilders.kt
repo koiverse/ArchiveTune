@@ -29,6 +29,12 @@ fun buildQuickActions(
 ): List<SettingsQuickAction> =
     listOf(
         SettingsQuickAction(
+            icon = painterResource(R.drawable.history_timeline),
+            label = stringResource(R.string.history),
+            onClick = { resetSearch(); navController.navigate("listening_history") },
+            accentColor = MaterialTheme.colorScheme.tertiary,
+        ),
+        SettingsQuickAction(
             icon = painterResource(R.drawable.palette),
             label = stringResource(R.string.appearance),
             onClick = { resetSearch(); navController.navigate("settings/appearance") },
