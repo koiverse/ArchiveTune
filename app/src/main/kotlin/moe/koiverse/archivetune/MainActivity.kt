@@ -1817,6 +1817,11 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    private fun startMusicServiceSafely() {
+        runCatching { startService(Intent(this, moe.koiverse.archivetune.playback.MusicService::class.java)) }
+            .onFailure { reportException(it) }
+    }
+
     @SuppressLint("ObsoleteSdkInt")
     private fun setSystemBarAppearance(isDark: Boolean) {
         WindowCompat.getInsetsController(window, window.decorView.rootView).apply {
