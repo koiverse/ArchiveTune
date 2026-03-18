@@ -34,6 +34,7 @@ import moe.koiverse.archivetune.extensions.toEnum
 import moe.koiverse.archivetune.models.SimilarRecommendation
 import moe.koiverse.archivetune.utils.dataStore
 import moe.koiverse.archivetune.utils.get
+import moe.koiverse.archivetune.utils.getAsync
 import moe.koiverse.archivetune.utils.SyncUtils
 import moe.koiverse.archivetune.utils.reportException
 import dagger.hilt.android.lifecycle.HiltViewModel
