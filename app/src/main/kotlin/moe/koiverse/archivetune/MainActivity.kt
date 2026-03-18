@@ -10,8 +10,6 @@ package moe.koiverse.archivetune
 
 import android.annotation.SuppressLint
 import android.Manifest
-import android.app.ActivityManager
-import android.app.ForegroundServiceStartNotAllowedException
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
@@ -325,7 +323,6 @@ class MainActivity : ComponentActivity() {
 
     override fun onStart() {
         super.onStart()
-        startMusicServiceSafely()
         isMusicServiceBound =
             bindService(
                 Intent(this, MusicService::class.java),
@@ -344,51 +341,6 @@ class MainActivity : ComponentActivity() {
             reportException(e)
         } finally {
             isMusicServiceBound = false
-        }
-    }
-
-    private fun isAppInForeground(): Boolean {
-        val activityManager = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
-        val appProcesses = activityManager.runningAppProcesses ?: return false
-        val packageName = packageName
-        return appProcesses.any { processInfo ->
-            processInfo.importance == ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND &&
-                processInfo.processName == packageName
-        }
-    }
-
-    private fun startMusicServiceSafely() {
-        val startIntent = Intent(this, MusicService::class.java)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            try {
-                if (isAppInForeground()) {
-                    startService(startIntent)
-                }
-            } catch (e: ForegroundServiceStartNotAllowedException) {
-                reportException(e)
-            } catch (e: IllegalStateException) {
-                reportException(e)
-            } catch (e: SecurityException) {
-                reportException(e)
-            } catch (e: Exception) {
-                reportException(e)
-            }
-        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            try {
-                startService(startIntent)
-            } catch (e: IllegalStateException) {
-                reportException(e)
-            } catch (e: SecurityException) {
-                reportException(e)
-            } catch (e: Exception) {
-                reportException(e)
-            }
-        } else {
-            try {
-                startService(startIntent)
-            } catch (e: Exception) {
-                reportException(e)
-            }
         }
     }
 
