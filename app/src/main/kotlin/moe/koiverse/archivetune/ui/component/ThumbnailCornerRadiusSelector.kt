@@ -35,7 +35,6 @@ import moe.koiverse.archivetune.utils.rememberPreference
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import timber.log.Timber
 
 @Composable
 fun ThumbnailCornerRadiusSelectorButton(
@@ -49,46 +48,25 @@ fun ThumbnailCornerRadiusSelectorButton(
 
     var showDialog by remember { mutableStateOf(false) }
 
-    Surface(
-        modifier = modifier
-            .fillMaxWidth()
-            .heightIn(min = 56.dp)
-            .clip(RoundedCornerShape(26.dp)),
-        shadowElevation = 10.dp,
-        color = MaterialTheme.colorScheme.surface,
-        onClick = { showDialog = true }
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 5.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
+    PreferenceEntry(
+        modifier = modifier,
+        title = { Text(text = stringResource(id = R.string.custom_radius)) },
+        description = stringResource(id = R.string.corner_radius, thumbnailCornerRadius.roundToInt()),
+        icon = {
             Icon(
                 painter = painterResource(id = R.drawable.image),
-                contentDescription = null,
-                modifier = Modifier.size(24.dp),
+                contentDescription = null
             )
-            Spacer(modifier = Modifier.width(16.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = stringResource(
-                        id = R.string.custom_radius,
-                        thumbnailCornerRadius.roundToInt()
-                    ),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-            }
-            Spacer(modifier = Modifier.width(8.dp))
+        },
+        trailingContent = {
             Icon(
                 painter = painterResource(R.drawable.arrow_forward),
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.primary
             )
-        }
-    }
+        },
+        onClick = { showDialog = true }
+    )
 
     if (showDialog) {
         ThumbnailCornerRadiusModal(
