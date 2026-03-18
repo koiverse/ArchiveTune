@@ -63,6 +63,9 @@ fun FloatingNavigationToolbar(
     slim: Boolean,
     pureBlack: Boolean,
     modifier: Modifier = Modifier,
+    onFabClick: (() -> Unit)? = null,
+    fabIconRes: Int? = null,
+    fabContentDescription: String = "",
     onShuffleClick: (() -> Unit)? = null,
     shuffleIconRes: Int? = null,
     shuffleContentDescription: String = "",
@@ -178,6 +181,39 @@ fun FloatingNavigationToolbar(
                                 ),
                         )
                     }
+                }
+            },
+            modifier = modifier.widthIn(max = 480.dp),
+            colors = toolbarColors,
+        ) {
+            items.forEach { screen ->
+                val selected = isSelected(screen)
+
+                FloatingNavigationToolbarItem(
+                    screen = screen,
+                    selected = selected,
+                    slim = slim,
+                    pureBlack = pureBlack,
+                    onClick = { onItemClick(screen, selected) },
+                )
+            }
+        }
+    } else if (onFabClick != null && fabIconRes != null) {
+        HorizontalFloatingToolbar(
+            expanded = true,
+            floatingActionButton = {
+                FloatingToolbarDefaults.VibrantFloatingActionButton(
+                    onClick = onFabClick,
+                    containerColor = if (pureBlack) Color.White.copy(alpha = 0.12f) else MaterialTheme.colorScheme.tertiaryContainer,
+                    contentColor = if (pureBlack) Color.White else MaterialTheme.colorScheme.onTertiaryContainer,
+                ) {
+                    Icon(
+                        painter = painterResource(fabIconRes),
+                        contentDescription =
+                            fabContentDescription.ifEmpty {
+                                stringResource(R.string.create_playlist)
+                            },
+                    )
                 }
             },
             modifier = modifier.widthIn(max = 480.dp),
