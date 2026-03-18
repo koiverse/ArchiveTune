@@ -105,7 +105,7 @@ class HomeViewModel @Inject constructor(
             .map { it.trim() }
             .filter { it.isNotEmpty() }
             .distinct()
-            .take(8)
+            .take(24)
         if (speedDialIds.isEmpty()) {
             speedDialSongs.value = emptyList()
             return

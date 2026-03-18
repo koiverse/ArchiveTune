@@ -178,7 +178,7 @@ fun PlayerMenu(
             .map { it.trim() }
             .filter { it.isNotEmpty() }
             .distinct()
-            .take(8)
+            .take(24)
     }
     val isInSpeedDial = remember(speedDialSongs, mediaMetadata.id) { mediaMetadata.id in speedDialSongs }
 
@@ -481,7 +481,7 @@ fun PlayerMenu(
                             val updatedIds = if (isInSpeedDial) {
                                 speedDialSongs.filterNot { it == mediaMetadata.id }
                             } else {
-                                (speedDialSongs + mediaMetadata.id).distinct().take(8)
+                                (speedDialSongs + mediaMetadata.id).distinct().take(24)
                             }
                             onSpeedDialSongIdsChange(updatedIds.joinToString(","))
                             onDismiss()
