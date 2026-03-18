@@ -37,19 +37,25 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.weight
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AssistChip
+import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -285,13 +291,13 @@ fun MusicRecognitionScreen(
                         MusicRecognitionState.Ready -> {
                             StatusPill(
                                 label = stringResource(R.string.music_recognition_tap_to_listen),
-                                iconRes = R.drawable.discover_tune,
+                                iconRes = R.drawable.mic,
                             )
                         }
                         MusicRecognitionState.Listening -> {
                             StatusPill(
                                 label = stringResource(R.string.music_recognition_listening),
-                                iconRes = R.drawable.equalizer,
+                                iconRes = R.drawable.listening,
                             )
                         }
                         MusicRecognitionState.Processing -> {
@@ -597,8 +603,8 @@ private fun ListeningOrb(
         val icon =
             when {
                 isProcessing -> R.drawable.cached
-                isActive -> R.drawable.equalizer
-                else -> R.drawable.discover_tune
+                isActive -> R.drawable.listening
+                else -> R.drawable.mic
             }
 
         val iconAlpha by animateFloatAsState(
@@ -740,35 +746,62 @@ private fun SuccessActions(
     onListenAgain: () -> Unit,
 ) {
     val context = LocalContext.current
-    Row(
+    Column(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterHorizontally),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        FilledTonalButton(onClick = onListenAgain) {
-            Icon(
-                painter = painterResource(R.drawable.replay),
-                contentDescription = null,
-                modifier = Modifier.size(18.dp),
-            )
-            Spacer(modifier = Modifier.width(10.dp))
-            Text(stringResource(R.string.music_recognition_listen_again))
-        }
-        Button(
-            onClick = onSearch,
-            colors =
-                ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary,
-                ),
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            Icon(
-                painter = painterResource(R.drawable.search),
-                contentDescription = null,
-                modifier = Modifier.size(18.dp),
-            )
-            Spacer(modifier = Modifier.width(10.dp))
-            Text(stringResource(R.string.search))
+            FilledTonalButton(
+                onClick = onListenAgain,
+                modifier =
+                    Modifier
+                        .weight(1f)
+                        .heightIn(min = 48.dp),
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.replay),
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp),
+                )
+                Spacer(modifier = Modifier.width(10.dp))
+                Text(
+                    text = stringResource(R.string.music_recognition_listen_again),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    softWrap = false,
+                )
+            }
+
+            Button(
+                onClick = onSearch,
+                modifier =
+                    Modifier
+                        .weight(1f)
+                        .heightIn(min = 48.dp),
+                colors =
+                    ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary,
+                    ),
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.search),
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp),
+                )
+                Spacer(modifier = Modifier.width(10.dp))
+                Text(
+                    text = stringResource(R.string.search),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    softWrap = false,
+                )
+            }
         }
+
         if (!result.shazamUrl.isNullOrBlank()) {
             FilledTonalButton(
                 onClick = {
@@ -776,6 +809,7 @@ private fun SuccessActions(
                         Intent(Intent.ACTION_VIEW, Uri.parse(result.shazamUrl)),
                     )
                 },
+                modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
             ) {
                 Icon(
                     painter = painterResource(R.drawable.arrow_forward),
@@ -783,7 +817,12 @@ private fun SuccessActions(
                     modifier = Modifier.size(18.dp),
                 )
                 Spacer(modifier = Modifier.width(10.dp))
-                Text(stringResource(R.string.music_recognition_open_shazam))
+                Text(
+                    text = stringResource(R.string.music_recognition_open_shazam),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    softWrap = false,
+                )
             }
         }
     }
@@ -798,91 +837,290 @@ private fun ResultCard(
     Surface(
         shape = RoundedCornerShape(28.dp),
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
-        tonalElevation = 4.dp,
+        tonalElevation = 6.dp,
         modifier = Modifier.fillMaxWidth(),
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                val cover =
-                    result.coverArtHqUrl
-                        ?: result.coverArtUrl
-                Surface(
-                    shape = RoundedCornerShape(18.dp),
-                    color = MaterialTheme.colorScheme.surfaceContainer,
-                    modifier = Modifier.size(92.dp),
-                ) {
-                    if (!cover.isNullOrBlank()) {
-                        AsyncImage(
-                            model =
-                                ImageRequest.Builder(context)
-                                    .data(cover)
-                                    .allowHardware(false)
-                                    .build(),
-                            contentDescription = null,
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier.fillMaxSize(),
+        Column {
+            val cover = result.coverArtHqUrl ?: result.coverArtUrl
+            val title = result.title
+            val artist = result.artist
+            val meta = buildMetadata(result)
+
+            val primary = MaterialTheme.colorScheme.primary
+            val tertiary = MaterialTheme.colorScheme.tertiary
+            val heroColors =
+                remember(primary, tertiary) {
+                    listOf(
+                        primary.copy(alpha = 0.28f),
+                        tertiary.copy(alpha = 0.18f),
+                        Color.Transparent,
+                    )
+                }
+
+            Box(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .background(
+                            Brush.verticalGradient(
+                                colors = heroColors,
+                            ),
                         )
-                    } else {
-                        Box(contentAlignment = Alignment.Center) {
+                        .padding(16.dp),
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    CoverArt(
+                        coverUrl = cover,
+                        modifier = Modifier.size(96.dp),
+                    )
+
+                    Spacer(modifier = Modifier.width(14.dp))
+
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = title,
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.SemiBold,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = artist,
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+
+                        Spacer(modifier = Modifier.height(10.dp))
+                        FlowChips(
+                            album = result.album,
+                            genre = result.genre,
+                            releaseDate = result.releaseDate,
+                            isrc = result.isrc,
+                        )
+                    }
+
+                    if (!result.shazamUrl.isNullOrBlank()) {
+                        OutlinedButton(
+                            onClick = {
+                                context.startActivity(
+                                    Intent(Intent.ACTION_VIEW, Uri.parse(result.shazamUrl)),
+                                )
+                            },
+                            modifier = Modifier.heightIn(min = 40.dp),
+                        ) {
                             Icon(
-                                painter = painterResource(R.drawable.music_note),
+                                painter = painterResource(R.drawable.link),
                                 contentDescription = null,
-                                modifier = Modifier.size(34.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(18.dp),
                             )
                         }
                     }
                 }
+            }
 
-                Spacer(modifier = Modifier.width(14.dp))
+            Divider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f))
 
-                Column(modifier = Modifier.weight(1f)) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                val lyrics = result.lyrics?.takeIf { it.isNotEmpty() }?.take(6)?.joinToString("\n")
+                if (!lyrics.isNullOrBlank()) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.lyrics),
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(18.dp),
+                        )
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text(
+                            text = stringResource(R.string.music_recognition_lyrics_preview),
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    Surface(
+                        shape = RoundedCornerShape(22.dp),
+                        color = MaterialTheme.colorScheme.surfaceContainer,
+                    ) {
+                        Text(
+                            text = lyrics,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(14.dp),
+                            maxLines = 6,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                }
+
+                val label = result.label?.takeIf { it.isNotBlank() }
+                if (label != null) {
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Surface(
+                        shape = RoundedCornerShape(18.dp),
+                        color = MaterialTheme.colorScheme.surfaceContainer,
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Icon(
+                                painter = painterResource(R.drawable.info),
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(18.dp),
+                            )
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Text(
+                                text = label,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CoverArt(
+    coverUrl: String?,
+    modifier: Modifier = Modifier,
+) {
+    val context = LocalContext.current
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(22.dp),
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        tonalElevation = 2.dp,
+    ) {
+        if (!coverUrl.isNullOrBlank()) {
+            AsyncImage(
+                model =
+                    ImageRequest.Builder(context)
+                        .data(coverUrl)
+                        .allowHardware(false)
+                        .build(),
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize(),
+            )
+        } else {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(
+                    painter = painterResource(R.drawable.music_note),
+                    contentDescription = null,
+                    modifier = Modifier.size(34.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun FlowChips(
+    album: String?,
+    genre: String?,
+    releaseDate: String?,
+    isrc: String?,
+) {
+    val items =
+        remember(album, genre, releaseDate, isrc) {
+            buildList {
+                album?.takeIf { it.isNotBlank() }?.let { add(ChipData(R.drawable.album, it)) }
+                genre?.takeIf { it.isNotBlank() }?.let { add(ChipData(R.drawable.info, it)) }
+                releaseDate?.takeIf { it.isNotBlank() }?.let { add(ChipData(R.drawable.calendar_today, it)) }
+                isrc?.takeIf { it.isNotBlank() }?.let { add(ChipData(R.drawable.link, it)) }
+            }
+        }
+
+    if (items.isEmpty()) return
+
+    val containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+    val labelColor = MaterialTheme.colorScheme.onSurfaceVariant
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        items.take(2).forEach { chip ->
+            AssistChip(
+                onClick = {},
+                label = {
                     Text(
-                        text = result.title,
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.SemiBold,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = result.artist,
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        text = chip.label,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
-                    val meta = buildMetadata(result)
-                    if (meta.isNotBlank()) {
-                        Spacer(modifier = Modifier.height(6.dp))
+                },
+                leadingIcon = {
+                    Icon(
+                        painter = painterResource(chip.iconRes),
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                    )
+                },
+                colors =
+                    AssistChipDefaults.assistChipColors(
+                        containerColor = containerColor,
+                        labelColor = labelColor,
+                        leadingIconContentColor = labelColor,
+                    ),
+                border = null,
+            )
+        }
+    }
+
+    if (items.size > 2) {
+        Spacer(modifier = Modifier.height(8.dp))
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            items.drop(2).forEach { chip ->
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    color = containerColor,
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(
+                            painter = painterResource(chip.iconRes),
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp),
+                            tint = labelColor,
+                        )
+                        Spacer(modifier = Modifier.width(10.dp))
                         Text(
-                            text = meta,
+                            text = chip.label,
                             style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = labelColor,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
                     }
                 }
             }
-
-            val lyrics = result.lyrics?.takeIf { it.isNotEmpty() }?.take(6)?.joinToString("\n")
-            if (!lyrics.isNullOrBlank()) {
-                Spacer(modifier = Modifier.height(14.dp))
-                Surface(
-                    shape = RoundedCornerShape(20.dp),
-                    color = MaterialTheme.colorScheme.surfaceContainer,
-                ) {
-                    Text(
-                        text = lyrics,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(14.dp),
-                        maxLines = 6,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-            }
         }
     }
 }
+
+private data class ChipData(
+    val iconRes: Int,
+    val label: String,
+)

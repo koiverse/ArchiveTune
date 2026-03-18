@@ -9,6 +9,7 @@
     <string name="music_recognition_signature_failed">Couldn’t generate a signature</string>
     <string name="music_recognition_recognition_failed">Recognition failed</string>
     <string name="music_recognition_open_shazam">Open Shazam</string>
+    <string name="music_recognition_lyrics_preview">Lyrics preview</string>
     <string name="music_recognition_permission_title">Microphone permission</string>
     <string name="music_recognition_permission_desc">Allow microphone access to recognize nearby music.</string>
     <string name="music_recognition_permission_action">Allow</string>
