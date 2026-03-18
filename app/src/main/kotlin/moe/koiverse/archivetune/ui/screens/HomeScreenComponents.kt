@@ -263,16 +263,13 @@ fun SpeedDialSection(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    val distinctSpeedDial = remember(speedDialSongs) { speedDialSongs.distinctBy { it.id }.take(8) }
+    val distinctSpeedDial = remember(speedDialSongs) { speedDialSongs.distinctBy { it.id }.take(24) }
     val speedDialIndexById = remember(distinctSpeedDial) { distinctSpeedDial.mapIndexed { index, song -> song.id to index }.toMap() }
     val tileSize = 130.dp
     val spacing = 10.dp
     val state = rememberLazyGridState()
     val rowCount = min(3, distinctSpeedDial.size + 1)
     val gridHeight = (tileSize * rowCount) + (spacing * (rowCount - 1))
-    val density = LocalDensity.current
-    val tilePx = remember(density) { with(density) { tileSize.roundToPx() }.coerceAtLeast(1) }
-    val spacingPx = remember(density) { with(density) { spacing.roundToPx() }.coerceAtLeast(0) }
 
     fun playSpeedDialQueue(startIndex: Int) {
         if (distinctSpeedDial.isEmpty()) return
@@ -286,22 +283,20 @@ fun SpeedDialSection(
     }
 
     val dotState by
-        remember(state, rowCount, tilePx, spacingPx, distinctSpeedDial.size) {
+        remember(state, distinctSpeedDial.size) {
             derivedStateOf {
-                val totalItems = distinctSpeedDial.size + 1
-                val viewportWidthPx = state.layoutInfo.viewportSize.width
-                if (totalItems <= 0 || viewportWidthPx <= 0 || rowCount <= 0) {
+                val songsPerDot = 8
+                val totalSongs = distinctSpeedDial.size
+                if (totalSongs <= 0) {
                     Triple(0, 0, 0)
                 } else {
-                    val columnsPerPage =
-                        ((viewportWidthPx + spacingPx) / (tilePx + spacingPx)).coerceAtLeast(1)
-                    val itemsPerPage = (columnsPerPage * rowCount).coerceAtLeast(1)
-                    val pages = ceil(totalItems / itemsPerPage.toFloat()).toInt().coerceAtLeast(1)
-                    val currentColumn = (state.firstVisibleItemIndex / rowCount).coerceAtLeast(0)
-                    val currentPage = (currentColumn / columnsPerPage).coerceIn(0, pages - 1)
+                    val pages = ceil(totalSongs / songsPerDot.toFloat()).toInt().coerceAtLeast(1)
+                    val visibleSongIndex =
+                        state.firstVisibleItemIndex.coerceIn(0, (totalSongs - 1).coerceAtLeast(0))
+                    val currentPage = (visibleSongIndex / songsPerDot).coerceIn(0, pages - 1)
                     val dots = min(3, pages)
                     val selectedDot =
-                        if (dots <= 1) 0
+                        if (pages <= 3) currentPage
                         else ((currentPage.toFloat() / (pages - 1).coerceAtLeast(1)) * (dots - 1))
                             .toInt()
                             .coerceIn(0, dots - 1)
