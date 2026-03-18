@@ -272,6 +272,8 @@ class MusicService :
     private var scope = CoroutineScope(Dispatchers.Main + scopeJob)
     private var ioScope = CoroutineScope(Dispatchers.IO + scopeJob)
     private val binder = MusicBinder()
+    private var hasBoundClients = false
+    private var idleStopJob: Job? = null
 
     private lateinit var connectivityManager: ConnectivityManager
     lateinit var connectivityObserver: NetworkConnectivityObserver
@@ -555,6 +557,67 @@ class MusicService :
         }
     }
 
+    private fun promoteToStartedService() {
+        runCatching { startService(Intent(this, MusicService::class.java)) }
+            .onFailure { reportException(it) }
+    }
+
+    private fun cancelIdleStop() {
+        idleStopJob?.cancel()
+        idleStopJob = null
+    }
+
+    private fun stopForegroundAndSelf() {
+        cancelIdleStop()
+        runCatching {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                stopForeground(STOP_FOREGROUND_REMOVE)
+            } else {
+                stopForeground(true)
+            }
+        }
+        hasCalledStartForeground = false
+        stopSelf()
+    }
+
+    private fun scheduleStopIfIdle() {
+        if (hasBoundClients) return
+        val state = player.playbackState
+        val keepAlive =
+            player.isPlaying ||
+                (player.playWhenReady && (state == Player.STATE_BUFFERING || state == Player.STATE_READY))
+        if (keepAlive) {
+            cancelIdleStop()
+            return
+        }
+        val togetherIdle = togetherSessionState.value is moe.koiverse.archivetune.together.TogetherSessionState.Idle
+        if (!togetherIdle) {
+            cancelIdleStop()
+            return
+        }
+
+        val delayMs =
+            when (state) {
+                Player.STATE_READY -> 5 * 60_000L
+                Player.STATE_ENDED, Player.STATE_IDLE -> 30_000L
+                else -> 60_000L
+            }
+
+        cancelIdleStop()
+        idleStopJob =
+            scope.launch {
+                delay(delayMs)
+                if (hasBoundClients) return@launch
+                val currentState = player.playbackState
+                val shouldKeep =
+                    player.isPlaying ||
+                        (player.playWhenReady && (currentState == Player.STATE_BUFFERING || currentState == Player.STATE_READY))
+                if (shouldKeep) return@launch
+                if (togetherSessionState.value !is moe.koiverse.archivetune.together.TogetherSessionState.Idle) return@launch
+                stopForegroundAndSelf()
+            }
+    }
+
     override fun onCreate() {
         super.onCreate()
         ensureScopesActive()
@@ -574,9 +637,6 @@ class MusicService :
             reportException(e)
         }
 
-        ensureStartedAsForeground()
-
-        
         player =
             ExoPlayer
                 .Builder(this)
@@ -1585,6 +1645,11 @@ class MusicService :
                 }
             }
             return
+        }
+        if (playWhenReady) {
+            cancelIdleStop()
+            promoteToStartedService()
+            ensureStartedAsForeground()
         }
         ensureScopesActive()
         suppressAutoPlayback = false
@@ -3879,6 +3944,13 @@ class MusicService :
             closeAudioEffectSession()
         }
         updateWakeLock()
+        if (player.playWhenReady && keepAudioEffectSessionOpen) {
+            cancelIdleStop()
+            promoteToStartedService()
+            ensureStartedAsForeground()
+        } else {
+            scheduleStopIfIdle()
+        }
     }
 
        if (events.containsAny(EVENT_TIMELINE_CHANGED, EVENT_POSITION_DISCONTINUITY)) {
@@ -4831,6 +4903,8 @@ class MusicService :
     }
 
     override fun onBind(intent: Intent?): android.os.IBinder? {
+        hasBoundClients = true
+        cancelIdleStop()
         val result = super.onBind(intent) ?: binder
         if (player.mediaItemCount > 0 && player.currentMediaItem != null) {
             currentMediaMetadata.value = player.currentMetadata
@@ -4840,6 +4914,18 @@ class MusicService :
             }
         }
         return result
+    }
+
+    override fun onUnbind(intent: Intent?): Boolean {
+        hasBoundClients = false
+        scheduleStopIfIdle()
+        return super.onUnbind(intent)
+    }
+
+    override fun onRebind(intent: Intent?) {
+        hasBoundClients = true
+        cancelIdleStop()
+        super.onRebind(intent)
     }
 
     override fun onTaskRemoved(rootIntent: Intent?) {
@@ -4902,7 +4988,6 @@ class MusicService :
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo) = mediaSession
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        ensureStartedAsForeground()
         super.onStartCommand(intent, flags, startId)
         return START_NOT_STICKY
     }
