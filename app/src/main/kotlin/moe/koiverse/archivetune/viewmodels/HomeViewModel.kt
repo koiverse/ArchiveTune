@@ -26,6 +26,7 @@ import moe.koiverse.archivetune.constants.HideVideoKey
 import moe.koiverse.archivetune.constants.InnerTubeCookieKey
 import moe.koiverse.archivetune.constants.QuickPicks
 import moe.koiverse.archivetune.constants.QuickPicksKey
+import moe.koiverse.archivetune.constants.SpeedDialSongIdsKey
 import moe.koiverse.archivetune.constants.YtmSyncKey
 import moe.koiverse.archivetune.db.MusicDatabase
 import moe.koiverse.archivetune.db.entities.*
@@ -59,6 +60,7 @@ class HomeViewModel @Inject constructor(
     }.distinctUntilChanged()
 
     val quickPicks = MutableStateFlow<List<Song>?>(null)
+    val speedDialSongs = MutableStateFlow<List<Song>>(emptyList())
     val forgottenFavorites = MutableStateFlow<List<Song>?>(null)
     val keepListening = MutableStateFlow<List<LocalItem>?>(null)
     val similarRecommendations = MutableStateFlow<List<SimilarRecommendation>?>(null)
@@ -96,6 +98,21 @@ class HomeViewModel @Inject constructor(
         }
     }
 
+    private suspend fun loadSpeedDialSongs() {
+        val speedDialIds = context.dataStore.getAsync(SpeedDialSongIdsKey, "")
+            .split(",")
+            .map { it.trim() }
+            .filter { it.isNotEmpty() }
+            .distinct()
+            .take(8)
+        if (speedDialIds.isEmpty()) {
+            speedDialSongs.value = emptyList()
+            return
+        }
+        val songsById = database.getSongsByIds(speedDialIds).associateBy { it.id }
+        speedDialSongs.value = speedDialIds.mapNotNull { songsById[it] }
+    }
+
     private suspend fun load() {
         if (isLoading.value) return
         isLoading.value = true
@@ -107,6 +124,7 @@ class HomeViewModel @Inject constructor(
                 val fromTimeStamp = System.currentTimeMillis() - 86400000 * 7 * 2
 
                 launch { getQuickPicks() }
+                launch { loadSpeedDialSongs() }
                 launch { forgottenFavorites.value = database.forgottenFavorites().first().shuffled().take(20) }
                 
                 launch {
@@ -334,6 +352,15 @@ class HomeViewModel @Inject constructor(
     init {
         viewModelScope.launch(Dispatchers.IO) {
             load()
+        }
+
+        viewModelScope.launch(Dispatchers.IO) {
+            context.dataStore.data
+                .map { it[SpeedDialSongIdsKey].orEmpty() }
+                .distinctUntilChanged()
+                .collect {
+                    loadSpeedDialSongs()
+                }
         }
 
         viewModelScope.launch(Dispatchers.IO) {

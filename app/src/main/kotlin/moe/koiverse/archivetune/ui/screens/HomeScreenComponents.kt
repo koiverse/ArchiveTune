@@ -13,11 +13,13 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -40,6 +42,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.carousel.HorizontalCenteredHeroCarousel
 import androidx.compose.material3.carousel.rememberCarouselState
@@ -77,6 +80,7 @@ import moe.koiverse.archivetune.db.entities.Artist
 import moe.koiverse.archivetune.db.entities.LocalItem
 import moe.koiverse.archivetune.db.entities.Playlist
 import moe.koiverse.archivetune.db.entities.Song
+import moe.koiverse.archivetune.extensions.toMediaItem
 import moe.koiverse.archivetune.extensions.togglePlayPause
 import moe.koiverse.archivetune.innertube.models.AlbumItem
 import moe.koiverse.archivetune.innertube.models.ArtistItem
@@ -88,6 +92,7 @@ import moe.koiverse.archivetune.innertube.pages.HomePage
 import moe.koiverse.archivetune.models.MediaMetadata
 import moe.koiverse.archivetune.models.toMediaMetadata
 import moe.koiverse.archivetune.playback.PlayerConnection
+import moe.koiverse.archivetune.playback.queues.ListQueue
 import moe.koiverse.archivetune.playback.queues.YouTubeQueue
 import moe.koiverse.archivetune.ui.component.AlbumGridItem
 import moe.koiverse.archivetune.ui.component.ArtistGridItem
@@ -109,6 +114,7 @@ import moe.koiverse.archivetune.ui.menu.YouTubePlaylistMenu
 import moe.koiverse.archivetune.ui.menu.YouTubeSongMenu
 import androidx.compose.foundation.gestures.snapping.SnapLayoutInfoProvider
 import moe.koiverse.archivetune.models.SimilarRecommendation
+import kotlin.random.Random
 import kotlin.math.min
 
 import androidx.compose.foundation.lazy.LazyListScope
@@ -236,6 +242,160 @@ fun QuickPicksSection(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+fun SpeedDialSection(
+    speedDialSongs: List<Song>,
+    mediaMetadata: MediaMetadata?,
+    isPlaying: Boolean,
+    navController: NavController,
+    playerConnection: PlayerConnection,
+    menuState: MenuState,
+    haptic: HapticFeedback,
+    modifier: Modifier = Modifier
+) {
+    val context = LocalContext.current
+    val distinctSpeedDial = remember(speedDialSongs) { speedDialSongs.distinctBy { it.id }.take(8) }
+    val speedDialIndexById = remember(distinctSpeedDial) { distinctSpeedDial.mapIndexed { index, song -> song.id to index }.toMap() }
+    val rowCount = min(3, distinctSpeedDial.size + 1)
+    val gridHeight = (104.dp * rowCount) + (10.dp * (rowCount - 1))
+
+    fun playSpeedDialQueue(startIndex: Int) {
+        if (distinctSpeedDial.isEmpty()) return
+        playerConnection.playQueue(
+            ListQueue(
+                title = context.getString(R.string.speed_dial),
+                items = distinctSpeedDial.map { it.toMediaItem() },
+                startIndex = startIndex,
+            )
+        )
+    }
+
+    LazyHorizontalGrid(
+        rows = GridCells.Fixed(rowCount),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+        contentPadding = WindowInsets.systemBars.only(WindowInsetsSides.Horizontal).asPaddingValues(),
+        modifier = modifier
+            .fillMaxWidth()
+            .height(gridHeight),
+    ) {
+        items(
+            items = distinctSpeedDial,
+            key = { it.id },
+            contentType = { "speed_dial_song" }
+        ) { song ->
+            val songIndex = speedDialIndexById[song.id] ?: 0
+            val isActive = song.id == mediaMetadata?.id
+
+            Box(
+                modifier = Modifier
+                    .width(130.dp)
+                    .aspectRatio(1f)
+                    .clip(RoundedCornerShape(16.dp))
+                    .combinedClickable(
+                        onClick = {
+                            if (isActive) {
+                                playerConnection.player.togglePlayPause()
+                            } else {
+                                playSpeedDialQueue(songIndex)
+                            }
+                        },
+                        onLongClick = {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            menuState.show {
+                                SongMenu(
+                                    originalSong = song,
+                                    navController = navController,
+                                    onDismiss = menuState::dismiss
+                                )
+                            }
+                        }
+                    )
+            ) {
+                AsyncImage(
+                    model = song.song.thumbnailUrl,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            Brush.verticalGradient(
+                                colors = listOf(
+                                    Color.Transparent,
+                                    Color.Transparent,
+                                    Color.Black.copy(alpha = 0.7f)
+                                )
+                            )
+                        )
+                )
+
+                Text(
+                    text = song.song.title,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = Color.White,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .padding(horizontal = 12.dp, vertical = 10.dp)
+                )
+
+                if (isActive && isPlaying) {
+                    Surface(
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(10.dp)
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.volume_up),
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onPrimary,
+                            modifier = Modifier.padding(6.dp).size(16.dp)
+                        )
+                    }
+                }
+            }
+        }
+
+        item(key = "speed_dial_random", contentType = "speed_dial_random") {
+            Surface(
+                color = MaterialTheme.colorScheme.secondaryContainer,
+                shape = RoundedCornerShape(16.dp),
+                modifier = Modifier
+                    .width(130.dp)
+                    .aspectRatio(1f)
+                    .combinedClickable(
+                        onClick = {
+                            if (distinctSpeedDial.isNotEmpty()) {
+                                playSpeedDialQueue(Random.nextInt(distinctSpeedDial.size))
+                            }
+                        },
+                        onLongClick = {}
+                    )
+            ) {
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.casino),
+                        contentDescription = stringResource(R.string.speed_dial_random),
+                        tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                        modifier = Modifier.size(36.dp)
+                    )
+                }
             }
         }
     }

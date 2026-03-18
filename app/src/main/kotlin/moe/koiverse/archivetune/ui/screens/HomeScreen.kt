@@ -76,6 +76,7 @@ fun HomeScreen(
     val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
 
     val quickPicks by viewModel.quickPicks.collectAsState()
+    val speedDialSongs by viewModel.speedDialSongs.collectAsState()
     val forgottenFavorites by viewModel.forgottenFavorites.collectAsState()
     val keepListening by viewModel.keepListening.collectAsState()
     val homePage by viewModel.homePage.collectAsState()
@@ -329,6 +330,27 @@ fun HomeScreen(
                         menuState = menuState,
                         haptic = haptic,
                         scope = scope
+                    )
+                }
+            }
+
+            speedDialSongs.takeIf { it.isNotEmpty() }?.let { songs ->
+                item {
+                    NavigationTitle(
+                        title = stringResource(R.string.speed_dial),
+                        modifier = Modifier.animateItem()
+                    )
+                }
+
+                item {
+                    SpeedDialSection(
+                        speedDialSongs = songs,
+                        mediaMetadata = mediaMetadata,
+                        isPlaying = isPlaying,
+                        navController = navController,
+                        playerConnection = playerConnection,
+                        menuState = menuState,
+                        haptic = haptic
                     )
                 }
             }

@@ -116,6 +116,7 @@ import moe.koiverse.archivetune.constants.EqualizerSelectedProfileIdKey
 import moe.koiverse.archivetune.constants.EqualizerVirtualizerEnabledKey
 import moe.koiverse.archivetune.constants.EqualizerVirtualizerStrengthKey
 import moe.koiverse.archivetune.constants.ListItemHeight
+import moe.koiverse.archivetune.constants.SpeedDialSongIdsKey
 import moe.koiverse.archivetune.models.MediaMetadata
 import moe.koiverse.archivetune.playback.EqCapabilities
 import moe.koiverse.archivetune.playback.EqProfile
@@ -170,6 +171,16 @@ fun PlayerMenu(
     val (artistSeparators) = rememberPreference(ArtistSeparatorsKey, defaultValue = ",;/&")
     val (externalDownloaderEnabled) = rememberPreference(ExternalDownloaderEnabledKey, defaultValue = false)
     val (externalDownloaderPackage) = rememberPreference(ExternalDownloaderPackageKey, defaultValue = "")
+    val (speedDialSongIds, onSpeedDialSongIdsChange) = rememberPreference(SpeedDialSongIdsKey, "")
+    val speedDialSongs = remember(speedDialSongIds) {
+        speedDialSongIds
+            .split(",")
+            .map { it.trim() }
+            .filter { it.isNotEmpty() }
+            .distinct()
+            .take(8)
+    }
+    val isInSpeedDial = remember(speedDialSongs, mediaMetadata.id) { mediaMetadata.id in speedDialSongs }
 
     // Split artists by configured separators
     data class SplitArtist(
@@ -452,6 +463,29 @@ fun PlayerMenu(
                         },
                         text = stringResource(R.string.add_to_playlist),
                         onClick = { showChoosePlaylistDialog = true }
+                    ),
+                    NewAction(
+                        icon = {
+                            Icon(
+                                painter = painterResource(if (isInSpeedDial) R.drawable.bookmark_filled else R.drawable.bookmark),
+                                contentDescription = null,
+                                modifier = Modifier.size(28.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        },
+                        text = stringResource(
+                            if (isInSpeedDial) R.string.remove_from_speed_dial
+                            else R.string.pin_to_speed_dial
+                        ),
+                        onClick = {
+                            val updatedIds = if (isInSpeedDial) {
+                                speedDialSongs.filterNot { it == mediaMetadata.id }
+                            } else {
+                                (speedDialSongs + mediaMetadata.id).distinct().take(8)
+                            }
+                            onSpeedDialSongIdsChange(updatedIds.joinToString(","))
+                            onDismiss()
+                        }
                     ),
                     NewAction(
                         icon = {

@@ -88,6 +88,7 @@ import moe.koiverse.archivetune.constants.ExternalDownloaderEnabledKey
 import moe.koiverse.archivetune.constants.ExternalDownloaderPackageKey
 import moe.koiverse.archivetune.constants.ListItemHeight
 import moe.koiverse.archivetune.constants.ListThumbnailSize
+import moe.koiverse.archivetune.constants.SpeedDialSongIdsKey
 import moe.koiverse.archivetune.db.entities.ArtistEntity
 import moe.koiverse.archivetune.db.entities.Event
 import moe.koiverse.archivetune.db.entities.PlaylistSong
@@ -146,6 +147,16 @@ fun SongMenu(
     val (artistSeparators) = rememberPreference(ArtistSeparatorsKey, defaultValue = ",;/&")
     val (externalDownloaderEnabled) = rememberPreference(ExternalDownloaderEnabledKey, defaultValue = false)
     val (externalDownloaderPackage) = rememberPreference(ExternalDownloaderPackageKey, defaultValue = "")
+    val (speedDialSongIds, onSpeedDialSongIdsChange) = rememberPreference(SpeedDialSongIdsKey, "")
+    val speedDialSongs = remember(speedDialSongIds) {
+        speedDialSongIds
+            .split(",")
+            .map { it.trim() }
+            .filter { it.isNotEmpty() }
+            .distinct()
+            .take(8)
+    }
+    val isInSpeedDial = remember(speedDialSongs, song.id) { song.id in speedDialSongs }
 
     val orderedArtists by produceState(initialValue = emptyList<ArtistEntity>(), song) {
         withContext(Dispatchers.IO) {
@@ -542,6 +553,41 @@ fun SongMenu(
                                 update(song.song.toggleLibrary())
                             }
                         },
+                    colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                )
+            }
+        }
+
+        item {
+            Spacer(modifier = Modifier.height(12.dp))
+        }
+
+        item {
+            MenuSurfaceSection(modifier = Modifier.padding(vertical = 6.dp)) {
+                ListItem(
+                    headlineContent = {
+                        Text(
+                            text = stringResource(
+                                if (isInSpeedDial) R.string.remove_from_speed_dial
+                                else R.string.pin_to_speed_dial,
+                            ),
+                        )
+                    },
+                    leadingContent = {
+                        Icon(
+                            painter = painterResource(if (isInSpeedDial) R.drawable.bookmark_filled else R.drawable.bookmark),
+                            contentDescription = null,
+                        )
+                    },
+                    modifier = Modifier.clickable {
+                        val updatedIds = if (isInSpeedDial) {
+                            speedDialSongs.filterNot { it == song.id }
+                        } else {
+                            (speedDialSongs + song.id).distinct().take(8)
+                        }
+                        onSpeedDialSongIdsChange(updatedIds.joinToString(","))
+                        onDismiss()
+                    },
                     colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                 )
             }
