@@ -177,7 +177,6 @@ import moe.koiverse.archivetune.constants.SearchSourceKey
 import moe.koiverse.archivetune.constants.SlimFloatingToolbarHeight
 import moe.koiverse.archivetune.constants.SlimNavBarKey
 import moe.koiverse.archivetune.constants.StopMusicOnTaskClearKey
-import moe.koiverse.archivetune.constants.UseNewMiniPlayerDesignKey
 import moe.koiverse.archivetune.constants.UseSystemFontKey
 import moe.koiverse.archivetune.db.MusicDatabase
 import moe.koiverse.archivetune.db.entities.SearchHistory
@@ -659,7 +658,6 @@ class MainActivity : ComponentActivity() {
 
                     val navigationItems = remember { Screens.MainScreens }
                     val (slimNav) = rememberPreference(SlimNavBarKey, defaultValue = false)
-                    val (useNewMiniPlayerDesign) = rememberPreference(UseNewMiniPlayerDesignKey, defaultValue = true)
                     val (savedMiniPlayerAnchor, setSavedMiniPlayerAnchor) = rememberPreference(
                         MiniPlayerLastAnchorKey,
                         defaultValue = COLLAPSED_ANCHOR
@@ -767,7 +765,7 @@ class MainActivity : ComponentActivity() {
                                 bottomInset +
                                     (if (shouldShowNavigationBar && !useRail) floatingBarsBottomPadding else 0.dp) +
                                     getBottomNavPadding() +
-                                    (if (useNewMiniPlayerDesign) MiniPlayerBottomSpacing else 0.dp) +
+                                    MiniPlayerBottomSpacing +
                                     MiniPlayerHeight,
                             expandedBound = maxHeight,
                         )

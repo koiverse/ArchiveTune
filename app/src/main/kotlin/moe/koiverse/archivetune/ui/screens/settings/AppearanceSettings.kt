@@ -72,7 +72,6 @@ import moe.koiverse.archivetune.constants.LyricsScrollKey
 import moe.koiverse.archivetune.constants.LyricsTextPositionKey
 import moe.koiverse.archivetune.constants.PlayerDesignStyle
 import moe.koiverse.archivetune.constants.PlayerDesignStyleKey
-import moe.koiverse.archivetune.constants.UseNewMiniPlayerDesignKey
 import moe.koiverse.archivetune.constants.PlayerBackgroundStyle
 import moe.koiverse.archivetune.constants.PlayerBackgroundStyleKey
 import moe.koiverse.archivetune.constants.PureBlackKey
@@ -138,10 +137,6 @@ fun AppearanceSettings(
     val (playerDesignStyle, onPlayerDesignStyleChange) = rememberEnumPreference(
         PlayerDesignStyleKey,
         defaultValue = PlayerDesignStyle.V4
-    )
-    val (useNewMiniPlayerDesign, onUseNewMiniPlayerDesignChange) = rememberPreference(
-        UseNewMiniPlayerDesignKey,
-        defaultValue = true
     )
     val (useNewLibraryDesign, onUseNewLibraryDesignChange) = rememberPreference(
         key = moe.koiverse.archivetune.constants.UseNewLibraryDesignKey,
@@ -426,13 +421,6 @@ fun AppearanceSettings(
                     PlayerDesignStyle.V6 -> stringResource(R.string.player_design_v6)
                 }
             },
-        )
-
-        SwitchPreference(
-            title = { Text(stringResource(R.string.new_mini_player_design)) },
-            icon = { Icon(painterResource(R.drawable.nav_bar), null) },
-            checked = useNewMiniPlayerDesign,
-            onCheckedChange = onUseNewMiniPlayerDesignChange,
         )
 
         SwitchPreference(

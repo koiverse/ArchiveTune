@@ -90,7 +90,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.graphics.TransformOrigin
-import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.PointerEventPass
@@ -144,7 +143,6 @@ import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.constants.DarkModeKey
 import moe.koiverse.archivetune.constants.PlayerDesignStyle
 import moe.koiverse.archivetune.constants.PlayerDesignStyleKey
-import moe.koiverse.archivetune.constants.UseNewMiniPlayerDesignKey
 import moe.koiverse.archivetune.constants.PlayerBackgroundStyle
 import moe.koiverse.archivetune.constants.PlayerBackgroundStyleKey
 import moe.koiverse.archivetune.constants.PlayerCustomImageUriKey
@@ -217,11 +215,6 @@ fun BottomSheetPlayer(
         defaultValue = PlayerDesignStyle.V4
     )
     
-    val (useNewMiniPlayerDesign) = rememberPreference(
-        UseNewMiniPlayerDesignKey,
-        defaultValue = true
-    )
-
     val playerBackground by rememberEnumPreference(
         key = PlayerBackgroundStyleKey,
         defaultValue = PlayerBackgroundStyle.DEFAULT
@@ -264,24 +257,14 @@ fun BottomSheetPlayer(
                 if (darkTheme == DarkMode.AUTO) isSystemInDarkTheme else darkTheme == DarkMode.ON
             useDarkTheme && pureBlack
         }
-    val backgroundColor = if (useNewMiniPlayerDesign) {
-        if (useBlackBackground && state.value > state.collapsedBound) {
-            // Make background transparent when collapsed, gradually show when pulled up (same as normal mode)
-            val progress = ((state.value - state.collapsedBound) / (state.expandedBound - state.collapsedBound))
-                .coerceIn(0f, 1f)
-            Color.Black.copy(alpha = progress)
-        } else {
-            // Make background transparent when collapsed, gradually show when pulled up
-            val progress = ((state.value - state.collapsedBound) / (state.expandedBound - state.collapsedBound))
-                .coerceIn(0f, 1f)
-            MaterialTheme.colorScheme.surfaceContainer.copy(alpha = progress)
-        }
+    val backgroundColor = if (useBlackBackground && state.value > state.collapsedBound) {
+        val progress = ((state.value - state.collapsedBound) / (state.expandedBound - state.collapsedBound))
+            .coerceIn(0f, 1f)
+        Color.Black.copy(alpha = progress)
     } else {
-        if (useBlackBackground) {
-            lerp(MaterialTheme.colorScheme.surfaceContainer, Color.Black, state.progress)
-        } else {
-            MaterialTheme.colorScheme.surfaceContainer
-        }
+        val progress = ((state.value - state.collapsedBound) / (state.expandedBound - state.collapsedBound))
+            .coerceIn(0f, 1f)
+        MaterialTheme.colorScheme.surfaceContainer.copy(alpha = progress)
     }
 
     val playbackState by playerConnection.playbackState.collectAsState()
