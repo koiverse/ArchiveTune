@@ -257,7 +257,7 @@ private fun KaraokeWord(
         modifier = modifier
             .layout { measurable, constraints ->
                 val glowPaddingPx = glowPadding.roundToPx()
-                val looseConstraints = constraints.copy(
+                val looseConstraints = Constraints(
                     minWidth = 0,
                     maxWidth = Constraints.Infinity,
                     minHeight = 0,

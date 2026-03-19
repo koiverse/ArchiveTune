@@ -119,8 +119,9 @@ fun ExploreScreen(
                             .fillMaxWidth(0.5f),
                     )
                     BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
-                        val horizontalLazyGridItemWidthFactor = if (maxWidth * 0.475f >= 320.dp) 0.475f else 0.9f
-                        val horizontalLazyGridItemWidth = maxWidth * horizontalLazyGridItemWidthFactor
+                        val safeMaxWidth = if (maxWidth == Dp.Infinity) 400.dp else maxWidth
+                        val horizontalLazyGridItemWidthFactor = if (safeMaxWidth * 0.475f >= 320.dp) 0.475f else 0.9f
+                        val horizontalLazyGridItemWidth = safeMaxWidth * horizontalLazyGridItemWidthFactor
 
                         LazyHorizontalGrid(
                             rows = GridCells.Fixed(4),
@@ -218,10 +219,11 @@ fun ExploreScreen(
                         },
                     )
                     BoxWithConstraints(
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
                     ) {
-                        val horizontalLazyGridItemWidthFactor = if (maxWidth * 0.475f >= 320.dp) 0.475f else 0.9f
-                        val horizontalLazyGridItemWidth = maxWidth * horizontalLazyGridItemWidthFactor
+                        val safeMaxWidth = if (maxWidth == Dp.Infinity) 400.dp else maxWidth
+                        val horizontalLazyGridItemWidthFactor = if (safeMaxWidth * 0.475f >= 320.dp) 0.475f else 0.9f
+                        val horizontalLazyGridItemWidth = safeMaxWidth * horizontalLazyGridItemWidthFactor
 
                         val lazyGridState = rememberLazyGridState()
                         val snapLayoutInfoProvider = remember(lazyGridState) {

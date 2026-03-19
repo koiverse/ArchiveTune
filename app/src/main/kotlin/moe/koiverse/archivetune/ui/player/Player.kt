@@ -1307,12 +1307,17 @@ private fun LandscapeLikeBox(
         if (measurable == null) {
             layout(constraints.minWidth, constraints.minHeight) {}
         } else {
+            val safeMinWidth = constraints.minHeight
+            val safeMaxWidth = maxOf(safeMinWidth, constraints.maxHeight)
+            val safeMinHeight = constraints.minWidth
+            val safeMaxHeight = maxOf(safeMinHeight, constraints.maxWidth)
+
             val swappedConstraints =
                 Constraints(
-                    minWidth = constraints.minHeight,
-                    maxWidth = constraints.maxHeight,
-                    minHeight = constraints.minWidth,
-                    maxHeight = constraints.maxWidth,
+                    minWidth = safeMinWidth,
+                    maxWidth = safeMaxWidth,
+                    minHeight = safeMinHeight,
+                    maxHeight = safeMaxHeight,
                 )
 
             val placeable = measurable.measure(swappedConstraints)

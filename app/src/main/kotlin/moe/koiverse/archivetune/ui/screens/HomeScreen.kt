@@ -262,8 +262,9 @@ fun HomeScreen(
                     onRefresh = viewModel::refresh
                 )
         ) {
-            val horizontalLazyGridItemWidthFactor = if (maxWidth * 0.475f >= 320.dp) 0.475f else 0.9f
-            val horizontalLazyGridItemWidth = maxWidth * horizontalLazyGridItemWidthFactor
+            val safeMaxWidth = if (maxWidth == Dp.Infinity) 400.dp else maxWidth
+            val horizontalLazyGridItemWidthFactor = if (safeMaxWidth * 0.475f >= 320.dp) 0.475f else 0.9f
+            val horizontalLazyGridItemWidth = safeMaxWidth * horizontalLazyGridItemWidthFactor
             val forgottenFavoritesSnapLayoutInfoProvider = remember(forgottenFavoritesLazyGridState) {
                 SnapLayoutInfoProvider(
                     lazyGridState = forgottenFavoritesLazyGridState,
