@@ -798,7 +798,7 @@ fun PlayerPlaybackControls(
             BoxWithConstraints(
                 modifier = Modifier.fillMaxWidth()
             ) {
-                val maxW = if (maxWidth == Dp.Infinity) 400.dp else maxWidth
+                val maxW = maxWidth
                 val playButtonHeight = maxW / 6f
                 val playButtonWidth = playButtonHeight * 1.6f
                 val sideButtonHeight = playButtonHeight * 0.8f
@@ -1027,7 +1027,6 @@ fun PlayerPlaybackControls(
                     .fillMaxWidth()
                     .padding(horizontal = PlayerHorizontalPadding)
             ) {
-                val safeMaxWidth = if (maxWidth == Dp.Infinity) 400.dp else maxWidth
                 val baseLarge = 56.dp
                 val baseSmall = 46.dp
                 val baseGap = 12.dp
@@ -1037,7 +1036,7 @@ fun PlayerPlaybackControls(
                 val baseSmallRadius = 16.dp
                 val centerSize = 88.dp
                 val centerPadding = 40.dp
-                val sideTotal = (safeMaxWidth - centerSize - centerPadding) / 2f
+                val sideTotal = (maxWidth - centerSize - centerPadding) / 2f
                 val scale =
                     ((sideTotal - baseGap) / (baseLarge + baseSmall)).coerceAtMost(1f).coerceAtLeast(0.6f)
                 val large = baseLarge * scale

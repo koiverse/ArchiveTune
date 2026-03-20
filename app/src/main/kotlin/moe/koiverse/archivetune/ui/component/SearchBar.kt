@@ -148,8 +148,6 @@ fun TopSearch(
         }
     }
 
-    val context = LocalContext.current
-
     BoxWithConstraints(
         modifier = modifier.offset { IntOffset(x = 0, y = 0) },
         propagateMinConstraints = true,
@@ -159,15 +157,12 @@ fun TopSearch(
         val startPadding: Dp
         val endPadding: Dp
         with(LocalDensity.current) {
-            val safeMaxWidth = if (constraints.maxWidth == Constraints.Infinity) context.resources.displayMetrics.widthPixels else constraints.maxWidth
-            val safeMaxHeight = if (constraints.maxHeight == Constraints.Infinity) context.resources.displayMetrics.heightPixels else constraints.maxHeight
-            
-            val startWidth = safeMaxWidth.toFloat()
+            val startWidth = constraints.maxWidth.toFloat()
             val startHeight = max(constraints.minHeight, InputFieldHeight.roundToPx())
-                .coerceAtMost(safeMaxHeight)
+                .coerceAtMost(constraints.maxHeight)
                 .toFloat()
-            val endWidth = safeMaxWidth.toFloat()
-            val endHeight = safeMaxHeight.toFloat()
+            val endWidth = constraints.maxWidth.toFloat()
+            val endHeight = constraints.maxHeight.toFloat()
 
             height = lerp(startHeight, endHeight, animationProgress).toDp()
             width = lerp(startWidth, endWidth, animationProgress).toDp()
