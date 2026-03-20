@@ -153,7 +153,7 @@ fun AddToPlaylistDialog(
     isVisible: Boolean,
     allowSyncing: Boolean = true,
     initialTextFieldValue: String? = null,
-    onGetSong: suspend (Playlist) -> List<String>,
+    onGetSong: suspend () -> List<String>,
     onDismiss: () -> Unit,
     onAddComplete: ((songCount: Int, playlistNames: List<String>) -> Unit)? = null,
 ) {
@@ -500,13 +500,13 @@ fun AddToPlaylistDialog(
                         Button(
                             enabled = selectedPlaylistIds.isNotEmpty() && !isAddingToPlaylist,
                             onClick = {
-                                isAddingToPlaylist = true
-                                coroutineScope.launch {
-                                    val currentSongIds = withContext(Dispatchers.IO) {
-                                        songIds ?: if (playlists.isNotEmpty()) onGetSong(playlists.first()) else null
-                                    }
+                                    isAddingToPlaylist = true
+                                    coroutineScope.launch {
+                                        val currentSongIds = withContext(Dispatchers.IO) {
+                                            songIds ?: onGetSong()
+                                        }
 
-                                    if (currentSongIds.isNullOrEmpty()) {
+                                        if (currentSongIds.isNullOrEmpty()) {
                                         isAddingToPlaylist = false
                                         onDismiss()
                                         return@launch
