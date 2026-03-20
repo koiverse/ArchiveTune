@@ -42,6 +42,7 @@ import moe.koiverse.archivetune.db.entities.FormatEntity
 import moe.koiverse.archivetune.db.entities.LyricsEntity
 import moe.koiverse.archivetune.db.entities.Playlist
 import moe.koiverse.archivetune.db.entities.PlaylistEntity
+import moe.koiverse.archivetune.db.entities.PlaylistPlayCount
 import moe.koiverse.archivetune.db.entities.PlaylistSong
 import moe.koiverse.archivetune.db.entities.PlaylistSongMap
 import moe.koiverse.archivetune.db.entities.RelatedSongMap
@@ -1077,6 +1078,18 @@ interface DatabaseDao {
     @Query("SELECT *, (SELECT COUNT(*) FROM playlist_song_map WHERE playlistId = playlist.id) AS songCount FROM playlist WHERE isEditable AND bookmarkedAt IS NOT NULL ORDER BY rowId")
     fun editablePlaylistsByCreateDateAsc(): Flow<List<Playlist>>
 
+    @Query(
+        """
+        SELECT
+            playlist_song_map.playlistId AS playlistId,
+            COALESCE(SUM(playCount.count), 0) AS playCount
+        FROM playlist_song_map
+        LEFT JOIN playCount ON playCount.song = playlist_song_map.songId
+        GROUP BY playlist_song_map.playlistId
+        """,
+    )
+    fun playlistPlayCounts(): Flow<List<PlaylistPlayCount>>
+
     @Transaction
     @Query("SELECT *, (SELECT COUNT(*) FROM playlist_song_map WHERE playlistId = playlist.id) AS songCount FROM playlist WHERE browseId = :browseId")
     fun playlistByBrowseId(browseId: String): Flow<Playlist?>
@@ -1105,6 +1118,9 @@ interface DatabaseDao {
                     position = position++
                 )
             )
+        }
+        if (songIds.isNotEmpty()) {
+            update(playlist.playlist.copy(lastUpdateTime = LocalDateTime.now()))
         }
     }
 
