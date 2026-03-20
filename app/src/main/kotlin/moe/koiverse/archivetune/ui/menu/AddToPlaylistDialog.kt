@@ -8,6 +8,7 @@
 
 package moe.koiverse.archivetune.ui.menu
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -20,11 +21,13 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.horizontalScroll
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialogDefaults
@@ -32,14 +35,20 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -52,7 +61,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardOptions
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -67,12 +78,74 @@ import moe.koiverse.archivetune.ui.component.PlaylistListItem
 import moe.koiverse.archivetune.utils.rememberPreference
 import moe.koiverse.archivetune.innertube.YouTube
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.time.LocalDateTime
+import java.util.Locale
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.input.ImeAction
 
 internal fun playlistsForAddToPlaylist(playlists: List<Playlist>): List<Playlist> =
     playlists.filter { it.playlist.isEditable || it.playlist.browseId != null }
+
+internal enum class AddToPlaylistSortOption {
+    RECENTLY_MODIFIED,
+    RECENTLY_CREATED,
+    MOST_PLAYED,
+}
+
+internal fun visiblePlaylistsForAddToPlaylist(
+    playlists: List<Playlist>,
+    sortOption: AddToPlaylistSortOption,
+    query: String,
+    playlistPlayCounts: Map<String, Long> = emptyMap(),
+): List<Playlist> {
+    val normalizedQuery = query.trim()
+    val filteredPlaylists =
+        playlistsForAddToPlaylist(playlists).filter { playlist ->
+            normalizedQuery.isBlank() ||
+                playlist.playlist.name.contains(normalizedQuery, ignoreCase = true)
+        }
+
+    return filteredPlaylists.sortedWith { first, second ->
+        when (sortOption) {
+            AddToPlaylistSortOption.RECENTLY_MODIFIED ->
+                compareNullableDates(
+                    second.playlist.lastUpdateTime ?: second.playlist.createdAt,
+                    first.playlist.lastUpdateTime ?: first.playlist.createdAt,
+                )
+
+            AddToPlaylistSortOption.RECENTLY_CREATED ->
+                compareNullableDates(second.playlist.createdAt, first.playlist.createdAt)
+
+            AddToPlaylistSortOption.MOST_PLAYED -> {
+                compareValues(
+                    playlistPlayCounts[second.id] ?: 0L,
+                    playlistPlayCounts[first.id] ?: 0L,
+                ).takeIf { it != 0 }
+                    ?: compareNullableDates(
+                        second.playlist.lastUpdateTime ?: second.playlist.createdAt,
+                        first.playlist.lastUpdateTime ?: first.playlist.createdAt,
+                    )
+            }
+        }.takeIf { it != 0 }
+            ?: compareValues(
+                first.playlist.name.lowercase(Locale.getDefault()),
+                second.playlist.name.lowercase(Locale.getDefault()),
+            )
+    }
+}
+
+private fun compareNullableDates(
+    first: LocalDateTime?,
+    second: LocalDateTime?,
+): Int {
+    if (first == second) return 0
+    if (first == null) return -1
+    if (second == null) return 1
+    return first.compareTo(second)
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -86,10 +159,21 @@ fun AddToPlaylistDialog(
 ) {
     val database = LocalDatabase.current
     val coroutineScope = rememberCoroutineScope()
-    var allPlaylists by remember { mutableStateOf(emptyList<Playlist>()) }
+    val allPlaylists by database.playlistsByCreateDateAsc().collectAsState(initial = emptyList())
+    val playlistPlayCounts by database.playlistPlayCounts().collectAsState(initial = emptyList())
     val (innerTubeCookie) = rememberPreference(InnerTubeCookieKey, "")
     val isLoggedIn = remember(innerTubeCookie) { "SAPISID" in parseCookieString(innerTubeCookie) }
-    val playlists = remember(allPlaylists) { playlistsForAddToPlaylist(allPlaylists).asReversed() }
+    var sortOption by rememberSaveable { mutableStateOf(AddToPlaylistSortOption.RECENTLY_CREATED) }
+    var searchQuery by rememberSaveable { mutableStateOf("") }
+    var showSearchField by rememberSaveable { mutableStateOf(false) }
+    val playlists = remember(allPlaylists, sortOption, searchQuery, playlistPlayCounts) {
+        visiblePlaylistsForAddToPlaylist(
+            playlists = allPlaylists,
+            sortOption = sortOption,
+            query = searchQuery,
+            playlistPlayCounts = playlistPlayCounts.associate { it.playlistId to it.playCount },
+        )
+    }
     var showCreatePlaylistDialog by rememberSaveable { mutableStateOf(false) }
     var showDuplicateDialog by remember { mutableStateOf(false) }
     var playlistsWithDuplicates by remember { mutableStateOf<List<Playlist>>(emptyList()) }
@@ -130,12 +214,6 @@ fun AddToPlaylistDialog(
         return requestedSongIds.size
     }
 
-    LaunchedEffect(Unit) {
-        database.playlistsByCreateDateAsc().collect {
-            allPlaylists = it
-        }
-    }
-
     LaunchedEffect(isVisible) {
         if (isVisible) {
             songIds = null
@@ -144,6 +222,9 @@ fun AddToPlaylistDialog(
             showDuplicateDialog = false
             playlistsWithDuplicates = emptyList()
             duplicateSongsMap = emptyMap()
+            searchQuery = ""
+            showSearchField = false
+            sortOption = AddToPlaylistSortOption.RECENTLY_CREATED
         }
     }
 
@@ -198,10 +279,93 @@ fun AddToPlaylistDialog(
                                     )
                                 }
                             }
+
+                            IconButton(
+                                onClick = {
+                                    if (showSearchField) {
+                                        showSearchField = false
+                                        searchQuery = ""
+                                    } else {
+                                        showSearchField = true
+                                    }
+                                }
+                            ) {
+                                Icon(
+                                    painter = painterResource(
+                                        if (showSearchField) R.drawable.close else R.drawable.search
+                                    ),
+                                    contentDescription = stringResource(R.string.search),
+                                )
+                            }
+                        }
+
+                        AnimatedVisibility(visible = showSearchField) {
+                            TextField(
+                                value = searchQuery,
+                                onValueChange = { searchQuery = it },
+                                singleLine = true,
+                                placeholder = { Text(stringResource(R.string.search)) },
+                                leadingIcon = {
+                                    Icon(
+                                        painter = painterResource(R.drawable.search),
+                                        contentDescription = null,
+                                    )
+                                },
+                                trailingIcon = {
+                                    if (searchQuery.isNotBlank()) {
+                                        IconButton(onClick = { searchQuery = "" }) {
+                                            Icon(
+                                                painter = painterResource(R.drawable.close),
+                                                contentDescription = stringResource(R.string.close),
+                                            )
+                                        }
+                                    }
+                                },
+                                keyboardOptions = KeyboardOptions(
+                                    imeAction = ImeAction.Search,
+                                ),
+                                colors = TextFieldDefaults.colors(
+                                    focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                                    disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                                    focusedIndicatorColor = Color.Transparent,
+                                    unfocusedIndicatorColor = Color.Transparent,
+                                ),
+                                shape = RoundedCornerShape(18.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 16.dp)
+                            )
                         }
                     }
 
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState())
+                            .padding(horizontal = 20.dp, vertical = 12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        AddToPlaylistSortChip(
+                            label = stringResource(R.string.sort_by_last_updated),
+                            selected = sortOption == AddToPlaylistSortOption.RECENTLY_MODIFIED,
+                            onClick = { sortOption = AddToPlaylistSortOption.RECENTLY_MODIFIED },
+                        )
+                        AddToPlaylistSortChip(
+                            label = stringResource(R.string.sort_by_create_date),
+                            selected = sortOption == AddToPlaylistSortOption.RECENTLY_CREATED,
+                            onClick = { sortOption = AddToPlaylistSortOption.RECENTLY_CREATED },
+                        )
+                        AddToPlaylistSortChip(
+                            label = stringResource(R.string.sort_by_most_played),
+                            selected = sortOption == AddToPlaylistSortOption.MOST_PLAYED,
+                            onClick = { sortOption = AddToPlaylistSortOption.MOST_PLAYED },
+                        )
+                    }
+
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
 
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -304,7 +468,11 @@ fun AddToPlaylistDialog(
                                 .height(96.dp)
                         ) {
                             Text(
-                                text = "No playlists yet",
+                                text = if (searchQuery.isBlank()) {
+                                    "No playlists yet"
+                                } else {
+                                    stringResource(R.string.no_matching_playlists)
+                                },
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
@@ -495,4 +663,34 @@ fun AddToPlaylistDialog(
             )
         }
     }
+}
+
+@Composable
+private fun AddToPlaylistSortChip(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    minHeight: Dp = 40.dp,
+) {
+    FilterChip(
+        selected = selected,
+        onClick = onClick,
+        label = { Text(label) },
+        leadingIcon = {
+            if (selected) {
+                Icon(
+                    painter = painterResource(R.drawable.done),
+                    contentDescription = null,
+                    modifier = Modifier.size(FilterChipDefaults.IconSize),
+                )
+            }
+        },
+        modifier = modifier.heightIn(min = minHeight),
+        shape = RoundedCornerShape(16.dp),
+        border = null,
+        colors = FilterChipDefaults.filterChipColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+        ),
+    )
 }
