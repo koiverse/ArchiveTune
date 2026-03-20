@@ -1,6 +1,6 @@
 /*
  * ArchiveTune Project Original (2026)
- * Kòi Natsuko (github.com/koiverse)
+ * Koi Natsuko (github.com/koiverse)
  * Licensed Under GPL-3.0 | see git history for contributors
  */
 
@@ -50,8 +50,6 @@ import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import kotlin.math.min
 import java.io.ObjectInputStream
-import java.io.Serializable
-import java.util.concurrent.Executors
 
 class MediaLibrarySessionCallback
 @Inject
@@ -103,28 +101,39 @@ constructor(
         mediaSession: MediaSession,
         controller: MediaSession.ControllerInfo,
     ): ListenableFuture<MediaSession.MediaItemsWithStartPosition> =
+        onPlaybackResumption(mediaSession, controller, true)
+
+    override fun onPlaybackResumption(
+        mediaSession: MediaSession,
+        controller: MediaSession.ControllerInfo,
+        isForPlayback: Boolean,
+    ): ListenableFuture<MediaSession.MediaItemsWithStartPosition> =
         scope.future {
             val player = mediaSession.player
-            if (player.mediaItemCount > 0) {
-                val items = (0 until player.mediaItemCount).map { player.getMediaItemAt(it) }
-                return@future MediaSession.MediaItemsWithStartPosition(
-                    items,
-                    player.currentMediaItemIndex,
-                    player.currentPosition,
+            val currentItems = List(player.mediaItemCount) { index -> player.getMediaItemAt(index) }
+            val persistedItems =
+                withContext(Dispatchers.IO) {
+                    readPersistentQueue()?.let { queue ->
+                        PlaybackResumptionPlanner.PersistedItems(
+                            items = queue.items.map { it.toMediaItem() },
+                            mediaItemIndex = queue.mediaItemIndex,
+                            positionMs = queue.position,
+                        )
+                    }
+                }
+            val result =
+                PlaybackResumptionPlanner.resolve(
+                    currentItems = currentItems,
+                    currentIndex = player.currentMediaItemIndex,
+                    currentPositionMs = player.currentPosition,
+                    persistedItems = persistedItems,
+                    isForPlayback = isForPlayback,
                 )
-            }
-
-            val persistedQueue = withContext(Dispatchers.IO) { readPersistentQueue() }
-            if (persistedQueue != null && persistedQueue.items.isNotEmpty()) {
-                val items = persistedQueue.items.map { it.toMediaItem() }
-                return@future MediaSession.MediaItemsWithStartPosition(
-                    items,
-                    persistedQueue.mediaItemIndex.coerceIn(0, items.lastIndex),
-                    persistedQueue.position,
-                )
-            }
-
-            MediaSession.MediaItemsWithStartPosition(emptyList(), 0, 0)
+            MediaSession.MediaItemsWithStartPosition(
+                result.items,
+                result.startIndex,
+                result.startPositionMs,
+            )
         }
 
     private fun readPersistentQueue(): PersistQueue? {
