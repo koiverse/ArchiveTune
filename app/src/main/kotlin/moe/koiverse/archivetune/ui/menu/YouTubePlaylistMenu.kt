@@ -125,7 +125,7 @@ fun YouTubePlaylistMenu(
 
     AddToPlaylistDialog(
         isVisible = showChoosePlaylistDialog,
-        onGetSong = { targetPlaylist ->
+        onGetSong = {
             val allSongs = songs
                 .ifEmpty {
                     YouTube.playlist(playlist.id).completed().getOrNull()?.songs.orEmpty()
