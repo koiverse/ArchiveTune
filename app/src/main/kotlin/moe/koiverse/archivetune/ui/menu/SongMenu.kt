@@ -662,10 +662,7 @@ fun SongMenu(
                                         }
                                         val browseId = playlistBrowseId
                                         if (browseId != null) {
-                                            val setVideoId = map.setVideoId ?: database.getSetVideoId(map.songId)?.setVideoId
-                                            if (setVideoId != null) {
-                                                YouTube.removeFromPlaylist(browseId, map.songId, setVideoId)
-                                            }
+                                            removeSongFromRemotePlaylist(browseId, map)
                                         }
                                         withContext(Dispatchers.Main) {
                                             onDismiss()

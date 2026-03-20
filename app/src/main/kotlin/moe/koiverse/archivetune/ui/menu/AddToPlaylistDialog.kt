@@ -190,24 +190,27 @@ fun AddToPlaylistDialog(
 
         val browseId = playlist.playlist.browseId
         if (isLoggedIn && browseId != null) {
-            val acceptedSongIds = mutableListOf<String>()
+            val acceptedSongEntries = mutableListOf<Pair<String, String?>>()
             requestedSongIds.forEach { songId ->
-                var wasAdded = false
+                var remoteAdded = false
+                var addedSetVideoId: String? = null
                 for (attempt in 0 until 3) {
-                    if (YouTube.addToPlaylist(browseId, songId).isSuccess) {
-                        wasAdded = true
+                    val result = YouTube.addToPlaylist(browseId, songId)
+                    if (result.isSuccess) {
+                        remoteAdded = true
+                        addedSetVideoId = result.getOrNull()
                         break
                     }
                     if (attempt < 2) delay(250)
                 }
-                if (wasAdded) {
-                    acceptedSongIds += songId
+                if (remoteAdded) {
+                    acceptedSongEntries += songId to addedSetVideoId
                 }
             }
-            if (acceptedSongIds.isNotEmpty()) {
-                database.addSongToPlaylist(playlist, acceptedSongIds)
+            if (acceptedSongEntries.isNotEmpty()) {
+                database.addSongEntriesToPlaylist(playlist, acceptedSongEntries)
             }
-            return acceptedSongIds.size
+            return acceptedSongEntries.size
         }
 
         database.addSongToPlaylist(playlist, requestedSongIds)

@@ -1109,17 +1109,29 @@ interface DatabaseDao {
 
     @Transaction
     fun addSongToPlaylist(playlist: Playlist, songIds: List<String>) {
+        addSongEntriesToPlaylist(
+            playlist = playlist,
+            songEntries = songIds.map { songId -> songId to null },
+        )
+    }
+
+    @Transaction
+    fun addSongEntriesToPlaylist(
+        playlist: Playlist,
+        songEntries: List<Pair<String, String?>>,
+    ) {
         var position = playlist.songCount
-        songIds.forEach { id ->
+        songEntries.forEach { (songId, setVideoId) ->
             insert(
                 PlaylistSongMap(
-                    songId = id,
+                    songId = songId,
                     playlistId = playlist.id,
-                    position = position++
+                    position = position++,
+                    setVideoId = setVideoId,
                 )
             )
         }
-        if (songIds.isNotEmpty()) {
+        if (songEntries.isNotEmpty()) {
             update(playlist.playlist.copy(lastUpdateTime = LocalDateTime.now()))
         }
     }

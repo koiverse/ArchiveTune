@@ -180,13 +180,13 @@ fun YouTubePlaylistMenu(
                                     coroutineScope.launch(Dispatchers.IO) {
                                         songs.ifEmpty {
                                             YouTube.playlist(playlist.id).completed().getOrNull()?.songs.orEmpty()
-                                        }.map { it.toMediaMetadata() }
-                                            .onEach(::insert)
+                                        }.onEach { song -> insert(song.toMediaMetadata()) }
                                             .mapIndexed { index, song ->
                                                 PlaylistSongMap(
                                                     songId = song.id,
                                                     playlistId = playlistEntity.id,
                                                     position = index,
+                                                    setVideoId = song.setVideoId,
                                                 )
                                             }
                                             .forEach(::insert)
@@ -575,7 +575,7 @@ fun YouTubePlaylistMenu(
                                             val currentDbPlaylist = dbPlaylist
                                             if (currentDbPlaylist?.playlist == null) {
                                                 val playlistPage = YouTube.playlist(playlist.id).completed().getOrNull()
-                                                val fetchedSongs = playlistPage?.songs.orEmpty().map { it.toMediaMetadata() }
+                                                val fetchedSongs = playlistPage?.songs.orEmpty()
 
                                                 if (fetchedSongs.isEmpty() && newValue) {
                                                     withContext(Dispatchers.Main) {
@@ -604,12 +604,13 @@ fun YouTubePlaylistMenu(
                                                             radioEndpointParams = playlist.radioEndpoint?.params,
                                                         )
                                                     insert(playlistEntity)
-                                                    fetchedSongs.forEach(::insert)
+                                                    fetchedSongs.forEach { song -> insert(song.toMediaMetadata()) }
                                                     fetchedSongs.mapIndexed { index, song ->
                                                         PlaylistSongMap(
                                                             songId = song.id,
                                                             playlistId = playlistEntity.id,
                                                             position = index,
+                                                            setVideoId = song.setVideoId,
                                                         )
                                                     }.forEach(::insert)
                                                 }
