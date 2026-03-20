@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
+
 /*
  * ArchiveTune Project Original (2026)
  * Koi Natsuko (github.com/koiverse)
@@ -26,7 +28,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.weight
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -59,7 +60,6 @@ import androidx.compose.ui.unit.dp
 import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.ui.screens.Screens
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun FloatingNavigationToolbar(
     items: List<Screens>,
