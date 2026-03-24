@@ -19,7 +19,7 @@ jobs:
           distribution: "temurin"
 
       - name: Set Up Gradle
-        uses: gradle/actions/setup-gradle@v5
+        uses: gradle/actions/setup-gradle@v6
         with:
           cache-read-only: true
           cache-cleanup: on-success
