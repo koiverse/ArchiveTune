@@ -6,8 +6,6 @@
  * Licensed Under GPL-3.0 | see git history for contributors
  */
 
-
-
 package moe.koiverse.archivetune.ui.component
 
 import androidx.compose.animation.animateColorAsState
@@ -88,35 +86,89 @@ fun FloatingNavigationToolbar(
         modifier = modifier.fillMaxWidth(),
         contentAlignment = Alignment.Center,
     ) {
-        val effectiveSlim = slim || maxWidth < 360.dp
+        val effectiveSlim = maxWidth < 360.dp
         // HorizontalFloatingToolbar in Material3 alpha can build invalid constraints on compact widths.
         val useCompactFallback = maxWidth < if (hasOverflowAction || hasFabAction) 336.dp else 280.dp
         val toolbarWidth = if (hasOverflowAction || hasFabAction) 480.dp else 420.dp
+        val slimAction: (@Composable () -> Unit)? =
+            when {
+                hasOverflowAction -> {
+                    {
+                        FloatingToolbarOverflowAction(
+                            pureBlack = pureBlack,
+                            slim = true,
+                            onShuffleClick = onShuffleClick,
+                            shuffleIconRes = shuffleIconRes,
+                            shuffleContentDescription = shuffleContentDescription,
+                            onMusicRecognitionClick = onMusicRecognitionClick,
+                            musicRecognitionContentDescription = musicRecognitionContentDescription,
+                        )
+                    }
+                }
+
+                hasFabAction -> {
+                    {
+                        FloatingToolbarFabAction(
+                            pureBlack = pureBlack,
+                            slim = true,
+                            onClick = onFabClick,
+                            iconRes = fabIconRes,
+                            contentDescription = fabContentDescription,
+                        )
+                    }
+                }
+
+                else -> null
+            }
+
+        if (slim) {
+            CompactFloatingNavigationToolbar(
+                items = items,
+                pureBlack = pureBlack,
+                containerColor = toolbarContainerColor,
+                slim = true,
+                action = slimAction,
+                isSelected = isSelected,
+                onItemClick = onItemClick,
+                modifier = Modifier.fillMaxWidth().widthIn(max = toolbarWidth),
+            )
+            return@BoxWithConstraints
+        }
 
         if (useCompactFallback) {
             CompactFloatingNavigationToolbar(
                 items = items,
                 pureBlack = pureBlack,
                 containerColor = toolbarContainerColor,
-                hasAction = hasOverflowAction || hasFabAction,
-                overflowAction = {
-                    FloatingToolbarOverflowAction(
-                        pureBlack = pureBlack,
-                        onShuffleClick = onShuffleClick,
-                        shuffleIconRes = shuffleIconRes,
-                        shuffleContentDescription = shuffleContentDescription,
-                        onMusicRecognitionClick = onMusicRecognitionClick,
-                        musicRecognitionContentDescription = musicRecognitionContentDescription,
-                    )
-                },
-                fabAction = {
-                    FloatingToolbarFabAction(
-                        pureBlack = pureBlack,
-                        onClick = onFabClick,
-                        iconRes = fabIconRes,
-                        contentDescription = fabContentDescription,
-                    )
-                },
+                slim = effectiveSlim,
+                action =
+                    when {
+                        hasOverflowAction -> {
+                            {
+                                FloatingToolbarOverflowAction(
+                                    pureBlack = pureBlack,
+                                    onShuffleClick = onShuffleClick,
+                                    shuffleIconRes = shuffleIconRes,
+                                    shuffleContentDescription = shuffleContentDescription,
+                                    onMusicRecognitionClick = onMusicRecognitionClick,
+                                    musicRecognitionContentDescription = musicRecognitionContentDescription,
+                                )
+                            }
+                        }
+
+                        hasFabAction -> {
+                            {
+                                FloatingToolbarFabAction(
+                                    pureBlack = pureBlack,
+                                    onClick = onFabClick,
+                                    iconRes = fabIconRes,
+                                    contentDescription = fabContentDescription,
+                                )
+                            }
+                        }
+
+                        else -> null
+                    },
                 isSelected = isSelected,
                 onItemClick = onItemClick,
                 modifier = Modifier.fillMaxWidth().widthIn(max = toolbarWidth),
@@ -205,9 +257,8 @@ private fun CompactFloatingNavigationToolbar(
     items: List<Screens>,
     pureBlack: Boolean,
     containerColor: Color,
-    hasAction: Boolean,
-    overflowAction: @Composable () -> Unit,
-    fabAction: @Composable () -> Unit,
+    slim: Boolean,
+    action: (@Composable () -> Unit)?,
     isSelected: (Screens) -> Boolean,
     onItemClick: (Screens, Boolean) -> Unit,
     modifier: Modifier = Modifier,
@@ -231,17 +282,16 @@ private fun CompactFloatingNavigationToolbar(
                     FloatingNavigationToolbarItem(
                         screen = screen,
                         selected = selected,
-                        slim = true,
+                        slim = slim,
                         pureBlack = pureBlack,
                         onClick = { onItemClick(screen, selected) },
                     )
                 }
             }
 
-            if (hasAction) {
+            if (action != null) {
                 Box(contentAlignment = Alignment.Center) {
-                    overflowAction()
-                    fabAction()
+                    action()
                 }
             }
         }
@@ -251,6 +301,7 @@ private fun CompactFloatingNavigationToolbar(
 @Composable
 private fun FloatingToolbarOverflowAction(
     pureBlack: Boolean,
+    slim: Boolean = false,
     onShuffleClick: (() -> Unit)?,
     shuffleIconRes: Int?,
     shuffleContentDescription: String,
@@ -260,18 +311,34 @@ private fun FloatingToolbarOverflowAction(
     var fabMenuExpanded by rememberSaveable { mutableStateOf(false) }
 
     Box {
-        FloatingToolbarDefaults.VibrantFloatingActionButton(
-            onClick = { fabMenuExpanded = !fabMenuExpanded },
-            containerColor = if (pureBlack) Color.White.copy(alpha = 0.12f) else MaterialTheme.colorScheme.tertiaryContainer,
-            contentColor = if (pureBlack) Color.White else MaterialTheme.colorScheme.onTertiaryContainer,
-        ) {
-            Icon(
-                painter = painterResource(R.drawable.more_horiz),
-                contentDescription =
-                    shuffleContentDescription.ifEmpty {
-                        stringResource(R.string.more)
-                    },
-            )
+        if (slim) {
+            FloatingToolbarCompactActionButton(
+                pureBlack = pureBlack,
+                onClick = { fabMenuExpanded = !fabMenuExpanded },
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.more_horiz),
+                    contentDescription =
+                        shuffleContentDescription.ifEmpty {
+                            stringResource(R.string.more)
+                        },
+                    modifier = Modifier.size(20.dp),
+                )
+            }
+        } else {
+            FloatingToolbarDefaults.VibrantFloatingActionButton(
+                onClick = { fabMenuExpanded = !fabMenuExpanded },
+                containerColor = if (pureBlack) Color.White.copy(alpha = 0.12f) else MaterialTheme.colorScheme.tertiaryContainer,
+                contentColor = if (pureBlack) Color.White else MaterialTheme.colorScheme.onTertiaryContainer,
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.more_horiz),
+                    contentDescription =
+                        shuffleContentDescription.ifEmpty {
+                            stringResource(R.string.more)
+                        },
+                )
+            }
         }
 
         DropdownMenu(
@@ -364,24 +431,84 @@ private fun FloatingToolbarOverflowAction(
 @Composable
 private fun FloatingToolbarFabAction(
     pureBlack: Boolean,
+    slim: Boolean = false,
     onClick: (() -> Unit)?,
     iconRes: Int?,
     contentDescription: String,
 ) {
     if (onClick == null || iconRes == null) return
 
-    FloatingToolbarDefaults.VibrantFloatingActionButton(
-        onClick = onClick,
-        containerColor = if (pureBlack) Color.White.copy(alpha = 0.12f) else MaterialTheme.colorScheme.tertiaryContainer,
+    if (slim) {
+        FloatingToolbarCompactActionButton(
+            pureBlack = pureBlack,
+            onClick = onClick,
+        ) {
+            Icon(
+                painter = painterResource(iconRes),
+                contentDescription =
+                    contentDescription.ifEmpty {
+                        stringResource(R.string.create_playlist)
+                    },
+                modifier = Modifier.size(20.dp),
+            )
+        }
+    } else {
+        FloatingToolbarDefaults.VibrantFloatingActionButton(
+            onClick = onClick,
+            containerColor = if (pureBlack) Color.White.copy(alpha = 0.12f) else MaterialTheme.colorScheme.tertiaryContainer,
+            contentColor = if (pureBlack) Color.White else MaterialTheme.colorScheme.onTertiaryContainer,
+        ) {
+            Icon(
+                painter = painterResource(iconRes),
+                contentDescription =
+                    contentDescription.ifEmpty {
+                        stringResource(R.string.create_playlist)
+                    },
+            )
+        }
+    }
+}
+
+@Composable
+private fun FloatingToolbarCompactActionButton(
+    pureBlack: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit,
+) {
+    val shape = CircleShape
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.94f else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMedium,
+        ),
+        label = "",
+    )
+
+    Surface(
+        modifier = modifier.size(40.dp).scale(scale),
+        color = if (pureBlack) Color.White.copy(alpha = 0.12f) else MaterialTheme.colorScheme.tertiaryContainer,
         contentColor = if (pureBlack) Color.White else MaterialTheme.colorScheme.onTertiaryContainer,
+        shape = shape,
     ) {
-        Icon(
-            painter = painterResource(iconRes),
-            contentDescription =
-                contentDescription.ifEmpty {
-                    stringResource(R.string.create_playlist)
-                },
-        )
+        Box(
+            modifier =
+                Modifier
+                    .clip(shape)
+                    .clickable(
+                        interactionSource = interactionSource,
+                        indication = LocalIndication.current,
+                        role = Role.Button,
+                        onClick = onClick,
+                    )
+                    .size(40.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            content()
+        }
     }
 }
 
@@ -440,8 +567,13 @@ private fun FloatingNavigationToolbarItem(
                 )
                 .widthIn(min = 48.dp)
                 .padding(
-                    horizontal = if (showLabel) 16.dp else 12.dp,
-                    vertical = 12.dp,
+                    horizontal =
+                        when {
+                            showLabel -> 16.dp
+                            slim -> 10.dp
+                            else -> 12.dp
+                        },
+                    vertical = if (slim) 10.dp else 12.dp,
                 ),
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically,
