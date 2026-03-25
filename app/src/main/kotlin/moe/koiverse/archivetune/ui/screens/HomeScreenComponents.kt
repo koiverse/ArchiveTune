@@ -271,6 +271,30 @@ fun SpeedDialSection(
     val rowCount = min(3, distinctSpeedDial.size + 1)
     val gridHeight = (tileSize * rowCount) + (spacing * (rowCount - 1))
 
+    data class SpeedDialTile(val key: String, val song: Song?)
+
+    val tiles = remember(distinctSpeedDial) {
+        buildList {
+            distinctSpeedDial.forEach { add(SpeedDialTile(key = "song_${it.id}", song = it)) }
+            add(SpeedDialTile(key = "random", song = null))
+        }
+    }
+
+    val columnCount = remember(tiles.size, rowCount) {
+        ceil(tiles.size / rowCount.toFloat()).toInt().coerceAtLeast(1)
+    }
+
+    val orderedTiles = remember(tiles, rowCount, columnCount) {
+        buildList {
+            for (column in 0 until columnCount) {
+                for (row in 0 until rowCount) {
+                    val index = row * columnCount + column
+                    if (index < tiles.size) add(tiles[index])
+                }
+            }
+        }
+    }
+
     fun playSpeedDialQueue(startIndex: Int) {
         if (distinctSpeedDial.isEmpty()) return
         playerConnection.playQueue(
@@ -283,17 +307,22 @@ fun SpeedDialSection(
     }
 
     val dotState by
-        remember(state, distinctSpeedDial.size) {
+        remember(state, distinctSpeedDial.size, rowCount) {
             derivedStateOf {
-                val songsPerDot = 8
                 val totalSongs = distinctSpeedDial.size
                 if (totalSongs <= 0) {
                     Triple(0, 0, 0)
                 } else {
-                    val pages = ceil(totalSongs / songsPerDot.toFloat()).toInt().coerceAtLeast(1)
-                    val visibleSongIndex =
-                        state.firstVisibleItemIndex.coerceIn(0, (totalSongs - 1).coerceAtLeast(0))
-                    val currentPage = (visibleSongIndex / songsPerDot).coerceIn(0, pages - 1)
+                    val songsPerDot = 8
+                    val columnsPerDot =
+                        ceil(songsPerDot / rowCount.toFloat()).toInt().coerceAtLeast(1)
+                    val totalSongColumns =
+                        ceil(totalSongs / rowCount.toFloat()).toInt().coerceAtLeast(1)
+                    val pages =
+                        ceil(totalSongColumns / columnsPerDot.toFloat()).toInt().coerceAtLeast(1)
+                    val currentColumn =
+                        (state.firstVisibleItemIndex / rowCount).coerceIn(0, totalSongColumns - 1)
+                    val currentPage = (currentColumn / columnsPerDot).coerceIn(0, pages - 1)
                     val dots = min(3, pages)
                     val selectedDot =
                         if (pages <= 3) currentPage
@@ -320,115 +349,116 @@ fun SpeedDialSection(
                     .height(gridHeight),
         ) {
             items(
-                items = distinctSpeedDial,
-                key = { it.id },
-                contentType = { "speed_dial_song" }
-            ) { song ->
-                val songIndex = speedDialIndexById[song.id] ?: 0
-                val isActive = song.id == mediaMetadata?.id
-
-                Box(
-                    modifier = Modifier
-                        .width(tileSize)
-                        .aspectRatio(1f)
-                        .clip(RoundedCornerShape(16.dp))
-                        .combinedClickable(
-                            onClick = {
-                                if (isActive) {
-                                    playerConnection.player.togglePlayPause()
-                                } else {
-                                    playSpeedDialQueue(songIndex)
-                                }
-                            },
-                            onLongClick = {
-                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                menuState.show {
-                                    SongMenu(
-                                        originalSong = song,
-                                        navController = navController,
-                                        onDismiss = menuState::dismiss
-                                    )
-                                }
-                            }
-                        )
-                ) {
-                    AsyncImage(
-                        model = song.song.thumbnailUrl,
-                        contentDescription = null,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize()
-                    )
-
-                    Box(
+                items = orderedTiles,
+                key = { it.key },
+                contentType = { tile -> if (tile.song == null) "speed_dial_random" else "speed_dial_song" },
+            ) { tile ->
+                val song = tile.song
+                if (song == null) {
+                    Surface(
+                        color = MaterialTheme.colorScheme.secondaryContainer,
+                        shape = RoundedCornerShape(16.dp),
                         modifier = Modifier
-                            .fillMaxSize()
-                            .background(
-                                Brush.verticalGradient(
-                                    colors = listOf(
-                                        Color.Transparent,
-                                        Color.Transparent,
-                                        Color.Black.copy(alpha = 0.7f)
-                                    )
-                                )
+                            .width(tileSize)
+                            .aspectRatio(1f)
+                            .combinedClickable(
+                                onClick = {
+                                    if (distinctSpeedDial.isNotEmpty()) {
+                                        playSpeedDialQueue(Random.nextInt(distinctSpeedDial.size))
+                                    }
+                                },
+                                onLongClick = {}
                             )
-                    )
-
-                    Text(
-                        text = song.song.title,
-                        style = MaterialTheme.typography.titleMedium,
-                        color = Color.White,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier
-                            .align(Alignment.BottomStart)
-                            .padding(horizontal = 12.dp, vertical = 10.dp)
-                    )
-
-                    if (isActive && isPlaying) {
-                        Surface(
-                            shape = CircleShape,
-                            color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier
-                                .align(Alignment.TopEnd)
-                                .padding(10.dp)
+                    ) {
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier.fillMaxSize()
                         ) {
                             Icon(
-                                painter = painterResource(R.drawable.volume_up),
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onPrimary,
-                                modifier = Modifier.padding(6.dp).size(16.dp)
+                                painter = painterResource(R.drawable.casino),
+                                contentDescription = stringResource(R.string.speed_dial_random),
+                                tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                                modifier = Modifier.size(36.dp)
                             )
                         }
                     }
-                }
-            }
+                } else {
+                    val songIndex = speedDialIndexById[song.id] ?: 0
+                    val isActive = song.id == mediaMetadata?.id
 
-            item(key = "speed_dial_random", contentType = "speed_dial_random") {
-                Surface(
-                    color = MaterialTheme.colorScheme.secondaryContainer,
-                    shape = RoundedCornerShape(16.dp),
-                    modifier = Modifier
-                        .width(tileSize)
-                        .aspectRatio(1f)
-                        .combinedClickable(
-                            onClick = {
-                                if (distinctSpeedDial.isNotEmpty()) {
-                                    playSpeedDialQueue(Random.nextInt(distinctSpeedDial.size))
-                                }
-                            },
-                            onLongClick = {}
-                        )
-                ) {
                     Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier.fillMaxSize()
+                        modifier = Modifier
+                            .width(tileSize)
+                            .aspectRatio(1f)
+                            .clip(RoundedCornerShape(16.dp))
+                            .combinedClickable(
+                                onClick = {
+                                    if (isActive) {
+                                        playerConnection.player.togglePlayPause()
+                                    } else {
+                                        playSpeedDialQueue(songIndex)
+                                    }
+                                },
+                                onLongClick = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    menuState.show {
+                                        SongMenu(
+                                            originalSong = song,
+                                            navController = navController,
+                                            onDismiss = menuState::dismiss
+                                        )
+                                    }
+                                }
+                            )
                     ) {
-                        Icon(
-                            painter = painterResource(R.drawable.casino),
-                            contentDescription = stringResource(R.string.speed_dial_random),
-                            tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                            modifier = Modifier.size(36.dp)
+                        AsyncImage(
+                            model = song.song.thumbnailUrl,
+                            contentDescription = null,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize()
                         )
+
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(
+                                    Brush.verticalGradient(
+                                        colors = listOf(
+                                            Color.Transparent,
+                                            Color.Transparent,
+                                            Color.Black.copy(alpha = 0.7f)
+                                        )
+                                    )
+                                )
+                        )
+
+                        Text(
+                            text = song.song.title,
+                            style = MaterialTheme.typography.titleMedium,
+                            color = Color.White,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier
+                                .align(Alignment.BottomStart)
+                                .padding(horizontal = 12.dp, vertical = 10.dp)
+                        )
+
+                        if (isActive && isPlaying) {
+                            Surface(
+                                shape = CircleShape,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier
+                                    .align(Alignment.TopEnd)
+                                    .padding(10.dp)
+                            ) {
+                                Icon(
+                                    painter = painterResource(R.drawable.volume_up),
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onPrimary,
+                                    modifier = Modifier.padding(6.dp).size(16.dp)
+                                )
+                            }
+                        }
                     }
                 }
             }

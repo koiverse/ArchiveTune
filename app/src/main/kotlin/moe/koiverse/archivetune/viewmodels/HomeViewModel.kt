@@ -96,6 +96,7 @@ class HomeViewModel @Inject constructor(
         when (quickPicksEnum.first()) {
             QuickPicks.QUICK_PICKS -> quickPicks.value = database.quickPicks().first().shuffled().take(20)
             QuickPicks.LAST_LISTEN -> songLoad()
+            QuickPicks.DONT_SHOW -> quickPicks.value = null
         }
     }
 

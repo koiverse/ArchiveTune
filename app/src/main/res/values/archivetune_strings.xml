@@ -111,7 +111,6 @@
     <string name="player_design_v4">Cinematic</string>
     <string name="player_design_v5">Little</string>
     <string name="player_design_v6">Expressive</string>
-    <string name="new_mini_player_design">New mini player design</string>
     <string name="player_background_blur">Blur</string>
     <string name="coloring">Coloring</string>
     <string name="blur_gradient">Blur Gradient</string>
@@ -149,6 +148,7 @@
     <string name="default_lib_chips">Change default library chip</string>
     <string name="set_quick_picks">Set quick picks</string>
     <string name="last_song_listened">Based on last song listened</string>
+    <string name="dont_show">Dont Show</string>
     <string name="app_language">App language</string>
     <string name="configure_app_language">Configure app languages</string>
     <string name="intent_app_language_not_found">Couldn\'t find app language settings, please configure them manually</string>

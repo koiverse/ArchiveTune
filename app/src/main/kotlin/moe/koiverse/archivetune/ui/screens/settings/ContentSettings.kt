@@ -311,11 +311,12 @@ fun ContentSettings(
             title = { Text(stringResource(R.string.set_quick_picks)) },
             icon = { Icon(painterResource(R.drawable.home_outlined), null) },
             selectedValue = quickPicks,
-            values = listOf(QuickPicks.QUICK_PICKS, QuickPicks.LAST_LISTEN),
+            values = listOf(QuickPicks.QUICK_PICKS, QuickPicks.LAST_LISTEN, QuickPicks.DONT_SHOW),
             valueText = {
                 when (it) {
                     QuickPicks.QUICK_PICKS -> stringResource(R.string.quick_picks)
                     QuickPicks.LAST_LISTEN -> stringResource(R.string.last_song_listened)
+                    QuickPicks.DONT_SHOW -> stringResource(R.string.dont_show)
                 }
             },
             onValueSelected = onQuickPicksChange,

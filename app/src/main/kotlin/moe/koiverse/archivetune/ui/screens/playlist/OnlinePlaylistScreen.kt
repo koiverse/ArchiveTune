@@ -679,13 +679,13 @@ fun OnlinePlaylistScreen(
                                                                 .toggleLike()
                                                         insert(playlistEntity)
                                                         songs
-                                                            .map(SongItem::toMediaMetadata)
-                                                            .onEach(::insert)
+                                                            .onEach { song -> insert(song.toMediaMetadata()) }
                                                             .mapIndexed { index, song ->
                                                                 PlaylistSongMap(
                                                                     songId = song.id,
                                                                     playlistId = playlistEntity.id,
-                                                                    position = index
+                                                                    position = index,
+                                                                    setVideoId = song.setVideoId,
                                                                 )
                                                             }
                                                             .forEach(::insert)

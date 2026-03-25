@@ -161,6 +161,7 @@ import moe.koiverse.archivetune.ui.component.shimmer.ListItemPlaceHolder
 import moe.koiverse.archivetune.ui.component.shimmer.ShimmerHost
 import moe.koiverse.archivetune.ui.component.shimmer.TextPlaceholder
 import moe.koiverse.archivetune.ui.menu.SelectionSongMenu
+import moe.koiverse.archivetune.ui.menu.removeSongFromRemotePlaylist
 import moe.koiverse.archivetune.ui.menu.SongMenu
 import moe.koiverse.archivetune.ui.screens.playlist.PlaylistSuggestionsSection
 import moe.koiverse.archivetune.ui.theme.PlayerColorExtractor
@@ -1117,10 +1118,7 @@ fun LocalPlaylistScreen(
                                     delete(map.copy(position = Int.MAX_VALUE))
                                 }
                                 if (browseId != null) {
-                                    val setVideoId = map.setVideoId ?: database.getSetVideoId(map.songId)?.setVideoId
-                                    if (setVideoId != null) {
-                                        YouTube.removeFromPlaylist(browseId, map.songId, setVideoId)
-                                    }
+                                    removeSongFromRemotePlaylist(browseId, map)
                                 }
                             }
                         }

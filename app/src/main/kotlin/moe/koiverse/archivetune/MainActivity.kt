@@ -177,7 +177,6 @@ import moe.koiverse.archivetune.constants.SearchSourceKey
 import moe.koiverse.archivetune.constants.SlimFloatingToolbarHeight
 import moe.koiverse.archivetune.constants.SlimNavBarKey
 import moe.koiverse.archivetune.constants.StopMusicOnTaskClearKey
-import moe.koiverse.archivetune.constants.UseNewMiniPlayerDesignKey
 import moe.koiverse.archivetune.constants.UseSystemFontKey
 import moe.koiverse.archivetune.db.MusicDatabase
 import moe.koiverse.archivetune.db.entities.SearchHistory
@@ -204,6 +203,7 @@ import moe.koiverse.archivetune.ui.component.AccountSettingsDialog
 import moe.koiverse.archivetune.ui.component.BottomSheetMenu
 import moe.koiverse.archivetune.ui.component.BottomSheetPage
 import moe.koiverse.archivetune.ui.component.COLLAPSED_ANCHOR
+import moe.koiverse.archivetune.ui.component.CreatePlaylistDialog
 import moe.koiverse.archivetune.ui.component.DISMISSED_ANCHOR
 import moe.koiverse.archivetune.ui.component.EXPANDED_ANCHOR
 import moe.koiverse.archivetune.ui.component.FloatingNavigationToolbar
@@ -658,7 +658,6 @@ class MainActivity : ComponentActivity() {
 
                     val navigationItems = remember { Screens.MainScreens }
                     val (slimNav) = rememberPreference(SlimNavBarKey, defaultValue = false)
-                    val (useNewMiniPlayerDesign) = rememberPreference(UseNewMiniPlayerDesignKey, defaultValue = true)
                     val (savedMiniPlayerAnchor, setSavedMiniPlayerAnchor) = rememberPreference(
                         MiniPlayerLastAnchorKey,
                         defaultValue = COLLAPSED_ANCHOR
@@ -739,6 +738,8 @@ class MainActivity : ComponentActivity() {
                     val shouldShowHomeShuffleButton =
                         currentRoute == Screens.Home.route &&
                             (allLocalItems.isNotEmpty() || allYtItems.isNotEmpty())
+                    val shouldShowLibraryCreatePlaylistButton =
+                        currentRoute == Screens.Library.route
 
                     fun getBottomNavPadding(): Dp {
                         return if (shouldShowNavigationBar && !useRail) {
@@ -764,7 +765,7 @@ class MainActivity : ComponentActivity() {
                                 bottomInset +
                                     (if (shouldShowNavigationBar && !useRail) floatingBarsBottomPadding else 0.dp) +
                                     getBottomNavPadding() +
-                                    (if (useNewMiniPlayerDesign) MiniPlayerBottomSpacing else 0.dp) +
+                                    MiniPlayerBottomSpacing +
                                     MiniPlayerHeight,
                             expandedBound = maxHeight,
                         )
@@ -1085,6 +1086,7 @@ class MainActivity : ComponentActivity() {
                     }
 
                     var showAccountDialog by remember { mutableStateOf(false) }
+                    var showCreatePlaylistDialog by rememberSaveable { mutableStateOf(false) }
 
                     CompositionLocalProvider(
                         LocalDatabase provides database,
@@ -1097,6 +1099,12 @@ class MainActivity : ComponentActivity() {
                         moe.koiverse.archivetune.ui.component.LocalBottomSheetPageState provides bottomSheetPageState,
                         moe.koiverse.archivetune.ui.component.LocalMenuState provides menuState,
                     ) {
+                        if (showCreatePlaylistDialog) {
+                            CreatePlaylistDialog(
+                                onDismiss = { showCreatePlaylistDialog = false },
+                            )
+                        }
+
                         Row {
                             AnimatedVisibility(useRail && shouldShowNavigationBar) {
                                 NavigationRail(
@@ -1499,6 +1507,13 @@ class MainActivity : ComponentActivity() {
                                                         bottom = bottomInset + floatingBarsBottomPadding,
                                                     )
                                                     .height(navVisibleHeight),
+                                                onFabClick = if (shouldShowLibraryCreatePlaylistButton) {
+                                                    { showCreatePlaylistDialog = true }
+                                                } else null,
+                                                fabIconRes = if (shouldShowLibraryCreatePlaylistButton) R.drawable.add else null,
+                                                fabContentDescription = if (shouldShowLibraryCreatePlaylistButton) {
+                                                    stringResource(R.string.create_playlist)
+                                                } else "",
                                                 onShuffleClick = if (shouldShowHomeShuffleButton) {
                                                     {
                                                         val useLocalSource = when {

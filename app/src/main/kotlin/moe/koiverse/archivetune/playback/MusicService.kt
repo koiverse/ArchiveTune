@@ -645,11 +645,7 @@ class MusicService :
                 .setHandleAudioBecomingNoisy(true)
                 .setWakeMode(C.WAKE_MODE_NETWORK)
                 .setAudioAttributes(
-                    AudioAttributes
-                        .Builder()
-                        .setUsage(C.USAGE_MEDIA)
-                        .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
-                        .build(),
+                    playbackAudioAttributes(),
                     false,
                 ).setSeekBackIncrementMs(5000)
                 .setSeekForwardIncrementMs(5000)
@@ -664,6 +660,9 @@ class MusicService :
                 }
 
         audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            audioManager.setAllowedCapturePolicy(android.media.AudioAttributes.ALLOW_CAPTURE_BY_ALL)
+        }
         wakeLock = (getSystemService(Context.POWER_SERVICE) as PowerManager)
             .newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "ArchiveTune:Playback")
             .also { it.setReferenceCounted(false) }
@@ -857,11 +856,7 @@ class MusicService :
                         .setHandleAudioBecomingNoisy(false)
                         .setWakeMode(C.WAKE_MODE_NETWORK)
                         .setAudioAttributes(
-                            AudioAttributes
-                                .Builder()
-                                .setUsage(C.USAGE_MEDIA)
-                                .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
-                                .build(),
+                            playbackAudioAttributes(),
                             false,
                         ).setSeekBackIncrementMs(5000)
                         .setSeekForwardIncrementMs(5000)
@@ -1246,6 +1241,14 @@ class MusicService :
             .setAcceptsDelayedFocusGain(true)
             .build()
     }
+
+    private fun playbackAudioAttributes(): AudioAttributes =
+        AudioAttributes
+            .Builder()
+            .setUsage(C.USAGE_MEDIA)
+            .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
+            .setAllowedCapturePolicy(C.ALLOW_CAPTURE_BY_ALL)
+            .build()
 
     private fun handleAudioFocusChange(focusChange: Int) {
         when (focusChange) {

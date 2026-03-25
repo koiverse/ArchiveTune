@@ -1,6 +1,6 @@
 /*
  * ArchiveTune Project Original (2026)
- * Kòi Natsuko (github.com/koiverse)
+ * Koi Natsuko (github.com/koiverse)
  * Licensed Under GPL-3.0 | see git history for contributors
  */
 
@@ -35,6 +35,8 @@ import moe.koiverse.archivetune.db.entities.PlaylistEntity
 import moe.koiverse.archivetune.db.entities.Song
 import moe.koiverse.archivetune.extensions.toMediaItem
 import moe.koiverse.archivetune.extensions.toggleRepeatMode
+import moe.koiverse.archivetune.models.PersistQueue
+import moe.koiverse.archivetune.playback.MusicService.Companion.PERSISTENT_QUEUE_FILE
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -44,8 +46,10 @@ import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.guava.future
 import kotlinx.coroutines.plus
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import kotlin.math.min
+import java.io.ObjectInputStream
 
 class MediaLibrarySessionCallback
 @Inject
@@ -91,6 +95,59 @@ constructor(
                 .build(),
             connectionResult.availablePlayerCommands,
         )
+    }
+
+    override fun onPlaybackResumption(
+        mediaSession: MediaSession,
+        controller: MediaSession.ControllerInfo,
+    ): ListenableFuture<MediaSession.MediaItemsWithStartPosition> =
+        onPlaybackResumption(mediaSession, controller, true)
+
+    override fun onPlaybackResumption(
+        mediaSession: MediaSession,
+        controller: MediaSession.ControllerInfo,
+        isForPlayback: Boolean,
+    ): ListenableFuture<MediaSession.MediaItemsWithStartPosition> =
+        scope.future {
+            val player = mediaSession.player
+            val currentItems = List(player.mediaItemCount) { index -> player.getMediaItemAt(index) }
+            val persistedItems =
+                withContext(Dispatchers.IO) {
+                    readPersistentQueue()?.let { queue ->
+                        PlaybackResumptionPlanner.PersistedItems(
+                            items = queue.items.map { it.toMediaItem() },
+                            mediaItemIndex = queue.mediaItemIndex,
+                            positionMs = queue.position,
+                        )
+                    }
+                }
+            val result =
+                PlaybackResumptionPlanner.resolve(
+                    currentItems = currentItems,
+                    currentIndex = player.currentMediaItemIndex,
+                    currentPositionMs = player.currentPosition,
+                    persistedItems = persistedItems,
+                    isForPlayback = isForPlayback,
+                )
+            MediaSession.MediaItemsWithStartPosition(
+                result.items,
+                result.startIndex,
+                result.startPositionMs,
+            )
+        }
+
+    private fun readPersistentQueue(): PersistQueue? {
+        val file = context.filesDir.resolve(PERSISTENT_QUEUE_FILE)
+        if (!file.exists() || !file.isFile) return null
+        return try {
+            file.inputStream().use { fis ->
+                ObjectInputStream(fis).use { input ->
+                    input.readObject() as? PersistQueue
+                }
+            }
+        } catch (e: Exception) {
+            null
+        }
     }
 
     override fun onCustomCommand(

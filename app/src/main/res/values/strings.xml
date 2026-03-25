@@ -139,10 +139,12 @@
     <string name="sort_by_song_count">Song count</string>
     <string name="sort_by_length">Length</string>
     <string name="sort_by_play_time">Play time</string>
+    <string name="sort_by_most_played">Most played</string>
     <string name="sort_by_custom">Custom order</string>
     <!-- Dialog -->
     <string name="media_id">Media id</string>
     <string name="mime_type">MIME type</string>
+    <string name="no_matching_playlists">No matching playlists</string>
     <string name="codecs">Codecs</string>
     <string name="bitrate">Bitrate</string>
     <string name="sample_rate">Sample rate</string>
@@ -378,6 +380,8 @@
     <string name="pure_black">Pure black</string>
     <string name="disable_blur">Disable blur effects</string>
     <string name="disable_blur_desc">Disable blur effects throughout the app</string>
+    <string name="blur_intensity">Blur intensity</string>
+    <string name="blur_intensity_value">%1$d dp</string>
     <string name="customize_navigation_tabs">Customize navigation tabs</string>
     <string name="player">Player</string>
     <string name="player_text_alignment">Player text alignment</string>
