@@ -362,12 +362,14 @@ constructor(
     
     suspend fun addSongToPlaylist(song: moe.koiverse.archivetune.innertube.models.SongItem, browseId: String?): Boolean {
         return try {
-            if (browseId != null) {
-                // Add to YouTube playlist
-                withContext(Dispatchers.IO) {
-                    YouTube.addToPlaylist(browseId, song.id)
+            val playlistSetVideoId =
+                if (browseId != null) {
+                    withContext(Dispatchers.IO) {
+                        YouTube.addToPlaylist(browseId, song.id).getOrThrow()
+                    }
+                } else {
+                    null
                 }
-            }
             
             val added = database.withTransaction {
                 // Ensure playlist exists in local database (it should, but just in case)
@@ -393,7 +395,7 @@ constructor(
                         songId = song.id,
                         playlistId = playlistId,
                         position = position,
-                        setVideoId = null
+                        setVideoId = playlistSetVideoId
                     )
                 )
                 true

@@ -84,12 +84,13 @@ import moe.koiverse.archivetune.ui.screens.settings.PoTokenScreen
 import moe.koiverse.archivetune.ui.screens.settings.PrivacySettings
 import moe.koiverse.archivetune.ui.screens.settings.SettingsScreen
 import moe.koiverse.archivetune.ui.screens.settings.StorageSettings
- import moe.koiverse.archivetune.ui.screens.settings.ThemeCreatorScreen
- import moe.koiverse.archivetune.ui.screens.settings.UpdateScreen
- import moe.koiverse.archivetune.ui.utils.ShowMediaInfo
- import moe.koiverse.archivetune.utils.rememberEnumPreference
- import moe.koiverse.archivetune.utils.rememberPreference
- import moe.koiverse.archivetune.ui.screens.NewUpdateAvailableScreen
+import moe.koiverse.archivetune.ui.screens.settings.ThemeCreatorScreen
+import moe.koiverse.archivetune.ui.screens.settings.UpdateScreen
+import moe.koiverse.archivetune.ui.screens.musicrecognition.MusicRecognitionRoute
+import moe.koiverse.archivetune.ui.screens.musicrecognition.MusicRecognitionScreen
+import moe.koiverse.archivetune.ui.utils.ShowMediaInfo
+import moe.koiverse.archivetune.utils.rememberEnumPreference
+import moe.koiverse.archivetune.utils.rememberPreference
 
 @OptIn(ExperimentalMaterial3Api::class)
 fun NavGraphBuilder.navigationBuilder(
@@ -114,8 +115,11 @@ fun NavGraphBuilder.navigationBuilder(
     composable("year_in_music") {
         YearInMusicScreen(navController)
     }
-    composable("mood_and_genres") {
-        MoodAndGenresScreen(navController, scrollBehavior)
+    composable(MusicRecognitionRoute) {
+        MusicRecognitionScreen(navController)
+    }
+    composable(Screens.MoodAndGenres.route) {
+        MoodAndGenresScreen(navController)
     }
     composable("account") {
         AccountScreen(navController, scrollBehavior)
@@ -360,9 +364,6 @@ fun NavGraphBuilder.navigationBuilder(
     }
     composable("settings/about") {
         AboutScreen(navController, scrollBehavior)
-    }
-    composable("new_update_available") {
-        NewUpdateAvailableScreen(navController)
     }
     composable("settings/po_token") {
         PoTokenScreen(navController, scrollBehavior)

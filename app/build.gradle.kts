@@ -23,8 +23,8 @@ android {
     applicationId = "moe.koiverse.archivetune"
         minSdk = 26
         targetSdk = 36
-        versionCode = 130
-        versionName = "12.4.7"
+        versionCode = 131
+        versionName = "13.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
@@ -214,6 +214,7 @@ dependencies {
     implementation(project(":kizzy"))
     implementation(project(":simpmusic"))
     implementation(project(":canvas"))
+    implementation(project(":shazamkit"))
     implementation("com.github.Kyant0:m3color:2025.4")
     implementation(libs.compose.cloudy)
 
@@ -242,7 +243,7 @@ tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach 
         freeCompilerArgs.add("-Xannotation-default-target=param-property")
         freeCompilerArgs.addAll(
             "-opt-in=kotlin.RequiresOptIn",
-            "-Xcontext-receivers"
+            "-Xcontext-parameters"
         )
         // Suppress warnings
         suppressWarnings.set(true)

@@ -38,29 +38,35 @@
 
 <hr />
 
-**ArchiveTune** isn't just another generic YouTube Music wrapper. It’s a totally custom player built from scratch because we believe your music should be private, look great, and work exactly how you expect. If you care about audio quality and want an app that actually looks good, this is the one.
+**ArchiveTune** isn’t just another generic YouTube Music wrapper. It’s a fully custom-built player made from the ground up, because we think your music should stay private, look clean, and work exactly the way you expect. If you care about sound quality and want something that actually feels good to use, this is it.
 
 ---
 
 ## 🚀 The Essentials
-* **No Ads, Ever:** Seriously, just your music. No interruptions, no banner ads.
-* **Plays Nice with Your Library:** All your playlists, liked songs, and subs are right there the second you open the app.
-* **Smart & Efficient:** It loads fast without eating up all your data, and it keeps playing in the background without killing your battery.
+* **No ads, ever:** Just your music, no interruptions, no banners.
+* **Everything’s already there:** Your playlists, liked songs, and subs show up instantly when you open the app.
+* **Lightweight & fast:** It loads quickly, doesn’t waste your data, and keeps playing in the background without draining your battery.
 
-## 🎚️ For the Audiophiles
-* **No More Volume Jumps:** We’ve leveled the audio (using standard EBU R128 stuff) so you aren't constantly reaching for the volume knob between tracks.
-* **Total Control:** Want to speed it up, slow it down, or change the pitch? You can tweak all that on the fly.
-* **Butter-Smooth Transitions:** The crossfade is great—no awkward silence between songs, just a seamless flow.
-* **Works with Your System:** It hooks right into your phone’s built-in equalizer and spatial audio settings, so you don't have to fight with the settings.
+## 🎚️ Audio Stuff
+* **No annoying volume jumps:** Everything’s leveled out (EBU R128), so you’re not constantly adjusting volume.
+* **Full control:** Change speed, pitch, or tempo anytime you want.
+* **Smooth transitions:** Crossfade keeps songs flowing with no awkward silence.
+* **Works with your phone:** Hooks into your equalizer and spatial audio settings automatically.
 
 ## 🎨 Looks & Lyrics
-* **Matches Your Vibe:** The whole app changes colors to match the album art of whatever you're playing (Material You).
-* **Sing Along:** Perfectly synced lyrics that scroll with the song—we've even got translations and romanization if you need them.
-* **Know Your Stats:** You don't have to wait until December; check your "Year in Review" and listening stats literally whenever you want.
+* **Matches your vibe:** The UI changes colors based on the album art (Material You).
+* **Lyrics that keep up:** Real-time synced lyrics, plus translations and romanization if you need them.
+* **Check your stats anytime:** No need to wait for end-of-year recaps—you can see your listening stats whenever.
 
-## ⚙️ The Social Stuff
-* **Keep Your History:** Auto-syncs your listening history with Last.fm and Listenbrainz so your stats are always up to date.
-* **Show It Off:** Let your friends on Discord see exactly what you’re jamming to with custom rich presence.
+## ⚙️ Smart & Social
+* **Auto history sync:** Keeps your listening history updated with Last.fm and ListenBrainz.
+* **Discord integration:** Show off what you’re listening to with rich presence.
+* **Music recognition:** Hear a song somewhere? The app can tell you what it is.
+
+## 🛠️ Tweaks & Customization
+* **Tons of settings:** You can tweak pretty much everything—playback, UI, performance.
+* **Make it yours:** Adjust gestures, animations, and layout however you like.
+* **Flexible design:** Works well on different screen sizes and can be customized to fit your style.
 
 ---
 
@@ -197,5 +203,5 @@ ArchiveTune is an independent third-party client.
   <img src="https://raw.githubusercontent.com/koiverse/ArchiveTune/refs/heads/dev/fastlane/metadata/android/en-US/images/ArchiveTuneFull.png" alt="ArchiveTune Banner" style="width: 100%; max-width: 500px;">
   <p><b>If ArchiveTune elevated your music experience, please consider giving us a ⭐</b></p>
   <br />
-  Made with 💜 by <strong>Koiverse</strong>
+  <img src="https://raw.githubusercontent.com/koiverse/ArchiveTune/refs/heads/dev/assets/badge_part.png" alt="ArchiveTune Banner" width="160" height="160">
 </div>

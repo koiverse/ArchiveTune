@@ -399,7 +399,7 @@ fun ExploreScreen(
                     NavigationTitle(
                         title = stringResource(R.string.mood_and_genres),
                         onClick = {
-                            navController.navigate("mood_and_genres")
+                            navController.navigate(Screens.MoodAndGenres.route)
                         },
                     )
                     LazyHorizontalGrid(
@@ -410,6 +410,7 @@ fun ExploreScreen(
                         items(moodAndGenres) {
                             MoodAndGenresButton(
                                 title = it.title,
+                                stripeColor = it.stripeColor,
                                 onClick = {
                                     navController.navigate("youtube_browse/${it.endpoint.browseId}?params=${it.endpoint.params}")
                                 },

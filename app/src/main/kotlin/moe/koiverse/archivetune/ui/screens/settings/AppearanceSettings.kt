@@ -72,7 +72,6 @@ import moe.koiverse.archivetune.constants.LyricsScrollKey
 import moe.koiverse.archivetune.constants.LyricsTextPositionKey
 import moe.koiverse.archivetune.constants.PlayerDesignStyle
 import moe.koiverse.archivetune.constants.PlayerDesignStyleKey
-import moe.koiverse.archivetune.constants.UseNewMiniPlayerDesignKey
 import moe.koiverse.archivetune.constants.PlayerBackgroundStyle
 import moe.koiverse.archivetune.constants.PlayerBackgroundStyleKey
 import moe.koiverse.archivetune.constants.PureBlackKey
@@ -101,8 +100,7 @@ import moe.koiverse.archivetune.constants.ArchiveTuneCanvasKey
 import moe.koiverse.archivetune.constants.ThumbnailCornerRadiusKey
 import moe.koiverse.archivetune.constants.CropThumbnailToSquareKey
 import moe.koiverse.archivetune.constants.DisableBlurKey
-import moe.koiverse.archivetune.constants.GlassNavigationBarKey
-import moe.koiverse.archivetune.constants.GlassMiniPlayerKey
+import moe.koiverse.archivetune.constants.BlurRadiusKey
 import moe.koiverse.archivetune.constants.UseLyricsV2Key
 import moe.koiverse.archivetune.ui.component.DefaultDialog
 import moe.koiverse.archivetune.ui.component.EnumListPreference
@@ -117,7 +115,6 @@ import moe.koiverse.archivetune.ui.utils.backToMain
 import moe.koiverse.archivetune.utils.rememberEnumPreference
 import moe.koiverse.archivetune.utils.rememberPreference
 import kotlin.math.roundToInt
-import timber.log.Timber
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -140,10 +137,6 @@ fun AppearanceSettings(
     val (playerDesignStyle, onPlayerDesignStyleChange) = rememberEnumPreference(
         PlayerDesignStyleKey,
         defaultValue = PlayerDesignStyle.V4
-    )
-    val (useNewMiniPlayerDesign, onUseNewMiniPlayerDesignChange) = rememberPreference(
-        UseNewMiniPlayerDesignKey,
-        defaultValue = true
     )
     val (useNewLibraryDesign, onUseNewLibraryDesignChange) = rememberPreference(
         key = moe.koiverse.archivetune.constants.UseNewLibraryDesignKey,
@@ -171,7 +164,8 @@ fun AppearanceSettings(
             defaultValue = PlayerBackgroundStyle.DEFAULT,
         )
     val (pureBlack, onPureBlackChange) = rememberPreference(PureBlackKey, defaultValue = false)
-    val (disableBlur, onDisableBlurChange) = rememberPreference(DisableBlurKey, defaultValue = true)
+    val (disableBlur, onDisableBlurChange) = rememberPreference(DisableBlurKey, defaultValue = false)
+    val (blurRadius, onBlurRadiusChange) = rememberPreference(BlurRadiusKey, defaultValue = 36f)
     val (useSystemFont, onUseSystemFontChange) = rememberPreference(UseSystemFontKey, defaultValue = false)
     val (defaultOpenTab, onDefaultOpenTabChange) = rememberEnumPreference(
         DefaultOpenTabKey,
@@ -214,16 +208,6 @@ fun AppearanceSettings(
 
     val (slimNav, onSlimNavChange) = rememberPreference(
         SlimNavBarKey,
-        defaultValue = false
-    )
-
-    val (glassNavigationBar, onGlassNavigationBarChange) = rememberPreference(
-        GlassNavigationBarKey,
-        defaultValue = false
-    )
-
-    val (glassMiniPlayer, onGlassMiniPlayerChange) = rememberPreference(
-        GlassMiniPlayerKey,
         defaultValue = false
     )
 
@@ -392,6 +376,24 @@ fun AppearanceSettings(
             onCheckedChange = onDisableBlurChange,
         )
 
+        PreferenceEntry(
+            title = { Text(stringResource(R.string.blur_intensity)) },
+            description = stringResource(R.string.blur_intensity_value, blurRadius.roundToInt()),
+            icon = { Icon(painterResource(R.drawable.blur_on), null) },
+            isEnabled = !disableBlur,
+            content = {
+                Spacer(modifier = Modifier.height(10.dp))
+                Slider(
+                    value = blurRadius,
+                    onValueChange = onBlurRadiusChange,
+                    valueRange = 0f..48f,
+                    steps = 47,
+                    enabled = !disableBlur,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        )
+
         SwitchPreference(
             title = { Text(stringResource(R.string.use_system_font)) },
             description = stringResource(R.string.use_system_font_desc),
@@ -419,27 +421,6 @@ fun AppearanceSettings(
                     PlayerDesignStyle.V6 -> stringResource(R.string.player_design_v6)
                 }
             },
-        )
-
-        SwitchPreference(
-            title = { Text(stringResource(R.string.new_mini_player_design)) },
-            icon = { Icon(painterResource(R.drawable.nav_bar), null) },
-            checked = useNewMiniPlayerDesign,
-            onCheckedChange = onUseNewMiniPlayerDesignChange,
-        )
-
-        SwitchPreference(
-            title = { Text(stringResource(R.string.glass_mini_player)) },
-            icon = { Icon(painterResource(R.drawable.auto_awesome), null) },
-            checked = glassMiniPlayer,
-            onCheckedChange = onGlassMiniPlayerChange,
-        )
-
-        SwitchPreference(
-            title = { Text(stringResource(R.string.glass_navigation_bar)) },
-            icon = { Icon(painterResource(R.drawable.blur_on), null) },
-            checked = glassNavigationBar,
-            onCheckedChange = onGlassNavigationBarChange,
         )
 
         SwitchPreference(
@@ -496,10 +477,7 @@ fun AppearanceSettings(
       
 
         ThumbnailCornerRadiusSelectorButton(
-            modifier = Modifier.padding(16.dp),
-            onRadiusSelected = { selectedRadius ->
-                Timber.tag("Thumbnail").d("Radius Selector: $selectedRadius")
-            }
+            onRadiusSelected = {}
         )
 
         SwitchPreference(

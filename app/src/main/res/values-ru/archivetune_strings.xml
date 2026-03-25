@@ -93,7 +93,6 @@
     <string name="player_design_v2">Современный</string>
     <string name="player_design_v3">Минимальный</string>
     <string name="player_design_v4">Кинематографичный</string>
-    <string name="new_mini_player_design">Новый дизайн мини плеера</string>
     <string name="player_background_blur">Размытие</string>
     <string name="coloring">Раскраска</string>
     <string name="blur_gradient">Размытие градиента</string>
@@ -265,4 +264,14 @@
     <string name="restore_step_restoring_settings">Восстановление настроек</string>
     <string name="restore_step_restoring_file">Восстановление %1$s</string>
     <string name="restore_step_restarting">Перезапуск приложения</string>
+    <string name="show_home_category_chips">Показать вкладки домашней категории</string>
+    <string name="show_home_category_chips_desc">Показать вкладки фильтров категорий на главной вкладке</string>
+    <string name="player_design_v6">Выразительный</string>
+    <string name="album_not_found">Альбом не найден</string>
+    <string name="album_not_found_desc">Запрашиваемый альбом не может быть загружен</string>
+    <string name="empty_album">Пустой альбом</string>
+    <string name="empty_album_desc">Этот альбом не содержит никаких песен</string>
+    <string name="error_no_song_playing">Сейчас ничего не воспроизводится</string>
+    <string name="error_no_similar_songs">Не найдено похожих песен</string>
+    <string name="error_automix_failed">Ошибка при загрузке похожих песен</string>
 </resources>

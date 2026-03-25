@@ -1,6 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="explore">Explore</string>
+    <string name="music_recognition_tap_to_listen">Tap to listen</string>
+    <string name="music_recognition_listening">Listening…</string>
+    <string name="music_recognition_processing">Processing…</string>
+    <string name="music_recognition_listen_again">Listen again</string>
+    <string name="music_recognition_no_match">No match found</string>
+    <string name="music_recognition_signature_failed">Couldn’t generate a signature</string>
+    <string name="music_recognition_recognition_failed">Recognition failed</string>
+    <string name="music_recognition_open_shazam">Open Shazam</string>
+    <string name="music_recognition_lyrics_preview">Lyrics preview</string>
+    <string name="music_recognition_permission_title">Microphone permission</string>
+    <string name="music_recognition_permission_desc">Allow microphone access to recognize nearby music.</string>
+    <string name="music_recognition_permission_action">Allow</string>
+    <string name="music_recognition_error">Something went wrong</string>
     <string name="local_history">Local</string>
     <string name="remote_history">Remote</string>
     <string name="charts">Charts</string>
@@ -98,7 +111,6 @@
     <string name="player_design_v4">Cinematic</string>
     <string name="player_design_v5">Little</string>
     <string name="player_design_v6">Expressive</string>
-    <string name="new_mini_player_design">New mini player design</string>
     <string name="player_background_blur">Blur</string>
     <string name="coloring">Coloring</string>
     <string name="blur_gradient">Blur Gradient</string>
@@ -117,8 +129,6 @@
     <string name="lyrics_romanize_korean">Romanize korean lyrics</string>
     <string name="slim">Slim</string>
     <string name="slim_navbar">Slim bottom navigation bar</string>
-    <string name="glass_navigation_bar">Glass Navigation Bar (Beta)</string>
-    <string name="glass_mini_player">Glass MiniPlayer (Beta)</string>
     <string name="auto_playlists">Auto playlists</string>
     <string name="show_liked_playlist">Show \"Liked\" playlist</string>
     <string name="show_downloaded_playlist">Show \"Downloaded\" playlist</string>
@@ -138,6 +148,7 @@
     <string name="default_lib_chips">Change default library chip</string>
     <string name="set_quick_picks">Set quick picks</string>
     <string name="last_song_listened">Based on last song listened</string>
+    <string name="dont_show">Dont Show</string>
     <string name="app_language">App language</string>
     <string name="configure_app_language">Configure app languages</string>
     <string name="intent_app_language_not_found">Couldn\'t find app language settings, please configure them manually</string>

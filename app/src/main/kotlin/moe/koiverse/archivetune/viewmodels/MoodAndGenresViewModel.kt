@@ -22,14 +22,14 @@ import javax.inject.Inject
 class MoodAndGenresViewModel
 @Inject
 constructor() : ViewModel() {
-    val moodAndGenres = MutableStateFlow<List<MoodAndGenres>?>(null)
+    val moodAndGenres = MutableStateFlow<List<MoodAndGenres.Item>?>(null)
 
     init {
         viewModelScope.launch {
             YouTube
-                .moodAndGenres()
+                .explore()
                 .onSuccess {
-                    moodAndGenres.value = it
+                    moodAndGenres.value = it.moodAndGenres
                 }.onFailure {
                     reportException(it)
                 }

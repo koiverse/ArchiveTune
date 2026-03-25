@@ -33,6 +33,7 @@ import android.media.audiofx.Virtualizer
 import android.net.ConnectivityManager
 import android.net.Uri
 import android.os.Binder
+import android.os.PowerManager
 import android.widget.Toast
 import androidx.core.content.getSystemService
 import androidx.core.net.toUri
@@ -129,6 +130,7 @@ import moe.koiverse.archivetune.constants.SkipSilenceKey
 import moe.koiverse.archivetune.constants.MaxSongCacheSizeKey
 import moe.koiverse.archivetune.constants.SmartTrimmerKey
 import moe.koiverse.archivetune.constants.StopMusicOnTaskClearKey
+import moe.koiverse.archivetune.constants.WakelockKey
 import moe.koiverse.archivetune.constants.YtmSyncKey
 import moe.koiverse.archivetune.db.MusicDatabase
 import moe.koiverse.archivetune.db.entities.Event
@@ -263,11 +265,15 @@ class MusicService :
     private var hasAudioFocus = false
     private var autoStartOnBluetoothEnabled = false
     private var bluetoothReceiverRegistered = false
+    private var wakeLock: PowerManager.WakeLock? = null
+    private var wakelockEnabled = false
 
     private var scopeJob = Job()
     private var scope = CoroutineScope(Dispatchers.Main + scopeJob)
     private var ioScope = CoroutineScope(Dispatchers.IO + scopeJob)
     private val binder = MusicBinder()
+    private var hasBoundClients = false
+    private var idleStopJob: Job? = null
 
     private lateinit var connectivityManager: ConnectivityManager
     lateinit var connectivityObserver: NetworkConnectivityObserver
@@ -551,6 +557,67 @@ class MusicService :
         }
     }
 
+    private fun promoteToStartedService() {
+        runCatching { startService(Intent(this, MusicService::class.java)) }
+            .onFailure { reportException(it) }
+    }
+
+    private fun cancelIdleStop() {
+        idleStopJob?.cancel()
+        idleStopJob = null
+    }
+
+    private fun stopForegroundAndSelf() {
+        cancelIdleStop()
+        runCatching {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                stopForeground(STOP_FOREGROUND_REMOVE)
+            } else {
+                stopForeground(true)
+            }
+        }
+        hasCalledStartForeground = false
+        stopSelf()
+    }
+
+    private fun scheduleStopIfIdle() {
+        if (hasBoundClients) return
+        val state = player.playbackState
+        val keepAlive =
+            player.isPlaying ||
+                (player.playWhenReady && (state == Player.STATE_BUFFERING || state == Player.STATE_READY))
+        if (keepAlive) {
+            cancelIdleStop()
+            return
+        }
+        val togetherIdle = togetherSessionState.value is moe.koiverse.archivetune.together.TogetherSessionState.Idle
+        if (!togetherIdle) {
+            cancelIdleStop()
+            return
+        }
+
+        val delayMs =
+            when (state) {
+                Player.STATE_READY -> 5 * 60_000L
+                Player.STATE_ENDED, Player.STATE_IDLE -> 30_000L
+                else -> 60_000L
+            }
+
+        cancelIdleStop()
+        idleStopJob =
+            scope.launch {
+                delay(delayMs)
+                if (hasBoundClients) return@launch
+                val currentState = player.playbackState
+                val shouldKeep =
+                    player.isPlaying ||
+                        (player.playWhenReady && (currentState == Player.STATE_BUFFERING || currentState == Player.STATE_READY))
+                if (shouldKeep) return@launch
+                if (togetherSessionState.value !is moe.koiverse.archivetune.together.TogetherSessionState.Idle) return@launch
+                stopForegroundAndSelf()
+            }
+    }
+
     override fun onCreate() {
         super.onCreate()
         ensureScopesActive()
@@ -570,9 +637,6 @@ class MusicService :
             reportException(e)
         }
 
-        ensureStartedAsForeground()
-
-        
         player =
             ExoPlayer
                 .Builder(this)
@@ -581,11 +645,7 @@ class MusicService :
                 .setHandleAudioBecomingNoisy(true)
                 .setWakeMode(C.WAKE_MODE_NETWORK)
                 .setAudioAttributes(
-                    AudioAttributes
-                        .Builder()
-                        .setUsage(C.USAGE_MEDIA)
-                        .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
-                        .build(),
+                    playbackAudioAttributes(),
                     false,
                 ).setSeekBackIncrementMs(5000)
                 .setSeekForwardIncrementMs(5000)
@@ -600,6 +660,12 @@ class MusicService :
                 }
 
         audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            audioManager.setAllowedCapturePolicy(android.media.AudioAttributes.ALLOW_CAPTURE_BY_ALL)
+        }
+        wakeLock = (getSystemService(Context.POWER_SERVICE) as PowerManager)
+            .newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "ArchiveTune:Playback")
+            .also { it.setReferenceCounted(false) }
         setupAudioFocusRequest()
 
         mediaLibrarySessionCallback.apply {
@@ -655,9 +721,10 @@ class MusicService :
             connectivityObserver.networkStatus.collect { isConnected ->
                 isNetworkConnected.value = isConnected
                 if (isConnected && waitingForNetworkConnection.value) {
-                    // Simple auto-play logic like OuterTune
                     waitingForNetworkConnection.value = false
-                    if (player.currentMediaItem != null && player.playWhenReady) {
+                    if (player.currentMediaItem != null && player.playWhenReady &&
+                        player.playbackState == Player.STATE_IDLE
+                    ) {
                         player.prepare()
                         player.play()
                     }
@@ -763,6 +830,14 @@ class MusicService :
                 crossfadeDurationMs.value = it
             }
 
+        dataStore.data
+            .map { it[WakelockKey] ?: false }
+            .distinctUntilChanged()
+            .collectLatest(scope) { enabled ->
+                wakelockEnabled = enabled
+                updateWakeLock()
+            }
+
         crossfadeAudio =
             CrossfadeAudio(
                 player = player,
@@ -781,11 +856,7 @@ class MusicService :
                         .setHandleAudioBecomingNoisy(false)
                         .setWakeMode(C.WAKE_MODE_NETWORK)
                         .setAudioAttributes(
-                            AudioAttributes
-                                .Builder()
-                                .setUsage(C.USAGE_MEDIA)
-                                .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
-                                .build(),
+                            playbackAudioAttributes(),
                             false,
                         ).setSeekBackIncrementMs(5000)
                         .setSeekForwardIncrementMs(5000)
@@ -1170,6 +1241,14 @@ class MusicService :
             .setAcceptsDelayedFocusGain(true)
             .build()
     }
+
+    private fun playbackAudioAttributes(): AudioAttributes =
+        AudioAttributes
+            .Builder()
+            .setUsage(C.USAGE_MEDIA)
+            .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
+            .setAllowedCapturePolicy(C.ALLOW_CAPTURE_BY_ALL)
+            .build()
 
     private fun handleAudioFocusChange(focusChange: Int) {
         when (focusChange) {
@@ -1570,6 +1649,11 @@ class MusicService :
             }
             return
         }
+        if (playWhenReady) {
+            cancelIdleStop()
+            promoteToStartedService()
+            ensureStartedAsForeground()
+        }
         ensureScopesActive()
         suppressAutoPlayback = false
         currentQueue = queue
@@ -1797,7 +1881,7 @@ class MusicService :
         if (!dataStore.get(AutoLoadMoreKey, true)) return
         if (player.repeatMode != REPEAT_MODE_OFF) return
         if (suppressAutoPlayback) return
-        if (player.playbackState == STATE_IDLE || player.mediaItemCount == 0) return
+        if (player.mediaItemCount == 0) return
 
         val currentMeta = player.currentMetadata ?: return
         val seedMediaId = currentMeta.id.trim().ifBlank { return }
@@ -3596,7 +3680,7 @@ class MusicService :
         !currentQueue.hasNextPage()
     ) {
         scope.launch(SilentHandler) {
-            if (suppressAutoPlayback || player.playbackState == STATE_IDLE || player.mediaItemCount == 0) return@launch
+            if (suppressAutoPlayback || player.mediaItemCount == 0) return@launch
             val queueIds = (0 until player.mediaItemCount).map { player.getMediaItemAt(it).mediaId }.toSet()
             val currentMediaMetadata = player.currentMetadata
             val currentMediaId = currentMediaMetadata?.id?.trim().orEmpty()
@@ -3611,6 +3695,7 @@ class MusicService :
                     emptyList()
                 }
             if (existingAutomix.isNotEmpty()) {
+                if (player.playbackState == STATE_IDLE) return@launch
                 val filteredAutomix = existingAutomix.filter { it.mediaId !in queueIds }
                 if (filteredAutomix.isNotEmpty()) {
                     player.addMediaItems(filteredAutomix)
@@ -3817,7 +3902,7 @@ class MusicService :
         handleDeviceMuteStateChanged()
     }
     if (events.contains(Player.EVENT_PLAY_WHEN_READY_CHANGED) && isDeviceMutedNow() && this.player.playWhenReady) {
-        wasAutoPausedByDeviceMute = false
+        handleDeviceMuteStateChanged()
     }
     if (events.contains(Player.EVENT_PLAYBACK_STATE_CHANGED) &&
         (this.player.playbackState == Player.STATE_IDLE || this.player.playbackState == Player.STATE_ENDED)
@@ -3850,13 +3935,24 @@ class MusicService :
             Player.EVENT_PLAY_WHEN_READY_CHANGED
         )
     ) {
-        val isBufferingOrReady =
-            player.playbackState == Player.STATE_BUFFERING || player.playbackState == Player.STATE_READY
-        if (isBufferingOrReady && player.playWhenReady) {
-            val focusGranted = requestAudioFocus()
-            if (focusGranted) openAudioEffectSession()
+        val playbackState = player.playbackState
+        val keepAudioEffectSessionOpen =
+            playbackState == Player.STATE_BUFFERING || playbackState == Player.STATE_READY
+        if (player.playWhenReady && keepAudioEffectSessionOpen) {
+            requestAudioFocus()
+        }
+        if (keepAudioEffectSessionOpen) {
+            openAudioEffectSession()
         } else {
             closeAudioEffectSession()
+        }
+        updateWakeLock()
+        if (player.playWhenReady && keepAudioEffectSessionOpen) {
+            cancelIdleStop()
+            promoteToStartedService()
+            ensureStartedAsForeground()
+        } else {
+            scheduleStopIfIdle()
         }
     }
 
@@ -4085,6 +4181,7 @@ class MusicService :
             Timber.tag("MusicService").w(
                 "Skipping redundant stream refresh for $currentMediaId after validated recovery; resuming playback without URL refresh"
             )
+            refreshValidatedPlayingMediaId = null
             player.prepare()
             player.playWhenReady = true
             return
@@ -4423,6 +4520,16 @@ class MusicService :
             }
         }
         player.setOffloadEnabled(enabled)
+    }
+
+    private fun updateWakeLock() {
+        val wl = wakeLock ?: return
+        val shouldHold = wakelockEnabled && player.isPlaying
+        if (shouldHold && !wl.isHeld) {
+            wl.acquire()
+        } else if (!shouldHold && wl.isHeld) {
+            wl.release()
+        }
     }
 
     private fun createRenderersFactory() =
@@ -4788,6 +4895,9 @@ class MusicService :
             crossfadeAudio = null
         } catch (_: Exception) {}
         try {
+            if (wakeLock?.isHeld == true) wakeLock?.release()
+        } catch (_: Exception) {}
+        try {
             player.removeListener(this)
             player.removeListener(sleepTimer)
             player.release()
@@ -4796,6 +4906,8 @@ class MusicService :
     }
 
     override fun onBind(intent: Intent?): android.os.IBinder? {
+        hasBoundClients = true
+        cancelIdleStop()
         val result = super.onBind(intent) ?: binder
         if (player.mediaItemCount > 0 && player.currentMediaItem != null) {
             currentMediaMetadata.value = player.currentMetadata
@@ -4805,6 +4917,18 @@ class MusicService :
             }
         }
         return result
+    }
+
+    override fun onUnbind(intent: Intent?): Boolean {
+        hasBoundClients = false
+        scheduleStopIfIdle()
+        return super.onUnbind(intent)
+    }
+
+    override fun onRebind(intent: Intent?) {
+        hasBoundClients = true
+        cancelIdleStop()
+        super.onRebind(intent)
     }
 
     override fun onTaskRemoved(rootIntent: Intent?) {
@@ -4867,7 +4991,6 @@ class MusicService :
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo) = mediaSession
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        ensureStartedAsForeground()
         super.onStartCommand(intent, flags, startId)
         return START_NOT_STICKY
     }

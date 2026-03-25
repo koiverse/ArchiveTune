@@ -71,6 +71,8 @@ import moe.koiverse.archivetune.LocalPlayerConnection
 import moe.koiverse.archivetune.LocalSyncUtils
 import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.constants.ArtistSeparatorsKey
+import moe.koiverse.archivetune.constants.ExternalDownloaderEnabledKey
+import moe.koiverse.archivetune.constants.ExternalDownloaderPackageKey
 import moe.koiverse.archivetune.constants.ListItemHeight
 import moe.koiverse.archivetune.constants.ListThumbnailSize
 import moe.koiverse.archivetune.constants.ThumbnailCornerRadius
@@ -117,6 +119,8 @@ fun YouTubeSongMenu(
 
     // Artist separators for splitting artist names
     val (artistSeparators) = rememberPreference(ArtistSeparatorsKey, defaultValue = ",;/&")
+    val (externalDownloaderEnabled) = rememberPreference(ExternalDownloaderEnabledKey, defaultValue = false)
+    val (externalDownloaderPackage) = rememberPreference(ExternalDownloaderPackageKey, defaultValue = "")
 
     // Split artists by configured separators
     data class SplitArtist(
@@ -148,14 +152,9 @@ fun YouTubeSongMenu(
 
     AddToPlaylistDialog(  
         isVisible = showChoosePlaylistDialog,  
-        onGetSong = { playlist ->  
+        onGetSong = {  
             database.transaction {  
                 insert(song.toMediaMetadata())  
-            }  
-            coroutineScope.launch(Dispatchers.IO) {  
-                playlist.playlist.browseId?.let { browseId ->  
-                    YouTube.addToPlaylist(browseId, song.id)  
-                }  
             }  
             listOf(song.id)  
         },  
@@ -535,6 +534,37 @@ fun YouTubeSongMenu(
                       }
                  }
              )
+        }
+        if (externalDownloaderEnabled) {
+            item {
+                ListItem(
+                    headlineContent = { Text(text = stringResource(R.string.open_with_downloader)) },
+                    leadingContent = {
+                        Icon(
+                            painter = painterResource(R.drawable.download),
+                            contentDescription = null,
+                        )
+                    },
+                    modifier = Modifier.clickable {
+                        onDismiss()
+                        val url = "https://music.youtube.com/watch?v=${song.id}"
+                        if (externalDownloaderPackage.isBlank()) {
+                            Toast.makeText(context, context.getString(R.string.external_downloader_not_configured), Toast.LENGTH_LONG).show()
+                            return@clickable
+                        }
+                        val intent = Intent(Intent.ACTION_VIEW).apply {
+                            setPackage(externalDownloaderPackage)
+                            data = android.net.Uri.parse(url)
+                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        }
+                        try {
+                            context.startActivity(intent)
+                        } catch (e: android.content.ActivityNotFoundException) {
+                            Toast.makeText(context, context.getString(R.string.external_downloader_not_installed), Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                )
+            }
         }
     }
 }

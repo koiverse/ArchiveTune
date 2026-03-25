@@ -35,6 +35,7 @@ import moe.koiverse.archivetune.innertube.models.getContinuation
 import moe.koiverse.archivetune.innertube.models.getItems
 import moe.koiverse.archivetune.innertube.models.oddElements
 import moe.koiverse.archivetune.innertube.models.response.AccountMenuResponse
+import moe.koiverse.archivetune.innertube.models.response.AddItemYouTubePlaylistResponse
 import moe.koiverse.archivetune.innertube.models.response.BrowseResponse
 import moe.koiverse.archivetune.innertube.models.response.CreatePlaylistResponse
 import moe.koiverse.archivetune.innertube.models.response.GetQueueResponse
@@ -1016,11 +1017,41 @@ object YouTube {
     }
 
     suspend fun addToPlaylist(playlistId: String, videoId: String) = runCatching {
-        innerTube.addToPlaylist(WEB_REMIX, playlistId, videoId)
+        innerTube
+            .addToPlaylist(WEB_REMIX, playlistId, videoId)
+            .body<AddItemYouTubePlaylistResponse>()
+            .playlistEditResults
+            .firstOrNull()
+            ?.playlistEditVideoAddedResultData
+            ?.setVideoId
     }
 
     suspend fun addPlaylistToPlaylist(playlistId: String, addPlaylistId: String) = runCatching {
         innerTube.addPlaylistToPlaylist(WEB_REMIX, playlistId, addPlaylistId)
+    }
+
+    suspend fun playlistEntrySetVideoIds(playlistId: String, videoId: String) = runCatching {
+        val setVideoIds = mutableListOf<String>()
+
+        fun collectSetVideoIds(songs: List<SongItem>) {
+            setVideoIds += songs
+                .asSequence()
+                .filter { song -> song.id == videoId }
+                .mapNotNull(SongItem::setVideoId)
+                .toList()
+        }
+
+        val playlistPage = playlist(playlistId).getOrThrow()
+        collectSetVideoIds(playlistPage.songs)
+
+        var continuation = playlistPage.songsContinuation ?: playlistPage.continuation
+        while (continuation != null) {
+            val continuationPage = playlistContinuation(continuation).getOrThrow()
+            collectSetVideoIds(continuationPage.songs)
+            continuation = continuationPage.continuation
+        }
+
+        setVideoIds.distinct()
     }
 
     suspend fun removeFromPlaylist(playlistId: String, videoId: String, setVideoId: String) = runCatching {

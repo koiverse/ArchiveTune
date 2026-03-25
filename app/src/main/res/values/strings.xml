@@ -13,10 +13,12 @@
     <!-- Home -->
     <string name="history">History</string>
     <string name="stats">Stats</string>
-    <string name="mood_and_genres">Mood and Genres</string>
+    <string name="mood_and_genres">Mood &amp; Genres</string>
     <string name="account">Account</string>
     <string name="quick_picks">Quick picks</string>
     <string name="quick_picks_empty">Listen to songs to generate your quick picks</string>
+    <string name="speed_dial">Speed dial</string>
+    <string name="speed_dial_random">Play random speed dial song</string>
     <string name="forgotten_favorites">Forgotten favorites</string>
     <string name="keep_listening">Keep listening</string>
     <string name="your_youtube_playlists">Your YouTube playlists</string>
@@ -76,6 +78,7 @@
     <string name="retry">Retry</string>
     <string name="radio">Radio</string>
     <string name="shuffle">Shuffle</string>
+    <string name="music_recognition">Music Recognition</string>
     <string name="reset">Reset</string>
     <!-- Menu -->
     <string name="details">Details</string>
@@ -95,6 +98,8 @@
     <string name="import_failed">Import failed</string>
     <string name="update_button">Update</string>
     <string name="add_to_playlist">Add to playlist</string>
+    <string name="pin_to_speed_dial">Pin to speed dial</string>
+    <string name="remove_from_speed_dial">Remove from speed dial</string>
     <string name="view_artist">View artist</string>
     <string name="view_album">View album</string>
     <string name="view_all">View all</string>
@@ -134,10 +139,12 @@
     <string name="sort_by_song_count">Song count</string>
     <string name="sort_by_length">Length</string>
     <string name="sort_by_play_time">Play time</string>
+    <string name="sort_by_most_played">Most played</string>
     <string name="sort_by_custom">Custom order</string>
     <!-- Dialog -->
     <string name="media_id">Media id</string>
     <string name="mime_type">MIME type</string>
+    <string name="no_matching_playlists">No matching playlists</string>
     <string name="codecs">Codecs</string>
     <string name="bitrate">Bitrate</string>
     <string name="sample_rate">Sample rate</string>
@@ -373,6 +380,8 @@
     <string name="pure_black">Pure black</string>
     <string name="disable_blur">Disable blur effects</string>
     <string name="disable_blur_desc">Disable blur effects throughout the app</string>
+    <string name="blur_intensity">Blur intensity</string>
+    <string name="blur_intensity_value">%1$d dp</string>
     <string name="customize_navigation_tabs">Customize navigation tabs</string>
     <string name="player">Player</string>
     <string name="player_text_alignment">Player text alignment</string>
@@ -445,10 +454,19 @@
     <string name="auto_skip_next_on_error">Auto skip to next song when error occurs</string>
     <string name="auto_skip_next_on_error_desc">Ensure your continuous playback experience</string>
     <string name="stop_music_on_task_clear">Stop music on task clear</string>
+    <string name="wakelock">Keep CPU awake during playback</string>
+    <string name="wakelock_desc">Prevents the system from interrupting music by holding a CPU wake lock</string>
     <string name="auto_start_on_bluetooth">Auto-start on Bluetooth connect</string>
     <string name="auto_start_on_bluetooth_desc">Automatically resume playback when a Bluetooth audio device connects</string>
     <string name="artist_separators">Symbols to split artists</string>
     <string name="artist_separators_desc">Symbols used to split multiple artists</string>
+    <string name="external_downloader">External Downloader</string>
+    <string name="external_downloader_desc">Download songs through an external app by package name</string>
+    <string name="external_downloader_package">Downloader App Package</string>
+    <string name="external_downloader_package_desc">Package name of the external downloader app (e.g. com.deniscerri.ytdl)</string>
+    <string name="open_with_downloader">Open with Downloader</string>
+    <string name="external_downloader_not_installed">External downloader app is not installed</string>
+    <string name="external_downloader_not_configured">No external downloader configured. Set one in Settings → Player.</string>
     <string name="add_symbol">Add symbol</string>
     <string name="enter_symbol">Enter symbol</string>
     <string name="equalizer">Equalizer</string>

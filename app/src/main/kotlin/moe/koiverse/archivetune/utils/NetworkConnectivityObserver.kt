@@ -33,7 +33,7 @@ class NetworkConnectivityObserver(context: Context) {
         }
 
         override fun onLost(network: Network) {
-            _networkStatus.trySend(false)
+            _networkStatus.trySend(isCurrentlyConnected())
         }
     }
 

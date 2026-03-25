@@ -655,7 +655,7 @@ ArchiveTune sẽ chỉ trích xuất token của bạn, và mọi thứ khác đ
     <string name="log_level_verbose">Verbose</string>
     <string name="log_level_debug">Debug</string>
     <string name="log_level_info">Info</string>
-    <string name="log_level_warning">Warning</string>
+    <string name="log_level_warning">CẢNH BÁO</string>
     <string name="log_level_error">Error</string>
     <string name="filter_discord_only">Discord</string>
     <string name="filter_all_logs">Tất cả</string>
@@ -738,4 +738,10 @@ ArchiveTune sẽ chỉ trích xuất token của bạn, và mọi thứ khác đ
     <string name="together_requesting_song_change">Yêu cầu chủ trì đổi bài hát…</string>
     <string name="together_song_change_failed">Yêu cầu thay đổi bài hát không được áp dụng. Vui lòng thử lại.</string>
     <string name="together_token_missing">Phiên bản này không hỗ trợ phát nhạc trực tuyến</string>
+    <string name="stream_bypass_proxy">Bypass proxy cho các luồng</string>
+    <string name="stream_bypass_proxy_desc">Sử dụng địa chỉ IP trực tiếp của bạn để phát lại luồng nhằm tránh lỗi không khớp IP</string>
+    <string name="integrations">Tích hợp</string>
+    <string name="internal_subcategory_settings">Cài đặt nội bộ và danh mục phụ</string>
+    <string name="search_try_different">Hãy thử một cụm từ tìm kiếm khác</string>
+    <string name="top_results">Kết quả hàng đầu</string>
 </resources>
