@@ -9,7 +9,6 @@
 package moe.koiverse.archivetune.ui.menu
 
 import android.content.Intent
-import android.content.res.Configuration
 import android.widget.Toast
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -61,7 +60,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextRange
@@ -383,9 +381,6 @@ fun SongMenu(
 
     val bottomSheetPageState = LocalBottomSheetPageState.current
 
-    val configuration = LocalConfiguration.current
-    val isPortrait = configuration.orientation == Configuration.ORIENTATION_PORTRAIT
-
     val startRadioText = stringResource(R.string.start_radio)
     val playNextText = stringResource(R.string.play_next)
     val addToQueueText = stringResource(R.string.add_to_queue)
@@ -499,7 +494,6 @@ fun SongMenu(
     }
 
     LazyColumn(
-        userScrollEnabled = !isPortrait,
         contentPadding = PaddingValues(
             start = 0.dp,
             top = 0.dp,
@@ -935,3 +929,4 @@ fun SongMenu(
         }
     }
 }
+
