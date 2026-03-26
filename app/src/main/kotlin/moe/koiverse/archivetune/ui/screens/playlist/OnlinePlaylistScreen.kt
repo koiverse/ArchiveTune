@@ -733,6 +733,28 @@ fun OnlinePlaylistScreen(
                                         }
                                     }
 
+                                    playlist.playEndpoint?.let { playEndpoint ->
+                                        Button(
+                                            onClick = {
+                                                playerConnection.service.getAutomix(
+                                                    playlistId = playlist.id
+                                                )
+                                                playerConnection.playQueue(
+                                                    YouTubeQueue(playEndpoint)
+                                                )
+                                            },
+                                            shape = RoundedCornerShape(24.dp),
+                                            modifier = Modifier.weight(1f).height(48.dp)
+                                        ) {
+                                            Icon(
+                                                painter = painterResource(R.drawable.play),
+                                                contentDescription =
+                                                    stringResource(R.string.play),
+                                                modifier = Modifier.size(24.dp)
+                                            )
+                                        }
+                                    }
+
                                     // Shuffle Button
                                     playlist.shuffleEndpoint?.let { shuffleEndpoint ->
                                         Button(
@@ -898,9 +920,12 @@ fun OnlinePlaylistScreen(
                                                     )
                                                     playerConnection.playQueue(
                                                         YouTubeQueue(
-                                                            song.item.second.endpoint
-                                                                ?: WatchEndpoint(
-                                                                    videoId = song.item.second.id
+                                                            song.item.second
+                                                                .toPlaylistPlaybackEndpoint(
+                                                                    playlistId = playlist.id,
+                                                                    playlistPlayParams =
+                                                                        playlist.playEndpoint
+                                                                            ?.params,
                                                                 ),
                                                             song.item.second.toMediaMetadata(),
                                                         ),
@@ -1184,4 +1209,17 @@ private fun MetadataChip(icon: Int, text: String, modifier: Modifier = Modifier)
             )
         }
     }
+}
+
+private fun SongItem.toPlaylistPlaybackEndpoint(
+    playlistId: String,
+    playlistPlayParams: String?,
+): WatchEndpoint {
+    val baseEndpoint = endpoint ?: WatchEndpoint(videoId = id)
+    return baseEndpoint.copy(
+        videoId = baseEndpoint.videoId ?: id,
+        playlistId = baseEndpoint.playlistId ?: playlistId,
+        playlistSetVideoId = baseEndpoint.playlistSetVideoId ?: setVideoId,
+        params = baseEndpoint.params ?: playlistPlayParams,
+    )
 }
