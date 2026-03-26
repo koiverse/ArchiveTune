@@ -174,7 +174,7 @@ open class DiscordWebSocket(
         Logger.getLogger("Kizzy").log(INFO, "Gateway: Sending $HEARTBEAT with seq: $sequence")
         send(
             op = HEARTBEAT,
-            d = if (sequence == 0) "null" else sequence.toString(),
+            d = sequence.takeIf { it > 0 },
         )
     }
 
