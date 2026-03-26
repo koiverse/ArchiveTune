@@ -19,13 +19,18 @@ import kotlinx.coroutines.withContext
 class YouTubeQueue(
     private var endpoint: WatchEndpoint,
     override val preloadItem: MediaMetadata? = null,
+    private val followAutomixPreview: Boolean = false,
 ) : Queue {
     private var continuation: String? = null
 
     override suspend fun getInitialStatus(): Queue.Status {
         val nextResult =
             withContext(IO) {
-                YouTube.next(endpoint, continuation).getOrThrow()
+                YouTube.next(
+                    endpoint = endpoint,
+                    continuation = continuation,
+                    followAutomixPreview = followAutomixPreview,
+                ).getOrThrow()
             }
         endpoint = nextResult.endpoint
         continuation = nextResult.continuation
@@ -41,7 +46,11 @@ class YouTubeQueue(
     override suspend fun nextPage(): List<MediaItem> {
         val nextResult =
             withContext(IO) {
-                YouTube.next(endpoint, continuation).getOrThrow()
+                YouTube.next(
+                    endpoint = endpoint,
+                    continuation = continuation,
+                    followAutomixPreview = followAutomixPreview,
+                ).getOrThrow()
             }
         endpoint = nextResult.endpoint
         continuation = nextResult.continuation
