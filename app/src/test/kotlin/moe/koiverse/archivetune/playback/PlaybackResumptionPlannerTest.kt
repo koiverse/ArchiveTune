@@ -58,6 +58,48 @@ class PlaybackResumptionPlannerTest {
     }
 
     @Test
+    fun playbackUsesPersistedQueueWhenCurrentQueueLooksLikeSingleItemSnapshot() {
+        val result =
+            PlaybackResumptionPlanner.resolve(
+                currentItems = listOf("saved-2"),
+                currentIndex = 0,
+                currentPositionMs = 50L,
+                persistedItems =
+                    PlaybackResumptionPlanner.PersistedItems(
+                        items = listOf("saved-1", "saved-2", "saved-3"),
+                        mediaItemIndex = 1,
+                        positionMs = 1234L,
+                    ),
+                isForPlayback = true,
+            )
+
+        assertEquals(listOf("saved-1", "saved-2", "saved-3"), result.items)
+        assertEquals(1, result.startIndex)
+        assertEquals(1234L, result.startPositionMs)
+    }
+
+    @Test
+    fun playbackKeepsCurrentQueueWhenSingleItemDoesNotMatchPersistedCurrentItem() {
+        val result =
+            PlaybackResumptionPlanner.resolve(
+                currentItems = listOf("current-only"),
+                currentIndex = 0,
+                currentPositionMs = 50L,
+                persistedItems =
+                    PlaybackResumptionPlanner.PersistedItems(
+                        items = listOf("saved-1", "saved-2", "saved-3"),
+                        mediaItemIndex = 1,
+                        positionMs = 1234L,
+                    ),
+                isForPlayback = true,
+            )
+
+        assertEquals(listOf("current-only"), result.items)
+        assertEquals(0, result.startIndex)
+        assertEquals(50L, result.startPositionMs)
+    }
+
+    @Test
     fun invalidIndicesAndNegativePositionsAreClampedSafely() {
         val result =
             PlaybackResumptionPlanner.resolve(

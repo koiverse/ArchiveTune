@@ -26,19 +26,29 @@ internal object PlaybackResumptionPlanner {
         persistedItems: PersistedItems<T>?,
         isForPlayback: Boolean,
     ): Result<T> {
-        if (currentItems.isNotEmpty()) {
-            return currentItems.toResult(
-                currentIndex = currentIndex,
-                positionMs = currentPositionMs,
+        val persisted = persistedItems
+        val usePersistedItems =
+            persisted != null &&
+                persisted.items.isNotEmpty() &&
+                (currentItems.isEmpty() || (
+                    isForPlayback &&
+                        currentItems.size == 1 &&
+                        persisted.items.size > 1 &&
+                        currentItems.first() == persisted.items[persisted.mediaItemIndex.coerceIn(persisted.items.indices)]
+                ))
+
+        if (usePersistedItems && persisted != null) {
+            return persisted.items.toResult(
+                currentIndex = persisted.mediaItemIndex,
+                positionMs = persisted.positionMs,
                 isForPlayback = isForPlayback,
             )
         }
 
-        val persisted = persistedItems
-        if (persisted != null && persisted.items.isNotEmpty()) {
-            return persisted.items.toResult(
-                currentIndex = persisted.mediaItemIndex,
-                positionMs = persisted.positionMs,
+        if (currentItems.isNotEmpty()) {
+            return currentItems.toResult(
+                currentIndex = currentIndex,
+                positionMs = currentPositionMs,
                 isForPlayback = isForPlayback,
             )
         }
