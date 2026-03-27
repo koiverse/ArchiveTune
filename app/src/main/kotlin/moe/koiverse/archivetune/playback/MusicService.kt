@@ -1072,9 +1072,17 @@ class MusicService :
                                     playerState.currentMediaItemIndex
                                 } else {
                                     player.currentMediaItemIndex.coerceIn(0, player.mediaItemCount - 1)
-                                }
+                            }
                             player.seekTo(index, playerState.currentPosition)
                         }
+
+                        val shouldResumePlayback =
+                            playerState.playWhenReady && player.mediaItemCount > 0
+                        if (shouldResumePlayback) {
+                            promoteToStartedService()
+                            ensureStartedAsForeground()
+                        }
+                        player.playWhenReady = shouldResumePlayback
                         
                         currentMediaMetadata.value = player.currentMetadata
                         updateNotification()
