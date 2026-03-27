@@ -12,6 +12,7 @@ import moe.koiverse.archivetune.innertube.models.YouTubeClient
 import moe.koiverse.archivetune.innertube.models.response.PlayerResponse
 import io.ktor.http.URLBuilder
 import io.ktor.http.parseQueryString
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.OkHttpClient
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.schabi.newpipe.extractor.NewPipe
@@ -95,7 +96,27 @@ object NewPipeUtils {
 
     fun getStreamUrl(format: PlayerResponse.StreamingData.Format, videoId: String, client: YouTubeClient? = null): Result<String> =
         runCatching {
-            val url = format.url ?: run {
+            val directUrl = format.url
+            if (directUrl != null) {
+                val resolvedDirectUrl =
+                    if (directUrl.toHttpUrlOrNull()?.queryParameter("n")?.isNotBlank() == true) {
+                        runCatching {
+                            retryWithBackoff(
+                                maxAttempts = 3,
+                                initialDelayMs = 250L,
+                                maxDelayMs = 2_000L
+                            ) {
+                                YoutubeJavaScriptPlayerManager.getUrlWithThrottlingParameterDeobfuscated(videoId, directUrl)
+                            }
+                        }.getOrElse { directUrl }
+                    } else {
+                        directUrl
+                    }
+
+                return@runCatching YouTube.appendGvsPoToken(resolvedDirectUrl, client)
+            }
+
+            val url = run {
                 val cipherString = format.signatureCipher ?: format.cipher
                 if (cipherString == null) throw ParsingException("Could not find format url")
 
