@@ -108,6 +108,36 @@ object YTPlayerUtils {
     private val streamUrlCache = ConcurrentHashMap<String, CachedStreamUrl>()
     private val failedStreamClientsUntil = ConcurrentHashMap<String, Long>()
 
+    private suspend fun ensureVisitorDataReady(
+        videoId: String,
+        forceRefresh: Boolean = false,
+        reason: String,
+    ): String? {
+        if (!forceRefresh) {
+            YouTube.visitorData
+                ?.takeIf { it.isNotBlank() }
+                ?.let { return it }
+        }
+
+        val action = if (forceRefresh) "Refreshing" else "Fetching"
+        Timber.tag(logTag).i("%s visitorData for %s (%s)", action, videoId, reason)
+
+        val refreshedVisitorData =
+            YouTube.visitorData()
+                .onFailure {
+                    Timber.tag(logTag).e(it, "Failed to refresh visitorData for $videoId")
+                    reportException(it)
+                }
+                .getOrNull()
+                ?.takeIf { it.isNotBlank() }
+
+        if (refreshedVisitorData != null) {
+            YouTube.visitorData = refreshedVisitorData
+        }
+
+        return refreshedVisitorData
+    }
+
     internal fun shouldPreferWebRemixForLoggedInPlayback(
         preferredStreamClient: PlayerStreamClient,
         isLoggedIn: Boolean,
@@ -235,6 +265,12 @@ object YTPlayerUtils {
         Timber.tag(logTag).v("Signature timestamp: $signatureTimestamp")
 
         val isLoggedIn = YouTube.cookie != null
+        if (!isLoggedIn) {
+            ensureVisitorDataReady(
+                videoId = videoId,
+                reason = "anonymous playback bootstrap",
+            )
+        }
         val sessionId = if (isLoggedIn) YouTube.dataSyncId else YouTube.visitorData
         Timber.tag(logTag).v("Session authentication status: ${if (isLoggedIn) "Logged in" else "Not logged in"} (sessionId=${sessionId.orEmpty()})")
 
@@ -284,12 +320,13 @@ object YTPlayerUtils {
             preferredYouTubeClient.takeIf { preferredStreamClient == PlayerStreamClient.ANDROID_VR } ?: MAIN_CLIENT
 
         Timber.tag(logTag).i("Fetching metadata response using client: ${metadataClient.clientName}")
-        val metadataPlayerResponse =
+        var metadataPlayerResponse =
             YouTube.player(videoId, playlistId, metadataClient, signatureTimestamp).getOrThrow()
-        val audioConfig = metadataPlayerResponse.playerConfig?.audioConfig
-        val videoDetails = metadataPlayerResponse.videoDetails
-        val playbackTracking = metadataPlayerResponse.playbackTracking
-        val expectedDurationMs = videoDetails?.lengthSeconds?.toLongOrNull()?.takeIf { it > 0 }?.times(1000L)
+        var expectedDurationMs =
+            metadataPlayerResponse.videoDetails?.lengthSeconds
+                ?.toLongOrNull()
+                ?.takeIf { it > 0 }
+                ?.times(1000L)
 
         val streamClients =
             buildList {
@@ -306,6 +343,7 @@ object YTPlayerUtils {
 
         val botDetectedClients = mutableSetOf<String>()
         var gateFailure: PlaybackGateFailure? = null
+        var didRefreshVisitorDataAfterBotDetection = false
 
         for ((index, client) in streamClients.withIndex()) {
             format = null
@@ -332,23 +370,67 @@ object YTPlayerUtils {
 
             if (streamPlayerResponse == null) continue
 
-            if (streamPlayerResponse.playabilityStatus.status != "OK") {
-                val reason = streamPlayerResponse.playabilityStatus.reason.orEmpty()
-                val isLoginRecovery = isLoginRecoveryError(reason)
-                val isBotDetection = isBotDetectionError(reason)
-                Timber.tag(logTag).w(
-                    "Player response status not OK: ${streamPlayerResponse.playabilityStatus.status}, reason: $reason, loginRecovery: $isLoginRecovery, botDetection: $isBotDetection"
-                )
-                if (isLoginRecovery) {
-                    gateFailure = PlaybackGateFailure(
-                        clientName = client.clientName,
-                        status = streamPlayerResponse.playabilityStatus.status,
-                        reason = streamPlayerResponse.playabilityStatus.reason,
-                    )
-                } else if (isBotDetection) {
-                    botDetectedClients.add(client.clientName)
+            var playabilityStatus = streamPlayerResponse.playabilityStatus
+            if (playabilityStatus.status != "OK") {
+                var reason = playabilityStatus.reason.orEmpty()
+                var isLoginRecovery = isLoginRecoveryError(reason)
+                var isBotDetection = isBotDetectionError(reason)
+
+                if (!isLoggedIn && isBotDetection && !didRefreshVisitorDataAfterBotDetection) {
+                    val refreshedVisitorData =
+                        ensureVisitorDataReady(
+                            videoId = videoId,
+                            forceRefresh = true,
+                            reason = "bot-detection recovery on ${client.clientName}",
+                        )
+
+                    if (!refreshedVisitorData.isNullOrBlank()) {
+                        didRefreshVisitorDataAfterBotDetection = true
+                        Timber.tag(logTag).i(
+                            "Retrying %s for %s after refreshing visitorData",
+                            client.clientName,
+                            videoId,
+                        )
+                        streamPlayerResponse =
+                            YouTube.player(videoId, playlistId, client, signatureTimestamp).getOrNull()
+
+                        if (streamPlayerResponse == null) continue
+
+                        playabilityStatus = streamPlayerResponse.playabilityStatus
+                        reason = playabilityStatus.reason.orEmpty()
+                        isLoginRecovery = isLoginRecoveryError(reason)
+                        isBotDetection = isBotDetectionError(reason)
+                    }
                 }
-                continue
+
+                if (playabilityStatus.status == "OK") {
+                    if (client == metadataClient) {
+                        metadataPlayerResponse = streamPlayerResponse
+                        expectedDurationMs =
+                            metadataPlayerResponse.videoDetails?.lengthSeconds
+                                ?.toLongOrNull()
+                                ?.takeIf { it > 0 }
+                                ?.times(1000L)
+                    }
+                    Timber.tag(logTag).i(
+                        "Recovered playback with %s after visitorData refresh",
+                        client.clientName,
+                    )
+                } else {
+                    Timber.tag(logTag).w(
+                        "Player response status not OK: ${playabilityStatus.status}, reason: $reason, loginRecovery: $isLoginRecovery, botDetection: $isBotDetection"
+                    )
+                    if (isLoginRecovery) {
+                        gateFailure = PlaybackGateFailure(
+                            clientName = client.clientName,
+                            status = playabilityStatus.status,
+                            reason = playabilityStatus.reason,
+                        )
+                    } else if (isBotDetection) {
+                        botDetectedClients.add(client.clientName)
+                    }
+                    continue
+                }
             }
 
             val isMetered = networkMetered ?: connectivityManager.isActiveNetworkMetered
@@ -470,9 +552,9 @@ object YTPlayerUtils {
             )
 
         return PlaybackData(
-            audioConfig,
-            videoDetails,
-            playbackTracking,
+            metadataPlayerResponse.playerConfig?.audioConfig,
+            metadataPlayerResponse.videoDetails,
+            metadataPlayerResponse.playbackTracking,
             format,
             streamUrl,
             streamExpiresInSeconds,
