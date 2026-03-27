@@ -17,6 +17,7 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.border
@@ -42,7 +43,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -59,6 +59,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -69,6 +70,7 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.media3.common.Player
+import coil3.compose.AsyncImage
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import moe.koiverse.archivetune.R
@@ -80,9 +82,6 @@ import moe.koiverse.archivetune.playback.PlayerConnection
 import moe.koiverse.archivetune.together.TogetherSessionState
 import kotlin.math.absoluteValue
 import kotlin.math.roundToInt
-import moe.koiverse.archivetune.LocalPlayerConnection
-import moe.koiverse.archivetune.LocalDatabase
-import moe.koiverse.archivetune.db.entities.ArtistEntity
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Spacer
 
@@ -227,84 +226,6 @@ fun SwipeableMiniPlayerBox(
 }
 
 @Composable
-fun MiniPlayerPlayPauseButton(
-    position: Long,
-    duration: Long,
-    isPlaying: Boolean,
-    playbackState: Int,
-    isLoading: Boolean,
-    playerConnection: PlayerConnection
-) {
-    Box(
-        contentAlignment = Alignment.Center,
-        modifier = Modifier.size(48.dp)
-    ) {
-        // Circular progress indicator around the play button
-        if (duration > 0) {
-            CircularProgressIndicator(
-                progress = { (position.toFloat() / duration).coerceIn(0f, 1f) },
-                modifier = Modifier.size(48.dp),
-                color = MaterialTheme.colorScheme.primary,
-                strokeWidth = 3.dp,
-                trackColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
-            )
-        }
-
-        // Play/Pause button with thumbnail background
-        Box(
-            contentAlignment = Alignment.Center,
-            modifier = Modifier
-                .size(40.dp)
-                .clip(CircleShape)
-                .border(
-                    width = 1.dp,
-                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
-                    shape = CircleShape
-                )
-                .clickable {
-                    if (playbackState == Player.STATE_ENDED) {
-                        playerConnection.player.seekTo(0, 0)
-                        playerConnection.player.playWhenReady = true
-                    } else {
-                        playerConnection.player.togglePlayPause()
-                    }
-                }
-        ) {
-            // Placeholder: The actual image background logic was intricate inside NewMiniPlayer,
-            // but here we just simplify or expect it passed? 
-            // In the original NewMiniPlayer, it was just a border and clickable, NO image actually shown in this specific box in the new design?
-            // Wait, NewMiniPlayer lines 282+ had `Box`.
-            // Ah, the image was the BACKGROUND of the main box in some designs, but here it's "Play/Pause button with thumbnail background" comment.
-            // But checking the code, it's just a Box with border. 
-            // The icon is inside.
-            
-            if (isLoading) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(20.dp),
-                    color = MaterialTheme.colorScheme.primary,
-                    strokeWidth = 2.dp
-                )
-            } else {
-                Icon(
-                    painter = painterResource(
-                        if (playbackState == Player.STATE_ENDED) {
-                            R.drawable.replay
-                        } else if (isPlaying) {
-                            R.drawable.pause
-                        } else {
-                            R.drawable.play
-                        }
-                    ),
-                    contentDescription = null,
-                    modifier = Modifier.size(24.dp),
-                    tint = MaterialTheme.colorScheme.onSurface
-                )
-            }
-        }
-    }
-}
-
-@Composable
 fun RowScope.MiniPlayerInfo(
     mediaMetadata: MediaMetadata
 ) {
@@ -347,21 +268,157 @@ fun RowScope.MiniPlayerInfo(
 }
 
 @Composable
-fun MiniPlayerActionButtons(
-    isLiked: Boolean,
-    onLikeClick: () -> Unit
+private fun MiniPlayerArtwork(
+    mediaMetadata: MediaMetadata?,
+    position: Long,
+    duration: Long,
+    isLoading: Boolean,
+    modifier: Modifier = Modifier
 ) {
-    IconButton(
-        onClick = onLikeClick,
-        modifier = Modifier.size(48.dp)
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier = modifier.size(44.dp)
+    ) {
+        if (isLoading) {
+            CircularProgressIndicator(
+                progress = { 1f },
+                modifier = Modifier.fillMaxSize(),
+                color = MaterialTheme.colorScheme.primary,
+                strokeWidth = 2.dp,
+                trackColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.18f)
+            )
+        } else {
+            CircularProgressIndicator(
+                progress = { if (duration > 0) (position.toFloat() / duration).coerceIn(0f, 1f) else 0f },
+                modifier = Modifier.fillMaxSize(),
+                color = MaterialTheme.colorScheme.primary,
+                strokeWidth = 2.dp,
+                trackColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.18f)
+            )
+        }
+
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier
+                .size(36.dp)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.surfaceVariant)
+                .border(
+                    width = 1.dp,
+                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),
+                    shape = CircleShape
+                )
+        ) {
+            val thumbnailUrl = mediaMetadata?.thumbnailUrl
+            if (thumbnailUrl != null) {
+                AsyncImage(
+                    model = thumbnailUrl,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+            } else {
+                Image(
+                    painter = painterResource(R.drawable.about_splash),
+                    contentDescription = null,
+                    modifier = Modifier.size(22.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun MiniPlayerTransportButton(
+    iconResId: Int,
+    contentDescription: String?,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    isPrimary: Boolean = false
+) {
+    val containerColor =
+        if (isPrimary) MaterialTheme.colorScheme.surface else Color.Transparent
+    val borderColor =
+        if (enabled) MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+        else MaterialTheme.colorScheme.outline.copy(alpha = 0.12f)
+    val iconTint =
+        if (enabled) MaterialTheme.colorScheme.onSurface
+        else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier = Modifier
+            .then(modifier)
+            .size(if (isPrimary) 40.dp else 36.dp)
+            .clip(CircleShape)
+            .background(containerColor)
+            .border(width = 1.dp, color = borderColor, shape = CircleShape)
+            .clickable(enabled = enabled, onClick = onClick)
     ) {
         Icon(
-            painter = painterResource(
-                if (isLiked) R.drawable.favorite else R.drawable.favorite_border
-            ),
+            painter = painterResource(iconResId),
+            contentDescription = contentDescription,
+            tint = iconTint,
+            modifier = Modifier.size(if (isPrimary) 22.dp else 18.dp)
+        )
+    }
+}
+
+@Composable
+private fun MiniPlayerTransportControls(
+    isPlaying: Boolean,
+    playbackState: Int,
+    isLoading: Boolean,
+    canSkipPrevious: Boolean,
+    canSkipNext: Boolean,
+    playerConnection: PlayerConnection
+) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        MiniPlayerTransportButton(
+            iconResId = R.drawable.skip_previous,
             contentDescription = null,
-            tint = if (isLiked) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(24.dp)
+            onClick = playerConnection::seekToPrevious,
+            enabled = canSkipPrevious
+        )
+
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier.size(40.dp)
+        ) {
+            MiniPlayerTransportButton(
+                iconResId = when {
+                    playbackState == Player.STATE_ENDED -> R.drawable.replay
+                    isPlaying -> R.drawable.pause
+                    else -> R.drawable.play
+                },
+                contentDescription = stringResource(
+                    when {
+                        playbackState == Player.STATE_ENDED -> R.string.play
+                        isPlaying -> R.string.pause
+                        else -> R.string.play
+                    }
+                ),
+                onClick = {
+                    if (playbackState == Player.STATE_ENDED) {
+                        playerConnection.player.seekTo(0, 0)
+                        playerConnection.player.playWhenReady = true
+                    } else {
+                        playerConnection.player.togglePlayPause()
+                    }
+                },
+                isPrimary = true
+            )
+        }
+
+        MiniPlayerTransportButton(
+            iconResId = R.drawable.skip_next,
+            contentDescription = null,
+            onClick = playerConnection::seekToNext,
+            enabled = canSkipNext
         )
     }
 }
@@ -376,12 +433,11 @@ fun NewMiniPlayerContent(
     val isPlaying by playerConnection.isPlaying.collectAsState()
     val playbackState by playerConnection.playbackState.collectAsState()
     val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
-    val currentSong by playerConnection.currentSong.collectAsState(initial = null)
-    
-    // Track loading state when buffering
-    val isLoading = playbackState == Player.STATE_BUFFERING
-    val isLiked = currentSong?.song?.liked == true
     val togetherSessionState by playerConnection.service.togetherSessionState.collectAsState()
+    val canSkipPrevious by playerConnection.canSkipPrevious.collectAsState()
+    val canSkipNext by playerConnection.canSkipNext.collectAsState()
+
+    val isLoading = playbackState == Player.STATE_BUFFERING
 
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -389,26 +445,21 @@ fun NewMiniPlayerContent(
             .fillMaxSize()
             .padding(horizontal = 8.dp, vertical = 8.dp),
     ) {
-        // Play/Pause button (left side)
-        MiniPlayerPlayPauseButton(
+        MiniPlayerArtwork(
+            mediaMetadata = mediaMetadata,
             position = position,
             duration = duration,
-            isPlaying = isPlaying,
-            playbackState = playbackState,
-            isLoading = isLoading,
-            playerConnection = playerConnection
+            isLoading = isLoading
         )
 
-        Spacer(modifier = Modifier.width(16.dp))
+        Spacer(modifier = Modifier.width(12.dp))
 
-        // Title and Artist
         mediaMetadata?.let {
             MiniPlayerInfo(mediaMetadata = it)
         } ?: Spacer(Modifier.weight(1f))
 
-        Spacer(modifier = Modifier.width(12.dp))
-
         if (togetherSessionState !is TogetherSessionState.Idle) {
+            Spacer(modifier = Modifier.width(8.dp))
             Surface(
                 shape = RoundedCornerShape(999.dp),
                 color = MaterialTheme.colorScheme.primaryContainer,
@@ -425,82 +476,17 @@ fun NewMiniPlayerContent(
                     )
                 }
             }
-            Spacer(modifier = Modifier.width(8.dp))
         }
 
-        // Subscribe button
-        mediaMetadata?.let {
-            MiniPlayerSubscribeButton(mediaMetadata = it)
-        }
+        Spacer(modifier = Modifier.width(12.dp))
 
-        Spacer(modifier = Modifier.width(8.dp))
-
-        // Action Buttons (Like)
-        MiniPlayerActionButtons(
-            isLiked = isLiked,
-            onLikeClick = playerConnection::toggleLike
+        MiniPlayerTransportControls(
+            isPlaying = isPlaying,
+            playbackState = playbackState,
+            isLoading = isLoading,
+            canSkipPrevious = canSkipPrevious,
+            canSkipNext = canSkipNext,
+            playerConnection = playerConnection
         )
-    }
-}
-
-@Composable
-fun MiniPlayerSubscribeButton(mediaMetadata: MediaMetadata) {
-    val database = LocalDatabase.current
-    mediaMetadata.artists.firstOrNull()?.let { artistInfo ->
-        artistInfo.id?.let { artistId ->
-            val libraryArtist by database.artist(artistId).collectAsState(initial = null)
-            val isSubscribed = libraryArtist?.artist?.bookmarkedAt != null
-
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(CircleShape)
-                    .border(
-                        width = 1.dp,
-                        color = if (isSubscribed)
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
-                        else
-                            MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
-                        shape = CircleShape
-                    )
-                    .background(
-                        color = if (isSubscribed)
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
-                        else
-                            Color.Transparent,
-                        shape = CircleShape
-                    )
-                    .clickable {
-                        database.transaction {
-                            val artist = libraryArtist?.artist
-                            if (artist != null) {
-                                update(artist.toggleLike())
-                            } else {
-                                insert(
-                                    ArtistEntity(
-                                        id = artistId,
-                                        name = artistInfo.name,
-                                        channelId = null,
-                                        thumbnailUrl = null,
-                                    ).toggleLike()
-                                )
-                            }
-                        }
-                    }
-            ) {
-                Icon(
-                    painter = painterResource(
-                        if (isSubscribed) R.drawable.subscribed else R.drawable.subscribe
-                    ),
-                    contentDescription = null,
-                    tint = if (isSubscribed)
-                        MaterialTheme.colorScheme.primary
-                    else
-                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                    modifier = Modifier.size(20.dp)
-                )
-            }
-        }
     }
 }
