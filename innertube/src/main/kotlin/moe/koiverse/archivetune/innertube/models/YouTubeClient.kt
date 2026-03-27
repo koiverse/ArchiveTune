@@ -9,6 +9,7 @@
 package moe.koiverse.archivetune.innertube.models
 
 import kotlinx.serialization.Serializable
+import java.util.Locale
 
 @Serializable
 data class YouTubeClient(
@@ -47,6 +48,20 @@ data class YouTubeClient(
             onBehalfOfUser = if (loginSupported) dataSyncId else null
         ),
     )
+
+    fun requestOrigin(): String {
+        return when (clientName.uppercase(Locale.US)) {
+            "TVHTML5", "TVHTML5_SIMPLY_EMBEDDED_PLAYER", "TVHTML5_SIMPLY" -> ORIGIN_YOUTUBE
+            else -> ORIGIN_YOUTUBE_MUSIC
+        }
+    }
+
+    fun requestReferer(): String {
+        return when (clientName.uppercase(Locale.US)) {
+            "TVHTML5", "TVHTML5_SIMPLY_EMBEDDED_PLAYER", "TVHTML5_SIMPLY" -> REFERER_YOUTUBE_TV
+            else -> REFERER_YOUTUBE_MUSIC
+        }
+    }
 
     companion object {
         const val USER_AGENT_WEB = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36"

@@ -103,23 +103,23 @@ class InnerTube {
     }
 
     private fun HttpRequestBuilder.ytClient(client: YouTubeClient, setLogin: Boolean = false) {
+        val requestOrigin = client.requestOrigin()
+        val requestReferer = client.requestReferer()
         contentType(ContentType.Application.Json)
         headers {
             append("X-Goog-Api-Format-Version", "1")
             append("X-YouTube-Client-Name", client.clientId)
             append("X-YouTube-Client-Version", client.clientVersion)
-            append("X-Origin", YouTubeClient.ORIGIN_YOUTUBE_MUSIC)
-            append("Referer", YouTubeClient.REFERER_YOUTUBE_MUSIC)
+            append("X-Origin", requestOrigin)
+            append("Referer", requestReferer)
             visitorData?.let { append("X-Goog-Visitor-Id", it) }
-            if (setLogin) {
+            if (setLogin && client.loginSupported) {
                 cookie?.let { cookie ->
                     append("cookie", cookie)
-                    if (client.loginSupported) {
-                        if ("SAPISID" !in cookieMap) return@let
-                        val currentTime = System.currentTimeMillis() / 1000
-                        val sapisidHash = sha1("$currentTime ${cookieMap["SAPISID"]} ${YouTubeClient.ORIGIN_YOUTUBE_MUSIC}")
-                        append("Authorization", "SAPISIDHASH ${currentTime}_${sapisidHash}")
-                    }
+                    if ("SAPISID" !in cookieMap) return@let
+                    val currentTime = System.currentTimeMillis() / 1000
+                    val sapisidHash = sha1("$currentTime ${cookieMap["SAPISID"]} $requestOrigin")
+                    append("Authorization", "SAPISIDHASH ${currentTime}_${sapisidHash}")
                 }
             }
         }

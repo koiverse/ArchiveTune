@@ -4168,6 +4168,11 @@ class MusicService :
                 player.playWhenReady = true
                 return
             }
+
+            promptLoginRecovery(
+                mediaId = currentMediaId,
+                targetUrl = "https://music.youtube.com/watch?v=$currentMediaId",
+            )
         }
 
         val shouldAttemptStreamRefresh =

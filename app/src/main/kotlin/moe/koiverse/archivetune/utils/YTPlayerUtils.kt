@@ -108,6 +108,32 @@ object YTPlayerUtils {
     private val streamUrlCache = ConcurrentHashMap<String, CachedStreamUrl>()
     private val failedStreamClientsUntil = ConcurrentHashMap<String, Long>()
 
+    internal fun shouldPreferWebRemixForLoggedInPlayback(
+        preferredStreamClient: PlayerStreamClient,
+        isLoggedIn: Boolean,
+        webClientPoTokenEnabled: Boolean,
+        hasPlayerPoToken: Boolean,
+        hasGvsPoToken: Boolean,
+    ): Boolean {
+        return preferredStreamClient == PlayerStreamClient.ANDROID_VR &&
+            isLoggedIn &&
+            webClientPoTokenEnabled &&
+            hasPlayerPoToken &&
+            hasGvsPoToken
+    }
+
+    internal fun shouldSkipCipheredWebPlaybackCandidate(
+        webClientPoTokenEnabled: Boolean,
+        isWebClient: Boolean,
+        isCiphered: Boolean,
+        hasGvsPoToken: Boolean,
+    ): Boolean {
+        return webClientPoTokenEnabled &&
+            isWebClient &&
+            isCiphered &&
+            !hasGvsPoToken
+    }
+
     fun invalidateCachedStreamUrls(videoId: String) {
         val prefix = "$videoId:"
         streamUrlCache.keys.removeIf { it.startsWith(prefix) }
@@ -226,13 +252,32 @@ object YTPlayerUtils {
                 }
                 ).distinct()
 
+        val hasPlayerPoToken = !YouTube.poTokenPlayer.isNullOrBlank() || !YouTube.poToken.isNullOrBlank()
+        val hasGvsPoToken = !YouTube.poTokenGvs.isNullOrBlank() || !YouTube.poToken.isNullOrBlank()
         val preferredYouTubeClient =
-            when (preferredStreamClient) {
-                PlayerStreamClient.ANDROID_VR -> ANDROID_VR_NO_AUTH
-                PlayerStreamClient.WEB_REMIX -> WEB_REMIX
-                PlayerStreamClient.IOS -> IOS
-                PlayerStreamClient.TVHTML5 -> TVHTML5
-                PlayerStreamClient.ANDROID_MUSIC -> ANDROID_MUSIC
+            when {
+                shouldPreferWebRemixForLoggedInPlayback(
+                    preferredStreamClient = preferredStreamClient,
+                    isLoggedIn = isLoggedIn,
+                    webClientPoTokenEnabled = YouTube.webClientPoTokenEnabled,
+                    hasPlayerPoToken = hasPlayerPoToken,
+                    hasGvsPoToken = hasGvsPoToken,
+                ) -> {
+                    Timber.tag(logTag).i(
+                        "Promoting playback client to WEB_REMIX for %s because login and Web PoToken playback are available",
+                        videoId,
+                    )
+                    WEB_REMIX
+                }
+
+                else ->
+                    when (preferredStreamClient) {
+                        PlayerStreamClient.ANDROID_VR -> ANDROID_VR_NO_AUTH
+                        PlayerStreamClient.WEB_REMIX -> WEB_REMIX
+                        PlayerStreamClient.IOS -> IOS
+                        PlayerStreamClient.TVHTML5 -> TVHTML5
+                        PlayerStreamClient.ANDROID_MUSIC -> ANDROID_MUSIC
+                    }
             }
 
         val metadataClient =
@@ -553,12 +598,23 @@ object YTPlayerUtils {
         client: YouTubeClient,
         format: PlayerResponse.StreamingData.Format,
     ): Boolean {
-        if (!YouTube.webClientPoTokenEnabled) return false
-        if (!StreamClientUtils.isWebClient(client.clientName)) return false
-        if (!isCipheredFormat(format)) return false
+        val isWebClient = StreamClientUtils.isWebClient(client.clientName)
+        val isCiphered = isCipheredFormat(format)
+        val hasGvsPoToken = !YouTube.poTokenGvs.isNullOrBlank() || !YouTube.poToken.isNullOrBlank()
+        if (
+            !shouldSkipCipheredWebPlaybackCandidate(
+                webClientPoTokenEnabled = YouTube.webClientPoTokenEnabled,
+                isWebClient = isWebClient,
+                isCiphered = isCiphered,
+                hasGvsPoToken = hasGvsPoToken,
+            )
+        ) {
+            return false
+        }
 
         Timber.tag(logTag).w(
-            "Skipping ciphered ${client.clientName} stream candidate while Web PoToken is enabled; using a direct URL or fallback client instead"
+            "Skipping ciphered %s stream candidate because Web PoToken playback is enabled but no GVS token is available",
+            client.clientName,
         )
         return true
     }
