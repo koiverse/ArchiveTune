@@ -644,6 +644,7 @@ class MainActivity : ComponentActivity() {
                     val focusManager = LocalFocusManager.current
                     val density = LocalDensity.current
                     val windowsInsets = WindowInsets.systemBars
+                    val topInset = with(density) { windowsInsets.getTop(density).toDp() }
                     val bottomInset = with(density) { windowsInsets.getBottom(density).toDp() }
                     val bottomInsetDp = WindowInsets.systemBars.asPaddingValues().calculateBottomPadding()
                         
@@ -1746,7 +1747,11 @@ class MainActivity : ComponentActivity() {
                             modifier =
                                 Modifier
                                     .align(Alignment.TopCenter)
-                                    .fillMaxWidth()
+                                    .padding(
+                                        top = if (shouldShowTopBar) topInset + AppBarHeight + 8.dp else topInset + 8.dp,
+                                        start = 16.dp,
+                                        end = 16.dp,
+                                    )
                                     .zIndex(10f),
                         )
                     }
