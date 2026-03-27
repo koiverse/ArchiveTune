@@ -233,7 +233,6 @@ dependencies {
 
     implementation(libs.timber)
     testImplementation(libs.junit)
-    testImplementation(libs.coroutines.test)
     testImplementation(libs.turbine)
     // Ensure ProcessLifecycleOwner is available for the presence manager and CI unit tests
     implementation("com.github.therealbush:translator:1.1.1")

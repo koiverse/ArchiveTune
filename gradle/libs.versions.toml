@@ -113,7 +113,6 @@ rhino = { module = "org.mozilla:rhino", version.ref = "rhino" }
 desugaring = { module = "com.android.tools:desugar_jdk_libs", version.ref = "desugaring" }
 
 junit = { module = "junit:junit", version.ref = "junit" }
-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "coroutinesTest" }
 turbine = { module = "app.cash.turbine:turbine", version.ref = "turbine" }
 
 timber = { module = "com.jakewharton.timber:timber", version.ref = "timber" }
