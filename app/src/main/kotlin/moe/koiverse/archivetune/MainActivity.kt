@@ -119,6 +119,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastAny
 import androidx.compose.ui.util.fastFirstOrNull
 import androidx.compose.ui.util.fastForEach
+import androidx.compose.ui.zIndex
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.core.net.toUri
@@ -127,6 +128,7 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.datastore.preferences.core.edit
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
@@ -210,6 +212,7 @@ import moe.koiverse.archivetune.ui.component.FloatingNavigationToolbar
 import moe.koiverse.archivetune.ui.component.IconButton
 import moe.koiverse.archivetune.ui.component.LocalBottomSheetPageState
 import moe.koiverse.archivetune.ui.component.LocalMenuState
+import moe.koiverse.archivetune.ui.component.NetworkStatusBanner
 import moe.koiverse.archivetune.ui.component.StarDialog
 import com.mikepenz.markdown.m3.Markdown
 import moe.koiverse.archivetune.ui.component.TopSearch
@@ -243,6 +246,7 @@ import moe.koiverse.archivetune.utils.rememberPreference
 import moe.koiverse.archivetune.utils.reportException
 import moe.koiverse.archivetune.utils.setAppLocale
 import moe.koiverse.archivetune.viewmodels.HomeViewModel
+import moe.koiverse.archivetune.viewmodels.NetworkBannerViewModel
 import java.net.URLDecoder
 import java.net.URLEncoder
 import java.util.Locale
@@ -648,9 +652,11 @@ class MainActivity : ComponentActivity() {
 
                     val navController = rememberNavController()
                     val homeViewModel: HomeViewModel = hiltViewModel()
+                    val networkBannerViewModel: NetworkBannerViewModel = hiltViewModel()
                     val accountImageUrl by homeViewModel.accountImageUrl.collectAsState()
                     val allLocalItems by homeViewModel.allLocalItems.collectAsState()
                     val allYtItems by homeViewModel.allYtItems.collectAsState()
+                    val networkBannerState by networkBannerViewModel.bannerState.collectAsStateWithLifecycle()
                     val navBackStackEntry by navController.currentBackStackEntryAsState()
                     val (previousTab) = rememberSaveable { mutableStateOf("home") }
                     val currentRoute = navBackStackEntry?.destination?.route
@@ -1734,6 +1740,15 @@ class MainActivity : ComponentActivity() {
                                 }
                             }
                         }
+
+                        NetworkStatusBanner(
+                            state = networkBannerState,
+                            modifier =
+                                Modifier
+                                    .align(Alignment.TopCenter)
+                                    .fillMaxWidth()
+                                    .zIndex(10f),
+                        )
                     }
 
                     LaunchedEffect(shouldShowSearchBar, openSearchImmediately) {

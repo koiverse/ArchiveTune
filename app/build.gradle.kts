@@ -173,10 +173,12 @@ dependencies {
     debugImplementation("androidx.compose.ui:ui-tooling-preview:${libs.versions.compose.get()}")
     debugImplementation(libs.compose.ui.tooling)
     implementation(libs.compose.animation)
+    implementation(libs.compose.material.icons.extended)
     implementation(libs.compose.reorderable)
 
     implementation(libs.viewmodel)
     implementation(libs.viewmodel.compose)
+    implementation(libs.lifecycle.runtime.compose)
 
     implementation(libs.material3)
     implementation(libs.palette)
@@ -231,6 +233,8 @@ dependencies {
 
     implementation(libs.timber)
     testImplementation(libs.junit)
+    testImplementation(libs.coroutines.test)
+    testImplementation(libs.turbine)
     // Ensure ProcessLifecycleOwner is available for the presence manager and CI unit tests
     implementation("com.github.therealbush:translator:1.1.1")
     implementation("androidx.lifecycle:lifecycle-process:2.10.0")
