@@ -396,12 +396,10 @@ private fun MiniPlayerTransportControls(
                     else -> R.drawable.play
                 },
                 contentDescription = stringResource(
-                    when {
-                        playbackState == Player.STATE_ENDED -> R.string.play
-                        isPlaying -> R.string.pause
-                        else -> R.string.play
-                    }
-                ),
+                    if (playbackState == Player.STATE_ENDED || !isPlaying) R.string.play else R.string.play
+                ).let {
+                    if (isPlaying && playbackState != Player.STATE_ENDED) "Pause" else it
+                },
                 onClick = {
                     if (playbackState == Player.STATE_ENDED) {
                         playerConnection.player.seekTo(0, 0)
