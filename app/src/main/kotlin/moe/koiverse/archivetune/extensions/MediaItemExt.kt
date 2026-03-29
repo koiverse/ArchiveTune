@@ -18,11 +18,15 @@ import moe.koiverse.archivetune.innertube.models.WatchEndpoint.WatchEndpointMusi
 import moe.koiverse.archivetune.db.entities.Song
 import moe.koiverse.archivetune.models.MediaMetadata
 import moe.koiverse.archivetune.models.toMediaMetadata
+import moe.koiverse.archivetune.ui.utils.resize
 
 const val ExtraIsMusicVideo = "moe.koiverse.archivetune.extra.IS_MUSIC_VIDEO"
+private const val NotificationArtworkSizePx = 544
 
 val MediaItem.metadata: MediaMetadata?
     get() = localConfiguration?.tag as? MediaMetadata
+
+private fun String?.toNotificationArtworkUri() = this?.resize(NotificationArtworkSizePx, NotificationArtworkSizePx)?.toUri()
 
 fun Song.toMediaItem() =
     MediaItem
@@ -37,7 +41,7 @@ fun Song.toMediaItem() =
                 .setTitle(song.title)
                 .setSubtitle(artists.joinToString { it.name })
                 .setArtist(artists.joinToString { it.name })
-                .setArtworkUri(song.thumbnailUrl?.toUri())
+                .setArtworkUri(song.thumbnailUrl.toNotificationArtworkUri())
                 .setAlbumTitle(song.albumName)
                 .setIsPlayable(true)
                 .setMediaType(MEDIA_TYPE_MUSIC)
@@ -58,7 +62,7 @@ fun SongItem.toMediaItem() =
                 .setTitle(title)
                 .setSubtitle(artists.joinToString { it.name })
                 .setArtist(artists.joinToString { it.name })
-                .setArtworkUri(thumbnail.toUri())
+                .setArtworkUri(thumbnail.toNotificationArtworkUri())
                 .setAlbumTitle(album?.name)
                 .setIsPlayable(true)
                 .setMediaType(MEDIA_TYPE_MUSIC)
@@ -79,7 +83,7 @@ fun MediaMetadata.toMediaItem() =
                 .setTitle(title)
                 .setSubtitle(artists.joinToString { it.name })
                 .setArtist(artists.joinToString { it.name })
-                .setArtworkUri(thumbnailUrl?.toUri())
+                .setArtworkUri(thumbnailUrl.toNotificationArtworkUri())
                 .setAlbumTitle(album?.title)
                 .setIsPlayable(true)
                 .setMediaType(MEDIA_TYPE_MUSIC)
