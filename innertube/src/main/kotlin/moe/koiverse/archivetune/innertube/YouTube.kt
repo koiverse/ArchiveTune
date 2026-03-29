@@ -244,78 +244,86 @@ object YouTube {
 
     suspend fun album(browseId: String, withSongs: Boolean = true): Result<AlbumPage> = runCatching {
         val response = innerTube.browse(WEB_REMIX, browseId).body<BrowseResponse>()
-        val contents = response.contents ?: throw IllegalStateException("Missing browse contents for $browseId")
-        val twoColumn = contents.twoColumnBrowseResultsRenderer
-            ?: throw IllegalStateException("Missing twoColumnBrowseResultsRenderer for $browseId")
-        val tabs = twoColumn.tabs ?: throw IllegalStateException("Missing tabs for $browseId")
-        val header = tabs.firstOrNull()
-            ?.tabRenderer
-            ?.content
-            ?.sectionListRenderer
-            ?.contents
-            ?.firstOrNull()
-            ?.musicResponsiveHeaderRenderer
-            ?: throw IllegalStateException("Missing album header for $browseId")
-        val playlistId = response.microformat?.microformatDataRenderer?.urlCanonical?.substringAfterLast('=')!!
-        val albumTitle = header.title.runs?.firstOrNull()?.text
+        val playlistId = AlbumPage.getPlaylistId(response)
+            ?: throw IllegalStateException("Missing album playlist id for $browseId")
+        val albumTitle = AlbumPage.getTitle(response)
             ?: throw IllegalStateException("Missing album title for $browseId")
-        val albumArtists = (header.straplineTextOne ?: throw IllegalStateException("Missing album artists for $browseId"))
-            .runs
-            ?.oddElements()
-            ?.map {
-                Artist(
-                    name = it.text,
-                    id = it.navigationEndpoint?.browseEndpoint?.browseId
-                )
-            }
-            ?: throw IllegalStateException("Missing album artists runs for $browseId")
-        val albumYear = header.subtitle.runs?.lastOrNull()?.text?.toIntOrNull()
-        val albumThumbnail = (header.thumbnail ?: throw IllegalStateException("Missing album thumbnail for $browseId"))
-            .musicThumbnailRenderer
-            ?.getThumbnailUrl()
+        val albumArtists = AlbumPage.getArtists(response).takeIf { it.isNotEmpty() }
+        val albumYear = AlbumPage.getYear(response)
+        val albumThumbnail = AlbumPage.getThumbnail(response)
             ?: throw IllegalStateException("Missing album thumbnail url for $browseId")
+        val albumItem = AlbumItem(
+            browseId = browseId,
+            playlistId = playlistId,
+            title = albumTitle,
+            artists = albumArtists,
+            year = albumYear,
+            thumbnail = albumThumbnail,
+            explicit = false, // TODO: Extract explicit badge for albums from YouTube response
+        )
+        val inlineSongs = if (withSongs) AlbumPage.getSongs(response, albumItem) else emptyList()
+        val songs = if (withSongs) {
+            val fetchedSongs = runCatching {
+                albumSongs(playlistId, albumItem).getOrThrow()
+            }.getOrElse { error ->
+                if (inlineSongs.isNotEmpty()) {
+                    inlineSongs
+                } else {
+                    throw error
+                }
+            }
+
+            if (fetchedSongs.isEmpty() && inlineSongs.isNotEmpty()) {
+                inlineSongs
+            } else {
+                fetchedSongs
+            }
+        } else {
+            emptyList()
+        }
+
         AlbumPage(
-            album = AlbumItem(
-                browseId = browseId,
-                playlistId = playlistId,
-                title = albumTitle,
-                artists = albumArtists,
-                year = albumYear,
-                thumbnail = albumThumbnail,
-                explicit = false, // TODO: Extract explicit badge for albums from YouTube response
-            ),
-            songs = if (withSongs) albumSongs(playlistId, AlbumItem(
-                browseId = browseId,
-                playlistId = playlistId,
-                title = albumTitle,
-                artists = albumArtists,
-                year = albumYear,
-                thumbnail = albumThumbnail,
-                explicit = false
-            )).getOrThrow() else emptyList(),
-            otherVersions = twoColumn.secondaryContents?.sectionListRenderer?.contents?.getOrNull(1)?.musicCarouselShelfRenderer?.contents
+            album = albumItem,
+            songs = songs,
+            otherVersions = response.contents?.twoColumnBrowseResultsRenderer?.secondaryContents?.sectionListRenderer?.contents
+                ?.mapNotNull { it.musicCarouselShelfRenderer }
+                ?.flatMap { it.contents }
                 ?.mapNotNull { it.musicTwoRowItemRenderer }
                 ?.mapNotNull(NewReleaseAlbumPage::fromMusicTwoRowItemRenderer)
+                ?.distinctBy { it.id }
                 .orEmpty()
         )
     }
 
     suspend fun albumSongs(playlistId: String, album: AlbumItem? = null): Result<List<SongItem>> = runCatching {
         var response = innerTube.browse(WEB_REMIX, "VL$playlistId").body<BrowseResponse>()
-        val songs = response.contents?.twoColumnBrowseResultsRenderer
-            ?.secondaryContents?.sectionListRenderer
-            ?.contents?.firstOrNull()
-            ?.musicPlaylistShelfRenderer?.contents?.getItems()
-            ?.mapNotNull {
-                AlbumPage.getSong(it, album)
-            }!!
-            .toMutableList()
-        var continuation = response.contents.twoColumnBrowseResultsRenderer.secondaryContents.sectionListRenderer
-            .contents.firstOrNull()?.musicPlaylistShelfRenderer?.contents?.getContinuation()
+        val songs = linkedMapOf<String, SongItem>()
+
+        fun appendSongs(
+            candidates: List<MusicResponsiveListItemRenderer>,
+            parsedSongs: List<SongItem>,
+            source: String,
+        ): Boolean {
+            if (candidates.isNotEmpty() && parsedSongs.isEmpty()) {
+                throw IllegalStateException("Unable to parse album songs from $source for playlist $playlistId")
+            }
+
+            val previousSize = songs.size
+            parsedSongs.forEach { songs.putIfAbsent(it.id, it) }
+            return songs.size > previousSize
+        }
+
+        appendSongs(
+            candidates = AlbumPage.getSongRenderers(response),
+            parsedSongs = AlbumPage.getSongs(response, album),
+            source = "initial response",
+        )
+
+        var continuation = AlbumPage.getSongContinuation(response)
         val seenContinuations = mutableSetOf<String>()
         var requestCount = 0
         val maxRequests = 50 // Prevent excessive API calls
-        
+
         var consecutiveEmptyResponses = 0
         while (continuation != null && requestCount < maxRequests) {
             if (continuation in seenContinuations) {
@@ -328,22 +336,29 @@ object YouTube {
                 client = WEB_REMIX,
                 continuation = continuation,
             ).body<BrowseResponse>()
-            
-            val newSongs = response.onResponseReceivedActions?.firstOrNull()?.appendContinuationItemsAction?.continuationItems?.getItems()?.mapNotNull {
-                AlbumPage.getSong(it, album)
-            }.orEmpty()
-            
-            if (newSongs.isEmpty()) {
+
+            val newSongCandidates = AlbumPage.getContinuationSongRenderers(response)
+            val newSongs = AlbumPage.getContinuationSongs(response, album)
+            val hasNewSongs = if (newSongCandidates.isNotEmpty() || newSongs.isNotEmpty()) {
+                appendSongs(
+                    candidates = newSongCandidates,
+                    parsedSongs = newSongs,
+                    source = "continuation response",
+                )
+            } else {
+                false
+            }
+
+            if (!hasNewSongs) {
                 consecutiveEmptyResponses++
                 if (consecutiveEmptyResponses >= 2) break
             } else {
                 consecutiveEmptyResponses = 0
-                songs += newSongs
             }
-            
-            continuation = response.continuationContents?.musicPlaylistShelfContinuation?.continuations?.getContinuation()
+
+            continuation = AlbumPage.getNextSongContinuation(response)
         }
-        songs
+        songs.values.toList()
     }
 
     suspend fun artist(browseId: String): Result<ArtistPage> = runCatching {
