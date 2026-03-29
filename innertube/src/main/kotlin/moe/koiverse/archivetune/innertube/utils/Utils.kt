@@ -10,28 +10,38 @@ package moe.koiverse.archivetune.innertube.utils
 
 import moe.koiverse.archivetune.innertube.YouTube
 import moe.koiverse.archivetune.innertube.pages.LibraryPage
+import moe.koiverse.archivetune.innertube.pages.PlaylistContinuationPage
 import moe.koiverse.archivetune.innertube.pages.PlaylistPage
 import java.security.MessageDigest
 
 @JvmName("completedLibrary")
 suspend fun Result<PlaylistPage>.completed(): Result<PlaylistPage> = runCatching {
-    val page = getOrThrow()
+    completePlaylistPage(getOrThrow()) { continuation ->
+        YouTube.playlistContinuation(continuation).getOrNull()
+    }
+}
+
+internal suspend fun completePlaylistPage(
+    page: PlaylistPage,
+    fetchContinuationPage: suspend (String) -> PlaylistContinuationPage?,
+): PlaylistPage {
     val songs = page.songs.toMutableList()
-    var continuation = page.songsContinuation
+    var continuation = page.songsContinuation.normalizedContinuation()
+        ?: page.continuation.normalizedContinuation()
     val seenContinuations = mutableSetOf<String>()
     var requestCount = 0
     val maxRequests = 50
     var consecutiveEmptyResponses = 0
-    
+
     while (continuation != null && requestCount < maxRequests) {
         if (continuation in seenContinuations) {
             break
         }
         seenContinuations.add(continuation)
         requestCount++
-        
-        val continuationPage = YouTube.playlistContinuation(continuation).getOrNull() ?: break
-        
+
+        val continuationPage = fetchContinuationPage(continuation) ?: break
+
         if (continuationPage.songs.isEmpty()) {
             consecutiveEmptyResponses++
             if (consecutiveEmptyResponses >= 2) break
@@ -39,14 +49,14 @@ suspend fun Result<PlaylistPage>.completed(): Result<PlaylistPage> = runCatching
             consecutiveEmptyResponses = 0
             songs += continuationPage.songs
         }
-        
-        continuation = continuationPage.continuation
+
+        continuation = continuationPage.continuation.normalizedContinuation()
     }
-    PlaylistPage(
-        playlist = page.playlist,
+
+    return page.copy(
         songs = songs,
         songsContinuation = null,
-        continuation = page.continuation
+        continuation = null
     )
 }
 
@@ -122,3 +132,5 @@ fun String.parseTime(): Int? {
 fun isPrivateId(browseId: String): Boolean {
     return browseId.contains("privately")
 }
+
+private fun String?.normalizedContinuation(): String? = this?.takeUnless(String::isBlank)
