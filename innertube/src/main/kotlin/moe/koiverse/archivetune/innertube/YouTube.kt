@@ -68,6 +68,7 @@ import moe.koiverse.archivetune.innertube.pages.SearchSuggestionPage
 import moe.koiverse.archivetune.innertube.pages.SearchSummary
 import moe.koiverse.archivetune.innertube.pages.SearchSummaryPage
 import moe.koiverse.archivetune.innertube.utils.PoTokenGenerator
+import moe.koiverse.archivetune.innertube.utils.parseCookieString
 import io.ktor.client.call.body
 import io.ktor.client.statement.bodyAsText
 
@@ -157,6 +158,15 @@ object YouTube {
         return null
     }
 
+    fun hasLoginCookie(): Boolean {
+        val currentCookie = cookie?.takeIf { it.isNotBlank() } ?: return false
+        return "SAPISID" in parseCookieString(currentCookie)
+    }
+
+    fun hasPlaybackLoginContext(): Boolean {
+        return hasLoginCookie() && !dataSyncId.isNullOrBlank()
+    }
+
     internal fun resolveGvsPoToken(): String? {
         if (!webClientPoTokenEnabled) return null
         return poTokenGvs?.takeIf { it.isNotBlank() }
@@ -164,6 +174,7 @@ object YouTube {
     }
 
     internal fun appendGvsPoToken(url: String, client: YouTubeClient? = null): String {
+        if (client != null && !needsServiceIntegrity(client)) return url
         val token = resolveGvsPoToken() ?: return url
         if (url.contains("pot=")) return url
 
@@ -1050,9 +1061,23 @@ object YouTube {
         innerTube.deletePlaylist(WEB_REMIX, playlistId)
     }
 
-    suspend fun player(videoId: String, playlistId: String? = null, client: YouTubeClient, signatureTimestamp: Int? = null, poToken: String? = null): Result<PlayerResponse> = runCatching {
+    suspend fun player(
+        videoId: String,
+        playlistId: String? = null,
+        client: YouTubeClient,
+        signatureTimestamp: Int? = null,
+        poToken: String? = null,
+        setLogin: Boolean = true,
+    ): Result<PlayerResponse> = runCatching {
         val resolvedPoToken = resolvePlayerPoToken(client, videoId, poToken)
-        innerTube.player(client, videoId, playlistId, signatureTimestamp, resolvedPoToken).body<PlayerResponse>()
+        innerTube.player(
+            client = client,
+            videoId = videoId,
+            playlistId = playlistId,
+            signatureTimestamp = signatureTimestamp,
+            poToken = resolvedPoToken,
+            setLogin = setLogin,
+        ).body<PlayerResponse>()
     }
 
     suspend fun registerPlayback(playlistId: String? = null, playbackTracking: String) = runCatching {
