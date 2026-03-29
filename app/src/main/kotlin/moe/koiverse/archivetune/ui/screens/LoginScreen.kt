@@ -87,8 +87,8 @@ fun LoginScreen(
                     override fun onPageFinished(view: WebView, url: String?) {
                         val isYouTubePage = url?.contains("youtube.com", ignoreCase = true) == true
                         if (isYouTubePage) {
-                            loadUrl("javascript:Android.onRetrieveVisitorData(window.yt.config_.VISITOR_DATA)")
-                            loadUrl("javascript:Android.onRetrieveDataSyncId(window.yt.config_.DATASYNC_ID)")
+                            loadUrl("javascript:void((function(){try{var c=window.ytcfg;if(c&&c.get){var v=c.get('VISITOR_DATA');if(v){Android.onRetrieveVisitorData(v);return}}var y=window.yt&&window.yt.config_;if(y&&y.VISITOR_DATA){Android.onRetrieveVisitorData(y.VISITOR_DATA);return}var s=document.querySelectorAll('script');for(var i=0;i<s.length;i++){var m=s[i].textContent.match(/\"VISITOR_DATA\":\"([^\"]+)\"/);if(m){Android.onRetrieveVisitorData(m[1]);return}}}catch(e){}})())")
+                            loadUrl("javascript:void((function(){try{var c=window.ytcfg;if(c&&c.get){var d=c.get('DATASYNC_ID');if(d){Android.onRetrieveDataSyncId(d);return}}var y=window.yt&&window.yt.config_;if(y&&y.DATASYNC_ID){Android.onRetrieveDataSyncId(y.DATASYNC_ID);return}var s=document.querySelectorAll('script');for(var i=0;i<s.length;i++){var m=s[i].textContent.match(/\"DATASYNC_ID\":\"([^\"]+)\"/);if(m){Android.onRetrieveDataSyncId(m[1]);return}}}catch(e){}})())")
                             loadUrl("javascript:void((function(){try{var c=window.ytcfg;if(c&&c.get){var t=c.get('PO_TOKEN');if(t){Android.onRetrievePoToken(t);return}}var s=document.querySelectorAll('script');for(var i=0;i<s.length;i++){var m=s[i].textContent.match(/\"PO_TOKEN\":\"([^\"]+)\"/);if(m){Android.onRetrievePoToken(m[1]);return}}}catch(e){}})())")
                         }
 
@@ -116,13 +116,13 @@ fun LoginScreen(
                 addJavascriptInterface(object {
                     @JavascriptInterface
                     fun onRetrieveVisitorData(newVisitorData: String?) {
-                        if (newVisitorData != null) {
+                        if (!newVisitorData.isNullOrBlank()) {
                             visitorData = newVisitorData
                         }
                     }
                     @JavascriptInterface
                     fun onRetrieveDataSyncId(newDataSyncId: String?) {
-                        if (newDataSyncId != null) {
+                        if (!newDataSyncId.isNullOrBlank()) {
                             dataSyncId = newDataSyncId.substringBefore("||")
                         }
                     }
