@@ -264,15 +264,28 @@ object YTPlayerUtils {
         val signatureTimestamp = getSignatureTimestampOrNull(videoId)
         Timber.tag(logTag).v("Signature timestamp: $signatureTimestamp")
 
-        val isLoggedIn = YouTube.cookie != null
-        if (!isLoggedIn) {
+        val hasLoginCookie = YouTube.hasLoginCookie()
+        val canUseLoggedInPlayback = YouTube.hasPlaybackLoginContext()
+        if (!canUseLoggedInPlayback) {
+            if (hasLoginCookie) {
+                Timber.tag(logTag).w(
+                    "Ignoring incomplete login context for %s because dataSyncId is missing; falling back to visitorData playback",
+                    videoId,
+                )
+            }
             ensureVisitorDataReady(
                 videoId = videoId,
-                reason = "anonymous playback bootstrap",
+                reason = if (hasLoginCookie) "cookie-only playback fallback" else "anonymous playback bootstrap",
             )
         }
-        val sessionId = if (isLoggedIn) YouTube.dataSyncId else YouTube.visitorData
-        Timber.tag(logTag).v("Session authentication status: ${if (isLoggedIn) "Logged in" else "Not logged in"} (sessionId=${sessionId.orEmpty()})")
+        val sessionId = if (canUseLoggedInPlayback) YouTube.dataSyncId else YouTube.visitorData
+        val authStatus =
+            when {
+                canUseLoggedInPlayback -> "Logged in"
+                hasLoginCookie -> "Cookie-only"
+                else -> "Not logged in"
+            }
+        Timber.tag(logTag).v("Session authentication status: $authStatus (sessionId=${sessionId.orEmpty()})")
 
         var format: PlayerResponse.StreamingData.Format? = null
         var streamUrl: String? = null
@@ -281,7 +294,7 @@ object YTPlayerUtils {
 
         val orderedFallbackClients =
             (
-                if (isLoggedIn) {
+                if (canUseLoggedInPlayback) {
                     STREAM_FALLBACK_CLIENTS.filter { it.loginSupported } + STREAM_FALLBACK_CLIENTS.filterNot { it.loginSupported }
                 } else {
                     STREAM_FALLBACK_CLIENTS.toList()
@@ -294,7 +307,7 @@ object YTPlayerUtils {
             when {
                 shouldPreferWebRemixForLoggedInPlayback(
                     preferredStreamClient = preferredStreamClient,
-                    isLoggedIn = isLoggedIn,
+                    isLoggedIn = canUseLoggedInPlayback,
                     webClientPoTokenEnabled = YouTube.webClientPoTokenEnabled,
                     hasPlayerPoToken = hasPlayerPoToken,
                     hasGvsPoToken = hasGvsPoToken,
@@ -321,7 +334,13 @@ object YTPlayerUtils {
 
         Timber.tag(logTag).i("Fetching metadata response using client: ${metadataClient.clientName}")
         var metadataPlayerResponse =
-            YouTube.player(videoId, playlistId, metadataClient, signatureTimestamp).getOrThrow()
+            YouTube.player(
+                videoId = videoId,
+                playlistId = playlistId,
+                client = metadataClient,
+                signatureTimestamp = signatureTimestamp,
+                setLogin = canUseLoggedInPlayback,
+            ).getOrThrow()
         var expectedDurationMs =
             metadataPlayerResponse.videoDetails?.lengthSeconds
                 ?.toLongOrNull()
@@ -355,7 +374,7 @@ object YTPlayerUtils {
                 "Trying ${if (client == MAIN_CLIENT) "MAIN_CLIENT" else "fallback client"} ${index + 1}/${streamClients.size}: ${client.clientName}"
             )
 
-            if (client != MAIN_CLIENT && client.loginRequired && !isLoggedIn) {
+            if (client != MAIN_CLIENT && client.loginRequired && !canUseLoggedInPlayback) {
                 Timber.tag(logTag).w("Skipping client ${client.clientName} - requires login but user is not logged in")
                 continue
             }
@@ -365,7 +384,13 @@ object YTPlayerUtils {
                     metadataPlayerResponse
                 } else {
                     Timber.tag(logTag).i("Fetching player response for fallback client: ${client.clientName}")
-                    YouTube.player(videoId, playlistId, client, signatureTimestamp).getOrNull()
+                    YouTube.player(
+                        videoId = videoId,
+                        playlistId = playlistId,
+                        client = client,
+                        signatureTimestamp = signatureTimestamp,
+                        setLogin = canUseLoggedInPlayback,
+                    ).getOrNull()
                 }
 
             if (streamPlayerResponse == null) continue
@@ -376,7 +401,7 @@ object YTPlayerUtils {
                 var isLoginRecovery = isLoginRecoveryError(reason)
                 var isBotDetection = isBotDetectionError(reason)
 
-                if (!isLoggedIn && isBotDetection && !didRefreshVisitorDataAfterBotDetection) {
+                if (!canUseLoggedInPlayback && isBotDetection && !didRefreshVisitorDataAfterBotDetection) {
                     val refreshedVisitorData =
                         ensureVisitorDataReady(
                             videoId = videoId,
@@ -392,7 +417,13 @@ object YTPlayerUtils {
                             videoId,
                         )
                         streamPlayerResponse =
-                            YouTube.player(videoId, playlistId, client, signatureTimestamp).getOrNull()
+                            YouTube.player(
+                                videoId = videoId,
+                                playlistId = playlistId,
+                                client = client,
+                                signatureTimestamp = signatureTimestamp,
+                                setLogin = canUseLoggedInPlayback,
+                            ).getOrNull()
 
                         if (streamPlayerResponse == null) continue
 
@@ -448,7 +479,7 @@ object YTPlayerUtils {
             var selectedUrl: String? = null
 
             for (candidate in candidates.asSequence().take(6)) {
-                if (isLoggedIn && expectedDurationMs != null && isLikelyPreview(candidate, expectedDurationMs)) continue
+                if (canUseLoggedInPlayback && expectedDurationMs != null && isLikelyPreview(candidate, expectedDurationMs)) continue
                 if (shouldSkipCipheredWebCandidate(client, candidate)) continue
                 val cacheKey = buildCacheKey(videoId, candidate.itag)
                 val cached = streamUrlCache[cacheKey]
@@ -569,7 +600,12 @@ object YTPlayerUtils {
         playlistId: String? = null,
     ): Result<PlayerResponse> {
         Timber.tag(logTag).i("Fetching metadata-only player response for videoId: $videoId using MAIN_CLIENT: ${MAIN_CLIENT.clientName}")
-        return YouTube.player(videoId, playlistId, client = MAIN_CLIENT)
+        return YouTube.player(
+            videoId = videoId,
+            playlistId = playlistId,
+            client = MAIN_CLIENT,
+            setLogin = YouTube.hasPlaybackLoginContext(),
+        )
             .onSuccess { Timber.tag(logTag).d("Successfully fetched metadata") }
             .onFailure { Timber.tag(logTag).e(it, "Failed to fetch metadata") }
     }
@@ -737,6 +773,7 @@ object YTPlayerUtils {
                     listOf("bytes=0-0")
                 }
 
+            var sawReadableProbe = false
             for (range in probeRanges) {
                 val rangeRequest =
                     okhttp3.Request.Builder()
@@ -749,9 +786,35 @@ object YTPlayerUtils {
                         }.url(url)
                         .build()
 
-                val code = currentStreamClient().newCall(rangeRequest).execute().use { response -> response.code }
-                if (code == 403) return false
-                if (code !in 200..399 && code != 416) return false
+                val probeValid =
+                    currentStreamClient().newCall(rangeRequest).execute().use { response ->
+                        val code = response.code
+                        if (code == 403) return@use false
+                        if (code !in 200..399 && code != 416) return@use false
+                        if (code == 416) return@use sawReadableProbe
+
+                        val contentType = response.header("Content-Type").orEmpty().lowercase(Locale.US)
+                        if (
+                            contentType.startsWith("text/html") ||
+                            contentType.startsWith("text/plain") ||
+                            contentType.startsWith("application/json") ||
+                            contentType.startsWith("application/xml") ||
+                            contentType.startsWith("text/xml")
+                        ) {
+                            Timber.tag(logTag).w(
+                                "Rejecting stream probe because it returned non-media content-type: %s",
+                                contentType,
+                            )
+                            return@use false
+                        }
+
+                        val readable = response.body?.source()?.request(1) == true
+                        if (readable) {
+                            sawReadableProbe = true
+                        }
+                        readable
+                    }
+                if (!probeValid) return false
             }
 
             return true
