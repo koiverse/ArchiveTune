@@ -503,50 +503,7 @@ object YouTube {
             setLogin = true
         ).body<BrowseResponse>()
 
-        val mainContents: List<MusicShelfRenderer.Content> = buildList {
-            response.continuationContents?.sectionListContinuation?.contents
-                .orEmpty()
-                .forEach { sectionContent ->
-                    addAll(sectionContent.musicPlaylistShelfRenderer?.contents.orEmpty())
-                }
-        }
-
-        val appendedContents = response.onResponseReceivedActions
-            ?.firstOrNull()
-            ?.appendContinuationItemsAction
-            ?.continuationItems
-            .orEmpty()
-
-        val allContents = mainContents + appendedContents
-
-        val songs = allContents
-            .mapNotNull(MusicShelfRenderer.Content::musicResponsiveListItemRenderer)
-            .mapNotNull(PlaylistPage::fromMusicResponsiveListItemRenderer)
-
-        val nextContinuation = if (songs.isEmpty()) null else {
-            response.continuationContents
-                ?.sectionListContinuation
-                ?.continuations
-                ?.getContinuation()
-                ?: response.continuationContents
-                    ?.musicPlaylistShelfContinuation
-                    ?.continuations
-                    ?.getContinuation()
-                ?: response.continuationContents
-                    ?.musicShelfContinuation
-                    ?.continuations
-                    ?.getContinuation()
-                ?: response.onResponseReceivedActions
-                    ?.firstOrNull()
-                    ?.appendContinuationItemsAction
-                    ?.continuationItems
-                    ?.getContinuation()
-        }
-
-        PlaylistContinuationPage(
-            songs = songs,
-            continuation = nextContinuation
-        )
+        playlistContinuationPageFromResponse(response)
     }
 
     suspend fun home(continuation: String? = null, params: String? = null): Result<HomePage> = runCatching {
@@ -1047,11 +1004,12 @@ object YouTube {
         val playlistPage = playlist(playlistId).getOrThrow()
         collectSetVideoIds(playlistPage.songs)
 
-        var continuation = playlistPage.songsContinuation ?: playlistPage.continuation
+        var continuation = playlistPage.songsContinuation?.takeUnless(String::isBlank)
+            ?: playlistPage.continuation?.takeUnless(String::isBlank)
         while (continuation != null) {
             val continuationPage = playlistContinuation(continuation).getOrThrow()
             collectSetVideoIds(continuationPage.songs)
-            continuation = continuationPage.continuation
+            continuation = continuationPage.continuation?.takeUnless(String::isBlank)
         }
 
         setVideoIds.distinct()
@@ -1263,3 +1221,73 @@ object YouTube {
 
     private val VISITOR_DATA_REGEX = Regex("^Cg[t|s]")
 }
+
+internal fun playlistContinuationPageFromResponse(response: BrowseResponse): PlaylistContinuationPage {
+    val appendedContents = response.onResponseReceivedActions
+        ?.firstOrNull()
+        ?.appendContinuationItemsAction
+        ?.continuationItems
+        .orEmpty()
+
+    val candidates = listOf(
+        PlaylistContinuationCandidate(
+            contents = buildList {
+                response.continuationContents?.sectionListContinuation?.contents
+                    .orEmpty()
+                    .forEach { sectionContent ->
+                        addAll(sectionContent.musicPlaylistShelfRenderer?.contents.orEmpty())
+                    }
+                addAll(appendedContents)
+            },
+            continuation = response.continuationContents
+                ?.sectionListContinuation
+                ?.continuations
+                ?.getContinuation()
+                ?: appendedContents.getContinuation()
+        ),
+        PlaylistContinuationCandidate(
+            contents = response.continuationContents
+                ?.musicPlaylistShelfContinuation
+                ?.contents
+                .orEmpty(),
+            continuation = response.continuationContents
+                ?.musicPlaylistShelfContinuation
+                ?.continuations
+                ?.getContinuation()
+        ),
+        PlaylistContinuationCandidate(
+            contents = response.continuationContents
+                ?.musicShelfContinuation
+                ?.contents
+                .orEmpty(),
+            continuation = response.continuationContents
+                ?.musicShelfContinuation
+                ?.continuations
+                ?.getContinuation()
+        ),
+        PlaylistContinuationCandidate(
+            contents = appendedContents,
+            continuation = appendedContents.getContinuation()
+        )
+    ).map { candidate ->
+        candidate.copy(
+            songs = candidate.contents
+                .mapNotNull(MusicShelfRenderer.Content::musicResponsiveListItemRenderer)
+                .mapNotNull(PlaylistPage::fromMusicResponsiveListItemRenderer)
+        )
+    }
+
+    val selectedCandidate = candidates.firstOrNull { it.songs.isNotEmpty() }
+        ?: candidates.firstOrNull { it.contents.isNotEmpty() }
+
+    return PlaylistContinuationPage(
+        songs = selectedCandidate?.songs.orEmpty(),
+        continuation = selectedCandidate?.continuation?.takeUnless(String::isBlank)
+    )
+}
+
+private data class PlaylistContinuationCandidate(
+    val contents: List<MusicShelfRenderer.Content>,
+    val continuation: String?,
+    val songs: List<SongItem> = emptyList(),
+)
