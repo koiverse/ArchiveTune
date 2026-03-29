@@ -182,9 +182,10 @@ class InnerTube {
         playlistId: String?,
         signatureTimestamp: Int?,
         poToken: String? = null,
+        setLogin: Boolean = true,
     ) = withRetry {
         httpClient.post("player") {
-        ytClient(client, setLogin = true)
+        ytClient(client, setLogin = setLogin)
         setBody(
             PlayerBody(
                 context = client.toContext(locale, visitorData, dataSyncId).let {
