@@ -125,7 +125,7 @@ class OnlinePlaylistViewModel @Inject constructor(
                 .onSuccess { playlistPage ->
                     playlist.value = playlistPage.playlist
                     playlistSongs.value = playlistPage.songs.distinctBy { it.id }
-                    continuation = playlistPage.songsContinuation
+                    continuation = null
                     prefetchViewCounts(playlistPage.songs.map { song -> song.id })
                 }.onFailure { throwable ->
                     _error.value = throwable.message ?: "Failed to load playlist"
