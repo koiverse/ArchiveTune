@@ -68,10 +68,12 @@ import moe.koiverse.archivetune.innertube.pages.SearchSuggestionPage
 import moe.koiverse.archivetune.innertube.pages.SearchSummary
 import moe.koiverse.archivetune.innertube.pages.SearchSummaryPage
 import moe.koiverse.archivetune.innertube.utils.PoTokenGenerator
-import moe.koiverse.archivetune.innertube.utils.parseCookieString
 import io.ktor.client.call.body
 import io.ktor.client.statement.bodyAsText
 
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonPrimitive
@@ -79,7 +81,6 @@ import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonPrimitive
 import java.net.Proxy
-import java.util.Locale
 import kotlin.random.Random
 
 /**
@@ -88,6 +89,17 @@ import kotlin.random.Random
  */
 object YouTube {
     private val innerTube = InnerTube()
+    private val mutableAuthState = MutableStateFlow(PlaybackAuthState.EMPTY)
+
+    val authStateFlow: StateFlow<PlaybackAuthState> = mutableAuthState.asStateFlow()
+
+    var authState: PlaybackAuthState
+        get() = mutableAuthState.value
+        set(value) {
+            val normalized = value.normalized()
+            mutableAuthState.value = normalized
+            innerTube.applyAuthState(normalized)
+        }
 
     var locale: YouTubeLocale
         get() = innerTube.locale
@@ -95,28 +107,40 @@ object YouTube {
             innerTube.locale = value
         }
     var visitorData: String?
-        get() = innerTube.visitorData
+        get() = authState.visitorData
         set(value) {
-            innerTube.visitorData = value
+            authState = authState.copy(visitorData = value)
         }
     var dataSyncId: String?
-        get() = innerTube.dataSyncId
+        get() = authState.dataSyncId
         set(value) {
-            innerTube.dataSyncId = value
+            authState = authState.copy(dataSyncId = value)
         }
     var cookie: String?
-        get() = innerTube.cookie
+        get() = authState.cookie
         set(value) {
-            innerTube.cookie = value
+            authState = authState.copy(cookie = value)
         }
     var poToken: String?
-        get() = innerTube.poToken
+        get() = authState.poToken
         set(value) {
-            innerTube.poToken = value
+            authState = authState.copy(poToken = value)
         }
-    var webClientPoTokenEnabled: Boolean = false
-    var poTokenGvs: String? = null
-    var poTokenPlayer: String? = null
+    var webClientPoTokenEnabled: Boolean
+        get() = authState.webClientPoTokenEnabled
+        set(value) {
+            authState = authState.copy(webClientPoTokenEnabled = value)
+        }
+    var poTokenGvs: String?
+        get() = authState.poTokenGvs
+        set(value) {
+            authState = authState.copy(poTokenGvs = value)
+        }
+    var poTokenPlayer: String?
+        get() = authState.poTokenPlayer
+        set(value) {
+            authState = authState.copy(poTokenPlayer = value)
+        }
     var proxy: Proxy?
         get() = innerTube.proxy
         set(value) {
@@ -131,51 +155,37 @@ object YouTube {
             innerTube.useLoginForBrowse = value
         }
 
-    private fun needsServiceIntegrity(client: YouTubeClient): Boolean {
-        val name = client.clientName.uppercase(Locale.US)
-        return name == "WEB" ||
-            name == "WEB_REMIX" ||
-            name == "WEB_CREATOR" ||
-            name == "MWEB" ||
-            name == "WEB_EMBEDDED_PLAYER" ||
-            name == "TVHTML5" ||
-            name == "TVHTML5_SIMPLY_EMBEDDED_PLAYER" ||
-            name == "TVHTML5_SIMPLY"
-    }
+    fun currentPlaybackAuthState(): PlaybackAuthState = authState
 
-    private fun resolvePlayerPoToken(client: YouTubeClient, videoId: String, explicitPoToken: String?): String? {
-        val explicit = explicitPoToken?.takeIf { it.isNotBlank() }
-        if (explicit != null) return explicit
-        if (!webClientPoTokenEnabled) return null
-        if (!needsServiceIntegrity(client)) return null
-
-        val userExtracted = poTokenPlayer?.takeIf { it.isNotBlank() }
-        if (userExtracted != null) return userExtracted
-
-        val webFallback = poToken?.takeIf { it.isNotBlank() }
-        if (webFallback != null) return webFallback
-
-        return null
+    private fun resolvePlayerPoToken(
+        client: YouTubeClient,
+        explicitPoToken: String?,
+        authState: PlaybackAuthState,
+    ): String? {
+        return authState.resolvePlayerPoToken(
+            client = client,
+            explicitPoToken = explicitPoToken,
+        )
     }
 
     fun hasLoginCookie(): Boolean {
-        val currentCookie = cookie?.takeIf { it.isNotBlank() } ?: return false
-        return "SAPISID" in parseCookieString(currentCookie)
+        return authState.hasLoginCookie
     }
 
     fun hasPlaybackLoginContext(): Boolean {
-        return hasLoginCookie() && !dataSyncId.isNullOrBlank()
+        return authState.hasPlaybackLoginContext
     }
 
-    internal fun resolveGvsPoToken(): String? {
-        if (!webClientPoTokenEnabled) return null
-        return poTokenGvs?.takeIf { it.isNotBlank() }
-            ?: poToken?.takeIf { it.isNotBlank() }
+    internal fun resolveGvsPoToken(authState: PlaybackAuthState = currentPlaybackAuthState()): String? {
+        return authState.resolveGvsPoToken()
     }
 
-    internal fun appendGvsPoToken(url: String, client: YouTubeClient? = null): String {
-        if (client != null && !needsServiceIntegrity(client)) return url
-        val token = resolveGvsPoToken() ?: return url
+    internal fun appendGvsPoToken(
+        url: String,
+        client: YouTubeClient? = null,
+        authState: PlaybackAuthState = currentPlaybackAuthState(),
+    ): String {
+        val token = authState.resolveGvsPoToken(client) ?: return url
         if (url.contains("pot=")) return url
 
         val separator = if (url.contains("?")) "&" else "?"
@@ -1068,8 +1078,9 @@ object YouTube {
         signatureTimestamp: Int? = null,
         poToken: String? = null,
         setLogin: Boolean = true,
+        authState: PlaybackAuthState = currentPlaybackAuthState(),
     ): Result<PlayerResponse> = runCatching {
-        val resolvedPoToken = resolvePlayerPoToken(client, videoId, poToken)
+        val resolvedPoToken = resolvePlayerPoToken(client, poToken, authState)
         innerTube.player(
             client = client,
             videoId = videoId,
@@ -1077,10 +1088,15 @@ object YouTube {
             signatureTimestamp = signatureTimestamp,
             poToken = resolvedPoToken,
             setLogin = setLogin,
+            authState = authState,
         ).body<PlayerResponse>()
     }
 
-    suspend fun registerPlayback(playlistId: String? = null, playbackTracking: String) = runCatching {
+    suspend fun registerPlayback(
+        playlistId: String? = null,
+        playbackTracking: String,
+        authState: PlaybackAuthState = currentPlaybackAuthState(),
+    ) = runCatching {
         val cpn = (1..16).map {
             "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_"[Random.Default.nextInt(
                 0,
@@ -1097,7 +1113,8 @@ object YouTube {
             url = playbackUrl,
             playlistId = playlistId,
             cpn = cpn,
-            poToken = resolveGvsPoToken()
+            poToken = resolveGvsPoToken(authState),
+            authState = authState,
         )
     }
 
