@@ -143,6 +143,7 @@ import moe.koiverse.archivetune.db.entities.ArtistEntity
 import moe.koiverse.archivetune.db.entities.AlbumEntity
 import moe.koiverse.archivetune.di.DownloadCache
 import moe.koiverse.archivetune.di.PlayerCache
+import moe.koiverse.archivetune.innertube.PlaybackAuthState
 import moe.koiverse.archivetune.extensions.SilentHandler
 import moe.koiverse.archivetune.extensions.collect
 import moe.koiverse.archivetune.extensions.collectLatest
@@ -170,6 +171,7 @@ import moe.koiverse.archivetune.playback.queues.filterVideo
 import moe.koiverse.archivetune.utils.CoilBitmapLoader
 import moe.koiverse.archivetune.utils.DiscordRPC
 import moe.koiverse.archivetune.ui.screens.settings.DiscordPresenceManager
+import moe.koiverse.archivetune.utils.AuthScopedCacheValue
 import moe.koiverse.archivetune.utils.SyncUtils
 import moe.koiverse.archivetune.utils.YTPlayerUtils
 import moe.koiverse.archivetune.utils.StreamClientUtils
@@ -290,12 +292,14 @@ class MusicService :
         PlayerStreamClientKey,
         PlayerStreamClient.ANDROID_VR
     )
-    private val playbackUrlCache = ConcurrentHashMap<String, Pair<String, Long>>()
+    private val playbackUrlCache = ConcurrentHashMap<String, AuthScopedCacheValue>()
     private val streamRecoveryState = ConcurrentHashMap<String, Pair<Int, Long>>()
     @Volatile
     private var pendingStreamRefreshValidationMediaId: String? = null
     @Volatile
     private var refreshValidatedPlayingMediaId: String? = null
+    @Volatile
+    private var lastObservedPlaybackAuthFingerprint: String? = null
     private val avoidStreamCodecs: Set<String> by lazy {
         if (deviceSupportsMimeType("audio/opus")) emptySet() else setOf("opus")
     }
@@ -731,6 +735,21 @@ class MusicService :
                 }
             }
         }
+
+        YouTube.authStateFlow
+            .map { it.fingerprint }
+            .distinctUntilChanged()
+            .collect(scope) { fingerprint ->
+                val previousFingerprint = lastObservedPlaybackAuthFingerprint
+                lastObservedPlaybackAuthFingerprint = fingerprint
+                if (previousFingerprint != null && previousFingerprint != fingerprint) {
+                    playbackUrlCache.clear()
+                    clearStreamRefreshGuards()
+                    if (shouldRefreshCurrentTrackForAuthChange()) {
+                        retryCurrentFromFreshStream()
+                    }
+                }
+            }
 
         combine(playerVolume, normalizeFactor, audioFocusVolumeFactor, playbackFadeFactor) { playerVolume, normalizeFactor, audioFocusVolumeFactor, playbackFadeFactor ->
             playerVolume * normalizeFactor * audioFocusVolumeFactor * playbackFadeFactor
@@ -4201,9 +4220,10 @@ class MusicService :
         }
 
         if (shouldAttemptStreamRefresh && currentMediaId != null && markAndCheckRecoveryAllowance(currentMediaId)) {
+            val cachedPlaybackUrl = playbackUrlCache[currentMediaId]
             val failingStreamClientKey =
-                playbackUrlCache[currentMediaId]
-                    ?.first
+                cachedPlaybackUrl
+                    ?.url
                     ?.toHttpUrlOrNull()
                     ?.queryParameter("c")
                     ?.trim()
@@ -4211,8 +4231,9 @@ class MusicService :
             Timber.tag("MusicService").w(
                 "Attempting stream refresh for $currentMediaId (http=$httpStatusCode, code=${error.errorCode}, client=${failingStreamClientKey ?: "unknown"})"
             )
-            YTPlayerUtils.markStreamClientFailed(currentMediaId, failingStreamClientKey, httpStatusCode)
-            YTPlayerUtils.markPreferredClientFailed(currentMediaId, preferredStreamClient, httpStatusCode)
+            val authFingerprint = cachedPlaybackUrl?.authFingerprint ?: YouTube.currentPlaybackAuthState().fingerprint
+            YTPlayerUtils.markStreamClientFailed(currentMediaId, failingStreamClientKey, httpStatusCode, authFingerprint)
+            YTPlayerUtils.markPreferredClientFailed(currentMediaId, preferredStreamClient, httpStatusCode, authFingerprint)
             YTPlayerUtils.invalidateCachedStreamUrls(currentMediaId)
             playbackUrlCache.remove(currentMediaId)
             pendingStreamRefreshValidationMediaId = currentMediaId
@@ -4353,10 +4374,11 @@ class MusicService :
                 }
             }
 
-            playbackUrlCache[mediaId]?.takeIf { it.second > System.currentTimeMillis() }?.let {
+            val authFingerprint = YouTube.currentPlaybackAuthState().fingerprint
+            playbackUrlCache[mediaId]?.takeIf { it.isValidFor(authFingerprint) }?.let {
                 scope.launch(Dispatchers.IO) { recoverSong(mediaId) }
                 val length = if (dataSpec.length >= 0) minOf(dataSpec.length, CHUNK_LENGTH) else CHUNK_LENGTH
-                return@Factory dataSpec.withUri(it.first.toUri()).subrange(dataSpec.uriPositionOffset, length)
+                return@Factory dataSpec.withUri(it.url.toUri()).subrange(dataSpec.uriPositionOffset, length)
             }
 
             val playbackData = runBlocking(Dispatchers.IO) {
@@ -4438,7 +4460,11 @@ class MusicService :
                 val streamUrl = nonNullPlayback.streamUrl
 
                 playbackUrlCache[mediaId] =
-                    streamUrl to System.currentTimeMillis() + (nonNullPlayback.streamExpiresInSeconds * 1000L)
+                    AuthScopedCacheValue(
+                        url = streamUrl,
+                        expiresAtMs = System.currentTimeMillis() + (nonNullPlayback.streamExpiresInSeconds * 1000L),
+                        authFingerprint = nonNullPlayback.authFingerprint,
+                    )
                 val length = if (dataSpec.length >= 0) minOf(dataSpec.length, CHUNK_LENGTH) else CHUNK_LENGTH
                 return@Factory dataSpec.withUri(streamUrl.toUri()).subrange(dataSpec.uriPositionOffset, length)
             }
@@ -4453,6 +4479,14 @@ class MusicService :
         pendingStreamRefreshValidationMediaId = mediaId
         player.prepare()
         player.playWhenReady = true
+    }
+
+    private fun shouldRefreshCurrentTrackForAuthChange(): Boolean {
+        val currentMediaItem = player.currentMediaItem ?: return false
+        if (currentMediaItem.mediaId.isBlank()) return false
+        val scheme = currentMediaItem.localConfiguration?.uri?.scheme?.lowercase()
+        if (scheme == "file" || scheme == "content") return false
+        return player.playbackState != Player.STATE_IDLE
     }
 
     private fun PlaybackException.httpStatusCodeOrNull(): Int? {
@@ -4475,8 +4509,9 @@ class MusicService :
 
     private fun shouldSkipRedundantStreamRefresh(mediaId: String): Boolean {
         if (refreshValidatedPlayingMediaId != mediaId) return false
-        val expiresAt = playbackUrlCache[mediaId]?.second ?: return false
-        if (expiresAt <= System.currentTimeMillis()) {
+        val authFingerprint = YouTube.currentPlaybackAuthState().fingerprint
+        val cached = playbackUrlCache[mediaId] ?: return false
+        if (!cached.isValidFor(authFingerprint)) {
             refreshValidatedPlayingMediaId = null
             return false
         }
@@ -4622,13 +4657,14 @@ class MusicService :
     }
 
     private suspend fun registerRemoteListeningHistory(mediaId: String) {
-        if (!isRemoteHistorySyncAllowed()) return
+        val authState = YouTube.currentPlaybackAuthState()
+        if (!isRemoteHistorySyncAllowed(authState)) return
 
         val attemptedUrls = LinkedHashSet<String>()
 
         suspend fun registerTrackingUrl(url: String): Boolean {
             attemptedUrls += url
-            return YouTube.registerPlayback(playbackTracking = url)
+            return YouTube.registerPlayback(playbackTracking = url, authState = authState)
                 .onFailure {
                     reportException(it)
                 }.isSuccess
@@ -4639,7 +4675,7 @@ class MusicService :
         if (cachedSuccess) return
 
         val playbackTracking =
-            YTPlayerUtils.playerResponseForMetadata(mediaId, null)
+            YTPlayerUtils.playerResponseForMetadata(mediaId, null, authState)
                 .getOrNull()
                 ?.playbackTracking
                 ?: return
@@ -4655,10 +4691,9 @@ class MusicService :
         }
     }
 
-    private suspend fun isRemoteHistorySyncAllowed(): Boolean {
+    private suspend fun isRemoteHistorySyncAllowed(authState: PlaybackAuthState): Boolean {
         if (!dataStore.getAsync(YtmSyncKey, true)) return false
-        val cookie = dataStore.getAsync(InnerTubeCookieKey, "")
-        return cookie.isNotBlank() && cookie.contains("SAPISID")
+        return authState.hasLoginCookie
     }
 
     // Create a transient Song object from current Player MediaMetadata when the DB doesn't have it.
