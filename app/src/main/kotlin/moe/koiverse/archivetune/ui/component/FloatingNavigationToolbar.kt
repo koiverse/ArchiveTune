@@ -122,7 +122,7 @@ fun FloatingNavigationToolbar(
             }
 
         if (slim) {
-            CompactFloatingNavigationToolbar(
+            StableFloatingNavigationToolbar(
                 items = items,
                 pureBlack = pureBlack,
                 containerColor = toolbarContainerColor,
@@ -135,8 +135,8 @@ fun FloatingNavigationToolbar(
             return@BoxWithConstraints
         }
 
-        if (useCompactFallback) {
-            CompactFloatingNavigationToolbar(
+        if (useCompactFallback || hasOverflowAction || hasFabAction) {
+            StableFloatingNavigationToolbar(
                 items = items,
                 pureBlack = pureBlack,
                 containerColor = toolbarContainerColor,
@@ -174,62 +174,6 @@ fun FloatingNavigationToolbar(
                 modifier = Modifier.fillMaxWidth().widthIn(max = toolbarWidth),
             )
             return@BoxWithConstraints
-        }
-
-        if (hasOverflowAction) {
-            HorizontalFloatingToolbar(
-                expanded = true,
-                floatingActionButton = {
-                    FloatingToolbarOverflowAction(
-                        pureBlack = pureBlack,
-                        onShuffleClick = onShuffleClick,
-                        shuffleIconRes = shuffleIconRes,
-                        shuffleContentDescription = shuffleContentDescription,
-                        onMusicRecognitionClick = onMusicRecognitionClick,
-                        musicRecognitionContentDescription = musicRecognitionContentDescription,
-                    )
-                },
-                modifier = Modifier.widthIn(max = 480.dp),
-                colors = toolbarColors,
-            ) {
-                items.forEach { screen ->
-                    val selected = isSelected(screen)
-
-                    FloatingNavigationToolbarItem(
-                        screen = screen,
-                        selected = selected,
-                        slim = effectiveSlim,
-                        pureBlack = pureBlack,
-                        onClick = { onItemClick(screen, selected) },
-                    )
-                }
-            }
-        } else if (hasFabAction) {
-            HorizontalFloatingToolbar(
-                expanded = true,
-                floatingActionButton = {
-                    FloatingToolbarFabAction(
-                        pureBlack = pureBlack,
-                        onClick = onFabClick,
-                        iconRes = fabIconRes,
-                        contentDescription = fabContentDescription,
-                    )
-                },
-                modifier = Modifier.widthIn(max = 480.dp),
-                colors = toolbarColors,
-            ) {
-                items.forEach { screen ->
-                    val selected = isSelected(screen)
-
-                    FloatingNavigationToolbarItem(
-                        screen = screen,
-                        selected = selected,
-                        slim = effectiveSlim,
-                        pureBlack = pureBlack,
-                        onClick = { onItemClick(screen, selected) },
-                    )
-                }
-            }
         } else {
             HorizontalFloatingToolbar(
                 expanded = true,
@@ -253,7 +197,7 @@ fun FloatingNavigationToolbar(
 }
 
 @Composable
-private fun CompactFloatingNavigationToolbar(
+private fun StableFloatingNavigationToolbar(
     items: List<Screens>,
     pureBlack: Boolean,
     containerColor: Color,
@@ -311,34 +255,19 @@ private fun FloatingToolbarOverflowAction(
     var fabMenuExpanded by rememberSaveable { mutableStateOf(false) }
 
     Box {
-        if (slim) {
-            FloatingToolbarCompactActionButton(
-                pureBlack = pureBlack,
-                onClick = { fabMenuExpanded = !fabMenuExpanded },
-            ) {
-                Icon(
-                    painter = painterResource(R.drawable.more_horiz),
-                    contentDescription =
-                        shuffleContentDescription.ifEmpty {
-                            stringResource(R.string.more)
-                        },
-                    modifier = Modifier.size(20.dp),
-                )
-            }
-        } else {
-            FloatingToolbarDefaults.VibrantFloatingActionButton(
-                onClick = { fabMenuExpanded = !fabMenuExpanded },
-                containerColor = if (pureBlack) Color.White.copy(alpha = 0.12f) else MaterialTheme.colorScheme.tertiaryContainer,
-                contentColor = if (pureBlack) Color.White else MaterialTheme.colorScheme.onTertiaryContainer,
-            ) {
-                Icon(
-                    painter = painterResource(R.drawable.more_horiz),
-                    contentDescription =
-                        shuffleContentDescription.ifEmpty {
-                            stringResource(R.string.more)
-                        },
-                )
-            }
+        FloatingToolbarActionButton(
+            pureBlack = pureBlack,
+            compact = slim,
+            onClick = { fabMenuExpanded = !fabMenuExpanded },
+        ) {
+            Icon(
+                painter = painterResource(R.drawable.more_horiz),
+                contentDescription =
+                    shuffleContentDescription.ifEmpty {
+                        stringResource(R.string.more)
+                    },
+                modifier = Modifier.size(if (slim) 20.dp else 24.dp),
+            )
         }
 
         DropdownMenu(
@@ -438,44 +367,31 @@ private fun FloatingToolbarFabAction(
 ) {
     if (onClick == null || iconRes == null) return
 
-    if (slim) {
-        FloatingToolbarCompactActionButton(
-            pureBlack = pureBlack,
-            onClick = onClick,
-        ) {
-            Icon(
-                painter = painterResource(iconRes),
-                contentDescription =
-                    contentDescription.ifEmpty {
-                        stringResource(R.string.create_playlist)
-                    },
-                modifier = Modifier.size(20.dp),
-            )
-        }
-    } else {
-        FloatingToolbarDefaults.VibrantFloatingActionButton(
-            onClick = onClick,
-            containerColor = if (pureBlack) Color.White.copy(alpha = 0.12f) else MaterialTheme.colorScheme.tertiaryContainer,
-            contentColor = if (pureBlack) Color.White else MaterialTheme.colorScheme.onTertiaryContainer,
-        ) {
-            Icon(
-                painter = painterResource(iconRes),
-                contentDescription =
-                    contentDescription.ifEmpty {
-                        stringResource(R.string.create_playlist)
-                    },
-            )
-        }
+    FloatingToolbarActionButton(
+        pureBlack = pureBlack,
+        compact = slim,
+        onClick = onClick,
+    ) {
+        Icon(
+            painter = painterResource(iconRes),
+            contentDescription =
+                contentDescription.ifEmpty {
+                    stringResource(R.string.create_playlist)
+                },
+            modifier = Modifier.size(if (slim) 20.dp else 24.dp),
+        )
     }
 }
 
 @Composable
-private fun FloatingToolbarCompactActionButton(
+private fun FloatingToolbarActionButton(
     pureBlack: Boolean,
+    compact: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit,
 ) {
+    val buttonSize = if (compact) 40.dp else 56.dp
     val shape = CircleShape
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
@@ -489,7 +405,7 @@ private fun FloatingToolbarCompactActionButton(
     )
 
     Surface(
-        modifier = modifier.size(40.dp).scale(scale),
+        modifier = modifier.size(buttonSize).scale(scale),
         color = if (pureBlack) Color.White.copy(alpha = 0.12f) else MaterialTheme.colorScheme.tertiaryContainer,
         contentColor = if (pureBlack) Color.White else MaterialTheme.colorScheme.onTertiaryContainer,
         shape = shape,
@@ -504,7 +420,7 @@ private fun FloatingToolbarCompactActionButton(
                         role = Role.Button,
                         onClick = onClick,
                     )
-                    .size(40.dp),
+                    .size(buttonSize),
             contentAlignment = Alignment.Center,
         ) {
             content()
