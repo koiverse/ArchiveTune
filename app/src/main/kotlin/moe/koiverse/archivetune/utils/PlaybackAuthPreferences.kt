@@ -47,6 +47,10 @@ fun MutablePreferences.clearPlaybackAuthSession(clearAccountIdentity: Boolean = 
     }
 }
 
+fun MutablePreferences.clearPlaybackLoginContext() {
+    remove(DataSyncIdKey)
+}
+
 fun MutablePreferences.putLegacyPoToken(value: String?) {
     val normalized = value?.trim()?.takeIf { it.isNotEmpty() && !it.equals("null", ignoreCase = true) }
     if (normalized == null) {
