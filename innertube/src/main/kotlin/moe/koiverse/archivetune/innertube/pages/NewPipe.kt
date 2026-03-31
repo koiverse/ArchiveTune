@@ -8,6 +8,7 @@
 
 package moe.koiverse.archivetune.innertube
 
+import moe.koiverse.archivetune.innertube.PlaybackAuthState
 import moe.koiverse.archivetune.innertube.models.YouTubeClient
 import moe.koiverse.archivetune.innertube.models.response.PlayerResponse
 import io.ktor.http.URLBuilder
@@ -94,7 +95,12 @@ object NewPipeUtils {
         YoutubeJavaScriptPlayerManager.getSignatureTimestamp(videoId)
     }
 
-    fun getStreamUrl(format: PlayerResponse.StreamingData.Format, videoId: String, client: YouTubeClient? = null): Result<String> =
+    fun getStreamUrl(
+        format: PlayerResponse.StreamingData.Format,
+        videoId: String,
+        client: YouTubeClient? = null,
+        authState: PlaybackAuthState = YouTube.currentPlaybackAuthState(),
+    ): Result<String> =
         runCatching {
             val directUrl = format.url
             if (directUrl != null) {
@@ -113,7 +119,11 @@ object NewPipeUtils {
                         directUrl
                     }
 
-                return@runCatching YouTube.appendGvsPoToken(resolvedDirectUrl, client)
+                return@runCatching YouTube.appendGvsPoToken(
+                    url = resolvedDirectUrl,
+                    client = client,
+                    authState = authState,
+                )
             }
 
             val url = run {
@@ -145,7 +155,11 @@ object NewPipeUtils {
                 }
             }.getOrElse { url }
 
-            YouTube.appendGvsPoToken(resolvedUrl, client)
+            YouTube.appendGvsPoToken(
+                url = resolvedUrl,
+                client = client,
+                authState = authState,
+            )
         }
 
     private inline fun <T> retryWithBackoff(
