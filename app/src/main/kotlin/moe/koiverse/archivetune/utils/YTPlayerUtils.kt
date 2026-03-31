@@ -10,6 +10,8 @@ package moe.koiverse.archivetune.utils
 
 import android.net.ConnectivityManager
 import androidx.media3.common.PlaybackException
+import io.ktor.client.plugins.ClientRequestException
+import io.ktor.http.HttpStatusCode
 import moe.koiverse.archivetune.constants.AudioQuality
 import moe.koiverse.archivetune.constants.PlayerStreamClient
 import moe.koiverse.archivetune.innertube.NewPipeUtils
@@ -49,6 +51,12 @@ object YTPlayerUtils {
         val targetUrl: String,
         reason: String?,
     ) : IllegalStateException(reason)
+
+    class InvalidPlaybackLoginContextException(
+        val videoId: String,
+        val targetUrl: String,
+        cause: Throwable,
+    ) : IllegalStateException("Invalid YouTube Music playback login context", cause)
 
     private data class PlaybackGateFailure(
         val clientName: String,
@@ -394,7 +402,7 @@ object YTPlayerUtils {
                 signatureTimestamp = signatureTimestamp,
                 setLogin = canUseLoggedInPlayback,
                 authState = authState,
-            ).getOrThrow()
+            ).getPlaybackPlayerResponseOrThrow(videoId, authState)
         var expectedDurationMs =
             metadataPlayerResponse.videoDetails?.lengthSeconds
                 ?.toLongOrNull()
@@ -444,7 +452,7 @@ object YTPlayerUtils {
                         signatureTimestamp = signatureTimestamp,
                         setLogin = canUseLoggedInPlayback,
                         authState = authState,
-                    ).getOrNull()
+                    ).getPlaybackPlayerResponseOrNull(videoId, authState)
                 }
 
             if (streamPlayerResponse == null) continue
@@ -480,7 +488,7 @@ object YTPlayerUtils {
                                 signatureTimestamp = signatureTimestamp,
                                 setLogin = canUseLoggedInPlayback,
                                 authState = authState,
-                            ).getOrNull()
+                            ).getPlaybackPlayerResponseOrNull(videoId, authState)
 
                         if (streamPlayerResponse == null) continue
 
@@ -926,6 +934,61 @@ object YTPlayerUtils {
         }
 
         return url
+    }
+
+    private fun Result<PlayerResponse>.getPlaybackPlayerResponseOrThrow(
+        videoId: String,
+        authState: PlaybackAuthState,
+    ): PlayerResponse {
+        val failure = exceptionOrNull()
+        if (failure != null) {
+            throwInvalidPlaybackLoginContextIfNeeded(videoId, authState, failure)
+            throw failure
+        }
+        return getOrThrow()
+    }
+
+    private fun Result<PlayerResponse>.getPlaybackPlayerResponseOrNull(
+        videoId: String,
+        authState: PlaybackAuthState,
+    ): PlayerResponse? {
+        val failure = exceptionOrNull()
+        if (failure != null) {
+            throwInvalidPlaybackLoginContextIfNeeded(videoId, authState, failure)
+            return null
+        }
+        return getOrNull()
+    }
+
+    private fun throwInvalidPlaybackLoginContextIfNeeded(
+        videoId: String,
+        authState: PlaybackAuthState,
+        failure: Throwable,
+    ) {
+        if (!authState.hasPlaybackLoginContext) return
+        if (!failure.isInvalidPlaybackLoginContextFailure()) return
+
+        Timber.tag(logTag).w(
+            failure,
+            "Detected invalid logged-in playback context for %s; requiring login refresh",
+            videoId,
+        )
+        throw InvalidPlaybackLoginContextException(
+            videoId = videoId,
+            targetUrl = "https://music.youtube.com/watch?v=$videoId",
+            cause = failure,
+        )
+    }
+
+    private fun Throwable.isInvalidPlaybackLoginContextFailure(): Boolean {
+        val clientError = this as? ClientRequestException ?: return false
+        if (clientError.response.status != HttpStatusCode.BadRequest) return false
+
+        val message = clientError.message.orEmpty()
+        if (!message.contains("/youtubei/v1/player", ignoreCase = true)) return false
+
+        return message.contains("INVALID_ARGUMENT", ignoreCase = true) ||
+            message.contains("invalid argument", ignoreCase = true)
     }
 
     private fun isBotDetectionError(reason: String): Boolean {
