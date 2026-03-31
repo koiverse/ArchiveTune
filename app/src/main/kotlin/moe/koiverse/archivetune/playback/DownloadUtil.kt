@@ -32,6 +32,7 @@ import moe.koiverse.archivetune.db.entities.SongEntity
 import moe.koiverse.archivetune.di.DownloadCache
 import moe.koiverse.archivetune.di.PlayerCache
 import moe.koiverse.archivetune.innertube.YouTube
+import moe.koiverse.archivetune.utils.AuthScopedCacheValue
 import moe.koiverse.archivetune.utils.StreamClientUtils
 import moe.koiverse.archivetune.utils.YTPlayerUtils
 import moe.koiverse.archivetune.utils.dataStore
@@ -42,8 +43,10 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -73,7 +76,7 @@ constructor(
     private val connectivityManager = context.getSystemService<ConnectivityManager>()!!
     private val audioQuality by enumPreference(context, AudioQualityKey, AudioQuality.AUTO)
     private val preferredStreamClient by enumPreference(context, PlayerStreamClientKey, PlayerStreamClient.ANDROID_VR)
-    private val songUrlCache = ConcurrentHashMap<String, Pair<String, Long>>()
+    private val songUrlCache = ConcurrentHashMap<String, AuthScopedCacheValue>()
     private val downloadExecutor = Executors.newFixedThreadPool(DEFAULT_MAX_PARALLEL_DOWNLOADS)
     private val streamInfoRequestLimiter = Semaphore(MAX_CONCURRENT_STREAM_INFO_REQUESTS)
     private val streamInfoSpacingMutex = Mutex()
@@ -148,8 +151,9 @@ constructor(
             if (playerCache.isCached(mediaId, dataSpec.position, length)) {
                 return@Factory dataSpec
             }
-            songUrlCache[mediaId]?.takeIf { it.second > System.currentTimeMillis() }?.let {
-                return@Factory dataSpec.withUri(it.first.toUri())
+            val authFingerprint = YouTube.currentPlaybackAuthState().fingerprint
+            songUrlCache[mediaId]?.takeIf { it.isValidFor(authFingerprint) }?.let {
+                return@Factory dataSpec.withUri(it.url.toUri())
             }
             val playbackData = runBlocking(Dispatchers.IO) {
                 streamInfoRequestLimiter.withPermit {
@@ -215,7 +219,11 @@ constructor(
             val streamUrl = playbackData.streamUrl
 
             songUrlCache[mediaId] =
-                streamUrl to (System.currentTimeMillis() + (playbackData.streamExpiresInSeconds * 1000L))
+                AuthScopedCacheValue(
+                    url = streamUrl,
+                    expiresAtMs = System.currentTimeMillis() + (playbackData.streamExpiresInSeconds * 1000L),
+                    authFingerprint = playbackData.authFingerprint,
+                )
             dataSpec.withUri(streamUrl.toUri())
         }
 
@@ -262,6 +270,18 @@ constructor(
                 result[cursor.download.request.id] = cursor.download
             }
             downloads.value = result
+        }
+        CoroutineScope(Dispatchers.IO).launch {
+            var previousFingerprint: String? = null
+            YouTube.authStateFlow
+                .map { it.fingerprint }
+                .distinctUntilChanged()
+                .collect { fingerprint ->
+                    if (previousFingerprint != null && previousFingerprint != fingerprint) {
+                        songUrlCache.clear()
+                    }
+                    previousFingerprint = fingerprint
+                }
         }
     }
 
