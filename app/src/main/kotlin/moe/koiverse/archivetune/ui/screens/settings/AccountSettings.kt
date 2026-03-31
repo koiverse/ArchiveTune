@@ -95,7 +95,6 @@ import moe.koiverse.archivetune.constants.AccountEmailKey
 import moe.koiverse.archivetune.constants.AccountNameKey
 import moe.koiverse.archivetune.constants.DataSyncIdKey
 import moe.koiverse.archivetune.constants.InnerTubeCookieKey
-import moe.koiverse.archivetune.constants.PoTokenKey
 import moe.koiverse.archivetune.constants.SelectedYtmPlaylistsKey
 import moe.koiverse.archivetune.constants.UseLoginForBrowse
 import moe.koiverse.archivetune.constants.VisitorDataKey
@@ -106,8 +105,10 @@ import moe.koiverse.archivetune.innertube.utils.parseCookieString
 import moe.koiverse.archivetune.ui.component.InfoLabel
 import moe.koiverse.archivetune.ui.component.TextFieldDialog
 import moe.koiverse.archivetune.ui.screens.buildLoginRoute
+import moe.koiverse.archivetune.utils.PreferenceStore
 import moe.koiverse.archivetune.utils.Updater
 import moe.koiverse.archivetune.utils.dataStore
+import moe.koiverse.archivetune.utils.putLegacyPoToken
 import moe.koiverse.archivetune.utils.rememberPreference
 import moe.koiverse.archivetune.viewmodels.HomeViewModel
 
@@ -124,9 +125,13 @@ fun AccountSettings(
     val (accountEmail, onAccountEmailChange) = rememberPreference(AccountEmailKey, "")
     val (accountChannelHandle, onAccountChannelHandleChange) = rememberPreference(AccountChannelHandleKey, "")
     val (innerTubeCookie, onInnerTubeCookieChange) = rememberPreference(InnerTubeCookieKey, "")
-    val (poToken, onPoTokenChange) = rememberPreference(PoTokenKey, "")
     val (visitorData, onVisitorDataChange) = rememberPreference(VisitorDataKey, "")
     val (dataSyncId, onDataSyncIdChange) = rememberPreference(DataSyncIdKey, "")
+    val onLegacyPoTokenChange: (String) -> Unit = { value ->
+        PreferenceStore.launchEdit(context.dataStore) {
+            putLegacyPoToken(value)
+        }
+    }
 
     val isLoggedIn = remember(innerTubeCookie) {
         "SAPISID" in parseCookieString(innerTubeCookie)
@@ -186,7 +191,7 @@ fun AccountSettings(
                     accountEmail = accountEmail,
                     accountChannelHandle = accountChannelHandle,
                     onInnerTubeCookieChange = onInnerTubeCookieChange,
-                    onPoTokenChange = onPoTokenChange,
+                    onPoTokenChange = onLegacyPoTokenChange,
                     onVisitorDataChange = onVisitorDataChange,
                     onDataSyncIdChange = onDataSyncIdChange,
                     onAccountNameChange = onAccountNameChange,
