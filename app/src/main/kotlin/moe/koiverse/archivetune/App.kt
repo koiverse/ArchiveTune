@@ -30,8 +30,10 @@ import moe.koiverse.archivetune.ui.theme.ThemeSeedPalette
 import moe.koiverse.archivetune.ui.theme.ThemeSeedPaletteCodec
 import moe.koiverse.archivetune.utils.dataStore
 import moe.koiverse.archivetune.utils.PreferenceStore
+import moe.koiverse.archivetune.utils.YTPlayerUtils
 import moe.koiverse.archivetune.utils.get
 import moe.koiverse.archivetune.utils.reportException
+import moe.koiverse.archivetune.utils.clearPlaybackAuthSession
 import moe.koiverse.archivetune.innertube.YouTube
 import moe.koiverse.archivetune.innertube.models.YouTubeLocale
 import moe.koiverse.archivetune.kugou.KuGou
@@ -57,6 +59,7 @@ import timber.log.Timber
 import java.net.Proxy
 import java.util.*
 import java.util.concurrent.atomic.AtomicBoolean
+import moe.koiverse.archivetune.utils.toPlaybackAuthState
 
 @HiltAndroidApp
 class App : Application(), SingletonImageLoader.Factory {
@@ -171,18 +174,30 @@ class App : Application(), SingletonImageLoader.Factory {
 
         applicationScope.launch(Dispatchers.IO) {
             dataStore.data
-                .map { it[VisitorDataKey] }
+                .map { it.toPlaybackAuthState() }
+                .distinctUntilChanged()
+                .collect { authState ->
+                    val previousFingerprint = YouTube.currentPlaybackAuthState().fingerprint
+                    YouTube.authState = authState
+                    if (previousFingerprint != authState.fingerprint) {
+                        YTPlayerUtils.clearPlaybackAuthCaches()
+                    }
+                }
+        }
+
+        applicationScope.launch(Dispatchers.IO) {
+            dataStore.data
+                .map { it.toPlaybackAuthState().visitorData }
                 .distinctUntilChanged()
                 .collect { visitorData ->
-                    YouTube.visitorData = visitorData
-                        ?.takeIf { it != "null" }
-                        ?: YouTube.visitorData().onFailure {
-                            reportException(it)
-                        }.getOrNull()?.also { newVisitorData ->
-                            dataStore.edit { settings ->
-                                settings[VisitorDataKey] = newVisitorData
-                            }
+                    if (!visitorData.isNullOrBlank()) return@collect
+                    YouTube.visitorData().onFailure {
+                        reportException(it)
+                    }.getOrNull()?.also { newVisitorData ->
+                        dataStore.edit { settings ->
+                            settings[VisitorDataKey] = newVisitorData
                         }
+                    }
                 }
         }
 
@@ -209,63 +224,6 @@ class App : Application(), SingletonImageLoader.Factory {
             }
         } catch (e: Exception) {
             reportException(e)
-        }
-        applicationScope.launch(Dispatchers.IO) {
-            dataStore.data
-                .map { it[DataSyncIdKey] }
-                .distinctUntilChanged()
-                .collect { dataSyncId ->
-                    YouTube.dataSyncId = dataSyncId?.let {
-                        it.takeIf { !it.contains("||") }
-                            ?: it.takeIf { it.endsWith("||") }?.substringBefore("||")
-                            ?: it.substringAfter("||")
-                    }
-                }
-        }
-        applicationScope.launch(Dispatchers.IO) {
-            dataStore.data
-                .map { it[InnerTubeCookieKey] }
-                .distinctUntilChanged()
-                .collect { cookie ->
-                    try {
-                        YouTube.cookie = cookie
-                    } catch (e: Exception) {
-                        Timber.e("Could not parse cookie. Clearing existing cookie. %s", e.message)
-                        forgetAccount(this@App)
-                    }
-                }
-        }
-        applicationScope.launch(Dispatchers.IO) {
-            dataStore.data
-                .map { it[WebClientPoTokenEnabledKey] ?: false }
-                .distinctUntilChanged()
-                .collect { enabled ->
-                    YouTube.webClientPoTokenEnabled = enabled
-                }
-        }
-        applicationScope.launch(Dispatchers.IO) {
-            dataStore.data
-                .map { it[PoTokenKey] }
-                .distinctUntilChanged()
-                .collect { token ->
-                    YouTube.poToken = token?.takeIf { it.isNotBlank() }
-                }
-        }
-        applicationScope.launch(Dispatchers.IO) {
-            dataStore.data
-                .map { it[PoTokenGvsKey] }
-                .distinctUntilChanged()
-                .collect { token ->
-                    YouTube.poTokenGvs = token?.takeIf { it.isNotBlank() }
-                }
-        }
-        applicationScope.launch(Dispatchers.IO) {
-            dataStore.data
-                .map { it[PoTokenPlayerKey] }
-                .distinctUntilChanged()
-                .collect { token ->
-                    YouTube.poTokenPlayer = token?.takeIf { it.isNotBlank() }
-                }
         }
         applicationScope.launch(Dispatchers.IO) {
             dataStore.data
@@ -326,13 +284,7 @@ class App : Application(), SingletonImageLoader.Factory {
         fun forgetAccount(context: Context) {
             CoroutineScope(Dispatchers.IO).launch {
                 context.dataStore.edit { settings ->
-                    settings.remove(InnerTubeCookieKey)
-                    settings.remove(PoTokenKey)
-                    settings.remove(VisitorDataKey)
-                    settings.remove(DataSyncIdKey)
-                    settings.remove(AccountNameKey)
-                    settings.remove(AccountEmailKey)
-                    settings.remove(AccountChannelHandleKey)
+                    settings.clearPlaybackAuthSession()
                 }
             }
         }
