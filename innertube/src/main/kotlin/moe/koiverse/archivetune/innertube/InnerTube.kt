@@ -49,15 +49,29 @@ class InnerTube {
         gl = Locale.getDefault().country,
         hl = Locale.getDefault().toLanguageTag()
     )
-    var visitorData: String? = null
-    var dataSyncId: String? = null
-    var poToken: String? = null
-    var cookie: String? = null
+    @Volatile
+    private var authState: PlaybackAuthState = PlaybackAuthState.EMPTY
+
+    var visitorData: String?
+        get() = authState.visitorData
         set(value) {
-            field = value
-            cookieMap = if (value == null) emptyMap() else parseCookieString(value)
+            authState = authState.copy(visitorData = value).normalized()
         }
-    private var cookieMap = emptyMap<String, String>()
+    var dataSyncId: String?
+        get() = authState.dataSyncId
+        set(value) {
+            authState = authState.copy(dataSyncId = value).normalized()
+        }
+    var poToken: String?
+        get() = authState.poToken
+        set(value) {
+            authState = authState.copy(poToken = value).normalized()
+        }
+    var cookie: String?
+        get() = authState.cookie
+        set(value) {
+            authState = authState.copy(cookie = value).normalized()
+        }
 
     var proxy: Proxy? = null
         set(value) {
@@ -67,6 +81,12 @@ class InnerTube {
         }
 
     var useLoginForBrowse: Boolean = false
+
+    fun currentAuthState(): PlaybackAuthState = authState
+
+    fun applyAuthState(value: PlaybackAuthState) {
+        authState = value.normalized()
+    }
 
     @OptIn(ExperimentalSerializationApi::class)
     private fun createClient() = HttpClient(OkHttp) {
@@ -102,9 +122,14 @@ class InnerTube {
         }
     }
 
-    private fun HttpRequestBuilder.ytClient(client: YouTubeClient, setLogin: Boolean = false) {
+    private fun HttpRequestBuilder.ytClient(
+        client: YouTubeClient,
+        setLogin: Boolean = false,
+        authState: PlaybackAuthState = currentAuthState(),
+    ) {
         val requestOrigin = client.requestOrigin()
         val requestReferer = client.requestReferer()
+        val cookieMap = authState.cookie?.let(::parseCookieString).orEmpty()
         contentType(ContentType.Application.Json)
         headers {
             append("X-Goog-Api-Format-Version", "1")
@@ -112,9 +137,9 @@ class InnerTube {
             append("X-YouTube-Client-Version", client.clientVersion)
             append("X-Origin", requestOrigin)
             append("Referer", requestReferer)
-            visitorData?.let { append("X-Goog-Visitor-Id", it) }
+            authState.visitorData?.let { append("X-Goog-Visitor-Id", it) }
             if (setLogin && client.loginSupported) {
-                cookie?.let { cookie ->
+                authState.cookie?.let { cookie ->
                     append("cookie", cookie)
                     if ("SAPISID" !in cookieMap) return@let
                     val currentTime = System.currentTimeMillis() / 1000
@@ -183,12 +208,17 @@ class InnerTube {
         signatureTimestamp: Int?,
         poToken: String? = null,
         setLogin: Boolean = true,
+        authState: PlaybackAuthState = currentAuthState(),
     ) = withRetry {
         httpClient.post("player") {
-        ytClient(client, setLogin = setLogin)
+        ytClient(client, setLogin = setLogin, authState = authState)
         setBody(
             PlayerBody(
-                context = client.toContext(locale, visitorData, dataSyncId).let {
+                context = client.toContext(
+                    locale = locale,
+                    visitorData = authState.visitorData,
+                    dataSyncId = if (setLogin && client.loginSupported) authState.dataSyncId else null,
+                ).let {
                     if (client.isEmbedded) {
                         it.copy(
                             thirdParty = Context.ThirdParty(
@@ -220,9 +250,10 @@ class InnerTube {
         playlistId: String?,
         poToken: String? = null,
         client: YouTubeClient = YouTubeClient.WEB_REMIX,
+        authState: PlaybackAuthState = currentAuthState(),
     ) = withRetry {
         httpClient.get(url) {
-            ytClient(client, true)
+            ytClient(client, true, authState = authState)
             parameter("ver", "2")
             parameter("c", client.clientName)
             parameter("cpn", cpn)
