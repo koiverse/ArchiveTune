@@ -95,7 +95,7 @@ private fun String?.normalizeAuthValue(): String? {
 }
 
 private fun String?.normalizeDataSyncId(): String? {
-    val normalized = normalizeAuthValue(this) ?: return null
+    val normalized = this.normalizeAuthValue() ?: return null
     return normalized.takeIf { !it.contains("||") }
         ?: normalized.takeIf { it.endsWith("||") }?.substringBefore("||")
         ?: normalized.substringAfter("||")
