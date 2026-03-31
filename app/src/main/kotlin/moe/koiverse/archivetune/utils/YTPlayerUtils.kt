@@ -235,21 +235,25 @@ object YTPlayerUtils {
         val hasPlayerPoToken = !authState.resolvePlayerPoToken(WEB_REMIX).isNullOrBlank()
         val hasGvsPoToken = !authState.resolveGvsPoToken(WEB_REMIX).isNullOrBlank()
 
-        return when {
+        if (
             shouldPreferWebRemixForLoggedInPlayback(
                 preferredStreamClient = preferredStreamClient,
                 isLoggedIn = authState.hasPlaybackLoginContext,
                 webClientPoTokenEnabled = authState.webClientPoTokenEnabled,
                 hasPlayerPoToken = hasPlayerPoToken,
                 hasGvsPoToken = hasGvsPoToken,
-            ) -> WEB_REMIX
+            )
+        ) {
+            return WEB_REMIX
+        }
 
-            preferredStreamClient == PlayerStreamClient.ANDROID_VR && authState.hasPlaybackLoginContext -> ANDROID_MUSIC
-            preferredStreamClient == PlayerStreamClient.ANDROID_VR -> ANDROID_VR_NO_AUTH
-            preferredStreamClient == PlayerStreamClient.WEB_REMIX -> WEB_REMIX
-            preferredStreamClient == PlayerStreamClient.IOS -> IOS
-            preferredStreamClient == PlayerStreamClient.TVHTML5 -> TVHTML5
-            preferredStreamClient == PlayerStreamClient.ANDROID_MUSIC -> ANDROID_MUSIC
+        return when (preferredStreamClient) {
+            PlayerStreamClient.ANDROID_VR ->
+                if (authState.hasPlaybackLoginContext) ANDROID_MUSIC else ANDROID_VR_NO_AUTH
+            PlayerStreamClient.WEB_REMIX -> WEB_REMIX
+            PlayerStreamClient.IOS -> IOS
+            PlayerStreamClient.TVHTML5 -> TVHTML5
+            PlayerStreamClient.ANDROID_MUSIC -> ANDROID_MUSIC
         }
     }
 
