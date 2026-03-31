@@ -36,10 +36,12 @@ import moe.koiverse.archivetune.constants.AccountEmailKey
 import moe.koiverse.archivetune.constants.AccountNameKey
 import moe.koiverse.archivetune.constants.DataSyncIdKey
 import moe.koiverse.archivetune.constants.InnerTubeCookieKey
-import moe.koiverse.archivetune.constants.PoTokenKey
 import moe.koiverse.archivetune.constants.VisitorDataKey
 import moe.koiverse.archivetune.ui.component.IconButton
 import moe.koiverse.archivetune.ui.utils.backToMain
+import moe.koiverse.archivetune.utils.PreferenceStore
+import moe.koiverse.archivetune.utils.dataStore
+import moe.koiverse.archivetune.utils.putLegacyPoToken
 import moe.koiverse.archivetune.utils.rememberPreference
 import moe.koiverse.archivetune.utils.reportException
 import moe.koiverse.archivetune.innertube.YouTube
@@ -68,7 +70,6 @@ fun LoginScreen(
     var visitorData by rememberPreference(VisitorDataKey, "")
     var dataSyncId by rememberPreference(DataSyncIdKey, "")
     var innerTubeCookie by rememberPreference(InnerTubeCookieKey, "")
-    var poToken by rememberPreference(PoTokenKey, "")
     var accountName by rememberPreference(AccountNameKey, "")
     var accountEmail by rememberPreference(AccountEmailKey, "")
     var accountChannelHandle by rememberPreference(AccountChannelHandleKey, "")
@@ -129,7 +130,9 @@ fun LoginScreen(
                     @JavascriptInterface
                     fun onRetrievePoToken(newPoToken: String?) {
                         if (!newPoToken.isNullOrBlank()) {
-                            poToken = newPoToken
+                            PreferenceStore.launchEdit(context.dataStore) {
+                                putLegacyPoToken(newPoToken)
+                            }
                         }
                     }
                 }, "Android")
