@@ -11,6 +11,7 @@ import androidx.media3.datasource.HttpDataSource
 import moe.koiverse.archivetune.utils.YTPlayerUtils
 
 internal enum class PlaybackErrorKind {
+    LoginRefreshRequired,
     ConfirmationRequired,
     NoInternet,
     Timeout,
@@ -28,9 +29,11 @@ internal data class PlaybackErrorInfo(
 
 internal fun PlaybackException.toPlaybackErrorInfo(currentMediaId: String? = null): PlaybackErrorInfo {
     val httpCode = httpStatusCodeOrNull()
-    val loginRecoveryUrl = loginRecoveryUrl(currentMediaId)
+    val invalidPlaybackLoginContextUrl = invalidPlaybackLoginContextUrl()
+    val loginRecoveryUrl = invalidPlaybackLoginContextUrl ?: loginRecoveryUrl(currentMediaId)
     val kind =
         when {
+            invalidPlaybackLoginContextUrl != null -> PlaybackErrorKind.LoginRefreshRequired
             loginRecoveryUrl != null -> PlaybackErrorKind.ConfirmationRequired
             errorCode == PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED -> PlaybackErrorKind.NoInternet
             errorCode == PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_TIMEOUT -> PlaybackErrorKind.Timeout
@@ -59,6 +62,10 @@ internal fun PlaybackException.httpStatusCodeOrNull(): Int? {
         throwable = throwable.cause
     }
     return null
+}
+
+internal fun PlaybackException.invalidPlaybackLoginContextUrl(): String? {
+    return findCause<YTPlayerUtils.InvalidPlaybackLoginContextException>()?.targetUrl
 }
 
 internal fun PlaybackException.loginRecoveryUrl(currentMediaId: String? = null): String? {

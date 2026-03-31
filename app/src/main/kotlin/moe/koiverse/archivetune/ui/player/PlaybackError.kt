@@ -60,11 +60,13 @@ fun PlaybackError(
     val httpCode = errorInfo.httpCode
     val title =
         when (errorInfo.kind) {
+            PlaybackErrorKind.LoginRefreshRequired -> stringResource(R.string.playback_login_refresh_required)
             PlaybackErrorKind.ConfirmationRequired -> stringResource(R.string.playback_confirmation_required)
             else -> fallbackUnknown
         }
     val reason =
         when (errorInfo.kind) {
+            PlaybackErrorKind.LoginRefreshRequired -> stringResource(R.string.playback_requires_youtube_music_login_refresh)
             PlaybackErrorKind.ConfirmationRequired -> stringResource(R.string.playback_requires_youtube_music_confirmation)
             PlaybackErrorKind.NoInternet -> fallbackNoInternet
             PlaybackErrorKind.Timeout -> fallbackTimeout
