@@ -175,6 +175,7 @@ import moe.koiverse.archivetune.utils.AuthScopedCacheValue
 import moe.koiverse.archivetune.utils.SyncUtils
 import moe.koiverse.archivetune.utils.YTPlayerUtils
 import moe.koiverse.archivetune.utils.StreamClientUtils
+import moe.koiverse.archivetune.utils.clearPlaybackLoginContext
 import moe.koiverse.archivetune.utils.dataStore
 import moe.koiverse.archivetune.utils.enumPreference
 import moe.koiverse.archivetune.utils.get
@@ -300,6 +301,8 @@ class MusicService :
     private var refreshValidatedPlayingMediaId: String? = null
     @Volatile
     private var lastObservedPlaybackAuthFingerprint: String? = null
+    @Volatile
+    private var skipNextAuthChangeStreamRefresh = false
     private val avoidStreamCodecs: Set<String> by lazy {
         if (deviceSupportsMimeType("audio/opus")) emptySet() else setOf("opus")
     }
@@ -396,6 +399,35 @@ class MusicService :
         }.onFailure {
             Timber.e(it, "Failed to open login recovery for %s", mediaId)
         }
+    }
+
+    private fun recoverInvalidPlaybackLoginContext(mediaId: String, targetUrl: String) {
+        val currentAuthState = YouTube.currentPlaybackAuthState()
+        if (!currentAuthState.hasPlaybackLoginContext) {
+            promptLoginRecovery(mediaId, targetUrl)
+            return
+        }
+
+        val updatedAuthState = currentAuthState.copy(dataSyncId = null)
+        if (currentAuthState.fingerprint != updatedAuthState.normalized().fingerprint) {
+            playbackUrlCache.clear()
+            YTPlayerUtils.clearPlaybackAuthCaches()
+            clearStreamRefreshGuards()
+            skipNextAuthChangeStreamRefresh = true
+        }
+        YouTube.authState = updatedAuthState
+
+        scope.launch(Dispatchers.IO) {
+            runCatching {
+                dataStore.edit { settings ->
+                    settings.clearPlaybackLoginContext()
+                }
+            }.onFailure {
+                Timber.e(it, "Failed to clear invalid playback login context for %s", mediaId)
+            }
+        }
+
+        promptLoginRecovery(mediaId, targetUrl)
     }
 
     lateinit var sleepTimer: SleepTimer
@@ -745,6 +777,10 @@ class MusicService :
                 if (previousFingerprint != null && previousFingerprint != fingerprint) {
                     playbackUrlCache.clear()
                     clearStreamRefreshGuards()
+                    if (skipNextAuthChangeStreamRefresh) {
+                        skipNextAuthChangeStreamRefresh = false
+                        return@collect
+                    }
                     if (shouldRefreshCurrentTrackForAuthChange()) {
                         retryCurrentFromFreshStream()
                     }
@@ -4391,6 +4427,15 @@ class MusicService :
                 )
             }.getOrElse { throwable ->
                 when (throwable) {
+                    is YTPlayerUtils.InvalidPlaybackLoginContextException -> {
+                        recoverInvalidPlaybackLoginContext(mediaId, throwable.targetUrl)
+                        throw PlaybackException(
+                            getString(R.string.playback_requires_youtube_music_login_refresh),
+                            throwable,
+                            PlaybackException.ERROR_CODE_REMOTE_ERROR
+                        )
+                    }
+
                     is YTPlayerUtils.LoginRequiredForPlaybackException -> {
                         promptLoginRecovery(mediaId, throwable.targetUrl)
                         throw PlaybackException(
