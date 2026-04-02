@@ -626,16 +626,6 @@ private fun ProfileIdentityCard(
                     )
                 }
 
-                if (accountEmail.isNotBlank()) {
-                    Text(
-                        text = accountEmail,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-
                 if (accountHandle.isNotBlank()) {
                     Surface(
                         shape = RoundedCornerShape(10.dp),
@@ -663,18 +653,24 @@ private fun ProfileIdentityCard(
                 }
             }
 
-            Surface(
-                shape = RoundedCornerShape(12.dp),
-                color = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.55f),
-            ) {
-                Text(
-                    text = "v${BuildConfig.VERSION_NAME}",
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.80f),
-                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 5.dp),
-                )
-            }
+            accountEmail
+                .takeIf { it.isNotBlank() }
+                ?.let { email ->
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.55f),
+                    ) {
+                        Text(
+                            text = email,
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.80f),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 5.dp),
+                        )
+                    }
+                }
 
             Row(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
