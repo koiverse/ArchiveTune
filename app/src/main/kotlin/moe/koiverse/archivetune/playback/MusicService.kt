@@ -21,6 +21,7 @@ import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothClass
 import android.content.pm.PackageManager
 import android.database.SQLException
+import android.media.AudioDeviceInfo
 import android.media.AudioManager
 import android.media.AudioFocusRequest
 import android.media.AudioAttributes as LegacyAudioAttributes
@@ -1133,6 +1134,19 @@ class MusicService :
             withContext(Dispatchers.Main) {
                 queueRestoreCompleted.value = true
             }
+
+            if (player.mediaItemCount > 0 && !player.playWhenReady) {
+                val btAutoStart = withContext(Dispatchers.IO) {
+                    dataStore.get(AutoStartOnBluetoothKey, false)
+                }
+                if (btAutoStart) {
+                    withContext(Dispatchers.Main) {
+                        if (isBluetoothAudioConnected()) {
+                            handleBluetoothAutoStart()
+                        }
+                    }
+                }
+            }
         }
 
         // Save queue periodically to prevent queue loss from crash or force kill
@@ -1502,6 +1516,17 @@ class MusicService :
             unregisterReceiver(bluetoothReceiver)
         } catch (_: Exception) {}
         bluetoothReceiverRegistered = false
+    }
+
+    private fun isBluetoothAudioConnected(): Boolean {
+        val devices = audioManager.getDevices(AudioManager.GET_DEVICES_OUTPUTS)
+        return devices.any {
+            it.type == AudioDeviceInfo.TYPE_BLUETOOTH_A2DP ||
+                it.type == AudioDeviceInfo.TYPE_BLUETOOTH_SCO ||
+                (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+                    (it.type == AudioDeviceInfo.TYPE_BLE_HEADSET ||
+                        it.type == AudioDeviceInfo.TYPE_BLE_SPEAKER))
+        }
     }
 
     private fun waitOnNetworkError() {
