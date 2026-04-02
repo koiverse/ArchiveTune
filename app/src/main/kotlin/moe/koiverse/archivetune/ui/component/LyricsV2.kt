@@ -653,6 +653,13 @@ fun LyricsV2(
                         )
                     }
 
+                    val romanizedText = if (romanizationPreferences.isEnabled) {
+                        val value by item.romanizedTextFlow.collectAsState()
+                        value
+                    } else {
+                        null
+                    }
+
                     if (romanizedText != null) {
                         Text(
                             text = romanizedText!!,
@@ -671,13 +678,6 @@ fun LyricsV2(
                         )
                     }
 
-                    // ── Romanization ──
-                    val romanizedText = if (romanizationPreferences.isEnabled) {
-                        val value by item.romanizedTextFlow.collectAsState()
-                        value
-                    } else {
-                        null
-                    }
                 }
             }
 
