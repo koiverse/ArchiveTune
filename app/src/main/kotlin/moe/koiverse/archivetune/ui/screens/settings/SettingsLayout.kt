@@ -47,6 +47,7 @@ enum class SettingsLayoutMode {
 }
 
 data class SettingsProfileState(
+    val isLoading: Boolean,
     val isLoggedIn: Boolean,
     val accountName: String,
     val accountEmail: String,
