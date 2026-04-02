@@ -156,146 +156,41 @@ fun LyricsMenu(
     val isNetworkAvailable by viewModel.isNetworkAvailable.collectAsState()
 
     if (showSearchDialog) {
-        DefaultDialog(
+        SearchLyricsInputDialog(
+            titleField = titleField,
+            onTitleFieldChange = onTitleFieldChange,
+            artistField = artistField,
+            onArtistFieldChange = onArtistFieldChange,
             onDismiss = { showSearchDialog = false },
-            icon = {
-                Surface(
-                    shape = RoundedCornerShape(16.dp),
-                    color = MaterialTheme.colorScheme.primaryContainer,
-                    modifier = Modifier.size(48.dp)
-                ) {
-                    Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                        Icon(
-                            painter = painterResource(R.drawable.search),
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                            modifier = Modifier.size(24.dp)
-                        )
-                    }
-                }
-            },
-            title = {
-                Text(
-                    text = stringResource(R.string.search_lyrics),
-                    style = MaterialTheme.typography.headlineSmall.copy(
-                        fontWeight = FontWeight.SemiBold
-                    )
-                )
-            },
-            buttons = {
-                OutlinedButton(
-                    onClick = { showSearchDialog = false },
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Text(stringResource(android.R.string.cancel))
-                }
-
-                Spacer(Modifier.width(8.dp))
-
-                FilledTonalButton(
-                    onClick = {
-                        showSearchDialog = false
-                        onDismiss()
-                        try {
-                            context.startActivity(
-                                Intent(Intent.ACTION_WEB_SEARCH).apply {
-                                    putExtra(
-                                        SearchManager.QUERY,
-                                        "${artistField.text} ${titleField.text} lyrics"
-                                    )
-                                },
+            onSearchOnline = {
+                showSearchDialog = false
+                onDismiss()
+                try {
+                    context.startActivity(
+                        Intent(Intent.ACTION_WEB_SEARCH).apply {
+                            putExtra(
+                                SearchManager.QUERY,
+                                "${artistField.text} ${titleField.text} lyrics"
                             )
-                        } catch (_: Exception) {
-                        }
-                    },
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Icon(
-                        painter = painterResource(R.drawable.language),
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp)
+                        },
                     )
-                    Spacer(Modifier.width(6.dp))
-                    Text(stringResource(R.string.search_online))
-                }
-
-                Spacer(Modifier.width(8.dp))
-
-                Button(
-                    onClick = {
-                        viewModel.search(
-                            searchMediaMetadata.id,
-                            titleField.text,
-                            artistField.text,
-                            searchMediaMetadata.duration
-                        )
-                        showSearchResultDialog = true
-
-                        if (!isNetworkAvailable) {
-                            Toast.makeText(context, context.getString(R.string.error_no_internet), Toast.LENGTH_SHORT).show()
-                        }
-                    },
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Icon(
-                        painter = painterResource(R.drawable.search),
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(Modifier.width(6.dp))
-                    Text(stringResource(android.R.string.ok))
+                } catch (_: Exception) {
                 }
             },
-        ) {
-            Column(
-                modifier = Modifier.verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                Surface(
-                    shape = RoundedCornerShape(16.dp),
-                    color = MaterialTheme.colorScheme.surfaceContainerLow,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text(
-                            text = stringResource(R.string.song_title),
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(bottom = 8.dp)
-                        )
-                        OutlinedTextField(
-                            value = titleField,
-                            onValueChange = onTitleFieldChange,
-                            singleLine = true,
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp)
-                        )
-                    }
-                }
+            onSearch = {
+                viewModel.search(
+                    searchMediaMetadata.id,
+                    titleField.text,
+                    artistField.text,
+                    searchMediaMetadata.duration
+                )
+                showSearchResultDialog = true
 
-                Surface(
-                    shape = RoundedCornerShape(16.dp),
-                    color = MaterialTheme.colorScheme.surfaceContainerLow,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text(
-                            text = stringResource(R.string.song_artists),
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(bottom = 8.dp)
-                        )
-                        OutlinedTextField(
-                            value = artistField,
-                            onValueChange = onArtistFieldChange,
-                            singleLine = true,
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp)
-                        )
-                    }
+                if (!isNetworkAvailable) {
+                    Toast.makeText(context, context.getString(R.string.error_no_internet), Toast.LENGTH_SHORT).show()
                 }
             }
-        }
+        )
     }
 
     if (showSearchResultDialog) {
@@ -808,6 +703,130 @@ fun LyricsMenu(
                 ),
                 modifier = Modifier.padding(horizontal = 4.dp, vertical = 16.dp)
             )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun SearchLyricsInputDialog(
+    titleField: TextFieldValue,
+    onTitleFieldChange: (TextFieldValue) -> Unit,
+    artistField: TextFieldValue,
+    onArtistFieldChange: (TextFieldValue) -> Unit,
+    onDismiss: () -> Unit,
+    onSearchOnline: () -> Unit,
+    onSearch: () -> Unit,
+) {
+    BasicAlertDialog(
+        onDismissRequest = onDismiss,
+        modifier = Modifier.padding(24.dp)
+    ) {
+        Surface(
+            shape = MaterialTheme.shapes.extraLarge,
+            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+            tonalElevation = 6.dp,
+        ) {
+            Column(modifier = Modifier.padding(24.dp)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.search),
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(28.dp)
+                    )
+                    Spacer(Modifier.width(12.dp))
+                    Text(
+                        text = stringResource(R.string.search_lyrics),
+                        style = MaterialTheme.typography.titleLarge,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+
+                Spacer(Modifier.height(24.dp))
+
+                OutlinedTextField(
+                    value = titleField,
+                    onValueChange = onTitleFieldChange,
+                    singleLine = true,
+                    label = { Text(stringResource(R.string.song_title)) },
+                    leadingIcon = {
+                        Icon(
+                            painter = painterResource(R.drawable.music_note),
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = MaterialTheme.shapes.medium,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
+                    )
+                )
+
+                Spacer(Modifier.height(12.dp))
+
+                OutlinedTextField(
+                    value = artistField,
+                    onValueChange = onArtistFieldChange,
+                    singleLine = true,
+                    label = { Text(stringResource(R.string.song_artists)) },
+                    leadingIcon = {
+                        Icon(
+                            painter = painterResource(R.drawable.artist),
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = MaterialTheme.shapes.medium,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
+                    )
+                )
+
+                Spacer(Modifier.height(24.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    TextButton(onClick = onDismiss) {
+                        Text(stringResource(android.R.string.cancel))
+                    }
+
+                    FilledTonalButton(
+                        onClick = onSearchOnline,
+                        colors = ButtonDefaults.filledTonalButtonColors(
+                            containerColor = MaterialTheme.colorScheme.secondaryContainer
+                        )
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.language),
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(Modifier.width(6.dp))
+                        Text(stringResource(R.string.search_online))
+                    }
+
+                    Button(onClick = onSearch) {
+                        Icon(
+                            painter = painterResource(R.drawable.search),
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(Modifier.width(6.dp))
+                        Text(stringResource(android.R.string.ok))
+                    }
+                }
+            }
         }
     }
 }
