@@ -436,7 +436,7 @@ fun Queue(
         val mutableQueueWindows = remember { mutableStateListOf<Timeline.Window>() }
         val queueLength by remember {
             derivedStateOf {
-                queueWindows.sumOf { it.mediaItem.metadata?.duration ?: 0L }
+                queueWindows.sumOf { it.mediaItem.metadata?.duration ?: 0 }
             }
         }
 
