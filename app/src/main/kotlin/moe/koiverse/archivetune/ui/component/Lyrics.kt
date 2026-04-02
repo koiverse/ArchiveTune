@@ -1703,7 +1703,7 @@ fun Lyrics(
                                         )
                                     )
                                 ) {
-                                    append(item.text)
+                                        append(item.text)
                                 }
                             }
 
