@@ -110,8 +110,6 @@
     <string name="resume_autoscroll">Otomatik Kaydırmayı Devam Ettir</string>
     <string name="lyrics_romanize_japanese">Japonca şarkı sözlerini romanlaştır</string>
     <string name="lyrics_romanize_korean">Korece şarkı sözlerini romanlaştırın</string>
-    <string name="slim">İnce</string>
-    <string name="slim_navbar">İnce alt gezinme çubuğu</string>
     <string name="auto_playlists">Otomatik çalma listeleri</string>
     <string name="show_liked_playlist">\"Beğenilenler\" oynatma listesini göster</string>
     <string name="show_downloaded_playlist">\"İndirilenler\" oynatma listesini göster</string>

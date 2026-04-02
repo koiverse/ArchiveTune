@@ -110,8 +110,6 @@
     <string name="resume_autoscroll">Tiếp tục Tự động cuộn</string>
     <string name="lyrics_romanize_japanese">Roman hóa lời bài hát tiếng Nhật</string>
     <string name="lyrics_romanize_korean">Roman hóa lời bài hát tiếng Hàn</string>
-    <string name="slim">Mỏng</string>
-    <string name="slim_navbar">Thanh điều hướng dưới mỏng</string>
     <string name="auto_playlists">Danh sách phát tự động</string>
     <string name="show_liked_playlist">Hiển thị danh sách phát \"Đã thích\"</string>
     <string name="show_downloaded_playlist">Hiển thị danh sách phát \"Đã tải xuống\"</string>

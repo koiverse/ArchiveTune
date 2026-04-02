@@ -93,8 +93,6 @@
     <string name="lyrics_auto_scroll">自動スクロール歌詞</string>
     <string name="lyrics_romanize_japanese">日本語の歌詞をローマ字化する</string>
     <string name="lyrics_romanize_korean">韓国語の歌詞をローマ字化</string>
-    <string name="slim">スリム</string>
-    <string name="slim_navbar">スリムな下部ナビゲーション バー</string>
     <string name="auto_playlists">自動プレイリスト</string>
     <string name="show_liked_playlist">「いいね！」プレイリストを表示</string>
     <string name="show_downloaded_playlist">「ダウンロード済み」プレイリストを表示する</string>

@@ -111,8 +111,6 @@
     <string name="resume_autoscroll">Retomar rolagem automática</string>
     <string name="lyrics_romanize_japanese">Romanizar letras japonesas</string>
     <string name="lyrics_romanize_korean">Romanizar letras coreanas</string>
-    <string name="slim">Magro</string>
-    <string name="slim_navbar">Barra de navegação inferior fina</string>
     <string name="auto_playlists">Playlists automáticas</string>
     <string name="show_liked_playlist">Mostrar playlist \"Curtidas\"</string>
     <string name="show_downloaded_playlist">Exibir playlist \"Baixados\"</string>

@@ -124,7 +124,6 @@
     <string name="default_style">Vaikimisi</string>
     <string name="secondary_color_style">Teisene</string>
     <string name="enable_squiggly_slider">Kasuta vingerdavat edenemisriba</string>
-    <string name="slim">Õhuke</string>
     <string name="audio_quality_max">Maksimaalne (beeta)</string>
     <string name="history_duration">Ajaloo kestus</string>
     <string name="information">Teave</string>
@@ -182,7 +181,6 @@
     <string name="show_tags_in_library_desc">Näita muusikakogus sildifiltri nupukesi</string>
     <string name="default_lib_chips">Muuda muusikakogu vaikimisi nupukest</string>
     <string name="player_design_v5">Väikene</string>
-    <string name="slim_navbar">Õuuke alumine tegevusriba</string>
     <string name="auto_playlists">Automaatsed esitusloendid</string>
     <string name="show_liked_playlist">Näita „Meeldib“ esitusloendit</string>
     <string name="show_downloaded_playlist">Näita „Allalaaditud“ esitusloendit</string>

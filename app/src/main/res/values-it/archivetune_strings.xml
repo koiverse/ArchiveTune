@@ -112,8 +112,6 @@
     <string name="resume_autoscroll">Riprendi lo scorrimento automatico</string>
     <string name="lyrics_romanize_japanese">Romanizzare i testi giapponesi</string>
     <string name="lyrics_romanize_korean">Romanizzare i testi coreani</string>
-    <string name="slim">Sottile</string>
-    <string name="slim_navbar">Barra di navigazione inferiore sottile</string>
     <string name="auto_playlists">Playlist automatiche</string>
     <string name="show_liked_playlist">Mostra la playlist \"Mi piace\".</string>
     <string name="show_downloaded_playlist">Mostra la playlist \"Scaricate\".</string>

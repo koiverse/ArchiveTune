@@ -94,8 +94,6 @@
     <string name="lyrics_auto_scroll">자동 스크롤 가사</string>
     <string name="lyrics_romanize_japanese">일본어 가사를 로마자로 표기</string>
     <string name="lyrics_romanize_korean">한국어 가사를 로마자로 표기</string>
-    <string name="slim">아주 적은</string>
-    <string name="slim_navbar">슬림한 하단 네비게이션 바</string>
     <string name="auto_playlists">자동 재생목록</string>
     <string name="show_liked_playlist">\"좋아요\" 재생목록 표시</string>
     <string name="show_downloaded_playlist">\"다운로드\" 재생목록 표시</string>

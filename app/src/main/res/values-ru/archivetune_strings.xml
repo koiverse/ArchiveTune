@@ -112,8 +112,6 @@
     <string name="resume_autoscroll">Продолжить авто-прокрут</string>
     <string name="lyrics_romanize_japanese">Романизация японских слов</string>
     <string name="lyrics_romanize_korean">Романизация корейских слов</string>
-    <string name="slim">Тонкий</string>
-    <string name="slim_navbar">Тонкая нижняя панель навигации</string>
     <string name="auto_playlists">Автоплейлисты</string>
     <string name="show_liked_playlist">Показывать плейлист «Понравившееся»</string>
     <string name="show_downloaded_playlist">Показывать плейлист «Скачанные»</string>

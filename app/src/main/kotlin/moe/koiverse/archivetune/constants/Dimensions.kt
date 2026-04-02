@@ -21,11 +21,9 @@ const val CONTENT_TYPE_ALBUM = 4
 const val CONTENT_TYPE_PLAYLIST = 5
 
 val FloatingToolbarHeight = 72.dp
-val SlimFloatingToolbarHeight = 64.dp
 val FloatingToolbarHorizontalPadding = 16.dp
 val FloatingToolbarBottomPadding = 12.dp
 val NavigationBarHeight = FloatingToolbarHeight
-val SlimNavBarHeight = SlimFloatingToolbarHeight
 val MiniPlayerHeight = 64.dp
 val MiniPlayerBottomSpacing = 8.dp // Space between MiniPlayer and NavigationBar
 val QueuePeekHeight = 64.dp

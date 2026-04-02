@@ -176,8 +176,6 @@ import moe.koiverse.archivetune.constants.RemindAfterKey
 import moe.koiverse.archivetune.constants.SYSTEM_DEFAULT
 import moe.koiverse.archivetune.constants.SearchSource
 import moe.koiverse.archivetune.constants.SearchSourceKey
-import moe.koiverse.archivetune.constants.SlimFloatingToolbarHeight
-import moe.koiverse.archivetune.constants.SlimNavBarKey
 import moe.koiverse.archivetune.constants.StopMusicOnTaskClearKey
 import moe.koiverse.archivetune.constants.UseSystemFontKey
 import moe.koiverse.archivetune.db.MusicDatabase
@@ -664,7 +662,6 @@ class MainActivity : ComponentActivity() {
                     val isYearInMusicScreen = currentRoute == "year_in_music"
 
                     val navigationItems = remember { Screens.MainScreens }
-                    val (slimNav) = rememberPreference(SlimNavBarKey, defaultValue = false)
                     val (savedMiniPlayerAnchor, setSavedMiniPlayerAnchor) = rememberPreference(
                         MiniPlayerLastAnchorKey,
                         defaultValue = COLLAPSED_ANCHOR
@@ -750,14 +747,14 @@ class MainActivity : ComponentActivity() {
 
                     fun getBottomNavPadding(): Dp {
                         return if (shouldShowNavigationBar && !useRail) {
-                            if (slimNav) SlimFloatingToolbarHeight else FloatingToolbarHeight
+                            FloatingToolbarHeight
                         } else {
                             0.dp
                         }
                     }
 
                     val floatingBarsBottomPadding = FloatingToolbarBottomPadding
-                    val navVisibleHeight = if (slimNav) SlimFloatingToolbarHeight else FloatingToolbarHeight
+                    val navVisibleHeight = FloatingToolbarHeight
 
                     val bottomNavigationBarHeight by animateDpAsState(
                         targetValue = if (shouldShowNavigationBar && !useRail) navVisibleHeight else 0.dp,
@@ -1134,14 +1131,11 @@ class MainActivity : ComponentActivity() {
                                                 )
                                             },
                                             label = {
-                                                if (!slimNav) {
-                                                    Text(
-                                                        text = stringResource(screen.titleId),
-                                                        maxLines = 1,
-                                                        overflow = TextOverflow.Ellipsis
-                                                    )
-                                                }
-
+                                                Text(
+                                                    text = stringResource(screen.titleId),
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis
+                                                )
                                             },
                                             onClick = {
                                                 val wasPlayerActive = playerBottomSheetState.isExpanded
@@ -1504,7 +1498,6 @@ class MainActivity : ComponentActivity() {
                         ) {
                                             FloatingNavigationToolbar(
                                                 items = navigationItems,
-                                                slim = slimNav,
                                                 pureBlack = pureBlack,
                                                 modifier = Modifier
                                                     .align(Alignment.BottomCenter)

@@ -92,8 +92,6 @@
     <string name="lyrics_auto_scroll">Lirik gulir otomatis</string>
     <string name="lyrics_romanize_japanese">Romanisasikan lirik bahasa Jepang</string>
     <string name="lyrics_romanize_korean">Romanisasikan lirik korea</string>
-    <string name="slim">Langsing</string>
-    <string name="slim_navbar">Bilah navigasi bawah yang ramping</string>
     <string name="auto_playlists">Daftar putar otomatis</string>
     <string name="show_liked_playlist">Tampilkan daftar putar \"Disukai\".</string>
     <string name="show_downloaded_playlist">Tampilkan daftar putar \"Diunduh\".</string>

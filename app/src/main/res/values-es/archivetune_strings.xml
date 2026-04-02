@@ -111,8 +111,6 @@
     <string name="resume_autoscroll">Reanudar el desplazamiento automático</string>
     <string name="lyrics_romanize_japanese">Romanizar letras Japonesas</string>
     <string name="lyrics_romanize_korean">Romanizar letras Coreanas</string>
-    <string name="slim">Delgado</string>
-    <string name="slim_navbar">Barra de navegación delgada</string>
     <string name="auto_playlists">Auto listas de reproducción</string>
     <string name="show_liked_playlist">Mostrar lista de reproducción \"Me gusta\"</string>
     <string name="show_downloaded_playlist">Mostrar lista de reproducción \"Descargado\"</string>

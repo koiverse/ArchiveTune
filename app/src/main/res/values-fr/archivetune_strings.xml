@@ -96,8 +96,6 @@
     <string name="resume_autoscroll">Reprise du défilement automatique</string>
     <string name="lyrics_romanize_japanese">Romaniser les paroles japonaises</string>
     <string name="lyrics_romanize_korean">Romaniser les paroles coréennes</string>
-    <string name="slim">Mince</string>
-    <string name="slim_navbar">Barre de navigation inférieure mince</string>
     <string name="auto_playlists">Playlists Automatiques</string>
     <string name="show_liked_playlist">Afficher la playlist « Favoris »</string>
     <string name="show_downloaded_playlist">Afficher la playlist « Téléchargés »</string>

@@ -85,7 +85,6 @@ import moe.koiverse.archivetune.constants.LyricsTextSizeKey
 import moe.koiverse.archivetune.constants.LyricsLineSpacingKey
 import moe.koiverse.archivetune.constants.SliderStyle
 import moe.koiverse.archivetune.constants.SliderStyleKey
-import moe.koiverse.archivetune.constants.SlimNavBarKey
 import moe.koiverse.archivetune.constants.ShowLikedPlaylistKey
 import moe.koiverse.archivetune.constants.ShowDownloadedPlaylistKey
 import moe.koiverse.archivetune.constants.ShowHomeCategoryChipsKey
@@ -204,11 +203,6 @@ fun AppearanceSettings(
     val (gridItemSize, onGridItemSizeChange) = rememberEnumPreference(
         GridItemsSizeKey,
         defaultValue = GridItemSize.SMALL
-    )
-
-    val (slimNav, onSlimNavChange) = rememberPreference(
-        SlimNavBarKey,
-        defaultValue = false
     )
 
     val (swipeToSong, onSwipeToSongChange) = rememberPreference(
@@ -854,13 +848,6 @@ fun AppearanceSettings(
             icon = { Icon(painterResource(R.drawable.swipe), null) },
             checked = swipeToSong,
             onCheckedChange = onSwipeToSongChange
-        )
-
-        SwitchPreference(
-            title = { Text(stringResource(R.string.slim_navbar)) },
-            icon = { Icon(painterResource(R.drawable.nav_bar), null) },
-            checked = slimNav,
-            onCheckedChange = onSlimNavChange
         )
 
 

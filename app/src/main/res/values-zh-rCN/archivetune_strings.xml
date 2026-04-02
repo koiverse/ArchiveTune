@@ -218,8 +218,6 @@
     <string name="restore_step_verifying">验证备份</string>
     <string name="restore_step_stopping_playback">停止播放</string>
     <string name="restore_step_restoring_settings">恢复设置</string>
-    <string name="slim_navbar">紧凑的底部导航栏</string>
-    <string name="slim">紧凑</string>
     <string name="swipe_song_to_add">向左滑动歌曲加入队列，向右滑动即可播放下一首</string>
     <string name="enable_swipe_thumbnail">启用滑动切换歌曲</string>
     <string name="enable_squiggly_slider">启用波浪滑块</string>
