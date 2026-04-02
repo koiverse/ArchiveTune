@@ -311,6 +311,9 @@ fun NavGraphBuilder.navigationBuilder(
     composable("settings") {
         SettingsScreen(navController, scrollBehavior, latestVersionName)
     }
+    composable("settings/account") {
+        AccountSettings(navController, scrollBehavior, latestVersionName)
+    }
     composable("settings/appearance") {
         AppearanceSettings(navController, scrollBehavior)
     }

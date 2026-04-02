@@ -943,7 +943,7 @@ fun AccountPlaylistsTitle(
 ) {
     NavigationTitle(
         label = stringResource(R.string.your_youtube_playlists),
-        title = accountName,
+        title = accountName.ifBlank { stringResource(R.string.account) },
         thumbnail = {
             if (accountImageUrl != null) {
                 AsyncImage(

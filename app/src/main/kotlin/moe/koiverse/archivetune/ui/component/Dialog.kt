@@ -184,49 +184,6 @@ fun DefaultDialog(
     }
 }
 
-@Composable
-fun AccountSettingsDialog(
-    navController: NavController,
-    onDismiss: () -> Unit,
-    latestVersionName: String
-) {
-    Dialog(
-        onDismissRequest = onDismiss,
-        properties = DialogProperties(
-            usePlatformDefaultWidth = false,
-            dismissOnClickOutside = true
-        )
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .clickable(
-                    indication = null,
-                    interactionSource = remember { MutableInteractionSource() }
-                ) {
-                    onDismiss()
-                },
-            contentAlignment = Alignment.TopCenter
-        ) {
-            Surface(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 72.dp, start = 16.dp, end = 16.dp)
-                    .clip(RoundedCornerShape(28.dp)),
-                shape = MaterialTheme.shapes.large,
-                color = MaterialTheme.colorScheme.surface,
-                tonalElevation = 8.dp
-            ) {
-                AccountSettings(
-                    navController = navController,
-                    onClose = onDismiss,
-                    latestVersionName = latestVersionName
-                )
-            }
-        }
-    }
-}
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ActionPromptDialog(
