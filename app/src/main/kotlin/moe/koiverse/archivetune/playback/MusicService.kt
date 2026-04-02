@@ -1713,7 +1713,6 @@ class MusicService :
         }
         
         clearAutomix()
-        automixSeedMediaId = null
         autoAddedMediaIds.clear()
         if (queue.preloadItem != null) {
             player.setMediaItem(queue.preloadItem!!.toMediaItem())
