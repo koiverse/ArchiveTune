@@ -138,7 +138,6 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.window.core.layout.WindowSizeClass
-import coil3.compose.AsyncImage
 import coil3.imageLoader
 import coil3.request.ImageRequest
 import coil3.request.allowHardware
@@ -199,7 +198,6 @@ import moe.koiverse.archivetune.playback.queues.LocalAlbumRadio
 import moe.koiverse.archivetune.playback.queues.ListQueue
 import moe.koiverse.archivetune.playback.queues.YouTubeAlbumRadio
 import moe.koiverse.archivetune.playback.queues.YouTubeQueue
-import moe.koiverse.archivetune.ui.component.AccountSettingsDialog
 import moe.koiverse.archivetune.ui.component.BottomSheetMenu
 import moe.koiverse.archivetune.ui.component.BottomSheetPage
 import moe.koiverse.archivetune.ui.component.COLLAPSED_ANCHOR
@@ -652,7 +650,6 @@ class MainActivity : ComponentActivity() {
                     val navController = rememberNavController()
                     val homeViewModel: HomeViewModel = hiltViewModel()
                     val networkBannerViewModel: NetworkBannerViewModel = hiltViewModel()
-                    val accountImageUrl by homeViewModel.accountImageUrl.collectAsState()
                     val allLocalItems by homeViewModel.allLocalItems.collectAsState()
                     val allYtItems by homeViewModel.allYtItems.collectAsState()
                     val networkBannerState by networkBannerViewModel.bannerState.collectAsStateWithLifecycle()
@@ -1088,8 +1085,6 @@ class MainActivity : ComponentActivity() {
                             else -> null
                         }
                     }
-
-                    var showAccountDialog by remember { mutableStateOf(false) }
                     var showCreatePlaylistDialog by rememberSaveable { mutableStateOf(false) }
 
                     CompositionLocalProvider(
@@ -1254,27 +1249,17 @@ class MainActivity : ComponentActivity() {
                                                             contentDescription = stringResource(R.string.new_release_albums)
                                                         )
                                                     }
-                                                    IconButton(onClick = { showAccountDialog = true }) {
+                                                    IconButton(onClick = { navController.navigate("settings") }) {
                                                         BadgedBox(badge = {
                                                             if (!Updater.isSameVersion(latestVersionName, BuildConfig.VERSION_NAME)) {
                                                                 Badge()
                                                             }
                                                         }) {
-                                                            if (accountImageUrl != null) {
-                                                                AsyncImage(
-                                                                    model = accountImageUrl,
-                                                                    contentDescription = stringResource(R.string.account),
-                                                                    modifier = Modifier
-                                                                        .size(24.dp)
-                                                                        .clip(CircleShape)
-                                                                )
-                                                            } else {
-                                                                Icon(
-                                                                    painter = painterResource(R.drawable.account),
-                                                                    contentDescription = stringResource(R.string.account),
-                                                                    modifier = Modifier.size(24.dp)
-                                                                )
-                                                            }
+                                                            Icon(
+                                                                painter = painterResource(R.drawable.settings),
+                                                                contentDescription = stringResource(R.string.settings),
+                                                                modifier = Modifier.size(24.dp)
+                                                            )
                                                         }
                                                     }
                                                 },
@@ -1700,14 +1685,6 @@ class MainActivity : ComponentActivity() {
                             state = LocalBottomSheetPageState.current,
                             modifier = Modifier.align(Alignment.BottomCenter)
                         )
-
-                        if (showAccountDialog) {
-                            AccountSettingsDialog(
-                                navController = navController,
-                                onDismiss = { showAccountDialog = false },
-                                latestVersionName = latestVersionName
-                            )
-                        }
 
                         sharedSong?.let { song ->
                             playerConnection?.let {

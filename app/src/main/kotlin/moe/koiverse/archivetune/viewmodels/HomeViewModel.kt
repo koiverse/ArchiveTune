@@ -78,8 +78,10 @@ class HomeViewModel @Inject constructor(
     val allYtItems = MutableStateFlow<List<YTItem>>(emptyList())
 
     // Account display info
-    val accountName = MutableStateFlow("Guest")
+    val accountName = MutableStateFlow("")
     val accountImageUrl = MutableStateFlow<String?>(null)
+    val isAccountLoading = MutableStateFlow(true)
+    val isAccountLoggedIn = MutableStateFlow(false)
     
     // Track last processed cookie to avoid unnecessary updates
     private var lastProcessedCookie: String? = null
@@ -256,6 +258,53 @@ class HomeViewModel @Inject constructor(
         }
     }
 
+    private fun clearAccountData() {
+        accountName.value = ""
+        accountImageUrl.value = null
+        accountPlaylists.value = null
+    }
+
+    private fun prepareYouTubeAccount(cookie: String): Boolean {
+        return try {
+            YouTube.cookie = cookie
+            true
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to set YouTube cookie")
+            false
+        }
+    }
+
+    private suspend fun refreshAccountIdentity() {
+        accountName.value = ""
+        accountImageUrl.value = null
+
+        try {
+            YouTube.accountInfo().onSuccess { info ->
+                accountName.value = info.name
+                accountImageUrl.value = info.thumbnailUrl
+            }.onFailure { error ->
+                Timber.w(error, "Failed to fetch account info")
+            }
+        } catch (e: Exception) {
+            Timber.e(e, "Exception fetching account info")
+        }
+    }
+
+    private suspend fun refreshAccountPlaylistsInternal() {
+        try {
+            YouTube.library("FEmusic_liked_playlists").completed().onSuccess {
+                val lists = it.items.filterIsInstance<PlaylistItem>().filterNot { playlist ->
+                    playlist.id == "SE"
+                }
+                accountPlaylists.value = lists
+            }.onFailure { error ->
+                Timber.w(error, "Failed to fetch account playlists")
+            }
+        } catch (e: Exception) {
+            Timber.e(e, "Exception fetching account playlists")
+        }
+    }
+
     private val _isLoadingMore = MutableStateFlow(false)
     fun loadMoreYouTubeItems(continuation: String?) {
         if (continuation == null || _isLoadingMore.value) return
@@ -320,32 +369,25 @@ class HomeViewModel @Inject constructor(
             if (isProcessingAccountData) return@launch
             
             isProcessingAccountData = true
+            isAccountLoading.value = true
             try {
                 val cookie = context.dataStore.get(InnerTubeCookieKey, "")
-                if (cookie.isNotEmpty()) {
-                    YouTube.cookie = cookie
-                    
-                    YouTube.accountInfo().onSuccess { info ->
-                        accountName.value = info.name
-                        accountImageUrl.value = info.thumbnailUrl
-                    }.onFailure {
-                        timber.log.Timber.w(it, "Failed to fetch account info")
-                    }
+                val loggedIn = cookie.isNotEmpty() && "SAPISID" in parseCookieString(cookie)
+                isAccountLoggedIn.value = loggedIn
 
+                if (loggedIn && prepareYouTubeAccount(cookie)) {
+                    refreshAccountIdentity()
                     launch {
-                        YouTube.library("FEmusic_liked_playlists").completed().onSuccess {
-                            val lists = it.items.filterIsInstance<PlaylistItem>().filterNot { it.id == "SE" }
-                            accountPlaylists.value = lists
-                        }.onFailure {
-                            timber.log.Timber.w(it, "Failed to fetch playlists")
-                        }
+                        refreshAccountPlaylistsInternal()
                     }
                 } else {
-                    accountName.value = "Guest"
-                    accountImageUrl.value = null
-                    accountPlaylists.value = null
+                    clearAccountData()
                 }
+            } catch (e: Exception) {
+                Timber.e(e, "Error refreshing account data")
+                clearAccountData()
             } finally {
+                isAccountLoading.value = false
                 isProcessingAccountData = false
             }
         }
@@ -380,17 +422,17 @@ class HomeViewModel @Inject constructor(
                     
                     lastProcessedCookie = cookie
                     isProcessingAccountData = true
+                    isAccountLoading.value = true
                     
                     try {
                         val isLoggedIn = cookie?.let { "SAPISID" in parseCookieString(it) } ?: false
                         val loginTransition = isLoggedIn && !wasLoggedIn
                         wasLoggedIn = isLoggedIn
+                        isAccountLoggedIn.value = isLoggedIn
                         
                         if (isLoggedIn && cookie != null && cookie.isNotEmpty()) {
-                            try {
-                                YouTube.cookie = cookie
-                            } catch (e: Exception) {
-                                timber.log.Timber.e(e, "Failed to set YouTube cookie")
+                            if (!prepareYouTubeAccount(cookie)) {
+                                clearAccountData()
                                 return@collect
                             }
 
@@ -408,41 +450,21 @@ class HomeViewModel @Inject constructor(
                             }
                             
                             kotlinx.coroutines.delay(100)
-                            
-                            try {
-                                YouTube.accountInfo().onSuccess { info ->
-                                    accountName.value = info.name
-                                    accountImageUrl.value = info.thumbnailUrl
-                                }.onFailure { e ->
-                                    timber.log.Timber.w(e, "Failed to fetch account info")
-                                }
-                            } catch (e: Exception) {
-                                timber.log.Timber.e(e, "Exception fetching account info")
-                            }
+
+                            refreshAccountIdentity()
 
                             launch {
-                                try {
-                                    YouTube.library("FEmusic_liked_playlists").completed().onSuccess {
-                                        val lists = it.items.filterIsInstance<PlaylistItem>().filterNot { it.id == "SE" }
-                                        accountPlaylists.value = lists
-                                    }.onFailure { e ->
-                                        timber.log.Timber.w(e, "Failed to fetch account playlists")
-                                    }
-                                } catch (e: Exception) {
-                                    timber.log.Timber.e(e, "Exception fetching account playlists")
-                                }
+                                refreshAccountPlaylistsInternal()
                             }
                         } else {
-                            accountName.value = "Guest"
-                            accountImageUrl.value = null
-                            accountPlaylists.value = null
+                            clearAccountData()
                         }
                     } catch (e: Exception) {
-                        timber.log.Timber.e(e, "Error processing cookie change")
-                        accountName.value = "Guest"
-                        accountImageUrl.value = null
-                        accountPlaylists.value = null
+                        Timber.e(e, "Error processing cookie change")
+                        clearAccountData()
+                        isAccountLoggedIn.value = false
                     } finally {
+                        isAccountLoading.value = false
                         isProcessingAccountData = false
                     }
                 }
