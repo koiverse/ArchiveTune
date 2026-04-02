@@ -10,14 +10,38 @@ package moe.koiverse.archivetune.lyrics
 
 import android.text.format.DateUtils
 import com.atilika.kuromoji.ipadic.Tokenizer
+import com.anyascii.AnyAscii
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import moe.koiverse.archivetune.betterlyrics.TTMLParser
+import java.lang.Character.UnicodeScript
+
+data class LyricsRomanizationPreferences(
+    val romanizeJapanese: Boolean,
+    val romanizeKorean: Boolean,
+    val romanizeChinese: Boolean,
+    val romanizeHindi: Boolean,
+    val romanizeOther: Boolean,
+) {
+    val isEnabled: Boolean
+        get() = romanizeJapanese || romanizeKorean || romanizeChinese || romanizeHindi || romanizeOther
+}
 
 @Suppress("RegExpRedundantEscape")
 object LyricsUtils {
     val LINE_REGEX = "((\\[\\d\\d:\\d\\d\\.\\d{2,3}\\] ?)+)(.+)".toRegex()
     val TIME_REGEX = "\\[(\\d\\d):(\\d\\d)\\.(\\d{2,3})\\]".toRegex()
+    private val WHITESPACE_REGEX = "\\s+".toRegex()
+    private val OTHER_ROMANIZATION_EXCLUDED_SCRIPTS = setOf(
+        UnicodeScript.LATIN,
+        UnicodeScript.COMMON,
+        UnicodeScript.INHERITED,
+        UnicodeScript.HAN,
+        UnicodeScript.HIRAGANA,
+        UnicodeScript.KATAKANA,
+        UnicodeScript.HANGUL,
+        UnicodeScript.DEVANAGARI,
+    )
 
     private val KANA_ROMAJI_MAP: Map<String, String> = mapOf(
         // Digraphs (Yōon - combinations like kya, sho)
@@ -422,12 +446,84 @@ object LyricsUtils {
     fun isChinese(text: String): Boolean {
         if (text.isEmpty()) return false
 
-        val cjkCharCount = text.count { char -> char in '\u4E00'..'\u9FFF' }
-        val hiraganaKatakanaCount = text.count { char -> (char in '\u3040'..'\u309F') || (char in '\u30A0'..'\u30FF') }
+        val hanCharCount = text.count { hasScript(it, UnicodeScript.HAN) }
+        if (hanCharCount == 0) return false
 
-        // Heuristic: If CJK characters are present and there are very few or no Hiragana/Katakana,
-        // it's more likely to be Chinese.
-        // The threshold (e.g., 0.1) can be adjusted based on desired sensitivity.
-        return cjkCharCount > 0 && (hiraganaKatakanaCount.toDouble() / text.length.toDouble()) < 0.1
+        val japaneseKanaCount = text.count { hasScript(it, UnicodeScript.HIRAGANA) || hasScript(it, UnicodeScript.KATAKANA) }
+        val hangulCount = text.count { hasScript(it, UnicodeScript.HANGUL) }
+
+        return japaneseKanaCount == 0 && hangulCount == 0
+    }
+
+    fun isHindi(text: String): Boolean = text.any { hasScript(it, UnicodeScript.DEVANAGARI) }
+
+    fun hasOtherRomanizableScript(text: String): Boolean {
+        return text.any { char ->
+            if (!char.isLetter()) return@any false
+            val script = UnicodeScript.of(char.code)
+            script !in OTHER_ROMANIZATION_EXCLUDED_SCRIPTS
+        }
+    }
+
+    fun shouldRomanizeLyricsLine(
+        text: String,
+        preferences: LyricsRomanizationPreferences,
+    ): Boolean {
+        if (!preferences.isEnabled || text.isBlank()) return false
+
+        return when {
+            preferences.romanizeJapanese && looksJapanese(text) -> true
+            preferences.romanizeKorean && isKorean(text) -> true
+            preferences.romanizeHindi && isHindi(text) -> true
+            preferences.romanizeChinese && isChinese(text) -> true
+            preferences.romanizeOther && hasOtherRomanizableScript(text) -> true
+            else -> false
+        }
+    }
+
+    suspend fun romanizeLyricsLine(
+        text: String,
+        preferences: LyricsRomanizationPreferences,
+    ): String? {
+        if (!shouldRomanizeLyricsLine(text, preferences)) return null
+
+        val romanized = when {
+            preferences.romanizeJapanese && looksJapanese(text) -> romanizeJapanese(text)
+            preferences.romanizeKorean && isKorean(text) -> romanizeKorean(text)
+            preferences.romanizeHindi && isHindi(text) -> romanizeWithAnyAscii(text)
+            preferences.romanizeChinese && isChinese(text) -> romanizeWithAnyAscii(text)
+            preferences.romanizeOther && hasOtherRomanizableScript(text) -> romanizeWithAnyAscii(text)
+            else -> null
+        }
+
+        return normalizeRomanizedText(text, romanized)
+    }
+
+    private suspend fun romanizeWithAnyAscii(text: String): String = withContext(Dispatchers.Default) {
+        AnyAscii.transliterate(text)
+    }
+
+    private fun normalizeRomanizedText(original: String, romanized: String?): String? {
+        val normalized = romanized
+            ?.replace(WHITESPACE_REGEX, " ")
+            ?.trim()
+            ?.takeIf { it.isNotEmpty() }
+            ?: return null
+
+        return normalized.takeUnless { it.equals(original.trim(), ignoreCase = true) }
+    }
+
+    private fun looksJapanese(text: String): Boolean {
+        return text.any {
+            hasScript(it, UnicodeScript.HIRAGANA) ||
+                hasScript(it, UnicodeScript.KATAKANA) ||
+                it == '々' ||
+                it == '〆' ||
+                it == 'ヶ'
+        }
+    }
+
+    private fun hasScript(char: Char, script: UnicodeScript): Boolean {
+        return char.isLetter() && UnicodeScript.of(char.code) == script
     }
 }
