@@ -664,6 +664,7 @@ class MainActivity : ComponentActivity() {
                         defaultValue = COLLAPSED_ANCHOR
                     )
                     val defaultOpenTab by rememberEnumPreference(DefaultOpenTabKey, NavigationTab.HOME)
+                    val pauseSearchHistory by rememberPreference(PauseSearchHistoryKey, defaultValue = false)
                     val tabOpenedFromShortcut =
                         remember {
                             when (intent?.action) {
