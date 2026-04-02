@@ -706,9 +706,10 @@ fun Queue(
                                     }
                                 }
 
+                                val trackMetadata = window.mediaItem.metadata ?: return@Row
                                 MediaMetadataListItem(
-                                    mediaMetadata = window.mediaItem.metadata!!,
-                                    isSelected = selection && window.mediaItem.metadata!! in selectedSongs,
+                                    mediaMetadata = trackMetadata,
+                                    isSelected = selection && trackMetadata in selectedSongs,
                                     isActive = isActive,
                                     isPlaying = isPlaying && isActive,
                                     shouldLoadImage = shouldLoadImages,
@@ -717,7 +718,7 @@ fun Queue(
                                             onClick = {
                                                 menuState.show {
                                                     PlayerMenu(
-                                                        mediaMetadata = window.mediaItem.metadata!!,
+                                                        mediaMetadata = trackMetadata,
                                                         navController = navController,
                                                         playerBottomSheetState = playerBottomSheetState,
                                                         isQueueTrigger = true,
@@ -762,11 +763,11 @@ fun Queue(
                                         .combinedClickable(
                                             onClick = {
                                                 if (selection) {
-                                                    if (window.mediaItem.metadata!! in selectedSongs) {
-                                                        selectedSongs.remove(window.mediaItem.metadata!!)
+                                                    if (trackMetadata in selectedSongs) {
+                                                        selectedSongs.remove(trackMetadata)
                                                         selectedItems.remove(currentItem)
                                                     } else {
-                                                        selectedSongs.add(window.mediaItem.metadata!!)
+                                                        selectedSongs.add(trackMetadata)
                                                         selectedItems.add(currentItem)
                                                     }
                                                 } else {
@@ -810,7 +811,7 @@ fun Queue(
                                                     selection = true
                                                 }
                                                 selectedSongs.clear() // Clear all selections
-                                                selectedSongs.add(window.mediaItem.metadata!!) // Select current item
+                                                selectedSongs.add(trackMetadata) // Select current item
                                             },
                                         ),
                                 )
