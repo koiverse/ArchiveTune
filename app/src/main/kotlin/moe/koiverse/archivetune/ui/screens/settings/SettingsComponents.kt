@@ -33,6 +33,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -72,15 +73,12 @@ fun SettingsProfileHeader(
         animationSpec = SettingsAnimations.pressSpring(),
         label = "profileHeaderScale",
     )
-    val title = if (state.isLoggedIn) {
+    val title = if (state.isLoading) {
+        stringResource(R.string.loading)
+    } else if (state.isLoggedIn) {
         state.accountName.ifBlank { stringResource(R.string.account) }
     } else {
         stringResource(R.string.login)
-    }
-    val subtitle = if (state.isLoggedIn) {
-        state.accountEmail
-    } else {
-        stringResource(R.string.not_logged_in)
     }
 
     Card(
@@ -131,7 +129,13 @@ fun SettingsProfileHeader(
                         ),
                     contentAlignment = Alignment.Center,
                 ) {
-                    if (state.isLoggedIn && !state.accountImageUrl.isNullOrBlank()) {
+                    if (state.isLoading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(28.dp),
+                            strokeWidth = 2.5.dp,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                    } else if (state.isLoggedIn && !state.accountImageUrl.isNullOrBlank()) {
                         AsyncImage(
                             model = state.accountImageUrl,
                             contentDescription = null,
@@ -166,13 +170,6 @@ fun SettingsProfileHeader(
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    Text(
-                        text = subtitle,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
