@@ -248,7 +248,6 @@ fun PoTokenScreen(
                         containerColor = MaterialTheme.colorScheme.primary,
                         contentColor = MaterialTheme.colorScheme.onPrimary,
                     ),
-                    shape = MaterialTheme.shapes.medium,
                     shapes = ButtonDefaults.shapes(),
                 ) {
                     Text(stringResource(R.string.regenerate_token))

@@ -277,7 +277,6 @@ fun SettingsPermissionBanner(
 
             Button(
                 onClick = onRequestPermission,
-                shape = RoundedCornerShape(12.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.primary,
                 ),

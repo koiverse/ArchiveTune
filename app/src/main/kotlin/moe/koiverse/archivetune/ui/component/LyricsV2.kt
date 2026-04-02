@@ -707,7 +707,6 @@ fun LyricsV2(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .padding(bottom = 16.dp),
-                shape = RoundedCornerShape(24.dp),
                 shapes = ButtonDefaults.shapes(),
             ) {
                 Text(
@@ -1072,7 +1071,6 @@ fun LyricsV2(
                                 }
                             }
                         },
-                        shape = RoundedCornerShape(16.dp),
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(52.dp),

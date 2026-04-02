@@ -637,7 +637,6 @@ fun ArtistScreen(
                                     else
                                         MaterialTheme.colorScheme.onSecondaryContainer
                                 ),
-                                shape = RoundedCornerShape(24.dp),
                                 modifier = Modifier
                                     .weight(1f)
                                     .height(48.dp),
@@ -677,7 +676,6 @@ fun ArtistScreen(
                                     }
                                 },
                                 enabled = if (showLocal) librarySongs.isNotEmpty() else artistPage?.artist?.shuffleEndpoint != null,
-                                shape = RoundedCornerShape(24.dp),
                                 modifier = Modifier
                                     .weight(1f)
                                     .height(48.dp),
@@ -703,7 +701,6 @@ fun ArtistScreen(
                                     onClick = {
                                         playerConnection.playQueue(YouTubeQueue(radioEndpoint))
                                     },
-                                    shape = RoundedCornerShape(24.dp),
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .padding(horizontal = 24.dp, vertical = 8.dp)

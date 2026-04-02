@@ -305,7 +305,6 @@ private fun CrashReportScaffold(
                 Button(
                     onClick = onRestart,
                     modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(14.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                     shapes = ButtonDefaults.shapes(),
                 ) {
@@ -314,7 +313,6 @@ private fun CrashReportScaffold(
                 Button(
                     onClick = onClose,
                     modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(14.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
                     shapes = ButtonDefaults.shapes(),
                 ) {

@@ -478,7 +478,6 @@ class MainActivity : ComponentActivity() {
 
                         androidx.compose.material3.OutlinedButton(
                             onClick = {},
-                            shape = CircleShape,
                             contentPadding = androidx.compose.foundation.layout.PaddingValues(
                                 horizontal = 5.dp,
                                 vertical = 5.dp

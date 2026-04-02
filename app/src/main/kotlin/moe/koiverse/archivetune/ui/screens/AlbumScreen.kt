@@ -549,7 +549,6 @@ fun AlbumScreen(
                                         LocalAlbumRadio(albumWithSongs),
                                     )
                                 },
-                                shape = RoundedCornerShape(24.dp),
                                 modifier = Modifier
                                     .weight(1f)
                                     .height(48.dp),
@@ -569,7 +568,6 @@ fun AlbumScreen(
                                         LocalAlbumRadio(albumWithSongs.copy(songs = albumWithSongs.songs.shuffled())),
                                     )
                                 },
-                                shape = RoundedCornerShape(24.dp),
                                 modifier = Modifier
                                     .weight(1f)
                                     .height(48.dp),

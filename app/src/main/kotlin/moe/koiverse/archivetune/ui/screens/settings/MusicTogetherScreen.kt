@@ -308,7 +308,6 @@ fun MusicTogetherScreen(
                         confirmKickParticipantId = null
                         playerConnection?.service?.kickTogetherParticipant(pid)
                     },
-                    shape = RoundedCornerShape(16.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
                     shapes = ButtonDefaults.shapes(),
                 ) {
@@ -318,7 +317,6 @@ fun MusicTogetherScreen(
             dismissButton = {
                 TextButton(
                     onClick = { confirmKickParticipantId = null },
-                    shape = RoundedCornerShape(16.dp),
                     shapes = ButtonDefaults.shapes(),
                 ) {
                     Text(text = stringResource(R.string.dismiss))
@@ -347,7 +345,6 @@ fun MusicTogetherScreen(
                         confirmBanParticipantId = null
                         playerConnection?.service?.banTogetherParticipant(pid)
                     },
-                    shape = RoundedCornerShape(16.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
                     shapes = ButtonDefaults.shapes(),
                 ) {
@@ -357,7 +354,6 @@ fun MusicTogetherScreen(
             dismissButton = {
                 TextButton(
                     onClick = { confirmBanParticipantId = null },
-                    shape = RoundedCornerShape(16.dp),
                     shapes = ButtonDefaults.shapes(),
                 ) {
                     Text(text = stringResource(R.string.dismiss))
@@ -776,7 +772,6 @@ private fun WelcomeDialog(
         confirmButton = {
             Button(
                 onClick = { onGotIt(dontShowAgain) },
-                shape = RoundedCornerShape(16.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.primary,
                 ),
@@ -1018,7 +1013,6 @@ private fun HostSectionCard(
                     .padding(horizontal = 18.dp)
                     .padding(bottom = 10.dp)
                     .scale(scale),
-                shape = RoundedCornerShape(18.dp),
                 interactionSource = interactionSource,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.primary,
@@ -1175,7 +1169,6 @@ private fun JoinSectionCard(
                     .padding(horizontal = 18.dp)
                     .padding(bottom = 10.dp)
                     .scale(scale),
-                shape = RoundedCornerShape(18.dp),
                 interactionSource = interactionSource,
                 shapes = ButtonDefaults.shapes(),
             ) {
@@ -1501,7 +1494,6 @@ private fun StatusCard(
                     if (isActive) {
                         FilledTonalButton(
                             onClick = onLeave,
-                            shape = RoundedCornerShape(14.dp),
                             shapes = ButtonDefaults.shapes(),
                         ) {
                             Icon(
@@ -1605,7 +1597,6 @@ private fun SessionInfoCard(
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 FilledTonalButton(
                     onClick = onCopy,
-                    shape = RoundedCornerShape(14.dp),
                     shapes = ButtonDefaults.shapes(),
                 ) {
                     Icon(
@@ -1618,7 +1609,6 @@ private fun SessionInfoCard(
                 }
                 TextButton(
                     onClick = onShare,
-                    shape = RoundedCornerShape(14.dp),
                     shapes = ButtonDefaults.shapes(),
                 ) {
                     Icon(

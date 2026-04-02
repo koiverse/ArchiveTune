@@ -683,7 +683,6 @@ private fun ProfileIdentityCard(
             ) {
                 ElevatedButton(
                     onClick = onPrimaryAction,
-                    shape = RoundedCornerShape(16.dp),
                     colors = ButtonDefaults.elevatedButtonColors(
                         containerColor = MaterialTheme.colorScheme.primaryContainer,
                         contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
@@ -710,7 +709,6 @@ private fun ProfileIdentityCard(
 
                 OutlinedButton(
                     onClick = onSecondaryAction,
-                    shape = RoundedCornerShape(16.dp),
                     shapes = ButtonDefaults.shapes(),
                 ) {
                     Text(
@@ -789,7 +787,6 @@ private fun UpdateBannerStrip(
 
             FilledTonalButton(
                 onClick = onClick,
-                shape = RoundedCornerShape(14.dp),
                 colors = ButtonDefaults.filledTonalButtonColors(
                     containerColor = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.14f),
                     contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
@@ -1176,7 +1173,6 @@ private fun TokenRevealCard(
 
                 FilledTonalButton(
                     onClick = onEdit,
-                    shape = RoundedCornerShape(14.dp),
                     contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                     shapes = ButtonDefaults.shapes(),
                 ) {
@@ -1367,7 +1363,6 @@ private fun PlaylistSelectionDialog(onDismiss: () -> Unit) {
                     }
                     onDismiss()
                 },
-                shape = RoundedCornerShape(14.dp),
                 shapes = ButtonDefaults.shapes(),
             ) {
                 Text(

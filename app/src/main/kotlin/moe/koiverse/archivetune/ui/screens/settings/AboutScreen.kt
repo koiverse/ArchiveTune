@@ -179,7 +179,6 @@ fun OutlinedIconChip(
 ) {
     OutlinedButton(
         onClick = onClick,
-        shape = CircleShape,
         contentPadding = PaddingValues(
             horizontal = 12.dp,
             vertical = 6.dp
@@ -204,7 +203,6 @@ fun OutlinedIconChipMembers(
 ) {
     OutlinedButton(
         onClick = onClick,
-        shape = CircleShape,
         contentPadding = PaddingValues(6.dp),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
         colors = ButtonDefaults.outlinedButtonColors(

@@ -2519,7 +2519,6 @@ fun Lyrics(
                                 }
                             }
                         },
-                        shape = RoundedCornerShape(16.dp),
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(52.dp),

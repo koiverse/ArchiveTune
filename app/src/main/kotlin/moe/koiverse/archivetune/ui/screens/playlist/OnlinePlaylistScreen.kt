@@ -744,7 +744,6 @@ fun OnlinePlaylistScreen(
                                                     YouTubeQueue(playEndpoint)
                                                 )
                                             },
-                                            shape = RoundedCornerShape(24.dp),
                                             modifier = Modifier.weight(1f).height(48.dp),
                                             shapes = ButtonDefaults.shapes(),
                                         ) {
@@ -765,7 +764,6 @@ fun OnlinePlaylistScreen(
                                                     YouTubeQueue(shuffleEndpoint)
                                                 )
                                             },
-                                            shape = RoundedCornerShape(24.dp),
                                             modifier = Modifier.weight(1f).height(48.dp),
                                             shapes = ButtonDefaults.shapes(),
                                         ) {
@@ -786,7 +784,6 @@ fun OnlinePlaylistScreen(
                                                     YouTubeQueue(radioEndpoint)
                                                 )
                                             },
-                                            shape = RoundedCornerShape(24.dp),
                                             modifier = Modifier.weight(1f).height(48.dp),
                                             shapes = ButtonDefaults.shapes(),
                                         ) {
@@ -844,7 +841,6 @@ fun OnlinePlaylistScreen(
                                             onClick = {
                                                 playerConnection.playQueue(YouTubeQueue(mixEndpoint))
                                             },
-                                            shape = RoundedCornerShape(24.dp),
                                             modifier = Modifier.weight(1f).height(48.dp),
                                             shapes = ButtonDefaults.shapes(),
                                         ) {

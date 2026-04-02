@@ -248,14 +248,15 @@ fun ActionPromptDialog(
 
                     if (onCancel != null) {
                         TextButton(
-                            onClick = { onCancel() }
+                            onClick = { onCancel() },
+                            shapes = ButtonDefaults.shapes(),
                         ) {
                             Text(stringResource(android.R.string.cancel))
                         }
                     }
 
                     TextButton(
-                        onClick = { onCancel() },
+                        onClick = { onConfirm() },
                         shapes = ButtonDefaults.shapes(),
                     ) {
                         Text(stringResource(android.R.string.ok))

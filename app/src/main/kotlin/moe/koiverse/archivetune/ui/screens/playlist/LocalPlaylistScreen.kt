@@ -868,7 +868,6 @@ fun LocalPlaylistScreen(
                                                 ),
                                             )
                                         },
-                                        shape = RoundedCornerShape(24.dp),
                                         modifier = Modifier
                                             .weight(1f)
                                             .height(48.dp),
@@ -891,7 +890,6 @@ fun LocalPlaylistScreen(
                                                 ),
                                             )
                                         },
-                                        shape = RoundedCornerShape(24.dp),
                                         modifier = Modifier
                                             .weight(1f)
                                             .height(48.dp),
@@ -1043,7 +1041,6 @@ fun LocalPlaylistScreen(
                                                 ),
                                             )
                                         },
-                                        shape = RoundedCornerShape(24.dp),
                                         modifier = Modifier
                                             .weight(1f)
                                             .height(48.dp),
