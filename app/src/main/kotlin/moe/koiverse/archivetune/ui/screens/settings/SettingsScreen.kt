@@ -51,8 +51,6 @@ import androidx.navigation.NavController
 import moe.koiverse.archivetune.BuildConfig
 import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.constants.AccountEmailKey
-import moe.koiverse.archivetune.constants.InnerTubeCookieKey
-import moe.koiverse.archivetune.innertube.utils.parseCookieString
 import moe.koiverse.archivetune.ui.component.IconButton
 import moe.koiverse.archivetune.ui.component.TopSearch
 import moe.koiverse.archivetune.ui.utils.backToMain
@@ -72,13 +70,11 @@ fun SettingsScreen(
     val isAndroid12OrLater = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
     val listState = rememberLazyListState()
     val viewModel: HomeViewModel = hiltViewModel()
+    val isAccountLoading by viewModel.isAccountLoading.collectAsState()
+    val isAccountLoggedIn by viewModel.isAccountLoggedIn.collectAsState()
     val accountName by viewModel.accountName.collectAsState()
     val accountImageUrl by viewModel.accountImageUrl.collectAsState()
     val (accountEmail, _) = rememberPreference(AccountEmailKey, "")
-    val (innerTubeCookie, _) = rememberPreference(InnerTubeCookieKey, "")
-    val isLoggedIn = remember(innerTubeCookie) {
-        "SAPISID" in parseCookieString(innerTubeCookie)
-    }
 
     var isSearching by remember { mutableStateOf(false) }
     var query by remember { mutableStateOf(TextFieldValue()) }
@@ -169,10 +165,11 @@ fun SettingsScreen(
 
     val contentState = SettingsContentState(
         profileHeader = SettingsProfileState(
-            isLoggedIn = isLoggedIn,
+            isLoading = isAccountLoading,
+            isLoggedIn = isAccountLoggedIn,
             accountName = accountName,
             accountEmail = accountEmail,
-            accountImageUrl = if (isLoggedIn) accountImageUrl else null,
+            accountImageUrl = if (isAccountLoggedIn) accountImageUrl else null,
         ),
         quickActions = if (queryText.isBlank()) quickActions else filteredQuickActions,
         integrations = if (queryText.isBlank()) integrationActions else filteredIntegrations,
