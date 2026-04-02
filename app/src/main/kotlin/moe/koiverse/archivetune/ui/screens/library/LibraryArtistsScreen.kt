@@ -100,7 +100,9 @@ fun LibraryArtistsScreen(
     val (sortDescending, onSortDescendingChange) = rememberPreference(ArtistSortDescendingKey, true)
     val gridItemSize by rememberEnumPreference(GridItemsSizeKey, GridItemSize.BIG)
     val (pureBlack) = rememberPreference(PureBlackKey, false)
-    val scrollBehavior = FloatingToolbarDefaults.exitAlwaysScrollBehavior()
+    val scrollBehavior = FloatingToolbarDefaults.exitAlwaysScrollBehavior(
+        exitDirection = FloatingToolbarExitDirection.Bottom,
+    )
 
     val (ytmSync) = rememberPreference(YtmSyncKey, true)
 
@@ -175,7 +177,7 @@ fun LibraryArtistsScreen(
                 LazyColumn(
                     state = lazyListState,
                     contentPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues(),
-                    modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+                    modifier = Modifier.nestedScroll(scrollBehavior),
                 ) {
                     item(
                         key = "filter",
@@ -219,7 +221,7 @@ fun LibraryArtistsScreen(
                         minSize = GridThumbnailHeight + if (gridItemSize == GridItemSize.BIG) 24.dp else (-24).dp,
                     ),
                     contentPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues(),
-                    modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+                    modifier = Modifier.nestedScroll(scrollBehavior),
                 ) {
                     item(
                         key = "filter",
