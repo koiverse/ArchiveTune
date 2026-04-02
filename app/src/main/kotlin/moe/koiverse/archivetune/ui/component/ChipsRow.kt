@@ -62,6 +62,7 @@ fun <E> ChipsRow(
     modifier: Modifier = Modifier,
     containerColor: Color = MaterialTheme.colorScheme.surfaceContainer,
     icons: Map<E, Int> = emptyMap(),
+    shape: RoundedCornerShape = RoundedCornerShape(16.dp),
 ) {
     Row(
         modifier =
@@ -95,7 +96,7 @@ fun <E> ChipsRow(
                         )
                     }
                 },
-                shape = RoundedCornerShape(16.dp),
+                shape = shape,
                 border = null,
                 colors = FilterChipDefaults.filterChipColors(
                     containerColor = containerColor,

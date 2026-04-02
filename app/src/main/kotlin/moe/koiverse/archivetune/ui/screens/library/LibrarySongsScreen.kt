@@ -23,15 +23,17 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.FloatingToolbarDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.material3.pulltorefresh.pullToRefresh
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -42,6 +44,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
@@ -66,11 +69,11 @@ import moe.koiverse.archivetune.constants.YtmSyncKey
 import moe.koiverse.archivetune.extensions.toMediaItem
 import moe.koiverse.archivetune.extensions.togglePlayPause
 import moe.koiverse.archivetune.playback.queues.ListQueue
+import moe.koiverse.archivetune.constants.PureBlackKey
 import moe.koiverse.archivetune.ui.component.ChipsRow
-import moe.koiverse.archivetune.ui.component.HideOnScrollFAB
+import moe.koiverse.archivetune.ui.component.LibraryFloatingToolbar
 import moe.koiverse.archivetune.ui.component.LocalMenuState
 import moe.koiverse.archivetune.ui.component.SongListItem
-import moe.koiverse.archivetune.ui.component.SortHeader
 import moe.koiverse.archivetune.ui.menu.SelectionSongMenu
 import moe.koiverse.archivetune.ui.menu.SongMenu
 import moe.koiverse.archivetune.ui.utils.ItemWrapper
@@ -78,7 +81,7 @@ import moe.koiverse.archivetune.utils.rememberEnumPreference
 import moe.koiverse.archivetune.utils.rememberPreference
 import moe.koiverse.archivetune.viewmodels.LibrarySongsViewModel
 
-@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun LibrarySongsScreen(
     navController: NavController,
@@ -97,6 +100,8 @@ fun LibrarySongsScreen(
         SongSortType.CREATE_DATE
     )
     val (sortDescending, onSortDescendingChange) = rememberPreference(SongSortDescendingKey, true)
+    val (pureBlack) = rememberPreference(PureBlackKey, false)
+    val scrollBehavior = FloatingToolbarDefaults.exitAlwaysScrollBehavior()
 
     val (ytmSync) = rememberPreference(YtmSyncKey, true)
     val hideExplicit by rememberPreference(key = HideExplicitKey, defaultValue = false)
@@ -147,6 +152,7 @@ fun LibrarySongsScreen(
         LazyColumn(
             state = lazyListState,
             contentPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues(),
+            modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         ) {
             item(
                 key = "filter",
@@ -187,10 +193,10 @@ fun LibrarySongsScreen(
                 key = "header",
                 contentType = CONTENT_TYPE_HEADER,
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    if (selection) {
+                if (selection) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
                         val count = wrappedSongs.count { it.isSelected }
                         IconButton(
                             onClick = { selection = false },
@@ -234,38 +240,6 @@ fun LibrarySongsScreen(
                             Icon(
                                 painter = painterResource(R.drawable.more_vert),
                                 contentDescription = null,
-                            )
-                        }
-                    } else {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(horizontal = 16.dp),
-                        ) {
-                            SortHeader(
-                                sortType = sortType,
-                                sortDescending = sortDescending,
-                                onSortTypeChange = onSortTypeChange,
-                                onSortDescendingChange = onSortDescendingChange,
-                                sortTypeText = { sortType ->
-                                    when (sortType) {
-                                        SongSortType.CREATE_DATE -> R.string.sort_by_create_date
-                                        SongSortType.NAME -> R.string.sort_by_name
-                                        SongSortType.ARTIST -> R.string.sort_by_artist
-                                        SongSortType.PLAY_TIME -> R.string.sort_by_play_time
-                                    }
-                                },
-                            )
-
-                            Spacer(Modifier.weight(1f))
-
-                            Text(
-                                text = pluralStringResource(
-                                    R.plurals.n_song,
-                                    songs.size,
-                                    songs.size
-                                ),
-                                style = MaterialTheme.typography.titleSmall,
-                                color = MaterialTheme.colorScheme.secondary,
                             )
                         }
                     }
@@ -344,11 +318,24 @@ fun LibrarySongsScreen(
             }
         }
 
-        HideOnScrollFAB(
-            visible = songs.isNotEmpty() == true,
-            lazyListState = lazyListState,
-            icon = R.drawable.shuffle,
-            onClick = {
+        LibraryFloatingToolbar(
+            sortType = sortType,
+            sortDescending = sortDescending,
+            onSortTypeChange = onSortTypeChange,
+            onSortDescendingChange = onSortDescendingChange,
+            sortTypeText = { type ->
+                when (type) {
+                    SongSortType.CREATE_DATE -> R.string.sort_by_create_date
+                    SongSortType.NAME -> R.string.sort_by_name
+                    SongSortType.ARTIST -> R.string.sort_by_artist
+                    SongSortType.PLAY_TIME -> R.string.sort_by_play_time
+                }
+            },
+            scrollBehavior = scrollBehavior,
+            pureBlack = pureBlack,
+            itemCountText = pluralStringResource(R.plurals.n_song, songs.size, songs.size),
+            fabIcon = R.drawable.shuffle,
+            onFabClick = {
                 playerConnection.playQueue(
                     ListQueue(
                         title = context.getString(R.string.queue_all_songs),

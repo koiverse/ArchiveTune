@@ -26,15 +26,16 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.FloatingToolbarDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.material3.pulltorefresh.pullToRefresh
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -43,6 +44,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
@@ -65,20 +67,21 @@ import moe.koiverse.archivetune.constants.GridItemSize
 import moe.koiverse.archivetune.constants.GridItemsSizeKey
 import moe.koiverse.archivetune.constants.GridThumbnailHeight
 import moe.koiverse.archivetune.constants.LibraryViewType
+import moe.koiverse.archivetune.constants.PureBlackKey
 import moe.koiverse.archivetune.constants.YtmSyncKey
 import moe.koiverse.archivetune.ui.component.ChipsRow
 import moe.koiverse.archivetune.ui.component.EmptyPlaceholder
 import moe.koiverse.archivetune.ui.component.LibraryArtistGridItem
 import moe.koiverse.archivetune.ui.component.LibraryArtistListItem
+import moe.koiverse.archivetune.ui.component.LibraryFloatingToolbar
 import moe.koiverse.archivetune.ui.component.LocalMenuState
-import moe.koiverse.archivetune.ui.component.SortHeader
 import moe.koiverse.archivetune.utils.rememberEnumPreference
 import moe.koiverse.archivetune.utils.rememberPreference
 import moe.koiverse.archivetune.viewmodels.LibraryArtistsViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun LibraryArtistsScreen(
     navController: NavController,
@@ -96,6 +99,8 @@ fun LibraryArtistsScreen(
     )
     val (sortDescending, onSortDescendingChange) = rememberPreference(ArtistSortDescendingKey, true)
     val gridItemSize by rememberEnumPreference(GridItemsSizeKey, GridItemSize.BIG)
+    val (pureBlack) = rememberPreference(PureBlackKey, false)
+    val scrollBehavior = FloatingToolbarDefaults.exitAlwaysScrollBehavior()
 
     val (ytmSync) = rememberPreference(YtmSyncKey, true)
 
@@ -156,60 +161,6 @@ fun LibraryArtistsScreen(
         }
     }
 
-    val headerContent = @Composable {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(start = 16.dp),
-        ) {
-            SortHeader(
-                sortType = sortType,
-                sortDescending = sortDescending,
-                onSortTypeChange = onSortTypeChange,
-                onSortDescendingChange = onSortDescendingChange,
-                sortTypeText = { sortType ->
-                    when (sortType) {
-                        ArtistSortType.CREATE_DATE -> R.string.sort_by_create_date
-                        ArtistSortType.NAME -> R.string.sort_by_name
-                        ArtistSortType.SONG_COUNT -> R.string.sort_by_song_count
-                        ArtistSortType.PLAY_TIME -> R.string.sort_by_play_time
-                    }
-                },
-            )
-
-            Spacer(Modifier.weight(1f))
-
-            artists?.let { artists ->
-                Text(
-                    text = pluralStringResource(
-                        R.plurals.n_artist,
-                        artists.size,
-                        artists.size
-                    ),
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.secondary,
-                )
-            }
-
-            IconButton(
-                onClick = {
-                    viewType = viewType.toggle()
-                },
-                modifier = Modifier.padding(start = 6.dp, end = 6.dp),
-            ) {
-                Icon(
-                    painter =
-                    painterResource(
-                        when (viewType) {
-                            LibraryViewType.LIST -> R.drawable.list
-                            LibraryViewType.GRID -> R.drawable.grid_view
-                        },
-                    ),
-                    contentDescription = null,
-                )
-            }
-        }
-    }
-
     Box(
         modifier =
             Modifier.fillMaxSize()
@@ -224,19 +175,13 @@ fun LibraryArtistsScreen(
                 LazyColumn(
                     state = lazyListState,
                     contentPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues(),
+                    modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
                 ) {
                     item(
                         key = "filter",
                         contentType = CONTENT_TYPE_HEADER,
                     ) {
                         filterContent()
-                    }
-
-                    item(
-                        key = "header",
-                        contentType = CONTENT_TYPE_HEADER,
-                    ) {
-                        headerContent()
                     }
 
                     artists.let { artists ->
@@ -274,6 +219,7 @@ fun LibraryArtistsScreen(
                         minSize = GridThumbnailHeight + if (gridItemSize == GridItemSize.BIG) 24.dp else (-24).dp,
                     ),
                     contentPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues(),
+                    modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
                 ) {
                     item(
                         key = "filter",
@@ -281,14 +227,6 @@ fun LibraryArtistsScreen(
                         contentType = CONTENT_TYPE_HEADER,
                     ) {
                         filterContent()
-                    }
-
-                    item(
-                        key = "header",
-                        span = { GridItemSpan(maxLineSpan) },
-                        contentType = CONTENT_TYPE_HEADER,
-                    ) {
-                        headerContent()
                     }
 
                     artists.let { artists ->
@@ -318,6 +256,30 @@ fun LibraryArtistsScreen(
                     }
                 }
         }
+
+        LibraryFloatingToolbar(
+            sortType = sortType,
+            sortDescending = sortDescending,
+            onSortTypeChange = onSortTypeChange,
+            onSortDescendingChange = onSortDescendingChange,
+            sortTypeText = { type ->
+                when (type) {
+                    ArtistSortType.CREATE_DATE -> R.string.sort_by_create_date
+                    ArtistSortType.NAME -> R.string.sort_by_name
+                    ArtistSortType.SONG_COUNT -> R.string.sort_by_song_count
+                    ArtistSortType.PLAY_TIME -> R.string.sort_by_play_time
+                }
+            },
+            viewType = viewType,
+            onViewTypeToggle = { viewType = viewType.toggle() },
+            scrollBehavior = scrollBehavior,
+            pureBlack = pureBlack,
+            itemCountText = pluralStringResource(
+                R.plurals.n_artist,
+                artists.size,
+                artists.size,
+            ),
+        )
 
         PullToRefreshDefaults.Indicator(
             isRefreshing = isRefreshing,
