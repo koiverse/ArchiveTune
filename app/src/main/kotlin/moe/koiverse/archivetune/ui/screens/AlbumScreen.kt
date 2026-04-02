@@ -544,7 +544,6 @@ fun AlbumScreen(
                             // Play Button
                             Button(
                                 onClick = {
-                                    playerConnection.service.getAutomix(playlistId)
                                     playerConnection.playQueue(
                                         LocalAlbumRadio(albumWithSongs),
                                     )
@@ -564,7 +563,6 @@ fun AlbumScreen(
                             // Shuffle Button
                             Button(
                                 onClick = {
-                                    playerConnection.service.getAutomix(playlistId)
                                     playerConnection.playQueue(
                                         LocalAlbumRadio(albumWithSongs.copy(songs = albumWithSongs.songs.shuffled())),
                                     )
@@ -741,7 +739,6 @@ fun AlbumScreen(
                                         if (songWrapper.item.id == mediaMetadata?.id) {
                                             playerConnection.player.togglePlayPause()
                                         } else {
-                                            playerConnection.service.getAutomix(playlistId)
                                             playerConnection.playQueue(
                                                 LocalAlbumRadio(albumWithSongs, startIndex = index),
                                             )

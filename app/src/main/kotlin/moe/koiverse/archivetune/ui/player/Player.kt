@@ -277,7 +277,6 @@ fun BottomSheetPlayer(
     val currentWindowIndex by playerConnection.currentWindowIndex.collectAsState()
     val playerVolume = playerConnection.service.playerVolume.collectAsState()
 
-    val automix by playerConnection.service.automixItems.collectAsState()
     val repeatMode by playerConnection.repeatMode.collectAsState()
 
     val canSkipPrevious by playerConnection.canSkipPrevious.collectAsState()
@@ -312,9 +311,7 @@ fun BottomSheetPlayer(
     // Cache for gradient colors to prevent re-extraction for same songs
     val gradientColorsCache = remember { mutableMapOf<String, List<Color>>() }
 
-    if (!canSkipNext && automix.isNotEmpty()) {
-        playerConnection.service.addToQueueAutomix(automix[0], 0)
-    }
+
 
     // Default gradient colors for fallback
     val defaultGradientColors = listOf(MaterialTheme.colorScheme.surface, MaterialTheme.colorScheme.surfaceVariant)
