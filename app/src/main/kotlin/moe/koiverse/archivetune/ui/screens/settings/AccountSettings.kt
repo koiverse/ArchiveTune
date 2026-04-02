@@ -26,11 +26,14 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -45,17 +48,18 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -89,6 +93,7 @@ import coil3.compose.AsyncImage
 import kotlinx.coroutines.launch
 import moe.koiverse.archivetune.App.Companion.forgetAccount
 import moe.koiverse.archivetune.BuildConfig
+import moe.koiverse.archivetune.LocalPlayerAwareWindowInsets
 import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.constants.AccountChannelHandleKey
 import moe.koiverse.archivetune.constants.AccountEmailKey
@@ -102,9 +107,11 @@ import moe.koiverse.archivetune.constants.YtmSyncKey
 import moe.koiverse.archivetune.innertube.YouTube
 import moe.koiverse.archivetune.innertube.utils.completed
 import moe.koiverse.archivetune.innertube.utils.parseCookieString
+import moe.koiverse.archivetune.ui.component.IconButton
 import moe.koiverse.archivetune.ui.component.InfoLabel
 import moe.koiverse.archivetune.ui.component.TextFieldDialog
 import moe.koiverse.archivetune.ui.screens.buildLoginRoute
+import moe.koiverse.archivetune.ui.utils.backToMain
 import moe.koiverse.archivetune.utils.PreferenceStore
 import moe.koiverse.archivetune.utils.Updater
 import moe.koiverse.archivetune.utils.dataStore
@@ -112,10 +119,11 @@ import moe.koiverse.archivetune.utils.putLegacyPoToken
 import moe.koiverse.archivetune.utils.rememberPreference
 import moe.koiverse.archivetune.viewmodels.HomeViewModel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AccountSettings(
     navController: NavController,
-    onClose: () -> Unit,
+    scrollBehavior: TopAppBarScrollBehavior,
     latestVersionName: String
 ) {
     val context = LocalContext.current
@@ -152,23 +160,29 @@ fun AccountSettings(
     Column(
         modifier = Modifier
             .background(MaterialTheme.colorScheme.surface)
+            .windowInsetsPadding(
+                LocalPlayerAwareWindowInsets.current.only(
+                    WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom
+                )
+            )
             .verticalScroll(rememberScrollState())
     ) {
-        // Header Section
-        AccountSettingsHeader(onClose = onClose)
+        Spacer(
+            Modifier.windowInsetsPadding(
+                LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Top)
+            )
+        )
 
         Column(
-            modifier = Modifier.padding(horizontal = 16.dp),
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // Account Card
             AccountCard(
                 isLoggedIn = isLoggedIn,
                 accountName = accountName,
                 accountEmail = accountEmail,
                 accountImageUrl = accountImageUrl,
                 onAccountClick = {
-                    onClose()
                     if (isLoggedIn) {
                         navController.navigate("account")
                     } else {
@@ -201,7 +215,6 @@ fun AccountSettings(
                 )
             }
 
-            // Account Options Section
             AnimatedVisibility(
                 visible = isLoggedIn,
                 enter = fadeIn() + expandVertically(),
@@ -233,7 +246,6 @@ fun AccountSettings(
                 }
             }
 
-            // Sync & Integration Section
             SettingsSection(title = stringResource(R.string.integration)) {
                 SettingsClickableItem(
                     icon = painterResource(R.drawable.playlist_add),
@@ -251,7 +263,6 @@ fun AccountSettings(
                     title = stringResource(R.string.integration),
                     subtitle = "Discord, Last.fm, ListenBrainz",
                     onClick = {
-                        onClose()
                         navController.navigate("settings/integration")
                     }
                 )
@@ -265,13 +276,11 @@ fun AccountSettings(
                     icon = painterResource(R.drawable.fire),
                     title = stringResource(R.string.music_together),
                     onClick = {
-                        onClose()
                         navController.navigate("settings/music_together")
                     }
                 )
             }
 
-            // Advanced Section
             SettingsSection(title = stringResource(R.string.misc)) {
                 SettingsClickableItem(
                     icon = painterResource(R.drawable.token),
@@ -288,15 +297,13 @@ fun AccountSettings(
                 )
             }
 
-            // Settings & Updates Section
             SettingsSection {
                 SettingsClickableItem(
                     icon = painterResource(R.drawable.settings),
                     title = stringResource(R.string.settings),
                     showBadge = hasUpdate,
                     onClick = {
-                        onClose()
-                        navController.navigate("settings")
+                        navController.navigateUp()
                     }
                 )
 
@@ -346,77 +353,39 @@ private fun AccountSettingsHeader(onClose: () -> Unit) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+
+    TopAppBar(
+        title = {
+            Text(
+                text = stringResource(R.string.account),
+                fontWeight = FontWeight.Bold,
+            )
+        },
+        navigationIcon = {
+            IconButton(
+                onClick = navController::navigateUp,
+                onLongClick = navController::backToMain,
             ) {
+                Icon(
+                    painter = painterResource(R.drawable.arrow_back),
+                    contentDescription = null,
+                )
+            }
+        },
+        scrollBehavior = scrollBehavior,
+    )
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
                 // App Icon
                 Icon(
                     painter = painterResource(R.drawable.about_appbar),
                     contentDescription = null,
                     modifier = Modifier
                         .size(44.dp)
-                )
-
-                Text(
-                    text = stringResource(id = R.string.app_name),
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-            }
-
-            IconButton(
-                onClick = onClose,
-                colors = IconButtonDefaults.iconButtonColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                )
-            ) {
-                Icon(
-                    painter = painterResource(R.drawable.close),
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun AccountCard(
-    isLoggedIn: Boolean,
-    accountName: String,
-    accountEmail: String,
-    accountImageUrl: String?,
-    onAccountClick: () -> Unit,
-    onLogout: () -> Unit
-) {
-    val cardColor by animateColorAsState(
-        targetValue = if (isLoggedIn)
-            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
-        else
-            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-        animationSpec = tween(300),
-        label = "cardColor"
-    )
-
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(24.dp))
-            .clickable(onClick = onAccountClick),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = cardColor),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(20.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             // Avatar

@@ -46,6 +46,13 @@ enum class SettingsLayoutMode {
     EXPANDED,
 }
 
+data class SettingsProfileState(
+    val isLoggedIn: Boolean,
+    val accountName: String,
+    val accountEmail: String,
+    val accountImageUrl: String?,
+)
+
 @Composable
 fun resolveLayoutMode(): SettingsLayoutMode {
     val windowInfo = currentWindowAdaptiveInfo().windowSizeClass
@@ -60,6 +67,7 @@ fun resolveLayoutMode(): SettingsLayoutMode {
 }
 
 data class SettingsContentState(
+    val profileHeader: SettingsProfileState,
     val quickActions: List<SettingsQuickAction>,
     val integrations: List<SettingsIntegrationAction>,
     val groups: List<SettingsGroup>,
@@ -69,6 +77,7 @@ data class SettingsContentState(
     val latestVersion: String,
     val isSearchActive: Boolean,
     val hasSearchResults: Boolean,
+    val onProfileHeaderClick: () -> Unit,
     val onRequestPermission: () -> Unit,
     val onUpdateClick: () -> Unit,
 )
@@ -189,6 +198,8 @@ private fun CompactSettingsLayout(
                     ),
             ) {
                 SettingsProfileHeader(
+                    state = state.profileHeader,
+                    onClick = state.onProfileHeaderClick,
                     modifier = Modifier
                         .padding(horizontal = pad)
                         .padding(top = 4.dp, bottom = spacing),
@@ -361,6 +372,8 @@ private fun MediumSettingsLayout(
                     enter = fadeIn(SettingsAnimations.entranceSpring()),
                 ) {
                     SettingsProfileHeader(
+                        state = state.profileHeader,
+                        onClick = state.onProfileHeaderClick,
                         modifier = Modifier.padding(top = 4.dp, bottom = spacing),
                     )
                 }
@@ -516,6 +529,8 @@ private fun ExpandedSettingsLayout(
                     enter = fadeIn(SettingsAnimations.entranceSpring()),
                 ) {
                     SettingsProfileHeader(
+                        state = state.profileHeader,
+                        onClick = state.onProfileHeaderClick,
                         modifier = Modifier.padding(top = 4.dp, bottom = spacing),
                     )
                 }
