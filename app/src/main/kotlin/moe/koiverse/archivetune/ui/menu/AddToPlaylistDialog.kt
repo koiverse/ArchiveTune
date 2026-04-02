@@ -86,8 +86,42 @@ import kotlinx.coroutines.withContext
 import java.time.LocalDateTime
 import java.util.Locale
 
+private fun preferredAddTargetPlaylist(
+    current: Playlist,
+    candidate: Playlist,
+): Playlist {
+    val bySongCount = candidate.songCount.compareTo(current.songCount)
+    if (bySongCount != 0) {
+        return if (bySongCount > 0) candidate else current
+    }
+
+    val byLastUpdated = compareNullableDates(candidate.playlist.lastUpdateTime, current.playlist.lastUpdateTime)
+    if (byLastUpdated != 0) {
+        return if (byLastUpdated > 0) candidate else current
+    }
+
+    val byCreatedAt = compareNullableDates(candidate.playlist.createdAt, current.playlist.createdAt)
+    if (byCreatedAt != 0) {
+        return if (byCreatedAt > 0) candidate else current
+    }
+
+    if (candidate.playlist.isEditable != current.playlist.isEditable) {
+        return if (candidate.playlist.isEditable) candidate else current
+    }
+
+    return if (candidate.id < current.id) candidate else current
+}
+
 internal fun playlistsForAddToPlaylist(playlists: List<Playlist>): List<Playlist> =
-    playlists.filter { it.playlist.isEditable || it.playlist.browseId != null }
+    playlists
+        .asSequence()
+        .filter { it.playlist.isEditable || it.playlist.browseId != null }
+        .groupBy { it.playlist.browseId ?: it.id }
+        .values
+        .map { candidates ->
+            candidates.reduce(::preferredAddTargetPlaylist)
+        }
+        .toList()
 
 internal enum class AddToPlaylistSortOption {
     RECENTLY_MODIFIED,
@@ -166,9 +200,12 @@ fun AddToPlaylistDialog(
     var sortOption by rememberSaveable { mutableStateOf(AddToPlaylistSortOption.RECENTLY_CREATED) }
     var searchQuery by rememberSaveable { mutableStateOf("") }
     var showSearchField by rememberSaveable { mutableStateOf(false) }
-    val playlists = remember(allPlaylists, sortOption, searchQuery, playlistPlayCounts) {
+    val availablePlaylists = remember(allPlaylists) {
+        playlistsForAddToPlaylist(allPlaylists)
+    }
+    val playlists = remember(availablePlaylists, sortOption, searchQuery, playlistPlayCounts) {
         visiblePlaylistsForAddToPlaylist(
-            playlists = allPlaylists,
+            playlists = availablePlaylists,
             sortOption = sortOption,
             query = searchQuery,
             playlistPlayCounts = playlistPlayCounts.associate { it.playlistId to it.playCount },
@@ -179,7 +216,7 @@ fun AddToPlaylistDialog(
     var playlistsWithDuplicates by remember { mutableStateOf<List<Playlist>>(emptyList()) }
     var duplicateSongsMap by remember { mutableStateOf<Map<String, List<String>>>(emptyMap()) }
     var songIds by remember { mutableStateOf<List<String>?>(null) }
-    val (selectedPlaylistIds, setSelectedPlaylistIds) = remember { mutableStateOf(emptySet<String>()) }
+    var selectedPlaylistIds by remember { mutableStateOf<Set<String>>(emptySet()) }
     var isAddingToPlaylist by remember { mutableStateOf(false) }
 
     suspend fun addSongsToPlaylistSafely(
@@ -220,7 +257,7 @@ fun AddToPlaylistDialog(
     LaunchedEffect(isVisible) {
         if (isVisible) {
             songIds = null
-            setSelectedPlaylistIds(emptySet())
+            selectedPlaylistIds = emptySet()
             isAddingToPlaylist = false
             showDuplicateDialog = false
             playlistsWithDuplicates = emptyList()
@@ -228,6 +265,16 @@ fun AddToPlaylistDialog(
             searchQuery = ""
             showSearchField = false
             sortOption = AddToPlaylistSortOption.RECENTLY_CREATED
+        }
+    }
+
+    LaunchedEffect(availablePlaylists) {
+        if (selectedPlaylistIds.isEmpty()) return@LaunchedEffect
+
+        val availableIds = availablePlaylists.mapTo(linkedSetOf()) { it.id }
+        val nextSelection = selectedPlaylistIds.filterTo(linkedSetOf()) { it in availableIds }
+        if (nextSelection != selectedPlaylistIds) {
+            selectedPlaylistIds = nextSelection
         }
     }
 
@@ -427,11 +474,13 @@ fun AddToPlaylistDialog(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .background(rowBackground)
-                                        .clickable {
-                                            val currentIds = selectedPlaylistIds.toMutableSet()
-                                            if (isSelected) currentIds.remove(playlist.id)
-                                            else currentIds.add(playlist.id)
-                                            setSelectedPlaylistIds(currentIds)
+                                        .clickable(enabled = !isAddingToPlaylist) {
+                                            selectedPlaylistIds =
+                                                if (isSelected) {
+                                                    selectedPlaylistIds - playlist.id
+                                                } else {
+                                                    selectedPlaylistIds + playlist.id
+                                                }
                                         },
                                     verticalAlignment = Alignment.CenterVertically,
                                 ) {
@@ -500,6 +549,7 @@ fun AddToPlaylistDialog(
                         Button(
                             enabled = selectedPlaylistIds.isNotEmpty() && !isAddingToPlaylist,
                             onClick = {
+                                    val selectedPlaylistIdsSnapshot = selectedPlaylistIds
                                     isAddingToPlaylist = true
                                     coroutineScope.launch {
                                         val currentSongIds = withContext(Dispatchers.IO) {
@@ -513,8 +563,14 @@ fun AddToPlaylistDialog(
                                     }
                                     songIds = currentSongIds
 
+                                    val selectedPlaylists = availablePlaylists.filter { it.id in selectedPlaylistIdsSnapshot }
+                                    if (selectedPlaylists.isEmpty()) {
+                                        isAddingToPlaylist = false
+                                        onDismiss()
+                                        return@launch
+                                    }
+
                                     val (withDuplicates, duplicatesMap, successfullyAddedPlaylistIds) = withContext(Dispatchers.IO) {
-                                        val selectedPlaylists = playlists.filter { selectedPlaylistIds.contains(it.id) }
                                         val tempDuplicatesMap = mutableMapOf<String, List<String>>()
                                         val addedPlaylistIds = mutableSetOf<String>()
 
@@ -539,7 +595,6 @@ fun AddToPlaylistDialog(
 
                                     isAddingToPlaylist = false
 
-                                    val selectedPlaylists = playlists.filter { selectedPlaylistIds.contains(it.id) }
                                     val addedPlaylistNames = selectedPlaylists
                                         .filter { successfullyAddedPlaylistIds.contains(it.id) }
                                         .map { it.playlist.name }
