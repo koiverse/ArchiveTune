@@ -109,22 +109,26 @@ import moe.koiverse.archivetune.constants.LyricsScrollKey
 import moe.koiverse.archivetune.constants.LyricsTextPositionKey
 import moe.koiverse.archivetune.constants.LyricsTextSizeKey
 import moe.koiverse.archivetune.constants.LyricsLineSpacingKey
+import moe.koiverse.archivetune.constants.LyricsRomanizeChineseKey
+import moe.koiverse.archivetune.constants.LyricsRomanizeHindiKey
 import moe.koiverse.archivetune.constants.LyricsRomanizeJapaneseKey
 import moe.koiverse.archivetune.constants.LyricsRomanizeKoreanKey
+import moe.koiverse.archivetune.constants.LyricsRomanizeOtherLanguagesKey
 import moe.koiverse.archivetune.constants.PlayerBackgroundStyle
 import moe.koiverse.archivetune.constants.PlayerBackgroundStyleKey
 import moe.koiverse.archivetune.constants.UseSystemFontKey
 import moe.koiverse.archivetune.db.entities.LyricsEntity.Companion.LYRICS_NOT_FOUND
 import moe.koiverse.archivetune.lyrics.LyricsEntry
+import moe.koiverse.archivetune.lyrics.LyricsRomanizationPreferences
 import moe.koiverse.archivetune.lyrics.LyricsUtils.findCurrentLineIndex
 import moe.koiverse.archivetune.lyrics.LyricsUtils.isChinese
+import moe.koiverse.archivetune.lyrics.LyricsUtils.romanizeLyricsLine
+import moe.koiverse.archivetune.lyrics.LyricsUtils.shouldRomanizeLyricsLine
 import moe.koiverse.archivetune.lyrics.LyricsUtils.isJapanese
 import moe.koiverse.archivetune.lyrics.LyricsUtils.isKorean
 import moe.koiverse.archivetune.lyrics.LyricsUtils.isTtml
 import moe.koiverse.archivetune.lyrics.LyricsUtils.parseLyrics
 import moe.koiverse.archivetune.lyrics.LyricsUtils.parseTtml
-import moe.koiverse.archivetune.lyrics.LyricsUtils.romanizeJapanese
-import moe.koiverse.archivetune.lyrics.LyricsUtils.romanizeKorean
 import moe.koiverse.archivetune.lyrics.WordTimestamp
 import moe.koiverse.archivetune.ui.component.shimmer.ShimmerHost
 import moe.koiverse.archivetune.ui.component.shimmer.TextPlaceholder
@@ -132,6 +136,7 @@ import moe.koiverse.archivetune.ui.screens.settings.LyricsPosition
 import moe.koiverse.archivetune.ui.utils.smoothFadingEdge
 import moe.koiverse.archivetune.utils.rememberEnumPreference
 import moe.koiverse.archivetune.utils.rememberPreference
+import moe.koiverse.archivetune.utils.reportException
 import kotlin.math.abs
 
 
@@ -182,9 +187,27 @@ fun LyricsV2(
     val (lyricsScroll) = rememberPreference(LyricsScrollKey, defaultValue = true)
     val (lyricsTextSize) = rememberPreference(LyricsTextSizeKey, defaultValue = 26f)
     val (lyricsLineSpacing) = rememberPreference(LyricsLineSpacingKey, defaultValue = 1.3f)
+    val (romanizeChinese) = rememberPreference(LyricsRomanizeChineseKey, defaultValue = true)
+    val (romanizeHindi) = rememberPreference(LyricsRomanizeHindiKey, defaultValue = true)
     val (romanizeJapanese) = rememberPreference(LyricsRomanizeJapaneseKey, defaultValue = true)
     val (romanizeKorean) = rememberPreference(LyricsRomanizeKoreanKey, defaultValue = true)
+    val (romanizeOtherLanguages) = rememberPreference(LyricsRomanizeOtherLanguagesKey, defaultValue = true)
     val (useSystemFont) = rememberPreference(UseSystemFontKey, defaultValue = false)
+    val romanizationPreferences = remember(
+        romanizeJapanese,
+        romanizeKorean,
+        romanizeChinese,
+        romanizeHindi,
+        romanizeOtherLanguages,
+    ) {
+        LyricsRomanizationPreferences(
+            romanizeJapanese = romanizeJapanese,
+            romanizeKorean = romanizeKorean,
+            romanizeChinese = romanizeChinese,
+            romanizeHindi = romanizeHindi,
+            romanizeOther = romanizeOtherLanguages,
+        )
+    }
     val lyricsFontFamily = remember(useSystemFont) {
         if (useSystemFont) null else FontFamily(Font(R.font.sfprodisplaybold))
     }
@@ -322,17 +345,32 @@ fun LyricsV2(
     }
 
     // ── Romanization ──
-    LaunchedEffect(entriesWithWords, romanizeJapanese, romanizeKorean) {
-        if (!romanizeJapanese && !romanizeKorean) return@LaunchedEffect
-        entriesWithWords.forEach { entry ->
-            if (entry.text.isBlank() || entry.romanizedTextFlow.value != null) return@forEach
-            scope.launch(Dispatchers.Default) {
-                val romanized = when {
-                    romanizeJapanese && isJapanese(entry.text) -> romanizeJapanese(entry.text)
-                    romanizeKorean && isKorean(entry.text) -> romanizeKorean(entry.text)
-                    else -> null
+    LaunchedEffect(entriesWithWords, romanizationPreferences) {
+        if (!romanizationPreferences.isEnabled) {
+            entriesWithWords.forEach { entry ->
+                if (entry.romanizedTextFlow.value != null) {
+                    entry.romanizedTextFlow.value = null
                 }
-                if (romanized != null) entry.romanizedTextFlow.value = romanized
+            }
+            return@LaunchedEffect
+        }
+
+        entriesWithWords.forEach { entry ->
+            if (!shouldRomanizeLyricsLine(entry.text, romanizationPreferences)) {
+                if (entry.romanizedTextFlow.value != null) {
+                    entry.romanizedTextFlow.value = null
+                }
+                return@forEach
+            }
+
+            launch {
+                val romanized = try {
+                    romanizeLyricsLine(entry.text, romanizationPreferences)
+                } catch (e: Exception) {
+                    reportException(e)
+                    null
+                }
+                entry.romanizedTextFlow.value = romanized
             }
         }
     }
@@ -616,7 +654,12 @@ fun LyricsV2(
                     }
 
                     // ── Romanization ──
-                    val romanizedText by item.romanizedTextFlow.collectAsState()
+                    val romanizedText = if (romanizationPreferences.isEnabled) {
+                        val value by item.romanizedTextFlow.collectAsState()
+                        value
+                    } else {
+                        null
+                    }
                     if (romanizedText != null) {
                         Text(
                             text = romanizedText!!,

@@ -153,8 +153,11 @@ import moe.koiverse.archivetune.LocalPlayerConnection
 import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.constants.DarkModeKey
 import moe.koiverse.archivetune.constants.LyricsClickKey
+import moe.koiverse.archivetune.constants.LyricsRomanizeChineseKey
+import moe.koiverse.archivetune.constants.LyricsRomanizeHindiKey
 import moe.koiverse.archivetune.constants.LyricsRomanizeJapaneseKey
 import moe.koiverse.archivetune.constants.LyricsRomanizeKoreanKey
+import moe.koiverse.archivetune.constants.LyricsRomanizeOtherLanguagesKey
 import moe.koiverse.archivetune.constants.LyricsScrollKey
 import moe.koiverse.archivetune.constants.LyricsTextPositionKey
 import moe.koiverse.archivetune.constants.LyricsAnimationStyle
@@ -166,6 +169,7 @@ import moe.koiverse.archivetune.constants.PlayerBackgroundStyleKey
 import moe.koiverse.archivetune.constants.UseSystemFontKey
 import moe.koiverse.archivetune.db.entities.LyricsEntity.Companion.LYRICS_NOT_FOUND
 import moe.koiverse.archivetune.lyrics.LyricsEntry
+import moe.koiverse.archivetune.lyrics.LyricsRomanizationPreferences
 import moe.koiverse.archivetune.lyrics.LyricsUtils.isChinese
 import moe.koiverse.archivetune.lyrics.LyricsUtils.findCurrentLineIndex
 import moe.koiverse.archivetune.lyrics.LyricsUtils.isJapanese
@@ -173,8 +177,8 @@ import moe.koiverse.archivetune.lyrics.LyricsUtils.isKorean
 import moe.koiverse.archivetune.lyrics.LyricsUtils.isTtml
 import moe.koiverse.archivetune.lyrics.LyricsUtils.parseLyrics
 import moe.koiverse.archivetune.lyrics.LyricsUtils.parseTtml
-import moe.koiverse.archivetune.lyrics.LyricsUtils.romanizeJapanese
-import moe.koiverse.archivetune.lyrics.LyricsUtils.romanizeKorean
+import moe.koiverse.archivetune.lyrics.LyricsUtils.romanizeLyricsLine
+import moe.koiverse.archivetune.lyrics.LyricsUtils.shouldRomanizeLyricsLine
 import moe.koiverse.archivetune.ui.component.shimmer.ShimmerHost
 import moe.koiverse.archivetune.ui.component.shimmer.TextPlaceholder
 import moe.koiverse.archivetune.ui.menu.LyricsMenu
@@ -183,6 +187,7 @@ import moe.koiverse.archivetune.ui.screens.settings.LyricsPosition
 import moe.koiverse.archivetune.ui.utils.fadingEdge
 import moe.koiverse.archivetune.ui.utils.smoothFadingEdge
 import moe.koiverse.archivetune.utils.ComposeToImage
+import moe.koiverse.archivetune.utils.reportException
 import moe.koiverse.archivetune.utils.rememberEnumPreference
 import moe.koiverse.archivetune.utils.rememberPreference
 import kotlinx.coroutines.Dispatchers
@@ -455,8 +460,26 @@ fun Lyrics(
     }
     val changeLyrics by rememberPreference(LyricsClickKey, true)
     val scrollLyrics by rememberPreference(LyricsScrollKey, true)
+    val romanizeChineseLyrics by rememberPreference(LyricsRomanizeChineseKey, true)
+    val romanizeHindiLyrics by rememberPreference(LyricsRomanizeHindiKey, true)
     val romanizeJapaneseLyrics by rememberPreference(LyricsRomanizeJapaneseKey, true)
     val romanizeKoreanLyrics by rememberPreference(LyricsRomanizeKoreanKey, true)
+    val romanizeOtherLanguagesLyrics by rememberPreference(LyricsRomanizeOtherLanguagesKey, true)
+    val romanizationPreferences = remember(
+        romanizeJapaneseLyrics,
+        romanizeKoreanLyrics,
+        romanizeChineseLyrics,
+        romanizeHindiLyrics,
+        romanizeOtherLanguagesLyrics,
+    ) {
+        LyricsRomanizationPreferences(
+            romanizeJapanese = romanizeJapaneseLyrics,
+            romanizeKorean = romanizeKoreanLyrics,
+            romanizeChinese = romanizeChineseLyrics,
+            romanizeHindi = romanizeHindiLyrics,
+            romanizeOther = romanizeOtherLanguagesLyrics,
+        )
+    }
     val scope = rememberCoroutineScope()
 
     val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
@@ -474,95 +497,46 @@ fun Lyrics(
         if (darkTheme == DarkMode.AUTO) isSystemInDarkTheme else darkTheme == DarkMode.ON
     }
 
-    val lines = remember(lyrics, scope, mediaMetadata?.id, mediaMetadata?.duration) {
+    val lines = remember(lyrics, mediaMetadata?.duration) {
         if (lyrics == null || lyrics == LYRICS_NOT_FOUND) {
             emptyList()
         } else if (lyrics.startsWith("[")) {
-            val parsedLines = parseLyrics(lyrics)
-            parsedLines.map { entry ->
-                val newEntry = LyricsEntry(entry.time, entry.text, entry.words)
-                if (romanizeJapaneseLyrics) {
-                    if (isJapanese(entry.text) && !isChinese(entry.text)) {
-                        scope.launch {
-                            try {
-                                newEntry.romanizedTextFlow.value = romanizeJapanese(entry.text)
-                            } catch (e: Exception) {
-                                moe.koiverse.archivetune.utils.reportException(e)
-                            }
-                        }
-                    }
-                }
-                if (romanizeKoreanLyrics) {
-                    if (isKorean(entry.text)) {
-                        scope.launch {
-                            try {
-                                newEntry.romanizedTextFlow.value = romanizeKorean(entry.text)
-                            } catch (e: Exception) {
-                                moe.koiverse.archivetune.utils.reportException(e)
-                            }
-                        }
-                    }
-                }
-                newEntry
-            }.let {
-                listOf(LyricsEntry.HEAD_LYRICS_ENTRY) + it
-            }
+            listOf(LyricsEntry.HEAD_LYRICS_ENTRY) + parseLyrics(lyrics)
         } else if (isTtml(lyrics)) {
-            val parsedLines = parseTtml(lyrics, mediaMetadata?.duration)
-            parsedLines.map { entry ->
-                val newEntry = LyricsEntry(entry.time, entry.text, entry.words)
-                if (romanizeJapaneseLyrics) {
-                    if (isJapanese(entry.text) && !isChinese(entry.text)) {
-                        scope.launch {
-                            try {
-                                newEntry.romanizedTextFlow.value = romanizeJapanese(entry.text)
-                            } catch (e: Exception) {
-                                moe.koiverse.archivetune.utils.reportException(e)
-                            }
-                        }
-                    }
-                }
-                if (romanizeKoreanLyrics) {
-                    if (isKorean(entry.text)) {
-                        scope.launch {
-                            try {
-                                newEntry.romanizedTextFlow.value = romanizeKorean(entry.text)
-                            } catch (e: Exception) {
-                                moe.koiverse.archivetune.utils.reportException(e)
-                            }
-                        }
-                    }
-                }
-                newEntry
-            }.let {
-                listOf(LyricsEntry.HEAD_LYRICS_ENTRY) + it
-            }
+            listOf(LyricsEntry.HEAD_LYRICS_ENTRY) + parseTtml(lyrics, mediaMetadata?.duration)
         } else {
             lyrics.lines().mapIndexed { index, line ->
-                val newEntry = LyricsEntry(index * 100L, line)
-                if (romanizeJapaneseLyrics) {
-                    if (isJapanese(line) && !isChinese(line)) {
-                        scope.launch {
-                            try {
-                                newEntry.romanizedTextFlow.value = romanizeJapanese(line)
-                            } catch (e: Exception) {
-                                moe.koiverse.archivetune.utils.reportException(e)
-                            }
-                        }
-                    }
+                LyricsEntry(index * 100L, line)
+            }
+        }
+    }
+
+    LaunchedEffect(lines, romanizationPreferences) {
+        if (!romanizationPreferences.isEnabled) {
+            lines.forEach { entry ->
+                if (entry.romanizedTextFlow.value != null) {
+                    entry.romanizedTextFlow.value = null
                 }
-                if (romanizeKoreanLyrics) {
-                    if (isKorean(line)) {
-                        scope.launch {
-                            try {
-                                newEntry.romanizedTextFlow.value = romanizeKorean(line)
-                            } catch (e: Exception) {
-                                moe.koiverse.archivetune.utils.reportException(e)
-                            }
-                        }
-                    }
+            }
+            return@LaunchedEffect
+        }
+
+        lines.forEach { entry ->
+            if (!shouldRomanizeLyricsLine(entry.text, romanizationPreferences)) {
+                if (entry.romanizedTextFlow.value != null) {
+                    entry.romanizedTextFlow.value = null
                 }
-                newEntry
+                return@forEach
+            }
+
+            launch {
+                val romanized = try {
+                    romanizeLyricsLine(entry.text, romanizationPreferences)
+                } catch (e: Exception) {
+                    reportException(e)
+                    null
+                }
+                entry.romanizedTextFlow.value = romanized
             }
         }
     }
@@ -1064,7 +1038,7 @@ fun Lyrics(
 
                         val hasWordTimings = remember(item.words) { item.words?.isNotEmpty() == true }
                         val romanizedText: String? =
-                            if (romanizeJapaneseLyrics || romanizeKoreanLyrics) {
+                            if (romanizationPreferences.isEnabled) {
                                 val value by item.romanizedTextFlow.collectAsState()
                                 value
                             } else {
@@ -1891,7 +1865,7 @@ fun Lyrics(
                                 modifier = Modifier
                             )
                         }
-                        if (romanizeJapaneseLyrics || romanizeKoreanLyrics) {
+                        if (romanizationPreferences.isEnabled) {
 
                             val romanizedFontSize = 16.sp
                             romanizedText?.let { romanized ->
