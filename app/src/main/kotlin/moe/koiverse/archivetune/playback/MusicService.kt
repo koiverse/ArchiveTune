@@ -1135,7 +1135,10 @@ class MusicService :
                 queueRestoreCompleted.value = true
             }
 
-            if (player.mediaItemCount > 0 && !player.playWhenReady) {
+            val shouldCheckBluetooth = withContext(Dispatchers.Main) {
+                player.mediaItemCount > 0 && !player.playWhenReady
+            }
+            if (shouldCheckBluetooth) {
                 val btAutoStart = withContext(Dispatchers.IO) {
                     dataStore.get(AutoStartOnBluetoothKey, false)
                 }
