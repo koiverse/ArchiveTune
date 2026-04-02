@@ -78,7 +78,7 @@ fun SettingsProfileHeader(
         stringResource(R.string.login)
     }
     val subtitle = if (state.isLoggedIn) {
-        state.accountEmail.ifBlank { stringResource(R.string.account) }
+        state.accountEmail
     } else {
         stringResource(R.string.not_logged_in)
     }
