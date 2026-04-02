@@ -12,6 +12,8 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -25,9 +27,6 @@ import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.FloatingToolbarDefaults
-import androidx.compose.material3.FloatingToolbarExitDirection
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
@@ -40,9 +39,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -67,7 +66,6 @@ import moe.koiverse.archivetune.constants.MixSortTypeKey
 import moe.koiverse.archivetune.constants.PlaylistSortType
 import moe.koiverse.archivetune.constants.PlaylistSortTypeKey
 import moe.koiverse.archivetune.constants.PlaylistTagsFilterKey
-import moe.koiverse.archivetune.constants.PureBlackKey
 import moe.koiverse.archivetune.constants.ShowLikedPlaylistKey
 import moe.koiverse.archivetune.constants.ShowDownloadedPlaylistKey
 import moe.koiverse.archivetune.constants.ShowTopPlaylistKey
@@ -84,12 +82,12 @@ import moe.koiverse.archivetune.ui.component.AlbumGridItem
 import moe.koiverse.archivetune.ui.component.AlbumListItem
 import moe.koiverse.archivetune.ui.component.ArtistGridItem
 import moe.koiverse.archivetune.ui.component.ArtistListItem
-import moe.koiverse.archivetune.ui.component.LibraryFloatingToolbar
 import moe.koiverse.archivetune.ui.component.LibraryPlaylistGridItem
 import moe.koiverse.archivetune.ui.component.LibraryPlaylistListItem
 import moe.koiverse.archivetune.ui.component.LocalMenuState
 import moe.koiverse.archivetune.ui.component.PlaylistGridItem
 import moe.koiverse.archivetune.ui.component.PlaylistListItem
+import moe.koiverse.archivetune.ui.component.SortHeader
 import moe.koiverse.archivetune.ui.menu.AlbumMenu
 import moe.koiverse.archivetune.ui.menu.ArtistMenu
 import moe.koiverse.archivetune.ui.menu.PlaylistMenu
@@ -105,7 +103,7 @@ import java.time.LocalDateTime
 import java.util.Locale
 import java.util.UUID
 
-@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3ExpressiveApi::class)
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun LibraryMixScreen(
     navController: NavController,
@@ -126,10 +124,6 @@ fun LibraryMixScreen(
     val (sortDescending, onSortDescendingChange) = rememberPreference(MixSortDescendingKey, true)
     val gridItemSize by rememberEnumPreference(GridItemsSizeKey, GridItemSize.BIG)
     val (playlistSortType) = rememberEnumPreference(PlaylistSortTypeKey, PlaylistSortType.CUSTOM)
-    val (pureBlack) = rememberPreference(PureBlackKey, false)
-    val scrollBehavior = FloatingToolbarDefaults.exitAlwaysScrollBehavior(
-        exitDirection = FloatingToolbarExitDirection.Bottom,
-    )
 
     val (ytmSync) = rememberPreference(YtmSyncKey, true)
 
@@ -244,7 +238,7 @@ fun LibraryMixScreen(
     var reorderEnabled by rememberSaveable { mutableStateOf(false) }
     val canReorderPlaylists = canEnterReorderMode && reorderEnabled
     val listHeaderItems =
-        1 +
+        2 +
             (if (showLiked) 1 else 0) +
             (if (showDownloaded) 1 else 0) +
             (if (showTop) 1 else 0) +
@@ -367,6 +361,59 @@ fun LibraryMixScreen(
          }
     }
 
+    val headerContent = @Composable {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(start = 16.dp),
+        ) {
+            SortHeader(
+                sortType = sortType,
+                sortDescending = sortDescending,
+                onSortTypeChange = onSortTypeChange,
+                onSortDescendingChange = onSortDescendingChange,
+                sortTypeText = { sortType ->
+                    when (sortType) {
+                        MixSortType.CREATE_DATE -> R.string.sort_by_create_date
+                        MixSortType.LAST_UPDATED -> R.string.sort_by_last_updated
+                        MixSortType.NAME -> R.string.sort_by_name
+                    }
+                },
+            )
+
+            Spacer(Modifier.weight(1f))
+
+            if (canEnterReorderMode) {
+                IconButton(
+                    onClick = { reorderEnabled = !reorderEnabled },
+                    modifier = Modifier.padding(start = 6.dp),
+                ) {
+                    Icon(
+                        painter = painterResource(if (reorderEnabled) R.drawable.lock_open else R.drawable.lock),
+                        contentDescription = null,
+                    )
+                }
+            }
+
+            IconButton(
+                onClick = {
+                    viewType = viewType.toggle()
+                },
+                modifier = Modifier.padding(start = 6.dp, end = 6.dp),
+            ) {
+                Icon(
+                    painter =
+                    painterResource(
+                        when (viewType) {
+                            LibraryViewType.LIST -> R.drawable.list
+                            LibraryViewType.GRID -> R.drawable.grid_view
+                        },
+                    ),
+                    contentDescription = null,
+                )
+            }
+        }
+    }
+
     Box(
         modifier = Modifier.fillMaxSize(),
     ) {
@@ -375,13 +422,19 @@ fun LibraryMixScreen(
                 LazyColumn(
                     state = lazyListState,
                     contentPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues(),
-                    modifier = Modifier.nestedScroll(scrollBehavior),
                 ) {
                     item(
                         key = "filter",
                         contentType = CONTENT_TYPE_HEADER,
                     ) {
                         filterContent()
+                    }
+
+                    item(
+                        key = "header",
+                        contentType = CONTENT_TYPE_HEADER,
+                    ) {
+                        headerContent()
                     }
 
                     if (showLiked) {
@@ -717,7 +770,6 @@ fun LibraryMixScreen(
                         minSize = GridThumbnailHeight + if (gridItemSize == GridItemSize.BIG) 24.dp else (-24).dp,
                     ),
                     contentPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues(),
-                    modifier = Modifier.nestedScroll(scrollBehavior),
                 ) {
                     item(
                         key = "filter",
@@ -725,6 +777,14 @@ fun LibraryMixScreen(
                         contentType = CONTENT_TYPE_HEADER,
                     ) {
                         filterContent()
+                    }
+
+                    item(
+                        key = "header",
+                        span = { GridItemSpan(maxLineSpan) },
+                        contentType = CONTENT_TYPE_HEADER,
+                    ) {
+                        headerContent()
                     }
 
                     if (showLiked) {
@@ -891,26 +951,5 @@ fun LibraryMixScreen(
                     }
                 }
         }
-
-        LibraryFloatingToolbar(
-            sortType = sortType,
-            sortDescending = sortDescending,
-            onSortTypeChange = onSortTypeChange,
-            onSortDescendingChange = onSortDescendingChange,
-            sortTypeText = { type ->
-                when (type) {
-                    MixSortType.CREATE_DATE -> R.string.sort_by_create_date
-                    MixSortType.LAST_UPDATED -> R.string.sort_by_last_updated
-                    MixSortType.NAME -> R.string.sort_by_name
-                }
-            },
-            viewType = viewType,
-            onViewTypeToggle = { viewType = viewType.toggle() },
-            scrollBehavior = scrollBehavior,
-            pureBlack = pureBlack,
-            canReorder = canEnterReorderMode,
-            reorderEnabled = reorderEnabled,
-            onReorderToggle = { reorderEnabled = !reorderEnabled },
-        )
     }
 }

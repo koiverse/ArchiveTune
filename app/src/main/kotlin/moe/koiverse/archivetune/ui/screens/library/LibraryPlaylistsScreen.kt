@@ -12,7 +12,10 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -26,35 +29,43 @@ import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.FloatingToolbarDefaults
-import androidx.compose.material3.FloatingToolbarExitDirection
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
+import androidx.compose.material3.Text
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.pulltorefresh.pullToRefresh
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
+import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.TextUnit
+import androidx.compose.ui.unit.TextUnitType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import androidx.palette.graphics.Palette
 import coil3.imageLoader
 import coil3.request.ImageRequest
@@ -86,17 +97,16 @@ import moe.koiverse.archivetune.constants.UseNewLibraryDesignKey
 import moe.koiverse.archivetune.constants.YtmSyncKey
 import moe.koiverse.archivetune.constants.DisableBlurKey
 import moe.koiverse.archivetune.constants.PlaylistTagsFilterKey
-import moe.koiverse.archivetune.constants.PureBlackKey
 import moe.koiverse.archivetune.db.entities.Playlist
 import moe.koiverse.archivetune.db.entities.PlaylistEntity
 import moe.koiverse.archivetune.ui.component.CreatePlaylistDialog
-import moe.koiverse.archivetune.ui.component.LibraryFloatingToolbar
-import moe.koiverse.archivetune.ui.component.LibraryMeshGradient
+import moe.koiverse.archivetune.ui.component.HideOnScrollFAB
 import moe.koiverse.archivetune.ui.component.LibraryPlaylistGridItem
 import moe.koiverse.archivetune.ui.component.LibraryPlaylistListItem
 import moe.koiverse.archivetune.ui.component.LocalMenuState
 import moe.koiverse.archivetune.ui.component.PlaylistGridItem
 import moe.koiverse.archivetune.ui.component.PlaylistListItem
+import moe.koiverse.archivetune.ui.component.SortHeader
 import moe.koiverse.archivetune.utils.rememberEnumPreference
 import moe.koiverse.archivetune.utils.rememberPreference
 import moe.koiverse.archivetune.viewmodels.LibraryPlaylistsViewModel
@@ -108,7 +118,7 @@ import java.util.UUID
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 
-@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
+@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun LibraryPlaylistsScreen(
     navController: NavController,
@@ -134,10 +144,6 @@ fun LibraryPlaylistsScreen(
     )
     val gridItemSize by rememberEnumPreference(GridItemsSizeKey, GridItemSize.BIG)
     val useNewLibraryDesign by rememberPreference(UseNewLibraryDesignKey, false)
-    val (pureBlack) = rememberPreference(PureBlackKey, false)
-    val scrollBehavior = FloatingToolbarDefaults.exitAlwaysScrollBehavior(
-        exitDirection = FloatingToolbarExitDirection.Bottom,
-    )
 
 
     val (selectedTagsFilter, onSelectedTagsFilterChange) = rememberPreference(PlaylistTagsFilterKey, "")
@@ -211,7 +217,7 @@ fun LibraryPlaylistsScreen(
     var reorderEnabled by rememberSaveable { mutableStateOf(false) }
     val canReorderPlaylists = canEnterReorderMode && reorderEnabled
     val listHeaderItems =
-        1 +
+        2 +
             (if (showLiked) 1 else 0) +
             (if (showDownloaded) 1 else 0) +
             (if (showTop) 1 else 0) +
@@ -306,6 +312,7 @@ fun LibraryPlaylistsScreen(
     // Gradient colors state for playlists page background
     var gradientColors by remember { mutableStateOf<List<Color>>(emptyList()) }
     val fallbackColor = MaterialTheme.colorScheme.surface.toArgb()
+    val surfaceColor = MaterialTheme.colorScheme.surface
     
     // Extract gradient colors from the first playlist with thumbnails
     LaunchedEffect(playlists) {
@@ -376,11 +383,70 @@ fun LibraryPlaylistsScreen(
         )
     }
 
-    val itemCountText = pluralStringResource(
-        R.plurals.n_playlist,
-        playlists.size,
-        playlists.size,
-    )
+    val headerContent = @Composable {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(start = 16.dp),
+        ) {
+            SortHeader(
+                sortType = sortType,
+                sortDescending = sortDescending,
+                onSortTypeChange = onSortTypeChange,
+                onSortDescendingChange = onSortDescendingChange,
+                sortTypeText = { sortType ->
+                    when (sortType) {
+                        PlaylistSortType.CREATE_DATE -> R.string.sort_by_create_date
+                        PlaylistSortType.NAME -> R.string.sort_by_name
+                        PlaylistSortType.SONG_COUNT -> R.string.sort_by_song_count
+                        PlaylistSortType.LAST_UPDATED -> R.string.sort_by_last_updated
+                        PlaylistSortType.CUSTOM -> R.string.sort_by_custom
+                    }
+                },
+            )
+
+            Spacer(Modifier.weight(1f))
+
+            Text(
+                text = pluralStringResource(
+                    R.plurals.n_playlist,
+                    playlists.size,
+                    playlists.size
+                ),
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.secondary,
+            )
+
+            if (canEnterReorderMode) {
+                IconButton(
+                    onClick = { reorderEnabled = !reorderEnabled },
+                    modifier = Modifier.padding(start = 6.dp),
+                ) {
+                    Icon(
+                        painter = painterResource(if (reorderEnabled) R.drawable.lock_open else R.drawable.lock),
+                        contentDescription = null,
+                    )
+                }
+            }
+
+            IconButton(
+                onClick = {
+                    viewType = viewType.toggle()
+                },
+                modifier = Modifier.padding(start = 6.dp, end = 6.dp),
+            ) {
+                Icon(
+                    painter =
+                    painterResource(
+                        when (viewType) {
+                            LibraryViewType.LIST -> R.drawable.list
+                            LibraryViewType.GRID -> R.drawable.grid_view
+                        },
+                    ),
+                    contentDescription = null,
+                )
+            }
+        }
+    }
 
     val isRefreshing by viewModel.isRefreshing.collectAsState()
     val pullRefreshState = rememberPullToRefreshState()
@@ -388,15 +454,136 @@ fun LibraryPlaylistsScreen(
     BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.surface)
+            .background(surfaceColor)
             .pullToRefresh(
                 state = pullRefreshState,
                 isRefreshing = isRefreshing,
                 onRefresh = { if (ytmSync) viewModel.sync() }
             ),
     ) {
+        // Mesh gradient background layer - behind everything
         if (!disableBlur && gradientColors.isNotEmpty() && gradientAlpha > 0f) {
-            LibraryMeshGradient(colors = gradientColors, alpha = gradientAlpha)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .fillMaxSize(0.7f) // Cover top 70% of screen
+                    .align(Alignment.TopCenter)
+                    .zIndex(-1f) // Place behind all content
+                    .drawBehind {
+                        val width = size.width
+                        val height = size.height
+                        
+                        // Create mesh gradient with 5 color blobs for variation
+                        if (gradientColors.size >= 3) {
+                            val c0 = gradientColors[0]
+                            val c1 = gradientColors[1]
+                            val c2 = gradientColors[2]
+                            val c3 = gradientColors.getOrElse(3) { c0 }
+                            val c4 = gradientColors.getOrElse(4) { c1 }
+                            // First color blob - top left
+                            drawRect(
+                                brush = Brush.radialGradient(
+                                    colors = listOf(
+                                        c0.copy(alpha = gradientAlpha * 0.34f),
+                                        c0.copy(alpha = gradientAlpha * 0.2f),
+                                        c0.copy(alpha = gradientAlpha * 0.11f),
+                                        c0.copy(alpha = gradientAlpha * 0.05f),
+                                        Color.Transparent
+                                    ),
+                                    center = Offset(width * 0.15f, height * 0.1f),
+                                    radius = width * 0.55f
+                                )
+                            )
+                            
+                            // Second color blob - top right
+                            drawRect(
+                                brush = Brush.radialGradient(
+                                    colors = listOf(
+                                        c1.copy(alpha = gradientAlpha * 0.32f),
+                                        c1.copy(alpha = gradientAlpha * 0.19f),
+                                        c1.copy(alpha = gradientAlpha * 0.1f),
+                                        c1.copy(alpha = gradientAlpha * 0.045f),
+                                        Color.Transparent
+                                    ),
+                                    center = Offset(width * 0.85f, height * 0.2f),
+                                    radius = width * 0.65f
+                                )
+                            )
+                            
+                            // Third color blob - middle left
+                            drawRect(
+                                brush = Brush.radialGradient(
+                                    colors = listOf(
+                                        c2.copy(alpha = gradientAlpha * 0.28f),
+                                        c2.copy(alpha = gradientAlpha * 0.16f),
+                                        c2.copy(alpha = gradientAlpha * 0.085f),
+                                        c2.copy(alpha = gradientAlpha * 0.038f),
+                                        Color.Transparent
+                                    ),
+                                    center = Offset(width * 0.3f, height * 0.45f),
+                                    radius = width * 0.6f
+                                )
+                            )
+                            
+                            // Fourth color blob - middle right
+                            drawRect(
+                                brush = Brush.radialGradient(
+                                    colors = listOf(
+                                        c3.copy(alpha = gradientAlpha * 0.24f),
+                                        c3.copy(alpha = gradientAlpha * 0.13f),
+                                        c3.copy(alpha = gradientAlpha * 0.075f),
+                                        c3.copy(alpha = gradientAlpha * 0.03f),
+                                        Color.Transparent
+                                    ),
+                                    center = Offset(width * 0.7f, height * 0.5f),
+                                    radius = width * 0.7f
+                                )
+                            )
+                            
+                            // Fifth color blob - bottom center
+                            drawRect(
+                                brush = Brush.radialGradient(
+                                    colors = listOf(
+                                        c4.copy(alpha = gradientAlpha * 0.2f),
+                                        c4.copy(alpha = gradientAlpha * 0.11f),
+                                        c4.copy(alpha = gradientAlpha * 0.06f),
+                                        c4.copy(alpha = gradientAlpha * 0.022f),
+                                        Color.Transparent
+                                    ),
+                                    center = Offset(width * 0.5f, height * 0.75f),
+                                    radius = width * 0.8f
+                                )
+                            )
+                        } else {
+                            // Fallback: single radial gradient
+                            drawRect(
+                                brush = Brush.radialGradient(
+                                    colors = listOf(
+                                        gradientColors[0].copy(alpha = gradientAlpha * 0.34f),
+                                        gradientColors[0].copy(alpha = gradientAlpha * 0.2f),
+                                        Color.Transparent
+                                    ),
+                                    center = Offset(width * 0.5f, height * 0.3f),
+                                    radius = width * 0.7f
+                                )
+                            )
+                        }
+
+                        drawRect(
+                            brush = Brush.verticalGradient(
+                                colors = listOf(
+                                    Color.Transparent,
+                                    Color.Transparent,
+                                    surfaceColor.copy(alpha = gradientAlpha * 0.22f),
+                                    surfaceColor.copy(alpha = gradientAlpha * 0.55f),
+                                    surfaceColor
+                                ),
+                                startY = height * 0.4f,
+                                endY = height
+                            )
+                        )
+                    }
+            ) {}
         }
         
         when (viewType) {
@@ -404,13 +591,19 @@ fun LibraryPlaylistsScreen(
                 LazyColumn(
                     state = lazyListState,
                     contentPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues(),
-                    modifier = Modifier.nestedScroll(scrollBehavior),
                 ) {
                     item(
                         key = "filter",
                         contentType = CONTENT_TYPE_HEADER,
                     ) {
                         filterContent()
+                    }
+
+                    item(
+                        key = "header",
+                        contentType = CONTENT_TYPE_HEADER,
+                    ) {
+                        headerContent()
                     }
 
                     if (showLiked) {
@@ -533,6 +726,14 @@ fun LibraryPlaylistsScreen(
                         }
                     }
                 }
+
+                HideOnScrollFAB(
+                    lazyListState = lazyListState,
+                    icon = R.drawable.add,
+                    onClick = {
+                        showCreatePlaylistDialog = true
+                    },
+                )
             }
 
             LibraryViewType.GRID -> {
@@ -543,7 +744,6 @@ fun LibraryPlaylistsScreen(
                         minSize = GridThumbnailHeight + if (gridItemSize == GridItemSize.BIG) 24.dp else (-24).dp,
                     ),
                     contentPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues(),
-                    modifier = Modifier.nestedScroll(scrollBehavior),
                 ) {
                     item(
                         key = "filter",
@@ -551,6 +751,14 @@ fun LibraryPlaylistsScreen(
                         contentType = CONTENT_TYPE_HEADER,
                     ) {
                         filterContent()
+                    }
+
+                    item(
+                        key = "header",
+                        span = { GridItemSpan(maxLineSpan) },
+                        contentType = CONTENT_TYPE_HEADER,
+                    ) {
+                        headerContent()
                     }
 
                     if (showLiked) {
@@ -660,34 +868,16 @@ fun LibraryPlaylistsScreen(
                         )
                     }
                 }
+
+                HideOnScrollFAB(
+                    lazyListState = lazyGridState,
+                    icon = R.drawable.add,
+                    onClick = {
+                        showCreatePlaylistDialog = true
+                    },
+                )
             }
         }
-
-        LibraryFloatingToolbar(
-            sortType = sortType,
-            sortDescending = sortDescending,
-            onSortTypeChange = onSortTypeChange,
-            onSortDescendingChange = onSortDescendingChange,
-            sortTypeText = { type ->
-                when (type) {
-                    PlaylistSortType.CREATE_DATE -> R.string.sort_by_create_date
-                    PlaylistSortType.NAME -> R.string.sort_by_name
-                    PlaylistSortType.SONG_COUNT -> R.string.sort_by_song_count
-                    PlaylistSortType.LAST_UPDATED -> R.string.sort_by_last_updated
-                    PlaylistSortType.CUSTOM -> R.string.sort_by_custom
-                }
-            },
-            viewType = viewType,
-            onViewTypeToggle = { viewType = viewType.toggle() },
-            scrollBehavior = scrollBehavior,
-            pureBlack = pureBlack,
-            itemCountText = itemCountText,
-            canReorder = canEnterReorderMode,
-            reorderEnabled = reorderEnabled,
-            onReorderToggle = { reorderEnabled = !reorderEnabled },
-            fabIcon = R.drawable.add,
-            onFabClick = { showCreatePlaylistDialog = true },
-        )
 
         PullToRefreshDefaults.Indicator(
             isRefreshing = isRefreshing,

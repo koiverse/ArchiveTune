@@ -26,17 +26,15 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
-import androidx.compose.material3.FloatingToolbarDefaults
-import androidx.compose.material3.FloatingToolbarExitDirection
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.material3.pulltorefresh.pullToRefresh
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -45,7 +43,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
@@ -70,21 +67,20 @@ import moe.koiverse.archivetune.constants.GridItemsSizeKey
 import moe.koiverse.archivetune.constants.GridThumbnailHeight
 import moe.koiverse.archivetune.constants.HideExplicitKey
 import moe.koiverse.archivetune.constants.LibraryViewType
-import moe.koiverse.archivetune.constants.PureBlackKey
 import moe.koiverse.archivetune.constants.YtmSyncKey
 import moe.koiverse.archivetune.ui.component.ChipsRow
 import moe.koiverse.archivetune.ui.component.EmptyPlaceholder
 import moe.koiverse.archivetune.ui.component.LibraryAlbumGridItem
 import moe.koiverse.archivetune.ui.component.LibraryAlbumListItem
-import moe.koiverse.archivetune.ui.component.LibraryFloatingToolbar
 import moe.koiverse.archivetune.ui.component.LocalMenuState
+import moe.koiverse.archivetune.ui.component.SortHeader
 import moe.koiverse.archivetune.utils.rememberEnumPreference
 import moe.koiverse.archivetune.utils.rememberPreference
 import moe.koiverse.archivetune.viewmodels.LibraryAlbumsViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
+@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun LibraryAlbumsScreen(
     navController: NavController,
@@ -105,10 +101,6 @@ fun LibraryAlbumsScreen(
     )
     val (sortDescending, onSortDescendingChange) = rememberPreference(AlbumSortDescendingKey, true)
     val gridItemSize by rememberEnumPreference(GridItemsSizeKey, GridItemSize.BIG)
-    val (pureBlack) = rememberPreference(PureBlackKey, false)
-    val scrollBehavior = FloatingToolbarDefaults.exitAlwaysScrollBehavior(
-        exitDirection = FloatingToolbarExitDirection.Bottom,
-    )
 
     val (ytmSync) = rememberPreference(YtmSyncKey, true)
     val hideExplicit by rememberPreference(key = HideExplicitKey, defaultValue = false)
@@ -173,6 +165,57 @@ fun LibraryAlbumsScreen(
         }
     }
 
+    val headerContent = @Composable {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(start = 16.dp),
+        ) {
+            SortHeader(
+                sortType = sortType,
+                sortDescending = sortDescending,
+                onSortTypeChange = onSortTypeChange,
+                onSortDescendingChange = onSortDescendingChange,
+                sortTypeText = { sortType ->
+                    when (sortType) {
+                        AlbumSortType.CREATE_DATE -> R.string.sort_by_create_date
+                        AlbumSortType.NAME -> R.string.sort_by_name
+                        AlbumSortType.ARTIST -> R.string.sort_by_artist
+                        AlbumSortType.YEAR -> R.string.sort_by_year
+                        AlbumSortType.SONG_COUNT -> R.string.sort_by_song_count
+                        AlbumSortType.LENGTH -> R.string.sort_by_length
+                        AlbumSortType.PLAY_TIME -> R.string.sort_by_play_time
+                    }
+                },
+            )
+
+            Spacer(Modifier.weight(1f))
+
+            Text(
+                text = pluralStringResource(R.plurals.n_album, albums.size, albums.size),
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.secondary,
+            )
+
+            IconButton(
+                onClick = {
+                    viewType = viewType.toggle()
+                },
+                modifier = Modifier.padding(start = 6.dp, end = 6.dp),
+            ) {
+                Icon(
+                    painter =
+                    painterResource(
+                        when (viewType) {
+                            LibraryViewType.LIST -> R.drawable.list
+                            LibraryViewType.GRID -> R.drawable.grid_view
+                        },
+                    ),
+                    contentDescription = null,
+                )
+            }
+        }
+    }
+
     Box(
         modifier =
             Modifier.fillMaxSize()
@@ -187,13 +230,19 @@ fun LibraryAlbumsScreen(
                 LazyColumn(
                     state = lazyListState,
                     contentPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues(),
-                    modifier = Modifier.nestedScroll(scrollBehavior),
                 ) {
                     item(
                         key = "filter",
                         contentType = CONTENT_TYPE_HEADER,
                     ) {
                         filterContent()
+                    }
+
+                    item(
+                        key = "header",
+                        contentType = CONTENT_TYPE_HEADER,
+                    ) {
+                        headerContent()
                     }
 
                     albums.let { albums ->
@@ -238,7 +287,6 @@ fun LibraryAlbumsScreen(
                         minSize = GridThumbnailHeight + if (gridItemSize == GridItemSize.BIG) 24.dp else (-24).dp,
                     ),
                     contentPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues(),
-                    modifier = Modifier.nestedScroll(scrollBehavior),
                 ) {
                     item(
                         key = "filter",
@@ -246,6 +294,14 @@ fun LibraryAlbumsScreen(
                         contentType = CONTENT_TYPE_HEADER,
                     ) {
                         filterContent()
+                    }
+
+                    item(
+                        key = "header",
+                        span = { GridItemSpan(maxLineSpan) },
+                        contentType = CONTENT_TYPE_HEADER,
+                    ) {
+                        headerContent()
                     }
 
                     albums.let { albums ->
@@ -283,29 +339,6 @@ fun LibraryAlbumsScreen(
                     }
                 }
         }
-
-        LibraryFloatingToolbar(
-            sortType = sortType,
-            sortDescending = sortDescending,
-            onSortTypeChange = onSortTypeChange,
-            onSortDescendingChange = onSortDescendingChange,
-            sortTypeText = { type ->
-                when (type) {
-                    AlbumSortType.CREATE_DATE -> R.string.sort_by_create_date
-                    AlbumSortType.NAME -> R.string.sort_by_name
-                    AlbumSortType.ARTIST -> R.string.sort_by_artist
-                    AlbumSortType.YEAR -> R.string.sort_by_year
-                    AlbumSortType.SONG_COUNT -> R.string.sort_by_song_count
-                    AlbumSortType.LENGTH -> R.string.sort_by_length
-                    AlbumSortType.PLAY_TIME -> R.string.sort_by_play_time
-                }
-            },
-            viewType = viewType,
-            onViewTypeToggle = { viewType = viewType.toggle() },
-            scrollBehavior = scrollBehavior,
-            pureBlack = pureBlack,
-            itemCountText = pluralStringResource(R.plurals.n_album, albums.size, albums.size),
-        )
 
         PullToRefreshDefaults.Indicator(
             isRefreshing = isRefreshing,
