@@ -35,6 +35,7 @@ junit = "4.13.2"
 turbine = "1.2.1"
 timber = "5.0.1"
 kuromojiIpadic = "0.9.0"
+anyascii = "0.3.3"
 extractor = "2d2d9ed"
 rhino = "1.9.1"
 multiplatformMarkdown = "0.39.2"
@@ -122,6 +123,7 @@ newpipe-extractor = { module = "com.github.teamnewpipe:NewPipeExtractor", versio
 #newpipe-extractor = { module = "com.github.teamnewpipe:NewPipeExtractor", version = "master-SNAPSHOT" }
 
 kuromoji-ipadic = { module = "com.atilika.kuromoji:kuromoji-ipadic", version.ref = "kuromojiIpadic" }
+anyascii = { module = "com.anyascii:anyascii", version.ref = "anyascii" }
 
 multiplatform-markdown = { module = "com.mikepenz:multiplatform-markdown-renderer-m3", version.ref = "multiplatformMarkdown" }
 
