@@ -22,6 +22,7 @@ import moe.koiverse.archivetune.innertube.utils.completed
 import moe.koiverse.archivetune.innertube.utils.parseCookieString
 import moe.koiverse.archivetune.db.MusicDatabase
 import moe.koiverse.archivetune.db.entities.ArtistEntity
+import moe.koiverse.archivetune.db.entities.Playlist
 import moe.koiverse.archivetune.db.entities.PlaylistEntity
 import moe.koiverse.archivetune.db.entities.PlaylistSongMap
 import moe.koiverse.archivetune.db.entities.SongEntity
@@ -140,6 +141,50 @@ class SyncUtils @Inject constructor(
             Timber.e(e, "Error cleaning up duplicate playlists")
         }
     }
+
+    private fun preferredPlaylistCopy(
+        current: Playlist,
+        candidate: Playlist,
+    ): Playlist {
+        val bySongCount = candidate.songCount.compareTo(current.songCount)
+        if (bySongCount != 0) {
+            return if (bySongCount > 0) candidate else current
+        }
+
+        val byLastUpdated = compareNullableDateTimes(candidate.playlist.lastUpdateTime, current.playlist.lastUpdateTime)
+        if (byLastUpdated != 0) {
+            return if (byLastUpdated > 0) candidate else current
+        }
+
+        val byCreatedAt = compareNullableDateTimes(candidate.playlist.createdAt, current.playlist.createdAt)
+        if (byCreatedAt != 0) {
+            return if (byCreatedAt > 0) candidate else current
+        }
+
+        if (candidate.playlist.isEditable != current.playlist.isEditable) {
+            return if (candidate.playlist.isEditable) candidate else current
+        }
+
+        return if (candidate.id < current.id) candidate else current
+    }
+
+    private fun compareNullableDateTimes(
+        first: LocalDateTime?,
+        second: LocalDateTime?,
+    ): Int {
+        if (first == second) return 0
+        if (first == null) return -1
+        if (second == null) return 1
+        return first.compareTo(second)
+    }
+
+    private fun canonicalPlaylistCopies(playlists: List<Playlist>): List<Playlist> =
+        playlists
+            .groupBy { it.playlist.browseId ?: it.id }
+            .values
+            .map { copies ->
+                copies.reduce(::preferredPlaylistCopy)
+            }
     
     /**
      * Check if user is properly logged in with a valid SAPISID cookie
@@ -398,6 +443,9 @@ class SyncUtils @Inject constructor(
             Timber.w("Skipping syncSavedPlaylists - sync disabled")
             return@withLock
         }
+
+        cleanupDuplicatePlaylists()
+
         val gen = syncGeneration.get()
         
         YouTube.library("FEmusic_liked_playlists").completed().onSuccess { page ->
@@ -494,10 +542,15 @@ class SyncUtils @Inject constructor(
             Timber.w("Skipping syncAutoSyncPlaylists - sync disabled")
             return@coroutineScope
         }
+
+        cleanupDuplicatePlaylists()
+
         val gen = syncGeneration.get()
         val autoSyncPlaylists = try {
-            database.playlistsByNameAsc().first()
-                .filter { it.playlist.isAutoSync && it.playlist.browseId != null }
+            canonicalPlaylistCopies(
+                database.playlistsByNameAsc().first()
+                    .filter { it.playlist.isAutoSync && it.playlist.browseId != null }
+            )
         } catch (e: Exception) {
             Timber.e(e, "syncAutoSyncPlaylists: Failed to fetch auto-sync playlists")
             return@coroutineScope
