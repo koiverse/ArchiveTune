@@ -582,7 +582,7 @@ private fun ProfileIdentityCard(
                     }
                 }
 
-                AnimatedVisibility(
+                androidx.compose.animation.AnimatedVisibility(
                     visible = isLoggedIn,
                     enter = scaleIn(spring(stiffness = Spring.StiffnessHigh)),
                     exit = scaleOut(),
