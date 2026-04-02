@@ -797,12 +797,9 @@ private fun SearchLyricsInputDialog(
                     horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    TextButton(onClick = onDismiss) {
-                        Text(stringResource(android.R.string.cancel))
-                    }
-
                     FilledTonalButton(
                         onClick = onSearchOnline,
+                        modifier = Modifier.weight(1f),
                         colors = ButtonDefaults.filledTonalButtonColors(
                             containerColor = MaterialTheme.colorScheme.secondaryContainer
                         )
@@ -816,7 +813,10 @@ private fun SearchLyricsInputDialog(
                         Text(stringResource(R.string.search_online))
                     }
 
-                    Button(onClick = onSearch) {
+                    Button(
+                        onClick = onSearch,
+                        modifier = Modifier.weight(1f)
+                    ) {
                         Icon(
                             painter = painterResource(R.drawable.search),
                             contentDescription = null,
@@ -825,6 +825,15 @@ private fun SearchLyricsInputDialog(
                         Spacer(Modifier.width(6.dp))
                         Text(stringResource(android.R.string.ok))
                     }
+                }
+
+                Spacer(Modifier.height(8.dp))
+
+                TextButton(
+                    onClick = onDismiss,
+                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                ) {
+                    Text(stringResource(android.R.string.cancel))
                 }
             }
         }
