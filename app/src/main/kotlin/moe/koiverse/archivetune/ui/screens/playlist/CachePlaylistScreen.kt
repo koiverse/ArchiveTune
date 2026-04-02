@@ -6,6 +6,8 @@
 
 
 
+@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
+
 package moe.koiverse.archivetune.ui.screens.playlist
 
 import androidx.activity.compose.BackHandler
@@ -34,7 +36,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -487,7 +491,8 @@ fun CachePlaylistScreen(
                                     shape = RoundedCornerShape(24.dp),
                                     modifier = Modifier
                                         .weight(1f)
-                                        .height(48.dp)
+                                        .height(48.dp),
+                                    shapes = ButtonDefaults.shapes(),
                                 ) {
                                     Icon(
                                         painter = painterResource(R.drawable.play),
@@ -509,7 +514,8 @@ fun CachePlaylistScreen(
                                     shape = RoundedCornerShape(24.dp),
                                     modifier = Modifier
                                         .weight(1f)
-                                        .height(48.dp)
+                                        .height(48.dp),
+                                    shapes = ButtonDefaults.shapes(),
                                 ) {
                                     Icon(
                                         painter = painterResource(R.drawable.shuffle),

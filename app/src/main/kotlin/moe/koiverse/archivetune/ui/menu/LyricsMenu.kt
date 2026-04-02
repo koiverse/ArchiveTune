@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
+
 /*
  * ArchiveTune Project Original (2026)
  * Kòi Natsuko (github.com/koiverse)
@@ -439,16 +441,15 @@ fun LyricsMenu(
                 },
                 title = { Text(stringResource(R.string.translate)) },
                 buttons = {
-                    TextButton(onClick = { showTranslateDialog = false }) {
+                    TextButton(onClick = { showTranslateDialog = false }, shapes = ButtonDefaults.shapes()) {
                         Text(stringResource(android.R.string.cancel))
                     }
                     Spacer(Modifier.width(8.dp))
                     if (isTranslating) {
-                        CircularProgressIndicator(
+                        CircularWavyProgressIndicator(
                         modifier = Modifier
                         .size(20.dp)
                         .align(Alignment.CenterVertically),
-                        strokeWidth = 2.dp
                         )
                     } else {
                         TextButton(onClick = {
@@ -572,7 +573,7 @@ fun LyricsMenu(
                                     isTranslating = false
                                 }
                             }
-                        }) {
+                        }, shapes = ButtonDefaults.shapes()) {
                             Text(stringResource(R.string.translate))
                         }
                     }
@@ -802,7 +803,8 @@ private fun SearchLyricsInputDialog(
                         modifier = Modifier.weight(1f),
                         colors = ButtonDefaults.filledTonalButtonColors(
                             containerColor = MaterialTheme.colorScheme.secondaryContainer
-                        )
+                        ),
+                        shapes = ButtonDefaults.shapes(),
                     ) {
                         Icon(
                             painter = painterResource(R.drawable.language),
@@ -815,7 +817,8 @@ private fun SearchLyricsInputDialog(
 
                     Button(
                         onClick = onSearch,
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
+                        shapes = ButtonDefaults.shapes(),
                     ) {
                         Icon(
                             painter = painterResource(R.drawable.search),
@@ -831,7 +834,8 @@ private fun SearchLyricsInputDialog(
 
                 TextButton(
                     onClick = onDismiss,
-                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                    modifier = Modifier.align(Alignment.CenterHorizontally),
+                    shapes = ButtonDefaults.shapes(),
                 ) {
                     Text(stringResource(android.R.string.cancel))
                 }

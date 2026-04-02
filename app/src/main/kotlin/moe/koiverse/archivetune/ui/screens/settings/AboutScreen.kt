@@ -6,6 +6,8 @@
 
 
 
+@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
+
 package moe.koiverse.archivetune.ui.screens.settings
 
 import androidx.compose.foundation.Image
@@ -181,7 +183,8 @@ fun OutlinedIconChip(
         contentPadding = PaddingValues(
             horizontal = 12.dp,
             vertical = 6.dp
-        )
+        ),
+        shapes = ButtonDefaults.shapes(),
     ) {
         Icon(
             painter = painterResource(id = iconRes),
@@ -208,7 +211,8 @@ fun OutlinedIconChipMembers(
             containerColor = Color.Transparent,
             contentColor = MaterialTheme.colorScheme.onSurfaceVariant
         ),
-        modifier = Modifier.size(32.dp)
+        modifier = Modifier.size(32.dp),
+        shapes = ButtonDefaults.shapes(),
     ) {
         Icon(
             painter = painterResource(id = iconRes),

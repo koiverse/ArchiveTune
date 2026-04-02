@@ -6,6 +6,8 @@
 
 
 
+@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
+
 package moe.koiverse.archivetune.ui.component
 
 import android.content.Intent
@@ -51,7 +53,9 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialogDefaults
 import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
@@ -235,6 +239,7 @@ fun ActionPromptDialog(
                         Row(modifier = Modifier.weight(1f)) {
                             TextButton(
                                 onClick = { onReset() },
+                                shapes = ButtonDefaults.shapes(),
                             ) {
                                 Text(stringResource(R.string.reset))
                             }
@@ -250,7 +255,8 @@ fun ActionPromptDialog(
                     }
 
                     TextButton(
-                        onClick = { onConfirm() }
+                        onClick = { onCancel() },
+                        shapes = ButtonDefaults.shapes(),
                     ) {
                         Text(stringResource(android.R.string.ok))
                     }
@@ -345,7 +351,7 @@ fun TextFieldDialog(
         title = title,
         contentScrollable = true,
         buttons = {
-            TextButton(onClick = onDismiss) {
+            TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) {
                 Text(text = stringResource(android.R.string.cancel))
             }
 
@@ -362,6 +368,7 @@ fun TextFieldDialog(
                     }
                     onDismiss()
                 },
+                shapes = ButtonDefaults.shapes(),
             ) {
                 Text(text = stringResource(android.R.string.ok))
             }
@@ -479,7 +486,7 @@ fun EditPlaylistDialog(
         title = { Text(text = stringResource(R.string.edit_playlist)) },
         contentScrollable = true,
         buttons = {
-            TextButton(onClick = onDismiss) {
+            TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) {
                 Text(text = stringResource(android.R.string.cancel))
             }
             TextButton(
@@ -489,6 +496,7 @@ fun EditPlaylistDialog(
                     onSave(nameField.text.trim(), thumbnailUrl?.takeUnless { it.isBlank() })
                     onDismiss()
                 },
+                shapes = ButtonDefaults.shapes(),
             ) {
                 Text(text = stringResource(R.string.save))
             }
@@ -549,6 +557,7 @@ fun EditPlaylistDialog(
                         releasePersistablePermissionIfPossible(thumbnailUrl)
                         thumbnailUrl = null
                     },
+                    shapes = ButtonDefaults.shapes(),
                 ) {
                     Text(text = stringResource(R.string.remove_playlist_cover))
                 }

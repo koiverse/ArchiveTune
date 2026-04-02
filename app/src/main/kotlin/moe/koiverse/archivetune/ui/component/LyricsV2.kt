@@ -4,6 +4,8 @@
  * Licensed Under GPL-3.0 | see git history for contributors
  */
 
+@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
+
 package moe.koiverse.archivetune.ui.component
 
 import android.content.Intent
@@ -43,9 +45,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -704,6 +708,7 @@ fun LyricsV2(
                     .align(Alignment.BottomCenter)
                     .padding(bottom = 16.dp),
                 shape = RoundedCornerShape(24.dp),
+                shapes = ButtonDefaults.shapes(),
             ) {
                 Text(
                     text = "Resume",
@@ -1070,7 +1075,8 @@ fun LyricsV2(
                         shape = RoundedCornerShape(16.dp),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(52.dp)
+                            .height(52.dp),
+                        shapes = ButtonDefaults.shapes(),
                     ) {
                         Text(text = stringResource(id = R.string.share), fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
                     }

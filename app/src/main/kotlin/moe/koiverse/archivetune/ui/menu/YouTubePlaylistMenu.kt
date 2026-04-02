@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
+
 /*
  * ArchiveTune Project Original (2026)
  * Kòi Natsuko (github.com/koiverse)
@@ -29,8 +31,10 @@ import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.CircularWavyProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -254,7 +258,8 @@ fun YouTubePlaylistMenu(
             },
             buttons = {
                 TextButton(
-                    onClick = { showRemoveDownloadDialog = false }
+                    onClick = { showRemoveDownloadDialog = false },
+                    shapes = ButtonDefaults.shapes()
                 ) {
                     Text(text = stringResource(android.R.string.cancel))
                 }
@@ -269,7 +274,8 @@ fun YouTubePlaylistMenu(
                                 false
                             )
                         }
-                    }
+                    },
+                    shapes = ButtonDefaults.shapes()
                 ) {
                     Text(text = stringResource(android.R.string.ok))
                 }
@@ -695,9 +701,8 @@ fun YouTubePlaylistMenu(
                         ListItem(
                             headlineContent = { Text(text = stringResource(R.string.downloading)) },
                             leadingContent = {
-                                CircularProgressIndicator(
+                                CircularWavyProgressIndicator(
                                     modifier = Modifier.size(24.dp),
-                                    strokeWidth = 2.dp,
                                 )
                             },
                             modifier = Modifier.clickable {

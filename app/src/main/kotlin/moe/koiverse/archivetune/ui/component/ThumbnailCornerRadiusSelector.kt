@@ -4,7 +4,7 @@
  * Licensed Under GPL-3.0 | see git history for contributors
  */
 
-
+@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
 
 package moe.koiverse.archivetune.ui.component
 
@@ -318,7 +318,8 @@ fun ThumbnailCornerRadiusModal(
                     ) {
                         TextButton(
                             onClick = onDismiss,
-                            modifier = Modifier.heightIn(min = 48.dp)
+                            modifier = Modifier.heightIn(min = 48.dp),
+                            shapes = ButtonDefaults.shapes()
                         ) {
                             Text(
                                 text = stringResource(id = R.string.cancel_button),
@@ -336,7 +337,8 @@ fun ThumbnailCornerRadiusModal(
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = MaterialTheme.colorScheme.primary,
                                 contentColor = MaterialTheme.colorScheme.onPrimary
-                            )
+                            ),
+                            shapes = ButtonDefaults.shapes()
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(

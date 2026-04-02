@@ -4,7 +4,7 @@
  * Licensed Under GPL-3.0 | see git history for contributors
  */
 
-
+@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
 
 package moe.koiverse.archivetune.ui.player
 
@@ -44,8 +44,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
@@ -848,10 +849,9 @@ fun PlayerPlaybackControls(
                             .clip(RoundedCornerShape(32.dp))
                     ) {
                         if (isLoading) {
-                            CircularProgressIndicator(
+                            CircularWavyProgressIndicator(
                                 modifier = Modifier.size(42.dp),
                                 color = iconButtonColor,
-                                strokeWidth = 3.dp
                             )
                         } else {
                             Icon(
@@ -956,10 +956,9 @@ fun PlayerPlaybackControls(
                         contentAlignment = Alignment.Center
                     ) {
                         if (isLoading) {
-                            CircularProgressIndicator(
+                            CircularWavyProgressIndicator(
                                 modifier = Modifier.size(32.dp),
                                 color = icBackgroundColor,
-                                strokeWidth = 2.5.dp
                             )
                         } else {
                             Icon(
@@ -1126,10 +1125,9 @@ fun PlayerPlaybackControls(
                             contentAlignment = Alignment.Center
                         ) {
                             if (isLoading) {
-                                CircularProgressIndicator(
+                                CircularWavyProgressIndicator(
                                     modifier = Modifier.size(40.dp),
                                     color = icBackgroundColor,
-                                    strokeWidth = 3.dp
                                 )
                             } else {
                                 Icon(
@@ -1266,12 +1264,11 @@ fun PlayerPlaybackControls(
                         },
                 ) {
                     if (isLoading) {
-                        CircularProgressIndicator(
+                        CircularWavyProgressIndicator(
                             modifier = Modifier
                                 .align(Alignment.Center)
                                 .size(36.dp),
                             color = iconButtonColor,
-                            strokeWidth = 3.dp
                         )
                     } else {
                         Image(
@@ -1394,10 +1391,9 @@ fun PlayerPlaybackControls(
                                 contentAlignment = Alignment.Center
                             ) {
                                 if (isLoading) {
-                                    CircularProgressIndicator(
+                                    CircularWavyProgressIndicator(
                                         modifier = Modifier.size(40.dp),
                                         color = iconButtonColor,
-                                        strokeWidth = 3.dp
                                     )
                                 } else {
                                     Icon(

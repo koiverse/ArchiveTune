@@ -4,7 +4,7 @@
  * Licensed Under GPL-3.0 | see git history for contributors
  */
 
-
+@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
 
 package moe.koiverse.archivetune.ui.screens.artist
 
@@ -45,6 +45,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -639,7 +640,8 @@ fun ArtistScreen(
                                 shape = RoundedCornerShape(24.dp),
                                 modifier = Modifier
                                     .weight(1f)
-                                    .height(48.dp)
+                                    .height(48.dp),
+                                shapes = ButtonDefaults.shapes()
                             ) {
                                 Icon(
                                     painter = painterResource(
@@ -678,7 +680,8 @@ fun ArtistScreen(
                                 shape = RoundedCornerShape(24.dp),
                                 modifier = Modifier
                                     .weight(1f)
-                                    .height(48.dp)
+                                    .height(48.dp),
+                                shapes = ButtonDefaults.shapes()
                             ) {
                                 Icon(
                                     painter = painterResource(R.drawable.shuffle),
@@ -704,7 +707,8 @@ fun ArtistScreen(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .padding(horizontal = 24.dp, vertical = 8.dp)
-                                        .height(44.dp)
+                                        .height(44.dp),
+                                    shapes = ButtonDefaults.shapes()
                                 ) {
                                     Icon(
                                         painter = painterResource(R.drawable.radio),

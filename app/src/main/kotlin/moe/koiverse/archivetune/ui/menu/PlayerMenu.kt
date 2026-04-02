@@ -4,7 +4,7 @@
  * Licensed Under GPL-3.0 | see git history for contributors
  */
 
-
+@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
 
 package moe.koiverse.archivetune.ui.menu
 
@@ -38,13 +38,15 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.CircularWavyProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -618,9 +620,8 @@ fun PlayerMenu(
                         ListItem(
                             headlineContent = { Text(text = stringResource(R.string.downloading)) },
                             leadingContent = {
-                                CircularProgressIndicator(
+                                CircularWavyProgressIndicator(
                                     modifier = Modifier.size(24.dp),
-                                    strokeWidth = 2.dp,
                                 )
                             },
                             modifier = Modifier.clickable {
@@ -925,6 +926,7 @@ fun TempoPitchDialog(onDismiss: () -> Unit) {
                     pitch = 1f
                     applyPlaybackParameters(tempo, pitch)
                 },
+                shapes = ButtonDefaults.shapes(),
             ) {
                 Text(stringResource(R.string.reset))
             }
@@ -932,6 +934,7 @@ fun TempoPitchDialog(onDismiss: () -> Unit) {
         confirmButton = {
             TextButton(
                 onClick = onDismiss,
+                shapes = ButtonDefaults.shapes(),
             ) {
                 Text(stringResource(android.R.string.ok))
             }
@@ -1552,7 +1555,7 @@ fun EqualizerDialog(
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 modifier = Modifier.padding(24.dp),
                             ) {
-                                CircularProgressIndicator()
+                                CircularWavyProgressIndicator()
                                 Spacer(Modifier.height(16.dp))
                                 Text(
                                     text = stringResource(R.string.eq_waiting_for_audio_session),
@@ -1561,7 +1564,7 @@ fun EqualizerDialog(
                                     textAlign = TextAlign.Center,
                                 )
                                 Spacer(Modifier.height(16.dp))
-                                Button(onClick = openSystemEqualizer) {
+                                Button(onClick = openSystemEqualizer, shapes = ButtonDefaults.shapes()) {
                                     Text(text = stringResource(R.string.eq_open_system_equalizer))
                                 }
                             }
@@ -1573,7 +1576,7 @@ fun EqualizerDialog(
                     EqSection(
                         title = stringResource(R.string.eq_presets),
                         trailing = {
-                            TextButton(onClick = openSystemEqualizer) {
+                            TextButton(onClick = openSystemEqualizer, shapes = ButtonDefaults.shapes()) {
                                 Text(text = stringResource(R.string.eq_system))
                             }
                         },
@@ -1631,7 +1634,7 @@ fun EqualizerDialog(
                     EqSection(
                         title = stringResource(R.string.eq_profiles),
                         trailing = {
-                            TextButton(onClick = { showManageProfilesDialog = true }) {
+                            TextButton(onClick = { showManageProfilesDialog = true }, shapes = ButtonDefaults.shapes()) {
                                 Text(text = stringResource(R.string.eq_manage))
                             }
                         },
@@ -1664,10 +1667,10 @@ fun EqualizerDialog(
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                             }
-                            TextButton(onClick = { showSaveProfileDialog = true }) {
+                            TextButton(onClick = { showSaveProfileDialog = true }, shapes = ButtonDefaults.shapes()) {
                                 Text(text = stringResource(R.string.eq_save))
                             }
-                            TextButton(onClick = { showImportProfilesDialog = true }) {
+                            TextButton(onClick = { showImportProfilesDialog = true }, shapes = ButtonDefaults.shapes()) {
                                 Text(text = stringResource(R.string.eq_import))
                             }
                         }
@@ -1683,6 +1686,7 @@ fun EqualizerDialog(
                                     setSelectedProfileId("manual")
                                     setBandLevelsRaw(encodeBandLevelsMb(List(bandCount) { 0 }))
                                 },
+                                shapes = ButtonDefaults.shapes(),
                             ) {
                                 Text(text = stringResource(R.string.reset))
                             }

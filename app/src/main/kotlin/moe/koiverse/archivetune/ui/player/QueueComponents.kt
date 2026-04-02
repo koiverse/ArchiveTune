@@ -4,7 +4,7 @@
  * Licensed Under GPL-3.0 | see git history for contributors
  */
 
-
+@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
 
 package moe.koiverse.archivetune.ui.player
 
@@ -31,7 +31,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularWavyProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -391,7 +393,7 @@ fun SleepTimerDialog(
 
                 Spacer(Modifier.height(8.dp))
 
-                OutlinedButton(onClick = onEndOfSong) {
+                OutlinedButton(onClick = onEndOfSong, shapes = ButtonDefaults.shapes()) {
                     Text(stringResource(R.string.end_of_song))
                 }
             }
@@ -861,7 +863,8 @@ fun QueueCollapsedContentV1(
         ) {
             TextButton(
                 onClick = onExpandQueue,
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
+                shapes = ButtonDefaults.shapes(),
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -888,7 +891,8 @@ fun QueueCollapsedContentV1(
 
             TextButton(
                 onClick = onSleepTimerClick,
-                modifier = Modifier.weight(1.2f)
+                modifier = Modifier.weight(1.2f),
+                shapes = ButtonDefaults.shapes(),
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -931,7 +935,8 @@ fun QueueCollapsedContentV1(
 
             TextButton(
                 onClick = onShowLyrics,
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
+                shapes = ButtonDefaults.shapes(),
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,

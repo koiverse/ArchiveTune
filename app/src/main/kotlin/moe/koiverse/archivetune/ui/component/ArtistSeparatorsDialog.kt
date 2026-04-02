@@ -4,7 +4,7 @@
  * Licensed Under GPL-3.0 | see git history for contributors
  */
 
-
+@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
 
 package moe.koiverse.archivetune.ui.component
 
@@ -28,6 +28,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AlertDialogDefaults
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -90,7 +92,8 @@ fun ArtistSeparatorsDialog(
                         newSymbolInput = ""
                         showAddSymbolDialog = false
                     },
-                    enabled = newSymbolInput.isNotEmpty()
+                    enabled = newSymbolInput.isNotEmpty(),
+                    shapes = ButtonDefaults.shapes()
                 ) {
                     Text(stringResource(R.string.add_symbol))
                 }
@@ -99,7 +102,7 @@ fun ArtistSeparatorsDialog(
                 TextButton(onClick = { 
                     newSymbolInput = ""
                     showAddSymbolDialog = false 
-                }) {
+                }, shapes = ButtonDefaults.shapes()) {
                     Text(stringResource(android.R.string.cancel))
                 }
             }
@@ -171,14 +174,15 @@ fun ArtistSeparatorsDialog(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.End
                 ) {
-                    TextButton(onClick = onDismiss) {
+                    TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) {
                         Text(stringResource(android.R.string.cancel))
                     }
                     
                     Spacer(modifier = Modifier.width(8.dp))
                     
                     Button(
-                        onClick = { onSave(separatorsList.joinToString("")) }
+                        onClick = { onSave(separatorsList.joinToString("")) },
+                        shapes = ButtonDefaults.shapes()
                     ) {
                         Text(stringResource(R.string.save))
                     }

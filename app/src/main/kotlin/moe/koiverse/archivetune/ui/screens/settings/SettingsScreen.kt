@@ -4,6 +4,8 @@
  * Licensed Under GPL-3.0 | see git history for contributors
  */
 
+@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
+
 package moe.koiverse.archivetune.ui.screens.settings
 
 import android.Manifest
@@ -23,7 +25,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LargeTopAppBar
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.LargeFlexibleTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -198,7 +201,7 @@ fun SettingsScreen(
     Scaffold(
         topBar = {
             if (!showSearchBar) {
-                LargeTopAppBar(
+                LargeFlexibleTopAppBar(
                     title = {
                         Text(
                             text = stringResource(R.string.settings),

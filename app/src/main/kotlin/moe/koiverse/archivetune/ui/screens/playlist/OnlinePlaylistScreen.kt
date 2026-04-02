@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
+
 /*
  * ArchiveTune Project Original (2026)
  * Kòi Natsuko (github.com/koiverse)
@@ -37,7 +39,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHost
@@ -741,7 +745,8 @@ fun OnlinePlaylistScreen(
                                                 )
                                             },
                                             shape = RoundedCornerShape(24.dp),
-                                            modifier = Modifier.weight(1f).height(48.dp)
+                                            modifier = Modifier.weight(1f).height(48.dp),
+                                            shapes = ButtonDefaults.shapes(),
                                         ) {
                                             Icon(
                                                 painter = painterResource(R.drawable.play),
@@ -761,7 +766,8 @@ fun OnlinePlaylistScreen(
                                                 )
                                             },
                                             shape = RoundedCornerShape(24.dp),
-                                            modifier = Modifier.weight(1f).height(48.dp)
+                                            modifier = Modifier.weight(1f).height(48.dp),
+                                            shapes = ButtonDefaults.shapes(),
                                         ) {
                                             Icon(
                                                 painter = painterResource(R.drawable.shuffle),
@@ -781,7 +787,8 @@ fun OnlinePlaylistScreen(
                                                 )
                                             },
                                             shape = RoundedCornerShape(24.dp),
-                                            modifier = Modifier.weight(1f).height(48.dp)
+                                            modifier = Modifier.weight(1f).height(48.dp),
+                                            shapes = ButtonDefaults.shapes(),
                                         ) {
                                             Icon(
                                                 painter = painterResource(R.drawable.radio),
@@ -838,7 +845,8 @@ fun OnlinePlaylistScreen(
                                                 playerConnection.playQueue(YouTubeQueue(mixEndpoint))
                                             },
                                             shape = RoundedCornerShape(24.dp),
-                                            modifier = Modifier.weight(1f).height(48.dp)
+                                            modifier = Modifier.weight(1f).height(48.dp),
+                                            shapes = ButtonDefaults.shapes(),
                                         ) {
                                             Icon(
                                                 painter = painterResource(R.drawable.mix),
@@ -1001,7 +1009,7 @@ fun OnlinePlaylistScreen(
                                 )
                                 if (error != null) {
                                     Spacer(modifier = Modifier.height(16.dp))
-                                    Button(onClick = { viewModel.retry() }) {
+                                    Button(onClick = { viewModel.retry() }, shapes = ButtonDefaults.shapes()) {
                                         Text(stringResource(R.string.retry))
                                     }
                                 }

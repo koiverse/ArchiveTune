@@ -4,7 +4,7 @@
  * Licensed Under GPL-3.0 | see git history for contributors
  */
 
-
+@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
 
 package moe.koiverse.archivetune.ui.screens.settings
 
@@ -95,7 +95,7 @@ fun ChangelogScreen(
         ) {
             when {
                 isLoading -> {
-                    CircularProgressIndicator(
+                    CircularWavyProgressIndicator(
                         modifier = Modifier.align(Alignment.Center)
                     )
                 }
@@ -118,7 +118,7 @@ fun ChangelogScreen(
                             coroutineScope.launch {
                                 loadReleases(forceRefresh = true)
                             }
-                        }) {
+                        }, shapes = ButtonDefaults.shapes()) {
                             Text(stringResource(R.string.retry))
                         }
                     }

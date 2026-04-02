@@ -4,7 +4,7 @@
  * Licensed Under GPL-3.0 | see git history for contributors
  */
 
-
+@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
 
 package moe.koiverse.archivetune.ui.menu
 
@@ -24,6 +24,8 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -309,7 +311,7 @@ fun AddToPlaylistDialogOnline(
             title = { Text("Import Complete") },
             onDismiss = { showResultDialog = false },
             buttons = {
-                TextButton(onClick = { showResultDialog = false }) {
+                TextButton(onClick = { showResultDialog = false }, shapes = ButtonDefaults.shapes()) {
                     Text("OK")
                 }
             }

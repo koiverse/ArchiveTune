@@ -4,7 +4,7 @@
  * Licensed Under GPL-3.0 | see git history for contributors
  */
 
-
+@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
 
 package moe.koiverse.archivetune.ui.player
 
@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
@@ -186,6 +187,7 @@ fun PlaybackError(
                             containerColor = MaterialTheme.colorScheme.onErrorContainer,
                             contentColor = MaterialTheme.colorScheme.errorContainer,
                         ),
+                    shapes = ButtonDefaults.shapes(),
                 ) {
                     Text(text = openYouTubeMusicText)
                 }
@@ -202,6 +204,7 @@ fun PlaybackError(
                         ButtonDefaults.outlinedButtonColors(
                             contentColor = MaterialTheme.colorScheme.onErrorContainer,
                         ),
+                    shapes = ButtonDefaults.shapes(),
                 ) {
                     Text(text = retryText)
                 }
@@ -216,6 +219,7 @@ fun PlaybackError(
                             containerColor = MaterialTheme.colorScheme.errorContainer,
                             contentColor = MaterialTheme.colorScheme.onErrorContainer,
                         ),
+                    shapes = ButtonDefaults.shapes(),
                 ) {
                     Icon(
                         painter = painterResource(R.drawable.select_all),

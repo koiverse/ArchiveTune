@@ -4,7 +4,7 @@
  * Licensed Under GPL-3.0 | see git history for contributors
  */
 
-
+@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
 
 package moe.koiverse.archivetune
 
@@ -64,7 +64,9 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialogDefaults
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
@@ -480,7 +482,8 @@ class MainActivity : ComponentActivity() {
                             contentPadding = androidx.compose.foundation.layout.PaddingValues(
                                 horizontal = 5.dp,
                                 vertical = 5.dp
-                            )
+                            ),
+                            shapes = ButtonDefaults.shapes(),
                         ) {
                             Text(text = latestVersionName, style = MaterialTheme.typography.labelLarge)
                         }
@@ -516,6 +519,7 @@ class MainActivity : ComponentActivity() {
                                 } catch (_: Exception) {}
                             },
                             modifier = Modifier.fillMaxWidth(),
+                            shapes = ButtonDefaults.shapes(),
                         ) {
                             Text(text = stringResource(R.string.update_text))
                         }

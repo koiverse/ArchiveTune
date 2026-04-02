@@ -6,6 +6,8 @@
 
 
 
+@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
+
 package moe.koiverse.archivetune.ui.screens.settings
 
 import androidx.compose.animation.AnimatedVisibility
@@ -102,7 +104,7 @@ fun DiscordExperimental(
                                 description = currentLangName,
                                 icon = { Icon(painterResource(R.drawable.translate), null) },
                                 trailingContent = {
-                                    TextButton(onClick = { showLangDialog = true }) {
+                                    TextButton(onClick = { showLangDialog = true }, shapes = ButtonDefaults.shapes()) {
                                         Text(stringResource(R.string.select_dialog))
                                     }
                                 }
@@ -130,7 +132,7 @@ fun DiscordExperimental(
                                         }
                                     },
                                     confirmButton = {
-                                        TextButton(onClick = { showLangDialog = false }) {
+                                        TextButton(onClick = { showLangDialog = false }, shapes = ButtonDefaults.shapes()) {
                                             Text(stringResource(R.string.close_dialog))
                                         }
                                     }

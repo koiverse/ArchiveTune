@@ -4,7 +4,7 @@
  * Licensed Under GPL-3.0 | see git history for contributors
  */
 
-
+@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
 
 package moe.koiverse.archivetune.ui.screens.settings
 
@@ -45,22 +45,25 @@ import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.CheckboxDefaults
+import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.ElevatedButton
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.ShortNavigationBar
+import androidx.compose.material3.ShortNavigationBarItem
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
@@ -88,9 +91,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
@@ -113,6 +120,7 @@ import moe.koiverse.archivetune.ui.theme.ThemeSeedPalette
 import moe.koiverse.archivetune.ui.theme.ThemeSeedPaletteCodec
 import moe.koiverse.archivetune.ui.utils.backToMain
 import moe.koiverse.archivetune.utils.rememberPreference
+import kotlin.math.floor
 
 private enum class SeedRole {
     PRIMARY,
@@ -220,7 +228,7 @@ fun ThemeCreatorScreen(
         AlertDialog(
             onDismissRequest = { showImportErrorDialog = false },
             confirmButton = {
-                TextButton(onClick = { showImportErrorDialog = false }) {
+                TextButton(onClick = { showImportErrorDialog = false }, shapes = ButtonDefaults.shapes()) {
                     Text(text = stringResource(android.R.string.ok))
                 }
             },
@@ -257,11 +265,12 @@ fun ThemeCreatorScreen(
                             tertiary = ThemePalettes.Default.tertiary
                             neutral = ThemePalettes.Default.neutral
                             themeName = ""
-                        }
+                        },
+                        shapes = ButtonDefaults.shapes(),
                     ) {
                         Text(text = stringResource(R.string.reset))
                     }
-                    TextButton(onClick = { applyThemeToPrefs() }) {
+                    TextButton(onClick = { applyThemeToPrefs() }, shapes = ButtonDefaults.shapes()) {
                         Text(text = stringResource(R.string.save))
                     }
                 },
@@ -343,6 +352,7 @@ fun ThemeCreatorScreen(
                     Button(
                         onClick = { applyThemeToPrefs() },
                         modifier = Modifier.fillMaxWidth(),
+                        shapes = ButtonDefaults.shapes(),
                     ) {
                         Text(text = stringResource(R.string.theme_apply_button))
                     }
@@ -823,6 +833,7 @@ private fun ThemeRichPreview(
                                     onClick = { },
                                     modifier = Modifier.weight(1f),
                                     contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp),
+                                    shapes = ButtonDefaults.shapes(),
                                 ) {
                                     Text("Primary")
                                 }
@@ -830,6 +841,7 @@ private fun ThemeRichPreview(
                                     onClick = { },
                                     modifier = Modifier.weight(1f),
                                     contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp),
+                                    shapes = ButtonDefaults.shapes(),
                                 ) {
                                     Text("Elevated")
                                 }
@@ -839,6 +851,7 @@ private fun ThemeRichPreview(
                                     onClick = { },
                                     modifier = Modifier.weight(1f),
                                     contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp),
+                                    shapes = ButtonDefaults.shapes(),
                                 ) {
                                     Text("Outlined")
                                 }
@@ -849,6 +862,7 @@ private fun ThemeRichPreview(
                                         }
                                     },
                                     modifier = Modifier.weight(1f),
+                                    shapes = ButtonDefaults.shapes(),
                                 ) {
                                     Text("Text")
                                 }
@@ -975,12 +989,22 @@ private fun ThemeRichPreview(
                                     onCheckedChange = { switchOn = it },
                                 )
                             }
+                            val cbStrokeWidthPx = with(LocalDensity.current) { floor(CheckboxDefaults.StrokeWidth.toPx()) }
+                            val cbCheckmarkStroke = remember(cbStrokeWidthPx) {
+                                Stroke(width = cbStrokeWidthPx, cap = StrokeCap.Round, join = StrokeJoin.Round)
+                            }
+                            val cbOutlineStroke = remember(cbStrokeWidthPx) { Stroke(width = cbStrokeWidthPx) }
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
-                                Checkbox(checked = checkboxOn, onCheckedChange = { checkboxOn = it })
+                                Checkbox(
+                                    checked = checkboxOn,
+                                    onCheckedChange = { checkboxOn = it },
+                                    checkmarkStroke = cbCheckmarkStroke,
+                                    outlineStroke = cbOutlineStroke,
+                                )
                                 Text("Checkbox", style = MaterialTheme.typography.labelLarge, modifier = Modifier.weight(1f))
                                 RadioButton(selected = radioSelected == 0, onClick = { radioSelected = 0 })
                                 RadioButton(selected = radioSelected == 1, onClick = { radioSelected = 1 })
@@ -1000,14 +1024,14 @@ private fun ThemeRichPreview(
                     ) {
                         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                             PreviewSectionTitle("Progress")
-                            LinearProgressIndicator(progress = { sliderValue }, modifier = Modifier.fillMaxWidth())
+                            LinearWavyProgressIndicator(progress = { sliderValue }, modifier = Modifier.fillMaxWidth())
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
                                 Text("Loading", style = MaterialTheme.typography.labelLarge)
-                                CircularProgressIndicator(strokeWidth = 3.dp, modifier = Modifier.size(22.dp))
+                                CircularWavyProgressIndicator(modifier = Modifier.size(22.dp))
                             }
                         }
                     }
@@ -1069,8 +1093,8 @@ private fun ThemeRichPreview(
                         shape = RoundedCornerShape(22.dp),
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
                     ) {
-                        NavigationBar(containerColor = Color.Transparent) {
-                            NavigationBarItem(
+                        ShortNavigationBar(containerColor = Color.Transparent) {
+                            ShortNavigationBarItem(
                                 selected = navSelected == 0,
                                 onClick = { navSelected = 0 },
                                 icon = {
@@ -1081,7 +1105,7 @@ private fun ThemeRichPreview(
                                 },
                                 label = { Text("Home") },
                             )
-                            NavigationBarItem(
+                            ShortNavigationBarItem(
                                 selected = navSelected == 1,
                                 onClick = { navSelected = 1 },
                                 icon = {
@@ -1092,7 +1116,7 @@ private fun ThemeRichPreview(
                                 },
                                 label = { Text("Explore") },
                             )
-                            NavigationBarItem(
+                            ShortNavigationBarItem(
                                 selected = navSelected == 2,
                                 onClick = { navSelected = 2 },
                                 icon = { Icon(painter = painterResource(R.drawable.library_filled), contentDescription = null) },

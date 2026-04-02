@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
+
 /*
  * ArchiveTune Project Original (2026)
  * Kòi Natsuko (github.com/koiverse)
@@ -16,7 +18,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -84,6 +88,7 @@ fun PrivacySettings(
             buttons = {
                 TextButton(
                     onClick = { showClearListenHistoryDialog = false },
+                    shapes = ButtonDefaults.shapes(),
                 ) {
                     Text(text = stringResource(android.R.string.cancel))
                 }
@@ -95,6 +100,7 @@ fun PrivacySettings(
                             clearListenHistory()
                         }
                     },
+                    shapes = ButtonDefaults.shapes(),
                 ) {
                     Text(text = stringResource(android.R.string.ok))
                 }
@@ -119,6 +125,7 @@ fun PrivacySettings(
             buttons = {
                 TextButton(
                     onClick = { showClearSearchHistoryDialog = false },
+                    shapes = ButtonDefaults.shapes(),
                 ) {
                     Text(text = stringResource(android.R.string.cancel))
                 }
@@ -130,6 +137,7 @@ fun PrivacySettings(
                             clearSearchHistory()
                         }
                     },
+                    shapes = ButtonDefaults.shapes(),
                 ) {
                     Text(text = stringResource(android.R.string.ok))
                 }

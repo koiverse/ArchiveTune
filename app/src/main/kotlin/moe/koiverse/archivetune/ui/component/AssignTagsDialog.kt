@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
+
 /*
  * ArchiveTune Project Original (2026)
  * Kòi Natsuko (github.com/koiverse)
@@ -25,7 +27,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialogDefaults
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CheckboxDefaults
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -38,10 +43,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import kotlin.math.floor
 import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.db.MusicDatabase
 
@@ -142,13 +152,14 @@ fun AssignTagsDialog(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        TextButton(onClick = { showManageTagsDialog = true }) {
+                        TextButton(onClick = { showManageTagsDialog = true }, shapes = ButtonDefaults.shapes()) {
                             Text(stringResource(R.string.manage_tags))
                         }
 
                         TextButton(
                             enabled = allTags.isNotEmpty(),
                             onClick = { showAssignToPlaylistsDialog = true },
+                            shapes = ButtonDefaults.shapes(),
                         ) {
                             Text(stringResource(R.string.assign_tags_to_playlists))
                         }
@@ -159,7 +170,7 @@ fun AssignTagsDialog(
                         horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        TextButton(onClick = onDismiss) {
+                        TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) {
                             Text(stringResource(android.R.string.cancel))
                         }
 
@@ -172,7 +183,8 @@ fun AssignTagsDialog(
                                     }
                                 }
                                 onDismiss()
-                            }
+                            },
+                            shapes = ButtonDefaults.shapes(),
                         ) {
                             Text(stringResource(R.string.save))
                         }
@@ -262,6 +274,11 @@ private fun AssignTagsToPlaylistsDialog(
                     ) {
                         items(playlists.asReversed(), key = { it.id }) { playlist ->
                             val isSelected = playlist.id in selectedPlaylistIds
+                            val cbStrokeWidthPx = with(LocalDensity.current) { floor(CheckboxDefaults.StrokeWidth.toPx()) }
+                            val cbCheckmarkStroke = remember(cbStrokeWidthPx) {
+                                Stroke(width = cbStrokeWidthPx, cap = StrokeCap.Round, join = StrokeJoin.Round)
+                            }
+                            val cbOutlineStroke = remember(cbStrokeWidthPx) { Stroke(width = cbStrokeWidthPx) }
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -289,7 +306,9 @@ private fun AssignTagsToPlaylistsDialog(
                                             } else {
                                                 selectedPlaylistIds - playlist.id
                                             }
-                                    }
+                                    },
+                                    checkmarkStroke = cbCheckmarkStroke,
+                                    outlineStroke = cbOutlineStroke,
                                 )
                             }
                         }
@@ -302,7 +321,7 @@ private fun AssignTagsToPlaylistsDialog(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
-                    TextButton(onClick = onDismiss) {
+                    TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) {
                         Text(stringResource(android.R.string.cancel))
                     }
 
@@ -316,7 +335,8 @@ private fun AssignTagsToPlaylistsDialog(
                                 )
                             }
                             onDismiss()
-                        }
+                        },
+                        shapes = ButtonDefaults.shapes(),
                     ) {
                         Text(stringResource(R.string.save))
                     }

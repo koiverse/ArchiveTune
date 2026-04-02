@@ -4,7 +4,7 @@
  * Licensed Under GPL-3.0 | see git history for contributors
  */
 
-
+@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
 
 package moe.koiverse.archivetune.ui.screens.settings
 
@@ -30,6 +30,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
@@ -267,7 +268,8 @@ fun AppearanceSettings(
         DefaultDialog(
             buttons = {
                 TextButton(
-                    onClick = { showSliderOptionDialog = false }
+                    onClick = { showSliderOptionDialog = false },
+                    shapes = ButtonDefaults.shapes(),
                 ) {
                     Text(text = stringResource(android.R.string.cancel))
                 }
@@ -527,7 +529,8 @@ fun AppearanceSettings(
                         TextButton(
                             onClick = { 
                                 tempSensitivity = 0.73f
-                            }
+                            },
+                            shapes = ButtonDefaults.shapes(),
                         ) {
                             Text(stringResource(R.string.reset))
                         }
@@ -538,7 +541,8 @@ fun AppearanceSettings(
                             onClick = { 
                                 tempSensitivity = swipeSensitivity
                                 showSensitivityDialog = false 
-                            }
+                            },
+                            shapes = ButtonDefaults.shapes(),
                         ) {
                             Text(stringResource(android.R.string.cancel))
                         }
@@ -546,7 +550,8 @@ fun AppearanceSettings(
                             onClick = { 
                                 onSwipeSensitivityChange(tempSensitivity)
                                 showSensitivityDialog = false 
-                            }
+                            },
+                            shapes = ButtonDefaults.shapes(),
                         ) {
                             Text(stringResource(android.R.string.ok))
                         }
@@ -657,7 +662,8 @@ fun AppearanceSettings(
                     TextButton(
                         onClick = { 
                             tempTextSize = 24f
-                        }
+                        },
+                        shapes = ButtonDefaults.shapes(),
                     ) {
                         Text(stringResource(R.string.reset))
                     }
@@ -668,7 +674,8 @@ fun AppearanceSettings(
                         onClick = { 
                             tempTextSize = lyricsTextSize
                             showLyricsTextSizeDialog = false 
-                        }
+                        },
+                        shapes = ButtonDefaults.shapes(),
                     ) {
                         Text(stringResource(android.R.string.cancel))
                     }
@@ -676,7 +683,8 @@ fun AppearanceSettings(
                         onClick = { 
                             onLyricsTextSizeChange(tempTextSize)
                             showLyricsTextSizeDialog = false 
-                        }
+                        },
+                        shapes = ButtonDefaults.shapes(),
                     ) {
                         Text(stringResource(android.R.string.ok))
                     }
@@ -730,7 +738,8 @@ fun AppearanceSettings(
                     TextButton(
                         onClick = { 
                             tempLineSpacing = 1.3f
-                        }
+                        },
+                        shapes = ButtonDefaults.shapes(),
                     ) {
                         Text(stringResource(R.string.reset))
                     }
@@ -741,7 +750,8 @@ fun AppearanceSettings(
                         onClick = { 
                             tempLineSpacing = lyricsLineSpacing
                             showLyricsLineSpacingDialog = false 
-                        }
+                        },
+                        shapes = ButtonDefaults.shapes(),
                     ) {
                         Text(stringResource(android.R.string.cancel))
                     }
@@ -749,7 +759,8 @@ fun AppearanceSettings(
                         onClick = { 
                             onLyricsLineSpacingChange(tempLineSpacing)
                             showLyricsLineSpacingDialog = false 
-                        }
+                        },
+                        shapes = ButtonDefaults.shapes(),
                     ) {
                         Text(stringResource(android.R.string.ok))
                     }

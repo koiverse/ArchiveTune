@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
+
 package moe.koiverse.archivetune.ui.screens.musicrecognition
 
 import android.Manifest
@@ -53,9 +55,10 @@ import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -362,9 +365,8 @@ fun MusicRecognitionScreen(
                     horizontalArrangement = Arrangement.Center,
                 ) {
                     if (isBusy) {
-                        CircularProgressIndicator(
+                        CircularWavyProgressIndicator(
                             modifier = Modifier.size(22.dp),
-                            strokeWidth = 2.dp,
                         )
                     }
                 }
@@ -701,6 +703,7 @@ private fun PermissionCard(
             Button(
                 onClick = onAllow,
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                shapes = ButtonDefaults.shapes(),
             ) {
                 Text(stringResource(R.string.music_recognition_permission_action))
             }
@@ -736,7 +739,7 @@ private fun FailureCard(
                 )
             }
             Spacer(modifier = Modifier.height(14.dp))
-            FilledTonalButton(onClick = onAction) {
+            FilledTonalButton(onClick = onAction, shapes = ButtonDefaults.shapes()) {
                 Text(actionLabel)
             }
         }
@@ -764,6 +767,7 @@ private fun SuccessActions(
                     Modifier
                         .weight(1f)
                         .heightIn(min = 48.dp),
+                shapes = ButtonDefaults.shapes(),
             ) {
                 Icon(
                     painter = painterResource(R.drawable.replay),
@@ -790,6 +794,7 @@ private fun SuccessActions(
                         containerColor = MaterialTheme.colorScheme.primary,
                         contentColor = MaterialTheme.colorScheme.onPrimary,
                     ),
+                shapes = ButtonDefaults.shapes(),
             ) {
                 Icon(
                     painter = painterResource(R.drawable.search),
@@ -814,6 +819,7 @@ private fun SuccessActions(
                     )
                 },
                 modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                shapes = ButtonDefaults.shapes(),
             ) {
                 Icon(
                     painter = painterResource(R.drawable.arrow_forward),
@@ -920,6 +926,7 @@ private fun ResultCard(
                                     )
                                 },
                                 modifier = Modifier.fillMaxWidth().heightIn(min = 44.dp),
+                                shapes = ButtonDefaults.shapes(),
                             ) {
                                 Icon(
                                     painter = painterResource(R.drawable.link),
@@ -979,6 +986,7 @@ private fun ResultCard(
                                     )
                                 },
                                 modifier = Modifier.heightIn(min = 40.dp),
+                                shapes = ButtonDefaults.shapes(),
                             ) {
                                 Icon(
                                     painter = painterResource(R.drawable.link),

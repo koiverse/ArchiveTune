@@ -20,8 +20,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.grid.LazyGridState
-import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MediumExtendedFloatingActionButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -30,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import moe.koiverse.archivetune.LocalPlayerAwareWindowInsets
 import moe.koiverse.archivetune.ui.utils.isScrollingUp
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun BoxScope.HideOnScrollFAB(
     visible: Boolean = true,
@@ -49,18 +52,23 @@ fun BoxScope.HideOnScrollFAB(
                     .only(WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal),
             ),
     ) {
-        FloatingActionButton(
+        MediumExtendedFloatingActionButton(
             modifier = Modifier.padding(16.dp),
             onClick = onClick,
-        ) {
-            Icon(
-                painter = painterResource(icon),
-                contentDescription = null,
-            )
-        }
+            icon = {
+                Icon(
+                    painter = painterResource(icon),
+                    contentDescription = null,
+                )
+            },
+            text = {},
+            containerColor = MaterialTheme.colorScheme.primaryContainer,
+            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+        )
     }
 }
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun BoxScope.HideOnScrollFAB(
     visible: Boolean = true,
@@ -80,18 +88,23 @@ fun BoxScope.HideOnScrollFAB(
                     .only(WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal),
             ),
     ) {
-        FloatingActionButton(
+        MediumExtendedFloatingActionButton(
             modifier = Modifier.padding(16.dp),
             onClick = onClick,
-        ) {
-            Icon(
-                painter = painterResource(icon),
-                contentDescription = null,
-            )
-        }
+            icon = {
+                Icon(
+                    painter = painterResource(icon),
+                    contentDescription = null,
+                )
+            },
+            text = {},
+            containerColor = MaterialTheme.colorScheme.primaryContainer,
+            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+        )
     }
 }
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun BoxScope.HideOnScrollFAB(
     visible: Boolean = true,
@@ -111,14 +124,18 @@ fun BoxScope.HideOnScrollFAB(
                     .only(WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal),
             ),
     ) {
-        FloatingActionButton(
+        MediumExtendedFloatingActionButton(
             modifier = Modifier.padding(16.dp),
             onClick = onClick,
-        ) {
-            Icon(
-                painter = painterResource(icon),
-                contentDescription = null,
-            )
-        }
+            icon = {
+                Icon(
+                    painter = painterResource(icon),
+                    contentDescription = null,
+                )
+            },
+            text = {},
+            containerColor = MaterialTheme.colorScheme.primaryContainer,
+            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+        )
     }
 }

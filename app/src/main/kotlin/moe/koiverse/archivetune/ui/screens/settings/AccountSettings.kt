@@ -58,7 +58,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.ElevatedButton
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -66,7 +66,7 @@ import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
-import androidx.compose.material3.LargeTopAppBar
+import androidx.compose.material3.LargeFlexibleTopAppBar
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
@@ -95,11 +95,15 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -138,6 +142,7 @@ import moe.koiverse.archivetune.utils.dataStore
 import moe.koiverse.archivetune.utils.putLegacyPoToken
 import moe.koiverse.archivetune.utils.rememberPreference
 import moe.koiverse.archivetune.viewmodels.HomeViewModel
+import kotlin.math.floor
 
 private val CardShape = RoundedCornerShape(28.dp)
 private val InnerTileShape = RoundedCornerShape(22.dp)
@@ -221,7 +226,7 @@ fun AccountSettings(
         containerColor = MaterialTheme.colorScheme.surface,
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
-            LargeTopAppBar(
+            LargeFlexibleTopAppBar(
                 title = {
                     Column {
                         Text(
@@ -687,6 +692,7 @@ private fun ProfileIdentityCard(
                         defaultElevation = 1.dp,
                         pressedElevation = 0.dp,
                     ),
+                    shapes = ButtonDefaults.shapes(),
                 ) {
                     Icon(
                         painter = painterResource(
@@ -705,6 +711,7 @@ private fun ProfileIdentityCard(
                 OutlinedButton(
                     onClick = onSecondaryAction,
                     shape = RoundedCornerShape(16.dp),
+                    shapes = ButtonDefaults.shapes(),
                 ) {
                     Text(
                         text = if (isLoggedIn) stringResource(R.string.action_logout) else stringResource(R.string.advanced_login),
@@ -787,6 +794,7 @@ private fun UpdateBannerStrip(
                     containerColor = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.14f),
                     contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
                 ),
+                shapes = ButtonDefaults.shapes(),
             ) {
                 Text(
                     text = stringResource(R.string.update_text),
@@ -1170,6 +1178,7 @@ private fun TokenRevealCard(
                     onClick = onEdit,
                     shape = RoundedCornerShape(14.dp),
                     contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                    shapes = ButtonDefaults.shapes(),
                 ) {
                     Icon(
                         painter = painterResource(R.drawable.edit),
@@ -1359,6 +1368,7 @@ private fun PlaylistSelectionDialog(onDismiss: () -> Unit) {
                     onDismiss()
                 },
                 shape = RoundedCornerShape(14.dp),
+                shapes = ButtonDefaults.shapes(),
             ) {
                 Text(
                     text = stringResource(R.string.save),
@@ -1367,7 +1377,7 @@ private fun PlaylistSelectionDialog(onDismiss: () -> Unit) {
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
+            TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) {
                 Text(text = stringResource(R.string.cancel_button))
             }
         },
@@ -1386,9 +1396,8 @@ private fun PlaylistSelectionDialog(onDismiss: () -> Unit) {
                         .heightIn(min = 200.dp),
                     contentAlignment = Alignment.Center,
                 ) {
-                    CircularProgressIndicator(
+                    CircularWavyProgressIndicator(
                         modifier = Modifier.size(40.dp),
-                        strokeWidth = 3.dp,
                         color = MaterialTheme.colorScheme.primary,
                     )
                 }
@@ -1454,6 +1463,11 @@ private fun PlaylistSelectionRow(
         label = "playlistBorder",
     )
 
+    val cbStrokeWidthPx = with(LocalDensity.current) { floor(CheckboxDefaults.StrokeWidth.toPx()) }
+    val cbCheckmarkStroke = remember(cbStrokeWidthPx) {
+        Stroke(width = cbStrokeWidthPx, cap = StrokeCap.Round, join = StrokeJoin.Round)
+    }
+    val cbOutlineStroke = remember(cbStrokeWidthPx) { Stroke(width = cbStrokeWidthPx) }
     Surface(
         modifier = Modifier
             .fillMaxWidth()
@@ -1511,6 +1525,8 @@ private fun PlaylistSelectionRow(
                     checkedColor = MaterialTheme.colorScheme.primary,
                     uncheckedColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.55f),
                 ),
+                checkmarkStroke = cbCheckmarkStroke,
+                outlineStroke = cbOutlineStroke,
             )
         }
     }

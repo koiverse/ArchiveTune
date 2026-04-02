@@ -4,7 +4,7 @@
  * Licensed Under GPL-3.0 | see git history for contributors
  */
 
-
+@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
 
 package moe.koiverse.archivetune.ui.menu
 
@@ -34,8 +34,9 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialogDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
@@ -540,7 +541,7 @@ fun AddToPlaylistDialog(
                         horizontalArrangement = Arrangement.End,
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        TextButton(onClick = onDismiss) {
+                        TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) {
                             Text(stringResource(android.R.string.cancel))
                         }
 
@@ -611,11 +612,11 @@ fun AddToPlaylistDialog(
                                 }
                             },
                             contentPadding = ButtonDefaults.ButtonWithIconContentPadding,
+                            shapes = ButtonDefaults.shapes(),
                         ) {
                             if (isAddingToPlaylist) {
-                                CircularProgressIndicator(
+                                CircularWavyProgressIndicator(
                                     modifier = Modifier.size(16.dp),
-                                    strokeWidth = 2.dp,
                                     color = MaterialTheme.colorScheme.onPrimary,
                                 )
                             } else {
@@ -674,7 +675,8 @@ fun AddToPlaylistDialog(
                         }
                         showDuplicateDialog = false
                         onDismiss()
-                    }
+                    },
+                    shapes = ButtonDefaults.shapes(),
                 ) {
                     Text(stringResource(R.string.skip_duplicates))
                 }
@@ -699,12 +701,13 @@ fun AddToPlaylistDialog(
                         }
                         showDuplicateDialog = false
                         onDismiss()
-                    }
+                    },
+                    shapes = ButtonDefaults.shapes(),
                 ) {
                     Text(stringResource(R.string.add_anyway))
                 }
 
-                TextButton(onClick = { showDuplicateDialog = false }) {
+                TextButton(onClick = { showDuplicateDialog = false }, shapes = ButtonDefaults.shapes()) {
                     Text(stringResource(android.R.string.cancel))
                 }
             },

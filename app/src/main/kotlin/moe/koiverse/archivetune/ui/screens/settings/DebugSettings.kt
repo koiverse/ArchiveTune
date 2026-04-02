@@ -6,6 +6,8 @@
 
 
 
+@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
+
 package moe.koiverse.archivetune.ui.screens.settings
 
 import android.content.Intent
@@ -43,9 +45,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -53,7 +57,8 @@ import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Scaffold
@@ -77,9 +82,13 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.rememberNestedScrollInteropConnection
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -106,6 +115,7 @@ import moe.koiverse.archivetune.utils.GlobalLog
 import moe.koiverse.archivetune.utils.LogEntry
 import moe.koiverse.archivetune.utils.makeTimeString
 import moe.koiverse.archivetune.utils.rememberPreference
+import kotlin.math.floor
 import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -609,7 +619,8 @@ private fun LogViewerPanel() {
                 FilledTonalButton(
                     onClick = { GlobalLog.clear() },
                     enabled = filtered.isNotEmpty(),
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
+                    shapes = ButtonDefaults.shapes(),
                 ) {
                     Icon(
                         painter = painterResource(R.drawable.clear_all),
@@ -632,7 +643,8 @@ private fun LogViewerPanel() {
                         context.startActivity(Intent.createChooser(send, context.getString(R.string.share_logs)))
                     },
                     enabled = filtered.isNotEmpty(),
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
+                    shapes = ButtonDefaults.shapes(),
                 ) {
                     Icon(
                         painter = painterResource(R.drawable.share),
@@ -658,6 +670,11 @@ private fun LogLevelMenuItem(
     selectedLevels: Set<Int>,
     onToggle: (Int) -> Unit
 ) {
+    val cbStrokeWidthPx = with(LocalDensity.current) { floor(CheckboxDefaults.StrokeWidth.toPx()) }
+    val cbCheckmarkStroke = remember(cbStrokeWidthPx) {
+        Stroke(width = cbStrokeWidthPx, cap = StrokeCap.Round, join = StrokeJoin.Round)
+    }
+    val cbOutlineStroke = remember(cbStrokeWidthPx) { Stroke(width = cbStrokeWidthPx) }
     DropdownMenuItem(
         onClick = { onToggle(level) },
         text = {
@@ -667,7 +684,9 @@ private fun LogLevelMenuItem(
             ) {
                 Checkbox(
                     checked = selectedLevels.contains(level),
-                    onCheckedChange = { onToggle(level) }
+                    onCheckedChange = { onToggle(level) },
+                    checkmarkStroke = cbCheckmarkStroke,
+                    outlineStroke = cbOutlineStroke,
                 )
                 Text(label)
             }
@@ -957,9 +976,8 @@ private fun NerdStatsSection(playerConnection: moe.koiverse.archivetune.playback
                             horizontalArrangement = Arrangement.spacedBy(12.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            LinearProgressIndicator(
+                            LinearWavyProgressIndicator(
                                 modifier = Modifier.size(24.dp),
-                                strokeCap = androidx.compose.ui.graphics.StrokeCap.Round
                             )
                             Text(
                                 text = stringResource(R.string.loading_format),
@@ -998,7 +1016,7 @@ private fun NerdStatsSection(playerConnection: moe.koiverse.archivetune.playback
                         )
                     }
 
-                    LinearProgressIndicator(
+                    LinearWavyProgressIndicator(
                         progress = { bufferProgress },
                         modifier = Modifier
                             .fillMaxWidth()

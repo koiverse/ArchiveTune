@@ -4,14 +4,16 @@
  * Licensed Under GPL-3.0 | see git history for contributors
  */
 
-
+@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
 
 package moe.koiverse.archivetune.ui.menu
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularWavyProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.SnackbarHostState
@@ -94,7 +96,7 @@ fun ImportPlaylistDialog(
             },
             extraContent = {
                 if (isImporting) {
-                    CircularProgressIndicator()
+                    CircularWavyProgressIndicator()
                 }
             },
             onDone = { finalName ->
@@ -181,7 +183,7 @@ fun ImportPlaylistDialog(
                     Text(text = stringResource(R.string.already_in_playlist))
                     if (isProcessingDuplicate) {
                         Spacer(modifier = Modifier.height(16.dp))
-                        CircularProgressIndicator()
+                        CircularWavyProgressIndicator()
                     }
                 }
             },
@@ -191,7 +193,8 @@ fun ImportPlaylistDialog(
                     onClick = {
                         resetState()
                         onDismiss()
-                    }
+                    },
+                    shapes = ButtonDefaults.shapes()
                 ) { Text(text = stringResource(android.R.string.cancel)) }
 
                 TextButton(
@@ -260,7 +263,8 @@ fun ImportPlaylistDialog(
                                 }
                             }
                         }
-                    }
+                    },
+                    shapes = ButtonDefaults.shapes()
                 ) { Text(text = stringResource(R.string.update_button)) }
 
                 TextButton(
@@ -307,7 +311,8 @@ fun ImportPlaylistDialog(
                                 }
                             }
                         }
-                    }
+                    },
+                    shapes = ButtonDefaults.shapes()
                 ) { Text(text = stringResource(R.string.import_playlist)) }
             }
         )

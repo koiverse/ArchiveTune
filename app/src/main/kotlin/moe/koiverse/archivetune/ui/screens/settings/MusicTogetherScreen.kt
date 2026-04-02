@@ -4,6 +4,8 @@
  * Licensed Under GPL-3.0 | see git history for contributors
  */
 
+@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
+
 package moe.koiverse.archivetune.ui.screens.settings
 
 import android.content.Intent
@@ -47,8 +49,10 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.CheckboxDefaults
+import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -76,8 +80,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -104,6 +112,7 @@ import moe.koiverse.archivetune.ui.component.IconButton as AtIconButton
 import moe.koiverse.archivetune.ui.component.TextFieldDialog
 import moe.koiverse.archivetune.ui.utils.backToMain
 import moe.koiverse.archivetune.utils.rememberPreference
+import kotlin.math.floor
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -301,6 +310,7 @@ fun MusicTogetherScreen(
                     },
                     shape = RoundedCornerShape(16.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                    shapes = ButtonDefaults.shapes(),
                 ) {
                     Text(text = stringResource(R.string.together_kick), fontWeight = FontWeight.SemiBold)
                 }
@@ -309,6 +319,7 @@ fun MusicTogetherScreen(
                 TextButton(
                     onClick = { confirmKickParticipantId = null },
                     shape = RoundedCornerShape(16.dp),
+                    shapes = ButtonDefaults.shapes(),
                 ) {
                     Text(text = stringResource(R.string.dismiss))
                 }
@@ -338,6 +349,7 @@ fun MusicTogetherScreen(
                     },
                     shape = RoundedCornerShape(16.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                    shapes = ButtonDefaults.shapes(),
                 ) {
                     Text(text = stringResource(R.string.together_ban), fontWeight = FontWeight.SemiBold)
                 }
@@ -346,6 +358,7 @@ fun MusicTogetherScreen(
                 TextButton(
                     onClick = { confirmBanParticipantId = null },
                     shape = RoundedCornerShape(16.dp),
+                    shapes = ButtonDefaults.shapes(),
                 ) {
                     Text(text = stringResource(R.string.dismiss))
                 }
@@ -725,6 +738,11 @@ private fun WelcomeDialog(
                         )
                     }
                 }
+                val cbStrokeWidthPx = with(LocalDensity.current) { floor(CheckboxDefaults.StrokeWidth.toPx()) }
+                val cbCheckmarkStroke = remember(cbStrokeWidthPx) {
+                    Stroke(width = cbStrokeWidthPx, cap = StrokeCap.Round, join = StrokeJoin.Round)
+                }
+                val cbOutlineStroke = remember(cbStrokeWidthPx) { Stroke(width = cbStrokeWidthPx) }
                 Row(
                     modifier =
                         Modifier
@@ -744,6 +762,8 @@ private fun WelcomeDialog(
                     Checkbox(
                         checked = dontShowAgain,
                         onCheckedChange = null,
+                        checkmarkStroke = cbCheckmarkStroke,
+                        outlineStroke = cbOutlineStroke,
                     )
                     Text(
                         text = stringResource(R.string.together_dont_show_again),
@@ -760,6 +780,7 @@ private fun WelcomeDialog(
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.primary,
                 ),
+                shapes = ButtonDefaults.shapes(),
             ) {
                 Icon(
                     painter = painterResource(R.drawable.check),
@@ -1002,11 +1023,11 @@ private fun HostSectionCard(
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.primary,
                 ),
+                shapes = ButtonDefaults.shapes(),
             ) {
                 if (isLoading) {
-                    CircularProgressIndicator(
+                    CircularWavyProgressIndicator(
                         modifier = Modifier.size(18.dp),
-                        strokeWidth = 2.dp,
                         color = MaterialTheme.colorScheme.onPrimary,
                     )
                     Spacer(Modifier.width(10.dp))
@@ -1156,11 +1177,11 @@ private fun JoinSectionCard(
                     .scale(scale),
                 shape = RoundedCornerShape(18.dp),
                 interactionSource = interactionSource,
+                shapes = ButtonDefaults.shapes(),
             ) {
                 if (isJoining) {
-                    CircularProgressIndicator(
+                    CircularWavyProgressIndicator(
                         modifier = Modifier.size(18.dp),
-                        strokeWidth = 2.dp,
                         color = MaterialTheme.colorScheme.onSecondaryContainer,
                     )
                     Spacer(Modifier.width(10.dp))
@@ -1169,9 +1190,8 @@ private fun JoinSectionCard(
                         fontWeight = FontWeight.SemiBold,
                     )
                 } else if (isWaitingApproval) {
-                    CircularProgressIndicator(
+                    CircularWavyProgressIndicator(
                         modifier = Modifier.size(18.dp),
-                        strokeWidth = 2.dp,
                         color = MaterialTheme.colorScheme.onSecondaryContainer,
                     )
                     Spacer(Modifier.width(10.dp))
@@ -1482,6 +1502,7 @@ private fun StatusCard(
                         FilledTonalButton(
                             onClick = onLeave,
                             shape = RoundedCornerShape(14.dp),
+                            shapes = ButtonDefaults.shapes(),
                         ) {
                             Icon(
                                 painter = painterResource(R.drawable.leave),
@@ -1585,6 +1606,7 @@ private fun SessionInfoCard(
                 FilledTonalButton(
                     onClick = onCopy,
                     shape = RoundedCornerShape(14.dp),
+                    shapes = ButtonDefaults.shapes(),
                 ) {
                     Icon(
                         painter = painterResource(R.drawable.copy),
@@ -1597,6 +1619,7 @@ private fun SessionInfoCard(
                 TextButton(
                     onClick = onShare,
                     shape = RoundedCornerShape(14.dp),
+                    shapes = ButtonDefaults.shapes(),
                 ) {
                     Icon(
                         painter = painterResource(R.drawable.share),

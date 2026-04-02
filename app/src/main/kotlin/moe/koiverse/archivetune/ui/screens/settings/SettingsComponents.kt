@@ -4,6 +4,8 @@
  * Licensed Under GPL-3.0 | see git history for contributors
  */
 
+@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
+
 package moe.koiverse.archivetune.ui.screens.settings
 
 import androidx.compose.animation.core.Spring
@@ -33,7 +35,8 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.CircularWavyProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -130,9 +133,8 @@ fun SettingsProfileHeader(
                     contentAlignment = Alignment.Center,
                 ) {
                     if (state.isLoading) {
-                        CircularProgressIndicator(
+                        CircularWavyProgressIndicator(
                             modifier = Modifier.size(28.dp),
-                            strokeWidth = 2.5.dp,
                             color = MaterialTheme.colorScheme.primary,
                         )
                     } else if (state.isLoggedIn && !state.accountImageUrl.isNullOrBlank()) {
@@ -280,6 +282,7 @@ fun SettingsPermissionBanner(
                     containerColor = MaterialTheme.colorScheme.primary,
                 ),
                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                shapes = ButtonDefaults.shapes(),
             ) {
                 Text(
                     text = stringResource(R.string.allow),

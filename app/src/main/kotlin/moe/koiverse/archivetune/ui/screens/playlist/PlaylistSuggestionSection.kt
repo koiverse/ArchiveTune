@@ -4,6 +4,7 @@
  * Licensed Under GPL-3.0 | see git history for contributors
  */
 
+@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
 
 package moe.koiverse.archivetune.ui.screens.playlist
 
@@ -17,7 +18,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularWavyProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -86,7 +89,8 @@ fun PlaylistSuggestionsSection(
                     onClick = {
                         showDuplicateDialog = false
                         songToCheck = null
-                    }
+                    },
+                    shapes = ButtonDefaults.shapes()
                 ) {
                     Text(stringResource(android.R.string.cancel))
                 }
@@ -107,7 +111,8 @@ fun PlaylistSuggestionsSection(
                         }
                         showDuplicateDialog = false
                         songToCheck = null
-                    }
+                    },
+                    shapes = ButtonDefaults.shapes()
                 ) {
                     Text(stringResource(R.string.add_anyway))
                 }
@@ -233,14 +238,14 @@ fun PlaylistSuggestionsSection(
                 contentAlignment = Alignment.Center
             ) {
                 if (isLoading) {
-                    CircularProgressIndicator(
+                    CircularWavyProgressIndicator(
                         modifier = Modifier.size(24.dp),
-                        strokeWidth = 2.dp,
                         color = MaterialTheme.colorScheme.primary
                     )
                 } else {
                     TextButton(
-                        onClick = { viewModel.resetAndLoadPlaylistSuggestions() }
+                        onClick = { viewModel.resetAndLoadPlaylistSuggestions() },
+                        shapes = ButtonDefaults.shapes()
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(

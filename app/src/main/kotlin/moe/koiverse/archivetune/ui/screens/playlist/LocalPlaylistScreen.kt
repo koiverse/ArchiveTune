@@ -4,7 +4,7 @@
  * Licensed Under GPL-3.0 | see git history for contributors
  */
 
-
+@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
 
 package moe.koiverse.archivetune.ui.screens.playlist
 
@@ -38,8 +38,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarDuration
@@ -342,6 +343,7 @@ fun LocalPlaylistScreen(
             buttons = {
                 TextButton(
                     onClick = { showRemoveDownloadDialog = false },
+                    shapes = ButtonDefaults.shapes(),
                 ) {
                     Text(text = stringResource(android.R.string.cancel))
                 }
@@ -362,7 +364,8 @@ fun LocalPlaylistScreen(
                                 false
                             )
                         }
-                    }
+                    },
+                    shapes = ButtonDefaults.shapes(),
                 ) {
                     Text(text = stringResource(android.R.string.ok))
                 }
@@ -386,7 +389,8 @@ fun LocalPlaylistScreen(
             },
             buttons = {
                 TextButton(
-                    onClick = { showDeletePlaylistDialog = false }
+                    onClick = { showDeletePlaylistDialog = false },
+                    shapes = ButtonDefaults.shapes(),
                 ) {
                     Text(text = stringResource(android.R.string.cancel))
                 }
@@ -400,7 +404,8 @@ fun LocalPlaylistScreen(
                             playlist?.playlist?.browseId?.let { YouTube.deletePlaylist(it) }
                         }
                         navController.popBackStack()
-                    }
+                    },
+                    shapes = ButtonDefaults.shapes(),
                 ) {
                     Text(text = stringResource(android.R.string.ok))
                 }
@@ -866,7 +871,8 @@ fun LocalPlaylistScreen(
                                         shape = RoundedCornerShape(24.dp),
                                         modifier = Modifier
                                             .weight(1f)
-                                            .height(48.dp)
+                                            .height(48.dp),
+                                        shapes = ButtonDefaults.shapes(),
                                     ) {
                                         Icon(
                                             painter = painterResource(R.drawable.play),
@@ -888,7 +894,8 @@ fun LocalPlaylistScreen(
                                         shape = RoundedCornerShape(24.dp),
                                         modifier = Modifier
                                             .weight(1f)
-                                            .height(48.dp)
+                                            .height(48.dp),
+                                        shapes = ButtonDefaults.shapes(),
                                     ) {
                                         Icon(
                                             painter = painterResource(R.drawable.shuffle),
@@ -949,8 +956,7 @@ fun LocalPlaylistScreen(
                                                     )
                                                 }
                                                 Download.STATE_DOWNLOADING -> {
-                                                    CircularProgressIndicator(
-                                                        strokeWidth = 2.dp,
+                                                    CircularWavyProgressIndicator(
                                                         modifier = Modifier.size(24.dp),
                                                         color = MaterialTheme.colorScheme.primary
                                                     )
@@ -1040,7 +1046,8 @@ fun LocalPlaylistScreen(
                                         shape = RoundedCornerShape(24.dp),
                                         modifier = Modifier
                                             .weight(1f)
-                                            .height(48.dp)
+                                            .height(48.dp),
+                                        shapes = ButtonDefaults.shapes(),
                                     ) {
                                         Icon(
                                             painter = painterResource(R.drawable.mix),

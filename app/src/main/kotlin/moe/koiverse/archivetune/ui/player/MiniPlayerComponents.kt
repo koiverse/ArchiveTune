@@ -4,7 +4,7 @@
  * Licensed Under GPL-3.0 | see git history for contributors
  */
 
-
+@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
 
 package moe.koiverse.archivetune.ui.player
 
@@ -41,7 +41,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.CircularWavyProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -280,19 +281,17 @@ private fun MiniPlayerArtwork(
         modifier = modifier.size(44.dp)
     ) {
         if (isLoading) {
-            CircularProgressIndicator(
+            CircularWavyProgressIndicator(
                 progress = { 1f },
                 modifier = Modifier.fillMaxSize(),
                 color = MaterialTheme.colorScheme.primary,
-                strokeWidth = 2.dp,
                 trackColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.18f)
             )
         } else {
-            CircularProgressIndicator(
+            CircularWavyProgressIndicator(
                 progress = { if (duration > 0) (position.toFloat() / duration).coerceIn(0f, 1f) else 0f },
                 modifier = Modifier.fillMaxSize(),
                 color = MaterialTheme.colorScheme.primary,
-                strokeWidth = 2.dp,
                 trackColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.18f)
             )
         }
