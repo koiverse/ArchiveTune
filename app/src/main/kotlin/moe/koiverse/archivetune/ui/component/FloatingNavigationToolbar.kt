@@ -75,14 +75,9 @@ fun FloatingNavigationToolbar(
     onItemClick: (Screens, Boolean) -> Unit,
 ) {
     val toolbarContainerColor = floatingToolbarContainerColor(pureBlack = pureBlack)
-    val toolbarColors =
-        if (pureBlack) {
-            FloatingToolbarDefaults.standardFloatingToolbarColors(
-                toolbarContainerColor = toolbarContainerColor,
-            )
-        } else {
-            FloatingToolbarDefaults.vibrantFloatingToolbarColors()
-        }
+    val toolbarColors = FloatingToolbarDefaults.standardFloatingToolbarColors(
+        toolbarContainerColor = toolbarContainerColor,
+    )
     val hasOverflowAction = onShuffleClick != null && shuffleIconRes != null
     val hasFabAction = onFabClick != null && fabIconRes != null
 
@@ -546,27 +541,27 @@ private fun FloatingNavigationToolbarItem(
 
 @Composable
 private fun floatingToolbarContainerColor(pureBlack: Boolean): Color {
-    return if (pureBlack) Color.Black else MaterialTheme.colorScheme.secondaryContainer
+    return if (pureBlack) Color.Black else MaterialTheme.colorScheme.surfaceContainer
 }
 
 @Composable
 private fun floatingToolbarFabContainerColor(pureBlack: Boolean): Color {
-    return if (pureBlack) Color.White.copy(alpha = 0.12f) else MaterialTheme.colorScheme.primaryContainer
-}
-
-@Composable
-private fun floatingToolbarFabContentColor(pureBlack: Boolean): Color {
-    return if (pureBlack) Color.White else MaterialTheme.colorScheme.onPrimaryContainer
-}
-
-@Composable
-private fun floatingToolbarSelectedItemContainerColor(pureBlack: Boolean): Color {
     return if (pureBlack) Color.White.copy(alpha = 0.12f) else MaterialTheme.colorScheme.tertiaryContainer
 }
 
 @Composable
-private fun floatingToolbarSelectedItemContentColor(pureBlack: Boolean): Color {
+private fun floatingToolbarFabContentColor(pureBlack: Boolean): Color {
     return if (pureBlack) Color.White else MaterialTheme.colorScheme.onTertiaryContainer
+}
+
+@Composable
+private fun floatingToolbarSelectedItemContainerColor(pureBlack: Boolean): Color {
+    return if (pureBlack) Color.White.copy(alpha = 0.12f) else MaterialTheme.colorScheme.secondaryContainer
+}
+
+@Composable
+private fun floatingToolbarSelectedItemContentColor(pureBlack: Boolean): Color {
+    return if (pureBlack) Color.White else MaterialTheme.colorScheme.onSecondaryContainer
 }
 
 @Composable
@@ -574,16 +569,16 @@ private fun floatingToolbarItemContentColor(pureBlack: Boolean): Color {
     return if (pureBlack) {
         Color.White.copy(alpha = 0.82f)
     } else {
-        MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.82f)
+        MaterialTheme.colorScheme.onSurfaceVariant
     }
 }
 
 @Composable
 private fun floatingToolbarMenuIconContainerColor(pureBlack: Boolean): Color {
-    return if (pureBlack) Color.White.copy(alpha = 0.12f) else MaterialTheme.colorScheme.primaryContainer
+    return if (pureBlack) Color.White.copy(alpha = 0.12f) else MaterialTheme.colorScheme.secondaryContainer
 }
 
 @Composable
 private fun floatingToolbarMenuIconContentColor(pureBlack: Boolean): Color {
-    return if (pureBlack) Color.White else MaterialTheme.colorScheme.onPrimaryContainer
+    return if (pureBlack) Color.White else MaterialTheme.colorScheme.onSecondaryContainer
 }
