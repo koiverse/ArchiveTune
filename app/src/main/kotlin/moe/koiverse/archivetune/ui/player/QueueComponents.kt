@@ -89,7 +89,6 @@ fun CurrentSongHeader(
     songCount: Int,
     queueDuration: Int,
     infiniteQueueEnabled: Boolean,
-    automixLoading: Boolean,
     backgroundColor: Color,
     onBackgroundColor: Color,
     onToggleLike: () -> Unit,
@@ -277,22 +276,13 @@ fun CurrentSongHeader(
                     .clickable { onInfiniteQueueClick() },
                 contentAlignment = Alignment.Center
             ) {
-                if (automixLoading) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(18.dp),
-                        color = if (infiniteQueueEnabled) MaterialTheme.colorScheme.onPrimary
-                               else onBackgroundColor,
-                        strokeWidth = 2.dp
-                    )
-                } else {
-                    Icon(
-                        painter = painterResource(R.drawable.all_inclusive),
-                        contentDescription = stringResource(R.string.similar_content),
-                        tint = if (infiniteQueueEnabled) MaterialTheme.colorScheme.onPrimary
-                               else onBackgroundColor.copy(alpha = 0.5f),
-                        modifier = Modifier.size(22.dp)
-                    )
-                }
+                Icon(
+                    painter = painterResource(R.drawable.all_inclusive),
+                    contentDescription = stringResource(R.string.similar_content),
+                    tint = if (infiniteQueueEnabled) MaterialTheme.colorScheme.onPrimary
+                           else onBackgroundColor.copy(alpha = 0.5f),
+                    modifier = Modifier.size(22.dp)
+                )
             }
         }
         

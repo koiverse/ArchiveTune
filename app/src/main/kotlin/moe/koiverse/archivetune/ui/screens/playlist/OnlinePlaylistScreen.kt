@@ -736,9 +736,6 @@ fun OnlinePlaylistScreen(
                                     playlist.playEndpoint?.let { playEndpoint ->
                                         Button(
                                             onClick = {
-                                                playerConnection.service.getAutomix(
-                                                    playlistId = playlist.id
-                                                )
                                                 playerConnection.playQueue(
                                                     YouTubeQueue(playEndpoint)
                                                 )
@@ -915,9 +912,6 @@ fun OnlinePlaylistScreen(
                                                 if (song.item.second.id == mediaMetadata?.id) {
                                                     playerConnection.player.togglePlayPause()
                                                 } else {
-                                                    playerConnection.service.getAutomix(
-                                                        playlistId = playlist.id
-                                                    )
                                                     playerConnection.playQueue(
                                                         YouTubeQueue(
                                                             song.item.second
