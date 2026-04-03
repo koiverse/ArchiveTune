@@ -698,32 +698,6 @@ fun PlayerTopActions(
         }
 
         PlayerDesignStyle.V7 -> {
-            Box(
-                modifier = Modifier
-                    .size(42.dp)
-                    .clip(CircleShape)
-                    .background(
-                        if (currentSongLiked) MaterialTheme.colorScheme.primary
-                        else textBackgroundColor.copy(alpha = 0.1f)
-                    )
-                    .clickable { playerConnection.toggleLike() },
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    painter = painterResource(
-                        if (currentSongLiked) R.drawable.favorite
-                        else R.drawable.favorite_border
-                    ),
-                    contentDescription = null,
-                    tint = if (currentSongLiked)
-                        MaterialTheme.colorScheme.onPrimary
-                    else textBackgroundColor.copy(alpha = 0.8f),
-                    modifier = Modifier.size(22.dp)
-                )
-            }
-        }
-
-        PlayerDesignStyle.V8 -> {
             Row(
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -1685,105 +1659,6 @@ fun PlayerPlaybackControls(
 
         PlayerDesignStyle.V7 -> {
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = PlayerHorizontalPadding),
-                horizontalArrangement = Arrangement.spacedBy(0.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                ToggleButton(
-                    checked = false,
-                    onCheckedChange = { playerConnection.seekToPrevious() },
-                    enabled = canSkipPrevious,
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(56.dp),
-                    shapes = ButtonGroupDefaults.connectedLeadingButtonShapes(),
-                    colors = ToggleButtonDefaults.toggleButtonColors(
-                        containerColor = textBackgroundColor.copy(alpha = 0.1f),
-                        contentColor = textBackgroundColor,
-                        checkedContainerColor = textBackgroundColor.copy(alpha = 0.1f),
-                        checkedContentColor = textBackgroundColor,
-                        disabledContainerColor = textBackgroundColor.copy(alpha = 0.1f),
-                        disabledContentColor = textBackgroundColor.copy(alpha = 0.4f),
-                    ),
-                ) {
-                    Icon(
-                        painter = painterResource(R.drawable.skip_previous),
-                        contentDescription = null,
-                        modifier = Modifier.size(32.dp)
-                    )
-                }
-
-                ToggleButton(
-                    checked = false,
-                    onCheckedChange = {
-                        if (playbackState == STATE_ENDED) {
-                            playerConnection.player.seekTo(0, 0)
-                            playerConnection.player.playWhenReady = true
-                        } else {
-                            playerConnection.player.togglePlayPause()
-                        }
-                    },
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(64.dp),
-                    shapes = ButtonGroupDefaults.connectedMiddleButtonShapes(),
-                    colors = ToggleButtonDefaults.toggleButtonColors(
-                        containerColor = textButtonColor,
-                        contentColor = iconButtonColor,
-                        checkedContainerColor = textButtonColor,
-                        checkedContentColor = iconButtonColor,
-                    ),
-                ) {
-                    if (isLoading) {
-                        CircularWavyProgressIndicator(
-                            modifier = Modifier.size(36.dp),
-                            color = iconButtonColor,
-                        )
-                    } else {
-                        Icon(
-                            painter = painterResource(
-                                when {
-                                    playbackState == STATE_ENDED -> R.drawable.replay
-                                    isPlaying -> R.drawable.pause
-                                    else -> R.drawable.play
-                                }
-                            ),
-                            contentDescription = null,
-                            modifier = Modifier.size(36.dp)
-                        )
-                    }
-                }
-
-                ToggleButton(
-                    checked = false,
-                    onCheckedChange = { playerConnection.seekToNext() },
-                    enabled = canSkipNext,
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(56.dp),
-                    shapes = ButtonGroupDefaults.connectedTrailingButtonShapes(),
-                    colors = ToggleButtonDefaults.toggleButtonColors(
-                        containerColor = textBackgroundColor.copy(alpha = 0.1f),
-                        contentColor = textBackgroundColor,
-                        checkedContainerColor = textBackgroundColor.copy(alpha = 0.1f),
-                        checkedContentColor = textBackgroundColor,
-                        disabledContainerColor = textBackgroundColor.copy(alpha = 0.1f),
-                        disabledContentColor = textBackgroundColor.copy(alpha = 0.4f),
-                    ),
-                ) {
-                    Icon(
-                        painter = painterResource(R.drawable.skip_next),
-                        contentDescription = null,
-                        modifier = Modifier.size(32.dp)
-                    )
-                }
-            }
-        }
-
-        PlayerDesignStyle.V8 -> {
-            Row(
                 horizontalArrangement = Arrangement.SpaceEvenly,
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
@@ -1920,45 +1795,43 @@ fun PlayerControlsContent(
         label = "playPauseRoundness",
     )
 
-    if (playerDesignStyle != PlayerDesignStyle.V7) {
-        Row(
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = PlayerHorizontalPadding),
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                PlayerTitleSection(
-                    mediaMetadata = mediaMetadata,
-                    textBackgroundColor = textBackgroundColor,
-                    navController = navController,
-                    state = state,
-                    clipboardManager = clipboardManager,
-                    context = context
-                )
-            }
-
-            Spacer(modifier = Modifier.width(12.dp))
-
-            PlayerTopActions(
+    Row(
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = PlayerHorizontalPadding),
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            PlayerTitleSection(
                 mediaMetadata = mediaMetadata,
-                playerDesignStyle = playerDesignStyle,
-                textButtonColor = textButtonColor,
-                iconButtonColor = iconButtonColor,
                 textBackgroundColor = textBackgroundColor,
-                playerConnection = playerConnection,
                 navController = navController,
-                menuState = menuState,
                 state = state,
-                bottomSheetPageState = bottomSheetPageState,
-                context = context,
-                currentSongLiked = currentSongLiked
+                clipboardManager = clipboardManager,
+                context = context
             )
         }
 
-        Spacer(Modifier.height(12.dp))
+        Spacer(modifier = Modifier.width(12.dp))
+
+        PlayerTopActions(
+            mediaMetadata = mediaMetadata,
+            playerDesignStyle = playerDesignStyle,
+            textButtonColor = textButtonColor,
+            iconButtonColor = iconButtonColor,
+            textBackgroundColor = textBackgroundColor,
+            playerConnection = playerConnection,
+            navController = navController,
+            menuState = menuState,
+            state = state,
+            bottomSheetPageState = bottomSheetPageState,
+            context = context,
+            currentSongLiked = currentSongLiked
+        )
     }
+
+    Spacer(Modifier.height(12.dp))
 
     PlayerSlider(
         sliderStyle = sliderStyle,
@@ -1978,8 +1851,8 @@ fun PlayerControlsContent(
         position = position,
         duration = duration,
         textBackgroundColor = textBackgroundColor,
-        showRemainingTime = playerDesignStyle == PlayerDesignStyle.V8,
-        centerContent = if (playerDesignStyle == PlayerDesignStyle.V8 && currentFormat != null) {
+        showRemainingTime = playerDesignStyle == PlayerDesignStyle.V7,
+        centerContent = if (playerDesignStyle == PlayerDesignStyle.V7 && currentFormat != null) {
             {
                 val codec = currentFormat.mimeType.substringAfter("/").uppercase()
                 val label = when {

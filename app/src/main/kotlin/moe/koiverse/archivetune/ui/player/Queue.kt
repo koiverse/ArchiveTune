@@ -415,7 +415,7 @@ fun Queue(
                     )
                 }
 
-                PlayerDesignStyle.V7, PlayerDesignStyle.V8 -> {
+                PlayerDesignStyle.V7 -> {
                     val shuffleModeEnabled by playerConnection.shuffleModeEnabled.collectAsState()
                     val audioManager = remember { context.getSystemService(Context.AUDIO_SERVICE) as android.media.AudioManager }
                     val activeDevice = remember(audioManager) {

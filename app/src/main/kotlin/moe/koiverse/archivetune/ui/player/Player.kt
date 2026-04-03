@@ -386,7 +386,7 @@ fun BottomSheetPlayer(
     val changeBound = state.expandedBound / 3
 
     val TextBackgroundColor =
-        if (playerDesignStyle == PlayerDesignStyle.V8) Color.White
+        if (playerDesignStyle == PlayerDesignStyle.V7) Color.White
         else when (playerBackground) {
             PlayerBackgroundStyle.DEFAULT -> MaterialTheme.colorScheme.onBackground
             PlayerBackgroundStyle.BLUR -> Color.White
@@ -399,7 +399,7 @@ fun BottomSheetPlayer(
         }
 
     val icBackgroundColor =
-        if (playerDesignStyle == PlayerDesignStyle.V8) Color.Black
+        if (playerDesignStyle == PlayerDesignStyle.V7) Color.Black
         else when (playerBackground) {
             PlayerBackgroundStyle.DEFAULT -> MaterialTheme.colorScheme.surface
             PlayerBackgroundStyle.BLUR -> Color.Black
@@ -418,7 +418,7 @@ fun BottomSheetPlayer(
             MaterialTheme.colorScheme.onSecondary
         )
     }.let { (tb, ib) ->
-        if (playerDesignStyle == PlayerDesignStyle.V8) Pair(Color.White, Color.Black) else Pair(tb, ib)
+        if (playerDesignStyle == PlayerDesignStyle.V7) Pair(Color.White, Color.Black) else Pair(tb, ib)
     }
 
     val download by LocalDownloadUtil.current.getDownload(mediaMetadata?.id ?: "")
@@ -678,7 +678,7 @@ fun BottomSheetPlayer(
                 else -> false
             }
         },
-        backgroundColor = if (playerDesignStyle == PlayerDesignStyle.V8) {
+        backgroundColor = if (playerDesignStyle == PlayerDesignStyle.V7) {
             val progress = ((state.value - state.collapsedBound) / (state.expandedBound - state.collapsedBound))
                 .coerceIn(0f, 1f)
             val fadeProgress = if (progress < 0.2f) {
@@ -809,11 +809,11 @@ fun BottomSheetPlayer(
                 context = context,
                 onSliderValueChange = onSliderValueChange,
                 onSliderValueChangeFinished = onSliderValueChangeFinished,
-                currentFormat = if (playerDesignStyle == PlayerDesignStyle.V8) currentFormat else null,
+                currentFormat = if (playerDesignStyle == PlayerDesignStyle.V7) currentFormat else null,
             )
         }
 
-        if (!state.isCollapsed && playerDesignStyle != PlayerDesignStyle.V5 && playerDesignStyle != PlayerDesignStyle.V8) {
+        if (!state.isCollapsed && playerDesignStyle != PlayerDesignStyle.V5 && playerDesignStyle != PlayerDesignStyle.V7) {
             PlayerBackground(
                 playerBackground = playerBackground,
                 mediaMetadata = mediaMetadata,
@@ -907,7 +907,7 @@ fun BottomSheetPlayer(
                             }
                         }
                     }
-                } else if (playerDesignStyle == PlayerDesignStyle.V8) {
+                } else if (playerDesignStyle == PlayerDesignStyle.V7) {
                     Box(
                         modifier = Modifier
                             .fillMaxSize(),
@@ -917,7 +917,7 @@ fun BottomSheetPlayer(
                             transitionSpec = {
                                 fadeIn(tween(800)) togetherWith fadeOut(tween(800))
                             },
-                            label = "v8artworkLandscape"
+                            label = "v7artworkLandscape"
                         ) { thumbnailUrl ->
                             if (thumbnailUrl != null) {
                                 AsyncImage(
@@ -1085,7 +1085,7 @@ fun BottomSheetPlayer(
                             }
                         }
                     }
-                } else if (playerDesignStyle == PlayerDesignStyle.V8) {
+                } else if (playerDesignStyle == PlayerDesignStyle.V7) {
                     Box(
                         modifier = Modifier
                             .fillMaxSize(),
@@ -1095,7 +1095,7 @@ fun BottomSheetPlayer(
                             transitionSpec = {
                                 fadeIn(tween(800)) togetherWith fadeOut(tween(800))
                             },
-                            label = "v8artwork"
+                            label = "v7artwork"
                         ) { thumbnailUrl ->
                             if (thumbnailUrl != null) {
                                 AsyncImage(
@@ -1152,65 +1152,11 @@ fun BottomSheetPlayer(
                         Modifier
                             .windowInsetsPadding(
                                 WindowInsets.systemBars.only(
-                                    if (playerDesignStyle == PlayerDesignStyle.V7)
-                                        WindowInsetsSides.Horizontal + WindowInsetsSides.Top
-                                    else
-                                        WindowInsetsSides.Horizontal
+                                    WindowInsetsSides.Horizontal
                                 )
                             )
                             .padding(bottom = queueSheetState.collapsedBound),
                     ) {
-                        if (playerDesignStyle == PlayerDesignStyle.V7) {
-                            Spacer(Modifier.height(4.dp))
-                            enrichedMetadata?.let {
-                                PlayerSourceHeader(
-                                    mediaMetadata = it,
-                                    textBackgroundColor = TextBackgroundColor,
-                                    navController = navController,
-                                    state = state,
-                                    menuState = menuState,
-                                    bottomSheetPageState = bottomSheetPageState,
-                                )
-                            }
-                            Spacer(Modifier.height(2.dp))
-                            enrichedMetadata?.let {
-                                Row(
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = PlayerHorizontalPadding),
-                                ) {
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        PlayerTitleSection(
-                                            mediaMetadata = it,
-                                            textBackgroundColor = TextBackgroundColor,
-                                            navController = navController,
-                                            state = state,
-                                            clipboardManager = clipboardManager,
-                                            context = context,
-                                        )
-                                    }
-                                    Spacer(modifier = Modifier.width(12.dp))
-                                    PlayerTopActions(
-                                        mediaMetadata = it,
-                                        playerDesignStyle = playerDesignStyle,
-                                        textButtonColor = textButtonColor,
-                                        iconButtonColor = iconButtonColor,
-                                        textBackgroundColor = TextBackgroundColor,
-                                        playerConnection = playerConnection,
-                                        navController = navController,
-                                        menuState = menuState,
-                                        state = state,
-                                        bottomSheetPageState = bottomSheetPageState,
-                                        context = context,
-                                        currentSongLiked = currentSongLiked,
-                                    )
-                                }
-                            }
-                            Spacer(Modifier.height(4.dp))
-                        }
-
                         Box(
                             contentAlignment = Alignment.Center,
                             modifier = Modifier.weight(1f),
