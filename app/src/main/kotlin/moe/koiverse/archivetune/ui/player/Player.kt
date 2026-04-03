@@ -576,8 +576,8 @@ fun BottomSheetPlayer(
     val queueSheetState = rememberBottomSheetState(
         dismissedBound = dismissedBound,
         expandedBound = state.expandedBound,
-        collapsedBound = dismissedBound + 1.dp,
-        initialAnchor = 1
+        collapsedBound = dismissedBound,
+        initialAnchor = 0
     )
     
     val lyricsSheetState = rememberBottomSheetState(

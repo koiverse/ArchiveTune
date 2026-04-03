@@ -21,7 +21,7 @@ import kotlinx.coroutines.flow.first
 class LocalMixQueue(
     private val database: MusicDatabase,
     private val playlistId: String,
-    private val maxMixSize: Int = 50,
+    private val maxMixSize: Int = 500,
 ) : Queue {
     override val preloadItem: MediaMetadata? = null
 
