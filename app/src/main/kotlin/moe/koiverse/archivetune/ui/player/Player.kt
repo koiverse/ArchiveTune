@@ -1183,11 +1183,11 @@ private fun V7PlayerBackdrop(
     modifier: Modifier = Modifier,
 ) {
     val backdropBlur = remember(disableBlur, blurRadius) {
-        (blurRadius + 10f).coerceIn(38f, 60f).dp
+        (blurRadius + 18f).coerceIn(48f, 72f).dp
     }
     val baseArtworkScale = if (disableBlur) 1.03f else 1.06f
-    val baseArtworkAlpha = if (disableBlur) 0.72f else 0.88f
-    val blurredArtworkScale = 1.24f
+    val baseArtworkAlpha = if (disableBlur) 0.72f else 0.82f
+    val blurredArtworkScale = 1.3f
     val surfaceTint = MaterialTheme.colorScheme.surface
 
     Box(
@@ -1233,9 +1233,9 @@ private fun V7PlayerBackdrop(
                                     val blurMask = Brush.verticalGradient(
                                         colorStops = arrayOf(
                                             0f to Color.Transparent,
-                                            0.46f to Color.Transparent,
-                                            0.62f to Color.Black.copy(alpha = 0.38f),
-                                            0.78f to Color.Black.copy(alpha = 0.88f),
+                                            0.4f to Color.Transparent,
+                                            0.54f to Color.Black.copy(alpha = 0.5f),
+                                            0.72f to Color.Black.copy(alpha = 0.94f),
                                             1f to Color.Black,
                                         )
                                     )
@@ -1263,7 +1263,7 @@ private fun V7PlayerBackdrop(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.06f))
+                .background(Color.Black.copy(alpha = 0.08f))
         )
 
         Box(
@@ -1272,10 +1272,10 @@ private fun V7PlayerBackdrop(
                 .background(
                     Brush.verticalGradient(
                         colorStops = arrayOf(
-                            0f to Color.Black.copy(alpha = 0.16f),
+                            0f to Color.Black.copy(alpha = 0.18f),
                             0.34f to Color.Transparent,
-                            0.7f to Color.Black.copy(alpha = 0.16f),
-                            1f to Color.Black.copy(alpha = 0.7f),
+                            0.64f to Color.Black.copy(alpha = 0.22f),
+                            1f to Color.Black.copy(alpha = 0.82f),
                         )
                     )
                 )
@@ -1288,9 +1288,9 @@ private fun V7PlayerBackdrop(
                     Brush.verticalGradient(
                         colorStops = arrayOf(
                             0f to Color.Transparent,
-                            0.62f to Color.Transparent,
-                            0.86f to surfaceTint.copy(alpha = 0.1f),
-                            1f to surfaceTint.copy(alpha = 0.2f),
+                            0.56f to Color.Transparent,
+                            0.8f to surfaceTint.copy(alpha = 0.16f),
+                            1f to surfaceTint.copy(alpha = 0.3f),
                         )
                     )
                 )
