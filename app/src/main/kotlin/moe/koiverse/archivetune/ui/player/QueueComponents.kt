@@ -35,8 +35,10 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ButtonGroupDefaults
 import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Slider
@@ -110,67 +112,68 @@ fun CurrentSongHeader(
             .background(backgroundColor)
             .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal))
             .bottomSheetDraggable(sheetState)
-            .padding(horizontal = 16.dp, vertical = 12.dp)
+            .padding(horizontal = 16.dp)
+            .padding(top = 20.dp, bottom = 8.dp)
     ) {
-        // Drag handle
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(bottom = 12.dp),
+                .padding(bottom = 16.dp),
             contentAlignment = Alignment.Center
         ) {
             Box(
                 modifier = Modifier
-                    .width(36.dp)
-                    .height(4.dp)
-                    .clip(RoundedCornerShape(2.dp))
-                    .background(onBackgroundColor.copy(alpha = 0.3f))
+                    .width(48.dp)
+                    .height(5.dp)
+                    .clip(RoundedCornerShape(2.5.dp))
+                    .background(onBackgroundColor.copy(alpha = 0.4f))
             )
         }
-        
-        // Song info row with thumbnail, title, artist, and action buttons
+
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+            horizontalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            // Album art thumbnail
             AsyncImage(
                 model = mediaMetadata?.thumbnailUrl,
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
-                    .size(56.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                    .size(64.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(onBackgroundColor.copy(alpha = 0.06f))
             )
-            
-            // Song title and artist
+
             Column(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(2.dp)
             ) {
                 Text(
                     text = mediaMetadata?.title ?: "",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     color = onBackgroundColor
                 )
                 Text(
-                    text = mediaMetadata?.artists?.joinToString(",") { artist -> artist.name } ?: "",
+                    text = mediaMetadata?.artists?.joinToString(", ") { it.name } ?: "",
                     style = MaterialTheme.typography.bodyMedium,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    color = onBackgroundColor.copy(alpha = 0.7f)
+                    color = onBackgroundColor.copy(alpha = 0.6f)
                 )
             }
-            
-            // Like button
+
             IconButton(
                 onClick = onToggleLike,
-                modifier = Modifier.size(40.dp)
+                modifier = Modifier.size(44.dp),
+                colors = IconButtonDefaults.iconButtonColors(
+                    contentColor = if (mediaMetadata?.liked == true)
+                        MaterialTheme.colorScheme.primary
+                    else onBackgroundColor
+                )
             ) {
                 Icon(
                     painter = painterResource(
@@ -178,42 +181,65 @@ fun CurrentSongHeader(
                         else R.drawable.favorite_border
                     ),
                     contentDescription = stringResource(R.string.action_like),
-                    tint = if (mediaMetadata?.liked == true) 
-                        MaterialTheme.colorScheme.primary
-                    else onBackgroundColor,
-                    modifier = Modifier.size(24.dp)
-                )
-            }
-            
-            // Lock button
-            IconButton(
-                onClick = onLockClick,
-                modifier = Modifier.size(40.dp)
-            ) {
-                Icon(
-                    painter = painterResource(if (locked) R.drawable.lock else R.drawable.lock_open),
-                    contentDescription = null,
-                    tint = onBackgroundColor,
-                    modifier = Modifier.size(24.dp)
-                )
-            }
-            
-            // Menu button
-            IconButton(
-                onClick = onMenuClick,
-                modifier = Modifier.size(40.dp)
-            ) {
-                Icon(
-                    painter = painterResource(R.drawable.more_vert),
-                    contentDescription = null,
-                    tint = onBackgroundColor,
-                    modifier = Modifier.size(24.dp)
+                    modifier = Modifier.size(26.dp)
                 )
             }
         }
-        
-        Spacer(modifier = Modifier.height(12.dp))
-        
+
+        Spacer(modifier = Modifier.height(14.dp))
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(24.dp))
+                .background(onBackgroundColor.copy(alpha = 0.06f))
+                .padding(horizontal = 6.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(0.dp)
+            ) {
+                IconButton(
+                    onClick = onLockClick,
+                    modifier = Modifier.size(40.dp),
+                    colors = IconButtonDefaults.iconButtonColors(
+                        contentColor = onBackgroundColor.copy(alpha = 0.7f)
+                    )
+                ) {
+                    Icon(
+                        painter = painterResource(if (locked) R.drawable.lock else R.drawable.lock_open),
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+                IconButton(
+                    onClick = onMenuClick,
+                    modifier = Modifier.size(40.dp),
+                    colors = IconButtonDefaults.iconButtonColors(
+                        contentColor = onBackgroundColor.copy(alpha = 0.7f)
+                    )
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.more_vert),
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
+
+            Text(
+                text = pluralStringResource(R.plurals.n_song, songCount, songCount)
+                        + "  •  " + makeTimeString(queueDuration * 1000L),
+                style = MaterialTheme.typography.labelMedium,
+                color = onBackgroundColor.copy(alpha = 0.55f),
+                modifier = Modifier.padding(end = 14.dp)
+            )
+        }
+
+        Spacer(modifier = Modifier.height(14.dp))
+
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween),
@@ -282,52 +308,30 @@ fun CurrentSongHeader(
                 )
             }
         }
-        
+
+        Spacer(modifier = Modifier.height(14.dp))
+
+        Text(
+            text = stringResource(R.string.queue_continue_playing),
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = onBackgroundColor
+        )
+
+        Spacer(modifier = Modifier.height(2.dp))
+
+        Text(
+            text = stringResource(R.string.queue_autoplaying_similar),
+            style = MaterialTheme.typography.bodySmall,
+            color = onBackgroundColor.copy(alpha = 0.5f)
+        )
+
         Spacer(modifier = Modifier.height(12.dp))
-        
-        // "Continue Playing" text and stats
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(2.dp)
-            ) {
-                Text(
-                    text = stringResource(R.string.queue_continue_playing),
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Medium,
-                    color = onBackgroundColor
-                )
-                Text(
-                    text = stringResource(R.string.queue_autoplaying_similar),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = onBackgroundColor.copy(alpha = 0.6f)
-                )
-            }
-            
-            Column(
-                verticalArrangement = Arrangement.spacedBy(4.dp),
-                horizontalAlignment = Alignment.End
-            ) {
-                Text(
-                    text = pluralStringResource(
-                        R.plurals.n_song,
-                        songCount,
-                        songCount
-                    ),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = onBackgroundColor.copy(alpha = 0.8f)
-                )
-                Text(
-                    text = makeTimeString(queueDuration * 1000L),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = onBackgroundColor.copy(alpha = 0.8f)
-                )
-            }
-        }
+
+        HorizontalDivider(
+            color = onBackgroundColor.copy(alpha = 0.08f),
+            thickness = 1.dp
+        )
     }
 }
 
