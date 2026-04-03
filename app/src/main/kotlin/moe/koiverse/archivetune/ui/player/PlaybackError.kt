@@ -137,14 +137,6 @@ fun PlaybackError(
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
-
-                    Text(
-                        text = reason,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onErrorContainer,
-                        maxLines = 6,
-                        overflow = TextOverflow.Clip,
-                    )
                 }
             }
 
