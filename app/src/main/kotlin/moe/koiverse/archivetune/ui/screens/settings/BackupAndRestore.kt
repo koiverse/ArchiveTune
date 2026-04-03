@@ -302,7 +302,6 @@ private fun BackupRestoreHeroCard() {
             containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        interactionSource = interactionSource,
     ) {
         Column(
             modifier = Modifier
