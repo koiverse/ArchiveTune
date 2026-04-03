@@ -814,9 +814,7 @@ fun PlayerTimeLabel(
     showRemainingTime: Boolean = false,
     centerContent: @Composable (() -> Unit)? = null,
 ) {
-    Row(
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
+    Box(
         modifier =
         Modifier
             .fillMaxWidth()
@@ -828,10 +826,16 @@ fun PlayerTimeLabel(
             color = textBackgroundColor,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.align(Alignment.CenterStart),
         )
 
         if (centerContent != null) {
-            centerContent()
+            Box(
+                modifier = Modifier.align(Alignment.Center),
+                contentAlignment = Alignment.Center,
+            ) {
+                centerContent()
+            }
         }
 
         Text(
@@ -847,6 +851,7 @@ fun PlayerTimeLabel(
             color = textBackgroundColor,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.align(Alignment.CenterEnd),
         )
     }
 }
