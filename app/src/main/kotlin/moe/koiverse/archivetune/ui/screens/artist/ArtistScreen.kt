@@ -44,6 +44,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.ButtonGroupDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilledTonalButton
@@ -54,6 +55,8 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.ToggleButton
+import androidx.compose.material3.ToggleButtonDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
@@ -602,13 +605,13 @@ fun ArtistScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(horizontal = 24.dp, vertical = 8.dp),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally)
+                            horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween)
                         ) {
-                            // Subscribe/Following Button
                             val isSubscribed = libraryArtist?.artist?.bookmarkedAt != null
 
-                            FilledTonalButton(
-                                onClick = {
+                            ToggleButton(
+                                checked = isSubscribed,
+                                onCheckedChange = {
                                     database.transaction {
                                         val artist = libraryArtist?.artist
                                         if (artist != null) {
@@ -627,20 +630,19 @@ fun ArtistScreen(
                                         }
                                     }
                                 },
-                                colors = ButtonDefaults.filledTonalButtonColors(
-                                    containerColor = if (isSubscribed)
-                                        MaterialTheme.colorScheme.primaryContainer
-                                    else
-                                        MaterialTheme.colorScheme.secondaryContainer,
-                                    contentColor = if (isSubscribed)
-                                        MaterialTheme.colorScheme.onPrimaryContainer
-                                    else
-                                        MaterialTheme.colorScheme.onSecondaryContainer
+                                colors = ToggleButtonDefaults.toggleButtonColors(
+                                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                                    checkedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                    checkedContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                                 ),
                                 modifier = Modifier
                                     .weight(1f)
                                     .height(48.dp),
-                                shapes = ButtonDefaults.shapes()
+                                shapes = if (!showLocal && artistPage?.artist?.radioEndpoint != null)
+                                    ButtonGroupDefaults.connectedLeadingButtonShapes()
+                                else
+                                    ButtonGroupDefaults.connectedLeadingButtonShapes(),
                             ) {
                                 Icon(
                                     painter = painterResource(
@@ -658,9 +660,9 @@ fun ArtistScreen(
                                 )
                             }
 
-                            // Shuffle Button
-                            Button(
-                                onClick = {
+                            ToggleButton(
+                                checked = false,
+                                onCheckedChange = {
                                     if (!showLocal) {
                                         artistPage?.artist?.shuffleEndpoint?.let { shuffleEndpoint ->
                                             playerConnection.playQueue(YouTubeQueue(shuffleEndpoint))
@@ -679,7 +681,16 @@ fun ArtistScreen(
                                 modifier = Modifier
                                     .weight(1f)
                                     .height(48.dp),
-                                shapes = ButtonDefaults.shapes()
+                                shapes = if (!showLocal && artistPage?.artist?.radioEndpoint != null)
+                                    ButtonGroupDefaults.connectedMiddleButtonShapes()
+                                else
+                                    ButtonGroupDefaults.connectedTrailingButtonShapes(),
+                                colors = ToggleButtonDefaults.toggleButtonColors(
+                                    containerColor = MaterialTheme.colorScheme.primary,
+                                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                                    checkedContainerColor = MaterialTheme.colorScheme.primary,
+                                    checkedContentColor = MaterialTheme.colorScheme.onPrimary,
+                                ),
                             ) {
                                 Icon(
                                     painter = painterResource(R.drawable.shuffle),
@@ -692,28 +703,33 @@ fun ArtistScreen(
                                     maxLines = 1
                                 )
                             }
-                        }
 
-                        // Radio Button (for YouTube artists)
-                        if (!showLocal) {
-                            artistPage?.artist?.radioEndpoint?.let { radioEndpoint ->
-                                OutlinedButton(
-                                    onClick = {
-                                        playerConnection.playQueue(YouTubeQueue(radioEndpoint))
-                                    },
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = 24.dp, vertical = 8.dp)
-                                        .height(44.dp),
-                                    shapes = ButtonDefaults.shapes()
-                                ) {
-                                    Icon(
-                                        painter = painterResource(R.drawable.radio),
-                                        contentDescription = null,
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text(text = stringResource(R.string.radio))
+                            if (!showLocal) {
+                                artistPage?.artist?.radioEndpoint?.let { radioEndpoint ->
+                                    ToggleButton(
+                                        checked = false,
+                                        onCheckedChange = {
+                                            playerConnection.playQueue(YouTubeQueue(radioEndpoint))
+                                        },
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .height(48.dp),
+                                        shapes = ButtonGroupDefaults.connectedTrailingButtonShapes(),
+                                        colors = ToggleButtonDefaults.toggleButtonColors(
+                                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            checkedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                            checkedContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        ),
+                                    ) {
+                                        Icon(
+                                            painter = painterResource(R.drawable.radio),
+                                            contentDescription = null,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(text = stringResource(R.string.radio))
+                                    }
                                 }
                             }
                         }

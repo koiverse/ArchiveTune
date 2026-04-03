@@ -160,22 +160,30 @@ inline fun ListItem(
             .padding(horizontal = 8.dp)
             .then(
                 if (isActive) Modifier
-                    .clip(RoundedCornerShape(8.dp))
+                    .clip(RoundedCornerShape(12.dp))
                     .background(MaterialTheme.colorScheme.secondaryContainer)
                 else Modifier
             )
     ) {
-        Box(Modifier.padding(6.dp), contentAlignment = Alignment.Center) { thumbnailContent() }
-        Column(Modifier.weight(1f).padding(horizontal = 6.dp)) {
+        Box(Modifier.padding(8.dp), contentAlignment = Alignment.Center) { thumbnailContent() }
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .padding(horizontal = 6.dp),
+            verticalArrangement = Arrangement.spacedBy(2.dp)
+        ) {
             Text(
                 text = title,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.SemiBold,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 color = if (isActive) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurface
             )
-            if (subtitle != null) Row(verticalAlignment = Alignment.CenterVertically) { subtitle() }
+            if (subtitle != null) Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) { subtitle() }
         }
         trailingContent()
     }
@@ -199,8 +207,8 @@ fun ListItem(
         if (!subtitle.isNullOrEmpty()) {
             Text(
                 text = subtitle,
-                color = if (isActive) MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f) else MaterialTheme.colorScheme.secondary,
-                fontSize = 12.sp,
+                color = if (isActive) MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f) else MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.bodySmall,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )

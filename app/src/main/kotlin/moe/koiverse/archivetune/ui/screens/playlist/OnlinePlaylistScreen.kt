@@ -40,6 +40,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.ButtonGroupDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
@@ -50,6 +51,8 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.material3.ToggleButton
+import androidx.compose.material3.ToggleButtonDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
@@ -653,13 +656,28 @@ fun OnlinePlaylistScreen(
                                 Row(
                                     modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
                                     horizontalArrangement =
-                                        Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally),
+                                        Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    // Like/Save Button
-                                    if (playlist.id != "LM") {
-                                        Surface(
-                                            onClick = {
+                                    val hasLike = playlist.id != "LM"
+                                    val hasPlay = playlist.playEndpoint != null
+                                    val hasShuffle = playlist.shuffleEndpoint != null
+                                    val hasRadio = playlist.radioEndpoint != null
+                                    val buttonSlots = listOf(hasLike, hasPlay, hasShuffle, hasRadio, true)
+                                    val activeIndices = buttonSlots.withIndex().filter { it.value }.map { it.index }
+
+                                    fun shapeFor(slotIndex: Int) = when {
+                                        activeIndices.first() == slotIndex && activeIndices.last() == slotIndex -> ButtonGroupDefaults.connectedLeadingButtonShapes()
+                                        activeIndices.first() == slotIndex -> ButtonGroupDefaults.connectedLeadingButtonShapes()
+                                        activeIndices.last() == slotIndex -> ButtonGroupDefaults.connectedTrailingButtonShapes()
+                                        else -> ButtonGroupDefaults.connectedMiddleButtonShapes()
+                                    }
+
+                                    if (hasLike) {
+                                        val isBookmarked = dbPlaylist?.playlist?.bookmarkedAt != null
+                                        ToggleButton(
+                                            checked = isBookmarked,
+                                            onCheckedChange = {
                                                 if (dbPlaylist?.playlist == null) {
                                                     database.transaction {
                                                         val playlistEntity =
@@ -702,50 +720,44 @@ fun OnlinePlaylistScreen(
                                                     }
                                                 }
                                             },
-                                            shape = CircleShape,
-                                            color = MaterialTheme.colorScheme.surfaceVariant,
-                                            modifier = Modifier.size(48.dp)
+                                            modifier = Modifier.size(48.dp),
+                                            shapes = shapeFor(0),
+                                            colors = ToggleButtonDefaults.toggleButtonColors(
+                                                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                                contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                checkedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                                checkedContentColor = MaterialTheme.colorScheme.error,
+                                            ),
                                         ) {
-                                            Box(
-                                                modifier = Modifier.fillMaxSize(),
-                                                contentAlignment = Alignment.Center
-                                            ) {
-                                                Icon(
-                                                    painter =
-                                                        painterResource(
-                                                            if (
-                                                                dbPlaylist
-                                                                    ?.playlist
-                                                                    ?.bookmarkedAt != null
-                                                            )
-                                                                R.drawable.favorite
-                                                            else R.drawable.favorite_border
-                                                        ),
-                                                    contentDescription = null,
-                                                    tint =
-                                                        if (
-                                                            dbPlaylist?.playlist?.bookmarkedAt !=
-                                                                null
-                                                        )
-                                                            MaterialTheme.colorScheme.error
-                                                        else
-                                                            MaterialTheme.colorScheme
-                                                                .onSurfaceVariant,
-                                                    modifier = Modifier.size(24.dp)
-                                                )
-                                            }
+                                            Icon(
+                                                painter =
+                                                    painterResource(
+                                                        if (isBookmarked)
+                                                            R.drawable.favorite
+                                                        else R.drawable.favorite_border
+                                                    ),
+                                                contentDescription = null,
+                                                modifier = Modifier.size(24.dp)
+                                            )
                                         }
                                     }
 
                                     playlist.playEndpoint?.let { playEndpoint ->
-                                        Button(
-                                            onClick = {
+                                        ToggleButton(
+                                            checked = false,
+                                            onCheckedChange = {
                                                 playerConnection.playQueue(
                                                     YouTubeQueue(playEndpoint)
                                                 )
                                             },
                                             modifier = Modifier.weight(1f).height(48.dp),
-                                            shapes = ButtonDefaults.shapes(),
+                                            shapes = shapeFor(1),
+                                            colors = ToggleButtonDefaults.toggleButtonColors(
+                                                containerColor = MaterialTheme.colorScheme.primary,
+                                                contentColor = MaterialTheme.colorScheme.onPrimary,
+                                                checkedContainerColor = MaterialTheme.colorScheme.primary,
+                                                checkedContentColor = MaterialTheme.colorScheme.onPrimary,
+                                            ),
                                         ) {
                                             Icon(
                                                 painter = painterResource(R.drawable.play),
@@ -756,16 +768,22 @@ fun OnlinePlaylistScreen(
                                         }
                                     }
 
-                                    // Shuffle Button
                                     playlist.shuffleEndpoint?.let { shuffleEndpoint ->
-                                        Button(
-                                            onClick = {
+                                        ToggleButton(
+                                            checked = false,
+                                            onCheckedChange = {
                                                 playerConnection.playQueue(
                                                     YouTubeQueue(shuffleEndpoint)
                                                 )
                                             },
                                             modifier = Modifier.weight(1f).height(48.dp),
-                                            shapes = ButtonDefaults.shapes(),
+                                            shapes = shapeFor(2),
+                                            colors = ToggleButtonDefaults.toggleButtonColors(
+                                                containerColor = MaterialTheme.colorScheme.primary,
+                                                contentColor = MaterialTheme.colorScheme.onPrimary,
+                                                checkedContainerColor = MaterialTheme.colorScheme.primary,
+                                                checkedContentColor = MaterialTheme.colorScheme.onPrimary,
+                                            ),
                                         ) {
                                             Icon(
                                                 painter = painterResource(R.drawable.shuffle),
@@ -776,16 +794,22 @@ fun OnlinePlaylistScreen(
                                         }
                                     }
 
-                                    // Radio Button
                                     playlist.radioEndpoint?.let { radioEndpoint ->
-                                        Button(
-                                            onClick = {
+                                        ToggleButton(
+                                            checked = false,
+                                            onCheckedChange = {
                                                 playerConnection.playQueue(
                                                     YouTubeQueue(radioEndpoint)
                                                 )
                                             },
                                             modifier = Modifier.weight(1f).height(48.dp),
-                                            shapes = ButtonDefaults.shapes(),
+                                            shapes = shapeFor(3),
+                                            colors = ToggleButtonDefaults.toggleButtonColors(
+                                                containerColor = MaterialTheme.colorScheme.primary,
+                                                contentColor = MaterialTheme.colorScheme.onPrimary,
+                                                checkedContainerColor = MaterialTheme.colorScheme.primary,
+                                                checkedContentColor = MaterialTheme.colorScheme.onPrimary,
+                                            ),
                                         ) {
                                             Icon(
                                                 painter = painterResource(R.drawable.radio),
@@ -795,9 +819,9 @@ fun OnlinePlaylistScreen(
                                         }
                                     }
 
-                                    // More Options Button
-                                    Surface(
-                                        onClick = {
+                                    ToggleButton(
+                                        checked = false,
+                                        onCheckedChange = {
                                             menuState.show {
                                                 YouTubePlaylistMenu(
                                                     playlist = playlist,
@@ -810,21 +834,20 @@ fun OnlinePlaylistScreen(
                                                 )
                                             }
                                         },
-                                        shape = CircleShape,
-                                        color = MaterialTheme.colorScheme.surfaceVariant,
-                                        modifier = Modifier.size(48.dp)
+                                        modifier = Modifier.size(48.dp),
+                                        shapes = shapeFor(4),
+                                        colors = ToggleButtonDefaults.toggleButtonColors(
+                                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            checkedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                            checkedContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        ),
                                     ) {
-                                        Box(
-                                            modifier = Modifier.fillMaxSize(),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Icon(
-                                                painter = painterResource(R.drawable.more_vert),
-                                                contentDescription = null,
-                                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                modifier = Modifier.size(24.dp)
-                                            )
-                                        }
+                                        Icon(
+                                            painter = painterResource(R.drawable.more_vert),
+                                            contentDescription = null,
+                                            modifier = Modifier.size(24.dp)
+                                        )
                                     }
                                 }
 

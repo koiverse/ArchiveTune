@@ -37,6 +37,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.ButtonGroupDefaults
 import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -47,6 +48,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.material3.ToggleButton
+import androidx.compose.material3.ToggleButtonDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
@@ -577,12 +580,12 @@ fun AutoPlaylistScreen(
                                 // Action buttons row
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally),
+                                    horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    // Download Button
-                                    Surface(
-                                        onClick = {
+                                    ToggleButton(
+                                        checked = downloadState == Download.STATE_COMPLETED,
+                                        onCheckedChange = {
                                             when (downloadState) {
                                                 Download.STATE_COMPLETED -> {
                                                     showRemoveDownloadDialog = true
@@ -618,43 +621,41 @@ fun AutoPlaylistScreen(
                                                 }
                                             }
                                         },
-                                        shape = CircleShape,
-                                        color = MaterialTheme.colorScheme.surfaceVariant,
-                                        modifier = Modifier.size(48.dp)
+                                        modifier = Modifier.size(48.dp),
+                                        shapes = ButtonGroupDefaults.connectedLeadingButtonShapes(),
+                                        colors = ToggleButtonDefaults.toggleButtonColors(
+                                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            checkedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                            checkedContentColor = MaterialTheme.colorScheme.primary,
+                                        ),
                                     ) {
-                                        Box(
-                                            modifier = Modifier.fillMaxSize(),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            when (downloadState) {
-                                                Download.STATE_COMPLETED -> {
-                                                    Icon(
-                                                        painter = painterResource(R.drawable.offline),
-                                                        contentDescription = null,
-                                                        tint = MaterialTheme.colorScheme.primary,
-                                                        modifier = Modifier.size(24.dp)
-                                                    )
-                                                }
-                                                Download.STATE_DOWNLOADING -> {
-                                                    CircularWavyProgressIndicator(
-                                                        modifier = Modifier.size(24.dp)
-                                                    )
-                                                }
-                                                else -> {
-                                                    Icon(
-                                                        painter = painterResource(R.drawable.download),
-                                                        contentDescription = null,
-                                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                        modifier = Modifier.size(24.dp)
-                                                    )
-                                                }
+                                        when (downloadState) {
+                                            Download.STATE_COMPLETED -> {
+                                                Icon(
+                                                    painter = painterResource(R.drawable.offline),
+                                                    contentDescription = null,
+                                                    modifier = Modifier.size(24.dp)
+                                                )
+                                            }
+                                            Download.STATE_DOWNLOADING -> {
+                                                CircularWavyProgressIndicator(
+                                                    modifier = Modifier.size(24.dp)
+                                                )
+                                            }
+                                            else -> {
+                                                Icon(
+                                                    painter = painterResource(R.drawable.download),
+                                                    contentDescription = null,
+                                                    modifier = Modifier.size(24.dp)
+                                                )
                                             }
                                         }
                                     }
 
-                                    // Play Button
-                                    Button(
-                                        onClick = {
+                                    ToggleButton(
+                                        checked = false,
+                                        onCheckedChange = {
                                             playerConnection.playQueue(
                                                 ListQueue(
                                                     title = playlist,
@@ -665,7 +666,13 @@ fun AutoPlaylistScreen(
                                         modifier = Modifier
                                             .weight(1f)
                                             .height(48.dp),
-                                        shapes = ButtonDefaults.shapes(),
+                                        shapes = ButtonGroupDefaults.connectedMiddleButtonShapes(),
+                                        colors = ToggleButtonDefaults.toggleButtonColors(
+                                            containerColor = MaterialTheme.colorScheme.primary,
+                                            contentColor = MaterialTheme.colorScheme.onPrimary,
+                                            checkedContainerColor = MaterialTheme.colorScheme.primary,
+                                            checkedContentColor = MaterialTheme.colorScheme.onPrimary,
+                                        ),
                                     ) {
                                         Icon(
                                             painter = painterResource(R.drawable.play),
@@ -674,9 +681,9 @@ fun AutoPlaylistScreen(
                                         )
                                     }
 
-                                    // Shuffle Button
-                                    Button(
-                                        onClick = {
+                                    ToggleButton(
+                                        checked = false,
+                                        onCheckedChange = {
                                             playerConnection.playQueue(
                                                 ListQueue(
                                                     title = playlist,
@@ -684,11 +691,16 @@ fun AutoPlaylistScreen(
                                                 ),
                                             )
                                         },
-
                                         modifier = Modifier
                                             .weight(1f)
                                             .height(48.dp),
-                                        shapes = ButtonDefaults.shapes(),
+                                        shapes = ButtonGroupDefaults.connectedMiddleButtonShapes(),
+                                        colors = ToggleButtonDefaults.toggleButtonColors(
+                                            containerColor = MaterialTheme.colorScheme.primary,
+                                            contentColor = MaterialTheme.colorScheme.onPrimary,
+                                            checkedContainerColor = MaterialTheme.colorScheme.primary,
+                                            checkedContentColor = MaterialTheme.colorScheme.onPrimary,
+                                        ),
                                     ) {
                                         Icon(
                                             painter = painterResource(R.drawable.shuffle),
@@ -697,28 +709,27 @@ fun AutoPlaylistScreen(
                                         )
                                     }
 
-                                    // Add to Queue Button
-                                    Surface(
-                                        onClick = {
+                                    ToggleButton(
+                                        checked = false,
+                                        onCheckedChange = {
                                             playerConnection.addToQueue(
                                                 items = songs!!.map { it.toMediaItem() },
                                             )
                                         },
-                                        shape = CircleShape,
-                                        color = MaterialTheme.colorScheme.surfaceVariant,
-                                        modifier = Modifier.size(48.dp)
+                                        modifier = Modifier.size(48.dp),
+                                        shapes = ButtonGroupDefaults.connectedTrailingButtonShapes(),
+                                        colors = ToggleButtonDefaults.toggleButtonColors(
+                                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            checkedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                            checkedContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        ),
                                     ) {
-                                        Box(
-                                            modifier = Modifier.fillMaxSize(),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Icon(
-                                                painter = painterResource(R.drawable.queue_music),
-                                                contentDescription = null,
-                                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                modifier = Modifier.size(24.dp)
-                                            )
-                                        }
+                                        Icon(
+                                            painter = painterResource(R.drawable.queue_music),
+                                            contentDescription = null,
+                                            modifier = Modifier.size(24.dp)
+                                        )
                                     }
                                 }
 

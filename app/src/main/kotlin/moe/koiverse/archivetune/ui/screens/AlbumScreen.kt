@@ -35,6 +35,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.ButtonGroupDefaults
 import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -42,6 +43,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.ToggleButton
+import androidx.compose.material3.ToggleButtonDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
@@ -507,44 +510,39 @@ fun AlbumScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(horizontal = 24.dp),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally),
+                            horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            // Like/Bookmark Button
-                            Surface(
-                                onClick = {
+                            val isBookmarked = albumWithSongs.album.bookmarkedAt != null
+
+                            ToggleButton(
+                                checked = isBookmarked,
+                                onCheckedChange = {
                                     database.query {
                                         update(albumWithSongs.album.toggleLike())
                                     }
                                 },
-                                shape = CircleShape,
-                                color = MaterialTheme.colorScheme.surfaceVariant,
-                                modifier = Modifier.size(48.dp)
+                                modifier = Modifier.size(48.dp),
+                                shapes = ButtonGroupDefaults.connectedLeadingButtonShapes(),
+                                colors = ToggleButtonDefaults.toggleButtonColors(
+                                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    checkedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                    checkedContentColor = MaterialTheme.colorScheme.error,
+                                ),
                             ) {
-                                Box(
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(
-                                        painter = painterResource(
-                                            if (albumWithSongs.album.bookmarkedAt != null)
-                                                R.drawable.favorite
-                                            else
-                                                R.drawable.favorite_border
-                                        ),
-                                        contentDescription = null,
-                                        tint = if (albumWithSongs.album.bookmarkedAt != null)
-                                            MaterialTheme.colorScheme.error
-                                        else
-                                            MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier.size(24.dp)
-                                    )
-                                }
+                                Icon(
+                                    painter = painterResource(
+                                        if (isBookmarked) R.drawable.favorite else R.drawable.favorite_border
+                                    ),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(24.dp)
+                                )
                             }
 
-                            // Play Button
-                            Button(
-                                onClick = {
+                            ToggleButton(
+                                checked = false,
+                                onCheckedChange = {
                                     playerConnection.playQueue(
                                         LocalAlbumRadio(albumWithSongs),
                                     )
@@ -552,7 +550,13 @@ fun AlbumScreen(
                                 modifier = Modifier
                                     .weight(1f)
                                     .height(48.dp),
-                                shapes = ButtonDefaults.shapes()
+                                shapes = ButtonGroupDefaults.connectedMiddleButtonShapes(),
+                                colors = ToggleButtonDefaults.toggleButtonColors(
+                                    containerColor = MaterialTheme.colorScheme.primary,
+                                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                                    checkedContainerColor = MaterialTheme.colorScheme.primary,
+                                    checkedContentColor = MaterialTheme.colorScheme.onPrimary,
+                                ),
                             ) {
                                 Icon(
                                     painter = painterResource(R.drawable.play),
@@ -561,9 +565,9 @@ fun AlbumScreen(
                                 )
                             }
 
-                            // Shuffle Button
-                            Button(
-                                onClick = {
+                            ToggleButton(
+                                checked = false,
+                                onCheckedChange = {
                                     playerConnection.playQueue(
                                         LocalAlbumRadio(albumWithSongs.copy(songs = albumWithSongs.songs.shuffled())),
                                     )
@@ -571,7 +575,13 @@ fun AlbumScreen(
                                 modifier = Modifier
                                     .weight(1f)
                                     .height(48.dp),
-                                shapes = ButtonDefaults.shapes()
+                                shapes = ButtonGroupDefaults.connectedMiddleButtonShapes(),
+                                colors = ToggleButtonDefaults.toggleButtonColors(
+                                    containerColor = MaterialTheme.colorScheme.primary,
+                                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                                    checkedContainerColor = MaterialTheme.colorScheme.primary,
+                                    checkedContentColor = MaterialTheme.colorScheme.onPrimary,
+                                ),
                             ) {
                                 Icon(
                                     painter = painterResource(R.drawable.shuffle),
@@ -580,9 +590,9 @@ fun AlbumScreen(
                                 )
                             }
 
-                            // Download Button
-                            Surface(
-                                onClick = {
+                            ToggleButton(
+                                checked = downloadState == Download.STATE_COMPLETED,
+                                onCheckedChange = {
                                     when (downloadState) {
                                         Download.STATE_COMPLETED -> {
                                             albumWithSongs.songs.forEach { song ->
@@ -622,44 +632,42 @@ fun AlbumScreen(
                                         }
                                     }
                                 },
-                                shape = CircleShape,
-                                color = MaterialTheme.colorScheme.surfaceVariant,
-                                modifier = Modifier.size(48.dp)
+                                modifier = Modifier.size(48.dp),
+                                shapes = ButtonGroupDefaults.connectedMiddleButtonShapes(),
+                                colors = ToggleButtonDefaults.toggleButtonColors(
+                                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    checkedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                    checkedContentColor = MaterialTheme.colorScheme.primary,
+                                ),
                             ) {
-                                Box(
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    when (downloadState) {
-                                        Download.STATE_COMPLETED -> {
-                                            Icon(
-                                                painter = painterResource(R.drawable.offline),
-                                                contentDescription = null,
-                                                tint = MaterialTheme.colorScheme.primary,
-                                                modifier = Modifier.size(24.dp)
-                                            )
-                                        }
-                                        Download.STATE_DOWNLOADING -> {
-                                            CircularWavyProgressIndicator(
-                                                modifier = Modifier.size(24.dp),
-                                                color = MaterialTheme.colorScheme.primary
-                                            )
-                                        }
-                                        else -> {
-                                            Icon(
-                                                painter = painterResource(R.drawable.download),
-                                                contentDescription = null,
-                                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                modifier = Modifier.size(24.dp)
-                                            )
-                                        }
+                                when (downloadState) {
+                                    Download.STATE_COMPLETED -> {
+                                        Icon(
+                                            painter = painterResource(R.drawable.offline),
+                                            contentDescription = null,
+                                            modifier = Modifier.size(24.dp)
+                                        )
+                                    }
+                                    Download.STATE_DOWNLOADING -> {
+                                        CircularWavyProgressIndicator(
+                                            modifier = Modifier.size(24.dp),
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
+                                    else -> {
+                                        Icon(
+                                            painter = painterResource(R.drawable.download),
+                                            contentDescription = null,
+                                            modifier = Modifier.size(24.dp)
+                                        )
                                     }
                                 }
                             }
 
-                            // More Options Button
-                            Surface(
-                                onClick = {
+                            ToggleButton(
+                                checked = false,
+                                onCheckedChange = {
                                     menuState.show {
                                         AlbumMenu(
                                             originalAlbum = Album(
@@ -671,21 +679,20 @@ fun AlbumScreen(
                                         )
                                     }
                                 },
-                                shape = CircleShape,
-                                color = MaterialTheme.colorScheme.surfaceVariant,
-                                modifier = Modifier.size(48.dp)
+                                modifier = Modifier.size(48.dp),
+                                shapes = ButtonGroupDefaults.connectedTrailingButtonShapes(),
+                                colors = ToggleButtonDefaults.toggleButtonColors(
+                                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    checkedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                    checkedContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                ),
                             ) {
-                                Box(
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(
-                                        painter = painterResource(R.drawable.more_vert),
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier.size(24.dp)
-                                    )
-                                }
+                                Icon(
+                                    painter = painterResource(R.drawable.more_vert),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(24.dp)
+                                )
                             }
                         }
 

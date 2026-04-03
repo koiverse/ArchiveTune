@@ -38,6 +38,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.ButtonGroupDefaults
 import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -54,6 +55,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.material3.ToggleButton
+import androidx.compose.material3.ToggleButtonDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
@@ -804,63 +807,59 @@ fun LocalPlaylistScreen(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .padding(horizontal = 24.dp),
-                                    horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally),
+                                    horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    // Like/Delete Button (depending on editable)
                                     if (editable) {
-                                        Surface(
-                                            onClick = { showDeletePlaylistDialog = true },
-                                            shape = CircleShape,
-                                            color = MaterialTheme.colorScheme.surfaceVariant,
-                                            modifier = Modifier.size(48.dp)
+                                        ToggleButton(
+                                            checked = false,
+                                            onCheckedChange = { showDeletePlaylistDialog = true },
+                                            modifier = Modifier.size(48.dp),
+                                            shapes = ButtonGroupDefaults.connectedLeadingButtonShapes(),
+                                            colors = ToggleButtonDefaults.toggleButtonColors(
+                                                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                                contentColor = MaterialTheme.colorScheme.error,
+                                                checkedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                                checkedContentColor = MaterialTheme.colorScheme.error,
+                                            ),
                                         ) {
-                                            Box(
-                                                modifier = Modifier.fillMaxSize(),
-                                                contentAlignment = Alignment.Center
-                                            ) {
-                                                Icon(
-                                                    painter = painterResource(R.drawable.delete),
-                                                    contentDescription = null,
-                                                    tint = MaterialTheme.colorScheme.error,
-                                                    modifier = Modifier.size(24.dp)
-                                                )
-                                            }
+                                            Icon(
+                                                painter = painterResource(R.drawable.delete),
+                                                contentDescription = null,
+                                                modifier = Modifier.size(24.dp)
+                                            )
                                         }
                                     } else {
                                         val liked = playlist.playlist.bookmarkedAt != null
-                                        Surface(
-                                            onClick = {
+                                        ToggleButton(
+                                            checked = liked,
+                                            onCheckedChange = {
                                                 database.transaction {
                                                     update(playlist.playlist.toggleLike())
                                                 }
                                             },
-                                            shape = CircleShape,
-                                            color = MaterialTheme.colorScheme.surfaceVariant,
-                                            modifier = Modifier.size(48.dp)
+                                            modifier = Modifier.size(48.dp),
+                                            shapes = ButtonGroupDefaults.connectedLeadingButtonShapes(),
+                                            colors = ToggleButtonDefaults.toggleButtonColors(
+                                                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                                contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                checkedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                                checkedContentColor = MaterialTheme.colorScheme.error,
+                                            ),
                                         ) {
-                                            Box(
-                                                modifier = Modifier.fillMaxSize(),
-                                                contentAlignment = Alignment.Center
-                                            ) {
-                                                Icon(
-                                                    painter = painterResource(
-                                                        if (liked) R.drawable.favorite else R.drawable.favorite_border
-                                                    ),
-                                                    contentDescription = null,
-                                                    tint = if (liked)
-                                                        MaterialTheme.colorScheme.error
-                                                    else
-                                                        MaterialTheme.colorScheme.onSurfaceVariant,
-                                                    modifier = Modifier.size(24.dp)
-                                                )
-                                            }
+                                            Icon(
+                                                painter = painterResource(
+                                                    if (liked) R.drawable.favorite else R.drawable.favorite_border
+                                                ),
+                                                contentDescription = null,
+                                                modifier = Modifier.size(24.dp)
+                                            )
                                         }
                                     }
 
-                                    // Play Button
-                                    Button(
-                                        onClick = {
+                                    ToggleButton(
+                                        checked = false,
+                                        onCheckedChange = {
                                             playerConnection.playQueue(
                                                 ListQueue(
                                                     title = playlist.playlist.name,
@@ -871,7 +870,13 @@ fun LocalPlaylistScreen(
                                         modifier = Modifier
                                             .weight(1f)
                                             .height(48.dp),
-                                        shapes = ButtonDefaults.shapes(),
+                                        shapes = ButtonGroupDefaults.connectedMiddleButtonShapes(),
+                                        colors = ToggleButtonDefaults.toggleButtonColors(
+                                            containerColor = MaterialTheme.colorScheme.primary,
+                                            contentColor = MaterialTheme.colorScheme.onPrimary,
+                                            checkedContainerColor = MaterialTheme.colorScheme.primary,
+                                            checkedContentColor = MaterialTheme.colorScheme.onPrimary,
+                                        ),
                                     ) {
                                         Icon(
                                             painter = painterResource(R.drawable.play),
@@ -880,9 +885,9 @@ fun LocalPlaylistScreen(
                                         )
                                     }
 
-                                    // Shuffle Button
-                                    Button(
-                                        onClick = {
+                                    ToggleButton(
+                                        checked = false,
+                                        onCheckedChange = {
                                             playerConnection.playQueue(
                                                 ListQueue(
                                                     title = playlist.playlist.name,
@@ -893,7 +898,13 @@ fun LocalPlaylistScreen(
                                         modifier = Modifier
                                             .weight(1f)
                                             .height(48.dp),
-                                        shapes = ButtonDefaults.shapes(),
+                                        shapes = ButtonGroupDefaults.connectedMiddleButtonShapes(),
+                                        colors = ToggleButtonDefaults.toggleButtonColors(
+                                            containerColor = MaterialTheme.colorScheme.primary,
+                                            contentColor = MaterialTheme.colorScheme.onPrimary,
+                                            checkedContainerColor = MaterialTheme.colorScheme.primary,
+                                            checkedContentColor = MaterialTheme.colorScheme.onPrimary,
+                                        ),
                                     ) {
                                         Icon(
                                             painter = painterResource(R.drawable.shuffle),
@@ -902,9 +913,9 @@ fun LocalPlaylistScreen(
                                         )
                                     }
 
-                                    // Download Button
-                                    Surface(
-                                        onClick = {
+                                    ToggleButton(
+                                        checked = downloadState == Download.STATE_COMPLETED,
+                                        onCheckedChange = {
                                             when (downloadState) {
                                                 Download.STATE_COMPLETED -> {
                                                     showRemoveDownloadDialog = true
@@ -936,45 +947,42 @@ fun LocalPlaylistScreen(
                                                 }
                                             }
                                         },
-                                        shape = CircleShape,
-                                        color = MaterialTheme.colorScheme.surfaceVariant,
-                                        modifier = Modifier.size(48.dp)
+                                        modifier = Modifier.size(48.dp),
+                                        shapes = ButtonGroupDefaults.connectedMiddleButtonShapes(),
+                                        colors = ToggleButtonDefaults.toggleButtonColors(
+                                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            checkedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                            checkedContentColor = MaterialTheme.colorScheme.primary,
+                                        ),
                                     ) {
-                                        Box(
-                                            modifier = Modifier.fillMaxSize(),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            when (downloadState) {
-                                                Download.STATE_COMPLETED -> {
-                                                    Icon(
-                                                        painter = painterResource(R.drawable.offline),
-                                                        contentDescription = null,
-                                                        tint = MaterialTheme.colorScheme.primary,
-                                                        modifier = Modifier.size(24.dp)
-                                                    )
-                                                }
-                                                Download.STATE_DOWNLOADING -> {
-                                                    CircularWavyProgressIndicator(
-                                                        modifier = Modifier.size(24.dp),
-                                                        color = MaterialTheme.colorScheme.primary
-                                                    )
-                                                }
-                                                else -> {
-                                                    Icon(
-                                                        painter = painterResource(R.drawable.download),
-                                                        contentDescription = null,
-                                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                        modifier = Modifier.size(24.dp)
-                                                    )
-                                                }
+                                        when (downloadState) {
+                                            Download.STATE_COMPLETED -> {
+                                                Icon(
+                                                    painter = painterResource(R.drawable.offline),
+                                                    contentDescription = null,
+                                                    modifier = Modifier.size(24.dp)
+                                                )
+                                            }
+                                            Download.STATE_DOWNLOADING -> {
+                                                CircularWavyProgressIndicator(
+                                                    modifier = Modifier.size(24.dp),
+                                                    color = MaterialTheme.colorScheme.primary
+                                                )
+                                            }
+                                            else -> {
+                                                Icon(
+                                                    painter = painterResource(R.drawable.download),
+                                                    contentDescription = null,
+                                                    modifier = Modifier.size(24.dp)
+                                                )
                                             }
                                         }
                                     }
 
-                                    // More Options Button
-                                    Surface(
-                                        onClick = {
-                                            // Show more options (edit, sync, queue)
+                                    ToggleButton(
+                                        checked = false,
+                                        onCheckedChange = {
                                             if (editable) {
                                                 showEditDialog = true
                                             } else if (playlist.playlist.browseId != null) {
@@ -1003,23 +1011,22 @@ fun LocalPlaylistScreen(
                                                 }
                                             }
                                         },
-                                        shape = CircleShape,
-                                        color = MaterialTheme.colorScheme.surfaceVariant,
-                                        modifier = Modifier.size(48.dp)
+                                        modifier = Modifier.size(48.dp),
+                                        shapes = ButtonGroupDefaults.connectedTrailingButtonShapes(),
+                                        colors = ToggleButtonDefaults.toggleButtonColors(
+                                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            checkedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                            checkedContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        ),
                                     ) {
-                                        Box(
-                                            modifier = Modifier.fillMaxSize(),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Icon(
-                                                painter = painterResource(
-                                                    if (editable) R.drawable.edit else R.drawable.sync
-                                                ),
-                                                contentDescription = null,
-                                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                modifier = Modifier.size(24.dp)
-                                            )
-                                        }
+                                        Icon(
+                                            painter = painterResource(
+                                                if (editable) R.drawable.edit else R.drawable.sync
+                                            ),
+                                            contentDescription = null,
+                                            modifier = Modifier.size(24.dp)
+                                        )
                                     }
                                 }
 
