@@ -138,6 +138,13 @@ internal class CrossfadeAudio(
                 val currentId = player.currentMediaItem?.mediaId
                 val onTarget = !targetId.isNullOrBlank() && targetId == currentId
 
+                val crossfadeElapsed = android.os.SystemClock.elapsedRealtime() - crossfadeStartElapsedMs
+                if (crossfadeElapsed > crossfadeActiveDurationMs.toLong() + 3000L) {
+                    stopOverlapCrossfade(resetMainFade = true)
+                    delay(100)
+                    continue
+                }
+
                 if (!onTarget && (nextIndex == C.INDEX_UNSET || durationMs <= 0 || durationMs == C.TIME_UNSET)) {
                     stopOverlapCrossfade(resetMainFade = true)
                     delay(150)
@@ -183,7 +190,7 @@ internal class CrossfadeAudio(
         val nextMediaId = nextItem.mediaId
         if (overlapPrimedIndex == nextIndex && overlapPrimedMediaId == nextMediaId) return
 
-        stopOverlapCrossfade(resetMainFade = false)
+        stopOverlapCrossfade(resetMainFade = true)
 
         val overlap = ensureOverlapPlayer()
         overlap.clearMediaItems()
@@ -200,7 +207,7 @@ internal class CrossfadeAudio(
     private fun unprimeOverlap() {
         if (crossfadeActive) return
         if (overlapPrimedIndex == C.INDEX_UNSET && overlapPrimedMediaId == null) return
-        stopOverlapCrossfade(resetMainFade = false)
+        stopOverlapCrossfade(resetMainFade = true)
     }
 
     private fun beginOverlapCrossfade(fadeMs: Int, remainingMs: Long) {
@@ -311,7 +318,10 @@ internal class CrossfadeAudio(
     }
 
     private fun handleMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
-        if (!crossfadeActive) return
+        if (!crossfadeActive) {
+            if (playbackFadeFactor.value != 1f) playbackFadeFactor.value = 1f
+            return
+        }
 
         val targetId = crossfadeTargetMediaId
         val newId = mediaItem?.mediaId
