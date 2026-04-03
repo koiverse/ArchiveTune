@@ -239,6 +239,7 @@ fun AppearanceSettings(
     val availableBackgroundStyles = PlayerBackgroundStyle.entries.filter {
         it != PlayerBackgroundStyle.BLUR || Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
     }
+    val isArchiveTuneCanvasAvailable = playerDesignStyle != PlayerDesignStyle.V7
 
     val isSystemInDarkTheme = isSystemInDarkTheme()
     val useDarkTheme =
@@ -466,10 +467,15 @@ fun AppearanceSettings(
 
         SwitchPreference(
             title = { Text(stringResource(R.string.archivetune_canvas)) },
-            description = stringResource(R.string.archivetune_canvas_desc),
+            description = if (isArchiveTuneCanvasAvailable) {
+                stringResource(R.string.archivetune_canvas_desc)
+            } else {
+                stringResource(R.string.archivetune_canvas_v7_desc)
+            },
             icon = { Icon(painterResource(R.drawable.motion_photos_on), null) },
-            checked = archiveTuneCanvasEnabled,
-            onCheckedChange = onArchiveTuneCanvasEnabledChange
+            checked = archiveTuneCanvasEnabled && isArchiveTuneCanvasAvailable,
+            onCheckedChange = onArchiveTuneCanvasEnabledChange,
+            isEnabled = isArchiveTuneCanvasAvailable,
         )
       
 
