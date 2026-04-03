@@ -271,4 +271,23 @@
     <string name="error_no_song_playing">Aucun titre n\'est en cours de lecture</string>
     <string name="error_no_similar_songs">Aucun titre similaire trouvé</string>
     <string name="error_automix_failed">Impossible de charger des titres similaires</string>
+    <string name="music_recognition_tap_to_listen">Appuyez pour écouter</string>
+    <string name="music_recognition_listening">Écoute…</string>
+    <string name="music_recognition_processing">Traitement…</string>
+    <string name="music_recognition_listen_again">Réécouter</string>
+    <string name="music_recognition_no_match">Aucun résultat trouvé</string>
+    <string name="music_recognition_signature_failed">Impossible de générer une signature</string>
+    <string name="music_recognition_recognition_failed">Échec de la reconnaissance</string>
+    <string name="music_recognition_open_shazam">Ouvrir Shazam</string>
+    <string name="music_recognition_lyrics_preview">Aperçu des paroles</string>
+    <string name="music_recognition_permission_title">Autorisation d\'utilisation du microphone</string>
+    <string name="music_recognition_permission_desc">Autoriser l\'accès au microphone pour reconnaître la musique environnante.</string>
+    <string name="music_recognition_permission_action">Autoriser</string>
+    <string name="music_recognition_error">Quelque chose s\'est mal passé</string>
+    <string name="player_design_v7">Immersion</string>
+    <string name="playing_from">Lecture à partir de %s</string>
+    <string name="lyrics_romanize_chinese">Paroles chinoises romanisées</string>
+    <string name="lyrics_romanize_hindi">Paroles hindi romanisées</string>
+    <string name="lyrics_romanize_other_languages">Romaniser les autres paroles non latines</string>
+    <string name="dont_show">Ne pas afficher</string>
 </resources>
