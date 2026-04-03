@@ -268,6 +268,7 @@ class MusicService :
     private var pauseOnDeviceMuteEnabled = false
     private var wasAutoPausedByDeviceMute = false
     private var hasAudioFocus = false
+    private var duckingRecoveryJob: Job? = null
     private var autoStartOnBluetoothEnabled = false
     private var bluetoothReceiverRegistered = false
     private var wakeLock: PowerManager.WakeLock? = null
@@ -1341,6 +1342,9 @@ class MusicService :
             .build()
 
     private fun handleAudioFocusChange(focusChange: Int) {
+        duckingRecoveryJob?.cancel()
+        duckingRecoveryJob = null
+
         when (focusChange) {
             AudioManager.AUDIOFOCUS_GAIN -> {
                 hasAudioFocus = true
@@ -1389,6 +1393,14 @@ class MusicService :
                 audioFocusVolumeFactor.value = 0.2f
 
                 lastAudioFocusState = focusChange
+
+                duckingRecoveryJob = scope.launch {
+                    delay(8000L)
+                    if (audioFocusVolumeFactor.value < 1f && player.isPlaying) {
+                        audioFocusVolumeFactor.value = 1f
+                        hasAudioFocus = true
+                    }
+                }
             }
 
             AudioManager.AUDIOFOCUS_GAIN_TRANSIENT -> {
@@ -1414,17 +1426,27 @@ class MusicService :
     }
 
     private fun requestAudioFocus(): Boolean {
-        if (hasAudioFocus) return true
+        if (hasAudioFocus) {
+            if (audioFocusVolumeFactor.value != 1f) audioFocusVolumeFactor.value = 1f
+            return true
+        }
     
         audioFocusRequest?.let { request ->
             val result = audioManager.requestAudioFocus(request)
             hasAudioFocus = result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED
+            if (hasAudioFocus) {
+                audioFocusVolumeFactor.value = 1f
+                duckingRecoveryJob?.cancel()
+                duckingRecoveryJob = null
+            }
             return hasAudioFocus
         }
         return false
     }
 
     private fun abandonAudioFocus() {
+        duckingRecoveryJob?.cancel()
+        duckingRecoveryJob = null
         if (hasAudioFocus) {
             audioFocusRequest?.let { request ->
                 audioManager.abandonAudioFocusRequest(request)
