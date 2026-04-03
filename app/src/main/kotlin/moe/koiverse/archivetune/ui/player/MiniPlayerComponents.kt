@@ -282,7 +282,6 @@ private fun MiniPlayerArtwork(
     ) {
         if (isLoading) {
             CircularWavyProgressIndicator(
-                progress = { 1f },
                 modifier = Modifier.fillMaxSize(),
                 color = MaterialTheme.colorScheme.primary,
                 trackColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.18f)
