@@ -912,44 +912,11 @@ fun BottomSheetPlayer(
                         modifier = Modifier
                             .fillMaxSize(),
                     ) {
-                        AnimatedContent(
-                            targetState = mediaMetadata?.thumbnailUrl,
-                            transitionSpec = {
-                                fadeIn(tween(800)) togetherWith fadeOut(tween(800))
-                            },
-                            label = "v7artworkLandscape"
-                        ) { thumbnailUrl ->
-                            if (thumbnailUrl != null) {
-                                AsyncImage(
-                                    model = thumbnailUrl,
-                                    contentDescription = null,
-                                    contentScale = ContentScale.Crop,
-                                    modifier = Modifier.fillMaxSize()
-                                )
-                            } else {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .background(Color.Black)
-                                )
-                            }
-                        }
-
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .fillMaxHeight(0.65f)
-                                .align(Alignment.BottomCenter)
-                                .background(
-                                    Brush.verticalGradient(
-                                        colors = listOf(
-                                            Color.Transparent,
-                                            Color.Black.copy(alpha = 0.4f),
-                                            Color.Black.copy(alpha = 0.75f),
-                                            Color.Black.copy(alpha = 0.92f),
-                                        )
-                                    )
-                                )
+                        V7PlayerBackdrop(
+                            thumbnailUrl = mediaMetadata?.thumbnailUrl,
+                            disableBlur = disableBlur,
+                            blurRadius = blurRadius,
+                            label = "v7BackdropLandscape",
                         )
 
                         Column(
@@ -1090,44 +1057,11 @@ fun BottomSheetPlayer(
                         modifier = Modifier
                             .fillMaxSize(),
                     ) {
-                        AnimatedContent(
-                            targetState = mediaMetadata?.thumbnailUrl,
-                            transitionSpec = {
-                                fadeIn(tween(800)) togetherWith fadeOut(tween(800))
-                            },
-                            label = "v7artwork"
-                        ) { thumbnailUrl ->
-                            if (thumbnailUrl != null) {
-                                AsyncImage(
-                                    model = thumbnailUrl,
-                                    contentDescription = null,
-                                    contentScale = ContentScale.Crop,
-                                    modifier = Modifier.fillMaxSize()
-                                )
-                            } else {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .background(Color.Black)
-                                )
-                            }
-                        }
-
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .fillMaxHeight(0.65f)
-                                .align(Alignment.BottomCenter)
-                                .background(
-                                    Brush.verticalGradient(
-                                        colors = listOf(
-                                            Color.Transparent,
-                                            Color.Black.copy(alpha = 0.4f),
-                                            Color.Black.copy(alpha = 0.75f),
-                                            Color.Black.copy(alpha = 0.92f),
-                                        )
-                                    )
-                                )
+                        V7PlayerBackdrop(
+                            thumbnailUrl = mediaMetadata?.thumbnailUrl,
+                            disableBlur = disableBlur,
+                            blurRadius = blurRadius,
+                            label = "v7BackdropPortrait",
                         )
 
                         Column(
@@ -1234,6 +1168,94 @@ fun BottomSheetPlayer(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun V7PlayerBackdrop(
+    thumbnailUrl: String?,
+    disableBlur: Boolean,
+    blurRadius: Float,
+    label: String,
+    modifier: Modifier = Modifier,
+) {
+    val backdropBlur = remember(disableBlur, blurRadius) {
+        blurRadius.coerceIn(28f, 44f).dp
+    }
+    val artworkScale = if (disableBlur) 1.08f else 1.22f
+    val artworkAlpha = if (disableBlur) 0.52f else 0.96f
+    val surfaceTint = MaterialTheme.colorScheme.surface
+
+    Box(
+        modifier = modifier.fillMaxSize(),
+    ) {
+        AnimatedContent(
+            targetState = thumbnailUrl,
+            transitionSpec = {
+                fadeIn(tween(900)) togetherWith fadeOut(tween(900))
+            },
+            label = label,
+        ) { artworkUrl ->
+            if (artworkUrl != null) {
+                AsyncImage(
+                    model = artworkUrl,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .graphicsLayer {
+                            scaleX = artworkScale
+                            scaleY = artworkScale
+                            alpha = artworkAlpha
+                        }
+                        .let { currentModifier ->
+                            if (disableBlur) currentModifier else currentModifier.blur(backdropBlur)
+                        }
+                )
+            } else {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black)
+                )
+            }
+        }
+
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.08f))
+        )
+
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        colorStops = arrayOf(
+                            0f to Color.Black.copy(alpha = 0.18f),
+                            0.28f to Color.Transparent,
+                            0.68f to Color.Black.copy(alpha = 0.22f),
+                            1f to Color.Black.copy(alpha = 0.74f),
+                        )
+                    )
+                )
+        )
+
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        colorStops = arrayOf(
+                            0f to Color.Transparent,
+                            0.58f to Color.Transparent,
+                            0.84f to surfaceTint.copy(alpha = 0.10f),
+                            1f to surfaceTint.copy(alpha = 0.22f),
+                        )
+                    )
+                )
+        )
     }
 }
 
