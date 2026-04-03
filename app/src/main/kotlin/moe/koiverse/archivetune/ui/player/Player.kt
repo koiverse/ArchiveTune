@@ -199,7 +199,7 @@ import kotlin.math.roundToInt
 import kotlin.math.roundToLong
 
 private const val SeekbarSettleToleranceMs = 1_500L
-private const val V7BackdropBlurHeightFraction = 0.50f // The height of the blur layout in PlayerDesignStyle V7
+private const val V7BackdropBlurHeightFraction = 0.54f // The height of the blur layout in PlayerDesignStyle V7
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -1179,7 +1179,7 @@ private fun V7PlayerBackdrop(
     label: String,
     modifier: Modifier = Modifier,
 ) {
-    val cloudyRadius = 90
+    val cloudyRadius = 100
     val blurMaskStart = (1f - V7BackdropBlurHeightFraction).coerceIn(0f, 0.85f)
     val blurMaskMid = (blurMaskStart + 0.12f).coerceIn(blurMaskStart, 0.95f)
     val blurMaskSolid = (blurMaskStart + 0.22f).coerceIn(blurMaskMid, 1f)
