@@ -1199,61 +1199,49 @@ private fun V7PlayerBackdrop(
             label = label,
         ) { artworkUrl ->
             if (artworkUrl != null) {
-                Box(modifier = Modifier.fillMaxSize()) {
-                    AsyncImage(
-                        model = artworkUrl,
-                        contentDescription = null,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .graphicsLayer {
-                                scaleX = baseArtworkScale
-                                scaleY = baseArtworkScale
-                                alpha = baseArtworkAlpha
-                            }
-                    )
-
-                    if (!disableBlur) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .fillMaxHeight(0.42f)
-                                .align(Alignment.BottomCenter)
-                                .graphicsLayer {
-                                    alpha = 0.96f
-                                    compositingStrategy = CompositingStrategy.Offscreen
-                                }
-                                .drawWithCache {
-                                    val blurMask = Brush.verticalGradient(
-                                        colorStops = arrayOf(
-                                            0f to Color.Transparent,
-                                            0.18f to Color.Black.copy(alpha = 0.4f),
-                                            0.38f to Color.Black.copy(alpha = 0.85f),
-                                            0.56f to Color.Black,
-                                            1f to Color.Black,
-                                        )
-                                    )
-
-                                    onDrawWithContent {
-                                        drawContent()
-                                        drawRect(
-                                            brush = blurMask,
-                                            blendMode = BlendMode.DstIn,
-                                        )
-                                    }
-                                }
-                        ) {
-                            AsyncImage(
-                                model = artworkUrl,
-                                contentDescription = null,
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .cloudy(radius = cloudyRadius)
-                            )
+                AsyncImage(
+                    model = artworkUrl,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .then(
+                            if (!disableBlur) Modifier.cloudy(radius = cloudyRadius)
+                            else Modifier
+                        )
+                        .graphicsLayer {
+                            scaleX = baseArtworkScale
+                            scaleY = baseArtworkScale
+                            alpha = baseArtworkAlpha
+                            compositingStrategy = CompositingStrategy.Offscreen
                         }
-                    }
-                }
+                        .drawWithCache {
+                            val blurMask = Brush.verticalGradient(
+                                colorStops = if (!disableBlur) {
+                                    arrayOf(
+                                        0f to Color.Black.copy(alpha = 0.4f),
+                                        0.48f to Color.Black.copy(alpha = 0.6f),
+                                        0.62f to Color.Black.copy(alpha = 0.88f),
+                                        0.74f to Color.Black,
+                                        1f to Color.Black,
+                                    )
+                                } else {
+                                    arrayOf(
+                                        0f to Color.Black,
+                                        1f to Color.Black,
+                                    )
+                                }
+                            )
+
+                            onDrawWithContent {
+                                drawContent()
+                                drawRect(
+                                    brush = blurMask,
+                                    blendMode = BlendMode.DstIn,
+                                )
+                            }
+                        }
+                )
             } else {
                 Box(
                     modifier = Modifier
