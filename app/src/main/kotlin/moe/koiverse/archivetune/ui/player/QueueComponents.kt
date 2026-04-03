@@ -32,6 +32,7 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.ButtonGroupDefaults
 import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
@@ -41,6 +42,8 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.ToggleButton
+import androidx.compose.material3.ToggleButtonDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -211,45 +214,46 @@ fun CurrentSongHeader(
         
         Spacer(modifier = Modifier.height(12.dp))
         
-        // Control buttons row
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Shuffle button
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .height(48.dp)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(
-                        if (shuffleModeEnabled) onBackgroundColor.copy(alpha = 0.2f)
-                        else onBackgroundColor.copy(alpha = 0.15f)
-                    )
-                    .clickable { onShuffleClick() },
-                contentAlignment = Alignment.Center
+            val uncheckedColors = ToggleButtonDefaults.toggleButtonColors(
+                containerColor = onBackgroundColor.copy(alpha = 0.12f),
+                contentColor = onBackgroundColor,
+            )
+            val checkedColors = ToggleButtonDefaults.toggleButtonColors(
+                checkedContainerColor = onBackgroundColor.copy(alpha = 0.22f),
+                checkedContentColor = onBackgroundColor,
+            )
+            val infiniteCheckedColors = ToggleButtonDefaults.toggleButtonColors(
+                checkedContainerColor = MaterialTheme.colorScheme.primary,
+                checkedContentColor = MaterialTheme.colorScheme.onPrimary,
+                containerColor = onBackgroundColor.copy(alpha = 0.12f),
+                contentColor = onBackgroundColor.copy(alpha = 0.5f),
+            )
+
+            ToggleButton(
+                checked = shuffleModeEnabled,
+                onCheckedChange = { onShuffleClick() },
+                modifier = Modifier.weight(1f),
+                shapes = ButtonGroupDefaults.connectedLeadingButtonShapes(),
+                colors = if (shuffleModeEnabled) checkedColors else uncheckedColors,
             ) {
                 Icon(
                     painter = painterResource(R.drawable.shuffle),
                     contentDescription = stringResource(R.string.action_shuffle_on),
-                    tint = onBackgroundColor,
                     modifier = Modifier.size(22.dp)
                 )
             }
-            
-            // Repeat button
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .height(48.dp)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(
-                        if (repeatMode != Player.REPEAT_MODE_OFF) onBackgroundColor.copy(alpha = 0.2f)
-                        else onBackgroundColor.copy(alpha = 0.15f)
-                    )
-                    .clickable { onRepeatClick() },
-                contentAlignment = Alignment.Center
+
+            ToggleButton(
+                checked = repeatMode != Player.REPEAT_MODE_OFF,
+                onCheckedChange = { onRepeatClick() },
+                modifier = Modifier.weight(1f),
+                shapes = ButtonGroupDefaults.connectedMiddleButtonShapes(),
+                colors = if (repeatMode != Player.REPEAT_MODE_OFF) checkedColors else uncheckedColors,
             ) {
                 Icon(
                     painter = painterResource(
@@ -260,29 +264,20 @@ fun CurrentSongHeader(
                         }
                     ),
                     contentDescription = null,
-                    tint = onBackgroundColor,
                     modifier = Modifier.size(22.dp)
                 )
             }
-            
-            // Infinity/Automix button
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .height(48.dp)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(
-                        if (infiniteQueueEnabled) MaterialTheme.colorScheme.primary
-                        else onBackgroundColor.copy(alpha = 0.15f)
-                    )
-                    .clickable { onInfiniteQueueClick() },
-                contentAlignment = Alignment.Center
+
+            ToggleButton(
+                checked = infiniteQueueEnabled,
+                onCheckedChange = { onInfiniteQueueClick() },
+                modifier = Modifier.weight(1f),
+                shapes = ButtonGroupDefaults.connectedTrailingButtonShapes(),
+                colors = infiniteCheckedColors,
             ) {
                 Icon(
                     painter = painterResource(R.drawable.all_inclusive),
                     contentDescription = stringResource(R.string.similar_content),
-                    tint = if (infiniteQueueEnabled) MaterialTheme.colorScheme.onPrimary
-                           else onBackgroundColor.copy(alpha = 0.5f),
                     modifier = Modifier.size(22.dp)
                 )
             }
