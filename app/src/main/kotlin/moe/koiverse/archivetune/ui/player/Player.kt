@@ -1181,9 +1181,7 @@ private fun V7PlayerBackdrop(
     label: String,
     modifier: Modifier = Modifier,
 ) {
-    val cloudyRadius = remember(disableBlur, blurRadius) {
-        ((blurRadius + 12f) / 4f).toInt().coerceIn(12, 25)
-    }
+    val cloudyRadius = 65
     val baseArtworkScale = if (disableBlur) 1.03f else 1.06f
     val baseArtworkAlpha = if (disableBlur) 0.72f else 0.82f
     val surfaceTint = MaterialTheme.colorScheme.surface
