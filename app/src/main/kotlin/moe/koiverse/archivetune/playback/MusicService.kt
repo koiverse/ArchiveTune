@@ -21,6 +21,7 @@ import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothClass
 import android.content.pm.PackageManager
 import android.database.SQLException
+import android.media.AudioDeviceCallback
 import android.media.AudioDeviceInfo
 import android.media.AudioManager
 import android.media.AudioFocusRequest
@@ -271,6 +272,17 @@ class MusicService :
     private var bluetoothReceiverRegistered = false
     private var wakeLock: PowerManager.WakeLock? = null
     private var wakelockEnabled = false
+    private var audioDeviceCallbackRegistered = false
+
+    private val audioDeviceCallback = object : AudioDeviceCallback() {
+        override fun onAudioDevicesAdded(addedDevices: Array<AudioDeviceInfo>) {
+            if (addedDevices.any { it.isSink }) onAudioOutputDeviceChanged()
+        }
+
+        override fun onAudioDevicesRemoved(removedDevices: Array<AudioDeviceInfo>) {
+            if (removedDevices.any { it.isSink }) onAudioOutputDeviceChanged()
+        }
+    }
 
     private var scopeJob = Job()
     private var scope = CoroutineScope(Dispatchers.Main + scopeJob)
@@ -699,6 +711,8 @@ class MusicService :
             .newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "ArchiveTune:Playback")
             .also { it.setReferenceCounted(false) }
         setupAudioFocusRequest()
+        audioManager.registerAudioDeviceCallback(audioDeviceCallback, android.os.Handler(mainLooper))
+        audioDeviceCallbackRegistered = true
 
         mediaLibrarySessionCallback.apply {
             toggleLike = ::toggleLike
@@ -1306,6 +1320,16 @@ class MusicService :
             }
             .setAcceptsDelayedFocusGain(true)
             .build()
+    }
+
+    private fun onAudioOutputDeviceChanged() {
+        if (!::player.isInitialized) return
+        player.setAudioAttributes(playbackAudioAttributes(), false)
+        val sessionId = player.audioSessionId
+        if (sessionId > 0 && isAudioEffectSessionOpened) {
+            releaseAudioEffects()
+            ensureAudioEffects(sessionId)
+        }
     }
 
     private fun playbackAudioAttributes(): AudioAttributes =
@@ -4539,6 +4563,10 @@ class MusicService :
 
     override fun onDestroy() {
         super.onDestroy()
+        if (audioDeviceCallbackRegistered) {
+            audioManager.unregisterAudioDeviceCallback(audioDeviceCallback)
+            audioDeviceCallbackRegistered = false
+        }
         unregisterBluetoothReceiver()
         try {
             scope.launch { stopTogetherInternal() }
