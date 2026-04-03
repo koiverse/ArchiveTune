@@ -199,6 +199,7 @@ import kotlin.math.roundToInt
 import kotlin.math.roundToLong
 
 private const val SeekbarSettleToleranceMs = 1_500L
+private const val V7BackdropBlurHeightFraction = 0.50f // The height of the blur layout in PlayerDesignStyle V7
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -917,7 +918,6 @@ fun BottomSheetPlayer(
                         V7PlayerBackdrop(
                             thumbnailUrl = mediaMetadata?.thumbnailUrl,
                             disableBlur = disableBlur,
-                            blurRadius = blurRadius,
                             label = "v7BackdropLandscape",
                         )
 
@@ -1062,7 +1062,6 @@ fun BottomSheetPlayer(
                         V7PlayerBackdrop(
                             thumbnailUrl = mediaMetadata?.thumbnailUrl,
                             disableBlur = disableBlur,
-                            blurRadius = blurRadius,
                             label = "v7BackdropPortrait",
                         )
 
@@ -1177,11 +1176,13 @@ fun BottomSheetPlayer(
 private fun V7PlayerBackdrop(
     thumbnailUrl: String?,
     disableBlur: Boolean,
-    blurRadius: Float,
     label: String,
     modifier: Modifier = Modifier,
 ) {
-    val cloudyRadius = 65
+    val cloudyRadius = 90
+    val blurMaskStart = (1f - V7BackdropBlurHeightFraction).coerceIn(0f, 0.85f)
+    val blurMaskMid = (blurMaskStart + 0.12f).coerceIn(blurMaskStart, 0.95f)
+    val blurMaskSolid = (blurMaskStart + 0.22f).coerceIn(blurMaskMid, 1f)
     val baseArtworkScale = if (disableBlur) 1.03f else 1.06f
     val baseArtworkAlpha = if (disableBlur) 0.72f else 0.82f
     val surfaceTint = MaterialTheme.colorScheme.surface
@@ -1226,9 +1227,9 @@ private fun V7PlayerBackdrop(
                                     val blurMask = Brush.verticalGradient(
                                         colorStops = arrayOf(
                                             0f to Color.Transparent,
-                                            0.52f to Color.Transparent,
-                                            0.64f to Color.Black.copy(alpha = 0.6f),
-                                            0.74f to Color.Black,
+                                            blurMaskStart to Color.Transparent,
+                                            blurMaskMid to Color.Black.copy(alpha = 0.6f),
+                                            blurMaskSolid to Color.Black,
                                             1f to Color.Black,
                                         )
                                     )
