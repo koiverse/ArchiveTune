@@ -910,8 +910,7 @@ fun BottomSheetPlayer(
                 } else if (playerDesignStyle == PlayerDesignStyle.V8) {
                     Box(
                         modifier = Modifier
-                            .fillMaxSize()
-                            .padding(bottom = queueSheetState.collapsedBound),
+                            .fillMaxSize(),
                     ) {
                         AnimatedContent(
                             targetState = mediaMetadata?.thumbnailUrl,
@@ -938,15 +937,17 @@ fun BottomSheetPlayer(
 
                         Box(
                             modifier = Modifier
-                                .fillMaxSize()
+                                .fillMaxWidth()
+                                .fillMaxHeight(0.65f)
+                                .align(Alignment.BottomCenter)
                                 .background(
                                     Brush.verticalGradient(
                                         colors = listOf(
                                             Color.Transparent,
-                                            Color.Black.copy(alpha = 0.5f),
-                                            Color.Black.copy(alpha = 0.85f),
-                                        ),
-                                        startY = Float.POSITIVE_INFINITY * 0.4f,
+                                            Color.Black.copy(alpha = 0.4f),
+                                            Color.Black.copy(alpha = 0.75f),
+                                            Color.Black.copy(alpha = 0.92f),
+                                        )
                                     )
                                 )
                         )
@@ -955,6 +956,7 @@ fun BottomSheetPlayer(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             modifier = Modifier
                                 .align(Alignment.BottomCenter)
+                                .padding(bottom = queueSheetState.collapsedBound)
                                 .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom))
                                 .nestedScroll(state.preUpPostDownNestedScrollConnection),
                         ) {
@@ -1086,8 +1088,7 @@ fun BottomSheetPlayer(
                 } else if (playerDesignStyle == PlayerDesignStyle.V8) {
                     Box(
                         modifier = Modifier
-                            .fillMaxSize()
-                            .padding(bottom = queueSheetState.collapsedBound),
+                            .fillMaxSize(),
                     ) {
                         AnimatedContent(
                             targetState = mediaMetadata?.thumbnailUrl,
@@ -1115,14 +1116,15 @@ fun BottomSheetPlayer(
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .fillMaxHeight(0.55f)
+                                .fillMaxHeight(0.65f)
                                 .align(Alignment.BottomCenter)
                                 .background(
                                     Brush.verticalGradient(
                                         colors = listOf(
                                             Color.Transparent,
-                                            Color.Black.copy(alpha = 0.5f),
-                                            Color.Black.copy(alpha = 0.85f),
+                                            Color.Black.copy(alpha = 0.4f),
+                                            Color.Black.copy(alpha = 0.75f),
+                                            Color.Black.copy(alpha = 0.92f),
                                         )
                                     )
                                 )
@@ -1132,6 +1134,7 @@ fun BottomSheetPlayer(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             modifier = Modifier
                                 .align(Alignment.BottomCenter)
+                                .padding(bottom = queueSheetState.collapsedBound)
                                 .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal))
                                 .nestedScroll(state.preUpPostDownNestedScrollConnection),
                         ) {
@@ -1147,11 +1150,18 @@ fun BottomSheetPlayer(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         modifier =
                         Modifier
-                            .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal))
+                            .windowInsetsPadding(
+                                WindowInsets.systemBars.only(
+                                    if (playerDesignStyle == PlayerDesignStyle.V7)
+                                        WindowInsetsSides.Horizontal + WindowInsetsSides.Top
+                                    else
+                                        WindowInsetsSides.Horizontal
+                                )
+                            )
                             .padding(bottom = queueSheetState.collapsedBound),
                     ) {
                         if (playerDesignStyle == PlayerDesignStyle.V7) {
-                            Spacer(Modifier.height(8.dp))
+                            Spacer(Modifier.height(4.dp))
                             enrichedMetadata?.let {
                                 PlayerSourceHeader(
                                     mediaMetadata = it,
@@ -1162,7 +1172,43 @@ fun BottomSheetPlayer(
                                     bottomSheetPageState = bottomSheetPageState,
                                 )
                             }
-                            Spacer(Modifier.height(8.dp))
+                            Spacer(Modifier.height(2.dp))
+                            enrichedMetadata?.let {
+                                Row(
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = PlayerHorizontalPadding),
+                                ) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        PlayerTitleSection(
+                                            mediaMetadata = it,
+                                            textBackgroundColor = TextBackgroundColor,
+                                            navController = navController,
+                                            state = state,
+                                            clipboardManager = clipboardManager,
+                                            context = context,
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.width(12.dp))
+                                    PlayerTopActions(
+                                        mediaMetadata = it,
+                                        playerDesignStyle = playerDesignStyle,
+                                        textButtonColor = textButtonColor,
+                                        iconButtonColor = iconButtonColor,
+                                        textBackgroundColor = TextBackgroundColor,
+                                        playerConnection = playerConnection,
+                                        navController = navController,
+                                        menuState = menuState,
+                                        state = state,
+                                        bottomSheetPageState = bottomSheetPageState,
+                                        context = context,
+                                        currentSongLiked = currentSongLiked,
+                                    )
+                                }
+                            }
+                            Spacer(Modifier.height(4.dp))
                         }
 
                         Box(
