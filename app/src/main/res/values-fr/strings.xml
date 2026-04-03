@@ -786,4 +786,27 @@
     <string name="token_copied">Le jeton a été copié dans le presse-papiers</string>
     <string name="no_visitor_data">Aucune donnée relative aux visiteurs n\'est disponible. Il est impossible de générer des jetons.</string>
     <string name="extracting_from_url">Extraction des éléments de l\'URL…</string>
+    <string name="speed_dial">Accès Rapide</string>
+    <string name="speed_dial_random">Lire un titre au hasard</string>
+    <string name="music_recognition">Reconnaissance Musicale</string>
+    <string name="pin_to_speed_dial">Épingler à l\'Accès Rapide</string>
+    <string name="remove_from_speed_dial">Retirer de l\'Accès Rapide</string>
+    <string name="sort_by_most_played">Les plus joués</string>
+    <string name="no_matching_playlists">Aucune playlist correspondante</string>
+    <string name="blur_intensity">Intensité du flou</string>
+    <string name="blur_intensity_value">%1$d dp</string>
+    <string name="playback_confirmation_required">Confirmation de lecture requise</string>
+    <string name="playback_requires_youtube_music_confirmation">Confirmez la lecture dans YouTube Music, puis retournez dans ArchiveTune.</string>
+    <string name="playback_login_refresh_required">Actualiser la connexion à YouTube Music</string>
+    <string name="playback_requires_youtube_music_login_refresh">Actualisez votre connexion YouTube Music, puis retournez sur ArchiveTune.</string>
+    <string name="wakelock">Maintenir le processeur actif pendant la lecture</string>
+    <string name="wakelock_desc">Empêche le système d\'interrompre la musique en maintenant un verrou de réveil du processeur.</string>
+    <string name="external_downloader">Téléchargeur Externe</string>
+    <string name="external_downloader_desc">Télécharger des chansons via une application externe par nom de package</string>
+    <string name="external_downloader_package">Pack d\'applications de téléchargement</string>
+    <string name="external_downloader_package_desc">Nom du pack de l\'application de téléchargement externe (par exemple : com.deniscerri.ytdl)</string>
+    <string name="open_with_downloader">Ouvrir avec Downloader</string>
+    <string name="external_downloader_not_installed">L\'application de téléchargement externe n\'est pas installée.</string>
+    <string name="external_downloader_not_configured">Aucun téléchargeur externe n\'est configuré. Configurez-en un dans Paramètres → Lecteur.</string>
+    <string name="open_youtube_music">Ouvrir YouTube Music</string>
 </resources>
