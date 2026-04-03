@@ -99,8 +99,6 @@ import moe.koiverse.archivetune.constants.DisableBlurKey
 import moe.koiverse.archivetune.constants.PlaylistTagsFilterKey
 import moe.koiverse.archivetune.db.entities.Playlist
 import moe.koiverse.archivetune.db.entities.PlaylistEntity
-import moe.koiverse.archivetune.ui.component.CreatePlaylistDialog
-import moe.koiverse.archivetune.ui.component.HideOnScrollFAB
 import moe.koiverse.archivetune.ui.component.LibraryPlaylistGridItem
 import moe.koiverse.archivetune.ui.component.LibraryPlaylistListItem
 import moe.koiverse.archivetune.ui.component.LocalMenuState
@@ -371,16 +369,6 @@ fun LibraryPlaylistsScreen(
                 0f
             }
         }
-    }
-
-    var showCreatePlaylistDialog by rememberSaveable { mutableStateOf(false) }
-
-    if (showCreatePlaylistDialog) {
-        CreatePlaylistDialog(
-            onDismiss = { showCreatePlaylistDialog = false },
-            initialTextFieldValue = initialTextFieldValue,
-            allowSyncing = allowSyncing
-        )
     }
 
     val headerContent = @Composable {
@@ -726,14 +714,6 @@ fun LibraryPlaylistsScreen(
                         }
                     }
                 }
-
-                HideOnScrollFAB(
-                    lazyListState = lazyListState,
-                    icon = R.drawable.add,
-                    onClick = {
-                        showCreatePlaylistDialog = true
-                    },
-                )
             }
 
             LibraryViewType.GRID -> {
@@ -868,14 +848,6 @@ fun LibraryPlaylistsScreen(
                         )
                     }
                 }
-
-                HideOnScrollFAB(
-                    lazyListState = lazyGridState,
-                    icon = R.drawable.add,
-                    onClick = {
-                        showCreatePlaylistDialog = true
-                    },
-                )
             }
         }
 
