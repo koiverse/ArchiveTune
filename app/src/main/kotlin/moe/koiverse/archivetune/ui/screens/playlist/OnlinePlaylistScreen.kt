@@ -655,8 +655,7 @@ fun OnlinePlaylistScreen(
                                 // Action Buttons Row
                                 Row(
                                     modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
-                                    horizontalArrangement =
-                                        Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     val hasLike = playlist.id != "LM"
