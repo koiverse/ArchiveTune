@@ -213,7 +213,6 @@ fun <T> ListPreference(
                         selected = value == selectedValue,
                         onClick = null,
                     )
-                    )
 
                     Text(
                         text = valueText(value),
