@@ -605,7 +605,7 @@ fun ArtistScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(horizontal = 24.dp, vertical = 8.dp),
-                            horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween)
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             val isSubscribed = libraryArtist?.artist?.bookmarkedAt != null
 
