@@ -1183,7 +1183,7 @@ private fun V7PlayerBackdrop(
     modifier: Modifier = Modifier,
 ) {
     val backdropBlur = remember(disableBlur, blurRadius) {
-        (blurRadius + 18f).coerceIn(48f, 72f).dp
+        (blurRadius + 36f).coerceIn(64f, 120f).dp
     }
     val baseArtworkScale = if (disableBlur) 1.03f else 1.06f
     val baseArtworkAlpha = if (disableBlur) 0.72f else 0.82f
@@ -1233,9 +1233,10 @@ private fun V7PlayerBackdrop(
                                     val blurMask = Brush.verticalGradient(
                                         colorStops = arrayOf(
                                             0f to Color.Transparent,
-                                            0.4f to Color.Transparent,
-                                            0.54f to Color.Black.copy(alpha = 0.5f),
-                                            0.72f to Color.Black.copy(alpha = 0.94f),
+                                            0.12f to Color.Black.copy(alpha = 0.2f),
+                                            0.28f to Color.Black.copy(alpha = 0.6f),
+                                            0.42f to Color.Black.copy(alpha = 0.88f),
+                                            0.58f to Color.Black,
                                             1f to Color.Black,
                                         )
                                     )
