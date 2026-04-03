@@ -1774,51 +1774,11 @@ class MusicService :
                 val items = initialStatus.items
                 val index = initialStatus.mediaItemIndex
                 
-                // Chunk Loading: Only load a window around the current item initially
-                // to prevent blocking the Main Thread for seconds with large queues.
-                val windowStart = (index - 20).coerceAtLeast(0)
-                val windowEnd = (index + 50).coerceAtMost(items.size)
-                
-                val initialChunk = items.subList(windowStart, windowEnd)
-                val relativeIndex = index - windowStart
-                
-                player.setMediaItems(
-                    initialChunk,
-                    if (relativeIndex > 0) relativeIndex else 0,
-                    initialStatus.position,
-                )
+                player.setMediaItems(items, index, initialStatus.position)
                 player.prepare()
                 player.playWhenReady = playWhenReady
                 if (player.shuffleModeEnabled) {
                     applyCurrentFirstShuffleOrder()
-                }
-                
-                // Defer loading the rest of the queue
-                if (items.size > initialChunk.size) {
-                    scope.launch(SilentHandler) {
-                        try {
-                            delay(2000) // Allow UI to settle
-                            if (!isActive) return@launch
-                            
-                            // Add preceding items
-                            if (windowStart > 0) {
-                                val startChunk = items.subList(0, windowStart)
-                                player.addMediaItems(0, startChunk)
-                            }
-                            
-                            // Add succeeding items
-                            if (windowEnd < items.size) {
-                                val endChunk = items.subList(windowEnd, items.size)
-                                player.addMediaItems(endChunk)
-                            }
-
-                            if (player.shuffleModeEnabled) {
-                                applyCurrentFirstShuffleOrder()
-                            }
-                        } catch (e: Exception) {
-                            Timber.e(e, "Failed to load deferred queue items")
-                        }
-                    }
                 }
             }
         }
