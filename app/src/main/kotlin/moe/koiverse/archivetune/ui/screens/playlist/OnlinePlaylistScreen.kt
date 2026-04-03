@@ -666,6 +666,7 @@ fun OnlinePlaylistScreen(
                                     val buttonSlots = listOf(hasLike, hasPlay, hasShuffle, hasRadio, true)
                                     val activeIndices = buttonSlots.withIndex().filter { it.value }.map { it.index }
 
+                                    @Composable
                                     fun shapeFor(slotIndex: Int) = when {
                                         activeIndices.first() == slotIndex && activeIndices.last() == slotIndex -> ButtonGroupDefaults.connectedLeadingButtonShapes()
                                         activeIndices.first() == slotIndex -> ButtonGroupDefaults.connectedLeadingButtonShapes()
