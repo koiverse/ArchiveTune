@@ -263,7 +263,7 @@ fun CurrentSongHeader(
             ToggleButton(
                 checked = shuffleModeEnabled,
                 onCheckedChange = { onShuffleClick() },
-                modifier = Modifier.size(40.dp),
+                modifier = Modifier.weight(1f).size(48.dp),
                 shapes = ButtonGroupDefaults.connectedLeadingButtonShapes(),
                 colors = if (shuffleModeEnabled) checkedColors else uncheckedColors,
             ) {
@@ -277,7 +277,7 @@ fun CurrentSongHeader(
             ToggleButton(
                 checked = repeatMode != Player.REPEAT_MODE_OFF,
                 onCheckedChange = { onRepeatClick() },
-                modifier = Modifier.size(40.dp),
+                modifier = Modifier.weight(1f).size(48.dp),
                 shapes = ButtonGroupDefaults.connectedMiddleButtonShapes(),
                 colors = if (repeatMode != Player.REPEAT_MODE_OFF) checkedColors else uncheckedColors,
             ) {
@@ -297,7 +297,7 @@ fun CurrentSongHeader(
             ToggleButton(
                 checked = infiniteQueueEnabled,
                 onCheckedChange = { onInfiniteQueueClick() },
-                modifier = Modifier.size(40.dp),
+                modifier = Modifier.weight(1f).size(48.dp),
                 shapes = ButtonGroupDefaults.connectedTrailingButtonShapes(),
                 colors = infiniteCheckedColors,
             ) {
