@@ -135,6 +135,7 @@ import androidx.media3.common.Player.STATE_READY
 import androidx.palette.graphics.Palette
 import androidx.navigation.NavController
 import coil3.ImageLoader
+import coil3.compose.AsyncImage
 import coil3.imageLoader
 import coil3.request.ImageRequest
 import coil3.request.allowHardware
@@ -384,7 +385,8 @@ fun BottomSheetPlayer(
     val changeBound = state.expandedBound / 3
 
     val TextBackgroundColor =
-        when (playerBackground) {
+        if (playerDesignStyle == PlayerDesignStyle.V8) Color.White
+        else when (playerBackground) {
             PlayerBackgroundStyle.DEFAULT -> MaterialTheme.colorScheme.onBackground
             PlayerBackgroundStyle.BLUR -> Color.White
             PlayerBackgroundStyle.GRADIENT -> Color.White
@@ -396,7 +398,8 @@ fun BottomSheetPlayer(
         }
 
     val icBackgroundColor =
-        when (playerBackground) {
+        if (playerDesignStyle == PlayerDesignStyle.V8) Color.Black
+        else when (playerBackground) {
             PlayerBackgroundStyle.DEFAULT -> MaterialTheme.colorScheme.surface
             PlayerBackgroundStyle.BLUR -> Color.Black
             PlayerBackgroundStyle.GRADIENT -> Color.Black
@@ -413,6 +416,8 @@ fun BottomSheetPlayer(
             MaterialTheme.colorScheme.secondary,
             MaterialTheme.colorScheme.onSecondary
         )
+    }.let { (tb, ib) ->
+        if (playerDesignStyle == PlayerDesignStyle.V8) Pair(Color.White, Color.Black) else Pair(tb, ib)
     }
 
     val download by LocalDownloadUtil.current.getDownload(mediaMetadata?.id ?: "")
@@ -672,7 +677,16 @@ fun BottomSheetPlayer(
                 else -> false
             }
         },
-        backgroundColor = when (playerBackground) {
+        backgroundColor = if (playerDesignStyle == PlayerDesignStyle.V8) {
+            val progress = ((state.value - state.collapsedBound) / (state.expandedBound - state.collapsedBound))
+                .coerceIn(0f, 1f)
+            val fadeProgress = if (progress < 0.2f) {
+                ((0.2f - progress) / 0.2f).coerceIn(0f, 1f)
+            } else {
+                0f
+            }
+            Color.Black.copy(alpha = 1f - fadeProgress)
+        } else when (playerBackground) {
             PlayerBackgroundStyle.BLUR, PlayerBackgroundStyle.GRADIENT -> {
                 // Apply same enhanced fade logic to blur/gradient backgrounds
                 val progress = ((state.value - state.collapsedBound) / (state.expandedBound - state.collapsedBound))
@@ -794,10 +808,11 @@ fun BottomSheetPlayer(
                 context = context,
                 onSliderValueChange = onSliderValueChange,
                 onSliderValueChangeFinished = onSliderValueChangeFinished,
+                currentFormat = if (playerDesignStyle == PlayerDesignStyle.V8) currentFormat else null,
             )
         }
 
-        if (!state.isCollapsed && playerDesignStyle != PlayerDesignStyle.V5) {
+        if (!state.isCollapsed && playerDesignStyle != PlayerDesignStyle.V5 && playerDesignStyle != PlayerDesignStyle.V8) {
             PlayerBackground(
                 playerBackground = playerBackground,
                 mediaMetadata = mediaMetadata,
@@ -889,6 +904,64 @@ fun BottomSheetPlayer(
                                     },
                                 )
                             }
+                        }
+                    }
+                } else if (playerDesignStyle == PlayerDesignStyle.V8) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(bottom = queueSheetState.collapsedBound),
+                    ) {
+                        AnimatedContent(
+                            targetState = mediaMetadata?.thumbnailUrl,
+                            transitionSpec = {
+                                fadeIn(tween(800)) togetherWith fadeOut(tween(800))
+                            },
+                            label = "v8artworkLandscape"
+                        ) { thumbnailUrl ->
+                            if (thumbnailUrl != null) {
+                                AsyncImage(
+                                    model = thumbnailUrl,
+                                    contentDescription = null,
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier.fillMaxSize()
+                                )
+                            } else {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .background(Color.Black)
+                                )
+                            }
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(
+                                    Brush.verticalGradient(
+                                        colors = listOf(
+                                            Color.Transparent,
+                                            Color.Black.copy(alpha = 0.5f),
+                                            Color.Black.copy(alpha = 0.85f),
+                                        ),
+                                        startY = Float.POSITIVE_INFINITY * 0.4f,
+                                    )
+                                )
+                        )
+
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier
+                                .align(Alignment.BottomCenter)
+                                .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom))
+                                .nestedScroll(state.preUpPostDownNestedScrollConnection),
+                        ) {
+                            enrichedMetadata?.let {
+                                controlsContent(it)
+                            }
+
+                            Spacer(Modifier.height(16.dp))
                         }
                     }
                 } else {
@@ -1009,6 +1082,65 @@ fun BottomSheetPlayer(
                             }
                         }
                     }
+                } else if (playerDesignStyle == PlayerDesignStyle.V8) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(bottom = queueSheetState.collapsedBound),
+                    ) {
+                        AnimatedContent(
+                            targetState = mediaMetadata?.thumbnailUrl,
+                            transitionSpec = {
+                                fadeIn(tween(800)) togetherWith fadeOut(tween(800))
+                            },
+                            label = "v8artwork"
+                        ) { thumbnailUrl ->
+                            if (thumbnailUrl != null) {
+                                AsyncImage(
+                                    model = thumbnailUrl,
+                                    contentDescription = null,
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier.fillMaxSize()
+                                )
+                            } else {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .background(Color.Black)
+                                )
+                            }
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .fillMaxHeight(0.55f)
+                                .align(Alignment.BottomCenter)
+                                .background(
+                                    Brush.verticalGradient(
+                                        colors = listOf(
+                                            Color.Transparent,
+                                            Color.Black.copy(alpha = 0.5f),
+                                            Color.Black.copy(alpha = 0.85f),
+                                        )
+                                    )
+                                )
+                        )
+
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier
+                                .align(Alignment.BottomCenter)
+                                .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal))
+                                .nestedScroll(state.preUpPostDownNestedScrollConnection),
+                        ) {
+                            enrichedMetadata?.let {
+                                controlsContent(it)
+                            }
+
+                            Spacer(Modifier.height(24.dp))
+                        }
+                    }
                 } else {
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
@@ -1017,6 +1149,21 @@ fun BottomSheetPlayer(
                             .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal))
                             .padding(bottom = queueSheetState.collapsedBound),
                     ) {
+                        if (playerDesignStyle == PlayerDesignStyle.V7) {
+                            Spacer(Modifier.height(8.dp))
+                            enrichedMetadata?.let {
+                                PlayerSourceHeader(
+                                    mediaMetadata = it,
+                                    textBackgroundColor = TextBackgroundColor,
+                                    navController = navController,
+                                    state = state,
+                                    menuState = menuState,
+                                    bottomSheetPageState = bottomSheetPageState,
+                                )
+                            }
+                            Spacer(Modifier.height(8.dp))
+                        }
+
                         Box(
                             contentAlignment = Alignment.Center,
                             modifier = Modifier.weight(1f),

@@ -42,6 +42,7 @@ import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Slider
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.ToggleButton
@@ -1113,6 +1114,145 @@ fun QueueCollapsedContentV4(
                         color = textBackgroundColor,
                         style = MaterialTheme.typography.labelLarge,
                         maxLines = 1
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun QueueCollapsedContentV7(
+    showCodecOnPlayer: Boolean,
+    currentFormat: FormatEntity?,
+    textBackgroundColor: Color,
+    shuffleModeEnabled: Boolean,
+    onExpandQueue: () -> Unit,
+    onShuffleClick: () -> Unit,
+    onShowLyrics: () -> Unit,
+    onDeviceClick: () -> Unit,
+    deviceName: String,
+    modifier: Modifier = Modifier
+) {
+    Column(modifier = modifier.fillMaxWidth()) {
+        if (showCodecOnPlayer && currentFormat != null) {
+            val codec = currentFormat.mimeType.substringAfter("/").uppercase()
+            val bitrate = "${currentFormat.bitrate / 1000} kbps"
+            val fileSize = if (currentFormat.contentLength > 0) {
+                "${(currentFormat.contentLength / 1024.0 / 1024.0).roundToInt()} MB"
+            } else ""
+
+            CodecInfoRow(
+                codec = codec,
+                bitrate = bitrate,
+                fileSize = fileSize,
+                textColor = textBackgroundColor.copy(alpha = 0.6f)
+            )
+        }
+
+        Row(
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 8.dp)
+                .windowInsetsPadding(
+                    WindowInsets.systemBars.only(
+                        WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal
+                    ),
+                ),
+        ) {
+            val iconSize = 22.dp
+
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Surface(
+                    onClick = onExpandQueue,
+                    shape = CircleShape,
+                    color = textBackgroundColor.copy(alpha = 0.08f),
+                    modifier = Modifier.size(42.dp)
+                ) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.queue_music),
+                            contentDescription = null,
+                            modifier = Modifier.size(iconSize),
+                            tint = textBackgroundColor
+                        )
+                    }
+                }
+
+                Surface(
+                    onClick = onShuffleClick,
+                    shape = CircleShape,
+                    color = if (shuffleModeEnabled)
+                        MaterialTheme.colorScheme.tertiaryContainer
+                    else textBackgroundColor.copy(alpha = 0.08f),
+                    modifier = Modifier.size(42.dp)
+                ) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.shuffle),
+                            contentDescription = null,
+                            modifier = Modifier.size(iconSize),
+                            tint = if (shuffleModeEnabled)
+                                MaterialTheme.colorScheme.onTertiaryContainer
+                            else textBackgroundColor.copy(alpha = 0.6f)
+                        )
+                    }
+                }
+
+                Surface(
+                    onClick = onShowLyrics,
+                    shape = CircleShape,
+                    color = textBackgroundColor.copy(alpha = 0.08f),
+                    modifier = Modifier.size(42.dp)
+                ) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.lyrics),
+                            contentDescription = null,
+                            modifier = Modifier.size(iconSize),
+                            tint = textBackgroundColor
+                        )
+                    }
+                }
+            }
+
+            Surface(
+                onClick = onDeviceClick,
+                shape = RoundedCornerShape(20.dp),
+                color = textBackgroundColor.copy(alpha = 0.08f),
+                modifier = Modifier.height(36.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                ) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.bluetooth),
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = deviceName,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = textBackgroundColor,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                     )
                 }
             }

@@ -10,6 +10,7 @@ package moe.koiverse.archivetune.ui.player
 
 import androidx.activity.compose.BackHandler
 import android.annotation.SuppressLint
+import android.content.Context
 import android.text.format.Formatter
 import android.widget.Toast
 import androidx.compose.animation.AnimatedContent
@@ -411,6 +412,33 @@ fun Queue(
                             }
                         },
                         onShowLyrics = onShowLyrics
+                    )
+                }
+
+                PlayerDesignStyle.V7, PlayerDesignStyle.V8 -> {
+                    val shuffleModeEnabled by playerConnection.shuffleModeEnabled.collectAsState()
+                    val audioManager = remember { context.getSystemService(Context.AUDIO_SERVICE) as android.media.AudioManager }
+                    val activeDevice = remember(audioManager) {
+                        audioManager.getDevices(android.media.AudioManager.GET_DEVICES_OUTPUTS)
+                            .firstOrNull { it.type == android.media.AudioDeviceInfo.TYPE_BLUETOOTH_A2DP || it.type == android.media.AudioDeviceInfo.TYPE_BLUETOOTH_SCO || it.type == android.media.AudioDeviceInfo.TYPE_BLE_HEADSET }
+                            ?.productName?.toString() ?: "Speaker"
+                    }
+                    QueueCollapsedContentV7(
+                        showCodecOnPlayer = showCodecOnPlayer,
+                        currentFormat = currentFormat,
+                        textBackgroundColor = TextBackgroundColor,
+                        shuffleModeEnabled = shuffleModeEnabled,
+                        onExpandQueue = { state.expandSoft() },
+                        onShuffleClick = {
+                            playerConnection.player.shuffleModeEnabled = !playerConnection.player.shuffleModeEnabled
+                        },
+                        onShowLyrics = onShowLyrics,
+                        onDeviceClick = {
+                            val intent = android.content.Intent(android.provider.Settings.ACTION_BLUETOOTH_SETTINGS)
+                            intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                            context.startActivity(intent)
+                        },
+                        deviceName = activeDevice
                     )
                 }
             }

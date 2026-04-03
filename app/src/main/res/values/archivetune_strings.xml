@@ -111,6 +111,9 @@
     <string name="player_design_v4">Cinematic</string>
     <string name="player_design_v5">Little</string>
     <string name="player_design_v6">Expressive</string>
+    <string name="player_design_v7">Sleek</string>
+    <string name="player_design_v8">Immersive</string>
+    <string name="playing_from">Playing from %s</string>
     <string name="player_background_blur">Blur</string>
     <string name="coloring">Coloring</string>
     <string name="blur_gradient">Blur Gradient</string>
