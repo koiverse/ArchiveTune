@@ -4,13 +4,18 @@
  * Licensed Under GPL-3.0 | see git history for contributors
  */
 
-
+@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
 
 package moe.koiverse.archivetune.ui.component
 
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -28,22 +33,24 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.AlertDialog
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ProvideTextStyle
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberSliderState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.compositionLocalOf
@@ -60,6 +67,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
@@ -111,7 +119,7 @@ fun PreferenceEntry(
                     modifier = Modifier
                         .align(Alignment.CenterVertically)
                         .size(36.dp)
-                        .clip(RoundedCornerShape(12.dp))
+                        .clip(MaterialTheme.shapes.small)
                         .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
                     contentAlignment = Alignment.Center,
                 ) {
@@ -151,7 +159,7 @@ fun PreferenceEntry(
         rowContent()
     } else {
         Card(
-            shape = RoundedCornerShape(16.dp),
+            shape = MaterialTheme.shapes.large,
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
             ),
@@ -190,14 +198,21 @@ fun <T> ListPreference(
                     modifier =
                     Modifier
                         .fillMaxWidth()
-                        .clickable {
-                            showDialog = false
-                            onValueSelected(value)
-                        }.padding(horizontal = 16.dp, vertical = 12.dp),
+                        .height(56.dp)
+                        .selectable(
+                            selected = value == selectedValue,
+                            onClick = {
+                                showDialog = false
+                                onValueSelected(value)
+                            },
+                            role = Role.RadioButton,
+                        )
+                        .padding(horizontal = 16.dp),
                 ) {
                     RadioButton(
                         selected = value == selectedValue,
                         onClick = null,
+                    )
                     )
 
                     Text(
@@ -263,14 +278,30 @@ fun SwitchPreference(
                 onCheckedChange = onCheckedChange,
                 enabled = isEnabled,
                 thumbContent = {
-                    Icon(
-                        painter = painterResource(
-                            id = if (checked) R.drawable.check else R.drawable.close
-                        ),
-                        contentDescription = null,
-                        modifier = Modifier.size(SwitchDefaults.IconSize),
-                    )
-                }
+                    AnimatedContent(
+                        targetState = checked,
+                        transitionSpec = {
+                            fadeIn(tween(100)) togetherWith fadeOut(tween(100))
+                        },
+                        label = "switchThumbIcon",
+                    ) { isChecked ->
+                        Icon(
+                            painter = painterResource(
+                                id = if (isChecked) R.drawable.check else R.drawable.close
+                            ),
+                            contentDescription = null,
+                            modifier = Modifier.size(SwitchDefaults.IconSize),
+                        )
+                    }
+                },
+                colors = SwitchDefaults.colors(
+                    checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
+                    checkedTrackColor = MaterialTheme.colorScheme.primary,
+                    checkedIconColor = MaterialTheme.colorScheme.primary,
+                    uncheckedThumbColor = MaterialTheme.colorScheme.onSurface,
+                    uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant,
+                    uncheckedIconColor = MaterialTheme.colorScheme.surfaceVariant,
+                ),
             )
         },
         onClick = { onCheckedChange(!checked) },
@@ -360,7 +391,7 @@ fun SliderPreference(
                 showDialog = false
             },
             onReset = {
-                sliderValue = 30f // Default value or any reset value you prefer
+                sliderValue = 30f
             },
             content = {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -375,11 +406,23 @@ fun SliderPreference(
 
                     Spacer(Modifier.height(16.dp))
 
-                    Slider(
+                    val sliderState = rememberSliderState(
                         value = sliderValue,
-                        onValueChange = { sliderValue = it },
                         valueRange = 15f..60f,
-                        modifier = Modifier.fillMaxWidth()
+                        onValueChangeFinished = {},
+                    )
+                    sliderState.onValueChange = { sliderValue = it }
+                    sliderState.value = sliderValue
+
+                    Slider(
+                        state = sliderState,
+                        modifier = Modifier.fillMaxWidth(),
+                        track = {
+                            SliderDefaults.Track(
+                                sliderState = sliderState,
+                                trackCornerSize = 12.dp,
+                            )
+                        },
                     )
                 }
             }
@@ -468,12 +511,24 @@ fun CrossfadeSliderPreference(
 
                     Spacer(Modifier.height(16.dp))
 
-                    Slider(
+                    val crossfadeSliderState = rememberSliderState(
                         value = sliderValue,
-                        onValueChange = { sliderValue = it.coerceIn(0f, 10f) },
-                        valueRange = 0f..10f,
                         steps = 9,
-                        modifier = Modifier.fillMaxWidth()
+                        valueRange = 0f..10f,
+                        onValueChangeFinished = {},
+                    )
+                    crossfadeSliderState.onValueChange = { sliderValue = it.coerceIn(0f, 10f) }
+                    crossfadeSliderState.value = sliderValue
+
+                    Slider(
+                        state = crossfadeSliderState,
+                        modifier = Modifier.fillMaxWidth(),
+                        track = {
+                            SliderDefaults.Track(
+                                sliderState = crossfadeSliderState,
+                                trackCornerSize = 12.dp,
+                            )
+                        },
                     )
                 }
             }
@@ -551,12 +606,26 @@ fun NumberPickerPreference(
 
                     Spacer(Modifier.height(16.dp))
 
-                    Slider(
+                    val pickerSliderState = rememberSliderState(
                         value = sliderValue,
-                        onValueChange = { sliderValue = it.coerceIn(minValue.toFloat(), maxValue.toFloat()) },
-                        valueRange = minValue.toFloat()..maxValue.toFloat(),
                         steps = maxValue - minValue - 1,
-                        modifier = Modifier.fillMaxWidth()
+                        valueRange = minValue.toFloat()..maxValue.toFloat(),
+                        onValueChangeFinished = {},
+                    )
+                    pickerSliderState.onValueChange = {
+                        sliderValue = it.coerceIn(minValue.toFloat(), maxValue.toFloat())
+                    }
+                    pickerSliderState.value = sliderValue
+
+                    Slider(
+                        state = pickerSliderState,
+                        modifier = Modifier.fillMaxWidth(),
+                        track = {
+                            SliderDefaults.Track(
+                                sliderState = pickerSliderState,
+                                trackCornerSize = 12.dp,
+                            )
+                        },
                     )
                 }
             }
@@ -590,7 +659,7 @@ fun PreferenceGroup(
             )
         }
         Card(
-            shape = RoundedCornerShape(16.dp),
+            shape = MaterialTheme.shapes.large,
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
             ),
