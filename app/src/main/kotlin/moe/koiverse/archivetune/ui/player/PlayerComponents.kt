@@ -46,6 +46,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularWavyProgressIndicator
+import androidx.compose.material3.ButtonGroupDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilledIconButton
@@ -56,6 +57,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.ToggleButton
+import androidx.compose.material3.ToggleButtonDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -1682,36 +1685,39 @@ fun PlayerPlaybackControls(
 
         PlayerDesignStyle.V7 -> {
             Row(
-                horizontalArrangement = Arrangement.SpaceEvenly,
-                verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = PlayerHorizontalPadding)
+                    .padding(horizontal = PlayerHorizontalPadding),
+                horizontalArrangement = Arrangement.spacedBy(0.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Surface(
-                    onClick = playerConnection::seekToPrevious,
+                ToggleButton(
+                    checked = false,
+                    onCheckedChange = { playerConnection.seekToPrevious() },
                     enabled = canSkipPrevious,
-                    shape = CircleShape,
-                    color = Color.Transparent,
-                    modifier = Modifier.size(56.dp)
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(56.dp),
+                    shapes = ButtonGroupDefaults.connectedLeadingButtonShapes(),
+                    colors = ToggleButtonDefaults.toggleButtonColors(
+                        containerColor = textBackgroundColor.copy(alpha = 0.1f),
+                        contentColor = textBackgroundColor,
+                        checkedContainerColor = textBackgroundColor.copy(alpha = 0.1f),
+                        checkedContentColor = textBackgroundColor,
+                        disabledContainerColor = textBackgroundColor.copy(alpha = 0.1f),
+                        disabledContentColor = textBackgroundColor.copy(alpha = 0.4f),
+                    ),
                 ) {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            painter = painterResource(R.drawable.skip_previous),
-                            contentDescription = null,
-                            tint = textBackgroundColor.copy(
-                                alpha = if (canSkipPrevious) 1f else 0.4f
-                            ),
-                            modifier = Modifier.size(36.dp)
-                        )
-                    }
+                    Icon(
+                        painter = painterResource(R.drawable.skip_previous),
+                        contentDescription = null,
+                        modifier = Modifier.size(32.dp)
+                    )
                 }
 
-                Surface(
-                    onClick = {
+                ToggleButton(
+                    checked = false,
+                    onCheckedChange = {
                         if (playbackState == STATE_ENDED) {
                             playerConnection.player.seekTo(0, 0)
                             playerConnection.player.playWhenReady = true
@@ -1719,56 +1725,59 @@ fun PlayerPlaybackControls(
                             playerConnection.player.togglePlayPause()
                         }
                     },
-                    shape = CircleShape,
-                    color = textButtonColor,
-                    modifier = Modifier.size(64.dp)
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(64.dp),
+                    shapes = ButtonGroupDefaults.connectedMiddleButtonShapes(),
+                    colors = ToggleButtonDefaults.toggleButtonColors(
+                        containerColor = textButtonColor,
+                        contentColor = iconButtonColor,
+                        checkedContainerColor = textButtonColor,
+                        checkedContentColor = iconButtonColor,
+                    ),
                 ) {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        if (isLoading) {
-                            CircularWavyProgressIndicator(
-                                modifier = Modifier.size(32.dp),
-                                color = iconButtonColor,
-                            )
-                        } else {
-                            Icon(
-                                painter = painterResource(
-                                    when {
-                                        playbackState == STATE_ENDED -> R.drawable.replay
-                                        isPlaying -> R.drawable.pause
-                                        else -> R.drawable.play
-                                    }
-                                ),
-                                contentDescription = null,
-                                tint = iconButtonColor,
-                                modifier = Modifier.size(32.dp)
-                            )
-                        }
-                    }
-                }
-
-                Surface(
-                    onClick = { playerConnection.seekToNext() },
-                    enabled = canSkipNext,
-                    shape = CircleShape,
-                    color = Color.Transparent,
-                    modifier = Modifier.size(56.dp)
-                ) {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
+                    if (isLoading) {
+                        CircularWavyProgressIndicator(
+                            modifier = Modifier.size(36.dp),
+                            color = iconButtonColor,
+                        )
+                    } else {
                         Icon(
-                            painter = painterResource(R.drawable.skip_next),
-                            contentDescription = null,
-                            tint = textBackgroundColor.copy(
-                                alpha = if (canSkipNext) 1f else 0.4f
+                            painter = painterResource(
+                                when {
+                                    playbackState == STATE_ENDED -> R.drawable.replay
+                                    isPlaying -> R.drawable.pause
+                                    else -> R.drawable.play
+                                }
                             ),
+                            contentDescription = null,
                             modifier = Modifier.size(36.dp)
                         )
                     }
+                }
+
+                ToggleButton(
+                    checked = false,
+                    onCheckedChange = { playerConnection.seekToNext() },
+                    enabled = canSkipNext,
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(56.dp),
+                    shapes = ButtonGroupDefaults.connectedTrailingButtonShapes(),
+                    colors = ToggleButtonDefaults.toggleButtonColors(
+                        containerColor = textBackgroundColor.copy(alpha = 0.1f),
+                        contentColor = textBackgroundColor,
+                        checkedContainerColor = textBackgroundColor.copy(alpha = 0.1f),
+                        checkedContentColor = textBackgroundColor,
+                        disabledContainerColor = textBackgroundColor.copy(alpha = 0.1f),
+                        disabledContentColor = textBackgroundColor.copy(alpha = 0.4f),
+                    ),
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.skip_next),
+                        contentDescription = null,
+                        modifier = Modifier.size(32.dp)
+                    )
                 }
             }
         }
@@ -1911,43 +1920,45 @@ fun PlayerControlsContent(
         label = "playPauseRoundness",
     )
 
-    Row(
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = PlayerHorizontalPadding),
-    ) {
-        Column(modifier = Modifier.weight(1f)) {
-            PlayerTitleSection(
+    if (playerDesignStyle != PlayerDesignStyle.V7) {
+        Row(
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = PlayerHorizontalPadding),
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                PlayerTitleSection(
+                    mediaMetadata = mediaMetadata,
+                    textBackgroundColor = textBackgroundColor,
+                    navController = navController,
+                    state = state,
+                    clipboardManager = clipboardManager,
+                    context = context
+                )
+            }
+
+            Spacer(modifier = Modifier.width(12.dp))
+
+            PlayerTopActions(
                 mediaMetadata = mediaMetadata,
+                playerDesignStyle = playerDesignStyle,
+                textButtonColor = textButtonColor,
+                iconButtonColor = iconButtonColor,
                 textBackgroundColor = textBackgroundColor,
+                playerConnection = playerConnection,
                 navController = navController,
+                menuState = menuState,
                 state = state,
-                clipboardManager = clipboardManager,
-                context = context
+                bottomSheetPageState = bottomSheetPageState,
+                context = context,
+                currentSongLiked = currentSongLiked
             )
         }
 
-        Spacer(modifier = Modifier.width(12.dp))
-
-        PlayerTopActions(
-            mediaMetadata = mediaMetadata,
-            playerDesignStyle = playerDesignStyle,
-            textButtonColor = textButtonColor,
-            iconButtonColor = iconButtonColor,
-            textBackgroundColor = textBackgroundColor,
-            playerConnection = playerConnection,
-            navController = navController,
-            menuState = menuState,
-            state = state,
-            bottomSheetPageState = bottomSheetPageState,
-            context = context,
-            currentSongLiked = currentSongLiked
-        )
+        Spacer(Modifier.height(12.dp))
     }
-
-    Spacer(Modifier.height(12.dp))
 
     PlayerSlider(
         sliderStyle = sliderStyle,
