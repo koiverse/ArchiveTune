@@ -85,53 +85,7 @@ fun FloatingNavigationToolbar(
         modifier = modifier.fillMaxWidth(),
         contentAlignment = Alignment.Center,
     ) {
-        val useCompactFallback = maxWidth < if (hasOverflowAction || hasFabAction) 336.dp else 280.dp
-        val toolbarWidth = if (hasOverflowAction || hasFabAction) 480.dp else 420.dp
         val showSelectedLabels = maxWidth >= 360.dp
-        val compactAction: (@Composable () -> Unit)? =
-            when {
-                hasOverflowAction -> {
-                    {
-                        FloatingToolbarOverflowAction(
-                            pureBlack = pureBlack,
-                            compact = true,
-                            onShuffleClick = onShuffleClick,
-                            shuffleIconRes = shuffleIconRes,
-                            shuffleContentDescription = shuffleContentDescription,
-                            onMusicRecognitionClick = onMusicRecognitionClick,
-                            musicRecognitionContentDescription = musicRecognitionContentDescription,
-                        )
-                    }
-                }
-
-                hasFabAction -> {
-                    {
-                        FloatingToolbarFabAction(
-                            pureBlack = pureBlack,
-                            compact = true,
-                            onClick = onFabClick,
-                            iconRes = fabIconRes,
-                            contentDescription = fabContentDescription,
-                        )
-                    }
-                }
-
-                else -> null
-            }
-
-        if (useCompactFallback) {
-            CompactFloatingNavigationToolbar(
-                items = items,
-                pureBlack = pureBlack,
-                containerColor = toolbarContainerColor,
-                showSelectedLabels = false,
-                action = compactAction,
-                isSelected = isSelected,
-                onItemClick = onItemClick,
-                modifier = Modifier.fillMaxWidth().widthIn(max = toolbarWidth),
-            )
-            return@BoxWithConstraints
-        }
 
         if (hasOverflowAction) {
             HorizontalFloatingToolbar(
@@ -139,7 +93,6 @@ fun FloatingNavigationToolbar(
                 floatingActionButton = {
                     FloatingToolbarOverflowAction(
                         pureBlack = pureBlack,
-                        compact = false,
                         onShuffleClick = onShuffleClick,
                         shuffleIconRes = shuffleIconRes,
                         shuffleContentDescription = shuffleContentDescription,
@@ -168,7 +121,6 @@ fun FloatingNavigationToolbar(
                 floatingActionButton = {
                     FloatingToolbarFabAction(
                         pureBlack = pureBlack,
-                        compact = false,
                         onClick = onFabClick,
                         iconRes = fabIconRes,
                         contentDescription = fabContentDescription,
@@ -212,55 +164,8 @@ fun FloatingNavigationToolbar(
 }
 
 @Composable
-private fun CompactFloatingNavigationToolbar(
-    items: List<Screens>,
-    pureBlack: Boolean,
-    containerColor: Color,
-    showSelectedLabels: Boolean,
-    action: (@Composable () -> Unit)?,
-    isSelected: (Screens) -> Boolean,
-    onItemClick: (Screens, Boolean) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Surface(
-        modifier = modifier,
-        color = containerColor,
-        shape = RoundedCornerShape(28.dp),
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            items.forEach { screen ->
-                val selected = isSelected(screen)
-                Box(
-                    modifier = Modifier.weight(1f),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    FloatingNavigationToolbarItem(
-                        screen = screen,
-                        selected = selected,
-                        showSelectedLabel = showSelectedLabels,
-                        pureBlack = pureBlack,
-                        onClick = { onItemClick(screen, selected) },
-                    )
-                }
-            }
-
-            if (action != null) {
-                Box(contentAlignment = Alignment.Center) {
-                    action()
-                }
-            }
-        }
-    }
-}
-
-@Composable
 private fun FloatingToolbarOverflowAction(
     pureBlack: Boolean,
-    compact: Boolean,
     onShuffleClick: (() -> Unit)?,
     shuffleIconRes: Int?,
     shuffleContentDescription: String,
@@ -270,34 +175,18 @@ private fun FloatingToolbarOverflowAction(
     var fabMenuExpanded by rememberSaveable { mutableStateOf(false) }
 
     Box {
-        if (compact) {
-            FloatingToolbarFallbackActionButton(
-                pureBlack = pureBlack,
-                onClick = { fabMenuExpanded = !fabMenuExpanded },
-            ) {
-                Icon(
-                    painter = painterResource(R.drawable.more_horiz),
-                    contentDescription =
-                        shuffleContentDescription.ifEmpty {
-                            stringResource(R.string.more)
-                        },
-                    modifier = Modifier.size(20.dp),
-                )
-            }
-        } else {
-            FloatingToolbarDefaults.VibrantFloatingActionButton(
-                onClick = { fabMenuExpanded = !fabMenuExpanded },
-                containerColor = floatingToolbarFabContainerColor(pureBlack = pureBlack),
-                contentColor = floatingToolbarFabContentColor(pureBlack = pureBlack),
-            ) {
-                Icon(
-                    painter = painterResource(R.drawable.more_horiz),
-                    contentDescription =
-                        shuffleContentDescription.ifEmpty {
-                            stringResource(R.string.more)
-                        },
-                )
-            }
+        FloatingToolbarDefaults.VibrantFloatingActionButton(
+            onClick = { fabMenuExpanded = !fabMenuExpanded },
+            containerColor = floatingToolbarFabContainerColor(pureBlack = pureBlack),
+            contentColor = floatingToolbarFabContentColor(pureBlack = pureBlack),
+        ) {
+            Icon(
+                painter = painterResource(R.drawable.more_horiz),
+                contentDescription =
+                    shuffleContentDescription.ifEmpty {
+                        stringResource(R.string.more)
+                    },
+            )
         }
 
         DropdownMenu(
@@ -380,84 +269,24 @@ private fun FloatingToolbarOverflowAction(
 @Composable
 private fun FloatingToolbarFabAction(
     pureBlack: Boolean,
-    compact: Boolean,
     onClick: (() -> Unit)?,
     iconRes: Int?,
     contentDescription: String,
 ) {
     if (onClick == null || iconRes == null) return
 
-    if (compact) {
-        FloatingToolbarFallbackActionButton(
-            pureBlack = pureBlack,
-            onClick = onClick,
-        ) {
-            Icon(
-                painter = painterResource(iconRes),
-                contentDescription =
-                    contentDescription.ifEmpty {
-                        stringResource(R.string.create_playlist)
-                    },
-                modifier = Modifier.size(20.dp),
-            )
-        }
-    } else {
-        FloatingToolbarDefaults.VibrantFloatingActionButton(
-            onClick = onClick,
-            containerColor = floatingToolbarFabContainerColor(pureBlack = pureBlack),
-            contentColor = floatingToolbarFabContentColor(pureBlack = pureBlack),
-        ) {
-            Icon(
-                painter = painterResource(iconRes),
-                contentDescription =
-                    contentDescription.ifEmpty {
-                        stringResource(R.string.create_playlist)
-                    },
-            )
-        }
-    }
-}
-
-@Composable
-private fun FloatingToolbarFallbackActionButton(
-    pureBlack: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    content: @Composable () -> Unit,
-) {
-    val shape = CircleShape
-    val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
-    val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.94f else 1f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessMedium,
-        ),
-        label = "",
-    )
-
-    Surface(
-        modifier = modifier.size(40.dp).scale(scale),
-        color = floatingToolbarFabContainerColor(pureBlack = pureBlack),
+    FloatingToolbarDefaults.VibrantFloatingActionButton(
+        onClick = onClick,
+        containerColor = floatingToolbarFabContainerColor(pureBlack = pureBlack),
         contentColor = floatingToolbarFabContentColor(pureBlack = pureBlack),
-        shape = shape,
     ) {
-        Box(
-            modifier =
-                Modifier
-                    .clip(shape)
-                    .clickable(
-                        interactionSource = interactionSource,
-                        indication = LocalIndication.current,
-                        role = Role.Button,
-                        onClick = onClick,
-                    )
-                    .size(40.dp),
-            contentAlignment = Alignment.Center,
-        ) {
-            content()
-        }
+        Icon(
+            painter = painterResource(iconRes),
+            contentDescription =
+                contentDescription.ifEmpty {
+                    stringResource(R.string.create_playlist)
+                },
+        )
     }
 }
 
