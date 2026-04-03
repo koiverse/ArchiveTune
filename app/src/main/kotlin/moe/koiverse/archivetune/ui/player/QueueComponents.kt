@@ -1126,9 +1126,7 @@ fun QueueCollapsedContentV7(
     showCodecOnPlayer: Boolean,
     currentFormat: FormatEntity?,
     textBackgroundColor: Color,
-    shuffleModeEnabled: Boolean,
     onExpandQueue: () -> Unit,
-    onShuffleClick: () -> Unit,
     onShowLyrics: () -> Unit,
     onDeviceClick: () -> Unit,
     deviceName: String,
@@ -1183,29 +1181,6 @@ fun QueueCollapsedContentV7(
                             contentDescription = null,
                             modifier = Modifier.size(iconSize),
                             tint = textBackgroundColor
-                        )
-                    }
-                }
-
-                Surface(
-                    onClick = onShuffleClick,
-                    shape = CircleShape,
-                    color = if (shuffleModeEnabled)
-                        MaterialTheme.colorScheme.tertiaryContainer
-                    else textBackgroundColor.copy(alpha = 0.08f),
-                    modifier = Modifier.size(42.dp)
-                ) {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.shuffle),
-                            contentDescription = null,
-                            modifier = Modifier.size(iconSize),
-                            tint = if (shuffleModeEnabled)
-                                MaterialTheme.colorScheme.onTertiaryContainer
-                            else textBackgroundColor.copy(alpha = 0.6f)
                         )
                     }
                 }

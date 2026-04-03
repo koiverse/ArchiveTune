@@ -416,7 +416,6 @@ fun Queue(
                 }
 
                 PlayerDesignStyle.V7 -> {
-                    val shuffleModeEnabled by playerConnection.shuffleModeEnabled.collectAsState()
                     val audioManager = remember { context.getSystemService(Context.AUDIO_SERVICE) as android.media.AudioManager }
                     val activeDevice = remember(audioManager) {
                         audioManager.getDevices(android.media.AudioManager.GET_DEVICES_OUTPUTS)
@@ -427,11 +426,7 @@ fun Queue(
                         showCodecOnPlayer = showCodecOnPlayer,
                         currentFormat = currentFormat,
                         textBackgroundColor = TextBackgroundColor,
-                        shuffleModeEnabled = shuffleModeEnabled,
                         onExpandQueue = { state.expandSoft() },
-                        onShuffleClick = {
-                            playerConnection.player.shuffleModeEnabled = !playerConnection.player.shuffleModeEnabled
-                        },
                         onShowLyrics = onShowLyrics,
                         onDeviceClick = {
                             val intent = android.content.Intent(android.provider.Settings.ACTION_BLUETOOTH_SETTINGS)
