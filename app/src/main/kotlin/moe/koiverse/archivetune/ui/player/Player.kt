@@ -86,12 +86,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ColorMatrix
+import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -1180,10 +1183,11 @@ private fun V7PlayerBackdrop(
     modifier: Modifier = Modifier,
 ) {
     val backdropBlur = remember(disableBlur, blurRadius) {
-        blurRadius.coerceIn(28f, 44f).dp
+        (blurRadius + 10f).coerceIn(38f, 60f).dp
     }
-    val artworkScale = if (disableBlur) 1.08f else 1.22f
-    val artworkAlpha = if (disableBlur) 0.52f else 0.96f
+    val baseArtworkScale = if (disableBlur) 1.03f else 1.06f
+    val baseArtworkAlpha = if (disableBlur) 0.72f else 0.88f
+    val blurredArtworkScale = 1.24f
     val surfaceTint = MaterialTheme.colorScheme.surface
 
     Box(
@@ -1197,21 +1201,56 @@ private fun V7PlayerBackdrop(
             label = label,
         ) { artworkUrl ->
             if (artworkUrl != null) {
-                AsyncImage(
-                    model = artworkUrl,
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .graphicsLayer {
-                            scaleX = artworkScale
-                            scaleY = artworkScale
-                            alpha = artworkAlpha
-                        }
-                        .let { currentModifier ->
-                            if (disableBlur) currentModifier else currentModifier.blur(backdropBlur)
-                        }
-                )
+                Box(modifier = Modifier.fillMaxSize()) {
+                    AsyncImage(
+                        model = artworkUrl,
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .graphicsLayer {
+                                scaleX = baseArtworkScale
+                                scaleY = baseArtworkScale
+                                alpha = baseArtworkAlpha
+                            }
+                    )
+
+                    if (!disableBlur) {
+                        AsyncImage(
+                            model = artworkUrl,
+                            contentDescription = null,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .graphicsLayer {
+                                    scaleX = blurredArtworkScale
+                                    scaleY = blurredArtworkScale
+                                    alpha = 0.96f
+                                    compositingStrategy = CompositingStrategy.Offscreen
+                                }
+                                .blur(backdropBlur)
+                                .drawWithCache {
+                                    val blurMask = Brush.verticalGradient(
+                                        colorStops = arrayOf(
+                                            0f to Color.Transparent,
+                                            0.46f to Color.Transparent,
+                                            0.62f to Color.Black.copy(alpha = 0.38f),
+                                            0.78f to Color.Black.copy(alpha = 0.88f),
+                                            1f to Color.Black,
+                                        )
+                                    )
+
+                                    onDrawWithContent {
+                                        drawContent()
+                                        drawRect(
+                                            brush = blurMask,
+                                            blendMode = BlendMode.DstIn,
+                                        )
+                                    }
+                                }
+                        )
+                    }
+                }
             } else {
                 Box(
                     modifier = Modifier
@@ -1224,7 +1263,7 @@ private fun V7PlayerBackdrop(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.08f))
+                .background(Color.Black.copy(alpha = 0.06f))
         )
 
         Box(
@@ -1233,10 +1272,10 @@ private fun V7PlayerBackdrop(
                 .background(
                     Brush.verticalGradient(
                         colorStops = arrayOf(
-                            0f to Color.Black.copy(alpha = 0.18f),
-                            0.28f to Color.Transparent,
-                            0.68f to Color.Black.copy(alpha = 0.22f),
-                            1f to Color.Black.copy(alpha = 0.74f),
+                            0f to Color.Black.copy(alpha = 0.16f),
+                            0.34f to Color.Transparent,
+                            0.7f to Color.Black.copy(alpha = 0.16f),
+                            1f to Color.Black.copy(alpha = 0.7f),
                         )
                     )
                 )
@@ -1249,9 +1288,9 @@ private fun V7PlayerBackdrop(
                     Brush.verticalGradient(
                         colorStops = arrayOf(
                             0f to Color.Transparent,
-                            0.58f to Color.Transparent,
-                            0.84f to surfaceTint.copy(alpha = 0.10f),
-                            1f to surfaceTint.copy(alpha = 0.22f),
+                            0.62f to Color.Transparent,
+                            0.86f to surfaceTint.copy(alpha = 0.1f),
+                            1f to surfaceTint.copy(alpha = 0.2f),
                         )
                     )
                 )
