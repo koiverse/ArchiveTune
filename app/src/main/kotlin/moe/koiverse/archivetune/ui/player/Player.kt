@@ -47,7 +47,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.ui.draw.blur
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
@@ -84,7 +83,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.draw.drawBehind
@@ -141,6 +139,7 @@ import androidx.navigation.NavController
 import coil3.ImageLoader
 import coil3.compose.AsyncImage
 import coil3.imageLoader
+import com.skydoves.cloudy.cloudy
 import coil3.request.ImageRequest
 import coil3.request.allowHardware
 import coil3.toBitmap
@@ -1182,12 +1181,11 @@ private fun V7PlayerBackdrop(
     label: String,
     modifier: Modifier = Modifier,
 ) {
-    val backdropBlur = remember(disableBlur, blurRadius) {
-        (blurRadius + 36f).coerceIn(64f, 120f).dp
+    val cloudyRadius = remember(disableBlur, blurRadius) {
+        ((blurRadius + 12f) / 4f).toInt().coerceIn(12, 25)
     }
     val baseArtworkScale = if (disableBlur) 1.03f else 1.06f
     val baseArtworkAlpha = if (disableBlur) 0.72f else 0.82f
-    val blurredArtworkScale = 1.3f
     val surfaceTint = MaterialTheme.colorScheme.surface
 
     Box(
@@ -1216,27 +1214,22 @@ private fun V7PlayerBackdrop(
                     )
 
                     if (!disableBlur) {
-                        AsyncImage(
-                            model = artworkUrl,
-                            contentDescription = null,
-                            contentScale = ContentScale.Crop,
+                        Box(
                             modifier = Modifier
-                                .fillMaxSize()
+                                .fillMaxWidth()
+                                .fillMaxHeight(0.42f)
+                                .align(Alignment.BottomCenter)
                                 .graphicsLayer {
-                                    scaleX = blurredArtworkScale
-                                    scaleY = blurredArtworkScale
                                     alpha = 0.96f
                                     compositingStrategy = CompositingStrategy.Offscreen
                                 }
-                                .blur(backdropBlur)
                                 .drawWithCache {
                                     val blurMask = Brush.verticalGradient(
                                         colorStops = arrayOf(
                                             0f to Color.Transparent,
-                                            0.12f to Color.Black.copy(alpha = 0.2f),
-                                            0.28f to Color.Black.copy(alpha = 0.6f),
-                                            0.42f to Color.Black.copy(alpha = 0.88f),
-                                            0.58f to Color.Black,
+                                            0.18f to Color.Black.copy(alpha = 0.4f),
+                                            0.38f to Color.Black.copy(alpha = 0.85f),
+                                            0.56f to Color.Black,
                                             1f to Color.Black,
                                         )
                                     )
@@ -1249,7 +1242,16 @@ private fun V7PlayerBackdrop(
                                         )
                                     }
                                 }
-                        )
+                        ) {
+                            AsyncImage(
+                                model = artworkUrl,
+                                contentDescription = null,
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .cloudy(radius = cloudyRadius)
+                            )
+                        }
                     }
                 }
             } else {
