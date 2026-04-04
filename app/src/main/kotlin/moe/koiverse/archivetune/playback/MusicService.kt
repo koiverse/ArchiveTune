@@ -1862,7 +1862,8 @@ class MusicService :
 
         scope.launch(SilentHandler) {
             val radioQueue = YouTubeQueue(
-                endpoint = WatchEndpoint(videoId = currentMediaId)
+                endpoint = WatchEndpoint(videoId = currentMediaId),
+                followAutomixPreview = true,
             )
             val initialStatus = withContext(Dispatchers.IO) {
                 radioQueue.getInitialStatus().filterExplicit(dataStore.get(HideExplicitKey, false)).filterVideo(dataStore.get(HideVideoKey, false))
