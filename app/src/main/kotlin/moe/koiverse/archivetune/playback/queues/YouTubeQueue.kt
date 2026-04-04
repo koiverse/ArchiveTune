@@ -58,6 +58,11 @@ class YouTubeQueue(
     }
 
     companion object {
-        fun radio(song: MediaMetadata) = YouTubeQueue(WatchEndpoint(song.id), song)
+        fun radio(song: MediaMetadata) =
+            YouTubeQueue(
+                endpoint = WatchEndpoint(videoId = song.id),
+                preloadItem = song,
+                followAutomixPreview = true,
+            )
     }
 }
