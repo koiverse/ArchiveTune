@@ -255,7 +255,7 @@ fun LibraryMixScreen(
             (if (showDownloaded) 1 else 0) +
             (if (showTop) 1 else 0) +
             (if (showCached) 1 else 0) +
-            (if (localScanCompleted) 1 else 0)
+            1
     val mutableVisiblePlaylists = remember { mutableStateListOf<Playlist>() }
     var dragInfo by remember { mutableStateOf<Pair<Int, Int>?>(null) }
     val reorderableState = rememberReorderableLazyListState(
@@ -526,23 +526,21 @@ fun LibraryMixScreen(
                         }
                     }
 
-                    if (localScanCompleted) {
-                        item(
-                            key = "localSongsPlaylist",
-                            contentType = { CONTENT_TYPE_PLAYLIST },
-                        ) {
-                            PlaylistListItem(
-                                playlist = localSongsPlaylist,
-                                autoPlaylist = true,
-                                modifier =
-                                Modifier
-                                    .fillMaxWidth()
-                                    .clickable {
-                                        navController.navigate("local_songs")
-                                    }
-                                    .animateItem(),
-                            )
-                        }
+                    item(
+                        key = "localSongsPlaylist",
+                        contentType = { CONTENT_TYPE_PLAYLIST },
+                    ) {
+                        PlaylistListItem(
+                            playlist = localSongsPlaylist,
+                            autoPlaylist = true,
+                            modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    navController.navigate(if (localScanCompleted) "local_songs" else "scan")
+                                }
+                                .animateItem(),
+                        )
                     }
 
                     if (customPlaylistMode) {
@@ -907,26 +905,24 @@ fun LibraryMixScreen(
                         }
                     }
 
-                    if (localScanCompleted) {
-                        item(
-                            key = "localSongsPlaylist",
-                            contentType = { CONTENT_TYPE_PLAYLIST },
-                        ) {
-                            PlaylistGridItem(
-                                playlist = localSongsPlaylist,
-                                fillMaxWidth = true,
-                                autoPlaylist = true,
-                                modifier =
-                                Modifier
-                                    .fillMaxWidth()
-                                    .combinedClickable(
-                                        onClick = {
-                                            navController.navigate("local_songs")
-                                        },
-                                    )
-                                    .animateItem(),
-                            )
-                        }
+                    item(
+                        key = "localSongsPlaylist",
+                        contentType = { CONTENT_TYPE_PLAYLIST },
+                    ) {
+                        PlaylistGridItem(
+                            playlist = localSongsPlaylist,
+                            fillMaxWidth = true,
+                            autoPlaylist = true,
+                            modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .combinedClickable(
+                                    onClick = {
+                                        navController.navigate(if (localScanCompleted) "local_songs" else "scan")
+                                    },
+                                )
+                                .animateItem(),
+                        )
                     }
 
                     items(
