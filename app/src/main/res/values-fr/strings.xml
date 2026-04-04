@@ -809,4 +809,5 @@
     <string name="external_downloader_not_installed">L\'application de téléchargement externe n\'est pas installée.</string>
     <string name="external_downloader_not_configured">Aucun téléchargeur externe n\'est configuré. Configurez-en un dans Paramètres → Lecteur.</string>
     <string name="open_youtube_music">Ouvrir YouTube Music</string>
+    <string name="archivetune_canvas_v7_desc">Non disponible avec le style de lecteur immersif</string>
 </resources>
