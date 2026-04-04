@@ -467,16 +467,23 @@ fun SelectionSongMenu(
                     )
                 },
                 modifier = Modifier.clickable {
-                    val allLiked = songSelection.all { it.song.liked }
                     onDismiss()
-                    database.query {
-                        songSelection.forEach { song ->
-                            if ((!allLiked && !song.song.liked) || allLiked) {
-                                val s = song.song.toggleLike()
-                                update(s)
-                                syncUtils.likeSong(s)
-                            }
+                    val shouldUnlikeAll = songSelection.all { it.song.liked }
+                    val updatedSongs = songSelection
+                        .asSequence()
+                        .map { it.song }
+                        .distinctBy { it.id }
+                        .filter { song -> shouldUnlikeAll || !song.liked }
+                        .map { song -> song.localToggleLike() }
+                        .toList()
+
+                    if (updatedSongs.isEmpty()) return@clickable
+
+                    coroutineScope.launch(Dispatchers.IO) {
+                        database.withTransaction {
+                            updatedSongs.forEach(::update)
                         }
+                        syncUtils.likeSongs(updatedSongs)
                     }
                 }
             )
@@ -547,23 +554,16 @@ fun SelectionMediaMetadataMenu(
                 database.insert(it)
                 it.id
             }
+        },
         onDismiss = { showChoosePlaylistDialog = false },
-                    val shouldUnlikeAll = songSelection.all { it.song.liked }
-                    val updatedSongs = songSelection
-                        .asSequence()
-                        .map { it.song }
-                        .distinctBy { it.id }
-                        .filter { song -> shouldUnlikeAll || !song.liked }
-                        .map { song -> song.localToggleLike() }
-                        .toList()
-
-                    if (updatedSongs.isEmpty()) return@clickable
-
-                    coroutineScope.launch(Dispatchers.IO) {
-                        database.withTransaction {
-                            updatedSongs.forEach(::update)
-                        }
-                        syncUtils.likeSongs(updatedSongs)
+        onAddComplete = { songCount, playlistNames ->
+            val message = when {
+                songCount == 1 && playlistNames.size == 1 -> context.getString(R.string.added_to_playlist, playlistNames.first())
+                songCount > 1 && playlistNames.size == 1 -> context.getString(R.string.added_n_songs_to_playlist, songCount, playlistNames.first())
+                songCount == 1 -> context.getString(R.string.added_to_n_playlists, playlistNames.size)
+                else -> context.getString(R.string.added_n_songs_to_n_playlists, songCount, playlistNames.size)
+            }
+            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
         },
     )
 
