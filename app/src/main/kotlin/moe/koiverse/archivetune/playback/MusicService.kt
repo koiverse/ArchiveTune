@@ -927,6 +927,9 @@ class MusicService :
                         ).setSeekBackIncrementMs(5000)
                         .setSeekForwardIncrementMs(5000)
                         .build()
+                        .apply {
+                            setOffloadEnabled(false)
+                        }
                 },
                 onCrossfadeStart = { mediaItem ->
                     val metadata = mediaItem.metadata
