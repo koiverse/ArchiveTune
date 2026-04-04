@@ -221,7 +221,9 @@ fun ScanScreen(
                         exit = shrinkVertically() + fadeOut(),
                     ) {
                         val scanning = scanState as? ScanState.Scanning
-                        scanning?.let(::ScanProgressCard)
+                        if (scanning != null) {
+                            ScanProgressCard(scanning = scanning)
+                        }
                     }
 
                     AnimatedVisibility(
@@ -230,9 +232,9 @@ fun ScanScreen(
                         exit = shrinkVertically() + fadeOut(),
                     ) {
                         val result = (scanState as? ScanState.Complete)?.result
-                        result?.let {
+                        if (result != null) {
                             ScanCompleteCard(
-                                result = it,
+                                result = result,
                                 onOpenLocalSongs = { navController.navigate("local_songs") },
                             )
                         }
