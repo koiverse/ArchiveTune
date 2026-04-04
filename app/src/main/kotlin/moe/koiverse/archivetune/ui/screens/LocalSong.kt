@@ -107,6 +107,17 @@ fun LocalSong(
                         )
                     }
                 },
+                actions = {
+                    IconButton(
+                        onClick = { navController.navigate("scan") },
+                        onLongClick = {},
+                    ) {
+                        Icon(
+                            painterResource(R.drawable.settings),
+                            contentDescription = stringResource(R.string.scan_library),
+                        )
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = Color.Transparent,
                     scrolledContainerColor = Color.Transparent,

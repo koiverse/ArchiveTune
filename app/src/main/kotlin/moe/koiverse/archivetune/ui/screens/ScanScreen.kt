@@ -84,7 +84,15 @@ fun ScanScreen(
     val safFolderLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenDocumentTree()
     ) { uri ->
-        uri?.let { viewModel.startSafFolderScan(it) }
+        uri?.let {
+            runCatching {
+                context.contentResolver.takePersistableUriPermission(
+                    it,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION,
+                )
+            }
+            viewModel.startSafFolderScan(it)
+        }
     }
 
     val excludeFolderLauncher = rememberLauncherForActivityResult(

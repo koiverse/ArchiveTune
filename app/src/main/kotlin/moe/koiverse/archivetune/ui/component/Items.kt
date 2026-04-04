@@ -682,6 +682,7 @@ fun PlaylistListItem(
                     stringResource(R.string.liked) -> R.drawable.favorite_border
                     stringResource(R.string.offline) -> R.drawable.offline
                     stringResource(R.string.cached_playlist) -> R.drawable.cached
+                    stringResource(R.string.local_songs) -> R.drawable.folder
                     else -> if (autoPlaylist) R.drawable.trending_up else R.drawable.queue_music
                 }
                 Icon(
@@ -758,6 +759,7 @@ fun OverlayPlaylistListItem(
                             stringResource(R.string.liked) -> R.drawable.favorite_border
                             stringResource(R.string.offline) -> R.drawable.offline
                             stringResource(R.string.cached_playlist) -> R.drawable.cached
+                            stringResource(R.string.local_songs) -> R.drawable.folder
                             else -> if (autoPlaylist) R.drawable.trending_up else R.drawable.queue_music
                         }
                         Icon(
@@ -872,6 +874,7 @@ fun PlaylistGridItem(
                     stringResource(R.string.liked) -> R.drawable.favorite_border
                     stringResource(R.string.offline) -> R.drawable.offline
                     stringResource(R.string.cached_playlist) -> R.drawable.cached
+                    stringResource(R.string.local_songs) -> R.drawable.folder
                     else -> if (autoPlaylist) R.drawable.trending_up else R.drawable.queue_music
                 }
                 Box(
