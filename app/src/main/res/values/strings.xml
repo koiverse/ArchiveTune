@@ -832,6 +832,7 @@ ArchiveTune will only extract your token, and everything else is stored locally.
     <string name="view_local_songs">View Local Songs</string>
     <string name="excluded_folders">Excluded Folders</string>
     <string name="add_excluded_folder">Add Excluded Folder</string>
+    <string name="excluded_folders_description">Folders here are skipped during scans</string>
     <string name="no_excluded_folders">No excluded folders</string>
     <string name="no_local_songs">No local songs found</string>
     <string name="scan_your_device">Scan your device</string>
