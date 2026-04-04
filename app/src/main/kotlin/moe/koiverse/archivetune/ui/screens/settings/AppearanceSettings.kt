@@ -84,6 +84,7 @@ import moe.koiverse.archivetune.constants.LyricsAnimationStyleKey
 import moe.koiverse.archivetune.constants.LyricsAnimationStyle
 import moe.koiverse.archivetune.constants.LyricsTextSizeKey
 import moe.koiverse.archivetune.constants.LyricsLineSpacingKey
+import moe.koiverse.archivetune.constants.LyricsTimingOffsetKey
 import moe.koiverse.archivetune.constants.SliderStyle
 import moe.koiverse.archivetune.constants.SliderStyleKey
 import moe.koiverse.archivetune.constants.ShowLikedPlaylistKey
@@ -187,6 +188,7 @@ fun AppearanceSettings(
     val (lyricsScroll, onLyricsScrollChange) = rememberPreference(LyricsScrollKey, defaultValue = true)
     val (lyricsTextSize, onLyricsTextSizeChange) = rememberPreference(LyricsTextSizeKey, defaultValue = 26f)
     val (lyricsLineSpacing, onLyricsLineSpacingChange) = rememberPreference(LyricsLineSpacingKey, defaultValue = 1.3f)
+    val (lyricsTimingOffset, onLyricsTimingOffsetChange) = rememberPreference(LyricsTimingOffsetKey, defaultValue = 0)
     val (useLyricsV2, onUseLyricsV2Change) = rememberPreference(UseLyricsV2Key, defaultValue = false)
 
     val (sliderStyle, onSliderStyleChange) = rememberEnumPreference(
@@ -805,6 +807,92 @@ fun AppearanceSettings(
             description = "${String.format("%.1f", lyricsLineSpacing)}x",
             icon = { Icon(painterResource(R.drawable.text_fields), null) },
             onClick = { showLyricsLineSpacingDialog = true }
+        )
+
+        var showLyricsTimingOffsetDialog by rememberSaveable { mutableStateOf(false) }
+
+        if (showLyricsTimingOffsetDialog) {
+            var tempLyricsTimingOffset by remember { mutableFloatStateOf(lyricsTimingOffset.toFloat()) }
+
+            DefaultDialog(
+                onDismiss = {
+                    tempLyricsTimingOffset = lyricsTimingOffset.toFloat()
+                    showLyricsTimingOffsetDialog = false
+                },
+                buttons = {
+                    TextButton(
+                        onClick = {
+                            tempLyricsTimingOffset = 0f
+                        },
+                        shapes = ButtonDefaults.shapes(),
+                    ) {
+                        Text(stringResource(R.string.reset))
+                    }
+
+                    Spacer(modifier = Modifier.weight(1f))
+
+                    TextButton(
+                        onClick = {
+                            tempLyricsTimingOffset = lyricsTimingOffset.toFloat()
+                            showLyricsTimingOffsetDialog = false
+                        },
+                        shapes = ButtonDefaults.shapes(),
+                    ) {
+                        Text(stringResource(android.R.string.cancel))
+                    }
+                    TextButton(
+                        onClick = {
+                            onLyricsTimingOffsetChange(tempLyricsTimingOffset.roundToInt())
+                            showLyricsTimingOffsetDialog = false
+                        },
+                        shapes = ButtonDefaults.shapes(),
+                    ) {
+                        Text(stringResource(android.R.string.ok))
+                    }
+                }
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.padding(16.dp)
+                ) {
+                    Text(
+                        text = stringResource(R.string.lyrics_timing_offset),
+                        style = MaterialTheme.typography.headlineSmall,
+                        modifier = Modifier.padding(bottom = 16.dp)
+                    )
+
+                    Text(
+                        text = stringResource(
+                            R.string.lyrics_timing_offset_value,
+                            tempLyricsTimingOffset.roundToInt()
+                        ),
+                        style = MaterialTheme.typography.bodyLarge,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+
+                    Text(
+                        text = stringResource(R.string.lyrics_timing_offset_description),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(bottom = 16.dp)
+                    )
+
+                    Slider(
+                        value = tempLyricsTimingOffset,
+                        onValueChange = { tempLyricsTimingOffset = it },
+                        valueRange = -2000f..2000f,
+                        steps = 79,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
+        }
+
+        PreferenceEntry(
+            title = { Text(stringResource(R.string.lyrics_timing_offset)) },
+            description = stringResource(R.string.lyrics_timing_offset_value, lyricsTimingOffset),
+            icon = { Icon(painterResource(R.drawable.speed), null) },
+            onClick = { showLyricsTimingOffsetDialog = true }
         )
 
         PreferenceGroupTitle(

@@ -414,6 +414,9 @@
     <string name="apple_music_style">Apple Music</string>
     <!-- Lyrics line spacing -->
     <string name="lyrics_line_spacing">Lyrics line spacing</string>
+    <string name="lyrics_timing_offset">Lyrics timing offset</string>
+    <string name="lyrics_timing_offset_value">%+1$d ms</string>
+    <string name="lyrics_timing_offset_description">Positive values delay lyrics. Negative values show them earlier.</string>
     <string name="content">Content</string>
     <string name="action_logout">Log out</string>
     <string name="action_login">Log in</string>
