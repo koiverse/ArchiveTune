@@ -45,6 +45,28 @@ import java.util.concurrent.ConcurrentHashMap
 object YTPlayerUtils {
     private const val logTag = "YTPlayerUtils"
     private const val FAILED_CLIENT_BACKOFF_MS = 10 * 60 * 1000L
+    private const val DEFAULT_STREAM_EXPIRE_SECONDS = 300
+
+    private fun extractExpireSecondsFromUrl(url: String): Int? {
+        val expireTimestamp = url.toHttpUrlOrNull()
+            ?.queryParameter("expire")
+            ?.toLongOrNull()
+            ?: return null
+        val remaining = expireTimestamp - (System.currentTimeMillis() / 1000L)
+        return remaining.toInt().takeIf { it > 0 }
+    }
+
+    private fun resolveExpireSeconds(apiExpire: Int?, streamUrl: String?): Int {
+        apiExpire?.let { return it }
+        streamUrl?.let { url ->
+            extractExpireSecondsFromUrl(url)?.let { fromUrl ->
+                Timber.tag(logTag).w("Using expire time extracted from stream URL: ${fromUrl}s")
+                return fromUrl
+            }
+        }
+        Timber.tag(logTag).w("No expire time available from API or URL, using default: ${DEFAULT_STREAM_EXPIRE_SECONDS}s")
+        return DEFAULT_STREAM_EXPIRE_SECONDS
+    }
 
     class LoginRequiredForPlaybackException(
         val videoId: String,
@@ -563,9 +585,10 @@ object YTPlayerUtils {
 
             format = selectedFormat
             streamUrl = selectedUrl
-            streamExpiresInSeconds = streamPlayerResponse.streamingData?.expiresInSeconds
-
-            if (streamExpiresInSeconds == null) continue
+            streamExpiresInSeconds = resolveExpireSeconds(
+                apiExpire = streamPlayerResponse.streamingData?.expiresInSeconds,
+                streamUrl = selectedUrl,
+            )
 
             Timber.tag(logTag).i("Format found: ${format.mimeType}, bitrate: ${format.bitrate}")
             Timber.tag(logTag).v("Stream expires in: $streamExpiresInSeconds seconds")
@@ -625,8 +648,10 @@ object YTPlayerUtils {
         }
 
         if (streamExpiresInSeconds == null) {
-            Timber.tag(logTag).e("Missing stream expire time")
-            throw Exception("Missing stream expire time")
+            streamExpiresInSeconds = resolveExpireSeconds(
+                apiExpire = null,
+                streamUrl = streamUrl,
+            )
         }
 
         if (format == null) {
