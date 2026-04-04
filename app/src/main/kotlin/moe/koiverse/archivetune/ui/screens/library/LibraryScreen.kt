@@ -10,7 +10,6 @@ package moe.koiverse.archivetune.ui.screens.library
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -55,33 +54,30 @@ fun LibraryScreen(navController: NavController) {
 
     val filterContent = @Composable {
         Column {
-            Row {
-                ChipsRow(
-                    chips =
-                    listOf(
-                        LibraryFilter.PLAYLISTS to stringResource(R.string.filter_playlists),
-                        LibraryFilter.SONGS to stringResource(R.string.filter_songs),
-                        LibraryFilter.ALBUMS to stringResource(R.string.filter_albums),
-                        LibraryFilter.ARTISTS to stringResource(R.string.filter_artists),
-                    ),
-                    currentValue = filterType,
-                    onValueUpdate = {
-                        filterType =
-                            if (filterType == it) {
-                                LibraryFilter.LIBRARY
-                            } else {
-                                it
-                            }
-                    },
-                    icons = mapOf(
-                        LibraryFilter.PLAYLISTS to R.drawable.queue_music,
-                        LibraryFilter.SONGS to R.drawable.music_note,
-                        LibraryFilter.ALBUMS to R.drawable.album,
-                        LibraryFilter.ARTISTS to R.drawable.person,
-                    ),
-                    modifier = Modifier.weight(1f),
-                )
-            }
+            ChipsRow(
+                chips =
+                listOf(
+                    LibraryFilter.PLAYLISTS to stringResource(R.string.filter_playlists),
+                    LibraryFilter.SONGS to stringResource(R.string.filter_songs),
+                    LibraryFilter.ALBUMS to stringResource(R.string.filter_albums),
+                    LibraryFilter.ARTISTS to stringResource(R.string.filter_artists),
+                ),
+                currentValue = filterType,
+                onValueUpdate = {
+                    filterType =
+                        if (filterType == it) {
+                            LibraryFilter.LIBRARY
+                        } else {
+                            it
+                        }
+                },
+                icons = mapOf(
+                    LibraryFilter.PLAYLISTS to R.drawable.queue_music,
+                    LibraryFilter.SONGS to R.drawable.music_note,
+                    LibraryFilter.ALBUMS to R.drawable.album,
+                    LibraryFilter.ARTISTS to R.drawable.person,
+                ),
+            )
 
             if (showTagsInLibrary) {
                 TagsFilterChips(

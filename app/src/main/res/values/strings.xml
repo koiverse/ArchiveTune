@@ -807,4 +807,31 @@ ArchiveTune will only extract your token, and everything else is stored locally.
     <string name="token_copied">Token copied to clipboard</string>
     <string name="no_visitor_data">No visitor data available. Tokens cannot be generated.</string>
     <string name="extracting_from_url">Extracting tokens from URL…</string>
+
+    <string name="scan_library">Scan Library</string>
+    <string name="local_songs">Local Songs</string>
+    <string name="scan_device">Scan Device</string>
+    <string name="scan_device_description">Scan your device for music files</string>
+    <string name="pick_folder">Pick Folder</string>
+    <string name="pick_folder_description">Select a folder to scan for music files</string>
+    <string name="scanning">Scanning…</string>
+    <string name="scan_complete">Scan Complete</string>
+    <string name="scan_error">Scan Error</string>
+    <string name="imported">Imported</string>
+    <string name="updated">Updated</string>
+    <string name="skipped">Skipped</string>
+    <string name="failed">Failed</string>
+    <string name="total_found">Total Found</string>
+    <string name="grant_permission">Grant Permission</string>
+    <string name="audio_permission_description">Permission is required to scan your device for music files</string>
+    <string name="last_scan">Last scan</string>
+    <string name="never">Never</string>
+    <string name="view_local_songs">View Local Songs</string>
+    <string name="excluded_folders">Excluded Folders</string>
+    <string name="add_excluded_folder">Add Excluded Folder</string>
+    <string name="no_excluded_folders">No excluded folders</string>
+    <string name="no_local_songs">No local songs found</string>
+    <string name="scan_your_device">Scan your device</string>
+    <string name="scan_again">Scan Again</string>
+    <string name="local">Local</string>
 </resources>

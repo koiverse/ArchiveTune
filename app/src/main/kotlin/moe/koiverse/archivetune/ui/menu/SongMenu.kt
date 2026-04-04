@@ -402,53 +402,62 @@ fun SongMenu(
         onDismiss,
         playerConnection,
     ) {
-        listOf(
-            NewAction(
-                icon = {
-                    Icon(
-                        painter = painterResource(R.drawable.radio),
-                        contentDescription = null,
-                        modifier = Modifier.size(28.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                },
-                text = startRadioText,
-                onClick = {
-                    onDismiss()
-                    playerConnection.playQueue(YouTubeQueue.radio(song.toMediaMetadata()))
-                },
-            ),
-            NewAction(
-                icon = {
-                    Icon(
-                        painter = painterResource(R.drawable.playlist_play),
-                        contentDescription = null,
-                        modifier = Modifier.size(28.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                },
-                text = playNextText,
-                onClick = {
-                    onDismiss()
-                    playerConnection.playNext(song.toMediaItem())
-                },
-            ),
-            NewAction(
-                icon = {
-                    Icon(
-                        painter = painterResource(R.drawable.queue_music),
-                        contentDescription = null,
-                        modifier = Modifier.size(28.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                },
-                text = addToQueueText,
-                onClick = {
-                    onDismiss()
-                    playerConnection.addToQueue(song.toMediaItem())
-                },
-            ),
-            NewAction(
+        buildList {
+            if (!song.song.isLocal) {
+                add(
+                    NewAction(
+                        icon = {
+                            Icon(
+                                painter = painterResource(R.drawable.radio),
+                                contentDescription = null,
+                                modifier = Modifier.size(28.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        },
+                        text = startRadioText,
+                        onClick = {
+                            onDismiss()
+                            playerConnection.playQueue(YouTubeQueue.radio(song.toMediaMetadata()))
+                        },
+                    ),
+                )
+            }
+            add(
+                NewAction(
+                    icon = {
+                        Icon(
+                            painter = painterResource(R.drawable.playlist_play),
+                            contentDescription = null,
+                            modifier = Modifier.size(28.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    },
+                    text = playNextText,
+                    onClick = {
+                        onDismiss()
+                        playerConnection.playNext(song.toMediaItem())
+                    },
+                ),
+            )
+            add(
+                NewAction(
+                    icon = {
+                        Icon(
+                            painter = painterResource(R.drawable.queue_music),
+                            contentDescription = null,
+                            modifier = Modifier.size(28.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    },
+                    text = addToQueueText,
+                    onClick = {
+                        onDismiss()
+                        playerConnection.addToQueue(song.toMediaItem())
+                    },
+                ),
+            )
+            add(
+                NewAction(
                 icon = {
                     Icon(
                         painter = painterResource(R.drawable.playlist_add),
@@ -460,40 +469,47 @@ fun SongMenu(
                 text = addToPlaylistText,
                 onClick = { showChoosePlaylistDialog = true },
             ),
-            NewAction(
-                icon = {
-                    Icon(
-                        painter = painterResource(R.drawable.share),
-                        contentDescription = null,
-                        modifier = Modifier.size(28.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                },
-                text = shareText,
-                onClick = {
-                    onDismiss()
-                    val intent =
-                        Intent().apply {
-                            action = Intent.ACTION_SEND
-                            type = "text/plain"
-                            putExtra(Intent.EXTRA_TEXT, "https://music.youtube.com/watch?v=${song.id}")
-                        }
-                    context.startActivity(Intent.createChooser(intent, null))
-                },
-            ),
-            NewAction(
-                icon = {
-                    Icon(
-                        painter = painterResource(R.drawable.edit),
-                        contentDescription = null,
-                        modifier = Modifier.size(28.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                },
-                text = editText,
-                onClick = { showEditDialog = true },
-            ),
-        )
+            )
+            if (!song.song.isLocal) {
+                add(
+                    NewAction(
+                        icon = {
+                            Icon(
+                                painter = painterResource(R.drawable.share),
+                                contentDescription = null,
+                                modifier = Modifier.size(28.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        },
+                        text = shareText,
+                        onClick = {
+                            onDismiss()
+                            val intent =
+                                Intent().apply {
+                                    action = Intent.ACTION_SEND
+                                    type = "text/plain"
+                                    putExtra(Intent.EXTRA_TEXT, "https://music.youtube.com/watch?v=${song.id}")
+                                }
+                            context.startActivity(Intent.createChooser(intent, null))
+                        },
+                    ),
+                )
+            }
+            add(
+                NewAction(
+                    icon = {
+                        Icon(
+                            painter = painterResource(R.drawable.edit),
+                            contentDescription = null,
+                            modifier = Modifier.size(28.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    },
+                    text = editText,
+                    onClick = { showEditDialog = true },
+                ),
+            )
+        }
     }
 
     LazyColumn(
@@ -704,6 +720,7 @@ fun SongMenu(
                         )
                     }
 
+                    if (!song.song.isLocal) {
                     when (download?.state) {
                         Download.STATE_COMPLETED -> {
                             ListItem(
@@ -813,6 +830,7 @@ fun SongMenu(
                             },
                             colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                         )
+                    }
                     }
                 }
             }

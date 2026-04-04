@@ -70,6 +70,7 @@ import moe.koiverse.archivetune.constants.ShowLikedPlaylistKey
 import moe.koiverse.archivetune.constants.ShowDownloadedPlaylistKey
 import moe.koiverse.archivetune.constants.ShowTopPlaylistKey
 import moe.koiverse.archivetune.constants.ShowCachedPlaylistKey
+import moe.koiverse.archivetune.constants.LocalScanCompletedKey
 import moe.koiverse.archivetune.constants.UseNewLibraryDesignKey
 import moe.koiverse.archivetune.constants.YtmSyncKey
 import moe.koiverse.archivetune.db.entities.Album
@@ -181,6 +182,7 @@ fun LibraryMixScreen(
     val (showDownloaded) = rememberPreference(ShowDownloadedPlaylistKey, true)
     val (showTop) = rememberPreference(ShowTopPlaylistKey, true)
     val (showCached) = rememberPreference(ShowCachedPlaylistKey, true)
+    val (localScanCompleted) = rememberPreference(LocalScanCompletedKey, false)
     val (useNewLibraryDesign) = rememberPreference(UseNewLibraryDesignKey, false)
 
     val albums = viewModel.albums.collectAsState()
@@ -237,12 +239,23 @@ fun LibraryMixScreen(
     val canEnterReorderMode = customPlaylistMode && selectedTagIds.isEmpty()
     var reorderEnabled by rememberSaveable { mutableStateOf(false) }
     val canReorderPlaylists = canEnterReorderMode && reorderEnabled
+    val localSongsPlaylist =
+        Playlist(
+            playlist = PlaylistEntity(
+                id = UUID.randomUUID().toString(),
+                name = stringResource(R.string.local_songs)
+            ),
+            songCount = 0,
+            songThumbnails = emptyList(),
+        )
+
     val listHeaderItems =
         2 +
             (if (showLiked) 1 else 0) +
             (if (showDownloaded) 1 else 0) +
             (if (showTop) 1 else 0) +
-            (if (showCached) 1 else 0)
+            (if (showCached) 1 else 0) +
+            (if (localScanCompleted) 1 else 0)
     val mutableVisiblePlaylists = remember { mutableStateListOf<Playlist>() }
     var dragInfo by remember { mutableStateOf<Pair<Int, Int>?>(null) }
     val reorderableState = rememberReorderableLazyListState(
@@ -507,6 +520,25 @@ fun LibraryMixScreen(
                                     .fillMaxWidth()
                                     .clickable {
                                         navController.navigate("cache_playlist/cached")
+                                    }
+                                    .animateItem(),
+                            )
+                        }
+                    }
+
+                    if (localScanCompleted) {
+                        item(
+                            key = "localSongsPlaylist",
+                            contentType = { CONTENT_TYPE_PLAYLIST },
+                        ) {
+                            PlaylistListItem(
+                                playlist = localSongsPlaylist,
+                                autoPlaylist = true,
+                                modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        navController.navigate("local_songs")
                                     }
                                     .animateItem(),
                             )
@@ -868,6 +900,28 @@ fun LibraryMixScreen(
                                     .combinedClickable(
                                         onClick = {
                                             navController.navigate("cache_playlist/cached")
+                                        },
+                                    )
+                                    .animateItem(),
+                            )
+                        }
+                    }
+
+                    if (localScanCompleted) {
+                        item(
+                            key = "localSongsPlaylist",
+                            contentType = { CONTENT_TYPE_PLAYLIST },
+                        ) {
+                            PlaylistGridItem(
+                                playlist = localSongsPlaylist,
+                                fillMaxWidth = true,
+                                autoPlaylist = true,
+                                modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .combinedClickable(
+                                        onClick = {
+                                            navController.navigate("local_songs")
                                         },
                                     )
                                     .animateItem(),

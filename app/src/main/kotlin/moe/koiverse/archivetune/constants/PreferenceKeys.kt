@@ -203,6 +203,12 @@ val ArtistSongSortDescendingKey = booleanPreferencesKey("artistSongSortDescendin
 val MixSortTypeKey = stringPreferencesKey("mixSortType")
 val MixSortDescendingKey = booleanPreferencesKey("albumSortDescending")
 
+val LocalSongSortTypeKey = stringPreferencesKey("localSongSortType")
+val LocalSongSortDescendingKey = booleanPreferencesKey("localSongSortDescending")
+val LastScanTimeKey = longPreferencesKey("lastScanTime")
+val LocalScanCompletedKey = booleanPreferencesKey("localScanCompleted")
+val ExcludedScanFoldersKey = stringPreferencesKey("excludedScanFolders")
+
 val SongFilterKey = stringPreferencesKey("songFilter")
 val ArtistFilterKey = stringPreferencesKey("artistFilter")
 val AlbumFilterKey = stringPreferencesKey("albumFilter")

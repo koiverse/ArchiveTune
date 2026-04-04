@@ -112,6 +112,12 @@ fun NavGraphBuilder.navigationBuilder(
     composable("stats") {
         StatsScreen(navController)
     }
+    composable("scan") {
+        ScanScreen(navController)
+    }
+    composable("local_songs") {
+        LocalSong(navController)
+    }
     composable("year_in_music") {
         YearInMusicScreen(navController)
     }

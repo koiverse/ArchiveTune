@@ -1273,6 +1273,51 @@ interface DatabaseDao {
     @Query("SELECT * FROM artist WHERE id = :id LIMIT 1")
     fun getArtistById(id: String): ArtistEntity?
 
+    @Transaction
+    @Query("SELECT * FROM song WHERE isLocal = 1 AND inLibrary IS NOT NULL ORDER BY inLibrary")
+    fun localSongsByCreateDateAsc(): Flow<List<Song>>
+
+    @Transaction
+    @Query("SELECT * FROM song WHERE isLocal = 1 AND inLibrary IS NOT NULL ORDER BY title")
+    fun localSongsByNameAsc(): Flow<List<Song>>
+
+    @Transaction
+    @Query("SELECT * FROM song WHERE isLocal = 1 AND inLibrary IS NOT NULL ORDER BY totalPlayTime")
+    fun localSongsByPlayTimeAsc(): Flow<List<Song>>
+
+    @Transaction
+    @Query("SELECT * FROM song WHERE isLocal = 1 AND inLibrary IS NOT NULL ORDER BY rowId")
+    fun localSongsByRowIdAsc(): Flow<List<Song>>
+
+    fun localSongs(
+        sortType: SongSortType,
+        descending: Boolean,
+    ) = when (sortType) {
+        SongSortType.CREATE_DATE -> localSongsByCreateDateAsc()
+        SongSortType.NAME -> localSongsByNameAsc().map { songs ->
+            val collator = Collator.getInstance(Locale.getDefault())
+            collator.strength = Collator.PRIMARY
+            songs.sortedWith(compareBy(collator) { it.song.title })
+        }
+        SongSortType.ARTIST -> localSongsByRowIdAsc().map { songs ->
+            val collator = Collator.getInstance(Locale.getDefault())
+            collator.strength = Collator.PRIMARY
+            songs.sortedWith(compareBy(collator) { song ->
+                song.artists.joinToString("") { artist -> artist.name }
+            })
+        }
+        SongSortType.PLAY_TIME -> localSongsByPlayTimeAsc()
+    }.map { it.reversed(descending) }
+
+    @Query("SELECT COUNT(*) FROM song WHERE isLocal = 1 AND inLibrary IS NOT NULL")
+    fun localSongCount(): Flow<Int>
+
+    @Query("SELECT * FROM song WHERE localUri = :uri AND isLocal = 1 LIMIT 1")
+    fun localSongByUri(uri: String): SongEntity?
+
+    @Query("DELETE FROM song WHERE isLocal = 1 AND localUri NOT IN (:validUris)")
+    fun deleteStaleLocalSongs(validUris: List<String>)
+
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     fun insert(song: SongEntity): Long
 

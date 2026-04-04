@@ -4049,6 +4049,11 @@ class MusicService :
 
     private fun createDataSourceFactory(): DataSource.Factory {
         return ResolvingDataSource.Factory(createCacheDataSource()) { dataSpec ->
+            val scheme = dataSpec.uri.scheme
+            if (scheme == "content" || scheme == "file") {
+                return@Factory dataSpec
+            }
+
             val mediaId = dataSpec.key ?: error("No media id")
 
             val requiredCachedLength =
