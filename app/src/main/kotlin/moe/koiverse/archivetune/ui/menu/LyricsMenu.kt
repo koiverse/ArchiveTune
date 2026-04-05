@@ -53,6 +53,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -82,6 +83,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import moe.koiverse.archivetune.LocalDatabase
 import moe.koiverse.archivetune.R
+import moe.koiverse.archivetune.constants.LyricsSyncOffsetKey
 import moe.koiverse.archivetune.db.entities.LyricsEntity
 import moe.koiverse.archivetune.lyrics.LyricsUtils.isTtml
 import moe.koiverse.archivetune.lyrics.LyricsUtils.parseLyrics
@@ -93,7 +95,9 @@ import moe.koiverse.archivetune.ui.component.NewAction
 import moe.koiverse.archivetune.ui.component.NewActionGrid
 import moe.koiverse.archivetune.ui.component.TextFieldDialog
 import moe.koiverse.archivetune.viewmodels.LyricsMenuViewModel
+import moe.koiverse.archivetune.utils.rememberPreference
 import java.util.UUID
+import kotlin.math.roundToInt
 
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
@@ -112,7 +116,12 @@ fun LyricsMenu(
     }
 
     var showTranslateDialog by rememberSaveable { mutableStateOf(false) }
+    var showLyricsSyncOffsetDialog by rememberSaveable { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
+    val (lyricsSyncOffset, onLyricsSyncOffsetChange) = rememberPreference(
+        LyricsSyncOffsetKey,
+        defaultValue = 0
+    )
 
     if (showEditDialog) {
         TextFieldDialog(
@@ -410,6 +419,68 @@ fun LyricsMenu(
         }
     }
 
+    if (showLyricsSyncOffsetDialog) {
+        var tempLyricsSyncOffset by remember { mutableFloatStateOf(lyricsSyncOffset.toFloat()) }
+
+        DefaultDialog(
+            onDismiss = {
+                tempLyricsSyncOffset = lyricsSyncOffset.toFloat()
+                showLyricsSyncOffsetDialog = false
+            },
+            icon = {
+                Icon(painter = painterResource(R.drawable.speed), contentDescription = null)
+            },
+            title = { Text(stringResource(R.string.lyrics_sync_offset)) },
+            buttons = {
+                TextButton(
+                    onClick = { tempLyricsSyncOffset = 0f },
+                    shapes = ButtonDefaults.shapes(),
+                ) {
+                    Text(stringResource(R.string.reset))
+                }
+                Spacer(modifier = Modifier.weight(1f))
+                TextButton(
+                    onClick = {
+                        tempLyricsSyncOffset = lyricsSyncOffset.toFloat()
+                        showLyricsSyncOffsetDialog = false
+                    },
+                    shapes = ButtonDefaults.shapes(),
+                ) {
+                    Text(stringResource(android.R.string.cancel))
+                }
+                TextButton(
+                    onClick = {
+                        onLyricsSyncOffsetChange(tempLyricsSyncOffset.roundToInt())
+                        showLyricsSyncOffsetDialog = false
+                        onDismiss()
+                    },
+                    shapes = ButtonDefaults.shapes(),
+                ) {
+                    Text(stringResource(android.R.string.ok))
+                }
+            }
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.padding(16.dp)
+            ) {
+                Text(
+                    text = formatLyricsSyncOffset(tempLyricsSyncOffset.roundToInt()),
+                    style = MaterialTheme.typography.bodyLarge,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+
+                Slider(
+                    value = tempLyricsSyncOffset,
+                    onValueChange = { tempLyricsSyncOffset = it },
+                    valueRange = -1000f..1000f,
+                    steps = 79,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        }
+    }
+
     Spacer(modifier = Modifier.height(12.dp))
 
     val configuration = LocalConfiguration.current
@@ -692,6 +763,18 @@ fun LyricsMenu(
                     NewAction(
                         icon = {
                             Icon(
+                                painter = painterResource(R.drawable.speed),
+                                contentDescription = null,
+                                modifier = Modifier.size(28.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        },
+                        text = stringResource(R.string.lyrics_sync_offset),
+                        onClick = { showLyricsSyncOffsetDialog = true }
+                    ),
+                    NewAction(
+                        icon = {
+                            Icon(
                                 painter = painterResource(R.drawable.search),
                                 contentDescription = null,
                                 modifier = Modifier.size(28.dp),
@@ -706,6 +789,10 @@ fun LyricsMenu(
             )
         }
     }
+}
+
+private fun formatLyricsSyncOffset(offsetMs: Int): String {
+    return if (offsetMs > 0) "+$offsetMs ms" else "$offsetMs ms"
 }
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
