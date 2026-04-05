@@ -139,10 +139,6 @@ fun AppearanceSettings(
         PlayerDesignStyleKey,
         defaultValue = PlayerDesignStyle.V4
     )
-    val (useNewLibraryDesign, onUseNewLibraryDesignChange) = rememberPreference(
-        key = moe.koiverse.archivetune.constants.UseNewLibraryDesignKey,
-        defaultValue = false
-    )
     val (hidePlayerThumbnail, onHidePlayerThumbnailChange) = rememberPreference(
         HidePlayerThumbnailKey,
         defaultValue = false
@@ -421,14 +417,6 @@ fun AppearanceSettings(
                     PlayerDesignStyle.V7 -> stringResource(R.string.player_design_v7)
                 }
             },
-        )
-
-        SwitchPreference(
-            title = { Text(stringResource(R.string.new_library_design)) },
-            description = stringResource(R.string.new_library_design_description),
-            icon = { Icon(painterResource(R.drawable.grid_view), null) },
-            checked = useNewLibraryDesign,
-            onCheckedChange = onUseNewLibraryDesignChange,
         )
 
         EnumListPreference(
