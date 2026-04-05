@@ -84,6 +84,7 @@ import moe.koiverse.archivetune.constants.LyricsAnimationStyleKey
 import moe.koiverse.archivetune.constants.LyricsAnimationStyle
 import moe.koiverse.archivetune.constants.LyricsTextSizeKey
 import moe.koiverse.archivetune.constants.LyricsLineSpacingKey
+import moe.koiverse.archivetune.constants.LyricsSyncOffsetKey
 import moe.koiverse.archivetune.constants.SliderStyle
 import moe.koiverse.archivetune.constants.SliderStyleKey
 import moe.koiverse.archivetune.constants.ShowLikedPlaylistKey
@@ -187,6 +188,7 @@ fun AppearanceSettings(
     val (lyricsScroll, onLyricsScrollChange) = rememberPreference(LyricsScrollKey, defaultValue = true)
     val (lyricsTextSize, onLyricsTextSizeChange) = rememberPreference(LyricsTextSizeKey, defaultValue = 26f)
     val (lyricsLineSpacing, onLyricsLineSpacingChange) = rememberPreference(LyricsLineSpacingKey, defaultValue = 1.3f)
+    val (lyricsSyncOffset, onLyricsSyncOffsetChange) = rememberPreference(LyricsSyncOffsetKey, defaultValue = 0)
     val (useLyricsV2, onUseLyricsV2Change) = rememberPreference(UseLyricsV2Key, defaultValue = false)
 
     val (sliderStyle, onSliderStyleChange) = rememberEnumPreference(
@@ -807,6 +809,82 @@ fun AppearanceSettings(
             onClick = { showLyricsLineSpacingDialog = true }
         )
 
+        var showLyricsSyncOffsetDialog by rememberSaveable { mutableStateOf(false) }
+
+        if (showLyricsSyncOffsetDialog) {
+            var tempLyricsSyncOffset by remember { mutableFloatStateOf(lyricsSyncOffset.toFloat()) }
+
+            DefaultDialog(
+                onDismiss = {
+                    tempLyricsSyncOffset = lyricsSyncOffset.toFloat()
+                    showLyricsSyncOffsetDialog = false
+                },
+                buttons = {
+                    TextButton(
+                        onClick = {
+                            tempLyricsSyncOffset = 0f
+                        },
+                        shapes = ButtonDefaults.shapes(),
+                    ) {
+                        Text(stringResource(R.string.reset))
+                    }
+
+                    Spacer(modifier = Modifier.weight(1f))
+
+                    TextButton(
+                        onClick = {
+                            tempLyricsSyncOffset = lyricsSyncOffset.toFloat()
+                            showLyricsSyncOffsetDialog = false
+                        },
+                        shapes = ButtonDefaults.shapes(),
+                    ) {
+                        Text(stringResource(android.R.string.cancel))
+                    }
+                    TextButton(
+                        onClick = {
+                            onLyricsSyncOffsetChange(tempLyricsSyncOffset.roundToInt())
+                            showLyricsSyncOffsetDialog = false
+                        },
+                        shapes = ButtonDefaults.shapes(),
+                    ) {
+                        Text(stringResource(android.R.string.ok))
+                    }
+                }
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.padding(16.dp)
+                ) {
+                    Text(
+                        text = stringResource(R.string.lyrics_sync_offset),
+                        style = MaterialTheme.typography.headlineSmall,
+                        modifier = Modifier.padding(bottom = 16.dp)
+                    )
+
+                    Text(
+                        text = formatLyricsSyncOffset(tempLyricsSyncOffset.roundToInt()),
+                        style = MaterialTheme.typography.bodyLarge,
+                        modifier = Modifier.padding(bottom = 16.dp)
+                    )
+
+                    Slider(
+                        value = tempLyricsSyncOffset,
+                        onValueChange = { tempLyricsSyncOffset = it },
+                        valueRange = -1000f..1000f,
+                        steps = 79,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
+        }
+
+        PreferenceEntry(
+            title = { Text(stringResource(R.string.lyrics_sync_offset)) },
+            description = formatLyricsSyncOffset(lyricsSyncOffset),
+            icon = { Icon(painterResource(R.drawable.speed), null) },
+            onClick = { showLyricsSyncOffsetDialog = true }
+        )
+
         PreferenceGroupTitle(
             title = stringResource(R.string.misc),
         )
@@ -985,6 +1063,10 @@ private fun sliderStyleLabel(sliderStyle: SliderStyle): String {
         SliderStyle.Circular -> stringResource(R.string.slider_style_circular)
         SliderStyle.Simple -> stringResource(R.string.slider_style_simple)
     }
+}
+
+private fun formatLyricsSyncOffset(offsetMs: Int): String {
+    return if (offsetMs > 0) "+$offsetMs ms" else "$offsetMs ms"
 }
 
 enum class DarkMode {

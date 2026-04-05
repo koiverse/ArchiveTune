@@ -113,6 +113,7 @@ import moe.koiverse.archivetune.constants.LyricsScrollKey
 import moe.koiverse.archivetune.constants.LyricsTextPositionKey
 import moe.koiverse.archivetune.constants.LyricsTextSizeKey
 import moe.koiverse.archivetune.constants.LyricsLineSpacingKey
+import moe.koiverse.archivetune.constants.LyricsSyncOffsetKey
 import moe.koiverse.archivetune.constants.LyricsRomanizeChineseKey
 import moe.koiverse.archivetune.constants.LyricsRomanizeHindiKey
 import moe.koiverse.archivetune.constants.LyricsRomanizeJapaneseKey
@@ -191,6 +192,7 @@ fun LyricsV2(
     val (lyricsScroll) = rememberPreference(LyricsScrollKey, defaultValue = true)
     val (lyricsTextSize) = rememberPreference(LyricsTextSizeKey, defaultValue = 26f)
     val (lyricsLineSpacing) = rememberPreference(LyricsLineSpacingKey, defaultValue = 1.3f)
+    val (lyricsSyncOffset) = rememberPreference(LyricsSyncOffsetKey, defaultValue = 0)
     val (romanizeChinese) = rememberPreference(LyricsRomanizeChineseKey, defaultValue = true)
     val (romanizeHindi) = rememberPreference(LyricsRomanizeHindiKey, defaultValue = true)
     val (romanizeJapanese) = rememberPreference(LyricsRomanizeJapaneseKey, defaultValue = true)
@@ -393,7 +395,7 @@ fun LyricsV2(
             
             // Add a visual tuning offset so animations feel instantly responsive and perfectly land on beat
             val visualTuningOffsetMs = 150L 
-            currentPositionMs = pos + leadMs + visualTuningOffsetMs
+            currentPositionMs = (pos + leadMs + visualTuningOffsetMs + lyricsSyncOffset.toLong()).coerceAtLeast(0L)
             
             currentLineIndex = findCurrentLineIndex(entriesWithWords, currentPositionMs, 0L)
             delay(16L) // ~60fps polling

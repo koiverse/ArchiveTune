@@ -166,6 +166,7 @@ import moe.koiverse.archivetune.constants.LyricsAnimationStyle
 import moe.koiverse.archivetune.constants.LyricsAnimationStyleKey
 import moe.koiverse.archivetune.constants.LyricsTextSizeKey
 import moe.koiverse.archivetune.constants.LyricsLineSpacingKey
+import moe.koiverse.archivetune.constants.LyricsSyncOffsetKey
 import moe.koiverse.archivetune.constants.PlayerBackgroundStyle
 import moe.koiverse.archivetune.constants.PlayerBackgroundStyleKey
 import moe.koiverse.archivetune.constants.UseSystemFontKey
@@ -452,6 +453,7 @@ fun Lyrics(
     val lyricsAnimationStyle by rememberEnumPreference(LyricsAnimationStyleKey, LyricsAnimationStyle.APPLE)
     val lyricsTextSize by rememberPreference(LyricsTextSizeKey, 26f)
     val lyricsLineSpacing by rememberPreference(LyricsLineSpacingKey, 1.3f)
+    val lyricsSyncOffset by rememberPreference(LyricsSyncOffsetKey, 0)
     val useSystemFont by rememberPreference(UseSystemFontKey, false)
     val lyricsFontFamily = remember(useSystemFont) {
         if (useSystemFont) null else FontFamily(Font(R.font.sfprodisplaybold))
@@ -672,11 +674,11 @@ fun Lyrics(
                 isSeeking = seekingNow
             }
             val position = sliderPosition ?: playerConnection.player.currentPosition
-            val syncedPosition = (position + wordSyncLeadMs).coerceAtLeast(0L)
+            val syncedPosition = (position + wordSyncLeadMs + lyricsSyncOffset.toLong()).coerceAtLeast(0L)
             if (currentPlaybackPosition != syncedPosition) {
                 currentPlaybackPosition = syncedPosition
             }
-            val newLineIndex = findCurrentLineIndex(lines, position, leadMs = lineSyncLeadMs)
+            val newLineIndex = findCurrentLineIndex(lines, position + lyricsSyncOffset.toLong(), leadMs = lineSyncLeadMs)
             if (currentLineIndex != newLineIndex) {
                 currentLineIndex = newLineIndex
             }
