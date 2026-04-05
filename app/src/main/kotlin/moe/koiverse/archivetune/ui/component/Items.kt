@@ -1001,87 +1001,62 @@ fun LibraryPlaylistFeatureCard(
     autoPlaylist: Boolean = false,
     trailingContent: @Composable RowScope.() -> Unit = {},
 ) {
-    val backgroundUrl = playlist.thumbnails.firstOrNull()
     val subtitleText = playlistCountText(playlist = playlist, autoPlaylist = autoPlaylist)
+    val thumbnailSize = 48.dp
 
-    Card(
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+    Surface(
+        shape = RoundedCornerShape(18.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
         modifier = modifier,
     ) {
-        Box(modifier = Modifier.fillMaxWidth()) {
-            if (!backgroundUrl.isNullOrBlank()) {
-                AsyncImage(
-                    model = backgroundUrl,
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .alpha(0.16f),
-                )
-            }
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        Brush.linearGradient(
-                            colors = listOf(
-                                MaterialTheme.colorScheme.surface.copy(alpha = 0.18f),
-                                MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.95f),
-                                MaterialTheme.colorScheme.surfaceContainerLow,
-                            ),
-                        ),
-                    ),
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(thumbnailSize)
+                .padding(start = 6.dp, end = 4.dp),
+        ) {
+            PlaylistThumbnail(
+                thumbnails = playlist.thumbnails,
+                size = thumbnailSize,
+                placeHolder = {
+                    Icon(
+                        painter = painterResource(playlistPlaceholderIcon(playlist, autoPlaylist)),
+                        contentDescription = null,
+                        tint = LocalContentColor.current.copy(alpha = 0.82f),
+                        modifier = Modifier.size(22.dp),
+                    )
+                },
+                shape = RoundedCornerShape(12.dp),
             )
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 14.dp, vertical = 12.dp),
+            Spacer(Modifier.width(10.dp))
+            Column(
+                verticalArrangement = Arrangement.Center,
+                modifier = Modifier.weight(1f),
             ) {
-                PlaylistThumbnail(
-                    thumbnails = playlist.thumbnails,
-                    size = 70.dp,
-                    placeHolder = {
-                        Icon(
-                            painter = painterResource(playlistPlaceholderIcon(playlist, autoPlaylist)),
-                            contentDescription = null,
-                            tint = LocalContentColor.current.copy(alpha = 0.88f),
-                            modifier = Modifier.size(28.dp),
-                        )
-                    },
-                    shape = RoundedCornerShape(18.dp),
+                Text(
+                    text = playlist.playlist.name,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.basicMarquee(),
                 )
-                Spacer(Modifier.width(12.dp))
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                    modifier = Modifier.weight(1f),
-                ) {
+                if (subtitleText.isNotBlank()) {
                     Text(
-                        text = playlist.playlist.name,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
+                        text = subtitleText,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.basicMarquee(),
                     )
-                    if (subtitleText.isNotBlank()) {
-                        Text(
-                            text = subtitleText,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
                 }
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.End,
-                    modifier = Modifier.padding(start = 8.dp),
-                ) {
-                    trailingContent()
-                }
+            }
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.End,
+            ) {
+                trailingContent()
             }
         }
     }
