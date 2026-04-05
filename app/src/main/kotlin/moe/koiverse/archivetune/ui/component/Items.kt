@@ -937,7 +937,7 @@ fun LibraryPinnedCollectionTile(
     accentColor: Color = MaterialTheme.colorScheme.primary,
 ) {
     Card(
-        shape = RoundedCornerShape(28.dp),
+        shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
         modifier = modifier,
     ) {
@@ -1005,7 +1005,7 @@ fun LibraryPlaylistFeatureCard(
     val subtitleText = playlistCountText(playlist = playlist, autoPlaylist = autoPlaylist)
 
     Card(
-        shape = RoundedCornerShape(28.dp),
+        shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
         modifier = modifier,
     ) {
@@ -1037,29 +1037,29 @@ fun LibraryPlaylistFeatureCard(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(18.dp),
+                    .padding(horizontal = 14.dp, vertical = 12.dp),
             ) {
                 PlaylistThumbnail(
                     thumbnails = playlist.thumbnails,
-                    size = 86.dp,
+                    size = 70.dp,
                     placeHolder = {
                         Icon(
                             painter = painterResource(playlistPlaceholderIcon(playlist, autoPlaylist)),
                             contentDescription = null,
                             tint = LocalContentColor.current.copy(alpha = 0.88f),
-                            modifier = Modifier.size(36.dp),
+                            modifier = Modifier.size(28.dp),
                         )
                     },
-                    shape = RoundedCornerShape(22.dp),
+                    shape = RoundedCornerShape(18.dp),
                 )
-                Spacer(Modifier.width(16.dp))
+                Spacer(Modifier.width(12.dp))
                 Column(
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
                     modifier = Modifier.weight(1f),
                 ) {
                     Text(
                         text = playlist.playlist.name,
-                        style = MaterialTheme.typography.titleLarge,
+                        style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
@@ -1068,7 +1068,7 @@ fun LibraryPlaylistFeatureCard(
                     if (subtitleText.isNotBlank()) {
                         Text(
                             text = subtitleText,
-                            style = MaterialTheme.typography.bodyMedium,
+                            style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
@@ -1078,7 +1078,7 @@ fun LibraryPlaylistFeatureCard(
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.End,
-                    modifier = Modifier.padding(start = 12.dp),
+                    modifier = Modifier.padding(start = 8.dp),
                 ) {
                     trailingContent()
                 }

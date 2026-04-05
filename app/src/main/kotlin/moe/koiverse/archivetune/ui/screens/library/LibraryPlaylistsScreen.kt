@@ -411,37 +411,32 @@ private fun PlaylistControlCard(
     controls: @Composable RowScope.() -> Unit,
 ) {
     Card(
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
-        shape = MaterialTheme.shapes.extraLarge,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+        shape = MaterialTheme.shapes.large,
         modifier = Modifier.padding(horizontal = 16.dp),
     ) {
-        Column(
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 18.dp, vertical = 16.dp),
+                .padding(horizontal = 14.dp, vertical = 10.dp),
         ) {
+            controls()
             Text(
                 text = summary,
-                style = MaterialTheme.typography.bodyMedium,
+                style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                controls()
-                if (canEnterReorderMode) {
-                    IconButton(
-                        onClick = onToggleReorder,
-                        modifier = Modifier.size(40.dp),
-                    ) {
-                        Icon(
-                            painter = painterResource(if (reorderEnabled) R.drawable.lock_open else R.drawable.lock),
-                            contentDescription = null,
-                        )
-                    }
+            if (canEnterReorderMode) {
+                IconButton(
+                    onClick = onToggleReorder,
+                    modifier = Modifier.size(36.dp),
+                ) {
+                    Icon(
+                        painter = painterResource(if (reorderEnabled) R.drawable.lock_open else R.drawable.lock),
+                        contentDescription = null,
+                    )
                 }
             }
         }
