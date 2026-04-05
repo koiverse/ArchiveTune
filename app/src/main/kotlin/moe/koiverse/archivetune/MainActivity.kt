@@ -376,6 +376,7 @@ class MainActivity : ComponentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
+        if (handleOacpPlayIntent(intent)) return
         if (::navController.isInitialized) {
             handleDeepLinkIntent(intent, navController)
         } else {
@@ -651,6 +652,7 @@ class MainActivity : ComponentActivity() {
                         .isWidthAtLeastBreakpoint(WindowSizeClass.WIDTH_DP_MEDIUM_LOWER_BOUND)
 
                     val navController = rememberNavController()
+                    this@MainActivity.navController = navController
                     val homeViewModel: HomeViewModel = hiltViewModel()
                     val networkBannerViewModel: NetworkBannerViewModel = hiltViewModel()
                     val allLocalItems by homeViewModel.allLocalItems.collectAsState()
@@ -1003,11 +1005,10 @@ class MainActivity : ComponentActivity() {
                     }
 
                     LaunchedEffect(Unit) {
-                        if (pendingIntent != null) {
-                            handleDeepLinkIntent(pendingIntent!!, navController)
-                            pendingIntent = null
-                        } else {
-                            handleDeepLinkIntent(intent, navController)
+                        val targetIntent = pendingIntent ?: intent
+                        pendingIntent = null
+                        if (!handleOacpPlayIntent(targetIntent, navController)) {
+                            handleDeepLinkIntent(targetIntent, navController)
                         }
                     }
 
@@ -1743,6 +1744,67 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    private fun handleOacpPlayIntent(intent: Intent, navController: NavHostController? = null): Boolean {
+        val action = intent.action ?: return false
+        if (!action.endsWith(".oacp.ACTION_PLAY_MUSIC")) return false
+
+        val query = intent.getStringExtra("EXTRA_QUERY")
+            ?: intent.getStringExtra("query")
+
+        startMusicServiceSafely()
+
+        if (!query.isNullOrBlank()) {
+            // Search YouTube Music and auto-play the best song result
+            lifecycleScope.launch(Dispatchers.IO) {
+                YouTube.search(query, YouTube.SearchFilter.FILTER_SONG).onSuccess { result ->
+                    val songs = result.items.filterIsInstance<SongItem>()
+                    // Pick the best match using scored ranking
+                    val queryLower = query.lowercase()
+                    val queryWords = queryLower.replace(Regex("[^a-z0-9 ]"), "").split(" ").filter { it.length > 1 }
+                    fun SongItem.score(): Int {
+                        var score = 0
+                        val t = title.lowercase()
+                        // Artist match is most important
+                        if (artists.any { a -> a.name.lowercase() in queryLower }) score += 100
+                        // Title word overlap
+                        val titleWords = t.replace(Regex("[^a-z0-9 ]"), "").split(" ").filter { it.length > 1 }
+                        score += queryWords.count { it in titleWords } * 10
+                        // Penalize non-original versions
+                        if ("karaoke" in t || "instrumental" in t || "workout" in t || "cover" in t) score -= 50
+                        if ("remix" in t) score -= 5
+                        return score
+                    }
+                    val song = songs.maxByOrNull { it.score() }
+                    if (song != null) {
+                        withContext(Dispatchers.Main) {
+                            playerConnection?.playQueue(
+                                YouTubeQueue.radio(song.toMediaMetadata())
+                            )
+                        }
+                    }
+                }
+            }
+        } else {
+            // No query — resume playback
+            val sessionToken = androidx.media3.session.SessionToken(
+                this,
+                android.content.ComponentName(this, moe.koiverse.archivetune.playback.MusicService::class.java)
+            )
+            val future = androidx.media3.session.MediaController.Builder(this, sessionToken).buildAsync()
+            com.google.common.util.concurrent.Futures.addCallback(
+                future,
+                object : com.google.common.util.concurrent.FutureCallback<androidx.media3.session.MediaController> {
+                    override fun onSuccess(controller: androidx.media3.session.MediaController) {
+                        controller.play()
+                    }
+                    override fun onFailure(t: Throwable) {}
+                },
+                com.google.common.util.concurrent.MoreExecutors.directExecutor()
+            )
+        }
+        return true
     }
 
     private fun handleDeepLinkIntent(intent: Intent, navController: NavHostController) {

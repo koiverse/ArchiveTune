@@ -133,6 +133,12 @@
                 <data android:mimeType="text/plain" />
             </intent-filter>
 
+            <!-- OACP play music action -->
+            <intent-filter>
+                <action android:name="${applicationId}.oacp.ACTION_PLAY_MUSIC" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+
             <meta-data
                 android:name="android.app.shortcuts"
                 android:resource="@xml/shortcuts" />
@@ -176,7 +182,19 @@
             <intent-filter>
                 <action android:name="android.intent.action.MEDIA_BUTTON" />
             </intent-filter>
-        </receiver>        
+        </receiver>
+
+        <!-- OACP voice action receiver -->
+        <receiver android:name=".oacp.OacpActionReceiver" android:exported="true">
+            <intent-filter>
+                <action android:name="${applicationId}.oacp.ACTION_PAUSE_MUSIC" />
+                <action android:name="${applicationId}.oacp.ACTION_NEXT_TRACK" />
+                <action android:name="${applicationId}.oacp.ACTION_PREVIOUS_TRACK" />
+                <action android:name="${applicationId}.oacp.ACTION_TOGGLE_SHUFFLE" />
+                <action android:name="${applicationId}.oacp.ACTION_TOGGLE_REPEAT" />
+                <action android:name="${applicationId}.oacp.ACTION_TOGGLE_LIKE" />
+            </intent-filter>
+        </receiver>
 
         <meta-data
             android:name="com.google.android.gms.car.application"

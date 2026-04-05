@@ -1,0 +1,245 @@
+{
+  "oacpVersion": "0.3",
+  "appId": "__APPLICATION_ID__",
+  "displayName": "ArchiveTune",
+  "appDomains": ["music", "audio", "streaming"],
+  "appKeywords": ["music", "song", "track", "album", "artist", "playlist", "playback", "player", "streaming", "youtube music"],
+  "appAliases": ["archivetune", "archive tune", "youtube music player", "music player"],
+  "capabilities": [
+    {
+      "id": "play_music",
+      "description": "Search and play music from YouTube Music, or resume the last playback session.",
+      "domain": "music",
+      "aliases": [
+        "play music", "play song", "play track", "play album", "play artist",
+        "resume music", "resume playback", "start music", "listen to music",
+        "play on archivetune", "stream music"
+      ],
+      "examples": [
+        "play music on ArchiveTune",
+        "play Bohemian Rhapsody",
+        "play songs by Taylor Swift",
+        "play the album Abbey Road",
+        "resume music",
+        "listen to some jazz",
+        "play lo-fi beats"
+      ],
+      "keywords": ["play", "music", "song", "track", "album", "artist", "listen", "resume", "start", "stream"],
+      "disambiguationHints": [
+        "Use this when the user wants to play music or a specific song/artist/album.",
+        "This is a STREAMING player — it plays music from YouTube Music, not local files.",
+        "If no query is given, resumes the last playback or opens the app.",
+        "Do NOT use this for local-only music players like Auxio."
+      ],
+      "parameters": [
+        {
+          "name": "query",
+          "type": "string",
+          "required": false,
+          "description": "Song, artist, or album name to search and play on YouTube Music",
+          "extractionHint": "Extract the song title, artist name, or album name from the user's request. Include all relevant words.",
+          "examples": ["Bohemian Rhapsody", "Taylor Swift", "Abbey Road", "lo-fi beats"],
+          "prompt": "What would you like to listen to?"
+        }
+      ],
+      "confirmation": "never",
+      "executionMessage": "Playing music on ArchiveTune.",
+      "visibility": "public",
+      "requiresForeground": true,
+      "completionMode": "foreground_handoff",
+      "sensitivity": "low",
+      "sideEffects": "Starts audio playback which may be audible. Requires internet connection.",
+      "idempotent": true,
+      "invoke": {
+        "android": {
+          "type": "activity",
+          "action": "__APPLICATION_ID__.oacp.ACTION_PLAY_MUSIC",
+          "extrasMapping": {
+            "query": "EXTRA_QUERY"
+          }
+        }
+      }
+    },
+    {
+      "id": "pause_music",
+      "description": "Pause the currently playing music in ArchiveTune.",
+      "domain": "music",
+      "aliases": ["pause music", "pause song", "pause playback", "stop music", "stop playing"],
+      "examples": [
+        "pause the music",
+        "pause ArchiveTune",
+        "stop playing music",
+        "pause the song"
+      ],
+      "keywords": ["pause", "stop", "music", "song", "playback", "playing"],
+      "disambiguationHints": [
+        "Use this when the user wants to temporarily stop music playback.",
+        "Prefer this over stop — pause keeps position.",
+        "This controls ArchiveTune (YouTube Music streaming), not local music players."
+      ],
+      "parameters": [],
+      "confirmation": "never",
+      "executionMessage": "Pausing music.",
+      "visibility": "public",
+      "completionMode": "fire_and_forget",
+      "sensitivity": "low",
+      "idempotent": true,
+      "invoke": {
+        "android": {
+          "type": "broadcast",
+          "action": "__APPLICATION_ID__.oacp.ACTION_PAUSE_MUSIC"
+        }
+      }
+    },
+    {
+      "id": "next_track",
+      "description": "Skip to the next track in the ArchiveTune playback queue.",
+      "domain": "music",
+      "aliases": ["next track", "next song", "skip song", "skip track", "skip", "next"],
+      "examples": [
+        "next song",
+        "skip this track",
+        "play the next one",
+        "skip"
+      ],
+      "keywords": ["next", "skip", "track", "song", "forward"],
+      "disambiguationHints": [
+        "Use this when the user wants to skip the current song and go to the next one.",
+        "Works only when music is playing or paused with a queue."
+      ],
+      "parameters": [],
+      "confirmation": "never",
+      "executionMessage": "Skipping to next track.",
+      "visibility": "public",
+      "completionMode": "fire_and_forget",
+      "sensitivity": "low",
+      "idempotent": false,
+      "invoke": {
+        "android": {
+          "type": "broadcast",
+          "action": "__APPLICATION_ID__.oacp.ACTION_NEXT_TRACK"
+        }
+      }
+    },
+    {
+      "id": "previous_track",
+      "description": "Go back to the previous track in the ArchiveTune playback queue.",
+      "domain": "music",
+      "aliases": ["previous track", "previous song", "last song", "go back", "back"],
+      "examples": [
+        "previous song",
+        "go back to the last track",
+        "play the previous one",
+        "back"
+      ],
+      "keywords": ["previous", "last", "back", "track", "song", "rewind"],
+      "disambiguationHints": [
+        "Use this when the user wants to go back to the previous song.",
+        "May restart the current song if early in playback, then go to previous on second press."
+      ],
+      "parameters": [],
+      "confirmation": "never",
+      "executionMessage": "Going back to previous track.",
+      "visibility": "public",
+      "completionMode": "fire_and_forget",
+      "sensitivity": "low",
+      "idempotent": false,
+      "invoke": {
+        "android": {
+          "type": "broadcast",
+          "action": "__APPLICATION_ID__.oacp.ACTION_PREVIOUS_TRACK"
+        }
+      }
+    },
+    {
+      "id": "toggle_shuffle",
+      "description": "Toggle shuffle mode on or off in ArchiveTune.",
+      "domain": "music",
+      "aliases": ["shuffle", "shuffle music", "shuffle songs", "random order", "mix it up"],
+      "examples": [
+        "shuffle my music",
+        "turn on shuffle",
+        "play songs in random order",
+        "mix it up"
+      ],
+      "keywords": ["shuffle", "random", "mix", "music", "songs"],
+      "disambiguationHints": [
+        "Use this when the user wants to randomize the play order.",
+        "This toggles shuffle — if already on, it turns off."
+      ],
+      "parameters": [],
+      "confirmation": "never",
+      "executionMessage": "Toggling shuffle mode.",
+      "visibility": "public",
+      "completionMode": "fire_and_forget",
+      "sensitivity": "low",
+      "idempotent": true,
+      "invoke": {
+        "android": {
+          "type": "broadcast",
+          "action": "__APPLICATION_ID__.oacp.ACTION_TOGGLE_SHUFFLE"
+        }
+      }
+    },
+    {
+      "id": "toggle_repeat",
+      "description": "Cycle the repeat mode in ArchiveTune (off, repeat all, repeat one).",
+      "domain": "music",
+      "aliases": ["repeat", "repeat song", "repeat all", "loop", "loop song", "repeat mode"],
+      "examples": [
+        "repeat this song",
+        "turn on repeat",
+        "loop this track",
+        "toggle repeat mode"
+      ],
+      "keywords": ["repeat", "loop", "cycle", "mode", "song", "all", "one"],
+      "disambiguationHints": [
+        "Use this when the user wants to repeat the current song or the entire queue.",
+        "This cycles through: off → repeat all → repeat one → off."
+      ],
+      "parameters": [],
+      "confirmation": "never",
+      "executionMessage": "Toggling repeat mode.",
+      "visibility": "public",
+      "completionMode": "fire_and_forget",
+      "sensitivity": "low",
+      "idempotent": true,
+      "invoke": {
+        "android": {
+          "type": "broadcast",
+          "action": "__APPLICATION_ID__.oacp.ACTION_TOGGLE_REPEAT"
+        }
+      }
+    },
+    {
+      "id": "toggle_like",
+      "description": "Like or unlike the currently playing track in ArchiveTune.",
+      "domain": "music",
+      "aliases": ["like song", "like this", "unlike song", "favorite", "heart", "love this song"],
+      "examples": [
+        "like this song",
+        "favorite this track",
+        "heart this",
+        "unlike this song"
+      ],
+      "keywords": ["like", "unlike", "favorite", "heart", "love", "song", "track"],
+      "disambiguationHints": [
+        "Use this when the user wants to like or favorite the currently playing song.",
+        "This toggles — if already liked, it unlikes."
+      ],
+      "parameters": [],
+      "confirmation": "never",
+      "executionMessage": "Toggling like on current track.",
+      "visibility": "public",
+      "completionMode": "fire_and_forget",
+      "sensitivity": "low",
+      "idempotent": true,
+      "invoke": {
+        "android": {
+          "type": "broadcast",
+          "action": "__APPLICATION_ID__.oacp.ACTION_TOGGLE_LIKE"
+        }
+      }
+    }
+  ]
+}
