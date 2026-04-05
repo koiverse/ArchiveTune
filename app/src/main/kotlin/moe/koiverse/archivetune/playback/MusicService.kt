@@ -74,10 +74,7 @@ import androidx.media3.exoplayer.audio.DefaultAudioSink
 import androidx.media3.exoplayer.audio.SilenceSkippingAudioProcessor
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.exoplayer.source.ShuffleOrder.DefaultShuffleOrder
-import androidx.media3.extractor.ExtractorsFactory
-import androidx.media3.extractor.mkv.MatroskaExtractor
-import androidx.media3.extractor.mp4.FragmentedMp4Extractor
-import androidx.media3.extractor.mp4.Mp4Extractor
+import androidx.media3.extractor.DefaultExtractorsFactory
 import androidx.media3.session.CommandButton
 import androidx.media3.session.DefaultMediaNotificationProvider
 import androidx.media3.session.MediaController
@@ -4262,9 +4259,7 @@ class MusicService :
     private fun createMediaSourceFactory() =
         DefaultMediaSourceFactory(
             createDataSourceFactory(),
-            ExtractorsFactory {
-                arrayOf(Mp4Extractor(), FragmentedMp4Extractor(), MatroskaExtractor())
-            },
+            DefaultExtractorsFactory(),
         )
 
     private fun updateAudioOffload(enabled: Boolean) {
@@ -4310,7 +4305,7 @@ class MusicService :
                 enableAudioTrackPlaybackParams: Boolean,
             ) = DefaultAudioSink
                 .Builder(this@MusicService)
-                .setEnableFloatOutput(enableFloatOutput)
+                .setEnableFloatOutput(false)
                 .setEnableAudioTrackPlaybackParams(enableAudioTrackPlaybackParams)
                 .setAudioProcessorChain(
                     DefaultAudioSink.DefaultAudioProcessorChain(
