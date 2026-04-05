@@ -36,10 +36,19 @@
           "name": "query",
           "type": "string",
           "required": false,
-          "description": "Song, artist, or album name to search and play on YouTube Music",
-          "extractionHint": "Extract the song title, artist name, or album name from the user's request. Include all relevant words.",
-          "examples": ["Bohemian Rhapsody", "Taylor Swift", "Abbey Road", "lo-fi beats"],
+          "description": "The song title or album name to play",
+          "extractionHint": "Extract ONLY the song title or album name. Do NOT include the artist name here — put it in the artist parameter instead. For 'play Water by Tyla', query is 'Water'. For 'play some jazz', query is 'jazz'.",
+          "examples": ["Bohemian Rhapsody", "Water", "Abbey Road", "lo-fi beats"],
           "prompt": "What would you like to listen to?"
+        },
+        {
+          "name": "artist",
+          "type": "string",
+          "required": false,
+          "description": "The artist or band name",
+          "extractionHint": "Extract ONLY the artist or band name if mentioned. For 'play Water by Tyla', artist is 'Tyla'. For 'play songs by Taylor Swift', artist is 'Taylor Swift'. If no artist is mentioned, set to null.",
+          "examples": ["Tyla", "Taylor Swift", "Queen", "Ed Sheeran"],
+          "prompt": "By which artist?"
         }
       ],
       "confirmation": "never",
@@ -55,7 +64,8 @@
           "type": "activity",
           "action": "__APPLICATION_ID__.oacp.ACTION_PLAY_MUSIC",
           "extrasMapping": {
-            "query": "EXTRA_QUERY"
+            "query": "EXTRA_QUERY",
+            "artist": "EXTRA_ARTIST"
           }
         }
       }

@@ -4,7 +4,7 @@
 YouTube Music streaming client for Android. Searches and plays music from YouTube Music's catalog over the internet. Supports background playback, lyrics, playlists, albums, and artist browsing.
 
 ## Capabilities
-- play_music: Searches YouTube Music and starts playback, or resumes last session if no query given
+- play_music: Searches YouTube Music and starts playback; takes optional query (song/album) and artist parameters
 - pause_music: Pauses the current playback
 - next_track: Skips to the next track in the queue
 - previous_track: Goes back to the previous track

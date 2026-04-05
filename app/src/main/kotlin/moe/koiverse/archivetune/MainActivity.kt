@@ -1752,22 +1752,26 @@ class MainActivity : ComponentActivity() {
 
         val query = intent.getStringExtra("EXTRA_QUERY")
             ?: intent.getStringExtra("query")
+        val artist = intent.getStringExtra("EXTRA_ARTIST")
+            ?: intent.getStringExtra("artist")
 
         startMusicServiceSafely()
 
-        if (!query.isNullOrBlank()) {
+        val searchQuery = listOfNotNull(query, artist).joinToString(" ").trim()
+
+        if (searchQuery.isNotBlank()) {
             // Search YouTube Music and auto-play the best song result
             lifecycleScope.launch(Dispatchers.IO) {
-                YouTube.search(query, YouTube.SearchFilter.FILTER_SONG).onSuccess { result ->
+                YouTube.search(searchQuery, YouTube.SearchFilter.FILTER_SONG).onSuccess { result ->
                     val songs = result.items.filterIsInstance<SongItem>()
                     // Pick the best match using scored ranking
-                    val queryLower = query.lowercase()
-                    val queryWords = queryLower.replace(Regex("[^a-z0-9 ]"), "").split(" ").filter { it.length > 1 }
+                    val artistLower = artist?.lowercase()
+                    val queryWords = searchQuery.lowercase().replace(Regex("[^a-z0-9 ]"), "").split(" ").filter { it.length > 1 }
                     fun SongItem.score(): Int {
                         var score = 0
                         val t = title.lowercase()
                         // Artist match is most important
-                        if (artists.any { a -> a.name.lowercase() in queryLower }) score += 100
+                        if (artistLower != null && artists.any { a -> a.name.lowercase().contains(artistLower) || artistLower.contains(a.name.lowercase()) }) score += 100
                         // Title word overlap
                         val titleWords = t.replace(Regex("[^a-z0-9 ]"), "").split(" ").filter { it.length > 1 }
                         score += queryWords.count { it in titleWords } * 10
