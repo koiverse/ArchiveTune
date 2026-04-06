@@ -715,7 +715,7 @@ fun OverlayPlaylistListItem(
 
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(16.dp),
         modifier = modifier
             .fillMaxWidth()
             .clickable { onClick?.invoke() }
@@ -749,12 +749,12 @@ fun OverlayPlaylistListItem(
             Row(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(12.dp),
+                    .padding(horizontal = 16.dp, vertical = 14.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 PlaylistThumbnail(
                     thumbnails = playlist.thumbnails,
-                    size = 72.dp,
+                    size = 64.dp,
                     placeHolder = {
                         val painter = when (playlist.playlist.name) {
                             stringResource(R.string.liked) -> R.drawable.favorite_border
@@ -766,13 +766,13 @@ fun OverlayPlaylistListItem(
                             painter = painterResource(painter),
                             contentDescription = null,
                             tint = LocalContentColor.current.copy(alpha = 0.9f),
-                            modifier = Modifier.size(36.dp)
+                            modifier = Modifier.size(32.dp)
                         )
                     },
                     shape = RoundedCornerShape(8.dp)
                 )
 
-                Spacer(Modifier.width(12.dp))
+                Spacer(Modifier.width(14.dp))
 
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
@@ -799,7 +799,11 @@ fun OverlayPlaylistListItem(
                     )
                 }
 
-                Row(modifier = Modifier.padding(start = 8.dp), verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.End) {
+                Row(
+                    modifier = Modifier.padding(start = 12.dp),
+                    verticalAlignment = Alignment.Top,
+                    horizontalArrangement = Arrangement.End
+                ) {
                     trailingContent()
                 }
             }
