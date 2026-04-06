@@ -63,6 +63,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -155,6 +156,19 @@ inline fun ListItem(
     trailingContent: @Composable RowScope.() -> Unit = {},
     isActive: Boolean = false
 ) {
+    val titleColor =
+        if (isActive) {
+            MaterialTheme.colorScheme.onSecondaryContainer
+        } else {
+            MaterialTheme.colorScheme.onSurface
+        }
+    val subtitleContentColor =
+        if (isActive) {
+            MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f)
+        } else {
+            MaterialTheme.colorScheme.onSurfaceVariant
+        }
+
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
@@ -180,12 +194,16 @@ inline fun ListItem(
                 fontWeight = FontWeight.SemiBold,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
-                color = if (isActive) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurface
+                color = titleColor
             )
-            if (subtitle != null) Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp)
-            ) { subtitle() }
+            if (subtitle != null) {
+                CompositionLocalProvider(LocalContentColor provides subtitleContentColor) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) { subtitle() }
+                }
+            }
         }
         trailingContent()
     }
@@ -1006,8 +1024,8 @@ fun LibraryPlaylistFeatureCard(
     trailingContent: @Composable RowScope.() -> Unit = {},
 ) {
     val subtitleText = playlistCountText(playlist = playlist, autoPlaylist = autoPlaylist)
-    val thumbnailSize = 44.dp
-    val containerHeight = 56.dp
+    val thumbnailSize = 65.dp
+    val containerHeight = 70.dp
 
     Surface(
         shape = RoundedCornerShape(18.dp),
@@ -1019,7 +1037,7 @@ fun LibraryPlaylistFeatureCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(containerHeight)
-                .padding(horizontal = 10.dp, vertical = 6.dp),
+                .padding(horizontal = 28.dp, vertical = 6.dp),
         ) {
             PlaylistThumbnail(
                 thumbnails = playlist.thumbnails,
@@ -1592,7 +1610,15 @@ fun ItemThumbnail(
         PlayingIndicatorBox(
             isActive = isActive,
             playWhenReady = isPlaying,
-            color = if (albumIndex != null) MaterialTheme.colorScheme.onBackground else Color.White,
+            color = if (albumIndex != null) {
+                if (isActive) {
+                    MaterialTheme.colorScheme.onSecondaryContainer
+                } else {
+                    MaterialTheme.colorScheme.onSurface
+                }
+            } else {
+                Color.White
+            },
             modifier = Modifier
                 .fillMaxSize()
                 .background(
