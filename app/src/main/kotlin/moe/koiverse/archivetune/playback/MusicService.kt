@@ -271,6 +271,9 @@ class MusicService :
     private var wakeLock: PowerManager.WakeLock? = null
     private var wakelockEnabled = false
     private var audioDeviceCallbackRegistered = false
+    private var audioRouteRecoveryJob: Job? = null
+    private var lastAudioOutputDeviceSignature: String? = null
+    private var lastAudioRouteRecoveryRealtimeMs = 0L
 
     private val audioDeviceCallback = object : AudioDeviceCallback() {
         override fun onAudioDevicesAdded(addedDevices: Array<AudioDeviceInfo>) {
@@ -711,6 +714,7 @@ class MusicService :
         setupAudioFocusRequest()
         audioManager.registerAudioDeviceCallback(audioDeviceCallback, android.os.Handler(mainLooper))
         audioDeviceCallbackRegistered = true
+        lastAudioOutputDeviceSignature = currentAudioOutputDeviceSignature()
 
         mediaLibrarySessionCallback.apply {
             toggleLike = ::toggleLike
@@ -1325,13 +1329,80 @@ class MusicService :
 
     private fun onAudioOutputDeviceChanged() {
         if (!::player.isInitialized) return
+        val outputSignature = currentAudioOutputDeviceSignature()
+        if (outputSignature == lastAudioOutputDeviceSignature) return
+        lastAudioOutputDeviceSignature = outputSignature
         player.setAudioAttributes(playbackAudioAttributes(), false)
-        val sessionId = player.audioSessionId
-        if (sessionId > 0 && isAudioEffectSessionOpened) {
-            releaseAudioEffects()
-            ensureAudioEffects(sessionId)
+        audioRouteRecoveryJob?.cancel()
+        audioRouteRecoveryJob =
+            scope.launch {
+                delay(AUDIO_ROUTE_CHANGE_DEBOUNCE_MS)
+                recoverAudioRouteAfterDeviceChange()
+            }
+    }
+
+    private suspend fun recoverAudioRouteAfterDeviceChange() {
+        if (!::player.isInitialized) return
+
+        rebindAudioEffectsAfterRouteChange()
+
+        if (!shouldRebuildPlaybackForAudioRouteChange()) return
+
+        val now = android.os.SystemClock.elapsedRealtime()
+        if (now - lastAudioRouteRecoveryRealtimeMs < AUDIO_ROUTE_RECOVERY_MIN_INTERVAL_MS) return
+        lastAudioRouteRecoveryRealtimeMs = now
+
+        val mediaItemIndex = player.currentMediaItemIndex.takeIf { it != C.INDEX_UNSET } ?: return
+        val playbackPosition = player.currentPosition.coerceAtLeast(0L)
+        val shouldResumePlayback = player.playWhenReady
+
+        Timber.tag("MusicService").i(
+            "Recovering audio route after output change at index=$mediaItemIndex position=$playbackPosition resume=$shouldResumePlayback"
+        )
+
+        if (shouldResumePlayback) {
+            requestAudioFocus()
+        }
+
+        player.playWhenReady = false
+        player.prepare()
+        player.seekTo(mediaItemIndex, playbackPosition)
+        delay(AUDIO_ROUTE_RECOVERY_RESUME_DELAY_MS)
+
+        if (shouldResumePlayback && player.currentMediaItem != null && player.playbackState != Player.STATE_ENDED) {
+            player.playWhenReady = true
         }
     }
+
+    private suspend fun rebindAudioEffectsAfterRouteChange() {
+        if (!isAudioEffectSessionOpened) return
+        closeAudioEffectSession()
+        delay(AUDIO_EFFECT_ROUTE_REBIND_DELAY_MS)
+        openAudioEffectSession()
+    }
+
+    private fun shouldRebuildPlaybackForAudioRouteChange(): Boolean {
+        if (player.currentMediaItem == null) return false
+        if (player.playbackState == Player.STATE_IDLE || player.playbackState == Player.STATE_ENDED) return false
+        return player.playWhenReady || player.playbackState == Player.STATE_BUFFERING
+    }
+
+    private fun currentAudioOutputDeviceSignature(): String =
+        runCatching {
+            audioManager
+                .getDevices(AudioManager.GET_DEVICES_OUTPUTS)
+                .asSequence()
+                .filter { it.isSink }
+                .sortedWith(
+                    compareBy<AudioDeviceInfo>(
+                        { it.type },
+                        { it.id },
+                        { it.productName?.toString().orEmpty() },
+                    ),
+                ).joinToString(separator = "|") { device ->
+                    "${device.type}:${device.id}:${device.productName?.toString().orEmpty()}"
+                }
+        }.getOrDefault("")
 
     private fun playbackAudioAttributes(): AudioAttributes =
         AudioAttributes
@@ -4584,6 +4655,7 @@ class MusicService :
 
     override fun onDestroy() {
         super.onDestroy()
+        audioRouteRecoveryJob?.cancel()
         if (audioDeviceCallbackRegistered) {
             audioManager.unregisterAudioDeviceCallback(audioDeviceCallback)
             audioDeviceCallbackRegistered = false
@@ -4780,5 +4852,9 @@ class MusicService :
         const val PERSISTENT_PLAYER_STATE_FILE = "persistent_player_state.data"
         const val MAX_CONSECUTIVE_ERR = 5
         const val MIN_PRESENCE_UPDATE_INTERVAL = 20_000L
+        const val AUDIO_ROUTE_CHANGE_DEBOUNCE_MS = 350L
+        const val AUDIO_EFFECT_ROUTE_REBIND_DELAY_MS = 200L
+        const val AUDIO_ROUTE_RECOVERY_MIN_INTERVAL_MS = 1_500L
+        const val AUDIO_ROUTE_RECOVERY_RESUME_DELAY_MS = 150L
     }
 }

@@ -1006,7 +1006,8 @@ fun LibraryPlaylistFeatureCard(
     trailingContent: @Composable RowScope.() -> Unit = {},
 ) {
     val subtitleText = playlistCountText(playlist = playlist, autoPlaylist = autoPlaylist)
-    val thumbnailSize = 48.dp
+    val thumbnailSize = 44.dp
+    val containerHeight = 56.dp
 
     Surface(
         shape = RoundedCornerShape(18.dp),
@@ -1017,8 +1018,8 @@ fun LibraryPlaylistFeatureCard(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(thumbnailSize)
-                .padding(start = 6.dp, end = 4.dp),
+                .height(containerHeight)
+                .padding(horizontal = 10.dp, vertical = 6.dp),
         ) {
             PlaylistThumbnail(
                 thumbnails = playlist.thumbnails,
@@ -1033,7 +1034,7 @@ fun LibraryPlaylistFeatureCard(
                 },
                 shape = RoundedCornerShape(12.dp),
             )
-            Spacer(Modifier.width(10.dp))
+            Spacer(Modifier.width(12.dp))
             Column(
                 verticalArrangement = Arrangement.Center,
                 modifier = Modifier.weight(1f),
@@ -1057,6 +1058,7 @@ fun LibraryPlaylistFeatureCard(
                 }
             }
             Row(
+                modifier = Modifier.padding(start = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.End,
             ) {
