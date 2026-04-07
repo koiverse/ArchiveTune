@@ -153,7 +153,7 @@ inline fun ListItem(
     title: String,
     noinline subtitle: (@Composable RowScope.() -> Unit)? = null,
     thumbnailContent: @Composable () -> Unit,
-    trailingContent: @Composable RowScope.() -> Unit = {},
+    crossinline trailingContent: @Composable RowScope.() -> Unit = {},
     isActive: Boolean = false
 ) {
     val titleColor =
