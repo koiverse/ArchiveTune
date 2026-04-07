@@ -5,6 +5,7 @@
  * Don't remove this copyright holder!
  */
 
+@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
 
 package moe.koiverse.archivetune.ui.screens.settings
 
