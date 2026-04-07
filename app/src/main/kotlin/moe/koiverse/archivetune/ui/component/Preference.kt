@@ -444,8 +444,8 @@ fun SliderPreference(
 @Composable
 fun CrossfadeSliderPreference(
     modifier: Modifier = Modifier,
-    value: Int,
-    onValueChange: (Int) -> Unit,
+    valueSeconds: Float,
+    onValueChange: (Float) -> Unit,
     isEnabled: Boolean = true,
 ) {
     var showDialog by remember {
@@ -453,7 +453,7 @@ fun CrossfadeSliderPreference(
     }
 
     var sliderValue by remember {
-        mutableFloatStateOf(value.toFloat())
+        mutableFloatStateOf(valueSeconds.coerceIn(0f, 10f))
     }
 
     if (showDialog) {
@@ -473,31 +473,36 @@ fun CrossfadeSliderPreference(
             },
             onDismiss = { showDialog = false },
             onConfirm = {
-                val rounded = sliderValue.roundToInt().coerceIn(0, 10)
-                sliderValue = rounded.toFloat()
+                val rounded =
+                    ((sliderValue * 2f).roundToInt().toFloat() / 2f)
+                        .coerceIn(0f, 10f)
+                sliderValue = rounded
                 showDialog = false
                 onValueChange.invoke(rounded)
             },
             onCancel = {
-                sliderValue = value.toFloat()
+                sliderValue = valueSeconds.coerceIn(0f, 10f)
                 showDialog = false
             },
             onReset = {
-                sliderValue = 0f
+                sliderValue = 5f
             },
             content = {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    val rounded = sliderValue.roundToInt().coerceIn(0, 10)
+                    val rounded =
+                        ((sliderValue * 2f).roundToInt().toFloat() / 2f)
+                            .coerceIn(0f, 10f)
+                    val isWhole = (rounded - rounded.roundToInt().toFloat()).let { delta ->
+                        kotlin.math.abs(delta) < 0.001f
+                    }
+                    val displayValue =
+                        if (isWhole) rounded.roundToInt().toString() else String.format(java.util.Locale.getDefault(), "%.1f", rounded)
                     Text(
                         text =
-                        if (rounded == 0) {
+                        if (rounded <= 0f) {
                             stringResource(R.string.dark_theme_off)
                         } else {
-                            pluralStringResource(
-                                R.plurals.seconds,
-                                rounded,
-                                rounded
-                            )
+                            stringResource(R.string.audio_crossfade_seconds, displayValue)
                         },
                         style = MaterialTheme.typography.bodyLarge,
                     )
@@ -514,7 +519,7 @@ fun CrossfadeSliderPreference(
 
                     val crossfadeSliderState = rememberSliderState(
                         value = sliderValue,
-                        steps = 9,
+                        steps = 19,
                         valueRange = 0f..10f,
                         onValueChangeFinished = {},
                     )
@@ -536,11 +541,19 @@ fun CrossfadeSliderPreference(
         )
     }
 
+    val rounded =
+        ((valueSeconds * 2f).roundToInt().toFloat() / 2f)
+            .coerceIn(0f, 10f)
+    val isWhole = (rounded - rounded.roundToInt().toFloat()).let { delta ->
+        kotlin.math.abs(delta) < 0.001f
+    }
+    val displayValue =
+        if (isWhole) rounded.roundToInt().toString() else String.format(java.util.Locale.getDefault(), "%.1f", rounded)
     val descriptionText =
-        if (value <= 0) {
+        if (rounded <= 0f) {
             stringResource(R.string.dark_theme_off)
         } else {
-            pluralStringResource(R.plurals.seconds, value, value)
+            stringResource(R.string.audio_crossfade_seconds, displayValue)
         }
 
     PreferenceEntry(

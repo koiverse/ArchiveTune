@@ -61,7 +61,9 @@ import moe.koiverse.archivetune.constants.SkipSilenceKey
 import moe.koiverse.archivetune.constants.StopMusicOnTaskClearKey
 import moe.koiverse.archivetune.constants.WakelockKey
 import moe.koiverse.archivetune.constants.HistoryDuration
-import moe.koiverse.archivetune.constants.AudioCrossfadeDurationKey
+import moe.koiverse.archivetune.constants.CrossfadeDurationKey
+import moe.koiverse.archivetune.constants.CrossfadeEnabledKey
+import moe.koiverse.archivetune.constants.CrossfadeGaplessKey
 import moe.koiverse.archivetune.constants.PlayerStreamClient
 import moe.koiverse.archivetune.constants.PlayerStreamClientKey
 import moe.koiverse.archivetune.constants.SeekExtraSeconds
@@ -150,9 +152,17 @@ fun PlayerSettings(
         defaultValue = 30f
     )
 
-    val (audioCrossfadeSeconds, onAudioCrossfadeSecondsChange) = rememberPreference(
-        AudioCrossfadeDurationKey,
-        defaultValue = 0
+    val (crossfadeEnabled, onCrossfadeEnabledChange) = rememberPreference(
+        CrossfadeEnabledKey,
+        defaultValue = false
+    )
+    val (crossfadeDurationSeconds, onCrossfadeDurationSecondsChange) = rememberPreference(
+        CrossfadeDurationKey,
+        defaultValue = 5f
+    )
+    val (crossfadeGapless, onCrossfadeGaplessChange) = rememberPreference(
+        CrossfadeGaplessKey,
+        defaultValue = true
     )
 
     val (artistSeparators, onArtistSeparatorsChange) = rememberPreference(
@@ -313,10 +323,28 @@ fun PlayerSettings(
             onValueChange = onHistoryDurationChange,
         )
 
-        CrossfadeSliderPreference(
-            value = audioCrossfadeSeconds,
-            onValueChange = onAudioCrossfadeSecondsChange,
+        SwitchPreference(
+            title = { Text(stringResource(R.string.audio_crossfade_title)) },
+            description = stringResource(R.string.audio_crossfade_description),
+            icon = { Icon(painterResource(R.drawable.animation), null) },
+            checked = crossfadeEnabled,
+            onCheckedChange = onCrossfadeEnabledChange,
             isEnabled = !audioOffload,
+        )
+
+        CrossfadeSliderPreference(
+            valueSeconds = crossfadeDurationSeconds,
+            onValueChange = onCrossfadeDurationSecondsChange,
+            isEnabled = crossfadeEnabled && !audioOffload,
+        )
+
+        SwitchPreference(
+            title = { Text(stringResource(R.string.crossfade_gapless_title)) },
+            description = stringResource(R.string.crossfade_gapless_description),
+            icon = { Icon(painterResource(R.drawable.fast_forward), null) },
+            checked = crossfadeGapless,
+            onCheckedChange = onCrossfadeGaplessChange,
+            isEnabled = crossfadeEnabled && !audioOffload,
         )
 
         SwitchPreference(

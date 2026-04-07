@@ -220,8 +220,11 @@
         <item quantity="other">%d seconds</item>
     </plurals>
     <string name="audio_crossfade_title">Crossfade</string>
-    <string name="audio_crossfade_description">Smoothly transition between songs by fading out the end of each track.</string>
+    <string name="audio_crossfade_description">Smoothly transition between songs by fading out and in.</string>
     <string name="audio_crossfade_dialog_title">Crossfade duration</string>
+    <string name="audio_crossfade_seconds">%1$s s</string>
+    <string name="crossfade_gapless_title">Gapless crossfade</string>
+    <string name="crossfade_gapless_description">Fade out and fade in without overlapping audio.</string>
     <string name="disable_load_more_when_repeat_all">Disable load more when repeat all</string>
     <string name="disable_load_more_when_repeat_all_desc">Don\'t auto load more songs and similar content when repeat all mode is enabled</string>
     <string name="player_stream_client">Playback client</string>

@@ -93,7 +93,9 @@ import moe.koiverse.archivetune.MainActivity
 import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.constants.AudioNormalizationKey
 import moe.koiverse.archivetune.constants.AudioOffload
-import moe.koiverse.archivetune.constants.AudioCrossfadeDurationKey
+import moe.koiverse.archivetune.constants.CrossfadeDurationKey
+import moe.koiverse.archivetune.constants.CrossfadeEnabledKey
+import moe.koiverse.archivetune.constants.CrossfadeGaplessKey
 import moe.koiverse.archivetune.constants.AudioQualityKey
 import moe.koiverse.archivetune.constants.AutoLoadMoreKey
 import moe.koiverse.archivetune.constants.AutoDownloadOnLikeKey
@@ -233,6 +235,7 @@ import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import kotlin.math.min
 import kotlin.math.pow
+import kotlin.math.roundToInt
 import kotlin.time.Duration.Companion.seconds
 import timber.log.Timber
 import android.app.NotificationChannel
@@ -380,11 +383,15 @@ class MusicService :
     private val normalizeFactor = MutableStateFlow(1f)
     var playerVolume = MutableStateFlow(1f)
     private val audioFocusVolumeFactor = MutableStateFlow(1f)
-    private val playbackFadeFactor = MutableStateFlow(1f)
-    private val crossfadeDurationMs = MutableStateFlow(0)
-    private val audioNormalizationEnabled = MutableStateFlow(true)
-    private var crossfadeAudio: CrossfadeAudio? = null
+    private var crossfadeAudioProcessor: CrossfadeAudioProcessor? = null
     private var lyricsPreloadManager: LyricsPreloadManager? = null
+
+    private data class CrossfadeConfig(
+        val enabled: Boolean,
+        val durationSeconds: Float,
+        val gapless: Boolean,
+        val offload: Boolean,
+    )
 
     private fun isAppInForeground(): Boolean {
         val activityManager = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
@@ -688,7 +695,7 @@ class MusicService :
             ExoPlayer
                 .Builder(this)
                 .setMediaSourceFactory(createMediaSourceFactory())
-                .setRenderersFactory(createRenderersFactory())
+                .setRenderersFactory(createRenderersFactory { crossfadeAudioProcessor = it })
                 .setHandleAudioBecomingNoisy(true)
                 .setWakeMode(C.WAKE_MODE_NETWORK)
                 .setAudioAttributes(
@@ -801,8 +808,8 @@ class MusicService :
                 }
             }
 
-        combine(playerVolume, normalizeFactor, audioFocusVolumeFactor, playbackFadeFactor) { playerVolume, normalizeFactor, audioFocusVolumeFactor, playbackFadeFactor ->
-            playerVolume * normalizeFactor * audioFocusVolumeFactor * playbackFadeFactor
+        combine(playerVolume, normalizeFactor, audioFocusVolumeFactor) { playerVolume, normalizeFactor, audioFocusVolumeFactor ->
+            playerVolume * normalizeFactor * audioFocusVolumeFactor
         }.collectLatest(scope) { finalVolume ->
             player.volume = finalVolume
         }
@@ -885,18 +892,35 @@ class MusicService :
                         dataStore.edit { it[SkipSilenceKey] = false }
                         player.skipSilenceEnabled = false
                     }
-                    val crossfadeSeconds = dataStore.get(AudioCrossfadeDurationKey, 0)
-                    if (crossfadeSeconds != 0) {
-                        dataStore.edit { it[AudioCrossfadeDurationKey] = 0 }
+                    val crossfadeEnabled = dataStore.get(CrossfadeEnabledKey, false)
+                    if (crossfadeEnabled) {
+                        dataStore.edit { it[CrossfadeEnabledKey] = false }
                     }
                 }
             }
         
         dataStore.data
-            .map { (it[AudioCrossfadeDurationKey] ?: 0) * 1000 }
+            .map { prefs ->
+                val enabled = prefs[CrossfadeEnabledKey] ?: false
+                val durationSeconds = prefs[CrossfadeDurationKey] ?: 5f
+                val gapless = prefs[CrossfadeGaplessKey] ?: true
+                val offload = prefs[AudioOffload] ?: false
+                CrossfadeConfig(
+                    enabled = enabled,
+                    durationSeconds = durationSeconds,
+                    gapless = gapless,
+                    offload = offload,
+                )
+            }
             .distinctUntilChanged()
-            .collectLatest(scope) {
-                crossfadeDurationMs.value = it
+            .collectLatest(scope) { config ->
+                val durationMs =
+                    if (!config.offload && config.enabled) {
+                        (config.durationSeconds.coerceIn(0f, 10f) * 1000f).roundToInt().coerceAtLeast(0)
+                    } else {
+                        0
+                    }
+                crossfadeAudioProcessor?.crossfadeDurationMs = durationMs
             }
 
         dataStore.data
@@ -906,62 +930,6 @@ class MusicService :
                 wakelockEnabled = enabled
                 updateWakeLock()
             }
-
-        crossfadeAudio =
-            CrossfadeAudio(
-                player = player,
-                database = database,
-                crossfadeDurationMs = crossfadeDurationMs,
-                playbackFadeFactor = playbackFadeFactor,
-                playerVolume = playerVolume,
-                audioFocusVolumeFactor = audioFocusVolumeFactor,
-                audioNormalizationEnabled = audioNormalizationEnabled,
-                maxSafeGainFactor = maxSafeGainFactor,
-                overlapPlayerFactory = {
-                    ExoPlayer
-                        .Builder(this)
-                        .setMediaSourceFactory(createMediaSourceFactory())
-                        .setRenderersFactory(createRenderersFactory())
-                        .setHandleAudioBecomingNoisy(false)
-                        .setWakeMode(C.WAKE_MODE_NETWORK)
-                        .setAudioAttributes(
-                            playbackAudioAttributes(),
-                            false,
-                        ).setSeekBackIncrementMs(5000)
-                        .setSeekForwardIncrementMs(5000)
-                        .build()
-                        .apply {
-                            setOffloadEnabled(false)
-                        }
-                },
-                onCrossfadeStart = { mediaItem ->
-                    val metadata = mediaItem.metadata
-                    currentMediaMetadata.value = metadata
-                    // immediate update when media item transitions to avoid stale presence
-                    scope.launch {
-                        try {
-                            val token = dataStore.get(DiscordTokenKey, "")
-                            if (token.isNotBlank() && DiscordPresenceManager.isRunning()) {
-                                val mediaId = mediaItem.mediaId
-                                val song = if (mediaId != null) withContext(Dispatchers.IO) { database.song(mediaId).first() } else null
-                                val finalSong = song ?: metadata?.let { createTransientSongFromMedia(it) }
-
-                                if (canUpdatePresence()) {
-                                    DiscordPresenceManager.updateNow(
-                                        context = this@MusicService,
-                                        token = token,
-                                        song = finalSong,
-                                        positionMs = 0L,
-                                        isPaused = false
-                                    )
-                                }
-                            }
-                        } catch (e: Exception) {
-                            e.printStackTrace()
-                        }
-                    }
-                }
-            ).also { it.start(scope) }
 
         // Initialize lyrics pre-load manager
         lyricsPreloadManager = LyricsPreloadManager(
@@ -986,7 +954,6 @@ class MusicService :
         ) { format, normalizeAudio ->
             format to normalizeAudio
         }.collectLatest(scope) { (format, normalizeAudio) ->
-            audioNormalizationEnabled.value = normalizeAudio
             Timber.tag("AudioNormalization").d("Audio normalization enabled: $normalizeAudio")
             Timber.tag("AudioNormalization").d("Format loudnessDb: ${format?.loudnessDb}, perceptualLoudnessDb: ${format?.perceptualLoudnessDb}")
             
@@ -3463,8 +3430,6 @@ class MusicService :
             ?: player.currentMediaItem?.mediaId
     )
 
-    crossfadeAudio?.onMediaItemTransition(mediaItem, reason)
-
     // Pre-load lyrics for upcoming songs in queue
     val currentIndex = player.currentMediaItemIndex
     // Convert media items to MediaMetadata for lyrics pre-loading
@@ -3608,7 +3573,6 @@ class MusicService :
     }
 
     if (playbackState == Player.STATE_IDLE || playbackState == Player.STATE_ENDED) {
-        crossfadeAudio?.stop(resetMainFade = true)
         scrobbleManager?.onSongStop()
     }
     
@@ -3679,9 +3643,7 @@ class MusicService :
 
     override fun onEvents(player: Player, events: Player.Events) {
         if (events.contains(Player.EVENT_MEDIA_METADATA_CHANGED)) {
-            if (crossfadeAudio?.isCrossfading() != true) {
-                currentMediaMetadata.value = player.currentMetadata
-            }
+            currentMediaMetadata.value = player.currentMetadata
         }
     val joined = togetherSessionState.value as? moe.koiverse.archivetune.together.TogetherSessionState.Joined
     if (joined?.role is moe.koiverse.archivetune.together.TogetherRole.Guest &&
@@ -3767,9 +3729,7 @@ class MusicService :
     }
 
        if (events.containsAny(EVENT_TIMELINE_CHANGED, EVENT_POSITION_DISCONTINUITY)) {
-            if (crossfadeAudio?.isCrossfading() != true) {
-                currentMediaMetadata.value = player.currentMetadata
-            }
+            currentMediaMetadata.value = player.currentMetadata
             // immediate update when media item transitions to avoid stale presence
             scope.launch {
                 try {
@@ -4370,7 +4330,7 @@ class MusicService :
         }
     }
 
-    private fun createRenderersFactory() =
+    private fun createRenderersFactory(onCrossfadeProcessorCreated: ((CrossfadeAudioProcessor) -> Unit)? = null) =
         object : DefaultRenderersFactory(this) {
             override fun buildAudioSink(
                 context: Context,
@@ -4389,6 +4349,7 @@ class MusicService :
                             10,
                             150.toShort(),
                         ),
+                        CrossfadeAudioProcessor().also { onCrossfadeProcessorCreated?.invoke(it) },
                         SonicAudioProcessor(),
                     ),
                 ).build()
@@ -4714,10 +4675,6 @@ class MusicService :
         } catch (_: Exception) {}
         try {
             mediaSession.release()
-        } catch (_: Exception) {}
-        try {
-            crossfadeAudio?.release()
-            crossfadeAudio = null
         } catch (_: Exception) {}
         try {
             if (wakeLock?.isHeld == true) wakeLock?.release()
