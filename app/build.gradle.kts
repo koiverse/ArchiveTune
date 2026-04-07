@@ -45,6 +45,12 @@ android {
                 ?: System.getenv("TOGETHER_BEARER_TOKEN")
                 ?: ""
         buildConfigField("String", "TOGETHER_BEARER_TOKEN", "\"$togetherBearerToken\"")
+
+        val canvasBearerToken =
+            localProperties.getProperty("CANVAS_BEARER_TOKEN")
+                ?: System.getenv("CANVAS_BEARER_TOKEN")
+                ?: ""
+        buildConfigField("String", "CANVAS_BEARER_TOKEN", "\"$canvasBearerToken\"")
     }
 
     flavorDimensions += "abi"
