@@ -6,6 +6,8 @@
  */
 
 
+@file:OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
+
 package moe.koiverse.archivetune.ui.screens.settings
 
 import androidx.compose.animation.AnimatedContent
