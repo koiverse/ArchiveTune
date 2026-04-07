@@ -168,6 +168,12 @@ inline fun ListItem(
         } else {
             MaterialTheme.colorScheme.onSurfaceVariant
         }
+    val trailingContentColor =
+        if (isActive) {
+            MaterialTheme.colorScheme.onSecondaryContainer
+        } else {
+            MaterialTheme.colorScheme.onSurfaceVariant
+        }
 
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -205,7 +211,9 @@ inline fun ListItem(
                 }
             }
         }
-        trailingContent()
+        CompositionLocalProvider(LocalContentColor provides trailingContentColor) {
+            trailingContent()
+        }
     }
 }
 
