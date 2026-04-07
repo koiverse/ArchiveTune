@@ -1032,66 +1032,27 @@ fun LibraryPlaylistFeatureCard(
     trailingContent: @Composable RowScope.() -> Unit = {},
 ) {
     val subtitleText = playlistCountText(playlist = playlist, autoPlaylist = autoPlaylist)
-    val thumbnailSize = 65.dp
-    val containerHeight = 70.dp
-
-    Surface(
-        shape = RoundedCornerShape(18.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerLow,
-        modifier = modifier,
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(containerHeight)
-                .padding(horizontal = 28.dp, vertical = 6.dp),
-        ) {
+    ListItem(
+        title = playlist.playlist.name,
+        subtitle = subtitleText,
+        thumbnailContent = {
             PlaylistThumbnail(
                 thumbnails = playlist.thumbnails,
-                size = thumbnailSize,
+                size = ListThumbnailSize,
                 placeHolder = {
                     Icon(
                         painter = painterResource(playlistPlaceholderIcon(playlist, autoPlaylist)),
                         contentDescription = null,
-                        tint = LocalContentColor.current.copy(alpha = 0.82f),
-                        modifier = Modifier.size(22.dp),
+                        tint = LocalContentColor.current.copy(alpha = 0.8f),
+                        modifier = Modifier.size(ListThumbnailSize / 2),
                     )
                 },
-                shape = RoundedCornerShape(12.dp),
+                shape = RoundedCornerShape(ThumbnailCornerRadius),
             )
-            Spacer(Modifier.width(12.dp))
-            Column(
-                verticalArrangement = Arrangement.Center,
-                modifier = Modifier.weight(1f),
-            ) {
-                Text(
-                    text = playlist.playlist.name,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.basicMarquee(),
-                )
-                if (subtitleText.isNotBlank()) {
-                    Text(
-                        text = subtitleText,
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-            }
-            Row(
-                modifier = Modifier.padding(start = 12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.End,
-            ) {
-                trailingContent()
-            }
-        }
-    }
+        },
+        trailingContent = trailingContent,
+        modifier = modifier,
+    )
 }
 
 @Composable
