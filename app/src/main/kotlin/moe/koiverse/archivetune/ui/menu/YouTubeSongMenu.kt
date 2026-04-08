@@ -396,14 +396,33 @@ fun YouTubeSongMenu(
                     )
                 },
                 modifier = Modifier.clickable {
-                    if (librarySong?.song?.inLibrary != null) {
-                        database.query {
-                            inLibrary(song.id, null)
+                    coroutineScope.launch(Dispatchers.IO) {
+                        val shouldAdd = librarySong?.song?.inLibrary == null
+                        val remoteResult = YouTube.likeVideo(song.id, shouldAdd)
+                        if (remoteResult.isFailure) {
+                            withContext(Dispatchers.Main) {
+                                Toast
+                                    .makeText(context, context.getString(R.string.error), Toast.LENGTH_SHORT)
+                                    .show()
+                            }
+                            return@launch
                         }
-                    } else {
-                        database.transaction {
-                            insert(song.toMediaMetadata())
-                            inLibrary(song.id, LocalDateTime.now())
+
+                        val now = LocalDateTime.now()
+                        database.withTransaction {
+                            val base =
+                                librarySong?.song
+                                    ?: song.toMediaMetadata().toSongEntity()
+                            if (librarySong == null) {
+                                insert(song.toMediaMetadata())
+                            }
+                            update(
+                                base.copy(
+                                    liked = shouldAdd,
+                                    likedDate = if (shouldAdd) now else null,
+                                    inLibrary = if (shouldAdd) now else null,
+                                )
+                            )
                         }
                     }
                 }
