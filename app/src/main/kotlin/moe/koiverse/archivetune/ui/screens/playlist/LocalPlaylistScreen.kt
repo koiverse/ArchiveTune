@@ -196,6 +196,7 @@ fun LocalPlaylistScreen(
     val database = LocalDatabase.current
     val haptic = LocalHapticFeedback.current
     val playerConnection = LocalPlayerConnection.current ?: return
+    val syncUtils = LocalSyncUtils.current
     val isPlaying by playerConnection.isPlaying.collectAsState()
     val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
 
@@ -1126,12 +1127,24 @@ fun LocalPlaylistScreen(
                             val map = currentItem.map
                             val browseId = playlist?.playlist?.browseId
                             coroutineScope.launch(Dispatchers.IO) {
+                                if (browseId != null) {
+                                    val remoteResult = removeSongFromRemotePlaylist(browseId, map)
+                                    if (remoteResult.isFailure) {
+                                        withContext(Dispatchers.Main) {
+                                            snackbarHostState.showSnackbar(
+                                                message = context.getString(R.string.error),
+                                                withDismissAction = true,
+                                            )
+                                        }
+                                        return@launch
+                                    }
+                                }
                                 database.withTransaction {
                                     move(map.playlistId, map.position, Int.MAX_VALUE)
                                     delete(map.copy(position = Int.MAX_VALUE))
                                 }
                                 if (browseId != null) {
-                                    removeSongFromRemotePlaylist(browseId, map)
+                                    syncUtils.syncPlaylistNow(browseId, map.playlistId)
                                 }
                             }
                         }
