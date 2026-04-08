@@ -435,7 +435,10 @@ fun Thumbnail(
                 PlaybackError(
                     error = playbackError,
                     mediaId = currentMediaItem?.mediaId,
-                    retry = playerConnection.service::retryCurrentFromFreshStream,
+                    retry = {
+                        playerConnection.player.prepare()
+                        playerConnection.player.play()
+                    },
                 )
             }
         }

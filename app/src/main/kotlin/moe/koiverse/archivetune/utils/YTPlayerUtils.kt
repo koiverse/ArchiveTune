@@ -141,6 +141,7 @@ object YTPlayerUtils {
 
     private val streamUrlCache = ConcurrentHashMap<String, CachedStreamUrl>()
     private val failedStreamClientsUntil = ConcurrentHashMap<String, Long>()
+    @Volatile private var lastSuccessfulClientName: String? = null
 
     fun clearPlaybackAuthCaches() {
         streamUrlCache.clear()
@@ -294,6 +295,10 @@ object YTPlayerUtils {
         authState: PlaybackAuthState,
     ): List<YouTubeClient> {
         val preferredYouTubeClient = resolvePreferredPlaybackClient(preferredStreamClient, authState)
+        val lastSuccessfulClient = lastSuccessfulClientName?.let { name ->
+            STREAM_FALLBACK_CLIENTS.find { it.clientName == name }
+        }
+
         val orderedFallbackClients =
             if (authState.hasPlaybackLoginContext) {
                 STREAM_FALLBACK_CLIENTS.filter { it.loginSupported } + STREAM_FALLBACK_CLIENTS.filterNot { it.loginSupported }
@@ -302,6 +307,7 @@ object YTPlayerUtils {
             }
 
         return buildList {
+            lastSuccessfulClient?.let { add(it) }
             add(preferredYouTubeClient)
             addAll(orderedFallbackClients)
             if (preferredYouTubeClient != MAIN_CLIENT) add(MAIN_CLIENT)
@@ -598,6 +604,7 @@ object YTPlayerUtils {
             val valid = validateStatus(streamUrl, client.userAgent)
             if (valid) {
                 Timber.tag(logTag).i("Stream validated successfully with client: ${client.clientName}")
+                lastSuccessfulClientName = client.clientName
                 break
             }
 

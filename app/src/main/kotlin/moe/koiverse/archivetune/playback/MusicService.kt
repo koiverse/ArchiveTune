@@ -313,15 +313,7 @@ class MusicService :
         PlayerStreamClient.ANDROID_VR
     )
     private val playbackUrlCache = ConcurrentHashMap<String, AuthScopedCacheValue>()
-    private val streamRecoveryState = ConcurrentHashMap<String, Pair<Int, Long>>()
-    @Volatile
-    private var pendingStreamRefreshValidationMediaId: String? = null
-    @Volatile
-    private var refreshValidatedPlayingMediaId: String? = null
-    @Volatile
-    private var lastObservedPlaybackAuthFingerprint: String? = null
-    @Volatile
-    private var skipNextAuthChangeStreamRefresh = false
+    private val contentLengthCache = ConcurrentHashMap<String, Long>()
     private val avoidStreamCodecs: Set<String> by lazy {
         if (deviceSupportsMimeType("audio/opus")) emptySet() else setOf("opus")
     }
@@ -423,35 +415,6 @@ class MusicService :
         }.onFailure {
             Timber.e(it, "Failed to open login recovery for %s", mediaId)
         }
-    }
-
-    private fun recoverInvalidPlaybackLoginContext(mediaId: String, targetUrl: String) {
-        val currentAuthState = YouTube.currentPlaybackAuthState()
-        if (!currentAuthState.hasPlaybackLoginContext) {
-            promptLoginRecovery(mediaId, targetUrl)
-            return
-        }
-
-        val updatedAuthState = currentAuthState.copy(dataSyncId = null)
-        if (currentAuthState.fingerprint != updatedAuthState.normalized().fingerprint) {
-            playbackUrlCache.clear()
-            YTPlayerUtils.clearPlaybackAuthCaches()
-            clearStreamRefreshGuards()
-            skipNextAuthChangeStreamRefresh = true
-        }
-        YouTube.authState = updatedAuthState
-
-        scope.launch(Dispatchers.IO) {
-            runCatching {
-                dataStore.edit { settings ->
-                    settings.clearPlaybackLoginContext()
-                }
-            }.onFailure {
-                Timber.e(it, "Failed to clear invalid playback login context for %s", mediaId)
-            }
-        }
-
-        promptLoginRecovery(mediaId, targetUrl)
     }
 
     lateinit var sleepTimer: SleepTimer
@@ -789,25 +752,6 @@ class MusicService :
                 }
             }
         }
-
-        YouTube.authStateFlow
-            .map { it.fingerprint }
-            .distinctUntilChanged()
-            .collect(scope) { fingerprint ->
-                val previousFingerprint = lastObservedPlaybackAuthFingerprint
-                lastObservedPlaybackAuthFingerprint = fingerprint
-                if (previousFingerprint != null && previousFingerprint != fingerprint) {
-                    playbackUrlCache.clear()
-                    clearStreamRefreshGuards()
-                    if (skipNextAuthChangeStreamRefresh) {
-                        skipNextAuthChangeStreamRefresh = false
-                        return@collect
-                    }
-                    if (shouldRefreshCurrentTrackForAuthChange()) {
-                        retryCurrentFromFreshStream()
-                    }
-                }
-            }
 
         combine(playerVolume, normalizeFactor, audioFocusVolumeFactor) { playerVolume, normalizeFactor, audioFocusVolumeFactor ->
             playerVolume * normalizeFactor * audioFocusVolumeFactor
@@ -1991,7 +1935,6 @@ class MusicService :
         clearAutomix()
         currentQueue = EmptyQueue
         queueTitle = null
-        clearStreamRefreshGuards()
         waitingForNetworkConnection.value = false
         currentMediaMetadata.value = null
         player.playWhenReady = false
@@ -3429,13 +3372,6 @@ class MusicService :
     override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
     super.onMediaItemTransition(mediaItem, reason)
 
-    clearStreamRefreshGuards(
-        mediaItem?.mediaId
-            ?.trim()
-            ?.takeIf { it.isNotBlank() }
-            ?: player.currentMediaItem?.mediaId
-    )
-
     // Pre-load lyrics for upcoming songs in queue
     val currentIndex = player.currentMediaItemIndex
     // Convert media items to MediaMetadata for lyrics pre-loading
@@ -3555,21 +3491,6 @@ class MusicService :
 
     override fun onPlaybackStateChanged(@Player.State playbackState: Int) {
     super.onPlaybackStateChanged(playbackState)
-
-    val activeMediaId = player.currentMediaItem?.mediaId
-    clearStreamRefreshGuards(activeMediaId)
-    if (
-        playbackState == Player.STATE_READY &&
-        player.playWhenReady &&
-        player.isPlaying &&
-        activeMediaId != null &&
-        pendingStreamRefreshValidationMediaId == activeMediaId
-    ) {
-        refreshValidatedPlayingMediaId = activeMediaId
-        pendingStreamRefreshValidationMediaId = null
-        streamRecoveryState.remove(activeMediaId)
-        Timber.tag("MusicService").i("Stream refresh validated and playback resumed for $activeMediaId")
-    }
 
     scope.launch {
         val shouldSave = withContext(Dispatchers.IO) { dataStore.get(PersistentQueueKey, true) }
@@ -3914,8 +3835,13 @@ class MusicService :
     override fun onPlayerError(error: PlaybackException) {
         super.onPlayerError(error)
 
-        val currentMediaId = player.currentMediaItem?.mediaId
-        val isFullyCachedMedia = currentMediaId?.let { isMediaFullyCached(it) } ?: false
+        val currentMediaId = player.currentMediaItem?.mediaId ?: return
+
+        val isFullyCachedMedia = runCatching {
+            val cachedInDownload = downloadCache.getContentMetadata(currentMediaId).get(ContentMetadata.KEY_CONTENT_LENGTH, -1L) > 0L
+            val cachedInPlayer = playerCache.getContentMetadata(currentMediaId).get(ContentMetadata.KEY_CONTENT_LENGTH, -1L) > 0L
+            cachedInDownload || cachedInPlayer
+        }.getOrDefault(false)
 
         val isConnectionError = (error.cause?.cause is PlaybackException) &&
                 (error.cause?.cause as PlaybackException).errorCode == PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED
@@ -3925,105 +3851,11 @@ class MusicService :
             return
         }
 
-        val httpStatusCode = error.httpStatusCodeOrNull()
-
-        if (currentMediaId != null && !isFullyCachedMedia && YTPlayerUtils.isBotDetectionException(error)) {
-            if (markAndCheckRecoveryAllowance(currentMediaId)) {
-                Timber.tag("MusicService").w(
-                    "Bot detection error for $currentMediaId — clearing caches and retrying with fresh stream"
-                )
-                YTPlayerUtils.invalidateCachedStreamUrls(currentMediaId)
-                playbackUrlCache.remove(currentMediaId)
-                pendingStreamRefreshValidationMediaId = currentMediaId
-                player.prepare()
-                player.playWhenReady = true
-                return
-            }
-
-            promptLoginRecovery(
-                mediaId = currentMediaId,
-                targetUrl = "https://music.youtube.com/watch?v=$currentMediaId",
-            )
-        }
-
-        val shouldAttemptStreamRefresh =
-            currentMediaId != null && !isFullyCachedMedia && (
-                error.errorCode == PlaybackException.ERROR_CODE_IO_BAD_HTTP_STATUS ||
-                    error.errorCode == PlaybackException.ERROR_CODE_IO_FILE_NOT_FOUND ||
-                    error.errorCode == PlaybackException.ERROR_CODE_IO_READ_POSITION_OUT_OF_RANGE ||
-                    httpStatusCode in setOf(403, 404, 410, 416, 429, 500, 502, 503)
-                )
-
-        if (currentMediaId != null && error.errorCode == PlaybackException.ERROR_CODE_IO_FILE_NOT_FOUND) {
+        if (error.errorCode == PlaybackException.ERROR_CODE_IO_FILE_NOT_FOUND) {
             scope.launch(Dispatchers.IO) {
                 runCatching { downloadCache.removeResource(currentMediaId) }
                 runCatching { playerCache.removeResource(currentMediaId) }
             }
-        }
-
-        if (shouldAttemptStreamRefresh && currentMediaId != null && shouldSkipRedundantStreamRefresh(currentMediaId)) {
-            Timber.tag("MusicService").w(
-                "Skipping redundant stream refresh for $currentMediaId after validated recovery; resuming playback without URL refresh"
-            )
-            refreshValidatedPlayingMediaId = null
-            player.prepare()
-            player.playWhenReady = true
-            return
-        }
-
-        if (shouldAttemptStreamRefresh && currentMediaId != null && markAndCheckRecoveryAllowance(currentMediaId)) {
-            val cachedPlaybackUrl = playbackUrlCache[currentMediaId]
-            val failingStreamClientKey =
-                cachedPlaybackUrl
-                    ?.url
-                    ?.toHttpUrlOrNull()
-                    ?.queryParameter("c")
-                    ?.trim()
-                    ?.takeIf { it.isNotBlank() }
-            Timber.tag("MusicService").w(
-                "Attempting stream refresh for $currentMediaId (http=$httpStatusCode, code=${error.errorCode}, client=${failingStreamClientKey ?: "unknown"})"
-            )
-            val authFingerprint = cachedPlaybackUrl?.authFingerprint ?: YouTube.currentPlaybackAuthState().fingerprint
-            YTPlayerUtils.markStreamClientFailed(currentMediaId, failingStreamClientKey, httpStatusCode, authFingerprint)
-            YTPlayerUtils.markPreferredClientFailed(currentMediaId, preferredStreamClient, httpStatusCode, authFingerprint)
-            YTPlayerUtils.invalidateCachedStreamUrls(currentMediaId)
-            playbackUrlCache.remove(currentMediaId)
-            pendingStreamRefreshValidationMediaId = currentMediaId
-            player.prepare()
-            player.playWhenReady = true
-            return
-        }
-
-        val skipSilenceCurrentlyEnabled = dataStore.get(SkipSilenceKey, false)
-        val causeText = (error.cause?.stackTraceToString() ?: error.stackTraceToString()).lowercase()
-        val looksLikeSilenceProcessor = skipSilenceCurrentlyEnabled && (
-            "silenceskippingaudioprocessor" in causeText || "silence" in causeText
-        )
-
-        if (looksLikeSilenceProcessor) {
-            scope.launch {
-                try {
-                    dataStore.edit { settings ->
-                        settings[SkipSilenceKey] = false
-                    }
-                    player.skipSilenceEnabled = false
-                    val currentPos = player.currentPosition
-                    val targetPos = min(currentPos + 1500L, if (player.duration > 0) player.duration - 1000L else currentPos + 1500L)
-                    player.seekTo(targetPos)
-                    player.prepare()
-                    player.play()
-                    return@launch
-                } catch (t: Throwable) {
-                    Timber.tag("MusicService").e(t, "failed to recover from silence-skipper error")
-                }
-                if (dataStore.get(AutoSkipNextOnErrorKey, false)) {
-                    skipOnError()
-                } else {
-                    stopOnError()
-                }
-            }
-
-            return
         }
 
         if (dataStore.get(AutoSkipNextOnErrorKey, false)) {
@@ -4099,7 +3931,7 @@ class MusicService :
                     dataSpec.length
                 } else {
                     val contentLength =
-                        runBlocking(Dispatchers.IO) {
+                        contentLengthCache[mediaId] ?: runBlocking(Dispatchers.IO) {
                             database.format(mediaId).first()?.contentLength
                         } ?: runCatching {
                             downloadCache
@@ -4112,6 +3944,7 @@ class MusicService :
                         }.getOrNull()?.takeIf { it > 0L }
 
                     contentLength?.let { nonNullContentLength ->
+                        contentLengthCache[mediaId] = nonNullContentLength
                         (nonNullContentLength - dataSpec.position).takeIf { it > 0L }
                     }
                 }
@@ -4144,7 +3977,7 @@ class MusicService :
             }.getOrElse { throwable ->
                 when (throwable) {
                     is YTPlayerUtils.InvalidPlaybackLoginContextException -> {
-                        recoverInvalidPlaybackLoginContext(mediaId, throwable.targetUrl)
+                        promptLoginRecovery(mediaId, throwable.targetUrl)
                         throw PlaybackException(
                             getString(R.string.playback_requires_youtube_music_login_refresh),
                             throwable,
@@ -4229,93 +4062,6 @@ class MusicService :
                 val length = if (dataSpec.length >= 0) minOf(dataSpec.length, CHUNK_LENGTH) else CHUNK_LENGTH
                 return@Factory dataSpec.withUri(streamUrl.toUri()).subrange(dataSpec.uriPositionOffset, length)
             }
-        }
-    }
-
-    fun retryCurrentFromFreshStream() {
-        val mediaId = player.currentMediaItem?.mediaId ?: return
-        clearStreamRefreshGuards(mediaId)
-        YTPlayerUtils.invalidateCachedStreamUrls(mediaId)
-        playbackUrlCache.remove(mediaId)
-        pendingStreamRefreshValidationMediaId = mediaId
-        player.prepare()
-        player.playWhenReady = true
-    }
-
-    private fun shouldRefreshCurrentTrackForAuthChange(): Boolean {
-        val currentMediaItem = player.currentMediaItem ?: return false
-        if (currentMediaItem.mediaId.isBlank()) return false
-        val scheme = currentMediaItem.localConfiguration?.uri?.scheme?.lowercase()
-        if (scheme == "file" || scheme == "content") return false
-        return player.playbackState != Player.STATE_IDLE
-    }
-
-    private fun PlaybackException.httpStatusCodeOrNull(): Int? {
-        var t: Throwable? = cause
-        while (t != null) {
-            if (t is HttpDataSource.InvalidResponseCodeException) return t.responseCode
-            t = t.cause
-        }
-        return null
-    }
-
-    private fun isMediaFullyCached(mediaId: String): Boolean {
-        val contentLength =
-            runCatching {
-                runBlocking(Dispatchers.IO) {
-                    database.format(mediaId).first()?.contentLength
-                }
-            }.getOrNull()
-                ?: runCatching {
-                    downloadCache
-                        .getContentMetadata(mediaId)
-                        .get(ContentMetadata.KEY_CONTENT_LENGTH, -1L)
-                }.getOrNull()?.takeIf { it > 0L }
-                ?: runCatching {
-                    playerCache
-                        .getContentMetadata(mediaId)
-                        .get(ContentMetadata.KEY_CONTENT_LENGTH, -1L)
-                }.getOrNull()?.takeIf { it > 0L }
-                ?: return false
-
-        if (contentLength <= 0L) return false
-
-        val cachedInDownload =
-            runCatching { downloadCache.isCached(mediaId, 0, contentLength) }.getOrDefault(false)
-        if (cachedInDownload) return true
-
-        val cachedInPlayer =
-            runCatching { playerCache.isCached(mediaId, 0, contentLength) }.getOrDefault(false)
-        return cachedInPlayer
-    }
-
-    private fun markAndCheckRecoveryAllowance(mediaId: String): Boolean {
-        val now = System.currentTimeMillis()
-        val (count, lastAt) = streamRecoveryState[mediaId] ?: (0 to 0L)
-        val nextCount = if (now - lastAt > 45_000L) 1 else count + 1
-        if (nextCount > 2) return false
-        streamRecoveryState[mediaId] = nextCount to now
-        return true
-    }
-
-    private fun shouldSkipRedundantStreamRefresh(mediaId: String): Boolean {
-        if (refreshValidatedPlayingMediaId != mediaId) return false
-        val authFingerprint = YouTube.currentPlaybackAuthState().fingerprint
-        val cached = playbackUrlCache[mediaId] ?: return false
-        if (!cached.isValidFor(authFingerprint)) {
-            refreshValidatedPlayingMediaId = null
-            return false
-        }
-        return true
-    }
-
-    private fun clearStreamRefreshGuards(activeMediaId: String? = null) {
-        val normalizedActiveMediaId = activeMediaId?.trim()?.takeIf { it.isNotBlank() }
-        if (normalizedActiveMediaId == null || refreshValidatedPlayingMediaId != normalizedActiveMediaId) {
-            refreshValidatedPlayingMediaId = null
-        }
-        if (normalizedActiveMediaId == null || pendingStreamRefreshValidationMediaId != normalizedActiveMediaId) {
-            pendingStreamRefreshValidationMediaId = null
         }
     }
 
