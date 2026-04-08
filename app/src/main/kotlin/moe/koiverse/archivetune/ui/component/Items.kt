@@ -1034,27 +1034,34 @@ fun LibraryPlaylistFeatureCard(
     trailingContent: @Composable RowScope.() -> Unit = {},
 ) {
     val subtitleText = playlistCountText(playlist = playlist, autoPlaylist = autoPlaylist)
-    ListItem(
-        title = playlist.playlist.name,
-        subtitle = subtitleText,
-        thumbnailContent = {
-            PlaylistThumbnail(
-                thumbnails = playlist.thumbnails,
-                size = ListThumbnailSize,
-                placeHolder = {
-                    Icon(
-                        painter = painterResource(playlistPlaceholderIcon(playlist, autoPlaylist)),
-                        contentDescription = null,
-                        tint = LocalContentColor.current.copy(alpha = 0.8f),
-                        modifier = Modifier.size(ListThumbnailSize / 2),
-                    )
-                },
-                shape = RoundedCornerShape(ThumbnailCornerRadius),
-            )
-        },
-        trailingContent = trailingContent,
-        modifier = modifier,
-    )
+    val shape = RoundedCornerShape(26.dp)
+    Card(
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+        shape = shape,
+        modifier = modifier.clip(shape),
+    ) {
+        ListItem(
+            title = playlist.playlist.name,
+            subtitle = subtitleText,
+            thumbnailContent = {
+                PlaylistThumbnail(
+                    thumbnails = playlist.thumbnails,
+                    size = ListThumbnailSize,
+                    placeHolder = {
+                        Icon(
+                            painter = painterResource(playlistPlaceholderIcon(playlist, autoPlaylist)),
+                            contentDescription = null,
+                            tint = LocalContentColor.current.copy(alpha = 0.8f),
+                            modifier = Modifier.size(ListThumbnailSize / 2),
+                        )
+                    },
+                    shape = RoundedCornerShape(ThumbnailCornerRadius),
+                )
+            },
+            trailingContent = trailingContent,
+            modifier = Modifier.fillMaxWidth(),
+        )
+    }
 }
 
 @Composable
