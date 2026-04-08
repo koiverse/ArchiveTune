@@ -47,6 +47,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.guava.future
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.plus
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
@@ -61,6 +62,7 @@ constructor(
     val downloadUtil: DownloadUtil,
 ) : MediaLibrarySession.Callback {
     private val scope = CoroutineScope(Dispatchers.Main) + Job()
+    private var pendingSearchJob: Job? = null
     var toggleLike: () -> Unit = {}
     var toggleStartRadio: () -> Unit = {}
     var toggleLibrary: () -> Unit = {}
@@ -199,7 +201,27 @@ constructor(
         query: String,
         params: MediaLibraryService.LibraryParams?,
     ): ListenableFuture<LibraryResult<Void>> =
-        Futures.immediateFuture(LibraryResult.ofVoid(params))
+        Futures.immediateFuture(LibraryResult.ofVoid(params)).also {
+            val q = query.trim()
+            pendingSearchJob?.cancel()
+            pendingSearchJob =
+                scope.launch(Dispatchers.IO) {
+                    val count =
+                        runCatching {
+                            if (q.isBlank()) {
+                                0
+                            } else {
+                                database.searchSongsCount(q) +
+                                    database.searchArtistsCount(q) +
+                                    database.searchAlbumsCount(q) +
+                                    database.searchPlaylistsCount(q)
+                            }
+                        }.getOrElse { 0 }
+                    withContext(Dispatchers.Main) {
+                        session.notifySearchResultChanged(browser, query, count, params)
+                    }
+                }
+        }
 
     override fun onGetSearchResult(
         session: MediaLibrarySession,
@@ -211,11 +233,13 @@ constructor(
     ): ListenableFuture<LibraryResult<ImmutableList<MediaItem>>> =
         scope.future(Dispatchers.IO) {
             val q = query.trim()
-            if (q.isBlank() || pageSize <= 0 || page < 0) {
+            val safePage = page.coerceAtLeast(0)
+            val safePageSize = pageSize.coerceIn(1, 50)
+            if (q.isBlank()) {
                 return@future LibraryResult.ofItemList(emptyList(), params)
             }
 
-            val requested = (page + 1) * pageSize
+            val requested = (safePage + 1) * safePageSize
             val items = ArrayList<MediaItem>(min(requested, 200))
 
             val songs = database.searchSongs(q, previewSize = requested).first()
@@ -277,9 +301,9 @@ constructor(
                     }
             }
 
-            val from = page * pageSize
+            val from = safePage * safePageSize
             if (from >= items.size) return@future LibraryResult.ofItemList(emptyList(), params)
-            val to = min(from + pageSize, items.size)
+            val to = min(from + safePageSize, items.size)
 
             LibraryResult.ofItemList(items.subList(from, to), params)
         }
