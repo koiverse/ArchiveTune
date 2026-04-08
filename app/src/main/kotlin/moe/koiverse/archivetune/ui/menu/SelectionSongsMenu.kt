@@ -367,22 +367,46 @@ fun SelectionSongMenu(
                     )
                 },
                 modifier = Modifier.clickable {
-                    onDismiss()
-                    if (allInLibrary) {
-                        database.query {
-                            songSelection.forEach { song ->
-                                update(song.song.toggleLibrary())
+                    coroutineScope.launch(Dispatchers.IO) {
+                        val shouldAdd = !allInLibrary
+                        val now = LocalDateTime.now()
+                        val failed = LinkedHashSet<String>()
+                        val updatedSongs =
+                            songSelection
+                                .asSequence()
+                                .map { it.song }
+                                .distinctBy { it.id }
+                                .mapNotNull { song ->
+                                    val remoteResult = YouTube.likeVideo(song.id, shouldAdd)
+                                    if (remoteResult.isFailure) {
+                                        failed += song.id
+                                        null
+                                    } else {
+                                        song.copy(
+                                            liked = shouldAdd,
+                                            likedDate = if (shouldAdd) now else null,
+                                            inLibrary = if (shouldAdd) now else null,
+                                        )
+                                    }
+                                }
+                                .toList()
+
+                        if (updatedSongs.isNotEmpty()) {
+                            database.withTransaction {
+                                updatedSongs.forEach(::update)
                             }
                         }
-                    } else {
-                        database.transaction {
-                            songSelection.forEach { song ->
-                                insert(song.toMediaMetadata())
-                                inLibrary(song.id, LocalDateTime.now())
+
+                        withContext(Dispatchers.Main) {
+                            onDismiss()
+                            clearAction()
+                            if (failed.isNotEmpty()) {
+                                Toast
+                                    .makeText(context, context.getString(R.string.error), Toast.LENGTH_SHORT)
+                                    .show()
                             }
                         }
                     }
-                    clearAction()
                 }
             )
         }
@@ -500,17 +524,69 @@ fun SelectionSongMenu(
                     },
                     modifier = Modifier.clickable {
                         coroutineScope.launch(Dispatchers.IO) {
-                            database.withTransaction {
-                                var i = 0
-                                songPosition?.forEach { cur ->
-                                    move(cur.playlistId, cur.position - i, Int.MAX_VALUE)
-                                    delete(cur.copy(position = Int.MAX_VALUE))
-                                    i++
+                            val positions = songPosition.orEmpty()
+                            if (positions.isEmpty()) {
+                                withContext(Dispatchers.Main) {
+                                    onDismiss()
+                                    clearAction()
+                                }
+                                return@launch
+                            }
+
+                            val browseIdByPlaylistId =
+                                positions
+                                    .asSequence()
+                                    .map { it.playlistId }
+                                    .distinct()
+                                    .associateWith { playlistId ->
+                                        database.getPlaylistById(playlistId)?.playlist?.browseId
+                                    }
+
+                            val failed = LinkedHashSet<PlaylistSongMap>()
+                            val succeeded = ArrayList<PlaylistSongMap>(positions.size)
+
+                            positions.forEach { cur ->
+                                val browseId = browseIdByPlaylistId[cur.playlistId]
+                                if (browseId != null) {
+                                    val remoteResult = removeSongFromRemotePlaylist(browseId, cur)
+                                    if (remoteResult.isFailure) {
+                                        failed += cur
+                                    } else {
+                                        succeeded += cur
+                                    }
+                                } else {
+                                    succeeded += cur
                                 }
                             }
+
+                            if (succeeded.isNotEmpty()) {
+                                database.withTransaction {
+                                    val offsetByPlaylistId = HashMap<String, Int>()
+                                    succeeded
+                                        .sortedWith(compareBy<PlaylistSongMap> { it.playlistId }.thenBy { it.position })
+                                        .forEach { cur ->
+                                            val offset = offsetByPlaylistId.getOrPut(cur.playlistId) { 0 }
+                                            move(cur.playlistId, cur.position - offset, Int.MAX_VALUE)
+                                            delete(cur.copy(position = Int.MAX_VALUE))
+                                            offsetByPlaylistId[cur.playlistId] = offset + 1
+                                        }
+                                }
+                            }
+
+                            browseIdByPlaylistId.forEach { (playlistId, browseId) ->
+                                if (browseId == null) return@forEach
+                                if (succeeded.none { it.playlistId == playlistId }) return@forEach
+                                syncUtils.syncPlaylistNow(browseId, playlistId)
+                            }
+
                             withContext(Dispatchers.Main) {
                                 onDismiss()
                                 clearAction()
+                                if (failed.isNotEmpty()) {
+                                    Toast
+                                        .makeText(context, context.getString(R.string.error), Toast.LENGTH_SHORT)
+                                        .show()
+                                }
                             }
                         }
                     }
