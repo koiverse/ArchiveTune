@@ -96,6 +96,7 @@ import moe.koiverse.archivetune.utils.makeTimeString
 import moe.koiverse.archivetune.utils.rememberPreference
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.time.LocalDateTime
 
 @SuppressLint("MutableCollectionMutableState")
@@ -402,7 +403,7 @@ fun YouTubeSongMenu(
                         if (remoteResult.isFailure) {
                             withContext(Dispatchers.Main) {
                                 Toast
-                                    .makeText(context, context.getString(R.string.error), Toast.LENGTH_SHORT)
+                                    .makeText(context, context.getString(R.string.error_unknown), Toast.LENGTH_SHORT)
                                     .show()
                             }
                             return@launch

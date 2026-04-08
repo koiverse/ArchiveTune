@@ -371,25 +371,19 @@ fun SelectionSongMenu(
                         val shouldAdd = !allInLibrary
                         val now = LocalDateTime.now()
                         val failed = LinkedHashSet<String>()
-                        val updatedSongs =
-                            songSelection
-                                .asSequence()
-                                .map { it.song }
-                                .distinctBy { it.id }
-                                .mapNotNull { song ->
-                                    val remoteResult = YouTube.likeVideo(song.id, shouldAdd)
-                                    if (remoteResult.isFailure) {
-                                        failed += song.id
-                                        null
-                                    } else {
-                                        song.copy(
-                                            liked = shouldAdd,
-                                            likedDate = if (shouldAdd) now else null,
-                                            inLibrary = if (shouldAdd) now else null,
-                                        )
-                                    }
-                                }
-                                .toList()
+                        val updatedSongs = ArrayList<moe.koiverse.archivetune.db.entities.SongEntity>()
+                        for (song in songSelection.asSequence().map { it.song }.distinctBy { it.id }) {
+                            val remoteResult = YouTube.likeVideo(song.id, shouldAdd)
+                            if (remoteResult.isFailure) {
+                                failed += song.id
+                                continue
+                            }
+                            updatedSongs += song.copy(
+                                liked = shouldAdd,
+                                likedDate = if (shouldAdd) now else null,
+                                inLibrary = if (shouldAdd) now else null,
+                            )
+                        }
 
                         if (updatedSongs.isNotEmpty()) {
                             database.withTransaction {
@@ -402,7 +396,7 @@ fun SelectionSongMenu(
                             clearAction()
                             if (failed.isNotEmpty()) {
                                 Toast
-                                    .makeText(context, context.getString(R.string.error), Toast.LENGTH_SHORT)
+                                    .makeText(context, context.getString(R.string.error_unknown), Toast.LENGTH_SHORT)
                                     .show()
                             }
                         }
@@ -533,19 +527,15 @@ fun SelectionSongMenu(
                                 return@launch
                             }
 
-                            val browseIdByPlaylistId =
-                                positions
-                                    .asSequence()
-                                    .map { it.playlistId }
-                                    .distinct()
-                                    .associateWith { playlistId ->
-                                        database.getPlaylistById(playlistId)?.playlist?.browseId
-                                    }
+                            val browseIdByPlaylistId = HashMap<String, String?>()
+                            for (playlistId in positions.asSequence().map { it.playlistId }.distinct()) {
+                                browseIdByPlaylistId[playlistId] = database.getPlaylistById(playlistId)?.playlist?.browseId
+                            }
 
                             val failed = LinkedHashSet<PlaylistSongMap>()
                             val succeeded = ArrayList<PlaylistSongMap>(positions.size)
 
-                            positions.forEach { cur ->
+                            for (cur in positions) {
                                 val browseId = browseIdByPlaylistId[cur.playlistId]
                                 if (browseId != null) {
                                     val remoteResult = removeSongFromRemotePlaylist(browseId, cur)
@@ -573,9 +563,9 @@ fun SelectionSongMenu(
                                 }
                             }
 
-                            browseIdByPlaylistId.forEach { (playlistId, browseId) ->
-                                if (browseId == null) return@forEach
-                                if (succeeded.none { it.playlistId == playlistId }) return@forEach
+                            for ((playlistId, browseId) in browseIdByPlaylistId) {
+                                if (browseId == null) continue
+                                if (succeeded.none { it.playlistId == playlistId }) continue
                                 syncUtils.syncPlaylistNow(browseId, playlistId)
                             }
 
@@ -584,7 +574,7 @@ fun SelectionSongMenu(
                                 clearAction()
                                 if (failed.isNotEmpty()) {
                                     Toast
-                                        .makeText(context, context.getString(R.string.error), Toast.LENGTH_SHORT)
+                                        .makeText(context, context.getString(R.string.error_unknown), Toast.LENGTH_SHORT)
                                         .show()
                                 }
                             }

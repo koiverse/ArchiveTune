@@ -1132,7 +1132,7 @@ fun LocalPlaylistScreen(
                                     if (remoteResult.isFailure) {
                                         withContext(Dispatchers.Main) {
                                             snackbarHostState.showSnackbar(
-                                                message = context.getString(R.string.error),
+                                                message = context.getString(R.string.error_unknown),
                                                 withDismissAction = true,
                                             )
                                         }

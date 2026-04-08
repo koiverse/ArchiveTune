@@ -658,7 +658,7 @@ fun SongMenu(
                                                     Toast
                                                         .makeText(
                                                             context,
-                                                            context.getString(R.string.error),
+                                                            context.getString(R.string.error_unknown),
                                                             Toast.LENGTH_SHORT,
                                                         )
                                                         .show()
