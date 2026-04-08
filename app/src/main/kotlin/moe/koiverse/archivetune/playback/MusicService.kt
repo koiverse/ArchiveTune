@@ -3907,18 +3907,21 @@ class MusicService :
 
     override fun onPlayerError(error: PlaybackException) {
         super.onPlayerError(error)
+
+        val currentMediaId = player.currentMediaItem?.mediaId
+        val isFullyCachedMedia = currentMediaId?.let { isMediaFullyCached(it) } ?: false
+
         val isConnectionError = (error.cause?.cause is PlaybackException) &&
                 (error.cause?.cause as PlaybackException).errorCode == PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED
 
-        if (!isNetworkConnected.value || isConnectionError) {
+        if (!isFullyCachedMedia && (!isNetworkConnected.value || isConnectionError)) {
             waitOnNetworkError()
             return
         }
 
-        val currentMediaId = player.currentMediaItem?.mediaId
         val httpStatusCode = error.httpStatusCodeOrNull()
 
-        if (currentMediaId != null && YTPlayerUtils.isBotDetectionException(error)) {
+        if (currentMediaId != null && !isFullyCachedMedia && YTPlayerUtils.isBotDetectionException(error)) {
             if (markAndCheckRecoveryAllowance(currentMediaId)) {
                 Timber.tag("MusicService").w(
                     "Bot detection error for $currentMediaId — clearing caches and retrying with fresh stream"
@@ -3938,7 +3941,7 @@ class MusicService :
         }
 
         val shouldAttemptStreamRefresh =
-            currentMediaId != null && (
+            currentMediaId != null && !isFullyCachedMedia && (
                 error.errorCode == PlaybackException.ERROR_CODE_IO_BAD_HTTP_STATUS ||
                     error.errorCode == PlaybackException.ERROR_CODE_IO_FILE_NOT_FOUND ||
                     error.errorCode == PlaybackException.ERROR_CODE_IO_READ_POSITION_OUT_OF_RANGE ||
@@ -4248,6 +4251,36 @@ class MusicService :
             t = t.cause
         }
         return null
+    }
+
+    private fun isMediaFullyCached(mediaId: String): Boolean {
+        val contentLength =
+            runCatching {
+                runBlocking(Dispatchers.IO) {
+                    database.format(mediaId).first()?.contentLength
+                }
+            }.getOrNull()
+                ?: runCatching {
+                    downloadCache
+                        .getContentMetadata(mediaId)
+                        .get(ContentMetadata.KEY_CONTENT_LENGTH, -1L)
+                }.getOrNull()?.takeIf { it > 0L }
+                ?: runCatching {
+                    playerCache
+                        .getContentMetadata(mediaId)
+                        .get(ContentMetadata.KEY_CONTENT_LENGTH, -1L)
+                }.getOrNull()?.takeIf { it > 0L }
+                ?: return false
+
+        if (contentLength <= 0L) return false
+
+        val cachedInDownload =
+            runCatching { downloadCache.isCached(mediaId, 0, contentLength) }.getOrDefault(false)
+        if (cachedInDownload) return true
+
+        val cachedInPlayer =
+            runCatching { playerCache.isCached(mediaId, 0, contentLength) }.getOrDefault(false)
+        return cachedInPlayer
     }
 
     private fun markAndCheckRecoveryAllowance(mediaId: String): Boolean {
