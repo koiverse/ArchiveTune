@@ -49,6 +49,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.ToggleButton
 import androidx.compose.material3.ToggleButtonDefaults
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -99,6 +100,7 @@ fun CurrentSongHeader(
     songCount: Int,
     queueDuration: Int,
     infiniteQueueEnabled: Boolean,
+    infiniteQueueLoading: Boolean,
     backgroundColor: Color,
     onBackgroundColor: Color,
     onToggleLike: () -> Unit,
@@ -303,12 +305,25 @@ fun CurrentSongHeader(
                 modifier = Modifier.weight(1f).size(48.dp),
                 shapes = ButtonGroupDefaults.connectedTrailingButtonShapes(),
                 colors = infiniteCheckedColors,
+                enabled = !infiniteQueueLoading,
             ) {
-                Icon(
-                    painter = painterResource(R.drawable.all_inclusive),
-                    contentDescription = stringResource(R.string.similar_content),
-                    modifier = Modifier.size(22.dp)
-                )
+                AnimatedContent(
+                    targetState = infiniteQueueLoading,
+                    label = "InfiniteQueueLoading",
+                ) { loading ->
+                    if (loading) {
+                        CircularWavyProgressIndicator(
+                            modifier = Modifier.size(22.dp),
+                            color = LocalContentColor.current,
+                        )
+                    } else {
+                        Icon(
+                            painter = painterResource(R.drawable.all_inclusive),
+                            contentDescription = stringResource(R.string.similar_content),
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+                }
             }
         }
 

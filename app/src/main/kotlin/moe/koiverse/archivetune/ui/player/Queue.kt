@@ -193,6 +193,7 @@ fun Queue(
 
     var locked by rememberPreference(QueueEditLockKey, defaultValue = true)
     var infiniteQueueEnabled by rememberPreference(AutoLoadMoreKey, defaultValue = true)
+    val infiniteQueueLoading by playerConnection.service.infiniteQueueLoading.collectAsState()
     val togetherSessionState by playerConnection.service.togetherSessionState.collectAsState()
     val togetherForcesLock =
         togetherSessionState is moe.koiverse.archivetune.together.TogetherSessionState.Joined &&
@@ -598,6 +599,7 @@ fun Queue(
                     songCount = queueWindows.size,
                     queueDuration = queueLength,
                     infiniteQueueEnabled = infiniteQueueEnabled,
+                    infiniteQueueLoading = infiniteQueueLoading,
                     backgroundColor = backgroundColor,
                     onBackgroundColor = onBackgroundColor,
                     onToggleLike = {

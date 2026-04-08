@@ -221,9 +221,10 @@
     </tr>
   </tbody>
 </table>
-
 </div>
 
+> [!WARNING]  
+> **Notes:** The trusted download source is listed above; we are not responsible for any risks you may encounter from downloading from other sources.
 
 ## ❓ Need Help or Have Questions?
 Join Our Telegram Channels for Support and Discussion.

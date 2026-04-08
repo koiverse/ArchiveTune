@@ -369,6 +369,7 @@ class MusicService :
 
     val currentMediaMetadata = MutableStateFlow<moe.koiverse.archivetune.models.MediaMetadata?>(null)
     val queueRestoreCompleted = MutableStateFlow(false)
+    val infiniteQueueLoading = MutableStateFlow(false)
     private val currentSong =
         currentMediaMetadata
             .flatMapLatest { mediaMetadata ->
@@ -1936,6 +1937,7 @@ class MusicService :
     }
 
     fun onInfiniteQueueDisabled() {
+        infiniteQueueLoading.value = false
         val currentIndex = player.currentMediaItemIndex
         val idsToRemove = synchronized(autoAddedMediaIds) { autoAddedMediaIds.toSet() }
         if (idsToRemove.isEmpty()) {
@@ -1954,28 +1956,32 @@ class MusicService :
 
     fun onInfiniteQueueEnabled() {
         val currentMeta = player.currentMetadata ?: return
+        if (infiniteQueueLoading.value) return
+        infiniteQueueLoading.value = true
 
         scope.launch(SilentHandler) {
             try {
                 val radioQueue = YouTubeQueue(WatchEndpoint(videoId = currentMeta.id), followAutomixPreview = true)
                 val status = withContext(Dispatchers.IO) { radioQueue.getInitialStatus() }
-                
+
                 val existingIds = (0 until player.mediaItemCount).map { player.getMediaItemAt(it).mediaId }.toSet()
                 val newItems = status.items.filter { it.mediaId !in existingIds }
-                
+
                 if (newItems.isNotEmpty()) {
                     player.addMediaItems(newItems)
                     newItems.forEach { autoAddedMediaIds.add(it.mediaId) }
                 }
-                
+
                 currentQueue = radioQueue
-                
+
                 if (player.playbackState == Player.STATE_ENDED || player.mediaItemCount == player.currentMediaItemIndex + 1) {
                     player.seekToNext()
                     player.play()
                 }
             } catch (e: Exception) {
                 Timber.e(e, "Failed to bootstrap auto-queue")
+            } finally {
+                infiniteQueueLoading.value = false
             }
         }
     }
