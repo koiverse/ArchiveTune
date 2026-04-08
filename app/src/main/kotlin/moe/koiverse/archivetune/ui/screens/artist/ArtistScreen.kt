@@ -1074,6 +1074,7 @@ fun ArtistScreen(
             visible = librarySongs.isNotEmpty() && libraryArtist?.artist?.isLocal != true,
             lazyListState = lazyListState,
             icon = if (showLocal) R.drawable.language else R.drawable.library_music,
+            label = if (showLocal) stringResource(R.string.together_online) else stringResource(R.string.filter_library),
             onClick = {
                 showLocal = showLocal.not()
                 if (!showLocal && artistPage == null) viewModel.fetchArtistsFromYTM()

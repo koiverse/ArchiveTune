@@ -378,6 +378,7 @@ fun HistoryScreen(
             },
             lazyListState = lazyListState,
             icon = R.drawable.shuffle,
+            label = stringResource(R.string.shuffle),
             onClick = {
                 if (historySource == HistorySource.REMOTE && historyPage != null) {
                     val songs = filteredRemoteContent?.flatMap { it.songs } ?: emptyList()

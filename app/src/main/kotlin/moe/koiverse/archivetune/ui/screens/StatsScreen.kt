@@ -576,6 +576,7 @@ fun StatsScreen(
                 visible = true,
                 lazyListState = lazyListState,
                 icon = R.drawable.shuffle,
+                label = stringResource(R.string.shuffle),
                 onClick = {
                     playerConnection.playQueue(
                         ListQueue(

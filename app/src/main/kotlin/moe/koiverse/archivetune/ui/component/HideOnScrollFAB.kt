@@ -26,6 +26,7 @@ import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MediumExtendedFloatingActionButton
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -40,6 +41,7 @@ fun BoxScope.HideOnScrollFAB(
     visible: Boolean = true,
     lazyListState: LazyListState,
     @DrawableRes icon: Int,
+    label: String,
     onClick: () -> Unit,
 ) {
     AnimatedVisibility(
@@ -63,7 +65,7 @@ fun BoxScope.HideOnScrollFAB(
                     contentDescription = null,
                 )
             },
-            text = {},
+            text = { Text(label) },
             containerColor = MaterialTheme.colorScheme.primaryContainer,
             contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
         )
@@ -76,6 +78,7 @@ fun BoxScope.HideOnScrollFAB(
     visible: Boolean = true,
     lazyListState: LazyGridState,
     @DrawableRes icon: Int,
+    label: String,
     onClick: () -> Unit,
 ) {
     AnimatedVisibility(
@@ -99,7 +102,7 @@ fun BoxScope.HideOnScrollFAB(
                     contentDescription = null,
                 )
             },
-            text = {},
+            text = { Text(label) },
             containerColor = MaterialTheme.colorScheme.primaryContainer,
             contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
         )
@@ -112,6 +115,7 @@ fun BoxScope.HideOnScrollFAB(
     visible: Boolean = true,
     scrollState: ScrollState,
     @DrawableRes icon: Int,
+    label: String,
     onClick: () -> Unit,
 ) {
     AnimatedVisibility(
@@ -135,7 +139,7 @@ fun BoxScope.HideOnScrollFAB(
                     contentDescription = null,
                 )
             },
-            text = {},
+            text = { Text(label) },
             containerColor = MaterialTheme.colorScheme.primaryContainer,
             contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
         )

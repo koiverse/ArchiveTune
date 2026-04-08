@@ -209,6 +209,7 @@ fun ArtistSongsScreen(
         HideOnScrollFAB(
             lazyListState = lazyListState,
             icon = R.drawable.shuffle,
+            label = context.getString(R.string.shuffle),
             onClick = {
                 playerConnection.playQueue(
                     ListQueue(
