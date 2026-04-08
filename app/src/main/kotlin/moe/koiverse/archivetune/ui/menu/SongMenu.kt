@@ -650,6 +650,23 @@ fun SongMenu(
                                 Modifier.clickable {
                                     val map = playlistSong.map
                                     coroutineScope.launch(Dispatchers.IO) {
+                                        val browseId = playlistBrowseId
+                                        if (browseId != null) {
+                                            val remoteResult = removeSongFromRemotePlaylist(browseId, map)
+                                            if (remoteResult.isFailure) {
+                                                withContext(Dispatchers.Main) {
+                                                    Toast
+                                                        .makeText(
+                                                            context,
+                                                            context.getString(R.string.error),
+                                                            Toast.LENGTH_SHORT,
+                                                        )
+                                                        .show()
+                                                    onDismiss()
+                                                }
+                                                return@launch
+                                            }
+                                        }
                                         database.withTransaction {
                                             val maxPosition = maxPlaylistSongPosition(map.playlistId) ?: map.position
                                             if (map.position < maxPosition) {
@@ -657,9 +674,8 @@ fun SongMenu(
                                             }
                                             delete(map)
                                         }
-                                        val browseId = playlistBrowseId
                                         if (browseId != null) {
-                                            removeSongFromRemotePlaylist(browseId, map)
+                                            syncUtils.syncPlaylistNow(browseId, map.playlistId)
                                         }
                                         withContext(Dispatchers.Main) {
                                             onDismiss()
