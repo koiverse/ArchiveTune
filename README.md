@@ -195,7 +195,7 @@
         </a>
       </td>
       <td align="center">
-        <a href="https://unclouded.app/archivetune/">
+        <a href="https://unclouded.app/apps/archivetune/">
           <img src="https://raw.githubusercontent.com/koiverse/ArchiveTune/refs/heads/dev/assets/badge_unclouded.png" height="50" alt="Get ArchiveTune on Unclouded">
         </a>
       </td>
