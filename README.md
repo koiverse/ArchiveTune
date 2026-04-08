@@ -186,7 +186,7 @@
     </tr>
     <tr>
       <th align="center">OpenAPK</th>
-      <th align="center">Doyo.cn</th>
+      <th align="center">Unclouded</th>
     </tr>
     <tr>
       <td align="center">
@@ -195,8 +195,8 @@
         </a>
       </td>
       <td align="center">
-        <a href="https://m.doyo.cn/app/539242.html">
-          <img src="https://raw.githubusercontent.com/koiverse/ArchiveTune/refs/heads/dev/assets/badge_doyo.png" height="50" alt="Get ArchiveTune on Doyo.cn">
+        <a href="https://unclouded.app/archivetune/">
+          <img src="https://raw.githubusercontent.com/koiverse/ArchiveTune/refs/heads/dev/assets/badge_unclouded.png" height="50" alt="Get ArchiveTune on Unclouded">
         </a>
       </td>
     </tr>
