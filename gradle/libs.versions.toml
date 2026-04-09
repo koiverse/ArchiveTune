@@ -36,7 +36,7 @@ turbine = "1.2.1"
 timber = "5.0.1"
 kuromojiIpadic = "0.9.0"
 anyascii = "0.3.3"
-extractor = "2d2d9ed"
+extractor = "c46af33"
 rhino = "1.9.1"
 multiplatformMarkdown = "0.40.2"
 
@@ -118,7 +118,7 @@ turbine = { module = "app.cash.turbine:turbine", version.ref = "turbine" }
 
 timber = { module = "com.jakewharton.timber:timber", version.ref = "timber" }
 
-newpipe-extractor = { module = "com.github.teamnewpipe:NewPipeExtractor", version = "v0.26.0" }
+newpipe-extractor = { module = "net.newpipe:extractor", version = "c46af33-SNAPSHOT" }
 #newpipe-extractor = { module = "com.github.libre-tube:NewPipeExtractor", version = "70be3a4" }
 #newpipe-extractor = { module = "com.github.teamnewpipe:NewPipeExtractor", version = "master-SNAPSHOT" }
 
