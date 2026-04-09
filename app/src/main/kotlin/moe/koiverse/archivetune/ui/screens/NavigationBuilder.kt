@@ -88,7 +88,7 @@ import moe.koiverse.archivetune.ui.screens.settings.SettingsScreen
 import moe.koiverse.archivetune.ui.screens.settings.StorageSettings
 import moe.koiverse.archivetune.ui.screens.settings.ThemeCreatorScreen
 import moe.koiverse.archivetune.ui.screens.settings.UpdateScreen
-import moe.koiverse.archivetune.ui.screens.musicrecognition.MusicRecognitionRoute
+import moe.koiverse.archivetune.musicrecognition.MusicRecognitionRoute
 import moe.koiverse.archivetune.ui.screens.musicrecognition.MusicRecognitionScreen
 import moe.koiverse.archivetune.ui.utils.ShowMediaInfo
 import moe.koiverse.archivetune.utils.rememberEnumPreference

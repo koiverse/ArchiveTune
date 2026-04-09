@@ -194,6 +194,9 @@ import moe.koiverse.archivetune.innertube.models.PlaylistItem
 import moe.koiverse.archivetune.innertube.models.SongItem
 import moe.koiverse.archivetune.extensions.toMediaItem
 import moe.koiverse.archivetune.models.toMediaMetadata
+import moe.koiverse.archivetune.musicrecognition.ACTION_MUSIC_RECOGNITION
+import moe.koiverse.archivetune.musicrecognition.MusicRecognitionRoute
+import moe.koiverse.archivetune.musicrecognition.openMusicRecognition
 import moe.koiverse.archivetune.playback.DownloadUtil
 import moe.koiverse.archivetune.playback.MusicService
 import moe.koiverse.archivetune.playback.MusicService.MusicBinder
@@ -678,6 +681,10 @@ class MainActivity : ComponentActivity() {
                                 else -> null
                             }
                         }
+                    val launchMusicRecognitionFromShortcut =
+                        remember {
+                            intent?.action == ACTION_MUSIC_RECOGNITION
+                        }
 
                     val topLevelScreens =
                         listOf(
@@ -1006,10 +1013,10 @@ class MainActivity : ComponentActivity() {
 
                     LaunchedEffect(Unit) {
                         if (pendingIntent != null) {
-                            handleDeepLinkIntent(pendingIntent!!, navController)
+                            handleIntent(pendingIntent, navController)
                             pendingIntent = null
                         } else {
-                            handleDeepLinkIntent(intent, navController)
+                            handleIntent(intent, navController)
                         }
                     }
 
@@ -1567,7 +1574,7 @@ class MainActivity : ComponentActivity() {
                                                 shuffleIconRes = if (shouldShowHomeShuffleButton) R.drawable.shuffle else null,
                                                 shuffleContentDescription = if (shouldShowHomeShuffleButton) stringResource(R.string.shuffle) else "",
                                                 onMusicRecognitionClick = if (shouldShowHomeShuffleButton) {
-                                                    { navController.navigate(moe.koiverse.archivetune.ui.screens.musicrecognition.MusicRecognitionRoute) }
+                                                    { navController.navigate(MusicRecognitionRoute) }
                                                 } else null,
                                                 musicRecognitionContentDescription = if (shouldShowHomeShuffleButton) stringResource(R.string.music_recognition) else "",
                                                 isSelected = { screen ->
@@ -1629,11 +1636,15 @@ class MainActivity : ComponentActivity() {
 
                                 NavHost(
                                     navController = navController,
-                                    startDestination = when (tabOpenedFromShortcut ?: defaultOpenTab) {
-                                        NavigationTab.HOME -> Screens.Home
-                                        NavigationTab.LIBRARY -> Screens.Library
-                                        else -> Screens.Home
-                                    }.route,
+                                    startDestination = if (launchMusicRecognitionFromShortcut) {
+                                        MusicRecognitionRoute
+                                    } else {
+                                        when (tabOpenedFromShortcut ?: defaultOpenTab) {
+                                            NavigationTab.HOME -> Screens.Home.route
+                                            NavigationTab.LIBRARY -> Screens.Library.route
+                                            else -> Screens.Home.route
+                                        }
+                                    },
                                     enterTransition = {
                                         if (initialState.destination.route in topLevelScreens && targetState.destination.route in topLevelScreens) {
                                             fadeIn(tween(250))
@@ -1745,6 +1756,15 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    private fun handleIntent(intent: Intent?, navController: NavHostController) {
+        if (intent == null) return
+        if (intent.action == ACTION_MUSIC_RECOGNITION) {
+            navController.openMusicRecognition()
+            return
+        }
+        handleDeepLinkIntent(intent, navController)
     }
 
     private fun handleDeepLinkIntent(intent: Intent, navController: NavHostController) {
