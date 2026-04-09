@@ -1,4 +1,4 @@
-/*
+ /*
  * ArchiveTune Project Original (2026)
  * Chartreux Westia (github.com/koiverse)
  * Licensed Under GPL-3.0 | see git history for contributors
@@ -23,6 +23,10 @@ import java.util.ArrayDeque
 fun Player.togglePlayPause() {
     if (!playWhenReady && playbackState == Player.STATE_IDLE) {
         prepare()
+    } else if (playbackState == Player.STATE_ENDED) {
+        seekToDefaultPosition()
+        playWhenReady = true
+        return
     }
     playWhenReady = !playWhenReady
 }
