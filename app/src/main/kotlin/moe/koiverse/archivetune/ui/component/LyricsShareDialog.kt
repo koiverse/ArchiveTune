@@ -5,6 +5,8 @@
  * Don't remove this copyright holder!
  */
 
+@file:OptIn(ExperimentalMaterial3Api::class)
+
 package moe.koiverse.archivetune.ui.component
 
 import android.content.Intent
