@@ -13,11 +13,13 @@ tasks.register<Delete>("clean") {
 subprojects {
     tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
         compilerOptions {
+            optIn.add("androidx.compose.material3.ExperimentalMaterial3Api")
             if (project.findProperty("enableComposeCompilerReports") == "true") {
                 arrayOf("reports", "metrics").forEach {
-                    freeCompilerArgs.add("-opt-in=androidx.compose.material3.ExperimentalMaterial3Api")
                     freeCompilerArgs.add("-P")
-                    freeCompilerArgs.add("plugin:androidx.compose.compiler.plugins.kotlin:${it}Destination=${project.layout.buildDirectory}/compose_metrics")
+                    freeCompilerArgs.add(
+                        "plugin:androidx.compose.compiler.plugins.kotlin:${it}Destination=${project.layout.buildDirectory}/compose_metrics"
+                    )
                 }
             }
         }
