@@ -20,6 +20,7 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+        maven { setUrl("https://central.sonatype.com/repository/maven-snapshots/") }
         maven { setUrl("https://jitpack.io") }
     }
 }
