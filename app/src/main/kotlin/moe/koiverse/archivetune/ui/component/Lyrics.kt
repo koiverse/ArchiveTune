@@ -2330,6 +2330,10 @@ fun Lyrics(
     }
 }
 
+}
+
+}
+
 private val NoSpaceAfterChars: Set<Char> = setOf('(', '[', '{', '«', '‹', '“', '‘')
 
 private fun shouldAppendWordSpace(current: String, next: String): Boolean {
