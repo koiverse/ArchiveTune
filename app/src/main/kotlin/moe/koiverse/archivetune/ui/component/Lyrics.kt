@@ -596,13 +596,9 @@ fun Lyrics(
         mutableStateOf(false)
     }
 
-    var showProgressDialog by remember { mutableStateOf(false) }
     var showShareDialog by remember { mutableStateOf(false) }
     var shareDialogData by remember { mutableStateOf<Triple<String, String, String>?>(null) }
-
-    var showColorPickerDialog by remember { mutableStateOf(false) }
-    var selectedGlassStyle by remember { mutableStateOf(LyricsGlassStyle.FrostedDark) }
-    var paletteGlassStyle by remember { mutableStateOf<LyricsGlassStyle?>(null) }
+    var showShareImageDialog by remember { mutableStateOf(false) }
 
     var isSelectionModeActive by rememberSaveable { mutableStateOf(false) }
     val selectedIndices = remember { mutableStateListOf<Int>() }
@@ -2221,23 +2217,6 @@ fun Lyrics(
 
     }
 
-    if (showProgressDialog) {
-        BasicAlertDialog(onDismissRequest = {  }) {
-            Card( 
-                shape = MaterialTheme.shapes.medium,
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
-            ) {
-                Box(modifier = Modifier.padding(32.dp)) {
-                    Text(
-                        text = stringResource(R.string.generating_image) + "\n" + stringResource(R.string.please_wait),
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                }
-            }
-        }
-    }
-
     if (showShareDialog && shareDialogData != null) {
         val (lyricsText, songTitle, artists) = shareDialogData!! 
         BasicAlertDialog(onDismissRequest = { showShareDialog = false }) {
@@ -2264,14 +2243,11 @@ fun Lyrics(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clickable {
-                                val shareIntent = Intent().apply {
-                                    action = Intent.ACTION_SEND
-                                    type = "text/plain"
-                                    val songLink = "https://music.youtube.com/watch?v=${mediaMetadata?.id}"
-
-                                    putExtra(Intent.EXTRA_TEXT, "\"$lyricsText\"\n\n$songTitle - $artists\n$songLink")
-                                }
-                                context.startActivity(Intent.createChooser(shareIntent, context.getString(R.string.share_lyrics)))
+                                shareLyricsAsText(
+                                    context = context,
+                                    payload = LyricsSharePayload(lyricsText, songTitle, artists),
+                                    songId = mediaMetadata?.id,
+                                )
                                 showShareDialog = false
                             }
                             .padding(vertical = 12.dp),
@@ -2294,9 +2270,8 @@ fun Lyrics(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clickable {
-
                                 shareDialogData = Triple(lyricsText, songTitle, artists)
-                                showColorPickerDialog = true
+                                showShareImageDialog = true
                                 showShareDialog = false
                             }
                             .padding(vertical = 12.dp),
@@ -2336,208 +2311,13 @@ fun Lyrics(
         }
     }
 
-    if (showColorPickerDialog && shareDialogData != null) {
+    if (showShareImageDialog && shareDialogData != null) {
         val (lyricsText, songTitle, artists) = shareDialogData!!
-        val coverUrl = mediaMetadata?.thumbnailUrl
-
-        LaunchedEffect(coverUrl) {
-            if (coverUrl != null) {
-                withContext(Dispatchers.IO) {
-                    try {
-                        val loader = ImageLoader(context)
-                        val req = ImageRequest.Builder(context).data(coverUrl).allowHardware(false).build()
-                        val result = loader.execute(req)
-                        val bmp = result.image?.toBitmap()
-                        if (bmp != null) {
-                            val palette = Palette.from(bmp).generate()
-                            paletteGlassStyle = LyricsGlassStyle.fromPalette(palette)
-                        }
-                    } catch (_: Exception) {}
-                }
-            }
-        }
-
-        val availableStyles = remember(paletteGlassStyle) {
-            val base = LyricsGlassStyle.allPresets.toMutableList()
-            paletteGlassStyle?.let { base.add(0, it) }
-            base
-        }
-
-        BasicAlertDialog(onDismissRequest = { showColorPickerDialog = false }) {
-            Card(
-                shape = RoundedCornerShape(28.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                ),
-                elevation = CardDefaults.cardElevation(defaultElevation = 12.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(12.dp)
-            ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier
-                        .verticalScroll(rememberScrollState())
-                        .padding(horizontal = 20.dp, vertical = 24.dp)
-                ) {
-                    Text(
-                        text = stringResource(id = R.string.customize_colors),
-                        style = MaterialTheme.typography.titleLarge.copy(
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = (-0.02).em
-                        ),
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(340.dp)
-                            .clip(RoundedCornerShape(20.dp))
-                    ) {
-                        LyricsImageCard(
-                            lyricText = lyricsText,
-                            mediaMetadata = mediaMetadata ?: return@Box,
-                            glassStyle = selectedGlassStyle,
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(20.dp))
-
-                    Text(
-                        text = stringResource(id = R.string.customize_colors),
-                        style = MaterialTheme.typography.titleSmall.copy(
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        ),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 10.dp)
-                    )
-
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .horizontalScroll(rememberScrollState())
-                    ) {
-                        availableStyles.forEach { style ->
-                            val isSelected = selectedGlassStyle == style
-                            Box(
-                                modifier = Modifier
-                                    .size(width = 72.dp, height = 72.dp)
-                                    .clip(RoundedCornerShape(16.dp))
-                                    .then(
-                                        if (isSelected) {
-                                            Modifier.border(
-                                                2.5.dp,
-                                                MaterialTheme.colorScheme.primary,
-                                                RoundedCornerShape(16.dp)
-                                            )
-                                        } else {
-                                            Modifier.border(
-                                                1.dp,
-                                                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
-                                                RoundedCornerShape(16.dp)
-                                            )
-                                        }
-                                    )
-                                    .clickable { selectedGlassStyle = style },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .background(
-                                            Brush.verticalGradient(
-                                                colors = listOf(
-                                                    style.surfaceTint.copy(alpha = 0.6f),
-                                                    style.overlayColor.copy(alpha = 0.4f),
-                                                )
-                                            ),
-                                            shape = RoundedCornerShape(16.dp)
-                                        )
-                                )
-
-                                Box(
-                                    modifier = Modifier
-                                        .padding(6.dp)
-                                        .fillMaxSize()
-                                        .background(
-                                            style.surfaceTint.copy(alpha = style.surfaceAlpha),
-                                            RoundedCornerShape(10.dp)
-                                        )
-                                        .border(
-                                            0.5.dp,
-                                            Color.White.copy(alpha = 0.15f),
-                                            RoundedCornerShape(10.dp)
-                                        ),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(
-                                        text = "Aa",
-                                        color = style.textColor,
-                                        fontSize = 16.sp,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                }
-                            }
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(20.dp))
-
-                    Button(
-                        onClick = {
-                            showColorPickerDialog = false
-                            showProgressDialog = true
-                            scope.launch {
-                                try {
-                                    val exportSize = 1080
-                                    val image = ComposeToImage.createLyricsImage(
-                                        context = context,
-                                        coverArtUrl = coverUrl,
-                                        songTitle = songTitle,
-                                        artistName = artists,
-                                        lyrics = lyricsText,
-                                        width = exportSize,
-                                        height = exportSize,
-                                        glassStyle = selectedGlassStyle,
-                                    )
-                                    val timestamp = System.currentTimeMillis()
-                                    val filename = "lyrics_$timestamp"
-                                    val uri = ComposeToImage.saveBitmapAsFile(context, image, filename)
-                                    val shareIntent = Intent(Intent.ACTION_SEND).apply {
-                                        type = "image/png"
-                                        putExtra(Intent.EXTRA_STREAM, uri)
-                                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                                    }
-                                    context.startActivity(Intent.createChooser(shareIntent, "Share Lyrics"))
-                                } catch (e: Exception) {
-                                    Toast.makeText(context, "Failed to create image: ${e.message}", Toast.LENGTH_SHORT).show()
-                                } finally {
-                                    showProgressDialog = false
-                                }
-                            }
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(52.dp),
-                        shapes = ButtonDefaults.shapes(),
-                    ) {
-                        Text(
-                            text = stringResource(id = R.string.share),
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 16.sp
-                        )
-                    }
-                }
-            }
-        }
-        } 
+        LyricsShareImageDialog(
+            mediaMetadata = mediaMetadata,
+            payload = LyricsSharePayload(lyricsText, songTitle, artists),
+            onDismissRequest = { showShareImageDialog = false },
+        )
     }
 }
 
