@@ -208,6 +208,15 @@ import kotlin.time.Duration.Companion.seconds
 
 private val AppleMusicEasing = CubicBezierEasing(0.25f, 0.1f, 0.25f, 1.0f)
 private val SmoothDecelerateEasing = CubicBezierEasing(0.0f, 0.0f, 0.2f, 1.0f)
+private const val ArchiveTune_AUTO_SCROLL_DURATION = 1500L
+private const val ArchiveTune_INITIAL_SCROLL_DURATION = 1000L
+private const val ArchiveTune_SEEK_DURATION = 800L
+private const val ArchiveTune_FAST_SEEK_DURATION = 600L
+private const val LyricsWordSyncLeadMs = 300L
+
+val LyricsPreviewTime = 2.seconds
+
+
 
 private fun isRtlText(text: String): Boolean {
     for (ch in text) {
@@ -2320,15 +2329,6 @@ fun Lyrics(
         )
     }
 }
-
-private const val ArchiveTune_AUTO_SCROLL_DURATION = 1500L 
-private const val ArchiveTune_INITIAL_SCROLL_DURATION = 1000L 
-private const val ArchiveTune_SEEK_DURATION = 800L 
-private const val ArchiveTune_FAST_SEEK_DURATION = 600L 
-
-private const val LyricsWordSyncLeadMs = 300L
-
-val LyricsPreviewTime = 2.seconds
 
 private val NoSpaceAfterChars: Set<Char> = setOf('(', '[', '{', '«', '‹', '“', '‘')
 

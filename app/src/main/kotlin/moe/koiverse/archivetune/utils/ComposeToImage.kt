@@ -433,21 +433,7 @@ object ComposeToImage {
         val safe = ensureSoftwareBitmap(source)
         val safeRadius = radius.coerceIn(0f, 48f)
         if (safeRadius <= 0.5f) return safe
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            renderEffectBlur(safe, safeRadius)
-        } else {
-            stackBlur(safe, safeRadius.roundToInt().coerceAtLeast(1))
-        }
-    }
-
-    @RequiresApi(Build.VERSION_CODES.S)
-    private fun renderEffectBlur(source: Bitmap, radius: Float): Bitmap {
-        val output = Bitmap.createBitmap(source.width, source.height, Bitmap.Config.ARGB_8888)
-        val paint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG).apply {
-            renderEffect = RenderEffect.createBlurEffect(radius, radius, Shader.TileMode.CLAMP)
-        }
-        Canvas(output).drawBitmap(source, 0f, 0f, paint)
-        return output
+        return stackBlur(safe, safeRadius.roundToInt().coerceAtLeast(1))
     }
 
     private fun stackBlur(source: Bitmap, radius: Int): Bitmap {

@@ -203,6 +203,7 @@ import moe.koiverse.archivetune.playback.MusicService.MusicBinder
 import moe.koiverse.archivetune.playback.PlayerConnection
 import moe.koiverse.archivetune.playback.queues.LocalAlbumRadio
 import moe.koiverse.archivetune.playback.queues.ListQueue
+import moe.koiverse.archivetune.playback.queues.Queue
 import moe.koiverse.archivetune.playback.queues.YouTubeAlbumRadio
 import moe.koiverse.archivetune.playback.queues.YouTubeQueue
 import moe.koiverse.archivetune.ui.component.BottomSheetMenu
@@ -271,7 +272,7 @@ class MainActivity : ComponentActivity() {
 
     private lateinit var navController: NavHostController
     private var pendingIntent: Intent? = null
-    private var pendingDeepLinkSong: PendingDeepLinkSong? = null
+    private var pendingDeepLinkQueue: Queue? = null
     private var pendingTogetherJoinLink: String? = null
     private var latestVersionName by mutableStateOf(BuildConfig.VERSION_NAME)
 
@@ -288,7 +289,7 @@ class MainActivity : ComponentActivity() {
                 if (service is MusicBinder) {
                     playerConnection =
                         PlayerConnection(this@MainActivity, service, database, lifecycleScope)
-                    playPendingDeepLinkSongIfReady()
+                    playPendingDeepLinkQueueIfReady()
                     joinPendingTogetherIfReady()
                 }
             }
@@ -300,15 +301,11 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-    private data class PendingDeepLinkSong(
-        val mediaItem: MediaItem,
-    )
-
-    private fun playPendingDeepLinkSongIfReady() {
-        val pending = pendingDeepLinkSong ?: return
+    private fun playPendingDeepLinkQueueIfReady() {
+        val pending = pendingDeepLinkQueue ?: return
         val connection = playerConnection ?: return
-        pendingDeepLinkSong = null
-        connection.playQueue(ListQueue(items = listOf(pending.mediaItem)))
+        pendingDeepLinkQueue = null
+        connection.playQueue(pending)
     }
 
     private fun joinPendingTogetherIfReady() {
@@ -336,7 +333,7 @@ class MainActivity : ComponentActivity() {
                 serviceConnection,
                 Context.BIND_AUTO_CREATE
             )
-        playPendingDeepLinkSongIfReady()
+        playPendingDeepLinkQueueIfReady()
     }
 
     private fun safeUnbindMusicService() {
@@ -1813,8 +1810,8 @@ class MainActivity : ComponentActivity() {
                     uri.host == "youtu.be" -> uri.pathSegments.firstOrNull()
                     else -> null
                 }
-                
                 val playlistId = uri.getQueryParameter("list")
+                val shouldShufflePlaylist = uri.requestsShuffledPlayback()
 
                 videoId?.let { vid ->
                     coroutineScope.launch {
@@ -1832,12 +1829,36 @@ class MainActivity : ComponentActivity() {
                                         .setUri(vid)
                                         .setCustomCacheKey(vid)
                                         .build()
-                            pendingDeepLinkSong =
-                                PendingDeepLinkSong(
-                                    mediaItem = mediaItem,
-                                )
+                            pendingDeepLinkQueue = ListQueue(items = listOf(mediaItem))
                             startMusicServiceSafely()
-                            playPendingDeepLinkSongIfReady()
+                            playPendingDeepLinkQueueIfReady()
+                        }.onFailure {
+                            reportException(it)
+                        }
+                    }
+                    return
+                }
+
+                if (path == "watch" && !playlistId.isNullOrBlank()) {
+                    coroutineScope.launch {
+                        val result = withContext(Dispatchers.IO) {
+                            YouTube.playlist(playlistId)
+                        }
+
+                        result.onSuccess { playlistPage ->
+                            val endpoint =
+                                when {
+                                    shouldShufflePlaylist -> playlistPage.playlist.shuffleEndpoint
+                                        ?: playlistPage.playlist.playEndpoint
+                                    else -> playlistPage.playlist.playEndpoint
+                                        ?: playlistPage.playlist.shuffleEndpoint
+                                }
+
+                            endpoint?.let {
+                                pendingDeepLinkQueue = YouTubeQueue(it)
+                                startMusicServiceSafely()
+                                playPendingDeepLinkQueueIfReady()
+                            } ?: navController.navigate("online_playlist/$playlistId")
                         }.onFailure {
                             reportException(it)
                         }
@@ -1845,6 +1866,11 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    private fun android.net.Uri.requestsShuffledPlayback(): Boolean {
+        val value = getQueryParameter("shuffle")?.trim()?.lowercase(Locale.US) ?: return false
+        return value == "1" || value == "true"
     }
 
     private fun startMusicServiceSafely() {
