@@ -3858,6 +3858,17 @@ class MusicService :
             }
         }
 
+        var throwable: Throwable? = error.cause
+        while (throwable != null) {
+            if (throwable is androidx.media3.datasource.HttpDataSource.InvalidResponseCodeException) {
+                if (throwable.responseCode in setOf(403, 404, 410, 416)) {
+                    playbackUrlCache.remove(currentMediaId)
+                }
+                break
+            }
+            throwable = throwable.cause
+        }
+
         if (dataStore.get(AutoSkipNextOnErrorKey, false)) {
             skipOnError()
         } else {
