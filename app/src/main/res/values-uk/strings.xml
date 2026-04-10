@@ -658,7 +658,7 @@
     <string name="enable_update_notification_desc">Отримуйте сповіщення про вихід нової стабільної версії</string>
     <string name="update_channel">Канал оновлень</string>
     <string name="channel_stable">Стабільний</string>
-    <string name="channel_nightly">Щоночі</string>
+    <string name="channel_nightly">Нічний</string>
     <string name="commit_history">Розробка</string>
     <string name="recent_commits">Останні зміни</string>
     <string name="changelog">Історія змін</string>
