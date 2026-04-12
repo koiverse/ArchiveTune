@@ -219,7 +219,7 @@ class InnerTube {
                 context = client.toContext(
                     locale = locale,
                     visitorData = authState.visitorData,
-                    dataSyncId = if (setLogin && client.loginSupported) authState.dataSyncId else null,
+                    dataSyncId = null,
                 ).let {
                     if (client.isEmbedded) {
                         it.copy(
