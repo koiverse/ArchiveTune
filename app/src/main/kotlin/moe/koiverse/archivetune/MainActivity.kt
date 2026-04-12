@@ -17,11 +17,14 @@ import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.provider.OpenableColumns
 import android.os.IBinder
 import android.view.View
 import android.view.WindowManager
+import android.webkit.MimeTypeMap
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
@@ -135,6 +138,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.media3.common.MediaItem
+import androidx.media3.common.MediaMetadata.MEDIA_TYPE_MUSIC
 import androidx.media3.common.Player
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavHostController
@@ -142,6 +146,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.window.core.layout.WindowSizeClass
+import androidx.core.content.IntentCompat
 import coil3.imageLoader
 import coil3.request.ImageRequest
 import coil3.request.allowHardware
@@ -1761,7 +1766,92 @@ class MainActivity : ComponentActivity() {
             navController.openMusicRecognition()
             return
         }
+        if (handleExternalAudioIntent(intent)) {
+            return
+        }
         handleDeepLinkIntent(intent, navController)
+    }
+
+    private fun handleExternalAudioIntent(intent: Intent): Boolean {
+        val incomingUris = buildList {
+            intent.data?.let(::add)
+            when (intent.action) {
+                Intent.ACTION_SEND -> {
+                    IntentCompat.getParcelableExtra(intent, Intent.EXTRA_STREAM, Uri::class.java)?.let(::add)
+                }
+                Intent.ACTION_SEND_MULTIPLE -> {
+                    addAll(
+                        IntentCompat.getParcelableArrayListExtra(
+                            intent,
+                            Intent.EXTRA_STREAM,
+                            Uri::class.java
+                        ).orEmpty()
+                    )
+                }
+            }
+        }.distinct()
+
+        if (incomingUris.isEmpty()) return false
+
+        val fallbackMimeType = intent.type
+        val playableUris = incomingUris.filter { uri ->
+            val mimeType = contentResolver.getType(uri)
+            mimeType.isAudioMimeType() || fallbackMimeType.isAudioMimeType() || uri.hasAudioExtension()
+        }
+        if (playableUris.isEmpty()) return false
+
+        pendingDeepLinkQueue = ListQueue(items = playableUris.map(::toExternalAudioMediaItem))
+        startMusicServiceSafely()
+        playPendingDeepLinkQueueIfReady()
+        return true
+    }
+
+    private fun toExternalAudioMediaItem(uri: Uri): MediaItem {
+        val mediaId = uri.toString()
+        val title = resolveExternalAudioTitle(uri)
+        val metadata =
+            moe.koiverse.archivetune.models.MediaMetadata(
+                id = mediaId,
+                title = title,
+                artists = emptyList(),
+                duration = -1,
+            )
+        return MediaItem.Builder()
+            .setMediaId(mediaId)
+            .setUri(uri)
+            .setTag(metadata)
+            .setMediaMetadata(
+                androidx.media3.common.MediaMetadata.Builder()
+                    .setTitle(title)
+                    .setIsPlayable(true)
+                    .setMediaType(MEDIA_TYPE_MUSIC)
+                    .build()
+            )
+            .build()
+    }
+
+    private fun resolveExternalAudioTitle(uri: Uri): String {
+        val displayName =
+            runCatching {
+                contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->
+                    val columnIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                    if (columnIndex >= 0 && cursor.moveToFirst()) cursor.getString(columnIndex) else null
+                }
+            }.getOrNull()
+        return displayName
+            ?.trim()
+            ?.takeIf { it.isNotBlank() }
+            ?: uri.lastPathSegment?.substringAfterLast('/')?.substringBefore('?')?.trim()?.takeIf { it.isNotBlank() }
+            ?: getString(R.string.unknown)
+    }
+
+    private fun String?.isAudioMimeType(): Boolean =
+        this?.startsWith("audio/", ignoreCase = true) == true
+
+    private fun Uri.hasAudioExtension(): Boolean {
+        val extension = MimeTypeMap.getFileExtensionFromUrl(toString()).orEmpty()
+        val normalized = extension.lowercase(Locale.US)
+        return normalized in setOf("aac", "flac", "m4a", "mp3", "ogg", "opus", "wav", "webm")
     }
 
     private fun handleDeepLinkIntent(intent: Intent, navController: NavHostController) {

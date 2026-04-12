@@ -3935,7 +3935,10 @@ class MusicService :
 
     private fun createDataSourceFactory(): DataSource.Factory {
         return ResolvingDataSource.Factory(createCacheDataSource()) { dataSpec ->
-            val mediaId = dataSpec.key ?: error("No media id")
+            if (dataSpec.uri.shouldBypassYouTubeResolver()) {
+                return@Factory dataSpec
+            }
+            val mediaId = dataSpec.key ?: return@Factory dataSpec
 
             val requiredCachedLength =
                 if (dataSpec.length >= 0) {
@@ -4074,6 +4077,13 @@ class MusicService :
                 return@Factory dataSpec.withUri(streamUrl.toUri()).subrange(dataSpec.uriPositionOffset, length)
             }
         }
+    }
+
+    private fun Uri.shouldBypassYouTubeResolver(): Boolean {
+        val normalizedScheme = scheme?.lowercase(Locale.US)
+        return normalizedScheme == "content" ||
+            normalizedScheme == "file" ||
+            normalizedScheme == "android.resource"
     }
 
     private fun deviceSupportsMimeType(mimeType: String): Boolean {
