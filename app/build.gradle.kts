@@ -51,6 +51,17 @@ android {
                 ?: System.getenv("CANVAS_BEARER_TOKEN")
                 ?: ""
         buildConfigField("String", "CANVAS_BEARER_TOKEN", "\"$canvasBearerToken\"")
+
+        val spotifyClientId =
+            localProperties.getProperty("SPOTIFY_CLIENT_ID")
+                ?: System.getenv("SPOTIFY_CLIENT_ID")
+                ?: ""
+        val spotifyClientSecret =
+            localProperties.getProperty("SPOTIFY_CLIENT_SECRET")
+                ?: System.getenv("SPOTIFY_CLIENT_SECRET")
+                ?: ""
+        buildConfigField("String", "SPOTIFY_CLIENT_ID", "\"$spotifyClientId\"")
+        buildConfigField("String", "SPOTIFY_CLIENT_SECRET", "\"$spotifyClientSecret\"")
     }
 
     flavorDimensions += "abi"

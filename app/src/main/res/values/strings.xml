@@ -95,6 +95,12 @@
     <string name="downloading">Downloading</string>
     <string name="remove_download">Remove download</string>
     <string name="import_playlist">Import playlist</string>
+    <string name="import_spotify_playlist">Import Spotify playlist</string>
+    <string name="spotify_playlist_url">Spotify Playlist URL or URI</string>
+    <string name="spotify_playlist_url_hint">https://open.spotify.com/playlist/...</string>
+    <string name="spotify_import_title">Importing Spotify playlist</string>
+    <string name="spotify_import_fetching">Fetching playlist from Spotify…</string>
+    <string name="spotify_import_no_tracks_found">No tracks found in this Spotify playlist.</string>
     <string name="import_failed">Import failed</string>
     <string name="update_button">Update</string>
     <string name="add_to_playlist">Add to playlist</string>
