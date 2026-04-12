@@ -50,8 +50,6 @@ jobs:
           LASTFM_API_KEY: ${{ secrets.LASTFM_API_KEY }}
           LASTFM_SECRET: ${{ secrets.LASTFM_SECRET }}
           CANVAS_BEARER_TOKEN: ${{ secrets.CANVAS_BEARER_TOKEN }}
-          SPOTIFY_CLIENT_ID: ${{ secrets.SPOTIFY_CLIENT_ID }}
-          SPOTIFY_CLIENT_SECRET: ${{ secrets.SPOTIFY_CLIENT_SECRET }}
 
       - name: Upload APK
         uses: actions/upload-artifact@v7

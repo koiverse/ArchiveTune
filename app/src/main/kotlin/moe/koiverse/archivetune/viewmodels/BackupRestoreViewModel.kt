@@ -23,7 +23,6 @@ import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import moe.koiverse.archivetune.BuildConfig
 import moe.koiverse.archivetune.MainActivity
 import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.db.InternalDatabase
@@ -54,16 +53,11 @@ import java.io.InputStreamReader
 import java.io.PushbackReader
 import java.io.Reader
 import java.io.StringReader
-import java.net.HttpURLConnection
-import java.net.URL
-import java.nio.charset.StandardCharsets
-import java.util.Base64
 import java.util.zip.ZipEntry
 import javax.inject.Inject
 import kotlin.system.exitProcess
 import kotlin.math.roundToInt
 import org.xmlpull.v1.XmlPullParser
-import org.json.JSONObject
 
 data class BackupRestoreProgressUi(
     val title: String,
@@ -71,17 +65,6 @@ data class BackupRestoreProgressUi(
     val percent: Int,
     val indeterminate: Boolean,
 )
-
-sealed interface SpotifyImportResult {
-    data class Success(
-        val playlistTitle: String,
-        val songs: ArrayList<Song>,
-    ) : SpotifyImportResult
-
-    data class Error(
-        val message: String,
-    ) : SpotifyImportResult
-}
 
 internal fun readCsvRecords(reader: Reader): Sequence<List<String>> =
     sequence {
@@ -663,240 +646,6 @@ class BackupRestoreViewModel @Inject constructor(
         }
 
         return songs
-    }
-
-    suspend fun importPlaylistFromSpotify(
-        playlistInput: String,
-    ): SpotifyImportResult =
-        withContext(Dispatchers.IO) {
-            val trimmedClientId = BuildConfig.SPOTIFY_CLIENT_ID.trim()
-            val trimmedClientSecret = BuildConfig.SPOTIFY_CLIENT_SECRET.trim()
-            val trimmedInput = playlistInput.trim()
-
-            if (trimmedClientId.isEmpty() || trimmedClientSecret.isEmpty()) {
-                return@withContext SpotifyImportResult.Error("Spotify credentials are not configured in this build.")
-            }
-            if (trimmedInput.isEmpty()) {
-                return@withContext SpotifyImportResult.Error("Spotify playlist URL or URI is required.")
-            }
-
-            val playlistId = extractSpotifyPlaylistId(trimmedInput)
-                ?: return@withContext SpotifyImportResult.Error("Invalid Spotify playlist URL or URI.")
-
-            runCatching {
-                val accessToken = requestSpotifyAccessToken(trimmedClientId, trimmedClientSecret)
-                fetchSpotifyPlaylistSongs(accessToken, playlistId)
-            }.fold(
-                onSuccess = { (playlistTitle, songs) ->
-                    if (songs.isEmpty()) {
-                        SpotifyImportResult.Error("No tracks were found in this Spotify playlist.")
-                    } else {
-                        SpotifyImportResult.Success(
-                            playlistTitle = playlistTitle.ifBlank { "Spotify Playlist" },
-                            songs = songs,
-                        )
-                    }
-                },
-                onFailure = { throwable ->
-                    reportException(throwable)
-                    val message =
-                        throwable.message
-                            ?.takeIf { it.isNotBlank() }
-                            ?: "Failed to import Spotify playlist."
-                    SpotifyImportResult.Error(message)
-                }
-            )
-        }
-
-    private fun extractSpotifyPlaylistId(input: String): String? {
-        val normalized = input.trim()
-        if (normalized.isEmpty()) return null
-
-        if (normalized.startsWith("spotify:playlist:", ignoreCase = true)) {
-            val rawId = normalized.substringAfter("spotify:playlist:", missingDelimiterValue = "")
-            return rawId.substringBefore('?').trim().takeIf { it.isNotBlank() }
-        }
-
-        val playlistMarker = "/playlist/"
-        val markerIndex = normalized.indexOf(playlistMarker, ignoreCase = true)
-        if (markerIndex >= 0) {
-            val rawId = normalized.substring(markerIndex + playlistMarker.length)
-            return rawId.substringBefore('?').substringBefore('/').trim().takeIf { it.isNotBlank() }
-        }
-
-        return null
-    }
-
-    private fun requestSpotifyAccessToken(clientId: String, clientSecret: String): String {
-        val tokenUrl = URL("https://accounts.spotify.com/api/token")
-        val credentials = "$clientId:$clientSecret"
-        val authHeader = Base64.getEncoder().encodeToString(credentials.toByteArray(StandardCharsets.UTF_8))
-
-        val connection = (tokenUrl.openConnection() as HttpURLConnection).apply {
-            requestMethod = "POST"
-            connectTimeout = 20000
-            readTimeout = 30000
-            doOutput = true
-            setRequestProperty("Authorization", "Basic $authHeader")
-            setRequestProperty("Content-Type", "application/x-www-form-urlencoded")
-        }
-        connection.outputStream.use { output ->
-            output.write("grant_type=client_credentials".toByteArray(StandardCharsets.UTF_8))
-            output.flush()
-        }
-
-        return connection.useResponseBody { code, body ->
-            if (code !in 200..299) {
-                val errorDescription = parseSpotifyErrorDescription(body)
-                throw IllegalStateException(
-                    errorDescription
-                        ?: "Spotify token request failed (${connection.responseCode})."
-                )
-            }
-
-            val json = JSONObject(body)
-            json.optString("access_token").takeIf { it.isNotBlank() }
-                ?: throw IllegalStateException("Spotify token response did not include an access token.")
-        }
-    }
-
-    private fun fetchSpotifyPlaylistSongs(accessToken: String, playlistId: String): Pair<String, ArrayList<Song>> {
-        val out = arrayListOf<Song>()
-        var playlistTitle = ""
-        var offset = 0
-        val limit = 100
-
-        while (true) {
-            val playlistUrl =
-                URL(
-                    "https://api.spotify.com/v1/playlists/$playlistId/tracks" +
-                        "?limit=$limit&offset=$offset&market=from_token"
-                )
-            val connection = (playlistUrl.openConnection() as HttpURLConnection).apply {
-                requestMethod = "GET"
-                connectTimeout = 20000
-                readTimeout = 30000
-                setRequestProperty("Authorization", "Bearer $accessToken")
-                setRequestProperty("Accept", "application/json")
-            }
-
-            val (nextOffset, total) =
-                connection.useResponseBody { code, body ->
-                    if (code !in 200..299) {
-                        val errorDescription = parseSpotifyErrorDescription(body)
-                        throw IllegalStateException(
-                            errorDescription
-                                ?: "Spotify playlist request failed (${connection.responseCode})."
-                        )
-                    }
-
-                    val json = JSONObject(body)
-                    if (playlistTitle.isBlank()) {
-                        playlistTitle = fetchSpotifyPlaylistTitle(accessToken, playlistId)
-                    }
-                    val items = json.optJSONArray("items")
-                    if (items != null) {
-                        for (index in 0 until items.length()) {
-                            val item = items.optJSONObject(index) ?: continue
-                            val track = item.optJSONObject("track") ?: continue
-                            if (track.optBoolean("is_local", false)) continue
-
-                            val title = track.optString("name").orEmpty().trim()
-                            if (title.isEmpty()) continue
-
-                            val artistsJson = track.optJSONArray("artists")
-                            val artists =
-                                buildList {
-                                    if (artistsJson != null) {
-                                        for (artistIndex in 0 until artistsJson.length()) {
-                                            val artist = artistsJson.optJSONObject(artistIndex) ?: continue
-                                            val name = artist.optString("name").orEmpty().trim()
-                                            if (name.isNotEmpty()) {
-                                                add(ArtistEntity(id = "", name = name))
-                                            }
-                                        }
-                                    }
-                                }
-
-                            out.add(
-                                Song(
-                                    song = SongEntity(id = "", title = title),
-                                    artists = if (artists.isEmpty()) listOf(ArtistEntity("", "")) else artists,
-                                )
-                            )
-                        }
-                    }
-
-                    val next = json.optString("next").takeIf { it.isNotBlank() }
-                    val totalCount = json.optInt("total", -1)
-                    val resolvedNextOffset =
-                        next
-                            ?.substringAfter("offset=", missingDelimiterValue = "")
-                            ?.substringBefore('&')
-                            ?.toIntOrNull()
-                    Pair(resolvedNextOffset, totalCount)
-                }
-
-            if (nextOffset == null) {
-                break
-            }
-            if (total > 0 && nextOffset >= total) {
-                break
-            }
-            if (nextOffset <= offset) {
-                break
-            }
-            offset = nextOffset
-        }
-
-        return playlistTitle to out
-    }
-
-    private fun fetchSpotifyPlaylistTitle(accessToken: String, playlistId: String): String {
-        val url = URL("https://api.spotify.com/v1/playlists/$playlistId?fields=name")
-        val connection = (url.openConnection() as HttpURLConnection).apply {
-            requestMethod = "GET"
-            connectTimeout = 20000
-            readTimeout = 30000
-            setRequestProperty("Authorization", "Bearer $accessToken")
-            setRequestProperty("Accept", "application/json")
-        }
-        return connection.useResponseBody { code, body ->
-            if (code !in 200..299) return@useResponseBody ""
-            JSONObject(body).optString("name").orEmpty().trim()
-        }
-    }
-
-    private inline fun <T> HttpURLConnection.useResponseBody(block: (statusCode: Int, body: String) -> T): T =
-        try {
-            val code = responseCode
-            val stream =
-                if (code in 200..299) {
-                    inputStream
-                } else {
-                    errorStream ?: inputStream
-                }
-            val body =
-                stream?.bufferedReader(Charsets.UTF_8)?.use { it.readText() }
-                    .orEmpty()
-            block(code, body)
-        } finally {
-            disconnect()
-        }
-
-    private fun parseSpotifyErrorDescription(body: String): String? {
-        if (body.isBlank()) return null
-        val json = runCatching { JSONObject(body) }.getOrNull() ?: return null
-        val rootError = json.optString("error_description").takeIf { it.isNotBlank() }
-        if (rootError != null) return rootError
-        val nestedError = json.optJSONObject("error")
-        val message = nestedError?.optString("message")?.takeIf { it.isNotBlank() }
-        val status = nestedError?.optString("status")?.takeIf { it.isNotBlank() }
-        return when {
-            message != null && status != null -> "$message ($status)"
-            message != null -> message
-            else -> null
-        }
     }
 
     companion object {

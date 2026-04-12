@@ -9,7 +9,6 @@
 
 package moe.koiverse.archivetune.ui.screens.settings
 
-import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.Spring
@@ -81,13 +80,11 @@ import androidx.navigation.NavController
 import moe.koiverse.archivetune.LocalPlayerAwareWindowInsets
 import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.db.entities.Song
-import moe.koiverse.archivetune.ui.component.TextFieldDialog
 import moe.koiverse.archivetune.ui.component.IconButton
 import moe.koiverse.archivetune.ui.menu.AddToPlaylistDialogOnline
 import moe.koiverse.archivetune.ui.menu.LoadingScreen
 import moe.koiverse.archivetune.ui.utils.backToMain
 import moe.koiverse.archivetune.viewmodels.BackupRestoreViewModel
-import moe.koiverse.archivetune.viewmodels.SpotifyImportResult
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.time.LocalDateTime
@@ -125,10 +122,6 @@ fun BackupAndRestore(
     var showChoosePlaylistDialogOnline by rememberSaveable {
         mutableStateOf(false)
     }
-    var showSpotifyImportDialog by rememberSaveable { mutableStateOf(false) }
-    var spotifyImportInProgress by rememberSaveable { mutableStateOf(false) }
-    var spotifyImportStatus by rememberSaveable { mutableStateOf("") }
-    var spotifyPlaylistInput by rememberSaveable { mutableStateOf("") }
 
     var isProgressStarted by rememberSaveable {
         mutableStateOf(false)
@@ -256,7 +249,6 @@ fun BackupAndRestore(
                 ImportSectionCard(
                     onImportM3u = { importM3uLauncherOnline.launch(arrayOf("audio/*")) },
                     onImportCsv = { importPlaylistFromCsv.launch(CSV_MIME_TYPES) },
-                    onImportSpotify = { showSpotifyImportDialog = true },
                 )
             }
         }
@@ -283,64 +275,12 @@ fun BackupAndRestore(
         }
     }
 
-    if (showSpotifyImportDialog) {
-        TextFieldDialog(
-            title = { Text(text = stringResource(R.string.import_spotify_playlist)) },
-            placeholder = { Text(text = stringResource(R.string.spotify_playlist_url_hint)) },
-            isInputValid = { it.trim().isNotEmpty() },
-            onDone = { playlistInput ->
-                spotifyPlaylistInput = playlistInput
-                coroutineScope.launch {
-                    spotifyImportInProgress = true
-                    spotifyImportStatus = context.getString(R.string.spotify_import_fetching)
-                    when (
-                        val result =
-                            viewModel.importPlaylistFromSpotify(
-                                playlistInput = playlistInput,
-                            )
-                    ) {
-                        is SpotifyImportResult.Success -> {
-                            importedTitle = result.playlistTitle
-                            importedSongs.clear()
-                            importedSongs.addAll(result.songs)
-                            spotifyImportInProgress = false
-                            spotifyImportStatus = ""
-                            if (result.songs.isNotEmpty()) {
-                                showChoosePlaylistDialogOnline = true
-                            } else {
-                                Toast.makeText(
-                                    context,
-                                    context.getString(R.string.spotify_import_no_tracks_found),
-                                    Toast.LENGTH_SHORT,
-                                ).show()
-                            }
-                        }
-                        is SpotifyImportResult.Error -> {
-                            spotifyImportInProgress = false
-                            spotifyImportStatus = ""
-                            Toast.makeText(context, result.message, Toast.LENGTH_LONG).show()
-                        }
-                    }
-                }
-            },
-            onDismiss = { showSpotifyImportDialog = false },
-        )
-    }
-
     LoadingScreen(
-        isVisible = backupRestoreProgress != null || isProgressStarted || spotifyImportInProgress,
+        isVisible = backupRestoreProgress != null || isProgressStarted,
         value = backupRestoreProgress?.percent ?: progressPercentage,
-        title =
-            backupRestoreProgress?.title
-                ?: if (spotifyImportInProgress) {
-                    context.getString(R.string.spotify_import_title)
-                } else {
-                    null
-                },
-        stepText =
-            backupRestoreProgress?.step
-                ?: if (spotifyImportInProgress) spotifyImportStatus else progressStatus,
-        indeterminate = backupRestoreProgress?.indeterminate ?: spotifyImportInProgress,
+        title = backupRestoreProgress?.title,
+        stepText = backupRestoreProgress?.step ?: progressStatus,
+        indeterminate = backupRestoreProgress?.indeterminate ?: false,
     )
 }
 
@@ -544,7 +484,6 @@ private fun ActionTile(
 private fun ImportSectionCard(
     onImportM3u: () -> Unit,
     onImportCsv: () -> Unit,
-    onImportSpotify: () -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
@@ -566,15 +505,6 @@ private fun ImportSectionCard(
             Column(
                 modifier = Modifier.padding(vertical = 4.dp),
             ) {
-                ImportActionRow(
-                    icon = painterResource(R.drawable.playlist_import),
-                    title = stringResource(R.string.import_spotify_playlist),
-                    subtitle = "spotify.com/playlist/*",
-                    onClick = onImportSpotify,
-                )
-
-                SectionDivider()
-
                 ImportActionRow(
                     icon = painterResource(R.drawable.playlist_import),
                     title = stringResource(R.string.import_online),
