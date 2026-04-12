@@ -1034,35 +1034,60 @@ fun LibraryPlaylistFeatureCard(
     trailingContent: @Composable RowScope.() -> Unit = {},
 ) {
     val subtitleText = playlistCountText(playlist = playlist, autoPlaylist = autoPlaylist)
-    val shape = RoundedCornerShape(16.dp)
+    val thumbnailSize = 86.dp
+    val thumbnailShape = RoundedCornerShape(22.dp)
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
-        shape = shape,
-        modifier = modifier.clip(shape),
+        shape = RoundedCornerShape(26.dp),
+        modifier = modifier,
     ) {
-        ListItem(
-            title = playlist.playlist.name,
-            subtitle = subtitleText,
-            thumbnailContent = {
-                PlaylistThumbnail(
-                    thumbnails = playlist.thumbnails,
-                    size = ListThumbnailSize,
-                    placeHolder = {
-                        Icon(
-                            painter = painterResource(playlistPlaceholderIcon(playlist, autoPlaylist)),
-                            contentDescription = null,
-                            tint = LocalContentColor.current.copy(alpha = 0.8f),
-                            modifier = Modifier.size(ListThumbnailSize / 2),
-                        )
-                    },
-                    shape = RoundedCornerShape(ThumbnailCornerRadius),
-                )
-            },
-            trailingContent = trailingContent,
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(8.dp),
-        )
+                .padding(16.dp),
+        ) {
+            PlaylistThumbnail(
+                thumbnails = playlist.thumbnails,
+                size = thumbnailSize,
+                placeHolder = {
+                    Icon(
+                        painter = painterResource(playlistPlaceholderIcon(playlist, autoPlaylist)),
+                        contentDescription = null,
+                        tint = LocalContentColor.current.copy(alpha = 0.8f),
+                        modifier = Modifier.size(thumbnailSize / 2),
+                    )
+                },
+                shape = thumbnailShape,
+            )
+            Spacer(Modifier.width(16.dp))
+            Column(
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+                modifier = Modifier.weight(1f),
+            ) {
+                Text(
+                    text = playlist.playlist.name,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = subtitleText,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.End,
+                modifier = Modifier.padding(start = 12.dp),
+            ) {
+                trailingContent()
+            }
+        }
     }
 }
 
