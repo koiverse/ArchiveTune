@@ -113,6 +113,7 @@ import moe.koiverse.archivetune.ui.component.shimmer.ShimmerHost
 import moe.koiverse.archivetune.ui.component.shimmer.TextPlaceholder
 import moe.koiverse.archivetune.ui.menu.AlbumMenu
 import moe.koiverse.archivetune.ui.menu.ArtistMenu
+import moe.koiverse.archivetune.ui.menu.PlaylistMenu
 import moe.koiverse.archivetune.ui.menu.SongMenu
 import moe.koiverse.archivetune.ui.menu.YouTubeAlbumMenu
 import moe.koiverse.archivetune.ui.menu.YouTubeArtistMenu
