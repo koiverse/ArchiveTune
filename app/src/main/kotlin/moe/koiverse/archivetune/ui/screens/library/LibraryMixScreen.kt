@@ -81,7 +81,6 @@ import moe.koiverse.archivetune.ui.component.LocalMenuState
 import moe.koiverse.archivetune.ui.component.SortHeader
 import moe.koiverse.archivetune.ui.menu.AlbumMenu
 import moe.koiverse.archivetune.ui.menu.ArtistMenu
-import moe.koiverse.archivetune.utils.joinByBullet
 import moe.koiverse.archivetune.utils.rememberEnumPreference
 import moe.koiverse.archivetune.utils.rememberPreference
 import moe.koiverse.archivetune.viewmodels.LibraryMixViewModel
@@ -318,12 +317,6 @@ fun LibraryMixScreen(
         }
     }
 
-    val librarySummary = joinByBullet(
-        pluralStringResource(R.plurals.n_playlist, visiblePlaylists.size, visiblePlaylists.size),
-        pluralStringResource(R.plurals.n_album, sortedAlbums.size, sortedAlbums.size),
-        pluralStringResource(R.plurals.n_artist, sortedArtists.size, sortedArtists.size),
-    )
-
     LazyColumn(
         state = lazyListState,
         verticalArrangement = Arrangement.spacedBy(14.dp),
@@ -335,7 +328,6 @@ fun LibraryMixScreen(
 
         item(key = "controls") {
             LibraryControlCard(
-                summary = librarySummary,
                 canEnterReorderMode = canEnterReorderMode,
                 reorderEnabled = reorderEnabled,
                 onToggleReorder = { reorderEnabled = !reorderEnabled },
@@ -352,7 +344,6 @@ fun LibraryMixScreen(
                             MixSortType.NAME -> R.string.sort_by_name
                         }
                     },
-                    modifier = Modifier.weight(1f),
                 )
             }
         }
@@ -365,18 +356,6 @@ fun LibraryMixScreen(
                     modifier = Modifier.padding(horizontal = 16.dp),
                 )
             }
-        }
-
-        item(key = "playlist_section_header") {
-            LibrarySectionHeaderCard(
-                title = stringResource(R.string.playlists),
-                supportingText = pluralStringResource(
-                    R.plurals.n_playlist,
-                    visiblePlaylists.size,
-                    visiblePlaylists.size,
-                ),
-                modifier = Modifier.padding(horizontal = 16.dp),
-            )
         }
 
         if (customPlaylistMode && canReorderPlaylists) {
@@ -419,14 +398,6 @@ fun LibraryMixScreen(
         }
 
         if (sortedAlbums.isNotEmpty()) {
-            item(key = "albums_section_header") {
-                LibrarySectionHeaderCard(
-                    title = stringResource(R.string.albums),
-                    supportingText = pluralStringResource(R.plurals.n_album, sortedAlbums.size, sortedAlbums.size),
-                    modifier = Modifier.padding(horizontal = 16.dp),
-                )
-            }
-
             items(
                 items = sortedAlbums,
                 key = { it.id },
@@ -481,14 +452,6 @@ fun LibraryMixScreen(
         }
 
         if (sortedArtists.isNotEmpty()) {
-            item(key = "artists_section_header") {
-                LibrarySectionHeaderCard(
-                    title = stringResource(R.string.artists),
-                    supportingText = pluralStringResource(R.plurals.n_artist, sortedArtists.size, sortedArtists.size),
-                    modifier = Modifier.padding(horizontal = 16.dp),
-                )
-            }
-
             items(
                 items = sortedArtists,
                 key = { it.id },
@@ -537,7 +500,6 @@ fun LibraryMixScreen(
 
 @Composable
 private fun LibraryControlCard(
-    summary: String,
     canEnterReorderMode: Boolean,
     reorderEnabled: Boolean,
     onToggleReorder: () -> Unit,
@@ -555,11 +517,9 @@ private fun LibraryControlCard(
                 .fillMaxWidth()
                 .padding(horizontal = 14.dp, vertical = 10.dp),
         ) {
-            controls()
-            Text(
-                text = summary,
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            Row(
+                modifier = Modifier.weight(1f),
+                content = controls,
             )
             if (canEnterReorderMode) {
                 IconButton(
@@ -606,38 +566,6 @@ private fun LibraryShortcutGrid(
                     Spacer(Modifier.weight(1f))
                 }
             }
-        }
-    }
-}
-
-@Composable
-private fun LibrarySectionHeaderCard(
-    title: String,
-    supportingText: String,
-    modifier: Modifier = Modifier,
-) {
-    Card(
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
-        shape = MaterialTheme.shapes.large,
-        modifier = modifier,
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 18.dp, vertical = 14.dp),
-        ) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
-                modifier = Modifier.weight(1f),
-            )
-            Text(
-                text = supportingText,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
         }
     }
 }
