@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -75,7 +74,6 @@ import moe.koiverse.archivetune.extensions.move
 import moe.koiverse.archivetune.playback.queues.LocalAlbumRadio
 import moe.koiverse.archivetune.ui.component.LibraryAlbumSpotlightCard
 import moe.koiverse.archivetune.ui.component.LibraryArtistSpotlightCard
-import moe.koiverse.archivetune.ui.component.LibraryPinnedCollectionTile
 import moe.koiverse.archivetune.ui.component.LibraryPlaylistListItem
 import moe.koiverse.archivetune.ui.component.LocalMenuState
 import moe.koiverse.archivetune.ui.component.SortHeader
@@ -508,7 +506,7 @@ private fun LibraryControlCard(
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
         shape = MaterialTheme.shapes.large,
-        modifier = Modifier.padding(horizontal = 16.dp),
+        modifier = Modifier.padding(horizontal = 8.dp),
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -544,26 +542,35 @@ private fun LibraryShortcutGrid(
     modifier: Modifier = Modifier,
 ) {
     Column(
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
         modifier = modifier,
     ) {
-        entries.chunked(2).forEach { rowEntries ->
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                modifier = Modifier.fillMaxWidth(),
+        entries.forEach { entry ->
+            Card(
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+                shape = MaterialTheme.shapes.large,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .combinedClickable(onClick = { onClick(entry.route) }),
             ) {
-                rowEntries.forEach { entry ->
-                    LibraryPinnedCollectionTile(
-                        title = entry.title,
-                        iconRes = entry.iconRes,
-                        accentColor = entry.accentColor,
-                        modifier = Modifier
-                            .weight(1f)
-                            .combinedClickable(onClick = { onClick(entry.route) }),
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 14.dp, vertical = 12.dp),
+                ) {
+                    Icon(
+                        painter = painterResource(entry.iconRes),
+                        contentDescription = null,
+                        tint = entry.accentColor,
+                        modifier = Modifier.size(22.dp),
                     )
-                }
-                if (rowEntries.size == 1) {
-                    Spacer(Modifier.weight(1f))
+                    Text(
+                        text = entry.title,
+                        style = MaterialTheme.typography.titleMedium,
+                        maxLines = 1,
+                    )
                 }
             }
         }
