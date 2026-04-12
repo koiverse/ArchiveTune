@@ -212,14 +212,50 @@ class InnerTube {
         setLogin: Boolean = true,
         authState: PlaybackAuthState = currentAuthState(),
     ) = withRetry {
-        httpClient.post("player") {
+        val includeDataSyncId = setLogin && client.loginSupported && !authState.dataSyncId.isNullOrBlank()
+        try {
+            executePlayerRequest(
+                client = client,
+                videoId = videoId,
+                playlistId = playlistId,
+                signatureTimestamp = signatureTimestamp,
+                poToken = poToken,
+                setLogin = setLogin,
+                authState = authState,
+                includeDataSyncId = includeDataSyncId,
+            )
+        } catch (failure: Throwable) {
+            if (!shouldRetryPlayerRequestWithoutDataSyncId(failure, includeDataSyncId)) throw failure
+            executePlayerRequest(
+                client = client,
+                videoId = videoId,
+                playlistId = playlistId,
+                signatureTimestamp = signatureTimestamp,
+                poToken = poToken,
+                setLogin = setLogin,
+                authState = authState,
+                includeDataSyncId = false,
+            )
+        }
+    }
+
+    private suspend fun executePlayerRequest(
+        client: YouTubeClient,
+        videoId: String,
+        playlistId: String?,
+        signatureTimestamp: Int?,
+        poToken: String?,
+        setLogin: Boolean,
+        authState: PlaybackAuthState,
+        includeDataSyncId: Boolean,
+    ) = httpClient.post("player") {
         ytClient(client, setLogin = setLogin, authState = authState)
         setBody(
             PlayerBody(
                 context = client.toContext(
                     locale = locale,
                     visitorData = authState.visitorData,
-                    dataSyncId = null,
+                    dataSyncId = if (includeDataSyncId) authState.dataSyncId else null,
                 ).let {
                     if (client.isEmbedded) {
                         it.copy(
@@ -243,7 +279,19 @@ class InnerTube {
                 },
             )
         )
-        }
+    }
+
+    private fun shouldRetryPlayerRequestWithoutDataSyncId(
+        failure: Throwable,
+        includeDataSyncId: Boolean,
+    ): Boolean {
+        if (!includeDataSyncId) return false
+        val clientError = failure as? ClientRequestException ?: return false
+        if (clientError.response.status != HttpStatusCode.BadRequest) return false
+        val message = clientError.message.orEmpty()
+        if (!message.contains("/youtubei/v1/player", ignoreCase = true)) return false
+        return message.contains("INVALID_ARGUMENT", ignoreCase = true) ||
+            message.contains("invalid argument", ignoreCase = true)
     }
 
     suspend fun registerPlayback(

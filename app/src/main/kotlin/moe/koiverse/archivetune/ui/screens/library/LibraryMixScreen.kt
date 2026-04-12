@@ -554,7 +554,7 @@ private fun LibraryShortcutGrid(
                 rowEntries.forEach { entry ->
                     Card(
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
-                        shape = MaterialTheme.shapes.large,
+                        shape = MaterialTheme.shapes.extraLarge,
                         modifier = Modifier
                             .weight(1f)
                             .combinedClickable(onClick = { onClick(entry.route) }),
