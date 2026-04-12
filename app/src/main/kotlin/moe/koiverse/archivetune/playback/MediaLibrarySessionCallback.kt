@@ -35,6 +35,8 @@ import moe.koiverse.archivetune.constants.SongSortType
 import moe.koiverse.archivetune.db.MusicDatabase
 import moe.koiverse.archivetune.db.entities.PlaylistEntity
 import moe.koiverse.archivetune.db.entities.Song
+import moe.koiverse.archivetune.innertube.YouTube
+import moe.koiverse.archivetune.innertube.models.SongItem
 import moe.koiverse.archivetune.extensions.toMediaItem
 import moe.koiverse.archivetune.extensions.toggleRepeatMode
 import moe.koiverse.archivetune.models.PersistQueue
@@ -53,6 +55,7 @@ import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import kotlin.math.min
 import java.io.ObjectInputStream
+import java.util.concurrent.ConcurrentHashMap
 
 class MediaLibrarySessionCallback
 @Inject
@@ -63,6 +66,7 @@ constructor(
 ) : MediaLibrarySession.Callback {
     private val scope = CoroutineScope(Dispatchers.Main) + Job()
     private var pendingSearchJob: Job? = null
+    private val onlineSearchItemCache = ConcurrentHashMap<String, MediaItem>()
     var toggleLike: () -> Unit = {}
     var toggleStartRadio: () -> Unit = {}
     var toggleLibrary: () -> Unit = {}
@@ -211,10 +215,13 @@ constructor(
                             if (q.isBlank()) {
                                 0
                             } else {
-                                database.searchSongsCount(q) +
+                                val localCount =
+                                    database.searchSongsCount(q) +
                                     database.searchArtistsCount(q) +
                                     database.searchAlbumsCount(q) +
                                     database.searchPlaylistsCount(q)
+                                val onlineCount = searchOnlineSongs(q, previewSize = 25).size
+                                localCount + onlineCount
                             }
                         }.getOrElse { 0 }
                     withContext(Dispatchers.Main) {
@@ -299,6 +306,17 @@ constructor(
                             MediaMetadata.MEDIA_TYPE_PLAYLIST,
                         )
                     }
+            }
+
+            if (items.size < requested) {
+                val remaining = requested - items.size
+                val existingIds = items.mapTo(HashSet(items.size)) { it.mediaId }
+                val onlineSongs =
+                    searchOnlineSongs(q, previewSize = remaining).filter {
+                        existingIds.add(it.mediaId)
+                    }
+                onlineSongs.forEach { onlineSearchItemCache[it.mediaId] = it }
+                items += onlineSongs
             }
 
             val from = safePage * safePageSize
@@ -606,7 +624,9 @@ constructor(
                     } ?: LibraryResult.ofError(SessionError.ERROR_UNKNOWN)
 
                 else ->
-                    database.song(mediaId).first()?.toMediaItem()?.let {
+                    onlineSearchItemCache[mediaId]?.let {
+                        LibraryResult.ofItem(it, null)
+                    } ?: database.song(mediaId).first()?.toMediaItem()?.let {
                         LibraryResult.ofItem(it, null)
                     } ?: LibraryResult.ofError(SessionError.ERROR_UNKNOWN)
             }
@@ -700,6 +720,16 @@ constructor(
                 }
 
                 else -> {
+                    val directMediaId = firstItem.mediaId.trim()
+                    if (directMediaId.isNotBlank() && !directMediaId.contains("/")) {
+                        val selectedItem = onlineSearchItemCache[directMediaId] ?: firstItem
+                        return@future MediaSession.MediaItemsWithStartPosition(
+                            listOf(selectedItem),
+                            0,
+                            startPositionMs,
+                        )
+                    }
+
                     val query = firstItem.requestMetadata.searchQuery?.trim().orEmpty()
                     if (query.isBlank()) return@future defaultResult
 
@@ -765,6 +795,24 @@ constructor(
                     .setExtras(playableExtras())
                     .build(),
             ).build()
+
+    private suspend fun searchOnlineSongs(
+        query: String,
+        previewSize: Int,
+    ): List<MediaItem> {
+        if (query.isBlank() || previewSize <= 0) return emptyList()
+        return YouTube
+            .search(query, YouTube.SearchFilter.FILTER_SONG)
+            .getOrNull()
+            ?.items
+            .orEmpty()
+            .asSequence()
+            .filterIsInstance<SongItem>()
+            .distinctBy { it.id }
+            .take(previewSize)
+            .map { it.toMediaItem() }
+            .toList()
+    }
 
     companion object {
         private const val EXTRA_CONTENT_STYLE_SUPPORTED = "android.media.browse.CONTENT_STYLE_SUPPORTED"
