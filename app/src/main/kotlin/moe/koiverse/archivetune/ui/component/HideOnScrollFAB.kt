@@ -22,10 +22,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.grid.LazyGridState
+import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.MediumExtendedFloatingActionButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -56,7 +56,7 @@ fun BoxScope.HideOnScrollFAB(
                     .only(WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal),
             ),
     ) {
-        MediumExtendedFloatingActionButton(
+        ExtendedFloatingActionButton(
             modifier = Modifier.padding(16.dp),
             onClick = onClick,
             icon = {
@@ -93,7 +93,7 @@ fun BoxScope.HideOnScrollFAB(
                     .only(WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal),
             ),
     ) {
-        MediumExtendedFloatingActionButton(
+        ExtendedFloatingActionButton(
             modifier = Modifier.padding(16.dp),
             onClick = onClick,
             icon = {
@@ -130,7 +130,7 @@ fun BoxScope.HideOnScrollFAB(
                     .only(WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal),
             ),
     ) {
-        MediumExtendedFloatingActionButton(
+        ExtendedFloatingActionButton(
             modifier = Modifier.padding(16.dp),
             onClick = onClick,
             icon = {
