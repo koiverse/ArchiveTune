@@ -44,6 +44,30 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
+  notifyTelegram:
+    name: Notify Telegram
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install Dependencies
+        run: |
+          pip install requests
+
+      - name: Send a message to Telegram
+        env:
+          BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          TOPIC_ID: ${{ secrets.TELEGRAM_TOPIC_ID }}
+        run: |
+          python ./.github/workflows/notify_telegram.py
+        continue-on-error: true
+
       - name: Build Release APK
         run: ./gradlew assemble${{ matrix.abi }}Release
         env:
@@ -74,6 +98,52 @@ jobs:
         with:
           name: app-${{ matrix.abi }}-release
           path: app/build/outputs/apk/${{ matrix.abi }}/release/out/*
+
+  aggregateAndSend:
+    name: Send APKs to Telegram
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Download Artifacts
+        uses: actions/download-artifact@v7
+        with:
+          name: app-${{ matrix.abi }}-release
+          path: app/build/outputs/apk/${{ matrix.abi }}/download/*
+
+      - name: Set up Python 3
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install Dependencies
+        run: |
+          pip install telethon
+
+      - name: Get Git Commit Info
+        run: |
+          echo "COMMIT_AUTHOR=$(git log -1 --pretty=format:'%an')" >> $GITHUB_ENV
+          echo "COMMIT_MESSAGE=$(git log -1 --pretty=format:'%s')" >> $GITHUB_ENV
+
+      - name: Restore Telegram session cache
+        uses: actions/cache@v4
+        id: telegram_session_cache
+        with:
+          path: bot_session.session
+          key: telegram-session-${{ runner.os }}-bot_session
+
+      - name: Send APKs to Telegram
+        env:
+          API_ID: ${{ secrets.TELEGRAM_API_ID }}
+          API_HASH: ${{ secrets.TELEGRAM_API_HASH }}
+          BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          TOPIC_ID: ${{ secrets.TELEGRAM_TOPIC_ID }}
+          APK_PATH: app/build/outputs/apk/${{ matrix.abi }}/download/*
+        run: |
+          python ./.github/workflows/deploy_artifacts.py
+        continue-on-error: true
 
 
   build_debug:
