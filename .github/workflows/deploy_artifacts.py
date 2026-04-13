@@ -71,32 +71,56 @@ def resolve_apk_paths(path_value):
     return unique_files
 
 
-async def send_file(file_path):
-    if not os.path.exists(file_path):
-        print("File not found", file_path)
+def extract_abi_name(file_path):
+    file_name = os.path.basename(file_path).lower()
+    known_abis = [
+        "arm64",
+        "armeabi",
+        "x86_64",
+        "x86"
+        "universal"
+    ]
+    for abi in known_abis:
+        if abi in file_name:
+            return abi
+    return "universal"
+
+
+async def send_files(file_paths):
+    existing_files = [path for path in file_paths if os.path.exists(path)]
+    if not existing_files:
+        print("No valid files to send")
         return
 
-    print(f"Sending file: {file_path} to the Telegram group")
+    print(f"Sending {len(existing_files)} files to the Telegram group")
+    abi_names = sorted({extract_abi_name(path) for path in existing_files})
+    topic_id = os.getenv("TOPIC_ID")
 
     message = (
         f"**Commit by:** {commit_author}\n"
         f"**Commit message:** {commit_message}\n"
         f"**Commit hash:** #{commit_hash_short}\n"
+        f"**ABI:** {', '.join(abi_names)}\n"
+        f"**Files:** {len(existing_files)}\n"
         f"**Version:** Android >= 8"
     )
 
     try:
+        send_kwargs = {
+            "entity": group_id,
+            "file": existing_files,
+            "parse_mode": "markdown",
+            "caption": message,
+            "progress_callback": progress
+        }
+        if topic_id:
+            send_kwargs["reply_to"] = int(topic_id)
         await client.send_file(
-            entity=group_id,
-            file=file_path,
-            parse_mode='markdown',
-            caption=message,
-            progress_callback=progress,
-            reply_to=int(os.getenv("TOPIC_ID"))
+            **send_kwargs
         )
-        print("\nFile sent successfully")
+        print("\nFiles sent successfully")
     except Exception as e:
-        print(f"Failed to send file: {e}")
+        print(f"Failed to send files: {e}")
 
 try:
     apk_files = resolve_apk_paths(apk_path)
@@ -104,8 +128,7 @@ try:
         print("File not found", apk_path)
         raise SystemExit(1)
     with client:
-        for file_path in apk_files:
-            client.loop.run_until_complete(send_file(file_path))
+        client.loop.run_until_complete(send_files(apk_files))
 finally:
     if client.is_connected():
         client.loop.run_until_complete(client.disconnect())
