@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -542,7 +543,7 @@ private fun LibraryControlCard(
 private fun LibraryShortcutGrid(
     entries: List<LibraryShortcutEntry>,
     onClick: (String) -> Unit,
-    cardHeight: Dp = 54.dp,
+    cardHeight: Dp = 60.dp,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -565,10 +566,13 @@ private fun LibraryShortcutGrid(
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            horizontalArrangement = Arrangement.spacedBy(
+                                space = 12.dp,
+                                alignment = Alignment.CenterHorizontally,
+                            ),
                             modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 14.dp, vertical = 12.dp),
+                                .fillMaxSize()
+                                .padding(horizontal = 14.dp),
                         ) {
                             Icon(
                                 painter = painterResource(entry.iconRes),
