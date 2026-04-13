@@ -416,6 +416,7 @@ fun SpeedDialSection(
             contentPadding = WindowInsets.systemBars.only(WindowInsetsSides.Horizontal).asPaddingValues(),
             modifier =
                 Modifier
+                    .padding(8.dp)
                     .fillMaxWidth()
                     .height(gridHeight),
         ) {
