@@ -254,6 +254,17 @@ constructor(
 
             if (items.size < requested) {
                 val remaining = requested - items.size
+                val existingIds = items.mapTo(HashSet(items.size)) { it.mediaId }
+                val onlineSongs =
+                    searchOnlineSongs(q, previewSize = remaining).filter {
+                        existingIds.add(it.mediaId)
+                    }
+                onlineSongs.forEach { onlineSearchItemCache[it.mediaId] = it }
+                items += onlineSongs
+            }
+
+            if (items.size < requested) {
+                val remaining = requested - items.size
 
                 val artists = database.searchArtists(q, previewSize = remaining).first()
                 items +=
@@ -306,17 +317,6 @@ constructor(
                             MediaMetadata.MEDIA_TYPE_PLAYLIST,
                         )
                     }
-            }
-
-            if (items.size < requested) {
-                val remaining = requested - items.size
-                val existingIds = items.mapTo(HashSet(items.size)) { it.mediaId }
-                val onlineSongs =
-                    searchOnlineSongs(q, previewSize = remaining).filter {
-                        existingIds.add(it.mediaId)
-                    }
-                onlineSongs.forEach { onlineSearchItemCache[it.mediaId] = it }
-                items += onlineSongs
             }
 
             val from = safePage * safePageSize
