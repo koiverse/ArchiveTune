@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -48,6 +49,7 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
@@ -540,6 +542,7 @@ private fun LibraryControlCard(
 private fun LibraryShortcutGrid(
     entries: List<LibraryShortcutEntry>,
     onClick: (String) -> Unit,
+    cardHeight: Dp = 54.dp,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -557,6 +560,7 @@ private fun LibraryShortcutGrid(
                         shape = MaterialTheme.shapes.extraLarge,
                         modifier = Modifier
                             .weight(1f)
+                            .height(cardHeight)
                             .combinedClickable(onClick = { onClick(entry.route) }),
                     ) {
                         Row(
