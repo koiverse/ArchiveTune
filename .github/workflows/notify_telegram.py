@@ -27,7 +27,7 @@ def main():
     message = (
         f"A new [commit](https://github.com/koiverse/ArchiveTune/commit/{commit_hash}) has been merged to the repository by *{commit_author}*.\n\n"
         f"*What has changed:*\n>{escape_parentheses(commit_message)}\n\n"
-        f"I'm currently building it and will send you the APKs here within ~6 mins if the build is successful.\n\n#{commit_hash_short}"
+        f"I'm currently building it and will send you the APKs here within ~9 mins if the build is successful.\n\n#{commit_hash_short}"
     )
 
     escaped_message = escape_markdown_v2(message)
