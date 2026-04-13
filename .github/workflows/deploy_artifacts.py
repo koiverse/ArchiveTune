@@ -1,6 +1,7 @@
 from telethon import TelegramClient
 import os
 import subprocess
+import glob
 
 def get_git_commit_info():
     commit_author = subprocess.check_output(['git', 'log', '-1', '--pretty=format:%an']).decode('utf-8')
@@ -15,7 +16,7 @@ api_hash = os.getenv("API_HASH")
 bot_token = os.getenv("BOT_TOKEN")
 group_id = int(os.getenv("CHAT_ID"))
 
-# File paths to send
+# File path pattern(s) to send
 apk_path = os.getenv("APK_PATH")
 
 # Get the latest commit info
@@ -43,6 +44,31 @@ async def progress(current, total):
     uploaded_size_readable = human_readable_size(current)
     total_size_readable = human_readable_size(total)
     print(f"{progress_percentage:.2f}% uploaded - {uploaded_size_readable}/{total_size_readable}", end='\r')
+
+
+def resolve_apk_paths(path_value):
+    if not path_value:
+        return []
+    patterns = [item.strip() for item in path_value.split(";") if item.strip()]
+    if not patterns:
+        patterns = [path_value.strip()]
+    resolved = []
+    for pattern in patterns:
+        matched = glob.glob(pattern, recursive=True)
+        if matched:
+            resolved.extend(matched)
+            continue
+        if os.path.isdir(pattern):
+            resolved.extend(glob.glob(os.path.join(pattern, "*.apk")))
+    unique_files = []
+    seen = set()
+    for path in resolved:
+        normalized = os.path.normpath(path)
+        if normalized in seen or not os.path.isfile(normalized):
+            continue
+        seen.add(normalized)
+        unique_files.append(normalized)
+    return unique_files
 
 
 async def send_file(file_path):
@@ -73,8 +99,13 @@ async def send_file(file_path):
         print(f"Failed to send file: {e}")
 
 try:
+    apk_files = resolve_apk_paths(apk_path)
+    if not apk_files:
+        print("File not found", apk_path)
+        raise SystemExit(1)
     with client:
-        client.loop.run_until_complete(send_file(apk_path))
+        for file_path in apk_files:
+            client.loop.run_until_complete(send_file(file_path))
 finally:
     if client.is_connected():
         client.loop.run_until_complete(client.disconnect())
