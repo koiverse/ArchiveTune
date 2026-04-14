@@ -1565,7 +1565,7 @@ class MainActivity : ComponentActivity() {
 
                                                                     is PlaylistItem -> {
                                                                         luckyItem.playEndpoint?.let {
-                                                                            playerConnection?.playQueue(YouTubeQueue(it))
+                                                                            playerConnection?.playQueue(YouTubeQueue.playlist(it))
                                                                         }
                                                                     }
                                                                 }
@@ -1945,7 +1945,7 @@ class MainActivity : ComponentActivity() {
                                 }
 
                             endpoint?.let {
-                                pendingDeepLinkQueue = YouTubeQueue(it)
+                                pendingDeepLinkQueue = YouTubeQueue.playlist(it)
                                 startMusicServiceSafely()
                                 playPendingDeepLinkQueueIfReady()
                             } ?: navController.navigate("online_playlist/$playlistId")

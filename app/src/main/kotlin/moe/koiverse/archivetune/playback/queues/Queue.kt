@@ -20,6 +20,8 @@ interface Queue {
 
     suspend fun getInitialStatus(): Status
 
+    fun shouldExpandToFullQueueWhenAutoLoadMoreDisabled(): Boolean = false
+
     fun hasNextPage(): Boolean
 
     suspend fun nextPage(): List<MediaItem>
