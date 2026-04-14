@@ -81,6 +81,7 @@ import moe.koiverse.archivetune.ui.component.LibraryArtistSpotlightCard
 import moe.koiverse.archivetune.ui.component.LibraryPlaylistListItem
 import moe.koiverse.archivetune.ui.component.LocalMenuState
 import moe.koiverse.archivetune.ui.component.SortHeader
+import moe.koiverse.archivetune.ui.component.LibraryPinnedCollectionTile
 import moe.koiverse.archivetune.ui.menu.AlbumMenu
 import moe.koiverse.archivetune.ui.menu.ArtistMenu
 import moe.koiverse.archivetune.utils.rememberEnumPreference
