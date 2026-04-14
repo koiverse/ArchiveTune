@@ -11,6 +11,7 @@ package moe.koiverse.archivetune.utils
 import android.content.Context
 import androidx.datastore.preferences.core.MutablePreferences
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.edit
 import moe.koiverse.archivetune.constants.AccountChannelHandleKey
 import moe.koiverse.archivetune.constants.AccountEmailKey
 import moe.koiverse.archivetune.constants.AccountNameKey
