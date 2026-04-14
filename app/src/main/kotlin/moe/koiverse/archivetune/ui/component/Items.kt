@@ -990,7 +990,7 @@ fun LibraryPinnedCollectionTile(
                 verticalArrangement = Arrangement.spacedBy(16.dp),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(18.dp),
+                    .padding(14.dp),
             ) {
                 Surface(
                     color = MaterialTheme.colorScheme.surface.copy(alpha = 0.76f),
