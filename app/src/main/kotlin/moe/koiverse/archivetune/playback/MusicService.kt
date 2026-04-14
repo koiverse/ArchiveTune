@@ -1292,6 +1292,7 @@ class MusicService :
     private suspend fun rebindAudioEffectsAfterRouteChange() {
         if (!isAudioEffectSessionOpened) return
         closeAudioEffectSession()
+        if (!player.playWhenReady) return
         delay(AUDIO_EFFECT_ROUTE_REBIND_DELAY_MS)
         openAudioEffectSession()
     }
@@ -3187,7 +3188,7 @@ class MusicService :
     fun applyEqFlatPreset() {
         ioScope.launch {
             val caps = eqCapabilities.value
-            val bandCount = caps?.bandCount ?: runCatching { equalizer?.numberOfBands?.toInt() }.getOrNull() ?: 0
+            val bandCount = caps?.bandCount ?: equalizer?.let { readAudioEffectValue("equalizer band count") { it.numberOfBands.toInt() } } ?: 0
             val encoded = encodeBandLevelsMb(List(bandCount.coerceAtLeast(0)) { 0 })
             dataStore.edit { prefs ->
                 prefs[EqualizerEnabledKey] = true
@@ -3201,15 +3202,17 @@ class MusicService :
         scope.launch {
             ensureAudioEffects(player.audioSessionId)
             val eq = equalizer ?: return@launch
-            val maxPreset = runCatching { eq.numberOfPresets.toInt() }.getOrNull() ?: 0
+            val maxPreset = readAudioEffectValue("equalizer preset count") { eq.numberOfPresets.toInt() } ?: 0
             if (presetIndex !in 0 until maxPreset) return@launch
 
             runCatching { eq.usePreset(presetIndex.toShort()) }.getOrNull() ?: return@launch
 
-            val bandCount = runCatching { eq.numberOfBands.toInt() }.getOrNull() ?: 0
+            val bandCount = readAudioEffectValue("equalizer band count") { eq.numberOfBands.toInt() } ?: 0
             val levels =
                 (0 until bandCount).map { band ->
-                    runCatching { eq.getBandLevel(band.toShort()).toInt() }.getOrNull() ?: 0
+                    readAudioEffectValue("equalizer band level for band $band") {
+                        eq.getBandLevel(band.toShort()).toInt()
+                    } ?: 0
                 }
 
             val encoded = encodeBandLevelsMb(levels)
@@ -3243,18 +3246,32 @@ class MusicService :
         }
     }
 
+    private inline fun <T> readAudioEffectValue(
+        operation: String,
+        block: () -> T,
+    ): T? =
+        runCatching(block)
+            .onFailure { error ->
+                Timber.tag("MusicService").w(error, "Audio effect query failed: %s", operation)
+            }.getOrNull()
+
     private fun updateEqCapabilitiesFromEffect(eq: Equalizer) {
-        val bandCount = eq.numberOfBands.toInt().coerceAtLeast(0)
-        val range = runCatching { eq.bandLevelRange }.getOrNull()
+        val bandCount = readAudioEffectValue("equalizer band count") { eq.numberOfBands.toInt().coerceAtLeast(0) } ?: 0
+        val range = readAudioEffectValue("equalizer band range") { eq.bandLevelRange }
         val minMb = range?.getOrNull(0)?.toInt() ?: -1500
         val maxMb = range?.getOrNull(1)?.toInt() ?: 1500
         val center =
             (0 until bandCount).map { band ->
-                (runCatching { eq.getCenterFreq(band.toShort()) }.getOrNull() ?: 0) / 1000
+                (readAudioEffectValue("equalizer center frequency for band $band") {
+                    eq.getCenterFreq(band.toShort())
+                } ?: 0) / 1000
             }
+        val presetCount = readAudioEffectValue("equalizer preset count") { eq.numberOfPresets.toInt().coerceAtLeast(0) } ?: 0
         val presets =
-            (0 until eq.numberOfPresets.toInt()).map { idx ->
-                runCatching { eq.getPresetName(idx.toShort()).toString() }.getOrNull() ?: "Preset ${idx + 1}"
+            (0 until presetCount).map { idx ->
+                readAudioEffectValue("equalizer preset name for preset $idx") {
+                    eq.getPresetName(idx.toShort()).toString()
+                } ?: "Preset ${idx + 1}"
             }
         eqCapabilities.value =
             EqCapabilities(
@@ -3310,9 +3327,9 @@ class MusicService :
     private fun applyEqSettingsToEffects(settings: EqSettings) {
         val eq = equalizer ?: return
         val caps = eqCapabilities.value
-        val bandCount = caps?.bandCount ?: eq.numberOfBands.toInt()
-        val minMb = caps?.minBandLevelMb ?: runCatching { eq.bandLevelRange.getOrNull(0)?.toInt() }.getOrNull() ?: -1500
-        val maxMb = caps?.maxBandLevelMb ?: runCatching { eq.bandLevelRange.getOrNull(1)?.toInt() }.getOrNull() ?: 1500
+        val bandCount = caps?.bandCount ?: readAudioEffectValue("equalizer band count") { eq.numberOfBands.toInt() } ?: 0
+        val minMb = caps?.minBandLevelMb ?: readAudioEffectValue("equalizer minimum band level") { eq.bandLevelRange.getOrNull(0)?.toInt() } ?: -1500
+        val maxMb = caps?.maxBandLevelMb ?: readAudioEffectValue("equalizer maximum band level") { eq.bandLevelRange.getOrNull(1)?.toInt() } ?: 1500
 
         val levels = resampleLevelsByIndex(settings.bandLevelsMb, bandCount)
         runCatching { eq.enabled = settings.enabled }
@@ -3940,26 +3957,26 @@ class MusicService :
                 return@Factory dataSpec
             }
             val mediaId = dataSpec.key ?: return@Factory dataSpec
+            val knownContentLength =
+                contentLengthCache[mediaId] ?: runBlocking(Dispatchers.IO) {
+                    database.format(mediaId).first()?.contentLength
+                } ?: runCatching {
+                    downloadCache
+                        .getContentMetadata(mediaId)
+                        .get(ContentMetadata.KEY_CONTENT_LENGTH, -1L)
+                }.getOrNull()?.takeIf { it > 0L } ?: runCatching {
+                    playerCache
+                        .getContentMetadata(mediaId)
+                        .get(ContentMetadata.KEY_CONTENT_LENGTH, -1L)
+                }.getOrNull()?.takeIf { it > 0L }
+
+            knownContentLength?.let { contentLengthCache[mediaId] = it }
 
             val requiredCachedLength =
                 if (dataSpec.length >= 0) {
                     dataSpec.length
                 } else {
-                    val contentLength =
-                        contentLengthCache[mediaId] ?: runBlocking(Dispatchers.IO) {
-                            database.format(mediaId).first()?.contentLength
-                        } ?: runCatching {
-                            downloadCache
-                                .getContentMetadata(mediaId)
-                                .get(ContentMetadata.KEY_CONTENT_LENGTH, -1L)
-                        }.getOrNull()?.takeIf { it > 0L } ?: runCatching {
-                            playerCache
-                                .getContentMetadata(mediaId)
-                                .get(ContentMetadata.KEY_CONTENT_LENGTH, -1L)
-                        }.getOrNull()?.takeIf { it > 0L }
-
-                    contentLength?.let { nonNullContentLength ->
-                        contentLengthCache[mediaId] = nonNullContentLength
+                    knownContentLength?.let { nonNullContentLength ->
                         (nonNullContentLength - dataSpec.position).takeIf { it > 0L }
                     }
                 }
@@ -3977,8 +3994,17 @@ class MusicService :
             val authFingerprint = YouTube.currentPlaybackAuthState().fingerprint
             playbackUrlCache[mediaId]?.takeIf { it.isValidFor(authFingerprint) }?.let {
                 scope.launch(Dispatchers.IO) { recoverSong(mediaId) }
-                val length = if (dataSpec.length >= 0) minOf(dataSpec.length, CHUNK_LENGTH) else CHUNK_LENGTH
-                return@Factory dataSpec.withUri(it.url.toUri()).subrange(dataSpec.uriPositionOffset, length)
+                val resolvedDataSpec = dataSpec.withUri(it.url.toUri())
+                val length =
+                    resolveStreamChunkLength(
+                        requestedLength = dataSpec.length,
+                        position = dataSpec.position,
+                        knownContentLength = knownContentLength,
+                        chunkLength = CHUNK_LENGTH,
+                    )
+                return@Factory length?.let { nonNullLength ->
+                    resolvedDataSpec.subrange(0L, nonNullLength)
+                } ?: resolvedDataSpec
             }
 
             val playbackData = runBlocking(Dispatchers.IO) {
@@ -4074,8 +4100,17 @@ class MusicService :
                         expiresAtMs = System.currentTimeMillis() + (nonNullPlayback.streamExpiresInSeconds * 1000L),
                         authFingerprint = nonNullPlayback.authFingerprint,
                     )
-                val length = if (dataSpec.length >= 0) minOf(dataSpec.length, CHUNK_LENGTH) else CHUNK_LENGTH
-                return@Factory dataSpec.withUri(streamUrl.toUri()).subrange(dataSpec.uriPositionOffset, length)
+                val resolvedDataSpec = dataSpec.withUri(streamUrl.toUri())
+                val length =
+                    resolveStreamChunkLength(
+                        requestedLength = dataSpec.length,
+                        position = dataSpec.position,
+                        knownContentLength = knownContentLength ?: format.contentLength,
+                        chunkLength = CHUNK_LENGTH,
+                    )
+                return@Factory length?.let { nonNullLength ->
+                    resolvedDataSpec.subrange(0L, nonNullLength)
+                } ?: resolvedDataSpec
             }
         }
     }
