@@ -543,7 +543,6 @@ private fun LibraryControlCard(
 private fun LibraryShortcutGrid(
     entries: List<LibraryShortcutEntry>,
     onClick: (String) -> Unit,
-    cardHeight: Dp = 60.dp,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -556,37 +555,14 @@ private fun LibraryShortcutGrid(
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 rowEntries.forEach { entry ->
-                    Card(
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
-                        shape = MaterialTheme.shapes.extraLarge,
+                    LibraryPinnedCollectionTile(
+                        title = entry.title,
+                        iconRes = entry.iconRes,
+                        accentColor = entry.accentColor,
                         modifier = Modifier
                             .weight(1f)
-                            .height(cardHeight)
                             .combinedClickable(onClick = { onClick(entry.route) }),
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(
-                                space = 12.dp,
-                                alignment = Alignment.CenterHorizontally,
-                            ),
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(horizontal = 14.dp),
-                        ) {
-                            Icon(
-                                painter = painterResource(entry.iconRes),
-                                contentDescription = null,
-                                tint = entry.accentColor,
-                                modifier = Modifier.size(22.dp),
-                            )
-                            Text(
-                                text = entry.title,
-                                style = MaterialTheme.typography.titleMedium,
-                                maxLines = 1,
-                            )
-                        }
-                    }
+                    )
                 }
                 if (rowEntries.size == 1) {
                     Spacer(Modifier.weight(1f))
