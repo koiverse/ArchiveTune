@@ -35,6 +35,7 @@ import moe.koiverse.archivetune.utils.PreferenceStore
 import moe.koiverse.archivetune.utils.YTPlayerUtils
 import moe.koiverse.archivetune.utils.get
 import moe.koiverse.archivetune.utils.reportException
+import moe.koiverse.archivetune.utils.clearPlaybackWebAuthSession
 import moe.koiverse.archivetune.utils.clearPlaybackAuthSession
 import moe.koiverse.archivetune.innertube.YouTube
 import moe.koiverse.archivetune.innertube.models.YouTubeLocale
@@ -286,6 +287,7 @@ class App : Application(), SingletonImageLoader.Factory {
             private set
 
         fun forgetAccount(context: Context) {
+            clearPlaybackWebAuthSession(context)
             CoroutineScope(Dispatchers.IO).launch {
                 context.dataStore.edit { settings ->
                     settings.clearPlaybackAuthSession()
