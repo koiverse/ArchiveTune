@@ -178,13 +178,13 @@ import moe.koiverse.archivetune.utils.AuthScopedCacheValue
 import moe.koiverse.archivetune.utils.SyncUtils
 import moe.koiverse.archivetune.utils.YTPlayerUtils
 import moe.koiverse.archivetune.utils.StreamClientUtils
-import moe.koiverse.archivetune.utils.clearPlaybackLoginContext
 import moe.koiverse.archivetune.utils.dataStore
 import moe.koiverse.archivetune.utils.enumPreference
 import moe.koiverse.archivetune.utils.get
 import moe.koiverse.archivetune.utils.getAsync
 import moe.koiverse.archivetune.utils.isInternetAvailable
 import moe.koiverse.archivetune.utils.getPresenceIntervalMillis
+import moe.koiverse.archivetune.utils.retryWithoutPlaybackLoginContext
 import moe.koiverse.archivetune.utils.reportException
 import moe.koiverse.archivetune.utils.NetworkConnectivityObserver
 import dagger.hilt.android.AndroidEntryPoint
@@ -1781,10 +1781,34 @@ class MusicService :
             player.playWhenReady = playWhenReady
         }
         scope.launch(SilentHandler) {
-            val initialStatus =
+            val hideExplicit = dataStore.get(HideExplicitKey, false)
+            val hideVideo = dataStore.get(HideVideoKey, false)
+            val autoLoadMoreEnabled = dataStore.get(AutoLoadMoreKey, true)
+            var initialStatus =
                 withContext(Dispatchers.IO) {
-                    queue.getInitialStatus().filterExplicit(dataStore.get(HideExplicitKey, false)).filterVideo(dataStore.get(HideVideoKey, false))
+                    queue
+                        .getInitialStatus()
+                        .filterExplicit(hideExplicit)
+                        .filterVideo(hideVideo)
                 }
+            if (!autoLoadMoreEnabled && queue.shouldExpandToFullQueueWhenAutoLoadMoreDisabled() && queue.hasNextPage()) {
+                val expandedItems = initialStatus.items.toMutableList()
+                var pagesLoaded = 0
+                while (queue.hasNextPage() && pagesLoaded < 200) {
+                    pagesLoaded++
+                    val nextItems =
+                        withContext(Dispatchers.IO) {
+                            queue
+                                .nextPage()
+                                .filterExplicit(hideExplicit)
+                                .filterVideo(hideVideo)
+                        }
+                    if (nextItems.isNotEmpty()) {
+                        expandedItems += nextItems
+                    }
+                }
+                initialStatus = initialStatus.copy(items = expandedItems)
+            }
             if (initialStatus.title != null) {
                 queueTitle = initialStatus.title
             }
@@ -4008,13 +4032,15 @@ class MusicService :
             }
 
             val playbackData = runBlocking(Dispatchers.IO) {
-                YTPlayerUtils.playerResponseForPlayback(
-                    mediaId,
-                    audioQuality = audioQuality,
-                    connectivityManager = connectivityManager,
-                    preferredStreamClient = preferredStreamClient,
-                    avoidCodecs = avoidStreamCodecs,
-                )
+                retryWithoutPlaybackLoginContext {
+                    YTPlayerUtils.playerResponseForPlayback(
+                        mediaId,
+                        audioQuality = audioQuality,
+                        connectivityManager = connectivityManager,
+                        preferredStreamClient = preferredStreamClient,
+                        avoidCodecs = avoidStreamCodecs,
+                    )
+                }
             }.getOrElse { throwable ->
                 when (throwable) {
                     is YTPlayerUtils.InvalidPlaybackLoginContextException -> {

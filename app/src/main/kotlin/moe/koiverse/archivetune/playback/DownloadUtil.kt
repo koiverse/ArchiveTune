@@ -40,6 +40,7 @@ import moe.koiverse.archivetune.utils.YTPlayerUtils
 import moe.koiverse.archivetune.utils.dataStore
 import moe.koiverse.archivetune.utils.enumPreference
 import moe.koiverse.archivetune.utils.get
+import moe.koiverse.archivetune.utils.retryWithoutPlaybackLoginContext
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -164,14 +165,16 @@ constructor(
 
                     val networkMeteredPref = context.dataStore.get(NetworkMeteredKey, true)
                     val result =
-                        YTPlayerUtils.playerResponseForPlayback(
-                            mediaId,
-                            audioQuality = audioQuality,
-                            preferredStreamClient = preferredStreamClient,
-                            connectivityManager = connectivityManager,
-                            networkMetered = networkMeteredPref,
-                            avoidCodecs = avoidStreamCodecs,
-                        )
+                        context.retryWithoutPlaybackLoginContext {
+                            YTPlayerUtils.playerResponseForPlayback(
+                                mediaId,
+                                audioQuality = audioQuality,
+                                preferredStreamClient = preferredStreamClient,
+                                connectivityManager = connectivityManager,
+                                networkMetered = networkMeteredPref,
+                                avoidCodecs = avoidStreamCodecs,
+                            )
+                        }
 
                     if (result.isSuccess) {
                         clearThrottleSignal()
