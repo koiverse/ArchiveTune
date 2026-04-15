@@ -190,7 +190,7 @@
     <string name="empty_playlist">Lista de reproducción vacía</string>
     <string name="empty_playlist_desc">Esta lista de reproducción no contiene canciones</string>
     <string name="audio_crossfade_title">Fundido cruzado</string>
-    <string name="audio_crossfade_description">Realiza una transición suave entre canciones atenuando el final de cada pista.</string>
+    <string name="audio_crossfade_description">Transición fluida entre canciones mediante efectos de desvanecimiento.</string>
     <string name="audio_crossfade_dialog_title">Duración del fundido cruzado</string>
     <string name="disable_load_more_when_repeat_all">Desactivar cargar más al repetir todo</string>
     <string name="disable_load_more_when_repeat_all_desc">No cargar automáticamente más canciones y contenido similar cuando el modo repetir todo está activado</string>
@@ -288,4 +288,20 @@
     <string name="error_no_song_playing">No se está reproduciendo ninguna canción</string>
     <string name="error_no_similar_songs">Sin canciones similares</string>
     <string name="error_automix_failed">No se han podido cargar canciones similares</string>
+    <string name="lyrics_share_layout">Disposición</string>
+    <string name="lyrics_share_layout_square">Cuadrado</string>
+    <string name="lyrics_share_layout_portrait">Retrato</string>
+    <string name="lyrics_share_layout_story">Historia</string>
+    <string name="lyrics_share_background_blur">Fondo borroso</string>
+    <string name="lyrics_share_background_blur_value">%1$d px</string>
+    <string name="lyrics_share_background_dim">Fondo tenue</string>
+    <string name="lyrics_share_background_dim_value">%1$d%%</string>
+    <string name="lyrics_share_show_cover">Mostrar portada del álbum</string>
+    <string name="lyrics_share_show_cover_desc">Incluye la imagen en el encabezado de la imagen exportada.</string>
+    <string name="lyrics_share_export_failed">Error al crear la imagen: %1$s</string>
+    <string name="lyrics_share_export_not_supported">Para compartir imágenes se requiere Android 6.0 o superior</string>
+    <string name="lyrics_sync_offset">Desfase de sincronización de la letra</string>
+    <string name="audio_crossfade_seconds">%1$s seg</string>
+    <string name="crossfade_gapless_title">Gapless crossfade</string>
+    <string name="crossfade_gapless_description">Atenuación gradual de entrada y salida sin superposición de audio.</string>
 </resources>
