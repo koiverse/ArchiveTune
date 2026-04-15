@@ -55,6 +55,7 @@ import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import kotlin.math.min
 import java.io.ObjectInputStream
+import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
 
 class MediaLibrarySessionCallback
@@ -216,7 +217,7 @@ constructor(
                                 0
                             } else {
                                 val localCount =
-                                    database.searchSongsCount(q) +
+                                    searchOfflineSongs(q, previewSize = 25).count +
                                     database.searchArtistsCount(q) +
                                     database.searchAlbumsCount(q) +
                                     database.searchPlaylistsCount(q)
@@ -249,19 +250,20 @@ constructor(
             val requested = (safePage + 1) * safePageSize
             val items = ArrayList<MediaItem>(min(requested, 200))
 
-            val songs = database.searchSongs(q, previewSize = requested).first()
-            items += songs.map { it.toMediaItem(MusicService.SONG) }
-
-            if (items.size < requested) {
-                val remaining = requested - items.size
-                val existingIds = items.mapTo(HashSet(items.size)) { it.mediaId }
-                val onlineSongs =
-                    searchOnlineSongs(q, previewSize = remaining).filter {
-                        existingIds.add(it.mediaId)
-                    }
-                onlineSongs.forEach { onlineSearchItemCache[it.mediaId] = it }
-                items += onlineSongs
-            }
+            val offlineSongs = searchOfflineSongs(q, previewSize = requested)
+            val existingSongIds =
+                offlineSongs.items
+                    .mapTo(HashSet(offlineSongs.items.size * 2), ::searchSongIdentity)
+            val onlineSongs =
+                searchOnlineSongs(q, previewSize = requested).filter { onlineItem ->
+                    existingSongIds.add(searchSongIdentity(onlineItem))
+                }
+            onlineSongs.forEach { onlineSearchItemCache[it.mediaId] = it }
+            items +=
+                interleaveMediaItems(
+                    first = offlineSongs.items,
+                    second = onlineSongs,
+                ).take(requested)
 
             if (items.size < requested) {
                 val remaining = requested - items.size
@@ -795,6 +797,94 @@ constructor(
                     .setExtras(playableExtras())
                     .build(),
             ).build()
+
+    private data class OfflineSongSearchResult(
+        val items: List<MediaItem>,
+        val count: Int,
+    )
+
+    private suspend fun searchOfflineSongs(
+        query: String,
+        previewSize: Int,
+    ): OfflineSongSearchResult {
+        if (query.isBlank() || previewSize <= 0) {
+            return OfflineSongSearchResult(
+                items = emptyList(),
+                count = 0,
+            )
+        }
+
+        val librarySongs = database.searchSongs(query, previewSize = previewSize).first()
+        val libraryIds = librarySongs.mapTo(HashSet(librarySongs.size)) { it.id }
+        val cachedOnlySongs = searchCachedOnlySongs(query, excludeIds = libraryIds)
+
+        return OfflineSongSearchResult(
+            items =
+                interleaveMediaItems(
+                    first = librarySongs.map { it.toMediaItem(MusicService.SONG) },
+                    second = cachedOnlySongs.take(previewSize).map { it.toMediaItem() },
+                ).take(previewSize),
+            count = database.searchSongsCount(query) + cachedOnlySongs.size,
+        )
+    }
+
+    private suspend fun searchCachedOnlySongs(
+        query: String,
+        excludeIds: Set<String> = emptySet(),
+    ): List<Song> {
+        val cachedIds = cachedSongIds()
+        if (cachedIds.isEmpty()) return emptyList()
+
+        val normalizedQuery = query.lowercase(Locale.getDefault())
+        return database
+            .getSongsByIds(cachedIds)
+            .asSequence()
+            .filter { it.song.inLibrary == null }
+            .filterNot { it.id in excludeIds }
+            .filter { it.song.title.lowercase(Locale.getDefault()).contains(normalizedQuery) }
+            .sortedBy { it.song.title.lowercase(Locale.getDefault()) }
+            .toList()
+    }
+
+    private fun cachedSongIds(): List<String> {
+        val completedDownloadIds =
+            downloadUtil.downloads.value
+                .asSequence()
+                .filter { (_, download) -> download.state == Download.STATE_COMPLETED }
+                .map { (id, _) -> id }
+        val downloadCacheIds =
+            runCatching { downloadUtil.downloadCache.keys.asSequence() }
+                .getOrDefault(emptySequence())
+        val playerCacheIds =
+            runCatching { downloadUtil.playerCache.keys.asSequence() }
+                .getOrDefault(emptySequence())
+
+        return sequenceOf(completedDownloadIds, downloadCacheIds, playerCacheIds)
+            .flatten()
+            .map(String::trim)
+            .filter(String::isNotBlank)
+            .distinct()
+            .toList()
+    }
+
+    private fun interleaveMediaItems(
+        first: List<MediaItem>,
+        second: List<MediaItem>,
+    ): List<MediaItem> {
+        if (first.isEmpty()) return second
+        if (second.isEmpty()) return first
+
+        val merged = ArrayList<MediaItem>(first.size + second.size)
+        val maxSize = maxOf(first.size, second.size)
+        repeat(maxSize) { index ->
+            first.getOrNull(index)?.let(merged::add)
+            second.getOrNull(index)?.let(merged::add)
+        }
+        return merged
+    }
+
+    private fun searchSongIdentity(item: MediaItem): String =
+        item.mediaId.removePrefix("${MusicService.SONG}/")
 
     private suspend fun searchOnlineSongs(
         query: String,

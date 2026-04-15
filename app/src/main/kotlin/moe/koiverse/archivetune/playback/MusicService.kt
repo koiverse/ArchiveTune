@@ -222,7 +222,6 @@ import kotlinx.coroutines.plus
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
-import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import java.io.FileOutputStream
 import java.io.ObjectInputStream
 import java.io.ObjectOutputStream
@@ -333,16 +332,13 @@ class MusicService :
 
                 if (!isYouTubeMediaHost) return@addInterceptor chain.proceed(request)
 
-                val clientParam = request.url.queryParameter("c")?.trim().orEmpty()
-
-                val userAgent = StreamClientUtils.resolveUserAgent(clientParam)
-                val originReferer = StreamClientUtils.resolveOriginReferer(clientParam)
-
-                val builder = request.newBuilder().header("User-Agent", userAgent)
-                originReferer.origin?.let { builder.header("Origin", it) }
-                originReferer.referer?.let { builder.header("Referer", it) }
-
-                chain.proceed(builder.build())
+                val requestProfile = StreamClientUtils.resolveRequestProfile(request.url)
+                chain.proceed(
+                    StreamClientUtils.applyRequestProfile(
+                        request.newBuilder(),
+                        requestProfile,
+                    ).build()
+                )
             }.build()
     }
 
@@ -356,6 +352,7 @@ class MusicService :
     private var lastPresenceUpdateTime = 0L
     @Volatile
     private var lastLoginRecoveryPrompt: Pair<String, Long>? = null
+    private val playbackStreamRecoveryTracker = PlaybackStreamRecoveryTracker()
 
     val currentMediaMetadata = MutableStateFlow<moe.koiverse.archivetune.models.MediaMetadata?>(null)
     val queueRestoreCompleted = MutableStateFlow(false)
@@ -1589,6 +1586,51 @@ class MusicService :
 
     private fun stopOnError() {
         player.pause()
+    }
+
+    private fun findRetryableStreamFailure(
+        error: PlaybackException,
+    ): androidx.media3.datasource.HttpDataSource.InvalidResponseCodeException? {
+        var throwable: Throwable? = error.cause
+        while (throwable != null) {
+            if (throwable is androidx.media3.datasource.HttpDataSource.InvalidResponseCodeException &&
+                throwable.responseCode in RETRYABLE_STREAM_RESPONSE_CODES
+            ) {
+                return throwable
+            }
+            throwable = throwable.cause
+        }
+        return null
+    }
+
+    private fun retryPlaybackAfterStreamFailure(
+        mediaId: String,
+        isFullyCachedMedia: Boolean,
+        responseException: androidx.media3.datasource.HttpDataSource.InvalidResponseCodeException,
+    ): Boolean {
+        if (isFullyCachedMedia) return false
+
+        val failedUrl = responseException.dataSpec.uri.toString()
+        val requestProfile = StreamClientUtils.resolveRequestProfile(failedUrl)
+
+        playbackUrlCache.remove(mediaId)
+        YTPlayerUtils.invalidateCachedStreamUrls(mediaId)
+        if (requestProfile.clientKey.isNotEmpty()) {
+            YTPlayerUtils.markStreamClientFailed(mediaId, requestProfile.clientKey, responseException.responseCode)
+        }
+
+        if (!playbackStreamRecoveryTracker.registerRetryAttempt(mediaId)) {
+            return false
+        }
+
+        Timber.tag("MusicService").i(
+            "Retrying playback for %s after stream HTTP %d from %s failed",
+            mediaId,
+            responseException.responseCode,
+            requestProfile.variantLabel,
+        )
+        player.prepare()
+        return true
     }
 
     private fun updateNotification() {
@@ -3608,6 +3650,16 @@ class MusicService :
 
 
     override fun onEvents(player: Player, events: Player.Events) {
+        val currentMediaId = player.currentMediaItem?.mediaId
+        if (events.contains(Player.EVENT_MEDIA_ITEM_TRANSITION)) {
+            playbackStreamRecoveryTracker.onMediaItemChanged(currentMediaId)
+        }
+        if (
+            (events.contains(Player.EVENT_PLAYBACK_STATE_CHANGED) && player.playbackState == Player.STATE_READY) ||
+            (events.contains(Player.EVENT_IS_PLAYING_CHANGED) && player.isPlaying)
+        ) {
+            playbackStreamRecoveryTracker.onPlaybackRecovered(currentMediaId)
+        }
         if (events.contains(Player.EVENT_MEDIA_METADATA_CHANGED)) {
             currentMediaMetadata.value = player.currentMetadata
         }
@@ -3897,20 +3949,11 @@ class MusicService :
             }
         }
 
-        var throwable: Throwable? = error.cause
-        while (throwable != null) {
-            if (throwable is androidx.media3.datasource.HttpDataSource.InvalidResponseCodeException) {
-                if (throwable.responseCode in setOf(403, 404, 410, 416)) {
-                    playbackUrlCache.remove(currentMediaId)
-                    if (throwable.responseCode == 403) {
-                        val failedUrl = throwable.dataSpec.uri.toString()
-                        val clientParam = failedUrl.toHttpUrlOrNull()?.queryParameter("c")?.trim()
-                        YTPlayerUtils.markStreamClientFailed(currentMediaId, clientParam, throwable.responseCode)
-                    }
-                }
-                break
+        val retryableStreamFailure = findRetryableStreamFailure(error)
+        if (retryableStreamFailure != null) {
+            if (retryPlaybackAfterStreamFailure(currentMediaId, isFullyCachedMedia, retryableStreamFailure)) {
+                return
             }
-            throwable = throwable.cause
         }
 
         if (dataStore.get(AutoSkipNextOnErrorKey, false)) {
@@ -4675,6 +4718,7 @@ class MusicService :
         const val NOTIFICATION_ID = 888
         const val ERROR_CODE_NO_STREAM = 1000001
         const val CHUNK_LENGTH = 512 * 1024L
+        val RETRYABLE_STREAM_RESPONSE_CODES = setOf(403, 404, 410, 416)
         const val PERSISTENT_QUEUE_FILE = "persistent_queue.data"
         const val PERSISTENT_AUTOMIX_FILE = "persistent_automix.data"
         const val PERSISTENT_PLAYER_STATE_FILE = "persistent_player_state.data"

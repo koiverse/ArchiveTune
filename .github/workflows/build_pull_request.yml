@@ -42,8 +42,8 @@ jobs:
               -dname "CN=Android Debug,O=Android,C=US"
           fi
 
-      - name: Build and Lint Universal Debug APK
-        run: ./gradlew --console=plain assembleUniversalDebug :app:lintUniversalDebug --warning-mode summary
+      - name: Build and Lint Mobile Universal Debug APK
+        run: ./gradlew --console=plain assembleMobileUniversalDebug :app:lintMobileUniversalDebug --warning-mode summary
         env:
           GITHUB_EVENT_NAME: ${{ github.event_name }}
           PULL_REQUEST: "true"
@@ -54,5 +54,7 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v7
         with:
-          name: app-universal-debug-pr-${{ github.event.number }}
-          path: app/build/outputs/apk/universal/debug/*.apk
+          name: app-mobile-universal-debug-pr-${{ github.event.number }}
+          path: |
+            app/build/outputs/apk/mobile/universal/debug/*.apk
+            app/build/outputs/apk/mobileUniversal/debug/*.apk

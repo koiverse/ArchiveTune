@@ -17,6 +17,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
 import android.content.pm.PackageManager
+import android.content.res.Configuration
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -223,6 +224,7 @@ import moe.koiverse.archivetune.ui.component.LocalBottomSheetPageState
 import moe.koiverse.archivetune.ui.component.LocalMenuState
 import moe.koiverse.archivetune.ui.component.NetworkStatusBanner
 import moe.koiverse.archivetune.ui.component.StarDialog
+import moe.koiverse.archivetune.ui.component.TvNavigationRail
 import com.mikepenz.markdown.m3.Markdown
 import moe.koiverse.archivetune.ui.component.TopSearch
 import moe.koiverse.archivetune.ui.component.rememberBottomSheetState
@@ -654,10 +656,12 @@ class MainActivity : ComponentActivity() {
                     val bottomInset = with(density) { windowsInsets.getBottom(density).toDp() }
                     val bottomInsetDp = WindowInsets.systemBars.asPaddingValues().calculateBottomPadding()
                         
-                    val useRail = currentWindowAdaptiveInfo().windowSizeClass
+                    val isTvDevice = remember { applicationContext.isTvDevice() }
+                    val useRail = isTvDevice || currentWindowAdaptiveInfo().windowSizeClass
                         .isWidthAtLeastBreakpoint(WindowSizeClass.WIDTH_DP_MEDIUM_LOWER_BOUND)
 
                     val navController = rememberNavController()
+                    val coroutineScope = rememberCoroutineScope()
                     val homeViewModel: HomeViewModel = hiltViewModel()
                     val networkBannerViewModel: NetworkBannerViewModel = hiltViewModel()
                     val allLocalItems by homeViewModel.allLocalItems.collectAsState()
@@ -668,7 +672,9 @@ class MainActivity : ComponentActivity() {
                     val currentRoute = navBackStackEntry?.destination?.route
                     val isYearInMusicScreen = currentRoute == "year_in_music"
 
-                    val navigationItems = remember { Screens.MainScreens }
+                    val navigationItems = remember(isTvDevice) {
+                        if (isTvDevice) Screens.TvMainScreens else Screens.MainScreens
+                    }
                     val (savedMiniPlayerAnchor, setSavedMiniPlayerAnchor) = rememberPreference(
                         MiniPlayerLastAnchorKey,
                         defaultValue = COLLAPSED_ANCHOR
@@ -688,14 +694,9 @@ class MainActivity : ComponentActivity() {
                             intent?.action == ACTION_MUSIC_RECOGNITION
                         }
 
-                    val topLevelScreens =
-                        listOf(
-                            Screens.Home.route,
-                            Screens.Search.route,
-                            Screens.MoodAndGenres.route,
-                            Screens.Library.route,
-                            "settings",
-                        )
+                    val topLevelScreens = remember(navigationItems) {
+                        navigationItems.map(Screens::route) + "settings"
+                    }
 
                     val (query, onQueryChange) =
                         rememberSaveable(stateSaver = TextFieldValue.Saver) {
@@ -719,6 +720,12 @@ class MainActivity : ComponentActivity() {
                     var searchSource by rememberEnumPreference(SearchSourceKey, SearchSource.ONLINE)
 
                     val searchBarFocusRequester = remember { FocusRequester() }
+                    val tvRailFocusRequester = remember { FocusRequester() }
+
+                    val openSearch: () -> Unit = {
+                        onActiveChange(true)
+                        searchBarFocusRequester.requestFocus()
+                    }
 
                     val onSearch: (String) -> Unit = {
                         if (it.isNotEmpty()) {
@@ -891,6 +898,25 @@ class MainActivity : ComponentActivity() {
                             },
                         )
 
+                    val handlePrimaryNavigationClick: (Screens, Boolean) -> Unit = { screen, isSelected ->
+                        if (screen.route == Screens.Search.route) {
+                            openSearch()
+                        } else if (isSelected) {
+                            navController.currentBackStackEntry?.savedStateHandle?.set("scrollToTop", true)
+                            coroutineScope.launch {
+                                searchBarScrollBehavior.state.resetHeightOffset()
+                            }
+                        } else {
+                            navController.navigate(screen.route) {
+                                popUpTo(navController.graph.startDestinationId) {
+                                    saveState = true
+                                }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
+                        }
+                    }
+
                     var previousRoute by rememberSaveable { mutableStateOf<String?>(null) }
 
                     LaunchedEffect(navBackStackEntry) {
@@ -952,6 +978,17 @@ class MainActivity : ComponentActivity() {
                         }
                     }
 
+                    LaunchedEffect(isTvDevice, active, currentRoute, shouldShowNavigationBar) {
+                        if (
+                            isTvDevice &&
+                            shouldShowNavigationBar &&
+                            !active &&
+                            currentRoute in topLevelScreens
+                        ) {
+                            tvRailFocusRequester.requestFocus()
+                        }
+                    }
+
                     var restoredMiniPlayerAnchor by remember(playerConnection) { mutableStateOf(false) }
 
                     LaunchedEffect(playerConnection, savedMiniPlayerAnchor, isYearInMusicScreen) {
@@ -1008,7 +1045,6 @@ class MainActivity : ComponentActivity() {
                             !active && navBackStackEntry?.destination?.route in topLevelScreens && navBackStackEntry?.destination?.route != "settings"
                     }
 
-                    val coroutineScope = rememberCoroutineScope()
                     var sharedSong: SongItem? by remember {
                         mutableStateOf(null)
                     }
@@ -1120,59 +1156,69 @@ class MainActivity : ComponentActivity() {
 
                         Row {
                             AnimatedVisibility(useRail && shouldShowNavigationBar) {
-                                NavigationRail(
-                                    containerColor = if(pureBlack) Color.Black else MaterialTheme.colorScheme.surfaceContainer,
-                                    contentColor = if(pureBlack) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
-                                    header = { Spacer(Modifier.height(24.dp)) }
-                                ) {
-                                    navigationItems.fastForEach { screen ->
-                                        val isSelected =
-                                            navBackStackEntry?.destination?.hierarchy?.any { it.route == screen.route } == true
+                                if (isTvDevice) {
+                                    TvNavigationRail(
+                                        items = navigationItems,
+                                        selectedItemRoute = if (active) {
+                                            Screens.Search.route
+                                        } else {
+                                            currentRoute
+                                        },
+                                        modifier = Modifier,
+                                        firstItemFocusRequester = tvRailFocusRequester,
+                                        onItemClick = { screen ->
+                                            val wasPlayerActive = playerBottomSheetState.isExpanded
+                                            if (wasPlayerActive) {
+                                                playerBottomSheetState.collapse(spring())
+                                            }
+                                            val isSelected =
+                                                if (screen.route == Screens.Search.route) active
+                                                else navBackStackEntry?.destination?.hierarchy?.any { it.route == screen.route } == true
+                                            if (wasPlayerActive && isSelected && screen.route != Screens.Search.route) {
+                                                return@TvNavigationRail
+                                            }
+                                            handlePrimaryNavigationClick(screen, isSelected)
+                                        },
+                                    )
+                                } else {
+                                    NavigationRail(
+                                        containerColor = if(pureBlack) Color.Black else MaterialTheme.colorScheme.surfaceContainer,
+                                        contentColor = if(pureBlack) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+                                        header = { Spacer(Modifier.height(24.dp)) }
+                                    ) {
+                                        navigationItems.fastForEach { screen ->
+                                            val isSelected =
+                                                navBackStackEntry?.destination?.hierarchy?.any { it.route == screen.route } == true
 
-                                        NavigationRailItem(
-                                            selected = isSelected,
-                                            icon = {
-                                                Icon(
-                                                    painter = painterResource(
-                                                        id = if (isSelected) screen.iconIdActive else screen.iconIdInactive
-                                                    ),
-                                                    contentDescription = null,
-                                                )
-                                            },
-                                            label = {
-                                                Text(
-                                                    text = stringResource(screen.titleId),
-                                                    maxLines = 1,
-                                                    overflow = TextOverflow.Ellipsis
-                                                )
-                                            },
-                                            onClick = {
-                                                val wasPlayerActive = playerBottomSheetState.isExpanded
-                                                
-                                                if(wasPlayerActive) {
-                                                    playerBottomSheetState.collapse(spring())
-                                                }
-                                                
-                                                if (screen.route == Screens.Search.route) {
-                                                    onActiveChange(true)
-                                                } else if (isSelected) {
-                                                    if(wasPlayerActive) return@NavigationRailItem
+                                            NavigationRailItem(
+                                                selected = isSelected,
+                                                icon = {
+                                                    Icon(
+                                                        painter = painterResource(
+                                                            id = if (isSelected) screen.iconIdActive else screen.iconIdInactive
+                                                        ),
+                                                        contentDescription = null,
+                                                    )
+                                                },
+                                                label = {
+                                                    Text(
+                                                        text = stringResource(screen.titleId),
+                                                        maxLines = 1,
+                                                        overflow = TextOverflow.Ellipsis
+                                                    )
+                                                },
+                                                onClick = {
+                                                    val wasPlayerActive = playerBottomSheetState.isExpanded
                                                     
-                                                    navController.currentBackStackEntry?.savedStateHandle?.set("scrollToTop", true)
-                                                    coroutineScope.launch {
-                                                        searchBarScrollBehavior.state.resetHeightOffset()
+                                                    if(wasPlayerActive) {
+                                                        playerBottomSheetState.collapse(spring())
                                                     }
-                                                } else {
-                                                    navController.navigate(screen.route) {
-                                                        popUpTo(navController.graph.startDestinationId) {
-                                                            saveState = true
-                                                        }
-                                                        launchSingleTop = true
-                                                        restoreState = true
-                                                    }
-                                                }
-                                            },
-                                        )
+                                                    
+                                                    if(wasPlayerActive && isSelected) return@NavigationRailItem
+                                                    handlePrimaryNavigationClick(screen, isSelected)
+                                                },
+                                            )
+                                        }
                                     }
                                 }
                             }
@@ -1584,25 +1630,7 @@ class MainActivity : ComponentActivity() {
                                                         true
                                                 },
                                                 onItemClick = { screen, isSelected ->
-                                                    if (screen.route == Screens.Search.route) {
-                                                        onActiveChange(true)
-                                                    } else if (isSelected) {
-                                                        navController.currentBackStackEntry?.savedStateHandle?.set(
-                                                            "scrollToTop",
-                                                            true
-                                                        )
-                                                        coroutineScope.launch {
-                                                            searchBarScrollBehavior.state.resetHeightOffset()
-                                                        }
-                                                    } else {
-                                                        navController.navigate(screen.route) {
-                                                            popUpTo(navController.graph.startDestinationId) {
-                                                                saveState = true
-                                                            }
-                                                            launchSingleTop = true
-                                                            restoreState = true
-                                                        }
-                                                    }
+                                                    handlePrimaryNavigationClick(screen, isSelected)
                                                 },
                                             )
                                         }
@@ -1997,3 +2025,12 @@ val LocalPlayerAwareWindowInsets =
     compositionLocalOf<WindowInsets> { error("No WindowInsets provided") }
 val LocalDownloadUtil = staticCompositionLocalOf<DownloadUtil> { error("No DownloadUtil provided") }
 val LocalSyncUtils = staticCompositionLocalOf<SyncUtils> { error("No SyncUtils provided") }
+
+private fun Context.isTvDevice(): Boolean {
+    val isTelevisionUiMode =
+        (resources.configuration.uiMode and Configuration.UI_MODE_TYPE_MASK) ==
+            Configuration.UI_MODE_TYPE_TELEVISION
+    return isTelevisionUiMode ||
+        packageManager.hasSystemFeature(PackageManager.FEATURE_LEANBACK) ||
+        packageManager.hasSystemFeature(PackageManager.FEATURE_TELEVISION)
+}
