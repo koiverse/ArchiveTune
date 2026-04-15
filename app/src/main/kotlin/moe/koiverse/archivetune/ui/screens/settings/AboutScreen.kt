@@ -176,24 +176,34 @@ private suspend fun fetchRepoContributorsNetwork(
 @Composable
 fun OutlinedIconChip(
     iconRes: Int,
-    text: String,
-    onClick: () -> Unit
+    contentDescription: String,
+    onClick: () -> Unit,
+    text: String? = null,
 ) {
     OutlinedButton(
         onClick = onClick,
         contentPadding = PaddingValues(
-            horizontal = 12.dp,
-            vertical = 6.dp
+            horizontal = if (text.isNullOrBlank()) 8.dp else 12.dp,
+            vertical = 6.dp,
         ),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        colors = ButtonDefaults.outlinedButtonColors(
+            containerColor = Color.Transparent,
+            contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        ),
+        modifier = if (text.isNullOrBlank()) Modifier.size(32.dp) else Modifier,
         shapes = ButtonDefaults.shapes(),
     ) {
         Icon(
             painter = painterResource(id = iconRes),
-            contentDescription = text,
-            modifier = Modifier.size(18.dp)
+            contentDescription = contentDescription,
+            modifier = Modifier.size(18.dp),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        Spacer(Modifier.width(6.dp))
-        Text(text = text, style = MaterialTheme.typography.labelLarge)
+        if (!text.isNullOrBlank()) {
+            Spacer(Modifier.width(6.dp))
+            Text(text = text, style = MaterialTheme.typography.labelLarge)
+        }
     }
 }
 
@@ -493,6 +503,17 @@ fun AboutScreen(
                         contentDescription = null
                     )
                 }
+
+                Spacer(Modifier.width(8.dp))
+
+                IconButton(
+                    onClick = { uriHandler.openUri("https://sociabuzz.com/chrtrxwstia") },
+                ) {
+                    icon(
+                        painter = painterResource(R.drawable.coffee),
+                        contentDescription = null
+                    )
+                }
             }
 
             Spacer(Modifier.height(16.dp))
@@ -755,7 +776,7 @@ private fun LeadDeveloperCard(
                 member.github?.let { url ->
                     OutlinedIconChip(
                         iconRes = R.drawable.github,
-                        text = "GitHub",
+                        contentDescription = "GitHub",
                         onClick = { onOpenUri(url) },
                     )
                 }
@@ -763,7 +784,7 @@ private fun LeadDeveloperCard(
                 member.website?.takeIf { it.isNotBlank() }?.let { url ->
                     OutlinedIconChip(
                         iconRes = R.drawable.website,
-                        text = "Website",
+                        contentDescription = "Website",
                         onClick = { onOpenUri(url) },
                     )
                 }
@@ -771,7 +792,7 @@ private fun LeadDeveloperCard(
                 member.discord?.let { url ->
                     OutlinedIconChip(
                         iconRes = R.drawable.alternate_email,
-                        text = "Discord",
+                        contentDescription = "Discord",
                         onClick = { onOpenUri(url) },
                     )
                 }
