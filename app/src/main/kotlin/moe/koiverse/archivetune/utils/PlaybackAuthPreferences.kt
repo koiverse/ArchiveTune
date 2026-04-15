@@ -85,13 +85,23 @@ suspend fun <T> Context.retryWithoutPlaybackLoginContext(
     val initialResult = block()
     val failure = initialResult.exceptionOrNull()
 
-    if (failure !is YTPlayerUtils.InvalidPlaybackLoginContextException) return initialResult
-    if (!initialAuthState.hasPlaybackLoginContext) return initialResult
-
     val currentAuthState = YouTube.currentPlaybackAuthState()
-    if (!currentAuthState.hasPlaybackLoginContext) return initialResult
-    if (currentAuthState.fingerprint != initialAuthState.fingerprint) return initialResult
+    if (!shouldRetryWithoutPlaybackLoginContext(initialAuthState, currentAuthState, failure)) {
+        return initialResult
+    }
 
     resetPlaybackLoginContext()
     return block()
+}
+
+internal fun shouldRetryWithoutPlaybackLoginContext(
+    initialAuthState: PlaybackAuthState,
+    currentAuthState: PlaybackAuthState,
+    failure: Throwable?,
+): Boolean {
+    if (failure !is YTPlayerUtils.InvalidPlaybackLoginContextException) return false
+    if (!initialAuthState.hasPlaybackLoginContext) return false
+    if (!currentAuthState.hasPlaybackLoginContext) return false
+    if (currentAuthState.fingerprint != initialAuthState.fingerprint) return false
+    return true
 }
