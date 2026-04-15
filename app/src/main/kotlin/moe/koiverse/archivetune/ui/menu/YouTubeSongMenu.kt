@@ -1,12 +1,12 @@
-@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
-
 /*
  * ArchiveTune Project Original (2026)
- * Kòi Natsuko (github.com/koiverse)
+ * Chartreux Westia (github.com/koiverse)
  * Licensed Under GPL-3.0 | see git history for contributors
+ * Don't remove this copyright holder!
  */
 
 
+@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
 
 package moe.koiverse.archivetune.ui.menu
 
@@ -96,6 +96,7 @@ import moe.koiverse.archivetune.utils.makeTimeString
 import moe.koiverse.archivetune.utils.rememberPreference
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.time.LocalDateTime
 
 @SuppressLint("MutableCollectionMutableState")
@@ -396,14 +397,33 @@ fun YouTubeSongMenu(
                     )
                 },
                 modifier = Modifier.clickable {
-                    if (librarySong?.song?.inLibrary != null) {
-                        database.query {
-                            inLibrary(song.id, null)
+                    coroutineScope.launch(Dispatchers.IO) {
+                        val shouldAdd = librarySong?.song?.inLibrary == null
+                        val remoteResult = YouTube.likeVideo(song.id, shouldAdd)
+                        if (remoteResult.isFailure) {
+                            withContext(Dispatchers.Main) {
+                                Toast
+                                    .makeText(context, context.getString(R.string.error_unknown), Toast.LENGTH_SHORT)
+                                    .show()
+                            }
+                            return@launch
                         }
-                    } else {
-                        database.transaction {
-                            insert(song.toMediaMetadata())
-                            inLibrary(song.id, LocalDateTime.now())
+
+                        val now = LocalDateTime.now()
+                        database.withTransaction {
+                            val base =
+                                librarySong?.song
+                                    ?: song.toMediaMetadata().toSongEntity()
+                            if (librarySong == null) {
+                                insert(song.toMediaMetadata())
+                            }
+                            update(
+                                base.copy(
+                                    liked = shouldAdd,
+                                    likedDate = if (shouldAdd) now else null,
+                                    inLibrary = if (shouldAdd) now else null,
+                                )
+                            )
                         }
                     }
                 }

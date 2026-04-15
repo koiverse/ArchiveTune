@@ -1,8 +1,10 @@
 /*
  * ArchiveTune Project Original (2026)
- * Kòi Natsuko (github.com/koiverse)
+ * Chartreux Westia (github.com/koiverse)
  * Licensed Under GPL-3.0 | see git history for contributors
+ * Don't remove this copyright holder!
  */
+
 
 
 
@@ -38,6 +40,7 @@ import moe.koiverse.archivetune.utils.YTPlayerUtils
 import moe.koiverse.archivetune.utils.dataStore
 import moe.koiverse.archivetune.utils.enumPreference
 import moe.koiverse.archivetune.utils.get
+import moe.koiverse.archivetune.utils.retryWithoutPlaybackLoginContext
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -55,6 +58,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.sync.withPermit
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.OkHttpClient
 import java.time.LocalDateTime
 import java.util.concurrent.ConcurrentHashMap
@@ -90,10 +94,6 @@ constructor(
 
     @Volatile
     private var lastStreamInfoRequestAtMs = 0L
-
-    private val avoidStreamCodecs: Set<String> by lazy {
-        if (deviceSupportsMimeType("audio/opus")) emptySet() else setOf("opus")
-    }
 
     private val mediaOkHttpClient: OkHttpClient by lazy {
         OkHttpClient
@@ -162,14 +162,15 @@ constructor(
 
                     val networkMeteredPref = context.dataStore.get(NetworkMeteredKey, true)
                     val result =
-                        YTPlayerUtils.playerResponseForPlayback(
-                            mediaId,
-                            audioQuality = audioQuality,
-                            preferredStreamClient = preferredStreamClient,
-                            connectivityManager = connectivityManager,
-                            networkMetered = networkMeteredPref,
-                            avoidCodecs = avoidStreamCodecs,
-                        )
+                        context.retryWithoutPlaybackLoginContext {
+                            YTPlayerUtils.playerResponseForPlayback(
+                                mediaId,
+                                audioQuality = audioQuality,
+                                preferredStreamClient = preferredStreamClient,
+                                connectivityManager = connectivityManager,
+                                networkMetered = networkMeteredPref,
+                            )
+                        }
 
                     if (result.isSuccess) {
                         clearThrottleSignal()
@@ -307,6 +308,15 @@ constructor(
     }
 
     private fun registerThrottleSignal(exception: Throwable?) {
+        if (exception is androidx.media3.datasource.HttpDataSource.InvalidResponseCodeException && exception.responseCode == 403) {
+            val urlStr = exception.dataSpec.uri.toString()
+            val videoId = urlStr.toHttpUrlOrNull()?.queryParameter("docid") ?: urlStr.toHttpUrlOrNull()?.queryParameter("id")
+            val clientParam = urlStr.toHttpUrlOrNull()?.queryParameter("c")?.trim()
+            if (videoId != null && clientParam != null) {
+                YTPlayerUtils.markStreamClientFailed(videoId, clientParam, exception.responseCode)
+            }
+        }
+        
         val nextStrikeCount =
             if (exception == null || isProbablyThrottleSignal(exception)) {
                 consecutiveThrottleSignals.incrementAndGet()
@@ -370,15 +380,6 @@ constructor(
             "unavailable",
             "reset by peer",
         ).any(message::contains)
-    }
-
-    private fun deviceSupportsMimeType(mimeType: String): Boolean {
-        return runCatching {
-            val codecList = MediaCodecList(MediaCodecList.ALL_CODECS)
-            codecList.codecInfos.any { info ->
-                !info.isEncoder && info.supportedTypes.any { it.equals(mimeType, ignoreCase = true) }
-            }
-        }.getOrDefault(false)
     }
 
     companion object {

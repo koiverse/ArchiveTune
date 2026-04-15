@@ -1,10 +1,12 @@
 /*
  * ArchiveTune Project Original (2026)
- * Kòi Natsuko (github.com/koiverse)
+ * Chartreux Westia (github.com/koiverse)
  * Licensed Under GPL-3.0 | see git history for contributors
+ * Don't remove this copyright holder!
  */
 
 
+@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
 
 package moe.koiverse.archivetune.ui.screens
 
@@ -16,6 +18,7 @@ import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar

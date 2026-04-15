@@ -1,3 +1,10 @@
+/*
+ * ArchiveTune Project Original (2026)
+ * Chartreux Westia (github.com/koiverse)
+ * Licensed Under GPL-3.0 | see git history for contributors
+ * Don't remove this copyright holder!
+ */
+
 @file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
 
 package moe.koiverse.archivetune.ui.screens.musicrecognition
@@ -71,6 +78,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -106,11 +114,11 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import moe.koiverse.archivetune.R
+import moe.koiverse.archivetune.musicrecognition.MusicRecognitionAutoStartRequestKey
+import moe.koiverse.archivetune.musicrecognition.MusicRecognitionRoute
 import moe.koiverse.archivetune.shazamkit.Shazam
 import moe.koiverse.archivetune.shazamkit.ShazamSignatureGenerator
 import moe.koiverse.archivetune.shazamkit.models.RecognitionResult
-
-const val MusicRecognitionRoute = "music_recognition"
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -123,6 +131,10 @@ fun MusicRecognitionScreen(
 
     var state by remember { mutableStateOf<MusicRecognitionState>(MusicRecognitionState.Ready) }
     var recognitionJob by remember { mutableStateOf<Job?>(null) }
+    val backStackEntry = remember(navController) { navController.getBackStackEntry(MusicRecognitionRoute) }
+    val autoStartRequestId by backStackEntry.savedStateHandle
+        .getStateFlow(MusicRecognitionAutoStartRequestKey, 0L)
+        .collectAsState()
 
     val strings =
         remember {
@@ -173,6 +185,12 @@ fun MusicRecognitionScreen(
 
     DisposableEffect(Unit) {
         onDispose { recognitionJob?.cancel() }
+    }
+
+    LaunchedEffect(autoStartRequestId) {
+        if (autoStartRequestId == 0L) return@LaunchedEffect
+        backStackEntry.savedStateHandle[MusicRecognitionAutoStartRequestKey] = 0L
+        startOrRequestPermission()
     }
 
     Scaffold(

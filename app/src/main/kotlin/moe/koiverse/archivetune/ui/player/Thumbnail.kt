@@ -1,8 +1,10 @@
 /*
  * ArchiveTune Project Original (2026)
- * Kòi Natsuko (github.com/koiverse)
+ * Chartreux Westia (github.com/koiverse)
  * Licensed Under GPL-3.0 | see git history for contributors
+ * Don't remove this copyright holder!
  */
+
 
 
 
@@ -433,7 +435,10 @@ fun Thumbnail(
                 PlaybackError(
                     error = playbackError,
                     mediaId = currentMediaItem?.mediaId,
-                    retry = playerConnection.service::retryCurrentFromFreshStream,
+                    retry = {
+                        playerConnection.player.prepare()
+                        playerConnection.player.play()
+                    },
                 )
             }
         }
@@ -651,13 +656,17 @@ fun Thumbnail(
                                         val primaryCanvasUrl = canvasArtwork?.animated
                                         val fallbackCanvasUrl = canvasArtwork?.videoUrl
                                         
+                                        val shouldCropArtwork =
+                                            cropThumbnailToSquare &&
+                                                playerDesignStyle != PlayerDesignStyle.V7
+
                                         AsyncImage(
                                             model = item.mediaMetadata.artworkUri?.toString(),
                                             contentDescription = null,
                                             contentScale = ContentScale.FillBounds,
                                             modifier = Modifier
                                                 .fillMaxSize()
-                                                .let { if (cropThumbnailToSquare) it.aspectRatio(1f) else it }
+                                                .let { if (shouldCropArtwork) it.aspectRatio(1f) else it }
                                                 .graphicsLayer(
                                                     renderEffect = BlurEffect(radiusX = 60f, radiusY = 60f),
                                                     alpha = 0.6f
@@ -667,10 +676,10 @@ fun Thumbnail(
                                         AsyncImage(
                                             model = item.mediaMetadata.artworkUri?.toString(),
                                             contentDescription = null,
-                                            contentScale = if (cropThumbnailToSquare) ContentScale.Crop else ContentScale.Fit,
+                                            contentScale = if (shouldCropArtwork) ContentScale.Crop else ContentScale.Fit,
                                             modifier = Modifier
                                                 .fillMaxSize()
-                                                .let { if (cropThumbnailToSquare) it.aspectRatio(1f) else it }
+                                                .let { if (shouldCropArtwork) it.aspectRatio(1f) else it }
                                         )
 
                                         if (shouldAnimateCanvas && (!primaryCanvasUrl.isNullOrBlank() || !fallbackCanvasUrl.isNullOrBlank())) {

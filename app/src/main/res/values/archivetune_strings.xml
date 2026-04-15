@@ -47,6 +47,18 @@
     <string name="max_selection_limit">Max selection limit</string>
     <string name="share_selected">Share selected</string>
     <string name="customize_colors">Customize colors</string>
+    <string name="lyrics_share_layout">Layout</string>
+    <string name="lyrics_share_layout_square">Square</string>
+    <string name="lyrics_share_layout_portrait">Portrait</string>
+    <string name="lyrics_share_layout_story">Story</string>
+    <string name="lyrics_share_background_blur">Background blur</string>
+    <string name="lyrics_share_background_blur_value">%1$d px</string>
+    <string name="lyrics_share_background_dim">Background dim</string>
+    <string name="lyrics_share_background_dim_value">%1$d%%</string>
+    <string name="lyrics_share_show_cover">Show album cover</string>
+    <string name="lyrics_share_show_cover_desc">Include the artwork in the header of the exported image.</string>
+    <string name="lyrics_share_export_failed">Failed to create image: %1$s</string>
+    <string name="lyrics_share_export_not_supported">Image sharing requires Android 6.0 or newer</string>
     <string name="more_options">More options</string>
     <string name="text_color">Text color</string>
     <string name="secondary_text_color">Secondary text color</string>
@@ -126,6 +138,7 @@
     <string name="lyrics_click_change">Change lyrics on click</string>
     <string name="lyrics_auto_scroll">Auto scroll lyrics</string>
     <string name="lyrics_text_size">Lyrics text size</string>
+    <string name="lyrics_sync_offset">Lyrics sync offset</string>
     <string name="resume_autoscroll">Resume Autoscroll</string>
     <string name="lyrics_romanize_japanese">Romanize japanese lyrics</string>
     <string name="lyrics_romanize_korean">Romanize korean lyrics</string>
@@ -219,8 +232,11 @@
         <item quantity="other">%d seconds</item>
     </plurals>
     <string name="audio_crossfade_title">Crossfade</string>
-    <string name="audio_crossfade_description">Smoothly transition between songs by fading out the end of each track.</string>
+    <string name="audio_crossfade_description">Smoothly transition between songs by fading out and in.</string>
     <string name="audio_crossfade_dialog_title">Crossfade duration</string>
+    <string name="audio_crossfade_seconds">%1$s s</string>
+    <string name="crossfade_gapless_title">Gapless crossfade</string>
+    <string name="crossfade_gapless_description">Fade out and fade in without overlapping audio.</string>
     <string name="disable_load_more_when_repeat_all">Disable load more when repeat all</string>
     <string name="disable_load_more_when_repeat_all_desc">Don\'t auto load more songs and similar content when repeat all mode is enabled</string>
     <string name="player_stream_client">Playback client</string>

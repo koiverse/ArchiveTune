@@ -1,8 +1,10 @@
 /*
  * ArchiveTune Project Original (2026)
- * Kòi Natsuko (github.com/koiverse)
+ * Chartreux Westia (github.com/koiverse)
  * Licensed Under GPL-3.0 | see git history for contributors
+ * Don't remove this copyright holder!
  */
+
 
 @file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
 
@@ -78,6 +80,7 @@ import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.constants.ArtistSeparatorsKey
 import moe.koiverse.archivetune.constants.ListItemHeight
 import moe.koiverse.archivetune.constants.ListThumbnailSize
+import moe.koiverse.archivetune.constants.SpeedDialSongIdsKey
 import moe.koiverse.archivetune.db.entities.Album
 import moe.koiverse.archivetune.db.entities.Song
 import moe.koiverse.archivetune.extensions.toMediaItem
@@ -90,7 +93,12 @@ import moe.koiverse.archivetune.ui.component.ListItem
 import moe.koiverse.archivetune.ui.component.NewAction
 import moe.koiverse.archivetune.ui.component.NewActionGrid
 import moe.koiverse.archivetune.ui.component.SongListItem
+import moe.koiverse.archivetune.utils.SpeedDialPin
+import moe.koiverse.archivetune.utils.SpeedDialPinType
+import moe.koiverse.archivetune.utils.parseSpeedDialPins
 import moe.koiverse.archivetune.utils.rememberPreference
+import moe.koiverse.archivetune.utils.serializeSpeedDialPins
+import moe.koiverse.archivetune.utils.toggleSpeedDialPin
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
@@ -153,6 +161,12 @@ fun AlbumMenu(
 
     // Artist separators for splitting artist names
     val (artistSeparators) = rememberPreference(ArtistSeparatorsKey, defaultValue = ",;/&")
+    val (speedDialSongIds, onSpeedDialSongIdsChange) = rememberPreference(SpeedDialSongIdsKey, "")
+    val speedDialPins = remember(speedDialSongIds) { parseSpeedDialPins(speedDialSongIds) }
+    val albumPin = remember(album.id) { SpeedDialPin(type = SpeedDialPinType.ALBUM, id = album.id) }
+    val isInSpeedDial = remember(speedDialPins, albumPin) {
+        speedDialPins.any { it.type == albumPin.type && it.id == albumPin.id }
+    }
 
     // Split artists by configured separators
     data class SplitArtist(
@@ -444,6 +458,29 @@ fun AlbumMenu(
                 },
                 modifier = Modifier.clickable {
                     showChoosePlaylistDialog = true
+                }
+            )
+        }
+        item {
+            ListItem(
+                headlineContent = {
+                    Text(
+                        text = stringResource(
+                            if (isInSpeedDial) R.string.remove_from_speed_dial
+                            else R.string.pin_to_speed_dial
+                        )
+                    )
+                },
+                leadingContent = {
+                    Icon(
+                        painter = painterResource(if (isInSpeedDial) R.drawable.bookmark_filled else R.drawable.bookmark),
+                        contentDescription = null,
+                    )
+                },
+                modifier = Modifier.clickable {
+                    val updatedPins = toggleSpeedDialPin(speedDialPins, albumPin)
+                    onSpeedDialSongIdsChange(serializeSpeedDialPins(updatedPins))
+                    onDismiss()
                 }
             )
         }

@@ -1,12 +1,12 @@
-@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
-
 /*
  * ArchiveTune Project Original (2026)
- * Kòi Natsuko (github.com/koiverse)
+ * Chartreux Westia (github.com/koiverse)
  * Licensed Under GPL-3.0 | see git history for contributors
+ * Don't remove this copyright holder!
  */
 
 
+@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
 
 package moe.koiverse.archivetune.ui.menu
 
@@ -367,22 +367,40 @@ fun SelectionSongMenu(
                     )
                 },
                 modifier = Modifier.clickable {
-                    onDismiss()
-                    if (allInLibrary) {
-                        database.query {
-                            songSelection.forEach { song ->
-                                update(song.song.toggleLibrary())
+                    coroutineScope.launch(Dispatchers.IO) {
+                        val shouldAdd = !allInLibrary
+                        val now = LocalDateTime.now()
+                        val failed = LinkedHashSet<String>()
+                        val updatedSongs = ArrayList<moe.koiverse.archivetune.db.entities.SongEntity>()
+                        for (song in songSelection.asSequence().map { it.song }.distinctBy { it.id }) {
+                            val remoteResult = YouTube.likeVideo(song.id, shouldAdd)
+                            if (remoteResult.isFailure) {
+                                failed += song.id
+                                continue
+                            }
+                            updatedSongs += song.copy(
+                                liked = shouldAdd,
+                                likedDate = if (shouldAdd) now else null,
+                                inLibrary = if (shouldAdd) now else null,
+                            )
+                        }
+
+                        if (updatedSongs.isNotEmpty()) {
+                            database.withTransaction {
+                                updatedSongs.forEach(::update)
                             }
                         }
-                    } else {
-                        database.transaction {
-                            songSelection.forEach { song ->
-                                insert(song.toMediaMetadata())
-                                inLibrary(song.id, LocalDateTime.now())
+
+                        withContext(Dispatchers.Main) {
+                            onDismiss()
+                            clearAction()
+                            if (failed.isNotEmpty()) {
+                                Toast
+                                    .makeText(context, context.getString(R.string.error_unknown), Toast.LENGTH_SHORT)
+                                    .show()
                             }
                         }
                     }
-                    clearAction()
                 }
             )
         }
@@ -467,16 +485,23 @@ fun SelectionSongMenu(
                     )
                 },
                 modifier = Modifier.clickable {
-                    val allLiked = songSelection.all { it.song.liked }
                     onDismiss()
-                    database.query {
-                        songSelection.forEach { song ->
-                            if ((!allLiked && !song.song.liked) || allLiked) {
-                                val s = song.song.toggleLike()
-                                update(s)
-                                syncUtils.likeSong(s)
-                            }
+                    val shouldUnlikeAll = songSelection.all { it.song.liked }
+                    val updatedSongs = songSelection
+                        .asSequence()
+                        .map { it.song }
+                        .distinctBy { it.id }
+                        .filter { song -> shouldUnlikeAll || !song.liked }
+                        .map { song -> song.localToggleLike() }
+                        .toList()
+
+                    if (updatedSongs.isEmpty()) return@clickable
+
+                    coroutineScope.launch(Dispatchers.IO) {
+                        database.withTransaction {
+                            updatedSongs.forEach(::update)
                         }
+                        syncUtils.likeSongs(updatedSongs)
                     }
                 }
             )
@@ -493,17 +518,65 @@ fun SelectionSongMenu(
                     },
                     modifier = Modifier.clickable {
                         coroutineScope.launch(Dispatchers.IO) {
-                            database.withTransaction {
-                                var i = 0
-                                songPosition?.forEach { cur ->
-                                    move(cur.playlistId, cur.position - i, Int.MAX_VALUE)
-                                    delete(cur.copy(position = Int.MAX_VALUE))
-                                    i++
+                            val positions = songPosition.orEmpty()
+                            if (positions.isEmpty()) {
+                                withContext(Dispatchers.Main) {
+                                    onDismiss()
+                                    clearAction()
+                                }
+                                return@launch
+                            }
+
+                            val browseIdByPlaylistId = HashMap<String, String?>()
+                            for (playlistId in positions.asSequence().map { it.playlistId }.distinct()) {
+                                browseIdByPlaylistId[playlistId] = database.getPlaylistById(playlistId)?.playlist?.browseId
+                            }
+
+                            val failed = LinkedHashSet<PlaylistSongMap>()
+                            val succeeded = ArrayList<PlaylistSongMap>(positions.size)
+
+                            for (cur in positions) {
+                                val browseId = browseIdByPlaylistId[cur.playlistId]
+                                if (browseId != null) {
+                                    val remoteResult = removeSongFromRemotePlaylist(browseId, cur)
+                                    if (remoteResult.isFailure) {
+                                        failed += cur
+                                    } else {
+                                        succeeded += cur
+                                    }
+                                } else {
+                                    succeeded += cur
                                 }
                             }
+
+                            if (succeeded.isNotEmpty()) {
+                                database.withTransaction {
+                                    val offsetByPlaylistId = HashMap<String, Int>()
+                                    succeeded
+                                        .sortedWith(compareBy<PlaylistSongMap> { it.playlistId }.thenBy { it.position })
+                                        .forEach { cur ->
+                                            val offset = offsetByPlaylistId.getOrPut(cur.playlistId) { 0 }
+                                            move(cur.playlistId, cur.position - offset, Int.MAX_VALUE)
+                                            delete(cur.copy(position = Int.MAX_VALUE))
+                                            offsetByPlaylistId[cur.playlistId] = offset + 1
+                                        }
+                                }
+                            }
+
+                            for ((playlistId, browseId) in browseIdByPlaylistId) {
+                                if (browseId == null) continue
+                                if (succeeded.none { it.playlistId == playlistId }) continue
+                                syncUtils.syncPlaylistNow(browseId, playlistId)
+                            }
+
                             withContext(Dispatchers.Main) {
                                 onDismiss()
                                 clearAction()
+                                if (failed.isNotEmpty()) {
+                                    Toast
+                                        .makeText(context, context.getString(R.string.error_unknown), Toast.LENGTH_SHORT)
+                                        .show()
+                                }
                             }
                         }
                     }
@@ -526,6 +599,7 @@ fun SelectionMediaMetadataMenu(
     val downloadUtil = LocalDownloadUtil.current
     val coroutineScope = rememberCoroutineScope()
     val playerConnection = LocalPlayerConnection.current ?: return
+    val syncUtils = LocalSyncUtils.current
 
     val allLiked by remember(songSelection) {
         mutableStateOf(songSelection.isNotEmpty() && songSelection.all { it.liked })
@@ -745,16 +819,21 @@ fun SelectionMediaMetadataMenu(
                     )
                 },
                 modifier = Modifier.clickable {
-                    database.query {
-                        if (allLiked) {
-                            songSelection.forEach { song ->
-                                update(song.toSongEntity().toggleLike())
-                            }
-                        } else {
-                            songSelection.filter { !it.liked }.forEach { song ->
-                                update(song.toSongEntity().toggleLike())
-                            }
+                    onDismiss()
+                    val updatedSongs = songSelection
+                        .asSequence()
+                        .distinctBy { it.id }
+                        .filter { song -> allLiked || !song.liked }
+                        .map { song -> song.toSongEntity().localToggleLike() }
+                        .toList()
+
+                    if (updatedSongs.isEmpty()) return@clickable
+
+                    coroutineScope.launch(Dispatchers.IO) {
+                        database.withTransaction {
+                            updatedSongs.forEach(::update)
                         }
+                        syncUtils.likeSongs(updatedSongs)
                     }
                 }
             )

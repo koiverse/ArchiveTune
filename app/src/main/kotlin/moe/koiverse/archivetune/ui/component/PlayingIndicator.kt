@@ -1,8 +1,10 @@
 /*
  * ArchiveTune Project Original (2026)
- * Kòi Natsuko (github.com/koiverse)
+ * Chartreux Westia (github.com/koiverse)
  * Licensed Under GPL-3.0 | see git history for contributors
+ * Don't remove this copyright holder!
  */
+
 
 
 
@@ -21,6 +23,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
@@ -93,7 +96,7 @@ fun PlayingIndicatorBox(
     modifier: Modifier = Modifier,
     isActive: Boolean,
     playWhenReady: Boolean,
-    color: Color = Color.White,
+    color: Color = LocalContentColor.current,
 ) {
     AnimatedVisibility(
         visible = isActive,

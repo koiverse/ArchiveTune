@@ -1,8 +1,10 @@
 /*
  * ArchiveTune Project Original (2026)
- * Kòi Natsuko (github.com/koiverse)
+ * Chartreux Westia (github.com/koiverse)
  * Licensed Under GPL-3.0 | see git history for contributors
+ * Don't remove this copyright holder!
  */
+
 
 
 
@@ -36,6 +38,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.ListItem
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
@@ -49,12 +52,19 @@ import moe.koiverse.archivetune.LocalDatabase
 import moe.koiverse.archivetune.LocalPlayerConnection
 import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.constants.ArtistSongSortType
+import moe.koiverse.archivetune.constants.SpeedDialSongIdsKey
 import moe.koiverse.archivetune.db.entities.Artist
 import moe.koiverse.archivetune.extensions.toMediaItem
 import moe.koiverse.archivetune.playback.queues.ListQueue
 import moe.koiverse.archivetune.ui.component.ArtistListItem
 import moe.koiverse.archivetune.ui.component.NewAction
 import moe.koiverse.archivetune.ui.component.NewActionGrid
+import moe.koiverse.archivetune.utils.SpeedDialPin
+import moe.koiverse.archivetune.utils.SpeedDialPinType
+import moe.koiverse.archivetune.utils.parseSpeedDialPins
+import moe.koiverse.archivetune.utils.rememberPreference
+import moe.koiverse.archivetune.utils.serializeSpeedDialPins
+import moe.koiverse.archivetune.utils.toggleSpeedDialPin
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -72,6 +82,12 @@ fun ArtistMenu(
     val playerConnection = LocalPlayerConnection.current ?: return
     val artistState = database.artist(originalArtist.id).collectAsState(initial = originalArtist)
     val artist = artistState.value ?: originalArtist
+    val (speedDialSongIds, onSpeedDialSongIdsChange) = rememberPreference(SpeedDialSongIdsKey, "")
+    val speedDialPins = remember(speedDialSongIds) { parseSpeedDialPins(speedDialSongIds) }
+    val artistPin = remember(artist.id) { SpeedDialPin(type = SpeedDialPinType.ARTIST, id = artist.id) }
+    val isInSpeedDial = remember(speedDialPins, artistPin) {
+        speedDialPins.any { it.type == artistPin.type && it.id == artistPin.id }
+    }
 
     ArtistListItem(
         artist = artist,
@@ -212,6 +228,29 @@ fun ArtistMenu(
                     database.transaction {
                         update(artist.artist.toggleLike())
                     }
+                }
+            )
+        }
+        item {
+            ListItem(
+                headlineContent = {
+                    Text(
+                        text = stringResource(
+                            if (isInSpeedDial) R.string.remove_from_speed_dial
+                            else R.string.pin_to_speed_dial
+                        )
+                    )
+                },
+                leadingContent = {
+                    Icon(
+                        painter = painterResource(if (isInSpeedDial) R.drawable.bookmark_filled else R.drawable.bookmark),
+                        contentDescription = null,
+                    )
+                },
+                modifier = Modifier.clickable {
+                    val updatedPins = toggleSpeedDialPin(speedDialPins, artistPin)
+                    onSpeedDialSongIdsChange(serializeSpeedDialPins(updatedPins))
+                    onDismiss()
                 }
             )
         }

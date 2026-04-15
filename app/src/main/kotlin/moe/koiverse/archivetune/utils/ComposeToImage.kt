@@ -1,8 +1,10 @@
 /*
  * ArchiveTune Project Original (2026)
- * Kòi Natsuko (github.com/koiverse)
+ * Chartreux Westia (github.com/koiverse)
  * Licensed Under GPL-3.0 | see git history for contributors
+ * Don't remove this copyright holder!
  */
+
 
 
 
@@ -41,7 +43,10 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.suspendCancellableCoroutine
 import java.io.File
 import java.io.FileOutputStream
+import kotlin.math.max
+import kotlin.math.roundToInt
 import kotlin.coroutines.resume
+import moe.koiverse.archivetune.ui.component.LyricsShareImageOptions
 
 object ComposeToImage {
 
@@ -181,11 +186,14 @@ object ComposeToImage {
         backgroundColor: Int? = null,
         textColor: Int? = null,
         secondaryTextColor: Int? = null,
-        glassStyle: moe.koiverse.archivetune.ui.component.LyricsGlassStyle? = null
+        glassStyle: moe.koiverse.archivetune.ui.component.LyricsGlassStyle? = null,
+        shareOptions: LyricsShareImageOptions = LyricsShareImageOptions(),
     ): Bitmap = withContext(Dispatchers.Default) {
         val style = glassStyle ?: moe.koiverse.archivetune.ui.component.LyricsGlassStyle.FrostedDark
-        val cardSize = minOf(width, height) - 32
-        val bitmap = createBitmap(cardSize, cardSize)
+        val canvasWidth = width.coerceAtLeast(1)
+        val canvasHeight = height.coerceAtLeast(1)
+        val baseSize = minOf(canvasWidth, canvasHeight)
+        val bitmap = createBitmap(canvasWidth, canvasHeight)
         val canvas = Canvas(bitmap)
 
         val mainTextColor = textColor
@@ -210,7 +218,7 @@ object ComposeToImage {
                 val imageLoader = ImageLoader(context)
                 val request = ImageRequest.Builder(context)
                     .data(coverArtUrl)
-                    .size(512)
+                    .size(max(canvasWidth, canvasHeight))
                     .allowHardware(false)
                     .build()
                 val result = imageLoader.execute(request)
@@ -218,68 +226,49 @@ object ComposeToImage {
             } catch (_: Exception) {}
         }
 
-        val outerCornerRadius = cardSize * 0.06f
-
-        val scaledArt = if (coverArtBitmap != null) {
-            ensureSoftwareBitmap(
-                Bitmap.createScaledBitmap(coverArtBitmap, cardSize, cardSize, true)
-            )
-        } else null
-
-        val artPath = Path().apply {
-            addRoundRect(
-                RectF(0f, 0f, cardSize.toFloat(), cardSize.toFloat()),
-                outerCornerRadius, outerCornerRadius,
-                Path.Direction.CW
-            )
-        }
-
-        if (scaledArt != null) {
-            canvas.withClip(artPath) {
-                drawBitmap(scaledArt, 0f, 0f, null)
+        val fittedArt =
+            coverArtBitmap?.let {
+                fitBitmap(
+                    source = it,
+                    targetWidth = canvasWidth,
+                    targetHeight = canvasHeight,
+                    backgroundColor = bgColor,
+                )
             }
+
+        if (fittedArt != null) {
+            val blurredBackground = blurBitmap(fittedArt, shareOptions.sanitizedBlurRadius)
+            canvas.drawBitmap(blurredBackground, 0f, 0f, Paint(Paint.FILTER_BITMAP_FLAG))
         } else {
-            val bgPaint = Paint().apply { color = bgColor; isAntiAlias = true }
-            canvas.drawRoundRect(
-                RectF(0f, 0f, cardSize.toFloat(), cardSize.toFloat()),
-                outerCornerRadius, outerCornerRadius, bgPaint
-            )
+            canvas.drawColor(bgColor)
         }
 
         val dimPaint = Paint().apply {
             color = android.graphics.Color.argb(
-                (style.backgroundDimAlpha * 255).toInt(), 0, 0, 0
+                ((style.backgroundDimAlpha * shareOptions.sanitizedDimAmount).coerceIn(0f, 0.95f) * 255).toInt(), 0, 0, 0
             )
             isAntiAlias = true
         }
-        canvas.drawRoundRect(
-            RectF(0f, 0f, cardSize.toFloat(), cardSize.toFloat()),
-            outerCornerRadius, outerCornerRadius, dimPaint
-        )
+        canvas.drawRect(RectF(0f, 0f, canvasWidth.toFloat(), canvasHeight.toFloat()), dimPaint)
 
-        val glassMargin = cardSize * 0.04f
+        val glassMargin = baseSize * 0.045f
         val glassLeft = glassMargin
         val glassTop = glassMargin
-        val glassRight = cardSize - glassMargin
-        val glassBottom = cardSize - glassMargin
+        val glassRight = canvasWidth - glassMargin
+        val glassBottom = canvasHeight - glassMargin
         val glassWidth = glassRight - glassLeft
         val glassHeight = glassBottom - glassTop
-        val glassCornerRadius = cardSize * 0.05f
+        val glassCornerRadius = baseSize * 0.05f
 
         val glassRect = RectF(glassLeft, glassTop, glassRight, glassBottom)
         val glassPath = Path().apply {
             addRoundRect(glassRect, glassCornerRadius, glassCornerRadius, Path.Direction.CW)
         }
 
-        if (scaledArt != null) {
-            val cropLeft = glassLeft.toInt().coerceIn(0, cardSize - 1)
-            val cropTop = glassTop.toInt().coerceIn(0, cardSize - 1)
-            val cropWidth = glassWidth.toInt().coerceIn(1, cardSize - cropLeft)
-            val cropHeight = glassHeight.toInt().coerceIn(1, cardSize - cropTop)
-            val glassCrop = Bitmap.createBitmap(scaledArt, cropLeft, cropTop, cropWidth, cropHeight)
-            val frostedCrop = scaleBlur(glassCrop, 12)
+        if (fittedArt != null) {
+            val frostedCrop = blurBitmap(fittedArt, (shareOptions.sanitizedBlurRadius + 10f).coerceIn(8f, 48f))
             canvas.withClip(glassPath) {
-                drawBitmap(frostedCrop, glassLeft, glassTop, null)
+                drawBitmap(frostedCrop, 0f, 0f, Paint(Paint.FILTER_BITMAP_FLAG))
             }
         }
 
@@ -317,21 +306,37 @@ object ComposeToImage {
         }
         canvas.drawRoundRect(glassRect, glassCornerRadius, glassCornerRadius, borderPaint)
 
-        val contentPadding = glassWidth * 0.08f
+        val contentPadding = minOf(glassWidth, glassHeight) * 0.08f
         val contentLeft = glassLeft + contentPadding
         val contentTop = glassTop + contentPadding
         val contentRight = glassRight - contentPadding
 
-        val imageCornerRadius = cardSize * 0.035f
-        val coverSize = glassWidth * 0.16f
+        val imageCornerRadius = baseSize * 0.035f
+        val coverSize = minOf(glassWidth * 0.18f, glassHeight * 0.15f)
+        val topRowGap = baseSize * 0.035f
 
-        coverArtBitmap?.let {
+        val titlePaint = TextPaint().apply {
+            color = mainTextColor
+            textSize = baseSize * 0.038f
+            typeface = Typeface.DEFAULT_BOLD
+            isAntiAlias = true
+            letterSpacing = -0.02f
+        }
+        val artistPaint = TextPaint().apply {
+            color = secondaryTxtColor
+            textSize = baseSize * 0.028f
+            typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
+            isAntiAlias = true
+        }
+
+        val showingArtwork = shareOptions.showArtwork && coverArtBitmap != null
+        if (showingArtwork) {
             val rect = RectF(contentLeft, contentTop, contentLeft + coverSize, contentTop + coverSize)
             val path = Path().apply {
                 addRoundRect(rect, imageCornerRadius, imageCornerRadius, Path.Direction.CW)
             }
             canvas.withClip(path) {
-                drawBitmap(it, null, rect, null)
+                drawBitmap(coverArtBitmap ?: return@withClip, null, rect, Paint(Paint.FILTER_BITMAP_FLAG))
             }
             val artBorderPaint = Paint().apply {
                 this.style = Paint.Style.STROKE
@@ -342,33 +347,26 @@ object ComposeToImage {
             canvas.drawRoundRect(rect, imageCornerRadius, imageCornerRadius, artBorderPaint)
         }
 
-        val titlePaint = TextPaint().apply {
-            color = mainTextColor
-            textSize = cardSize * 0.038f
-            typeface = Typeface.DEFAULT_BOLD
-            isAntiAlias = true
-            letterSpacing = -0.02f
-        }
-        val artistPaint = TextPaint().apply {
-            color = secondaryTxtColor
-            textSize = cardSize * 0.028f
-            typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
-            isAntiAlias = true
-        }
-
-        val textMaxWidth = (contentRight - contentLeft - coverSize - cardSize * 0.04f).toInt()
-        val textStartX = contentLeft + coverSize + cardSize * 0.04f
+        val textMaxWidth =
+            if (showingArtwork) {
+                (contentRight - contentLeft - coverSize - topRowGap).toInt()
+            } else {
+                (contentRight - contentLeft).toInt()
+            }
+        val textStartX = if (showingArtwork) contentLeft + coverSize + topRowGap else contentLeft
+        val headerAlignment = if (showingArtwork) Layout.Alignment.ALIGN_NORMAL else Layout.Alignment.ALIGN_CENTER
 
         val titleLayout = StaticLayout.Builder.obtain(songTitle, 0, songTitle.length, titlePaint, textMaxWidth)
-            .setAlignment(Layout.Alignment.ALIGN_NORMAL)
+            .setAlignment(headerAlignment)
             .setMaxLines(1)
             .build()
         val artistLayout = StaticLayout.Builder.obtain(artistName, 0, artistName.length, artistPaint, textMaxWidth)
-            .setAlignment(Layout.Alignment.ALIGN_NORMAL)
+            .setAlignment(headerAlignment)
             .setMaxLines(1)
             .build()
 
-        val imageCenter = contentTop + coverSize / 2f
+        val topBlockHeight = if (showingArtwork) coverSize else (titleLayout.height + artistLayout.height + 6f)
+        val imageCenter = contentTop + topBlockHeight / 2f
         val textBlockHeight = titleLayout.height + artistLayout.height + 6f
         val textBlockY = imageCenter - textBlockHeight / 2f
 
@@ -386,12 +384,13 @@ object ComposeToImage {
         }
 
         val lyricsMaxWidth = (glassWidth * 0.85f).toInt()
-        val logoBlockHeight = (glassHeight * 0.08f).toInt()
-        val lyricsTop = glassTop + glassHeight * 0.22f
+        val logoBlockHeight = (baseSize * 0.08f).toInt()
+        val headerBottom = if (showingArtwork) contentTop + coverSize else (textBlockY + textBlockHeight)
+        val lyricsTop = headerBottom + baseSize * 0.045f
         val lyricsBottom = glassBottom - (logoBlockHeight + contentPadding)
         val availableLyricsHeight = lyricsBottom - lyricsTop
 
-        var lyricsTextSize = cardSize * 0.055f
+        var lyricsTextSize = baseSize * 0.055f
         var lyricsLayout: StaticLayout
         do {
             lyricsPaint.textSize = lyricsTextSize
@@ -418,9 +417,9 @@ object ComposeToImage {
         AppLogo(
             context = context,
             canvas = canvas,
-            canvasWidth = cardSize,
-            canvasHeight = cardSize,
-            padding = glassLeft + contentPadding,
+            canvasWidth = canvasWidth,
+            canvasHeight = canvasHeight,
+            padding = contentLeft,
             bottomPadding = glassBottom - contentPadding,
             circleColor = secondaryTxtColor,
             logoTint = if (style.isDark) 0xDD000000.toInt() else 0xE6FFFFFF.toInt(),
@@ -430,13 +429,200 @@ object ComposeToImage {
         return@withContext bitmap
     }
 
-    private fun scaleBlur(source: Bitmap, strength: Int): Bitmap {
+    private fun blurBitmap(source: Bitmap, radius: Float): Bitmap {
         val safe = ensureSoftwareBitmap(source)
-        val factor = (1f / strength.coerceAtLeast(1)).coerceAtLeast(0.02f)
-        val smallW = (safe.width * factor).toInt().coerceAtLeast(1)
-        val smallH = (safe.height * factor).toInt().coerceAtLeast(1)
-        val downscaled = Bitmap.createScaledBitmap(safe, smallW, smallH, true)
-        return Bitmap.createScaledBitmap(downscaled, safe.width, safe.height, true)
+        val safeRadius = radius.coerceIn(0f, 48f)
+        if (safeRadius <= 0.5f) return safe
+        return stackBlur(safe, safeRadius.roundToInt().coerceAtLeast(1))
+    }
+
+    private fun stackBlur(source: Bitmap, radius: Int): Bitmap {
+        val bitmap = ensureSoftwareBitmap(source.copy(Bitmap.Config.ARGB_8888, true))
+        val width = bitmap.width
+        val height = bitmap.height
+        val pixels = IntArray(width * height)
+        bitmap.getPixels(pixels, 0, width, 0, 0, width, height)
+
+        val wm = width - 1
+        val hm = height - 1
+        val div = radius + radius + 1
+        val red = IntArray(width * height)
+        val green = IntArray(width * height)
+        val blue = IntArray(width * height)
+        val vMin = IntArray(max(width, height))
+        val divSum = ((div + 1) shr 1).let { it * it }
+        val divTable = IntArray(256 * divSum) { it / divSum }
+        val stack = Array(div) { IntArray(3) }
+
+        var yi = 0
+        var yw = 0
+        for (y in 0 until height) {
+            var rinsum = 0
+            var ginsum = 0
+            var binsum = 0
+            var routsum = 0
+            var goutsum = 0
+            var boutsum = 0
+            var rsum = 0
+            var gsum = 0
+            var bsum = 0
+
+            for (i in -radius..radius) {
+                val p = pixels[yi + i.coerceIn(0, wm)]
+                val sir = stack[i + radius]
+                sir[0] = p shr 16 and 0xFF
+                sir[1] = p shr 8 and 0xFF
+                sir[2] = p and 0xFF
+                val rbs = radius + 1 - kotlin.math.abs(i)
+                rsum += sir[0] * rbs
+                gsum += sir[1] * rbs
+                bsum += sir[2] * rbs
+                if (i > 0) {
+                    rinsum += sir[0]
+                    ginsum += sir[1]
+                    binsum += sir[2]
+                } else {
+                    routsum += sir[0]
+                    goutsum += sir[1]
+                    boutsum += sir[2]
+                }
+            }
+
+            var stackPointer = radius
+            for (x in 0 until width) {
+                red[yi] = divTable[rsum]
+                green[yi] = divTable[gsum]
+                blue[yi] = divTable[bsum]
+
+                rsum -= routsum
+                gsum -= goutsum
+                bsum -= boutsum
+
+                val stackStart = (stackPointer - radius + div) % div
+                val sir = stack[stackStart]
+
+                routsum -= sir[0]
+                goutsum -= sir[1]
+                boutsum -= sir[2]
+
+                if (y == 0) {
+                    vMin[x] = (x + radius + 1).coerceAtMost(wm)
+                }
+                val p = pixels[yw + vMin[x]]
+                sir[0] = p shr 16 and 0xFF
+                sir[1] = p shr 8 and 0xFF
+                sir[2] = p and 0xFF
+
+                rinsum += sir[0]
+                ginsum += sir[1]
+                binsum += sir[2]
+
+                rsum += rinsum
+                gsum += ginsum
+                bsum += binsum
+
+                stackPointer = (stackPointer + 1) % div
+                val nextSir = stack[stackPointer]
+
+                routsum += nextSir[0]
+                goutsum += nextSir[1]
+                boutsum += nextSir[2]
+
+                rinsum -= nextSir[0]
+                ginsum -= nextSir[1]
+                binsum -= nextSir[2]
+                yi++
+            }
+            yw += width
+        }
+
+        for (x in 0 until width) {
+            var rinsum = 0
+            var ginsum = 0
+            var binsum = 0
+            var routsum = 0
+            var goutsum = 0
+            var boutsum = 0
+            var rsum = 0
+            var gsum = 0
+            var bsum = 0
+            var yp = -radius * width
+
+            for (i in -radius..radius) {
+                val yiIndex = max(0, yp) + x
+                val sir = stack[i + radius]
+                sir[0] = red[yiIndex]
+                sir[1] = green[yiIndex]
+                sir[2] = blue[yiIndex]
+                val rbs = radius + 1 - kotlin.math.abs(i)
+                rsum += red[yiIndex] * rbs
+                gsum += green[yiIndex] * rbs
+                bsum += blue[yiIndex] * rbs
+                if (i > 0) {
+                    rinsum += sir[0]
+                    ginsum += sir[1]
+                    binsum += sir[2]
+                } else {
+                    routsum += sir[0]
+                    goutsum += sir[1]
+                    boutsum += sir[2]
+                }
+                if (i < hm) yp += width
+            }
+
+            var yiIndex = x
+            var stackPointer = radius
+            for (y in 0 until height) {
+                pixels[yiIndex] =
+                    pixels[yiIndex] and -0x1000000 or
+                        (divTable[rsum] shl 16) or
+                        (divTable[gsum] shl 8) or
+                        divTable[bsum]
+
+                rsum -= routsum
+                gsum -= goutsum
+                bsum -= boutsum
+
+                val stackStart = (stackPointer - radius + div) % div
+                val sir = stack[stackStart]
+
+                routsum -= sir[0]
+                goutsum -= sir[1]
+                boutsum -= sir[2]
+
+                if (x == 0) {
+                    vMin[y] = ((y + radius + 1).coerceAtMost(hm)) * width
+                }
+                val p = x + vMin[y]
+                sir[0] = red[p]
+                sir[1] = green[p]
+                sir[2] = blue[p]
+
+                rinsum += sir[0]
+                ginsum += sir[1]
+                binsum += sir[2]
+
+                rsum += rinsum
+                gsum += ginsum
+                bsum += binsum
+
+                stackPointer = (stackPointer + 1) % div
+                val nextSir = stack[stackPointer]
+
+                routsum += nextSir[0]
+                goutsum += nextSir[1]
+                boutsum += nextSir[2]
+
+                rinsum -= nextSir[0]
+                ginsum -= nextSir[1]
+                binsum -= nextSir[2]
+
+                yiIndex += width
+            }
+        }
+
+        bitmap.setPixels(pixels, 0, width, 0, 0, width, height)
+        return bitmap
     }
 
     private fun AppLogo(

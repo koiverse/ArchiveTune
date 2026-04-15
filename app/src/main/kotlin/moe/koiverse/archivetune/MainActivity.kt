@@ -1,8 +1,10 @@
 /*
  * ArchiveTune Project Original (2026)
- * Kòi Natsuko (github.com/koiverse)
+ * Chartreux Westia (github.com/koiverse)
  * Licensed Under GPL-3.0 | see git history for contributors
+ * Don't remove this copyright holder!
  */
+
 
 @file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
 
@@ -15,11 +17,14 @@ import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.provider.OpenableColumns
 import android.os.IBinder
 import android.view.View
 import android.view.WindowManager
+import android.webkit.MimeTypeMap
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
@@ -133,6 +138,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.media3.common.MediaItem
+import androidx.media3.common.MediaMetadata.MEDIA_TYPE_MUSIC
 import androidx.media3.common.Player
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavHostController
@@ -140,6 +146,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.window.core.layout.WindowSizeClass
+import androidx.core.content.IntentCompat
 import coil3.imageLoader
 import coil3.request.ImageRequest
 import coil3.request.allowHardware
@@ -192,12 +199,16 @@ import moe.koiverse.archivetune.innertube.models.PlaylistItem
 import moe.koiverse.archivetune.innertube.models.SongItem
 import moe.koiverse.archivetune.extensions.toMediaItem
 import moe.koiverse.archivetune.models.toMediaMetadata
+import moe.koiverse.archivetune.musicrecognition.ACTION_MUSIC_RECOGNITION
+import moe.koiverse.archivetune.musicrecognition.MusicRecognitionRoute
+import moe.koiverse.archivetune.musicrecognition.openMusicRecognition
 import moe.koiverse.archivetune.playback.DownloadUtil
 import moe.koiverse.archivetune.playback.MusicService
 import moe.koiverse.archivetune.playback.MusicService.MusicBinder
 import moe.koiverse.archivetune.playback.PlayerConnection
 import moe.koiverse.archivetune.playback.queues.LocalAlbumRadio
 import moe.koiverse.archivetune.playback.queues.ListQueue
+import moe.koiverse.archivetune.playback.queues.Queue
 import moe.koiverse.archivetune.playback.queues.YouTubeAlbumRadio
 import moe.koiverse.archivetune.playback.queues.YouTubeQueue
 import moe.koiverse.archivetune.ui.component.BottomSheetMenu
@@ -266,7 +277,7 @@ class MainActivity : ComponentActivity() {
 
     private lateinit var navController: NavHostController
     private var pendingIntent: Intent? = null
-    private var pendingDeepLinkSong: PendingDeepLinkSong? = null
+    private var pendingDeepLinkQueue: Queue? = null
     private var pendingTogetherJoinLink: String? = null
     private var latestVersionName by mutableStateOf(BuildConfig.VERSION_NAME)
 
@@ -283,7 +294,7 @@ class MainActivity : ComponentActivity() {
                 if (service is MusicBinder) {
                     playerConnection =
                         PlayerConnection(this@MainActivity, service, database, lifecycleScope)
-                    playPendingDeepLinkSongIfReady()
+                    playPendingDeepLinkQueueIfReady()
                     joinPendingTogetherIfReady()
                 }
             }
@@ -295,15 +306,11 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-    private data class PendingDeepLinkSong(
-        val mediaItem: MediaItem,
-    )
-
-    private fun playPendingDeepLinkSongIfReady() {
-        val pending = pendingDeepLinkSong ?: return
+    private fun playPendingDeepLinkQueueIfReady() {
+        val pending = pendingDeepLinkQueue ?: return
         val connection = playerConnection ?: return
-        pendingDeepLinkSong = null
-        connection.playQueue(ListQueue(items = listOf(pending.mediaItem)))
+        pendingDeepLinkQueue = null
+        connection.playQueue(pending)
     }
 
     private fun joinPendingTogetherIfReady() {
@@ -331,7 +338,7 @@ class MainActivity : ComponentActivity() {
                 serviceConnection,
                 Context.BIND_AUTO_CREATE
             )
-        playPendingDeepLinkSongIfReady()
+        playPendingDeepLinkQueueIfReady()
     }
 
     private fun safeUnbindMusicService() {
@@ -676,6 +683,10 @@ class MainActivity : ComponentActivity() {
                                 else -> null
                             }
                         }
+                    val launchMusicRecognitionFromShortcut =
+                        remember {
+                            intent?.action == ACTION_MUSIC_RECOGNITION
+                        }
 
                     val topLevelScreens =
                         listOf(
@@ -1004,10 +1015,10 @@ class MainActivity : ComponentActivity() {
 
                     LaunchedEffect(Unit) {
                         if (pendingIntent != null) {
-                            handleDeepLinkIntent(pendingIntent!!, navController)
+                            handleIntent(pendingIntent, navController)
                             pendingIntent = null
                         } else {
-                            handleDeepLinkIntent(intent, navController)
+                            handleIntent(intent, navController)
                         }
                     }
 
@@ -1554,7 +1565,7 @@ class MainActivity : ComponentActivity() {
 
                                                                     is PlaylistItem -> {
                                                                         luckyItem.playEndpoint?.let {
-                                                                            playerConnection?.playQueue(YouTubeQueue(it))
+                                                                            playerConnection?.playQueue(YouTubeQueue.playlist(it))
                                                                         }
                                                                     }
                                                                 }
@@ -1565,7 +1576,7 @@ class MainActivity : ComponentActivity() {
                                                 shuffleIconRes = if (shouldShowHomeShuffleButton) R.drawable.shuffle else null,
                                                 shuffleContentDescription = if (shouldShowHomeShuffleButton) stringResource(R.string.shuffle) else "",
                                                 onMusicRecognitionClick = if (shouldShowHomeShuffleButton) {
-                                                    { navController.navigate(moe.koiverse.archivetune.ui.screens.musicrecognition.MusicRecognitionRoute) }
+                                                    { navController.navigate(MusicRecognitionRoute) }
                                                 } else null,
                                                 musicRecognitionContentDescription = if (shouldShowHomeShuffleButton) stringResource(R.string.music_recognition) else "",
                                                 isSelected = { screen ->
@@ -1627,11 +1638,15 @@ class MainActivity : ComponentActivity() {
 
                                 NavHost(
                                     navController = navController,
-                                    startDestination = when (tabOpenedFromShortcut ?: defaultOpenTab) {
-                                        NavigationTab.HOME -> Screens.Home
-                                        NavigationTab.LIBRARY -> Screens.Library
-                                        else -> Screens.Home
-                                    }.route,
+                                    startDestination = if (launchMusicRecognitionFromShortcut) {
+                                        MusicRecognitionRoute
+                                    } else {
+                                        when (tabOpenedFromShortcut ?: defaultOpenTab) {
+                                            NavigationTab.HOME -> Screens.Home.route
+                                            NavigationTab.LIBRARY -> Screens.Library.route
+                                            else -> Screens.Home.route
+                                        }
+                                    },
                                     enterTransition = {
                                         if (initialState.destination.route in topLevelScreens && targetState.destination.route in topLevelScreens) {
                                             fadeIn(tween(250))
@@ -1745,6 +1760,100 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    private fun handleIntent(intent: Intent?, navController: NavHostController) {
+        if (intent == null) return
+        if (intent.action == ACTION_MUSIC_RECOGNITION) {
+            navController.openMusicRecognition()
+            return
+        }
+        if (handleExternalAudioIntent(intent)) {
+            return
+        }
+        handleDeepLinkIntent(intent, navController)
+    }
+
+    private fun handleExternalAudioIntent(intent: Intent): Boolean {
+        val incomingUris = buildList {
+            intent.data?.let(::add)
+            when (intent.action) {
+                Intent.ACTION_SEND -> {
+                    IntentCompat.getParcelableExtra(intent, Intent.EXTRA_STREAM, Uri::class.java)?.let(::add)
+                }
+                Intent.ACTION_SEND_MULTIPLE -> {
+                    addAll(
+                        IntentCompat.getParcelableArrayListExtra(
+                            intent,
+                            Intent.EXTRA_STREAM,
+                            Uri::class.java
+                        ).orEmpty()
+                    )
+                }
+            }
+        }.distinct()
+
+        if (incomingUris.isEmpty()) return false
+
+        val fallbackMimeType = intent.type
+        val playableUris = incomingUris.filter { uri ->
+            val mimeType = contentResolver.getType(uri)
+            mimeType.isAudioMimeType() || fallbackMimeType.isAudioMimeType() || uri.hasAudioExtension()
+        }
+        if (playableUris.isEmpty()) return false
+
+        pendingDeepLinkQueue = ListQueue(items = playableUris.map(::toExternalAudioMediaItem))
+        startMusicServiceSafely()
+        playPendingDeepLinkQueueIfReady()
+        return true
+    }
+
+    private fun toExternalAudioMediaItem(uri: Uri): MediaItem {
+        val mediaId = uri.toString()
+        val title = resolveExternalAudioTitle(uri)
+        val metadata =
+            moe.koiverse.archivetune.models.MediaMetadata(
+                id = mediaId,
+                title = title,
+                artists = emptyList(),
+                duration = -1,
+            )
+        return MediaItem.Builder()
+            .setMediaId(mediaId)
+            .setUri(uri)
+            .setTag(metadata)
+            .setMediaMetadata(
+                androidx.media3.common.MediaMetadata.Builder()
+                    .setTitle(title)
+                    .setIsPlayable(true)
+                    .setMediaType(MEDIA_TYPE_MUSIC)
+                    .build()
+            )
+            .build()
+    }
+
+    private fun resolveExternalAudioTitle(uri: Uri): String {
+        val displayName =
+            runCatching {
+                contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->
+                    val columnIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                    if (columnIndex >= 0 && cursor.moveToFirst()) cursor.getString(columnIndex) else null
+                }
+            }.getOrNull()
+        return displayName
+            ?.trim()
+            ?.takeIf { it.isNotBlank() }
+            ?: uri.lastPathSegment?.substringAfterLast('/')?.substringBefore('?')?.trim()?.takeIf { it.isNotBlank() }
+            ?: getString(R.string.unknown)
+    }
+
+    private fun String?.isAudioMimeType(): Boolean =
+        this?.startsWith("audio/", ignoreCase = true) == true
+
+    private fun Uri.hasAudioExtension(): Boolean {
+        val extension = MimeTypeMap.getFileExtensionFromUrl(toString()).orEmpty()
+        val normalized = extension.lowercase(Locale.US)
+        return normalized in setOf("aac", "flac", "m4a", "mp3", "ogg", "opus", "wav", "webm")
+    }
+
     private fun handleDeepLinkIntent(intent: Intent, navController: NavHostController) {
         val uri = intent.data ?: intent.extras?.getString(Intent.EXTRA_TEXT)?.toUri() ?: return
         val coroutineScope = lifecycleScope
@@ -1791,8 +1900,8 @@ class MainActivity : ComponentActivity() {
                     uri.host == "youtu.be" -> uri.pathSegments.firstOrNull()
                     else -> null
                 }
-                
                 val playlistId = uri.getQueryParameter("list")
+                val shouldShufflePlaylist = uri.requestsShuffledPlayback()
 
                 videoId?.let { vid ->
                     coroutineScope.launch {
@@ -1810,12 +1919,36 @@ class MainActivity : ComponentActivity() {
                                         .setUri(vid)
                                         .setCustomCacheKey(vid)
                                         .build()
-                            pendingDeepLinkSong =
-                                PendingDeepLinkSong(
-                                    mediaItem = mediaItem,
-                                )
+                            pendingDeepLinkQueue = ListQueue(items = listOf(mediaItem))
                             startMusicServiceSafely()
-                            playPendingDeepLinkSongIfReady()
+                            playPendingDeepLinkQueueIfReady()
+                        }.onFailure {
+                            reportException(it)
+                        }
+                    }
+                    return
+                }
+
+                if (path == "watch" && !playlistId.isNullOrBlank()) {
+                    coroutineScope.launch {
+                        val result = withContext(Dispatchers.IO) {
+                            YouTube.playlist(playlistId)
+                        }
+
+                        result.onSuccess { playlistPage ->
+                            val endpoint =
+                                when {
+                                    shouldShufflePlaylist -> playlistPage.playlist.shuffleEndpoint
+                                        ?: playlistPage.playlist.playEndpoint
+                                    else -> playlistPage.playlist.playEndpoint
+                                        ?: playlistPage.playlist.shuffleEndpoint
+                                }
+
+                            endpoint?.let {
+                                pendingDeepLinkQueue = YouTubeQueue.playlist(it)
+                                startMusicServiceSafely()
+                                playPendingDeepLinkQueueIfReady()
+                            } ?: navController.navigate("online_playlist/$playlistId")
                         }.onFailure {
                             reportException(it)
                         }
@@ -1823,6 +1956,11 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    private fun android.net.Uri.requestsShuffledPlayback(): Boolean {
+        val value = getQueryParameter("shuffle")?.trim()?.lowercase(Locale.US) ?: return false
+        return value == "1" || value == "true"
     }
 
     private fun startMusicServiceSafely() {

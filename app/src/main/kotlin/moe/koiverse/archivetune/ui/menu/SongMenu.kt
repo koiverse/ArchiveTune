@@ -1,12 +1,12 @@
-@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
-
 /*
  * ArchiveTune Project Original (2026)
- * Kòi Natsuko (github.com/koiverse)
+ * Chartreux Westia (github.com/koiverse)
  * Licensed Under GPL-3.0 | see git history for contributors
+ * Don't remove this copyright holder!
  */
 
 
+@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
 
 package moe.koiverse.archivetune.ui.menu
 
@@ -108,7 +108,12 @@ import moe.koiverse.archivetune.ui.component.NewActionGrid
 import moe.koiverse.archivetune.ui.component.SongListItem
 import moe.koiverse.archivetune.ui.component.TextFieldDialog
 import moe.koiverse.archivetune.ui.utils.ShowMediaInfo
+import moe.koiverse.archivetune.utils.SpeedDialPin
+import moe.koiverse.archivetune.utils.SpeedDialPinType
+import moe.koiverse.archivetune.utils.parseSpeedDialPins
 import moe.koiverse.archivetune.utils.rememberPreference
+import moe.koiverse.archivetune.utils.serializeSpeedDialPins
+import moe.koiverse.archivetune.utils.toggleSpeedDialPin
 import moe.koiverse.archivetune.viewmodels.CachePlaylistViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -149,15 +154,11 @@ fun SongMenu(
     val (externalDownloaderEnabled) = rememberPreference(ExternalDownloaderEnabledKey, defaultValue = false)
     val (externalDownloaderPackage) = rememberPreference(ExternalDownloaderPackageKey, defaultValue = "")
     val (speedDialSongIds, onSpeedDialSongIdsChange) = rememberPreference(SpeedDialSongIdsKey, "")
-    val speedDialSongs = remember(speedDialSongIds) {
-        speedDialSongIds
-            .split(",")
-            .map { it.trim() }
-            .filter { it.isNotEmpty() }
-            .distinct()
-            .take(24)
+    val speedDialPins = remember(speedDialSongIds) { parseSpeedDialPins(speedDialSongIds) }
+    val songPin = remember(song.id) { SpeedDialPin(type = SpeedDialPinType.SONG, id = song.id) }
+    val isInSpeedDial = remember(speedDialPins, songPin) {
+        speedDialPins.any { it.type == songPin.type && it.id == songPin.id }
     }
-    val isInSpeedDial = remember(speedDialSongs, song.id) { song.id in speedDialSongs }
 
     val orderedArtists by produceState(initialValue = emptyList<ArtistEntity>(), song) {
         withContext(Dispatchers.IO) {
@@ -577,12 +578,8 @@ fun SongMenu(
                         )
                     },
                     modifier = Modifier.clickable {
-                        val updatedIds = if (isInSpeedDial) {
-                            speedDialSongs.filterNot { it == song.id }
-                        } else {
-                            (speedDialSongs + song.id).distinct().take(24)
-                        }
-                        onSpeedDialSongIdsChange(updatedIds.joinToString(","))
+                        val updatedPins = toggleSpeedDialPin(speedDialPins, songPin)
+                        onSpeedDialSongIdsChange(serializeSpeedDialPins(updatedPins))
                         onDismiss()
                     },
                     colors = ListItemDefaults.colors(containerColor = Color.Transparent),
@@ -650,6 +647,23 @@ fun SongMenu(
                                 Modifier.clickable {
                                     val map = playlistSong.map
                                     coroutineScope.launch(Dispatchers.IO) {
+                                        val browseId = playlistBrowseId
+                                        if (browseId != null) {
+                                            val remoteResult = removeSongFromRemotePlaylist(browseId, map)
+                                            if (remoteResult.isFailure) {
+                                                withContext(Dispatchers.Main) {
+                                                    Toast
+                                                        .makeText(
+                                                            context,
+                                                            context.getString(R.string.error_unknown),
+                                                            Toast.LENGTH_SHORT,
+                                                        )
+                                                        .show()
+                                                    onDismiss()
+                                                }
+                                                return@launch
+                                            }
+                                        }
                                         database.withTransaction {
                                             val maxPosition = maxPlaylistSongPosition(map.playlistId) ?: map.position
                                             if (map.position < maxPosition) {
@@ -657,9 +671,8 @@ fun SongMenu(
                                             }
                                             delete(map)
                                         }
-                                        val browseId = playlistBrowseId
                                         if (browseId != null) {
-                                            removeSongFromRemotePlaylist(browseId, map)
+                                            syncUtils.syncPlaylistNow(browseId, map.playlistId)
                                         }
                                         withContext(Dispatchers.Main) {
                                             onDismiss()

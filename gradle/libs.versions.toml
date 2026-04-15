@@ -1,5 +1,5 @@
 [versions]
-androidGradlePlugin = "9.1.0"
+agp = "9.1.0"
 annotation = "1.9.1"
 json = "20250517"
 kotlin = "2.3.20"
@@ -36,9 +36,9 @@ turbine = "1.2.1"
 timber = "5.0.1"
 kuromojiIpadic = "0.9.0"
 anyascii = "0.3.3"
-extractor = "2d2d9ed"
+extractor = "c46af33"
 rhino = "1.9.1"
-multiplatformMarkdown = "0.39.2"
+multiplatformMarkdown = "0.40.2"
 
 [libraries]
 annotation = { module = "androidx.annotation:annotation", version.ref = "annotation" }
@@ -46,7 +46,7 @@ guava = { module = "com.google.guava:guava", version.ref = "guava" }
 coroutines-guava = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-guava", version.ref = "coroutinesGuava" }
 concurrent-futures = { module = "androidx.concurrent:concurrent-futures-ktx", version.ref = "concurrentFutures" }
 
-gradle = { module = "com.android.tools.build:gradle", version.ref = "androidGradlePlugin" }
+gradle = { module = "com.android.tools.build:gradle", version.ref = "agp" }
 activity = { module = "androidx.activity:activity-compose", version.ref = "activity" }
 navigation = { module = "androidx.navigation:navigation-compose", version.ref = "navigation" }
 hilt-navigation = { module = "androidx.hilt:hilt-navigation-compose", version.ref = "hiltNavigation" }
@@ -118,7 +118,7 @@ turbine = { module = "app.cash.turbine:turbine", version.ref = "turbine" }
 
 timber = { module = "com.jakewharton.timber:timber", version.ref = "timber" }
 
-newpipe-extractor = { module = "com.github.teamnewpipe:NewPipeExtractor", version = "v0.26.0" }
+newpipe-extractor = { module = "net.newpipe:extractor", version = "c46af33-SNAPSHOT" }
 #newpipe-extractor = { module = "com.github.libre-tube:NewPipeExtractor", version = "70be3a4" }
 #newpipe-extractor = { module = "com.github.teamnewpipe:NewPipeExtractor", version = "master-SNAPSHOT" }
 
@@ -129,8 +129,8 @@ multiplatform-markdown = { module = "com.mikepenz:multiplatform-markdown-rendere
 
 
 [plugins]
-android-application = { id = "com.android.application", version.ref = "androidGradlePlugin" }
-android-library = { id = "com.android.library", version.ref = "androidGradlePlugin" }
+android-application = { id = "com.android.application", version.ref = "agp" }
+android-library = { id = "com.android.library", version.ref = "agp" }
 compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }

@@ -1,8 +1,10 @@
 /*
  * ArchiveTune Project Original (2026)
- * Kòi Natsuko (github.com/koiverse)
+ * Chartreux Westia (github.com/koiverse)
  * Licensed Under GPL-3.0 | see git history for contributors
+ * Don't remove this copyright holder!
  */
+
 
 
 
@@ -18,8 +20,6 @@ data class PlayerBody(
     val playlistId: String?,
     val playbackContext: PlaybackContext? = null,
     val serviceIntegrityDimensions: ServiceIntegrityDimensions? = null,
-    val contentCheckOk: Boolean = true,
-    val racyCheckOk: Boolean = true,
 ) {
     @Serializable
     data class PlaybackContext(

@@ -1,8 +1,10 @@
 /*
  * ArchiveTune Project Original (2026)
- * Kòi Natsuko (github.com/koiverse)
+ * Chartreux Westia (github.com/koiverse)
  * Licensed Under GPL-3.0 | see git history for contributors
+ * Don't remove this copyright holder!
  */
+
 
 
 
@@ -34,7 +36,8 @@ import moe.koiverse.archivetune.extensions.toEnum
 import moe.koiverse.archivetune.models.SimilarRecommendation
 import moe.koiverse.archivetune.utils.dataStore
 import moe.koiverse.archivetune.utils.get
-import moe.koiverse.archivetune.utils.getAsync
+import moe.koiverse.archivetune.utils.parseSpeedDialPins
+import moe.koiverse.archivetune.utils.SpeedDialPinType
 import moe.koiverse.archivetune.utils.SyncUtils
 import moe.koiverse.archivetune.utils.reportException
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -61,7 +64,7 @@ class HomeViewModel @Inject constructor(
     }.distinctUntilChanged()
 
     val quickPicks = MutableStateFlow<List<Song>?>(null)
-    val speedDialSongs = MutableStateFlow<List<Song>>(emptyList())
+    val speedDialItems = MutableStateFlow<List<LocalItem>>(emptyList())
     val forgottenFavorites = MutableStateFlow<List<Song>?>(null)
     val keepListening = MutableStateFlow<List<LocalItem>?>(null)
     val similarRecommendations = MutableStateFlow<List<SimilarRecommendation>?>(null)
@@ -102,19 +105,31 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    private suspend fun loadSpeedDialSongs() {
-        val speedDialIds = context.dataStore.getAsync(SpeedDialSongIdsKey, "")
-            .split(",")
-            .map { it.trim() }
-            .filter { it.isNotEmpty() }
-            .distinct()
-            .take(24)
-        if (speedDialIds.isEmpty()) {
-            speedDialSongs.value = emptyList()
+    private suspend fun loadSpeedDialItems() {
+        val pins = parseSpeedDialPins(context.dataStore.get(SpeedDialSongIdsKey, ""))
+        if (pins.isEmpty()) {
+            speedDialItems.value = emptyList()
             return
         }
-        val songsById = database.getSongsByIds(speedDialIds).associateBy { it.id }
-        speedDialSongs.value = speedDialIds.mapNotNull { songsById[it] }
+        val songIds = pins.filter { it.type == SpeedDialPinType.SONG }.map { it.id }
+        val albumIds = pins.filter { it.type == SpeedDialPinType.ALBUM }.map { it.id }
+        val artistIds = pins.filter { it.type == SpeedDialPinType.ARTIST }.map { it.id }
+        val playlistIds = pins.filter { it.type == SpeedDialPinType.PLAYLIST }.map { it.id }
+
+        val songsById = database.getSongsByIds(songIds).associateBy { it.id }
+        val albumsById = albumIds.mapNotNull { id -> database.album(id).first() }.associateBy { it.id }
+        val artistsById = artistIds.mapNotNull { id -> database.artist(id).first() }.associateBy { it.id }
+        val playlistsById = playlistIds.mapNotNull { id -> database.getPlaylistById(id) }.associateBy { it.id }
+
+        speedDialItems.value = pins.mapNotNull { pin ->
+            when (pin.type.value) {
+                SpeedDialPinType.SONG.value -> songsById[pin.id]
+                SpeedDialPinType.ALBUM.value -> albumsById[pin.id]
+                SpeedDialPinType.ARTIST.value -> artistsById[pin.id]
+                SpeedDialPinType.PLAYLIST.value -> playlistsById[pin.id]
+                else -> null
+            }
+        }
     }
 
     private suspend fun load() {
@@ -128,7 +143,7 @@ class HomeViewModel @Inject constructor(
                 val fromTimeStamp = System.currentTimeMillis() - 86400000 * 7 * 2
 
                 launch { getQuickPicks() }
-                launch { loadSpeedDialSongs() }
+                launch { loadSpeedDialItems() }
                 launch { forgottenFavorites.value = database.forgottenFavorites().first().shuffled().take(20) }
                 
                 launch {
@@ -403,7 +418,7 @@ class HomeViewModel @Inject constructor(
                 .map { it[SpeedDialSongIdsKey].orEmpty() }
                 .distinctUntilChanged()
                 .collect {
-                    loadSpeedDialSongs()
+                    loadSpeedDialItems()
                 }
         }
 

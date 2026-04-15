@@ -1,8 +1,10 @@
 /*
  * ArchiveTune Project Original (2026)
- * Kòi Natsuko (github.com/koiverse)
+ * Chartreux Westia (github.com/koiverse)
  * Licensed Under GPL-3.0 | see git history for contributors
+ * Don't remove this copyright holder!
  */
+
 
 
 
@@ -17,7 +19,9 @@ import io.ktor.client.plugins.compression.ContentEncoding
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.defaultRequest
 import io.ktor.client.request.get
+import io.ktor.client.request.header
 import io.ktor.client.request.parameter
+import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.SerialName
@@ -30,6 +34,13 @@ import kotlin.time.DurationUnit
 
 object ArchiveTuneCanvas {
     private const val BASE_URL = "https://artwork-archivetune.koiiverse.cloud/"
+
+    @Volatile
+    private var bearerToken: String? = null
+
+    fun initialize(bearerToken: String?) {
+        this.bearerToken = bearerToken?.trim()?.takeIf { it.isNotEmpty() }
+    }
 
     private val json = Json {
         ignoreUnknownKeys = true
@@ -50,7 +61,10 @@ object ArchiveTuneCanvas {
                 deflate()
             }
             install(HttpCache)
-            defaultRequest { url(BASE_URL) }
+            defaultRequest {
+                url(BASE_URL)
+                bearerToken?.let { header(HttpHeaders.Authorization, "Bearer $it") }
+            }
             expectSuccess = false
         }
     }

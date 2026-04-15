@@ -45,6 +45,12 @@ android {
                 ?: System.getenv("TOGETHER_BEARER_TOKEN")
                 ?: ""
         buildConfigField("String", "TOGETHER_BEARER_TOKEN", "\"$togetherBearerToken\"")
+
+        val canvasBearerToken =
+            localProperties.getProperty("CANVAS_BEARER_TOKEN")
+                ?: System.getenv("CANVAS_BEARER_TOKEN")
+                ?: ""
+        buildConfigField("String", "CANVAS_BEARER_TOKEN", "\"$canvasBearerToken\"")
     }
 
     flavorDimensions += "abi"
@@ -244,6 +250,8 @@ dependencies {
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
     compilerOptions {
         jvmTarget.set(JvmTarget.JVM_21)
+        optIn.add("androidx.compose.material3.ExperimentalMaterial3Api")
+        optIn.add("androidx.compose.material3.ExperimentalMaterial3ExpressiveApi")
         freeCompilerArgs.add("-Xannotation-default-target=param-property")
         freeCompilerArgs.addAll(
             "-opt-in=kotlin.RequiresOptIn",

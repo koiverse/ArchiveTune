@@ -186,7 +186,7 @@
     </tr>
     <tr>
       <th align="center">OpenAPK</th>
-      <th align="center">Doyo.cn</th>
+      <th align="center">Unclouded</th>
     </tr>
     <tr>
       <td align="center">
@@ -195,8 +195,8 @@
         </a>
       </td>
       <td align="center">
-        <a href="https://m.doyo.cn/app/539242.html">
-          <img src="https://raw.githubusercontent.com/koiverse/ArchiveTune/refs/heads/dev/assets/badge_doyo.png" height="50" alt="Get ArchiveTune on Doyo.cn">
+        <a href="https://unclouded.app/apps/archivetune/">
+          <img src="https://raw.githubusercontent.com/koiverse/ArchiveTune/refs/heads/dev/assets/badge_unclouded.png" height="50" alt="Get ArchiveTune on Unclouded">
         </a>
       </td>
     </tr>
@@ -221,9 +221,10 @@
     </tr>
   </tbody>
 </table>
-
 </div>
 
+> [!WARNING]  
+> **Notes:** The trusted download source is listed above; we are not responsible for any risks you may encounter from downloading from other sources.
 
 ## ❓ Need Help or Have Questions?
 Join Our Telegram Channels for Support and Discussion.
@@ -250,6 +251,15 @@ ArchiveTune belongs to everyone. Help us localize the experience for your region
 ### 🛠️ Development & Engineering
 Interested in building the project or contributing? ArchiveTune is built on a high-performance Kotlin stack.
 <a href="CONTRIBUTING.md"><b>Read the Build & Contribution Guide →</b></a>
+
+---
+
+### ⭐ Support the Project
+ArchiveTune is free and open-source. If it brings you joy, consider supporting its development!
+##### Tribe
+<a href="https://sociabuzz.com/chrtrxwstia">
+  <img src="https://github.com/koiverse/ArchiveTune/blob/dev/assets/tribe.png?raw=true" alt="Buy Me a Coffee" width="160" />
+</a>
 
 ---
 

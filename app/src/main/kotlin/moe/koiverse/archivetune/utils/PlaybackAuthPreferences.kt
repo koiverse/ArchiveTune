@@ -1,13 +1,17 @@
 /*
  * ArchiveTune Project Original (2026)
- * Kòi Natsuko (github.com/koiverse)
+ * Chartreux Westia (github.com/koiverse)
  * Licensed Under GPL-3.0 | see git history for contributors
+ * Don't remove this copyright holder!
  */
+
 
 package moe.koiverse.archivetune.utils
 
+import android.content.Context
 import androidx.datastore.preferences.core.MutablePreferences
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.edit
 import moe.koiverse.archivetune.constants.AccountChannelHandleKey
 import moe.koiverse.archivetune.constants.AccountEmailKey
 import moe.koiverse.archivetune.constants.AccountNameKey
@@ -20,6 +24,8 @@ import moe.koiverse.archivetune.constants.PoTokenSourceUrlKey
 import moe.koiverse.archivetune.constants.VisitorDataKey
 import moe.koiverse.archivetune.constants.WebClientPoTokenEnabledKey
 import moe.koiverse.archivetune.innertube.PlaybackAuthState
+import moe.koiverse.archivetune.innertube.YouTube
+import kotlinx.coroutines.flow.first
 
 fun Preferences.toPlaybackAuthState(): PlaybackAuthState =
     PlaybackAuthState(
@@ -60,4 +66,32 @@ fun MutablePreferences.putLegacyPoToken(value: String?) {
     }
     remove(PoTokenGvsKey)
     remove(PoTokenPlayerKey)
+}
+
+suspend fun Context.resetPlaybackLoginContext(): PlaybackAuthState {
+    dataStore.edit { preferences ->
+        preferences.clearPlaybackLoginContext()
+    }
+    val authState = dataStore.data.first().toPlaybackAuthState()
+    YouTube.authState = authState
+    YTPlayerUtils.clearPlaybackAuthCaches()
+    return authState
+}
+
+suspend fun <T> Context.retryWithoutPlaybackLoginContext(
+    block: suspend () -> Result<T>,
+): Result<T> {
+    val initialAuthState = YouTube.currentPlaybackAuthState()
+    val initialResult = block()
+    val failure = initialResult.exceptionOrNull()
+
+    if (failure !is YTPlayerUtils.InvalidPlaybackLoginContextException) return initialResult
+    if (!initialAuthState.hasPlaybackLoginContext) return initialResult
+
+    val currentAuthState = YouTube.currentPlaybackAuthState()
+    if (!currentAuthState.hasPlaybackLoginContext) return initialResult
+    if (currentAuthState.fingerprint != initialAuthState.fingerprint) return initialResult
+
+    resetPlaybackLoginContext()
+    return block()
 }

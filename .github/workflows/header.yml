@@ -17,7 +17,7 @@ jobs:
 
       - run: |
           YEAR=$(date +%Y)
-          echo -e "ArchiveTune Project Original ($YEAR)\nKòi Natsuko (github.com/koiverse)\nLicensed Under GPL-3.0 | see git history for contributors" > banner.txt
+          echo -e "ArchiveTune Project Original ($YEAR)\nChartreux Westia (github.com/koiverse)\nLicensed Under GPL-3.0 | see git history for contributors\nDon't remove this copyright holder!" > banner.txt
 
           find . -type f -name "*.kt" -exec grep -q "Licensed Under GPL-3.0" {} \; -exec sed -i '0,/\*\//d' {} \;
 

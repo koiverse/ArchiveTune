@@ -1,8 +1,10 @@
 /*
  * ArchiveTune Project Original (2026)
- * Kòi Natsuko (github.com/koiverse)
+ * Chartreux Westia (github.com/koiverse)
  * Licensed Under GPL-3.0 | see git history for contributors
+ * Don't remove this copyright holder!
  */
+
 
 
 
@@ -45,6 +47,28 @@ import java.util.concurrent.ConcurrentHashMap
 object YTPlayerUtils {
     private const val logTag = "YTPlayerUtils"
     private const val FAILED_CLIENT_BACKOFF_MS = 10 * 60 * 1000L
+    private const val DEFAULT_STREAM_EXPIRE_SECONDS = 300
+
+    private fun extractExpireSecondsFromUrl(url: String): Int? {
+        val expireTimestamp = url.toHttpUrlOrNull()
+            ?.queryParameter("expire")
+            ?.toLongOrNull()
+            ?: return null
+        val remaining = expireTimestamp - (System.currentTimeMillis() / 1000L)
+        return remaining.toInt().takeIf { it > 0 }
+    }
+
+    private fun resolveExpireSeconds(apiExpire: Int?, streamUrl: String?): Int {
+        apiExpire?.let { return it }
+        streamUrl?.let { url ->
+            extractExpireSecondsFromUrl(url)?.let { fromUrl ->
+                Timber.tag(logTag).w("Using expire time extracted from stream URL: ${fromUrl}s")
+                return fromUrl
+            }
+        }
+        Timber.tag(logTag).w("No expire time available from API or URL, using default: ${DEFAULT_STREAM_EXPIRE_SECONDS}s")
+        return DEFAULT_STREAM_EXPIRE_SECONDS
+    }
 
     class LoginRequiredForPlaybackException(
         val videoId: String,
@@ -117,6 +141,7 @@ object YTPlayerUtils {
 
     private val streamUrlCache = ConcurrentHashMap<String, CachedStreamUrl>()
     private val failedStreamClientsUntil = ConcurrentHashMap<String, Long>()
+    @Volatile private var lastSuccessfulClientName: String? = null
 
     fun clearPlaybackAuthCaches() {
         streamUrlCache.clear()
@@ -270,6 +295,10 @@ object YTPlayerUtils {
         authState: PlaybackAuthState,
     ): List<YouTubeClient> {
         val preferredYouTubeClient = resolvePreferredPlaybackClient(preferredStreamClient, authState)
+        val lastSuccessfulClient = lastSuccessfulClientName?.let { name ->
+            STREAM_FALLBACK_CLIENTS.find { it.clientName == name }
+        }
+
         val orderedFallbackClients =
             if (authState.hasPlaybackLoginContext) {
                 STREAM_FALLBACK_CLIENTS.filter { it.loginSupported } + STREAM_FALLBACK_CLIENTS.filterNot { it.loginSupported }
@@ -278,9 +307,13 @@ object YTPlayerUtils {
             }
 
         return buildList {
+            lastSuccessfulClient?.let { add(it) }
             add(preferredYouTubeClient)
             addAll(orderedFallbackClients)
             if (preferredYouTubeClient != MAIN_CLIENT) add(MAIN_CLIENT)
+            if (preferredStreamClient == PlayerStreamClient.WEB_REMIX) {
+                addAll(STREAM_FALLBACK_CLIENTS)
+            }
         }.distinct()
     }
 
@@ -306,7 +339,6 @@ object YTPlayerUtils {
         preferredStreamClient: PlayerStreamClient = PlayerStreamClient.ANDROID_VR,
         // if provided, this preference overrides ConnectivityManager.isActiveNetworkMetered
         networkMetered: Boolean? = null,
-        avoidCodecs: Set<String> = emptySet(),
     ): Result<PlaybackData> = runCatching {
         val attempts =
             when (audioQuality) {
@@ -326,7 +358,6 @@ object YTPlayerUtils {
                         connectivityManager = connectivityManager,
                         preferredStreamClient = preferredStreamClient,
                         networkMetered = networkMetered,
-                        avoidCodecs = avoidCodecs,
                     )
                 }
             if (attemptResult.isSuccess) return@runCatching attemptResult.getOrThrow()
@@ -342,7 +373,6 @@ object YTPlayerUtils {
         connectivityManager: ConnectivityManager,
         preferredStreamClient: PlayerStreamClient,
         networkMetered: Boolean?,
-        avoidCodecs: Set<String>,
     ): PlaybackData {
         Timber.tag(logTag).i("Fetching player response for videoId: $videoId, playlistId: $playlistId")
         val signatureTimestamp = getSignatureTimestampOrNull(videoId)
@@ -390,8 +420,7 @@ object YTPlayerUtils {
             )
         }
 
-        val metadataClient =
-            preferredYouTubeClient.takeIf { preferredStreamClient == PlayerStreamClient.ANDROID_VR } ?: MAIN_CLIENT
+        val metadataClient = MAIN_CLIENT
 
         Timber.tag(logTag).i("Fetching metadata response using client: ${metadataClient.clientName}")
         var metadataPlayerResponse =
@@ -535,7 +564,6 @@ object YTPlayerUtils {
                     streamPlayerResponse,
                     audioQuality,
                     isMetered,
-                    avoidCodecs = avoidCodecs,
                 )
 
             if (candidates.isEmpty()) continue
@@ -563,9 +591,10 @@ object YTPlayerUtils {
 
             format = selectedFormat
             streamUrl = selectedUrl
-            streamExpiresInSeconds = streamPlayerResponse.streamingData?.expiresInSeconds
-
-            if (streamExpiresInSeconds == null) continue
+            streamExpiresInSeconds = resolveExpireSeconds(
+                apiExpire = streamPlayerResponse.streamingData?.expiresInSeconds,
+                streamUrl = selectedUrl,
+            )
 
             Timber.tag(logTag).i("Format found: ${format.mimeType}, bitrate: ${format.bitrate}")
             Timber.tag(logTag).v("Stream expires in: $streamExpiresInSeconds seconds")
@@ -573,6 +602,7 @@ object YTPlayerUtils {
             val valid = validateStatus(streamUrl, client.userAgent)
             if (valid) {
                 Timber.tag(logTag).i("Stream validated successfully with client: ${client.clientName}")
+                lastSuccessfulClientName = client.clientName
                 break
             }
 
@@ -625,8 +655,10 @@ object YTPlayerUtils {
         }
 
         if (streamExpiresInSeconds == null) {
-            Timber.tag(logTag).e("Missing stream expire time")
-            throw Exception("Missing stream expire time")
+            streamExpiresInSeconds = resolveExpireSeconds(
+                apiExpire = null,
+                streamUrl = streamUrl,
+            )
         }
 
         if (format == null) {
@@ -685,14 +717,12 @@ object YTPlayerUtils {
         connectivityManager: ConnectivityManager,
         // optional override from user preference; if non-null, use this instead of ConnectivityManager
         networkMetered: Boolean? = null,
-        avoidCodecs: Set<String> = emptySet(),
     ): PlayerResponse.StreamingData.Format? {
         val isMetered = networkMetered ?: connectivityManager.isActiveNetworkMetered
         return selectAudioFormatCandidates(
             playerResponse,
             audioQuality,
             isMetered,
-            avoidCodecs = avoidCodecs,
         ).firstOrNull()
     }
 
@@ -700,7 +730,6 @@ object YTPlayerUtils {
         playerResponse: PlayerResponse,
         audioQuality: AudioQuality,
         networkMetered: Boolean,
-        avoidCodecs: Set<String> = emptySet(),
     ): List<PlayerResponse.StreamingData.Format> {
         Timber.tag(logTag).i("Finding format with audioQuality: $audioQuality, network metered: $networkMetered")
 
@@ -709,10 +738,6 @@ object YTPlayerUtils {
                 ?.asSequence()
                 ?.filter { it.isAudio && it.bitrate > 0 }
                 ?.filter { it.url != null || it.signatureCipher != null || it.cipher != null }
-                ?.filter { format ->
-                    val codec = extractCodec(format.mimeType)?.lowercase()
-                    codec == null || codec !in avoidCodecs
-                }
                 ?.toList()
                 .orEmpty()
 

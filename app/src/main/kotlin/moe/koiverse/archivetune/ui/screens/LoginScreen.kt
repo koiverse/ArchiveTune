@@ -1,8 +1,10 @@
 /*
  * ArchiveTune Project Original (2026)
- * Kòi Natsuko (github.com/koiverse)
+ * Chartreux Westia (github.com/koiverse)
  * Licensed Under GPL-3.0 | see git history for contributors
+ * Don't remove this copyright holder!
  */
+
 
 
 
@@ -44,6 +46,7 @@ import moe.koiverse.archivetune.utils.dataStore
 import moe.koiverse.archivetune.utils.putLegacyPoToken
 import moe.koiverse.archivetune.utils.rememberPreference
 import moe.koiverse.archivetune.utils.reportException
+import moe.koiverse.archivetune.utils.resetAuthWebViewSession
 import moe.koiverse.archivetune.innertube.YouTube
 import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.DelicateCoroutinesApi
@@ -83,7 +86,6 @@ fun LoginScreen(
         factory = { context ->
             WebView(context).apply {
                 val cookieManager = CookieManager.getInstance()
-                cookieManager.setAcceptCookie(true)
                 webViewClient = object : WebViewClient() {
                     override fun onPageFinished(view: WebView, url: String?) {
                         val isYouTubePage = url?.contains("youtube.com", ignoreCase = true) == true
@@ -137,7 +139,9 @@ fun LoginScreen(
                     }
                 }, "Android")
                 webView = this
-                loadUrl(startUrl?.takeIf { it.isNotBlank() } ?: DEFAULT_LOGIN_URL)
+                resetAuthWebViewSession(context, this) {
+                    loadUrl(startUrl?.takeIf { it.isNotBlank() } ?: DEFAULT_LOGIN_URL)
+                }
             }
         }
     )

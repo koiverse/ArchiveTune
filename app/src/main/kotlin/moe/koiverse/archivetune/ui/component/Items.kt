@@ -1,8 +1,10 @@
 /*
  * ArchiveTune Project Original (2026)
- * Kòi Natsuko (github.com/koiverse)
+ * Chartreux Westia (github.com/koiverse)
  * Licensed Under GPL-3.0 | see git history for contributors
+ * Don't remove this copyright holder!
  */
+
 
 @file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
 
@@ -43,6 +45,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.annotation.DrawableRes
 import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -55,12 +58,14 @@ import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Surface
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.AlertDialog
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -150,9 +155,28 @@ inline fun ListItem(
     title: String,
     noinline subtitle: (@Composable RowScope.() -> Unit)? = null,
     thumbnailContent: @Composable () -> Unit,
-    trailingContent: @Composable RowScope.() -> Unit = {},
+    crossinline trailingContent: @Composable RowScope.() -> Unit = {},
     isActive: Boolean = false
 ) {
+    val titleColor =
+        if (isActive) {
+            MaterialTheme.colorScheme.onSecondaryContainer
+        } else {
+            MaterialTheme.colorScheme.onSurface
+        }
+    val subtitleContentColor =
+        if (isActive) {
+            MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f)
+        } else {
+            MaterialTheme.colorScheme.onSurfaceVariant
+        }
+    val trailingContentColor =
+        if (isActive) {
+            MaterialTheme.colorScheme.onSecondaryContainer
+        } else {
+            MaterialTheme.colorScheme.onSurfaceVariant
+        }
+
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
@@ -178,14 +202,20 @@ inline fun ListItem(
                 fontWeight = FontWeight.SemiBold,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
-                color = if (isActive) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurface
+                color = titleColor
             )
-            if (subtitle != null) Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp)
-            ) { subtitle() }
+            if (subtitle != null) {
+                CompositionLocalProvider(LocalContentColor provides subtitleContentColor) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) { subtitle() }
+                }
+            }
         }
-        trailingContent()
+        CompositionLocalProvider(LocalContentColor provides trailingContentColor) {
+            trailingContent()
+        }
     }
 }
 
@@ -713,7 +743,7 @@ fun OverlayPlaylistListItem(
 
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(16.dp),
         modifier = modifier
             .fillMaxWidth()
             .clickable { onClick?.invoke() }
@@ -747,12 +777,12 @@ fun OverlayPlaylistListItem(
             Row(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(12.dp),
+                    .padding(horizontal = 16.dp, vertical = 14.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 PlaylistThumbnail(
                     thumbnails = playlist.thumbnails,
-                    size = 72.dp,
+                    size = 64.dp,
                     placeHolder = {
                         val painter = when (playlist.playlist.name) {
                             stringResource(R.string.liked) -> R.drawable.favorite_border
@@ -764,13 +794,13 @@ fun OverlayPlaylistListItem(
                             painter = painterResource(painter),
                             contentDescription = null,
                             tint = LocalContentColor.current.copy(alpha = 0.9f),
-                            modifier = Modifier.size(36.dp)
+                            modifier = Modifier.size(32.dp)
                         )
                     },
                     shape = RoundedCornerShape(8.dp)
                 )
 
-                Spacer(Modifier.width(12.dp))
+                Spacer(Modifier.width(14.dp))
 
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
@@ -797,7 +827,11 @@ fun OverlayPlaylistListItem(
                     )
                 }
 
-                Row(modifier = Modifier.padding(start = 8.dp), verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.End) {
+                Row(
+                    modifier = Modifier.padding(start = 12.dp),
+                    verticalAlignment = Alignment.Top,
+                    horizontalArrangement = Arrangement.End
+                ) {
                     trailingContent()
                 }
             }
@@ -892,6 +926,306 @@ fun PlaylistGridItem(
     fillMaxWidth = fillMaxWidth,
     modifier = modifier
 )
+
+@Composable
+private fun playlistCountText(
+    playlist: Playlist,
+    autoPlaylist: Boolean,
+): String =
+    if (autoPlaylist) {
+        ""
+    } else if (playlist.songCount == 0 && playlist.playlist.remoteSongCount != null) {
+        pluralStringResource(
+            R.plurals.n_song,
+            playlist.playlist.remoteSongCount,
+            playlist.playlist.remoteSongCount,
+        )
+    } else {
+        pluralStringResource(
+            R.plurals.n_song,
+            playlist.songCount,
+            playlist.songCount,
+        )
+    }
+
+@Composable
+private fun playlistPlaceholderIcon(
+    playlist: Playlist,
+    autoPlaylist: Boolean,
+): Int =
+    when (playlist.playlist.name) {
+        stringResource(R.string.liked) -> R.drawable.favorite_border
+        stringResource(R.string.offline) -> R.drawable.offline
+        stringResource(R.string.cached_playlist) -> R.drawable.cached
+        else -> if (autoPlaylist) R.drawable.trending_up else R.drawable.queue_music
+    }
+
+@Composable
+fun LibraryPinnedCollectionTile(
+    title: String,
+    @DrawableRes iconRes: Int,
+    modifier: Modifier = Modifier,
+    subtitle: String? = null,
+    accentColor: Color = MaterialTheme.colorScheme.primary,
+) {
+    Card(
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+        modifier = modifier,
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(
+                    Brush.linearGradient(
+                        colors = listOf(
+                            accentColor.copy(alpha = 0.28f),
+                            MaterialTheme.colorScheme.surfaceContainerHigh,
+                            MaterialTheme.colorScheme.surfaceContainerLow,
+                        ),
+                    ),
+                ),
+        ) {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(14.dp),
+            ) {
+                Surface(
+                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.76f),
+                    shape = CircleShape,
+                ) {
+                    Icon(
+                        painter = painterResource(iconRes),
+                        contentDescription = null,
+                        tint = accentColor,
+                        modifier = Modifier.padding(12.dp),
+                    )
+                }
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    subtitle?.takeIf { it.isNotBlank() }?.let {
+                        Text(
+                            text = it,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun LibraryPlaylistFeatureCard(
+    playlist: Playlist,
+    modifier: Modifier = Modifier,
+    autoPlaylist: Boolean = false,
+    trailingContent: @Composable RowScope.() -> Unit = {},
+) {
+    val subtitleText = playlistCountText(playlist = playlist, autoPlaylist = autoPlaylist)
+    val thumbnailSize = 86.dp
+    val thumbnailShape = RoundedCornerShape(22.dp)
+    Card(
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+        shape = RoundedCornerShape(26.dp),
+        modifier = modifier,
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+        ) {
+            PlaylistThumbnail(
+                thumbnails = playlist.thumbnails,
+                size = thumbnailSize,
+                placeHolder = {
+                    Icon(
+                        painter = painterResource(playlistPlaceholderIcon(playlist, autoPlaylist)),
+                        contentDescription = null,
+                        tint = LocalContentColor.current.copy(alpha = 0.8f),
+                        modifier = Modifier.size(thumbnailSize / 2),
+                    )
+                },
+                shape = thumbnailShape,
+            )
+            Spacer(Modifier.width(16.dp))
+            Column(
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+                modifier = Modifier.weight(1f),
+            ) {
+                Text(
+                    text = playlist.playlist.name,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = subtitleText,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.End,
+                modifier = Modifier.padding(start = 12.dp),
+            ) {
+                trailingContent()
+            }
+        }
+    }
+}
+
+@Composable
+fun LibraryAlbumSpotlightCard(
+    album: Album,
+    modifier: Modifier = Modifier,
+    isActive: Boolean = false,
+    isPlaying: Boolean = false,
+    onPlay: (() -> Unit)? = null,
+    trailingContent: @Composable RowScope.() -> Unit = {},
+) {
+    val subtitle = joinByBullet(
+        album.artists.joinToString { it.name },
+        pluralStringResource(R.plurals.n_song, album.album.songCount, album.album.songCount),
+    )
+
+    Card(
+        shape = RoundedCornerShape(26.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isActive) {
+                MaterialTheme.colorScheme.secondaryContainer
+            } else {
+                MaterialTheme.colorScheme.surfaceContainerLow
+            },
+        ),
+        modifier = modifier,
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+        ) {
+            Box(modifier = Modifier.size(86.dp)) {
+                LocalThumbnail(
+                    thumbnailUrl = album.album.thumbnailUrl,
+                    isActive = isActive,
+                    isPlaying = isPlaying,
+                    shape = RoundedCornerShape(22.dp),
+                    modifier = Modifier.fillMaxSize(),
+                )
+                if (onPlay != null) {
+                    AlbumPlayButton(
+                        visible = !isActive,
+                        onClick = onPlay,
+                    )
+                }
+            }
+            Spacer(Modifier.width(16.dp))
+            Column(
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+                modifier = Modifier.weight(1f),
+            ) {
+                Text(
+                    text = album.album.title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = if (isActive) {
+                        MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.78f)
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.End,
+                modifier = Modifier.padding(start = 12.dp),
+            ) {
+                trailingContent()
+            }
+        }
+    }
+}
+
+@Composable
+fun LibraryArtistSpotlightCard(
+    artist: Artist,
+    modifier: Modifier = Modifier,
+    trailingContent: @Composable RowScope.() -> Unit = {},
+) {
+    Card(
+        shape = RoundedCornerShape(26.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+        modifier = modifier,
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+        ) {
+            LocalThumbnail(
+                thumbnailUrl = artist.artist.thumbnailUrl,
+                isActive = false,
+                isPlaying = false,
+                shape = CircleShape,
+                modifier = Modifier.size(82.dp),
+            )
+            Spacer(Modifier.width(16.dp))
+            Column(
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+                modifier = Modifier.weight(1f),
+            ) {
+                Text(
+                    text = artist.artist.name,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = pluralStringResource(R.plurals.n_song, artist.songCount, artist.songCount),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.End,
+                modifier = Modifier.padding(start = 12.dp),
+            ) {
+                trailingContent()
+            }
+        }
+    }
+}
 
 @Composable
 fun MediaMetadataListItem(
@@ -1281,7 +1615,15 @@ fun ItemThumbnail(
         PlayingIndicatorBox(
             isActive = isActive,
             playWhenReady = isPlaying,
-            color = if (albumIndex != null) MaterialTheme.colorScheme.onBackground else Color.White,
+            color = if (albumIndex != null) {
+                if (isActive) {
+                    MaterialTheme.colorScheme.onSecondaryContainer
+                } else {
+                    MaterialTheme.colorScheme.onSurface
+                }
+            } else {
+                Color.White
+            },
             modifier = Modifier
                 .fillMaxSize()
                 .background(

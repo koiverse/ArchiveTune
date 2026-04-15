@@ -1,8 +1,10 @@
 /*
  * ArchiveTune Project Original (2026)
- * Kòi Natsuko (github.com/koiverse)
+ * Chartreux Westia (github.com/koiverse)
  * Licensed Under GPL-3.0 | see git history for contributors
+ * Don't remove this copyright holder!
  */
+
 
 @file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
 
@@ -130,7 +132,12 @@ import moe.koiverse.archivetune.ui.component.MenuSurfaceSection
 import moe.koiverse.archivetune.ui.component.NewAction
 import moe.koiverse.archivetune.ui.component.NewActionGrid
 import moe.koiverse.archivetune.ui.component.TextFieldDialog
+import moe.koiverse.archivetune.utils.SpeedDialPin
+import moe.koiverse.archivetune.utils.SpeedDialPinType
+import moe.koiverse.archivetune.utils.parseSpeedDialPins
 import moe.koiverse.archivetune.utils.rememberPreference
+import moe.koiverse.archivetune.utils.serializeSpeedDialPins
+import moe.koiverse.archivetune.utils.toggleSpeedDialPin
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlin.math.abs
@@ -172,15 +179,11 @@ fun PlayerMenu(
     val (externalDownloaderEnabled) = rememberPreference(ExternalDownloaderEnabledKey, defaultValue = false)
     val (externalDownloaderPackage) = rememberPreference(ExternalDownloaderPackageKey, defaultValue = "")
     val (speedDialSongIds, onSpeedDialSongIdsChange) = rememberPreference(SpeedDialSongIdsKey, "")
-    val speedDialSongs = remember(speedDialSongIds) {
-        speedDialSongIds
-            .split(",")
-            .map { it.trim() }
-            .filter { it.isNotEmpty() }
-            .distinct()
-            .take(24)
+    val speedDialPins = remember(speedDialSongIds) { parseSpeedDialPins(speedDialSongIds) }
+    val songPin = remember(mediaMetadata.id) { SpeedDialPin(type = SpeedDialPinType.SONG, id = mediaMetadata.id) }
+    val isInSpeedDial = remember(speedDialPins, songPin) {
+        speedDialPins.any { it.type == songPin.type && it.id == songPin.id }
     }
-    val isInSpeedDial = remember(speedDialSongs, mediaMetadata.id) { mediaMetadata.id in speedDialSongs }
 
     // Split artists by configured separators
     data class SplitArtist(
@@ -473,12 +476,8 @@ fun PlayerMenu(
                             else R.string.pin_to_speed_dial
                         ),
                         onClick = {
-                            val updatedIds = if (isInSpeedDial) {
-                                speedDialSongs.filterNot { it == mediaMetadata.id }
-                            } else {
-                                (speedDialSongs + mediaMetadata.id).distinct().take(24)
-                            }
-                            onSpeedDialSongIdsChange(updatedIds.joinToString(","))
+                            val updatedPins = toggleSpeedDialPin(speedDialPins, songPin)
+                            onSpeedDialSongIdsChange(serializeSpeedDialPins(updatedPins))
                             onDismiss()
                         }
                     ),

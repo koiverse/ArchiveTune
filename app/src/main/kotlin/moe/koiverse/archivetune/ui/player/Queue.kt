@@ -1,8 +1,10 @@
 /*
  * ArchiveTune Project Original (2026)
- * Kòi Natsuko (github.com/koiverse)
+ * Chartreux Westia (github.com/koiverse)
  * Licensed Under GPL-3.0 | see git history for contributors
+ * Don't remove this copyright holder!
  */
+
 
 
 
@@ -191,6 +193,7 @@ fun Queue(
 
     var locked by rememberPreference(QueueEditLockKey, defaultValue = true)
     var infiniteQueueEnabled by rememberPreference(AutoLoadMoreKey, defaultValue = true)
+    val infiniteQueueLoading by playerConnection.service.infiniteQueueLoading.collectAsState()
     val togetherSessionState by playerConnection.service.togetherSessionState.collectAsState()
     val togetherForcesLock =
         togetherSessionState is moe.koiverse.archivetune.together.TogetherSessionState.Joined &&
@@ -596,6 +599,7 @@ fun Queue(
                     songCount = queueWindows.size,
                     queueDuration = queueLength,
                     infiniteQueueEnabled = infiniteQueueEnabled,
+                    infiniteQueueLoading = infiniteQueueLoading,
                     backgroundColor = backgroundColor,
                     onBackgroundColor = onBackgroundColor,
                     onToggleLike = {

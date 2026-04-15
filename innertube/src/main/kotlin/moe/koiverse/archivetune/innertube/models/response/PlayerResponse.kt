@@ -1,8 +1,10 @@
 /*
  * ArchiveTune Project Original (2026)
- * Kòi Natsuko (github.com/koiverse)
+ * Chartreux Westia (github.com/koiverse)
  * Licensed Under GPL-3.0 | see git history for contributors
+ * Don't remove this copyright holder!
  */
+
 
 
 
@@ -47,7 +49,7 @@ data class PlayerResponse(
     data class StreamingData(
         val formats: List<Format>?,
         val adaptiveFormats: List<Format>,
-        val expiresInSeconds: Int,
+        val expiresInSeconds: Int? = null,
     ) {
         @Serializable
         data class Format(

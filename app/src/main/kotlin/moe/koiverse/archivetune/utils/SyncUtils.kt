@@ -1,8 +1,10 @@
 /*
  * ArchiveTune Project Original (2026)
- * Kòi Natsuko (github.com/koiverse)
+ * Chartreux Westia (github.com/koiverse)
  * Licensed Under GPL-3.0 | see git history for contributors
+ * Don't remove this copyright holder!
  */
+
 
 
 
@@ -225,6 +227,39 @@ class SyncUtils @Inject constructor(
             val gen = syncGeneration.get()
             if (!isSyncStillEnabled(gen)) return@launch
             YouTube.likeVideo(s.id, s.liked)
+        }
+    }
+
+    fun likeSongs(songs: Collection<SongEntity>) {
+        val uniqueSongs = songs.distinctBy { it.id }
+        if (uniqueSongs.isEmpty()) return
+
+        syncScope.launch {
+            if (!isLoggedIn()) {
+                Timber.w("Skipping likeSongs - user not logged in")
+                return@launch
+            }
+            if (!isYtmSyncEnabled()) {
+                Timber.w("Skipping likeSongs - sync disabled")
+                return@launch
+            }
+
+            val gen = syncGeneration.get()
+            uniqueSongs.chunked(8).forEach { batch ->
+                if (!isSyncStillEnabled(gen)) return@launch
+
+                coroutineScope {
+                    batch.map { song ->
+                        async {
+                            if (!isSyncStillEnabled(gen)) return@async
+                            YouTube.likeVideo(song.id, song.liked)
+                                .onFailure { error ->
+                                    Timber.w(error, "likeSongs: Failed to sync like for ${song.id}")
+                                }
+                        }
+                    }.awaitAll()
+                }
+            }
         }
     }
 

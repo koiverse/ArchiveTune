@@ -1,8 +1,10 @@
 /*
  * ArchiveTune Project Original (2026)
- * Kòi Natsuko (github.com/koiverse)
+ * Chartreux Westia (github.com/koiverse)
  * Licensed Under GPL-3.0 | see git history for contributors
+ * Don't remove this copyright holder!
  */
+
 
 
 
@@ -20,6 +22,7 @@ class YouTubeQueue(
     private var endpoint: WatchEndpoint,
     override val preloadItem: MediaMetadata? = null,
     private val followAutomixPreview: Boolean = false,
+    private val expandToFullQueueWhenAutoLoadMoreDisabled: Boolean = false,
 ) : Queue {
     private var continuation: String? = null
 
@@ -43,6 +46,9 @@ class YouTubeQueue(
 
     override fun hasNextPage(): Boolean = continuation != null
 
+    override fun shouldExpandToFullQueueWhenAutoLoadMoreDisabled(): Boolean =
+        expandToFullQueueWhenAutoLoadMoreDisabled
+
     override suspend fun nextPage(): List<MediaItem> {
         val nextResult =
             withContext(IO) {
@@ -58,6 +64,20 @@ class YouTubeQueue(
     }
 
     companion object {
-        fun radio(song: MediaMetadata) = YouTubeQueue(WatchEndpoint(song.id), song)
+        fun playlist(
+            endpoint: WatchEndpoint,
+            preloadItem: MediaMetadata? = null,
+        ) = YouTubeQueue(
+            endpoint = endpoint,
+            preloadItem = preloadItem,
+            expandToFullQueueWhenAutoLoadMoreDisabled = true,
+        )
+
+        fun radio(song: MediaMetadata) =
+            YouTubeQueue(
+                endpoint = WatchEndpoint(videoId = song.id),
+                preloadItem = song,
+                followAutomixPreview = true,
+            )
     }
 }

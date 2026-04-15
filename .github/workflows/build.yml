@@ -18,9 +18,35 @@ permissions:
   actions: write
 
 jobs:
+  notifyTelegram:
+    name: Notify Telegram
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install Dependencies
+        run: |
+          pip install requests
+
+      - name: Send a message to Telegram
+        env:
+          BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          TOPIC_ID: ${{ secrets.TELEGRAM_TOPIC_ID }}
+        run: |
+          python ./.github/workflows/notify_telegram.py
+        continue-on-error: true
+
   build:
+    name: Build Release APKs
     if: github.actor != 'dependabot[bot]' && github.actor != 'renovate[bot]'
     runs-on: ubuntu-latest
+    needs: notifyTelegram
 
     strategy:
       matrix:
@@ -52,6 +78,7 @@ jobs:
           LASTFM_API_KEY: ${{ secrets.LASTFM_API_KEY }}
           LASTFM_SECRET: ${{ secrets.LASTFM_SECRET }}
           TOGETHER_BEARER_TOKEN: ${{ secrets.TOGETHER_BEARER_TOKEN }}
+          CANVAS_BEARER_TOKEN: ${{ secrets.CANVAS_BEARER_TOKEN }}
 
       - name: Sign APK
         uses: ilharp/sign-android-release@v2.0.0
@@ -66,13 +93,61 @@ jobs:
       - name: Move signed APK
         run: |
           mkdir -p app/build/outputs/apk/${{ matrix.abi }}/release/out
-          find app/build/outputs/apk/${{ matrix.abi }}/release/ -name "*-signed.apk" -o -name "*-unsigned-signed.apk" | xargs -I{} mv {} app/build/outputs/apk/${{ matrix.abi }}/release/out/app-${{ matrix.abi }}-release.apk
+          SIGNED_APK=$(find app/build/outputs/apk/${{ matrix.abi }}/release/ -type f \( -name "*-signed.apk" -o -name "*-unsigned-signed.apk" \) | head -n 1)
+          mv "$SIGNED_APK" app/build/outputs/apk/${{ matrix.abi }}/release/out/app-${{ matrix.abi }}-release.apk
   
       - name: Upload Signed APK
         uses: actions/upload-artifact@v7
         with:
           name: app-${{ matrix.abi }}-release
           path: app/build/outputs/apk/${{ matrix.abi }}/release/out/*
+
+  aggregateAndSend:
+    name: Send APKs to Telegram
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Download Artifacts
+        uses: actions/download-artifact@v7
+        with:
+          pattern: app-*-release
+          merge-multiple: true
+          path: app/build/outputs/apk/download
+
+      - name: Set up Python 3
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install Dependencies
+        run: |
+          pip install telethon
+
+      - name: Get Git Commit Info
+        run: |
+          echo "COMMIT_AUTHOR=$(git log -1 --pretty=format:'%an')" >> $GITHUB_ENV
+          echo "COMMIT_MESSAGE=$(git log -1 --pretty=format:'%s')" >> $GITHUB_ENV
+
+      - name: Restore Telegram session cache
+        uses: actions/cache@v4
+        id: telegram_session_cache
+        with:
+          path: bot_session.session
+          key: telegram-session-${{ runner.os }}-bot_session
+
+      - name: Send APKs to Telegram
+        env:
+          API_ID: ${{ secrets.TELEGRAM_API_ID }}
+          API_HASH: ${{ secrets.TELEGRAM_API_HASH }}
+          BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          TOPIC_ID: ${{ secrets.TELEGRAM_TOPIC_ID }}
+          APK_PATH: app/build/outputs/apk/download/*.apk
+        run: |
+          python ./.github/workflows/deploy_artifacts.py
+        continue-on-error: true
 
 
   build_debug:
@@ -105,6 +180,7 @@ jobs:
           LASTFM_API_KEY: ${{ secrets.LASTFM_API_KEY }}
           LASTFM_SECRET: ${{ secrets.LASTFM_SECRET }}
           TOGETHER_BEARER_TOKEN: ${{ secrets.TOGETHER_BEARER_TOKEN }}
+          CANVAS_BEARER_TOKEN: ${{ secrets.CANVAS_BEARER_TOKEN }}
 
       - name: Upload Debug APK
         uses: actions/upload-artifact@v7

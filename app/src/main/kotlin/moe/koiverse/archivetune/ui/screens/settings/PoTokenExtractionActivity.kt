@@ -1,3 +1,10 @@
+/*
+ * ArchiveTune Project Original (2026)
+ * Chartreux Westia (github.com/koiverse)
+ * Licensed Under GPL-3.0 | see git history for contributors
+ * Don't remove this copyright holder!
+ */
+
 @file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
 
 package moe.koiverse.archivetune.ui.screens.settings
@@ -16,12 +23,16 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.layout.height
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -29,11 +40,14 @@ import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -45,6 +59,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.innertube.utils.PoTokenGenerator
 import moe.koiverse.archivetune.ui.component.IconButton
+import moe.koiverse.archivetune.utils.resetAuthWebViewSession
 
 class PoTokenExtractionActivity : ComponentActivity() {
 
@@ -89,8 +104,11 @@ class PoTokenExtractionActivity : ComponentActivity() {
     private fun PoTokenExtractionContent(targetUrl: String) {
         val context = LocalContext.current
         var webView by remember { mutableStateOf<WebView?>(null) }
-        var currentUrl by remember { mutableStateOf(targetUrl) }
+        var currentUrl by remember { mutableStateOf("") }
         var isExtracting by remember { mutableStateOf(false) }
+        var showAccountDialog by rememberSaveable { mutableStateOf(true) }
+        var hasStartedSession by rememberSaveable { mutableStateOf(false) }
+        var initialPageLoaded by rememberSaveable { mutableStateOf(false) }
 
         fun normalizeHost(url: String): String {
             return Uri.parse(url).host.orEmpty().removePrefix("www.")
@@ -113,6 +131,16 @@ class PoTokenExtractionActivity : ComponentActivity() {
         }
 
         val canExtract = !isExtracting && isAtDestination(currentUrl, targetUrl)
+
+        LaunchedEffect(hasStartedSession, webView) {
+            val currentWebView = webView ?: return@LaunchedEffect
+            if (!hasStartedSession || initialPageLoaded) return@LaunchedEffect
+
+            initialPageLoaded = true
+            resetAuthWebViewSession(context, currentWebView) {
+                currentWebView.loadUrl(targetUrl)
+            }
+        }
 
         fun parseJsResult(raw: String?): String {
             val text = raw?.trim().orEmpty()
@@ -225,16 +253,6 @@ class PoTokenExtractionActivity : ComponentActivity() {
                     .windowInsetsPadding(WindowInsets.systemBars),
                 factory = { ctx ->
                     WebView(ctx).apply {
-                        val cookieManager = CookieManager.getInstance()
-                        cookieManager.removeAllCookies(null)
-                        cookieManager.flush()
-                        cookieManager.setAcceptCookie(true)
-                        cookieManager.setAcceptThirdPartyCookies(this, true)
-
-                        clearHistory()
-                        clearFormData()
-                        clearCache(true)
-
                         settings.javaScriptEnabled = true
                         settings.domStorageEnabled = true
                         settings.setSupportZoom(true)
@@ -265,7 +283,6 @@ class PoTokenExtractionActivity : ComponentActivity() {
                             }
                         }
 
-                        loadUrl(targetUrl)
                         webView = this
                         activeWebView = this
                     }
@@ -275,6 +292,51 @@ class PoTokenExtractionActivity : ComponentActivity() {
                     activeWebView = view
                 }
             )
+
+            if (showAccountDialog) {
+                AlertDialog(
+                    onDismissRequest = { closeCanceled() },
+                    title = {
+                        Text(stringResource(R.string.po_token_account_notice_title))
+                    },
+                    text = {
+                        Column {
+                            Text(
+                                text = stringResource(R.string.po_token_account_notice_body),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Text(
+                                text = stringResource(R.string.po_token_account_notice_same_account),
+                                style = MaterialTheme.typography.titleSmall,
+                                color = MaterialTheme.colorScheme.primary,
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = stringResource(R.string.po_token_account_notice_mismatch),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    },
+                    confirmButton = {
+                        TextButton(
+                            onClick = {
+                                showAccountDialog = false
+                                hasStartedSession = true
+                            }
+                        ) {
+                            Text(stringResource(R.string.got_it))
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { closeCanceled() }) {
+                            Text(stringResource(R.string.cancel))
+                        }
+                    },
+                )
+            }
 
             TopAppBar(
                 title = { Text(stringResource(R.string.extracting_from_url)) },

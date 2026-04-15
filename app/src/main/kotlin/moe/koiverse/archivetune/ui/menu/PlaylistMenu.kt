@@ -1,8 +1,10 @@
 /*
  * ArchiveTune Project Original (2026)
- * Kòi Natsuko (github.com/koiverse)
+ * Chartreux Westia (github.com/koiverse)
  * Licensed Under GPL-3.0 | see git history for contributors
+ * Don't remove this copyright holder!
  */
+
 
 @file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
 
@@ -63,6 +65,7 @@ import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.db.entities.Playlist
 import moe.koiverse.archivetune.db.entities.PlaylistSong
 import moe.koiverse.archivetune.db.entities.Song
+import moe.koiverse.archivetune.constants.SpeedDialSongIdsKey
 import moe.koiverse.archivetune.extensions.toMediaItem
 import moe.koiverse.archivetune.playback.ExoDownloadService
 import moe.koiverse.archivetune.playback.queues.ListQueue
@@ -74,6 +77,12 @@ import moe.koiverse.archivetune.ui.component.MenuSurfaceSection
 import moe.koiverse.archivetune.ui.component.NewAction
 import moe.koiverse.archivetune.ui.component.NewActionGrid
 import moe.koiverse.archivetune.ui.component.PlaylistListItem
+import moe.koiverse.archivetune.utils.SpeedDialPin
+import moe.koiverse.archivetune.utils.SpeedDialPinType
+import moe.koiverse.archivetune.utils.parseSpeedDialPins
+import moe.koiverse.archivetune.utils.rememberPreference
+import moe.koiverse.archivetune.utils.serializeSpeedDialPins
+import moe.koiverse.archivetune.utils.toggleSpeedDialPin
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -94,6 +103,12 @@ fun PlaylistMenu(
     val downloadUtil = LocalDownloadUtil.current
     val playerConnection = LocalPlayerConnection.current ?: return
     val dbPlaylist by database.playlist(playlist.id).collectAsState(initial = playlist)
+    val (speedDialSongIds, onSpeedDialSongIdsChange) = rememberPreference(SpeedDialSongIdsKey, "")
+    val speedDialPins = remember(speedDialSongIds) { parseSpeedDialPins(speedDialSongIds) }
+    val playlistPin = remember(playlist.id) { SpeedDialPin(type = SpeedDialPinType.PLAYLIST, id = playlist.id) }
+    val isInSpeedDial = remember(speedDialPins, playlistPin) {
+        speedDialPins.any { it.type == playlistPin.type && it.id == playlistPin.id }
+    }
     var songs by remember {
         mutableStateOf(emptyList<Song>())
     }
@@ -483,6 +498,34 @@ fun PlaylistMenu(
                         modifier = Modifier.clickable {
                             onDismiss()
                             playerConnection.addToQueue(songs.map { it.toMediaItem() })
+                        },
+                        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                    )
+
+                    HorizontalDivider(
+                        modifier = dividerModifier,
+                        color = MaterialTheme.colorScheme.outlineVariant,
+                    )
+
+                    ListItem(
+                        headlineContent = {
+                            Text(
+                                text = stringResource(
+                                    if (isInSpeedDial) R.string.remove_from_speed_dial
+                                    else R.string.pin_to_speed_dial
+                                )
+                            )
+                        },
+                        leadingContent = {
+                            Icon(
+                                painter = painterResource(if (isInSpeedDial) R.drawable.bookmark_filled else R.drawable.bookmark),
+                                contentDescription = null,
+                            )
+                        },
+                        modifier = Modifier.clickable {
+                            val updatedPins = toggleSpeedDialPin(speedDialPins, playlistPin)
+                            onSpeedDialSongIdsChange(serializeSpeedDialPins(updatedPins))
+                            onDismiss()
                         },
                         colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                     )

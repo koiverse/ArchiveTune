@@ -1,12 +1,12 @@
-@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
-
 /*
  * ArchiveTune Project Original (2026)
- * Kòi Natsuko (github.com/koiverse)
+ * Chartreux Westia (github.com/koiverse)
  * Licensed Under GPL-3.0 | see git history for contributors
+ * Don't remove this copyright holder!
  */
 
 
+@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
 
 package moe.koiverse.archivetune.ui.screens.playlist
 
@@ -747,7 +747,7 @@ fun OnlinePlaylistScreen(
                                             checked = false,
                                             onCheckedChange = {
                                                 playerConnection.playQueue(
-                                                    YouTubeQueue(playEndpoint)
+                                                    YouTubeQueue.playlist(playEndpoint)
                                                 )
                                             },
                                             modifier = Modifier.weight(1f).height(48.dp),
@@ -773,7 +773,7 @@ fun OnlinePlaylistScreen(
                                             checked = false,
                                             onCheckedChange = {
                                                 playerConnection.playQueue(
-                                                    YouTubeQueue(shuffleEndpoint)
+                                                    YouTubeQueue.playlist(shuffleEndpoint)
                                                 )
                                             },
                                             modifier = Modifier.weight(1f).height(48.dp),
@@ -862,7 +862,13 @@ fun OnlinePlaylistScreen(
                                     if (mixEndpoint != null) {
                                         Button(
                                             onClick = {
-                                                playerConnection.playQueue(YouTubeQueue(mixEndpoint))
+                                                playerConnection.playQueue(
+                                                    if (mixEndpoint == playlist.shuffleEndpoint) {
+                                                        YouTubeQueue.playlist(mixEndpoint)
+                                                    } else {
+                                                        YouTubeQueue(mixEndpoint)
+                                                    }
+                                                )
                                             },
                                             modifier = Modifier.weight(1f).height(48.dp),
                                             shapes = ButtonDefaults.shapes(),
@@ -940,15 +946,16 @@ fun OnlinePlaylistScreen(
                                                     playerConnection.player.togglePlayPause()
                                                 } else {
                                                     playerConnection.playQueue(
-                                                        YouTubeQueue(
-                                                            song.item.second
-                                                                .toPlaylistPlaybackEndpoint(
-                                                                    playlistId = playlist.id,
-                                                                    playlistPlayParams =
-                                                                        playlist.playEndpoint
-                                                                            ?.params,
-                                                                ),
-                                                            song.item.second.toMediaMetadata(),
+                                                        YouTubeQueue.playlist(
+                                                            endpoint =
+                                                                song.item.second
+                                                                    .toPlaylistPlaybackEndpoint(
+                                                                        playlistId = playlist.id,
+                                                                        playlistPlayParams =
+                                                                            playlist.playEndpoint
+                                                                                ?.params,
+                                                                    ),
+                                                            preloadItem = song.item.second.toMediaMetadata(),
                                                         ),
                                                     )
                                                 }

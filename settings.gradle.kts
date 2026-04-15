@@ -2,7 +2,13 @@
 
 pluginManagement {
     repositories {
-        google()
+        google {
+            content {
+                includeGroupAndSubgroups("com.android")
+                includeGroupAndSubgroups("com.google")
+                includeGroupAndSubgroups("androidx")
+            }
+        }
         mavenCentral()
         gradlePluginPortal()
     }
@@ -14,6 +20,7 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+        maven { setUrl("https://central.sonatype.com/repository/maven-snapshots/") }
         maven { setUrl("https://jitpack.io") }
     }
 }
