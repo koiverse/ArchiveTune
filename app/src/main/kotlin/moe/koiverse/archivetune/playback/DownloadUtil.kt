@@ -94,10 +94,6 @@ constructor(
     @Volatile
     private var lastStreamInfoRequestAtMs = 0L
 
-    private val avoidStreamCodecs: Set<String> by lazy {
-        if (deviceSupportsMimeType("audio/opus")) emptySet() else setOf("opus")
-    }
-
     private val mediaOkHttpClient: OkHttpClient by lazy {
         OkHttpClient
             .Builder()
@@ -172,7 +168,6 @@ constructor(
                                 preferredStreamClient = preferredStreamClient,
                                 connectivityManager = connectivityManager,
                                 networkMetered = networkMeteredPref,
-                                avoidCodecs = avoidStreamCodecs,
                             )
                         }
 
@@ -312,6 +307,15 @@ constructor(
     }
 
     private fun registerThrottleSignal(exception: Throwable?) {
+        if (exception is androidx.media3.datasource.HttpDataSource.InvalidResponseCodeException && exception.responseCode == 403) {
+            val urlStr = exception.dataSpec.uri.toString()
+            val videoId = urlStr.toHttpUrlOrNull()?.queryParameter("docid") ?: urlStr.toHttpUrlOrNull()?.queryParameter("id")
+            val clientParam = urlStr.toHttpUrlOrNull()?.queryParameter("c")?.trim()
+            if (videoId != null && clientParam != null) {
+                YTPlayerUtils.markStreamClientFailed(videoId, clientParam, exception.responseCode)
+            }
+        }
+        
         val nextStrikeCount =
             if (exception == null || isProbablyThrottleSignal(exception)) {
                 consecutiveThrottleSignals.incrementAndGet()
@@ -375,15 +379,6 @@ constructor(
             "unavailable",
             "reset by peer",
         ).any(message::contains)
-    }
-
-    private fun deviceSupportsMimeType(mimeType: String): Boolean {
-        return runCatching {
-            val codecList = MediaCodecList(MediaCodecList.ALL_CODECS)
-            codecList.codecInfos.any { info ->
-                !info.isEncoder && info.supportedTypes.any { it.equals(mimeType, ignoreCase = true) }
-            }
-        }.getOrDefault(false)
     }
 
     companion object {
