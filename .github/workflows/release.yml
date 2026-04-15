@@ -166,6 +166,7 @@ jobs:
           test "$SHA_1" = "$SHA_2"
 
   build:
+    name: Build Release APKs (${{ matrix.device }}-${{ matrix.abi }})
     needs: [check-version, reproducibility]
     # Removed '|| workflow_dispatch' so it respects the version check
     if: needs.check-version.outputs.version_changed == 'true'

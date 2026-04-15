@@ -43,7 +43,7 @@ jobs:
         continue-on-error: true
 
   build:
-    name: Build Release APKs
+    name: Build Release APKs (${{ matrix.device }}-${{ matrix.abi }})
     if: github.actor != 'dependabot[bot]' && github.actor != 'renovate[bot]'
     runs-on: ubuntu-latest
     needs: notifyTelegram
