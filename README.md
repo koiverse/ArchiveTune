@@ -254,6 +254,14 @@ Interested in building the project or contributing? ArchiveTune is built on a hi
 
 ---
 
+### Support the Project
+<h3>ArchiveTune is free and open-source. If it brings you joy, consider supporting its development!</h3>
+
+#### Tribe
+<a href="https://sociabuzz.com/chrtrxwstia">
+  <img src="https://github.com/MetrolistGroup/Metrolist/blob/dev/assets/tribe.png?raw=true" alt="Buy Me a Coffee" width="150" />
+</a>
+
 ## 🤝 Acknowledgments
 
 We stand on the shoulders of open-source giants:
