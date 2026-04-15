@@ -509,7 +509,7 @@ fun AboutScreen(
                 IconButton(
                     onClick = { uriHandler.openUri("https://sociabuzz.com/chrtrxwstia") },
                 ) {
-                    icon(
+                    Icon(
                         painter = painterResource(R.drawable.coffee),
                         contentDescription = null
                     )
