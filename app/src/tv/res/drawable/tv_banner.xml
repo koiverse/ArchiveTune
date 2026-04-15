@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:angle="0"
+                android:endColor="#141414"
+                android:startColor="#262626" />
+            <corners android:radius="24dp" />
+        </shape>
+    </item>
+    <item
+        android:top="24dp"
+        android:bottom="24dp"
+        android:left="92dp"
+        android:right="92dp">
+        <bitmap
+            android:antialias="true"
+            android:gravity="center"
+            android:src="@drawable/about_appbar" />
+    </item>
+</layer-list>

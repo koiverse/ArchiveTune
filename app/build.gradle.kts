@@ -53,8 +53,14 @@ android {
         buildConfigField("String", "CANVAS_BEARER_TOKEN", "\"$canvasBearerToken\"")
     }
 
-    flavorDimensions += "abi"
+    flavorDimensions += listOf("device", "abi")
     productFlavors {
+        create("mobile") {
+            dimension = "device"
+        }
+        create("tv") {
+            dimension = "device"
+        }
         create("universal") {
             dimension = "abi"
             ndk {

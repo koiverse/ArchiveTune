@@ -77,13 +77,25 @@ def extract_abi_name(file_path):
         "arm64",
         "armeabi",
         "x86_64",
-        "x86"
+        "x86",
         "universal"
     ]
     for abi in known_abis:
         if abi in file_name:
             return abi
     return "universal"
+
+
+def extract_device_name(file_path):
+    file_name = os.path.basename(file_path).lower()
+    known_devices = [
+        "mobile",
+        "tv",
+    ]
+    for device in known_devices:
+        if f"-{device}-" in file_name or file_name.startswith(f"app-{device}-"):
+            return device
+    return "mobile"
 
 
 async def send_files(file_paths):
@@ -93,6 +105,7 @@ async def send_files(file_paths):
         return
 
     print(f"Sending {len(existing_files)} files to the Telegram group")
+    device_names = sorted({extract_device_name(path) for path in existing_files})
     abi_names = sorted({extract_abi_name(path) for path in existing_files})
     topic_id = os.getenv("TOPIC_ID")
 
@@ -100,6 +113,7 @@ async def send_files(file_paths):
         f"**Commit by:** {commit_author}\n"
         f"**Commit message:** {commit_message}\n"
         f"**Commit hash:** #{commit_hash_short}\n"
+        f"**Device:** {', '.join(device_names)}\n"
         f"**ABI:** {', '.join(abi_names)}\n"
         f"**Files:** {len(existing_files)}\n"
         f"**Version:** Android >= 8"
