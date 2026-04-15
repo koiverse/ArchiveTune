@@ -53,9 +53,22 @@ jobs:
         include:
           - device: mobile
             deviceName: Mobile
+            abi: arm64
+          - device: mobile
+            deviceName: Mobile
+            abi: armeabi
+          - device: mobile
+            deviceName: Mobile
+            abi: x86
+          - device: mobile
+            deviceName: Mobile
+            abi: x86_64
+          - device: mobile
+            deviceName: Mobile
+            abi: universal
           - device: tv
             deviceName: Tv
-        abi: [ 'arm64', 'armeabi', 'x86', 'x86_64', 'universal' ]
+            abi: universal
 
     steps:
       - uses: actions/checkout@v6
