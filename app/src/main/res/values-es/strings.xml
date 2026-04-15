@@ -762,4 +762,8 @@
     <string name="token_copied">Token copiado en el portapapeles</string>
     <string name="no_visitor_data">No hay datos de visitantes disponibles. No se pueden generar tokens.</string>
     <string name="extracting_from_url">Extrayendo tokens de la URL…</string>
+    <string name="po_token_account_notice_title">Utiliza la misma cuenta</string>
+    <string name="po_token_account_notice_body">Inicia sesión aquí con la misma cuenta de Google que ya utilizas para YouTube Music dentro de ArchiveTune antes de generar un token PO.</string>
+    <string name="po_token_account_notice_same_account">Si esta WebView utiliza una cuenta diferente, el token generado no funcionará correctamente.</string>
+    <string name="po_token_account_notice_mismatch">Utiliza la cuenta correspondiente, completa el proceso de inicio de sesión y, a continuación, abre youtube.com/account y genera el token desde esa página.</string>
 </resources>
