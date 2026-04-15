@@ -172,7 +172,11 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        device: [ 'mobile', 'tv' ]
+        include:
+          - device: mobile
+            deviceName: Mobile
+          - device: tv
+            deviceName: Tv
         abi: [ 'arm64', 'armeabi', 'x86', 'x86_64', 'universal' ]
 
     steps:
@@ -199,7 +203,7 @@ jobs:
           set -euo pipefail
           DEVICE="${{ matrix.device }}"
           ABI="${{ matrix.abi }}"
-          DEVICE_CAP="$(tr '[:lower:]' '[:upper:]' <<< "${DEVICE:0:1}")${DEVICE:1}"
+          DEVICE_CAP="${{ matrix.deviceName }}"
           ABI_CAP="$(tr '[:lower:]' '[:upper:]' <<< "${ABI:0:1}")${ABI:1}"
           echo "device=$DEVICE" >> "$GITHUB_OUTPUT"
           echo "abi=$ABI" >> "$GITHUB_OUTPUT"
