@@ -315,9 +315,6 @@ class MusicService :
     )
     private val playbackUrlCache = ConcurrentHashMap<String, AuthScopedCacheValue>()
     private val contentLengthCache = ConcurrentHashMap<String, Long>()
-    private val avoidStreamCodecs: Set<String> by lazy {
-        if (deviceSupportsMimeType("audio/opus")) emptySet() else setOf("opus")
-    }
     private val mediaOkHttpClient: OkHttpClient by lazy {
         OkHttpClient
             .Builder()
@@ -3905,6 +3902,11 @@ class MusicService :
             if (throwable is androidx.media3.datasource.HttpDataSource.InvalidResponseCodeException) {
                 if (throwable.responseCode in setOf(403, 404, 410, 416)) {
                     playbackUrlCache.remove(currentMediaId)
+                    if (throwable.responseCode == 403) {
+                        val failedUrl = throwable.dataSpec.uri.toString()
+                        val clientParam = failedUrl.toHttpUrlOrNull()?.queryParameter("c")?.trim()
+                        YTPlayerUtils.markStreamClientFailed(currentMediaId, clientParam, throwable.responseCode)
+                    }
                 }
                 break
             }
@@ -4038,7 +4040,6 @@ class MusicService :
                         audioQuality = audioQuality,
                         connectivityManager = connectivityManager,
                         preferredStreamClient = preferredStreamClient,
-                        avoidCodecs = avoidStreamCodecs,
                     )
                 }
             }.getOrElse { throwable ->
