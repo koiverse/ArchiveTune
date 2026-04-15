@@ -311,6 +311,9 @@ object YTPlayerUtils {
             add(preferredYouTubeClient)
             addAll(orderedFallbackClients)
             if (preferredYouTubeClient != MAIN_CLIENT) add(MAIN_CLIENT)
+            if (preferredStreamClient == PlayerStreamClient.WEB_REMIX) {
+                addAll(STREAM_FALLBACK_CLIENTS)
+            }
         }.distinct()
     }
 
@@ -336,7 +339,6 @@ object YTPlayerUtils {
         preferredStreamClient: PlayerStreamClient = PlayerStreamClient.ANDROID_VR,
         // if provided, this preference overrides ConnectivityManager.isActiveNetworkMetered
         networkMetered: Boolean? = null,
-        avoidCodecs: Set<String> = emptySet(),
     ): Result<PlaybackData> = runCatching {
         val attempts =
             when (audioQuality) {
@@ -356,7 +358,6 @@ object YTPlayerUtils {
                         connectivityManager = connectivityManager,
                         preferredStreamClient = preferredStreamClient,
                         networkMetered = networkMetered,
-                        avoidCodecs = avoidCodecs,
                     )
                 }
             if (attemptResult.isSuccess) return@runCatching attemptResult.getOrThrow()
@@ -372,7 +373,6 @@ object YTPlayerUtils {
         connectivityManager: ConnectivityManager,
         preferredStreamClient: PlayerStreamClient,
         networkMetered: Boolean?,
-        avoidCodecs: Set<String>,
     ): PlaybackData {
         Timber.tag(logTag).i("Fetching player response for videoId: $videoId, playlistId: $playlistId")
         val signatureTimestamp = getSignatureTimestampOrNull(videoId)
@@ -420,8 +420,7 @@ object YTPlayerUtils {
             )
         }
 
-        val metadataClient =
-            preferredYouTubeClient.takeIf { preferredStreamClient == PlayerStreamClient.ANDROID_VR } ?: MAIN_CLIENT
+        val metadataClient = MAIN_CLIENT
 
         Timber.tag(logTag).i("Fetching metadata response using client: ${metadataClient.clientName}")
         var metadataPlayerResponse =
@@ -565,7 +564,6 @@ object YTPlayerUtils {
                     streamPlayerResponse,
                     audioQuality,
                     isMetered,
-                    avoidCodecs = avoidCodecs,
                 )
 
             if (candidates.isEmpty()) continue
@@ -719,14 +717,12 @@ object YTPlayerUtils {
         connectivityManager: ConnectivityManager,
         // optional override from user preference; if non-null, use this instead of ConnectivityManager
         networkMetered: Boolean? = null,
-        avoidCodecs: Set<String> = emptySet(),
     ): PlayerResponse.StreamingData.Format? {
         val isMetered = networkMetered ?: connectivityManager.isActiveNetworkMetered
         return selectAudioFormatCandidates(
             playerResponse,
             audioQuality,
             isMetered,
-            avoidCodecs = avoidCodecs,
         ).firstOrNull()
     }
 
@@ -734,7 +730,6 @@ object YTPlayerUtils {
         playerResponse: PlayerResponse,
         audioQuality: AudioQuality,
         networkMetered: Boolean,
-        avoidCodecs: Set<String> = emptySet(),
     ): List<PlayerResponse.StreamingData.Format> {
         Timber.tag(logTag).i("Finding format with audioQuality: $audioQuality, network metered: $networkMetered")
 
@@ -743,10 +738,6 @@ object YTPlayerUtils {
                 ?.asSequence()
                 ?.filter { it.isAudio && it.bitrate > 0 }
                 ?.filter { it.url != null || it.signatureCipher != null || it.cipher != null }
-                ?.filter { format ->
-                    val codec = extractCodec(format.mimeType)?.lowercase()
-                    codec == null || codec !in avoidCodecs
-                }
                 ?.toList()
                 .orEmpty()
 
