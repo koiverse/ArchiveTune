@@ -113,16 +113,13 @@ constructor(
 
                 if (!isYouTubeMediaHost) return@addInterceptor chain.proceed(request)
 
-                val clientParam = request.url.queryParameter("c")?.trim().orEmpty()
-
-                val userAgent = StreamClientUtils.resolveUserAgent(clientParam)
-                val originReferer = StreamClientUtils.resolveOriginReferer(clientParam)
-
-                val builder = request.newBuilder().header("User-Agent", userAgent)
-                originReferer.origin?.let { builder.header("Origin", it) }
-                originReferer.referer?.let { builder.header("Referer", it) }
-
-                chain.proceed(builder.build())
+                val requestProfile = StreamClientUtils.resolveRequestProfile(request.url)
+                chain.proceed(
+                    StreamClientUtils.applyRequestProfile(
+                        request.newBuilder(),
+                        requestProfile,
+                    ).build()
+                )
             }.build()
     }
 
@@ -308,12 +305,15 @@ constructor(
     }
 
     private fun registerThrottleSignal(exception: Throwable?) {
-        if (exception is androidx.media3.datasource.HttpDataSource.InvalidResponseCodeException && exception.responseCode == 403) {
+        if (
+            exception is androidx.media3.datasource.HttpDataSource.InvalidResponseCodeException &&
+            exception.responseCode in setOf(403, 404, 410, 416)
+        ) {
             val urlStr = exception.dataSpec.uri.toString()
             val videoId = urlStr.toHttpUrlOrNull()?.queryParameter("docid") ?: urlStr.toHttpUrlOrNull()?.queryParameter("id")
-            val clientParam = urlStr.toHttpUrlOrNull()?.queryParameter("c")?.trim()
-            if (videoId != null && clientParam != null) {
-                YTPlayerUtils.markStreamClientFailed(videoId, clientParam, exception.responseCode)
+            val clientKey = StreamClientUtils.resolveRequestProfile(urlStr).clientKey
+            if (videoId != null && clientKey.isNotEmpty()) {
+                YTPlayerUtils.markStreamClientFailed(videoId, clientKey, exception.responseCode)
             }
         }
         
