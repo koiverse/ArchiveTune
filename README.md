@@ -259,7 +259,7 @@ Interested in building the project or contributing? ArchiveTune is built on a hi
 
 #### Tribe
 <a href="https://sociabuzz.com/chrtrxwstia">
-  <img src="https://github.com/MetrolistGroup/Metrolist/blob/dev/assets/tribe.png?raw=true" alt="Buy Me a Coffee" width="150" />
+  <img src="https://github.com/koiverse/ArchiveTune/blob/dev/assets/tribe.png?raw=true" alt="Buy Me a Coffee" width="150" />
 </a>
 
 ## 🤝 Acknowledgments
