@@ -42,6 +42,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ProvideTextStyle
 import androidx.compose.material3.RadioButton
@@ -53,6 +54,7 @@ import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberSliderState
+import androidx.compose.material3.toShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.compositionLocalOf
@@ -81,6 +83,9 @@ import moe.koiverse.archivetune.R
 import kotlin.math.roundToInt
 
 val LocalPreferenceInGroup = compositionLocalOf { false }
+private val PreferenceIconShape = MaterialShapes.Ghostish.toShape()
+private val PreferenceGroupShape = MaterialShapes.Square.toShape()
+private val PreferenceGroupItemShape = MaterialShapes.Arch.toShape()
 
 @Composable
 fun PreferenceEntry(
@@ -121,7 +126,7 @@ fun PreferenceEntry(
                     modifier = Modifier
                         .align(Alignment.CenterVertically)
                         .size(36.dp)
-                        .clip(MaterialTheme.shapes.small)
+                        .clip(PreferenceIconShape)
                         .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
                     contentAlignment = Alignment.Center,
                 ) {
@@ -158,7 +163,15 @@ fun PreferenceEntry(
     }
 
     if (inGroup) {
-        rowContent()
+        Surface(
+            shape = PreferenceGroupItemShape,
+            color = MaterialTheme.colorScheme.surfaceContainerLow,
+            modifier = modifier
+                .fillMaxWidth()
+                .padding(horizontal = 6.dp, vertical = 4.dp),
+        ) {
+            rowContent()
+        }
     } else {
         Card(
             shape = MaterialTheme.shapes.large,
@@ -673,15 +686,15 @@ fun PreferenceGroup(
             )
         }
         Card(
-            shape = MaterialTheme.shapes.large,
+            shape = PreferenceGroupShape,
             colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
             ),
             elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
             modifier = Modifier.fillMaxWidth(),
         ) {
             CompositionLocalProvider(LocalPreferenceInGroup provides true) {
-                Column(content = content)
+                Column(modifier = Modifier.padding(vertical = 2.dp), content = content)
             }
         }
     }
