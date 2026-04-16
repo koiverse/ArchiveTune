@@ -87,20 +87,17 @@ val LocalPreferenceInGroup = compositionLocalOf { false }
 
 @Composable
 private fun rememberPreferenceIconShape(): Shape {
-    val polygon = MaterialShapes.Ghostish
-    return remember(polygon) { polygon.toShape() }
+    return MaterialShapes.Ghostish.toShape()
 }
 
 @Composable
 private fun rememberPreferenceGroupShape(): Shape {
-    val polygon = MaterialShapes.Square
-    return remember(polygon) { polygon.toShape() }
+    return MaterialShapes.Square.toShape()
 }
 
 @Composable
 private fun rememberPreferenceGroupItemShape(): Shape {
-    val polygon = MaterialShapes.Arch
-    return remember(polygon) { polygon.toShape() }
+    return MaterialShapes.Arch.toShape()
 }
 
 @Composable
