@@ -790,7 +790,7 @@ private fun LyricsStyleOption(
                             ),
                         ),
                         shape = CircleShape,
-                    )
+                    ),
                 contentAlignment = Alignment.Center,
             ) {
                 Box(
