@@ -368,6 +368,13 @@ fun LibraryMixScreen(
             }
         }
 
+        item(key = "playlist_section_header") {
+            LibrarySectionHeaderText(
+                    title = stringResource(R.string.playlists),
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                )
+            }
+
         if (customPlaylistMode && canReorderPlaylists) {
             itemsIndexed(
                 items = mutableVisiblePlaylists,
@@ -408,6 +415,14 @@ fun LibraryMixScreen(
         }
 
         if (sortedAlbums.isNotEmpty()) {
+
+        item(key = "album_section_header") {
+            LibrarySectionHeaderText(
+                    title = stringResource(R.string.albums),
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                )
+            }
+
             items(
                 items = sortedAlbums,
                 key = { it.id },
@@ -462,6 +477,14 @@ fun LibraryMixScreen(
         }
 
         if (sortedArtists.isNotEmpty()) {
+
+        item(key = "artist_section_header") {
+            LibrarySectionHeaderText(
+                    title = stringResource(R.string.artists),
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                )
+            }
+
             items(
                 items = sortedArtists,
                 key = { it.id },
@@ -518,39 +541,13 @@ private fun LibraryMixSortSplitButton(
     sortTypeText: (MixSortType) -> Int,
     modifier: Modifier = Modifier,
 ) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        modifier = modifier.fillMaxWidth(),
-    ) {
-        LibraryMixSortTypeSplitButton(
-            sortType = sortType,
-            onSortTypeChange = onSortTypeChange,
-            sortTypeText = sortTypeText,
-            modifier = Modifier.weight(1f),
-        )
-        LibraryMixSortDirectionSplitButton(
-            sortDescending = sortDescending,
-            onSortDescendingChange = onSortDescendingChange,
-        )
-    }
-}
-
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
-@Composable
-private fun LibraryMixSortTypeSplitButton(
-    sortType: MixSortType,
-    onSortTypeChange: (MixSortType) -> Unit,
-    sortTypeText: (MixSortType) -> Int,
-    modifier: Modifier = Modifier,
-) {
     var menuExpanded by remember { mutableStateOf(false) }
-    val menuRotation by animateFloatAsState(
-        targetValue = if (menuExpanded) 180f else 0f,
-        label = "LibraryMixSortTypeMenu",
+    val sortDirectionRotation by animateFloatAsState(
+        targetValue = if (sortDescending) 0f else 180f,
+        label = "LibraryMixSortDirection",
     )
 
-    Box(modifier = modifier) {
+    Box(modifier = modifier.fillMaxWidth()) {
         SplitButtonLayout(
             modifier = Modifier.fillMaxWidth(),
             leadingButton = {
@@ -569,16 +566,24 @@ private fun LibraryMixSortTypeSplitButton(
             },
             trailingButton = {
                 SplitButtonDefaults.TonalTrailingButton(
-                    checked = menuExpanded,
-                    onCheckedChange = { menuExpanded = it },
-                    modifier = Modifier.heightIn(min = SplitButtonDefaults.MediumContainerHeight),
+                    checked = sortDescending,
+                    onCheckedChange = onSortDescendingChange,
+                    modifier = Modifier
+                        .heightIn(min = SplitButtonDefaults.MediumContainerHeight)
+                        .widthIn(min = SplitButtonDefaults.MediumContainerHeight),
                 ) {
                     Icon(
-                        painter = painterResource(R.drawable.expand_more),
-                        contentDescription = null,
+                        painter = painterResource(R.drawable.arrow_downward),
+                        contentDescription = stringResource(
+                            if (sortDescending) {
+                                R.string.sort_order_descending
+                            } else {
+                                R.string.sort_order_ascending
+                            }
+                        ),
                         modifier = Modifier
                             .size(SplitButtonDefaults.TrailingIconSize)
-                            .rotate(menuRotation),
+                            .rotate(sortDirectionRotation),
                     )
                 }
             },
@@ -610,104 +615,6 @@ private fun LibraryMixSortTypeSplitButton(
                     },
                     onClick = {
                         onSortTypeChange(type)
-                        menuExpanded = false
-                    },
-                )
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
-@Composable
-private fun LibraryMixSortDirectionSplitButton(
-    sortDescending: Boolean,
-    onSortDescendingChange: (Boolean) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    var menuExpanded by remember { mutableStateOf(false) }
-    val sortDirectionRotation by animateFloatAsState(
-        targetValue = if (sortDescending) 0f else 180f,
-        label = "LibraryMixSortDirection",
-    )
-    val menuRotation by animateFloatAsState(
-        targetValue = if (menuExpanded) 180f else 0f,
-        label = "LibraryMixSortDirectionMenu",
-    )
-
-    Box(modifier = modifier) {
-        SplitButtonLayout(
-            leadingButton = {
-                SplitButtonDefaults.TonalLeadingButton(
-                    onClick = { onSortDescendingChange(!sortDescending) },
-                    modifier = Modifier
-                        .heightIn(min = SplitButtonDefaults.MediumContainerHeight)
-                        .widthIn(min = SplitButtonDefaults.MediumContainerHeight),
-                ) {
-                    Icon(
-                        painter = painterResource(R.drawable.arrow_downward),
-                        contentDescription = stringResource(
-                            if (sortDescending) {
-                                R.string.sort_order_descending
-                            } else {
-                                R.string.sort_order_ascending
-                            }
-                        ),
-                        modifier = Modifier
-                            .size(SplitButtonDefaults.LeadingIconSize)
-                            .rotate(sortDirectionRotation),
-                    )
-                }
-            },
-            trailingButton = {
-                SplitButtonDefaults.TonalTrailingButton(
-                    checked = menuExpanded,
-                    onCheckedChange = { menuExpanded = it },
-                    modifier = Modifier.heightIn(min = SplitButtonDefaults.MediumContainerHeight),
-                ) {
-                    Icon(
-                        painter = painterResource(R.drawable.expand_more),
-                        contentDescription = null,
-                        modifier = Modifier
-                            .size(SplitButtonDefaults.TrailingIconSize)
-                            .rotate(menuRotation),
-                    )
-                }
-            },
-        )
-
-        DropdownMenu(
-            expanded = menuExpanded,
-            onDismissRequest = { menuExpanded = false },
-        ) {
-            listOf(false, true).forEach { descending ->
-                DropdownMenuItem(
-                    text = {
-                        Text(
-                            text = stringResource(
-                                if (descending) {
-                                    R.string.sort_order_descending
-                                } else {
-                                    R.string.sort_order_ascending
-                                }
-                            ),
-                            style = MaterialTheme.typography.bodyLarge,
-                        )
-                    },
-                    trailingIcon = {
-                        Icon(
-                            painter = painterResource(
-                                if (sortDescending == descending) {
-                                    R.drawable.radio_button_checked
-                                } else {
-                                    R.drawable.radio_button_unchecked
-                                }
-                            ),
-                            contentDescription = null,
-                        )
-                    },
-                    onClick = {
-                        onSortDescendingChange(descending)
                         menuExpanded = false
                     },
                 )
@@ -781,4 +688,23 @@ private fun LibraryShortcutGrid(
             }
         }
     }
+}
+
+@Composable
+private fun LibrarySectionHeaderText(
+    title: String,
+    modifier: Modifier = Modifier,
+) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 18.dp, vertical = 14.dp),
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+            )
+      }
 }
