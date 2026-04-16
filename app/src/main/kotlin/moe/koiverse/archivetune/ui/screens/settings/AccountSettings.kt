@@ -139,13 +139,10 @@ import moe.koiverse.archivetune.ui.component.TextFieldDialog
 import moe.koiverse.archivetune.ui.screens.buildLoginRoute
 import moe.koiverse.archivetune.ui.utils.backToMain
 import moe.koiverse.archivetune.utils.PreferenceStore
-import moe.koiverse.archivetune.utils.RemoteHistorySyncStatus
 import moe.koiverse.archivetune.utils.Updater
 import moe.koiverse.archivetune.utils.dataStore
 import moe.koiverse.archivetune.utils.putLegacyPoToken
 import moe.koiverse.archivetune.utils.rememberPreference
-import moe.koiverse.archivetune.viewmodels.AccountHistorySyncUiState
-import moe.koiverse.archivetune.viewmodels.AccountSettingsViewModel
 import moe.koiverse.archivetune.viewmodels.HomeViewModel
 import kotlin.math.floor
 
@@ -170,6 +167,7 @@ fun AccountSettings(
     val integrationLabel = stringResource(R.string.integration)
     val miscLabel = stringResource(R.string.misc)
     val loginLabel = stringResource(R.string.login)
+    val notLoggedInLabel = stringResource(R.string.not_logged_in)
     val tokenDescription = stringResource(R.string.token_adv_login_description)
 
     val (accountNamePref, onAccountNameChange) = rememberPreference(AccountNameKey, "")
@@ -196,10 +194,8 @@ fun AccountSettings(
     }
 
     val viewModel: HomeViewModel = hiltViewModel()
-    val accountSettingsViewModel: AccountSettingsViewModel = hiltViewModel()
     val accountNameFromViewModel by viewModel.accountName.collectAsState()
     val accountImageUrl by viewModel.accountImageUrl.collectAsState()
-    val historySyncUiState by accountSettingsViewModel.historySyncUiState.collectAsState()
 
     val displayName = when {
         accountNameFromViewModel.isNotBlank() -> accountNameFromViewModel
@@ -418,15 +414,6 @@ fun AccountSettings(
                             title = stringResource(R.string.yt_sync),
                             checked = ytmSync,
                             onCheckedChange = onYtmSyncChange,
-                        )
-
-                        ExpressiveDivider()
-
-                        RemoteHistorySyncRow(
-                            isLoggedIn = isLoggedIn,
-                            autoSyncEnabled = ytmSync,
-                            syncUiState = historySyncUiState,
-                            onSyncClick = accountSettingsViewModel::forceSyncLocalHistory,
                         )
                     }
                 }
@@ -1103,147 +1090,6 @@ private fun ExpressiveSwitchRow(
                     uncheckedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.40f),
                 ),
             )
-        }
-    }
-}
-
-@Composable
-private fun RemoteHistorySyncRow(
-    isLoggedIn: Boolean,
-    autoSyncEnabled: Boolean,
-    syncUiState: AccountHistorySyncUiState,
-    onSyncClick: () -> Unit,
-) {
-    val isRunning = syncUiState is AccountHistorySyncUiState.Running
-    val subtitle = when {
-        !isLoggedIn -> stringResource(R.string.not_logged_in_youtube)
-        !autoSyncEnabled -> stringResource(R.string.force_sync_history_auto_sync_off)
-        else -> stringResource(R.string.force_sync_history_description)
-    }
-    val statusText = when (syncUiState) {
-        AccountHistorySyncUiState.Idle -> null
-        is AccountHistorySyncUiState.Running -> stringResource(
-            R.string.force_sync_history_progress,
-            syncUiState.completed,
-            syncUiState.total,
-        )
-
-        is AccountHistorySyncUiState.Finished -> when (syncUiState.result.status) {
-            RemoteHistorySyncStatus.SUCCESS -> stringResource(
-                R.string.force_sync_history_success,
-                syncUiState.result.syncedCount,
-                syncUiState.result.skippedCount,
-            )
-
-            RemoteHistorySyncStatus.NOTHING_TO_SYNC -> stringResource(R.string.force_sync_history_nothing_to_sync)
-            RemoteHistorySyncStatus.PARTIAL -> stringResource(
-                R.string.force_sync_history_partial,
-                syncUiState.result.syncedCount,
-                syncUiState.result.skippedCount,
-                syncUiState.result.failedCount,
-            )
-
-            RemoteHistorySyncStatus.NOT_LOGGED_IN -> stringResource(R.string.not_logged_in_youtube)
-            RemoteHistorySyncStatus.AUTO_SYNC_DISABLED -> stringResource(R.string.sync_disabled)
-            RemoteHistorySyncStatus.FAILED -> stringResource(R.string.force_sync_history_failed)
-        }
-    }
-    val statusColor = when (syncUiState) {
-        is AccountHistorySyncUiState.Finished -> when (syncUiState.result.status) {
-            RemoteHistorySyncStatus.SUCCESS,
-            RemoteHistorySyncStatus.NOTHING_TO_SYNC,
-            -> MaterialTheme.colorScheme.primary
-
-            RemoteHistorySyncStatus.PARTIAL,
-            RemoteHistorySyncStatus.NOT_LOGGED_IN,
-            RemoteHistorySyncStatus.AUTO_SYNC_DISABLED,
-            RemoteHistorySyncStatus.FAILED,
-            -> MaterialTheme.colorScheme.error
-        }
-
-        else -> MaterialTheme.colorScheme.primary
-    }
-
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 6.dp, vertical = 2.dp)
-            .clip(InnerTileShape)
-            .background(
-                if (isRunning) {
-                    MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)
-                } else {
-                    Color.Transparent
-                },
-            ),
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
-        ) {
-            ExpressiveRowIcon(
-                icon = painterResource(R.drawable.history),
-                tint = MaterialTheme.colorScheme.primary,
-                emphasized = isRunning,
-            )
-
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(2.dp),
-            ) {
-                Text(
-                    text = stringResource(R.string.force_sync_history_title),
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 3,
-                    overflow = TextOverflow.Ellipsis,
-                )
-
-                statusText?.let {
-                    Text(
-                        text = it,
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = statusColor,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-            }
-
-            FilledTonalButton(
-                onClick = onSyncClick,
-                enabled = isLoggedIn && !isRunning,
-                shapes = ButtonDefaults.shapes(),
-            ) {
-                if (isRunning) {
-                    CircularWavyProgressIndicator(
-                        modifier = Modifier.size(18.dp),
-                        color = MaterialTheme.colorScheme.primary,
-                    )
-                    Spacer(Modifier.width(8.dp))
-                }
-
-                Text(
-                    text = stringResource(
-                        if (isRunning) {
-                            R.string.force_sync_history_running
-                        } else {
-                            R.string.force_sync_history_action
-                        },
-                    ),
-                    fontWeight = FontWeight.SemiBold,
-                )
-            }
         }
     }
 }
