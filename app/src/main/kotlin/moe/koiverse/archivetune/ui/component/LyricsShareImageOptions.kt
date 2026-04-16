@@ -8,6 +8,7 @@
 package moe.koiverse.archivetune.ui.component
 
 import androidx.annotation.StringRes
+import androidx.compose.runtime.Immutable
 import kotlin.math.roundToInt
 import moe.koiverse.archivetune.R
 
@@ -37,6 +38,7 @@ enum class LyricsShareAspectRatio(
         get() = exportWidth.toFloat() / exportHeight.toFloat()
 }
 
+@Immutable
 data class LyricsShareImageOptions(
     val aspectRatio: LyricsShareAspectRatio = LyricsShareAspectRatio.Square,
     val blurRadius: Float = 24f,
@@ -53,6 +55,7 @@ data class LyricsShareImageOptions(
         get() = sanitizedBlurRadius.roundToInt().coerceIn(0, 48)
 }
 
+@Immutable
 data class LyricsSharePayload(
     val lyricsText: String,
     val songTitle: String,
