@@ -35,6 +35,8 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.Dispatchers
 import moe.koiverse.archivetune.constants.PlaylistSongSortDescendingKey
+import moe.koiverse.archivetune.constants.PlaylistSuggestionSource
+import moe.koiverse.archivetune.constants.PlaylistSuggestionSourceKey
 import moe.koiverse.archivetune.constants.PlaylistSongSortType
 import moe.koiverse.archivetune.constants.PlaylistSongSortTypeKey
 import moe.koiverse.archivetune.constants.HideExplicitKey
@@ -268,10 +270,14 @@ constructor(
                 currentSuggestionPage = null
                 
                 try {
+                    val suggestionSource = context.dataStore.data.first()[PlaylistSuggestionSourceKey]
+                        .toEnum(PlaylistSuggestionSource.BOTH)
+
                     // Build suggestion queries
                     val queries = PlaylistSuggestionQueryBuilder.buildSuggestionQueries(
                         playlistName = currentPlaylist.playlist.name,
-                        playlistSongs = currentSongs
+                        playlistSongs = currentSongs,
+                        suggestionSource = suggestionSource,
                     )
                     suggestionQueries.value = queries
                     suggestionsCacheTimestamp.value = System.currentTimeMillis()
