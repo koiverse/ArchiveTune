@@ -175,7 +175,6 @@ import moe.koiverse.archivetune.utils.CoilBitmapLoader
 import moe.koiverse.archivetune.utils.DiscordRPC
 import moe.koiverse.archivetune.ui.screens.settings.DiscordPresenceManager
 import moe.koiverse.archivetune.utils.AuthScopedCacheValue
-import moe.koiverse.archivetune.utils.RemoteHistorySyncManager
 import moe.koiverse.archivetune.utils.SyncUtils
 import moe.koiverse.archivetune.utils.YTPlayerUtils
 import moe.koiverse.archivetune.utils.StreamClientUtils
@@ -260,9 +259,6 @@ class MusicService :
 
     @Inject
     lateinit var syncUtils: SyncUtils
-
-    @Inject
-    lateinit var remoteHistorySyncManager: RemoteHistorySyncManager
 
     @Inject
     lateinit var mediaLibrarySessionCallback: MediaLibrarySessionCallback
@@ -4283,34 +4279,21 @@ class MusicService :
             ) &&
             !dataStore.get(PauseListenHistoryKey, false)
         ) {
-            ioScope.launch {
-                val insertedEventId = try {
-                    database.withTransaction {
-                        incrementTotalPlayTime(mediaItem.mediaId, playbackStats.totalPlayTimeMs)
-                        insert(
-                            Event(
-                                songId = mediaItem.mediaId,
-                                timestamp = LocalDateTime.now(),
-                                playTime = playbackStats.totalPlayTimeMs,
-                            ),
-                        )
-                    }
-                } catch (_: SQLException) {
-                    -1L
-                } catch (throwable: Throwable) {
-                    reportException(throwable)
-                    -1L
-                }
-
-                runCatching {
-                    remoteHistorySyncManager.syncPlaybackEvent(
-                        mediaId = mediaItem.mediaId,
-                        eventId = insertedEventId.takeIf { it > 0L },
+            database.query {
+                incrementTotalPlayTime(mediaItem.mediaId, playbackStats.totalPlayTimeMs)
+                try {
+                    insert(
+                        Event(
+                            songId = mediaItem.mediaId,
+                            timestamp = LocalDateTime.now(),
+                            playTime = playbackStats.totalPlayTimeMs,
+                        ),
                     )
+                } catch (_: SQLException) {
                 }
             }
 
-            ioScope.launch {
+            CoroutineScope(Dispatchers.IO).launch {
                 try {
                     val song = database.song(mediaItem.mediaId).first()
                         ?: return@launch
@@ -4329,7 +4312,51 @@ class MusicService :
                 } catch (_: Exception) {
                 }
             }
+
+            CoroutineScope(Dispatchers.IO).launch {
+                runCatching { registerRemoteListeningHistory(mediaItem.mediaId) }
+            }
         }
+    }
+
+    private suspend fun registerRemoteListeningHistory(mediaId: String) {
+        val authState = YouTube.currentPlaybackAuthState()
+        if (!isRemoteHistorySyncAllowed(authState)) return
+
+        val attemptedUrls = LinkedHashSet<String>()
+
+        suspend fun registerTrackingUrl(url: String): Boolean {
+            attemptedUrls += url
+            return YouTube.registerPlayback(playbackTracking = url, authState = authState)
+                .onFailure {
+                    reportException(it)
+                }.isSuccess
+        }
+
+        val cachedPlaybackUrl = database.format(mediaId).first()?.playbackUrl
+        val cachedSuccess = cachedPlaybackUrl?.let { registerTrackingUrl(it) } == true
+        if (cachedSuccess) return
+
+        val playbackTracking =
+            YTPlayerUtils.playerResponseForMetadata(mediaId, null, authState)
+                .getOrNull()
+                ?.playbackTracking
+                ?: return
+
+        for (
+            trackingUrl in listOfNotNull(
+                playbackTracking.videostatsPlaybackUrl?.baseUrl,
+                playbackTracking.videostatsWatchtimeUrl?.baseUrl,
+            )
+        ) {
+            if (trackingUrl.isBlank() || trackingUrl in attemptedUrls) continue
+            registerTrackingUrl(trackingUrl)
+        }
+    }
+
+    private suspend fun isRemoteHistorySyncAllowed(authState: PlaybackAuthState): Boolean {
+        if (!dataStore.getAsync(YtmSyncKey, true)) return false
+        return authState.hasLoginCookie
     }
 
     // Create a transient Song object from current Player MediaMetadata when the DB doesn't have it.

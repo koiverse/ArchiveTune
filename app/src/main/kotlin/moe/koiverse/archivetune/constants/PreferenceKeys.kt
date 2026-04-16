@@ -223,8 +223,6 @@ val LastLibSongSyncKey = longPreferencesKey("last_library_song_sync")
 val LastAlbumSyncKey = longPreferencesKey("last_album_sync")
 val LastArtistSyncKey = longPreferencesKey("last_artist_sync")
 val LastPlaylistSyncKey = longPreferencesKey("last_playlist_sync")
-val RemoteHistorySyncCursorKey = longPreferencesKey("remote_history_sync_cursor")
-val RemoteHistoryPendingRangesKey = stringPreferencesKey("remote_history_pending_ranges")
 
 val ArtistViewTypeKey = stringPreferencesKey("artistViewType")
 val AlbumViewTypeKey = stringPreferencesKey("albumViewType")
