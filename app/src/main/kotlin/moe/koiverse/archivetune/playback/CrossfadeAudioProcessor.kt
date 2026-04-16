@@ -130,6 +130,8 @@ class CrossfadeAudioProcessor : AudioProcessor {
         }
 
         if (crossfadeFrames <= 0 || bytesPerFrame <= 0 || tailSizeBytes <= 0) {
+            shouldFadeInThisStream = false
+            shouldFadeInNextStream = false
             tailStartIndex = 0
             tailSizeBytes = 0
             return AudioProcessor.EMPTY_BUFFER
@@ -137,6 +139,8 @@ class CrossfadeAudioProcessor : AudioProcessor {
 
         val alignedTailBytes = tailSizeBytes - (tailSizeBytes % bytesPerFrame)
         if (alignedTailBytes <= 0) {
+            shouldFadeInThisStream = false
+            shouldFadeInNextStream = false
             tailStartIndex = 0
             tailSizeBytes = 0
             return AudioProcessor.EMPTY_BUFFER
@@ -165,9 +169,11 @@ class CrossfadeAudioProcessor : AudioProcessor {
     }
 
     override fun flush() {
+        val preserveFadeInForNextStream = isEnding && shouldFadeInNextStream
         framesOutputInStream = 0L
         isEnding = false
         shouldFadeInThisStream = false
+        shouldFadeInNextStream = preserveFadeInForNextStream
         tailStartIndex = 0
         tailSizeBytes = 0
         outStartIndex = 0
