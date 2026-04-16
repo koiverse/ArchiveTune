@@ -9,6 +9,7 @@
 
 package moe.koiverse.archivetune.utils
 
+import moe.koiverse.archivetune.constants.PlaylistSuggestionSource
 import moe.koiverse.archivetune.models.PlaylistSuggestionQuery
 import moe.koiverse.archivetune.db.entities.PlaylistSong
 import java.time.LocalDateTime
@@ -35,18 +36,19 @@ object PlaylistSuggestionQueryBuilder {
     
     fun buildSuggestionQueries(
         playlistName: String,
-        playlistSongs: List<PlaylistSong>
+        playlistSongs: List<PlaylistSong>,
+        suggestionSource: PlaylistSuggestionSource = PlaylistSuggestionSource.BOTH,
     ): List<PlaylistSuggestionQuery> {
         val queries = mutableListOf<PlaylistSuggestionQuery>()
+        val includeTitleSignals = suggestionSource != PlaylistSuggestionSource.PLAYLIST_CONTENT
+        val includePlaylistContentSignals = suggestionSource != PlaylistSuggestionSource.PLAYLIST_TITLE
+        val nameGenres = if (includeTitleSignals) extractGenres(playlistName) else emptyList()
+        val nameMoods = if (includeTitleSignals) extractMoods(playlistName) else emptyList()
+        val artists = if (includePlaylistContentSignals) extractArtists(playlistSongs) else emptyList()
         
-        // Priority 1: Direct playlist name query
-        if (playlistName.isNotBlank()) {
+        if (includeTitleSignals && playlistName.isNotBlank()) {
             queries.add(PlaylistSuggestionQuery(playlistName, 1))
         }
-        
-        // Priority 2: Extract and combine genres/moods from playlist name
-        val nameGenres = extractGenres(playlistName)
-        val nameMoods = extractMoods(playlistName)
         
         nameGenres.forEach { genre ->
             queries.add(PlaylistSuggestionQuery("$genre music", 2))
@@ -56,31 +58,27 @@ object PlaylistSuggestionQueryBuilder {
             queries.add(PlaylistSuggestionQuery("$mood music", 3))
         }
         
-        // Priority 3: Artist-based queries from existing songs
-        val artists = extractArtists(playlistSongs)
         artists.take(3).forEach { artist ->
             queries.add(PlaylistSuggestionQuery("songs like $artist", 4))
         }
         
-        // Priority 4: Genre + Artist combinations
-        nameGenres.take(2).forEach { genre ->
+        if (includeTitleSignals && includePlaylistContentSignals) {
+            nameGenres.take(2).forEach { genre ->
+                artists.take(2).forEach { artist ->
+                    queries.add(PlaylistSuggestionQuery("$genre music like $artist", 5))
+                }
+            }
+
             artists.take(2).forEach { artist ->
-                queries.add(PlaylistSuggestionQuery("$genre music like $artist", 5))
+                nameMoods.take(2).forEach { mood ->
+                    queries.add(PlaylistSuggestionQuery("$mood songs by $artist", 6))
+                }
             }
         }
         
-        // Priority 5: Artist + Mood combinations
-        artists.take(2).forEach { artist ->
-            nameMoods.take(2).forEach { mood ->
-                queries.add(PlaylistSuggestionQuery("$mood songs by $artist", 6))
-            }
-        }
-        
-        // Priority 6: Time-based queries
         val timeQuery = getTimeBasedQuery()
         queries.add(PlaylistSuggestionQuery(timeQuery, 7))
         
-        // Priority 7: Fallback queries
         val shuffledFallbacks = fallbackQueries.shuffled()
         shuffledFallbacks.forEachIndexed { index, query ->
             queries.add(PlaylistSuggestionQuery(query, 8 + index))
