@@ -175,6 +175,7 @@ import moe.koiverse.archivetune.utils.CoilBitmapLoader
 import moe.koiverse.archivetune.utils.DiscordRPC
 import moe.koiverse.archivetune.ui.screens.settings.DiscordPresenceManager
 import moe.koiverse.archivetune.utils.AuthScopedCacheValue
+import moe.koiverse.archivetune.utils.RemoteHistorySyncManager
 import moe.koiverse.archivetune.utils.SyncUtils
 import moe.koiverse.archivetune.utils.YTPlayerUtils
 import moe.koiverse.archivetune.utils.StreamClientUtils
@@ -261,6 +262,9 @@ class MusicService :
     lateinit var syncUtils: SyncUtils
 
     @Inject
+    lateinit var remoteHistorySyncManager: RemoteHistorySyncManager
+
+    @Inject
     lateinit var mediaLibrarySessionCallback: MediaLibrarySessionCallback
 
     private lateinit var audioManager: AudioManager
@@ -345,6 +349,8 @@ class MusicService :
     private var currentQueue: Queue = EmptyQueue
     var queueTitle: String? = null
     private val persistentStateLock = Any()
+    @Volatile
+    private var isRestoringPersistentState = false
     @Volatile
     private var suppressAutoPlayback = false
     private var lastPresenceToken: String? = null
@@ -1024,39 +1030,22 @@ class MusicService :
 
         scope.launch(Dispatchers.IO) {
             if (dataStore.get(PersistentQueueKey, true)) {
-                readPersistentObject<PersistQueue>(PERSISTENT_QUEUE_FILE)
-                    ?.let { persistedQueue ->
-                    restorePersistentQueue(persistedQueue)
-                }
-                readPersistentObject<PersistPlayerState>(PERSISTENT_PLAYER_STATE_FILE)
-                    ?.let { playerState ->
-                    delay(1000)
-                    withContext(Dispatchers.Main) {
-                        player.repeatMode = playerState.repeatMode
-                        player.shuffleModeEnabled = playerState.shuffleModeEnabled
-                        playerVolume.value = playerState.volume
-                        
-                        if (player.mediaItemCount > 0) {
-                            val index =
-                                if (playerState.currentMediaItemIndex in 0 until player.mediaItemCount) {
-                                    playerState.currentMediaItemIndex
-                                } else {
-                                    player.currentMediaItemIndex.coerceIn(0, player.mediaItemCount - 1)
-                            }
-                            player.seekTo(index, playerState.currentPosition)
-                        }
+                val persistedQueue = readPersistentObject<PersistQueue>(PERSISTENT_QUEUE_FILE)
+                val persistedPlayerState = readPersistentObject<PersistPlayerState>(PERSISTENT_PLAYER_STATE_FILE)
 
-                        val shouldResumePlayback =
-                            playerState.playWhenReady && player.mediaItemCount > 0
-                        if (shouldResumePlayback) {
-                            promoteToStartedService()
-                            ensureStartedAsForeground()
-                        }
-                        player.playWhenReady = shouldResumePlayback
-                        
-                        currentMediaMetadata.value = player.currentMetadata
-                        updateNotification()
+                if (persistedQueue != null || persistedPlayerState != null) {
+                    isRestoringPersistentState = true
+                }
+
+                try {
+                    persistedQueue?.let { queue ->
+                        restorePersistentQueue(queue)
                     }
+                    persistedPlayerState?.let { playerState ->
+                        restorePersistentPlayerState(playerState)
+                    }
+                } finally {
+                    isRestoringPersistentState = false
                 }
             }
             withContext(Dispatchers.Main) {
@@ -1154,6 +1143,35 @@ class MusicService :
                     }
                 }
             }
+        }
+    }
+
+    private suspend fun restorePersistentPlayerState(playerState: PersistPlayerState) {
+        withContext(Dispatchers.Main) {
+            player.repeatMode = playerState.repeatMode
+            player.shuffleModeEnabled = playerState.shuffleModeEnabled
+            playerVolume.value = playerState.volume.coerceIn(0f, 1f)
+
+            if (player.mediaItemCount > 0) {
+                val index =
+                    if (playerState.currentMediaItemIndex in 0 until player.mediaItemCount) {
+                        playerState.currentMediaItemIndex
+                    } else {
+                        player.currentMediaItemIndex.coerceIn(0, player.mediaItemCount - 1)
+                    }
+                player.seekTo(index, playerState.currentPosition.coerceAtLeast(0L))
+            }
+
+            val shouldResumePlayback =
+                playerState.playWhenReady && player.mediaItemCount > 0
+            if (shouldResumePlayback) {
+                promoteToStartedService()
+                ensureStartedAsForeground()
+            }
+            player.playWhenReady = shouldResumePlayback
+
+            currentMediaMetadata.value = player.currentMetadata.takeIf { player.mediaItemCount > 0 }
+            updateNotification()
         }
     }
 
@@ -4279,21 +4297,34 @@ class MusicService :
             ) &&
             !dataStore.get(PauseListenHistoryKey, false)
         ) {
-            database.query {
-                incrementTotalPlayTime(mediaItem.mediaId, playbackStats.totalPlayTimeMs)
-                try {
-                    insert(
-                        Event(
-                            songId = mediaItem.mediaId,
-                            timestamp = LocalDateTime.now(),
-                            playTime = playbackStats.totalPlayTimeMs,
-                        ),
-                    )
+            ioScope.launch {
+                val insertedEventId = try {
+                    database.withTransaction {
+                        incrementTotalPlayTime(mediaItem.mediaId, playbackStats.totalPlayTimeMs)
+                        insert(
+                            Event(
+                                songId = mediaItem.mediaId,
+                                timestamp = LocalDateTime.now(),
+                                playTime = playbackStats.totalPlayTimeMs,
+                            ),
+                        )
+                    }
                 } catch (_: SQLException) {
+                    -1L
+                } catch (throwable: Throwable) {
+                    reportException(throwable)
+                    -1L
+                }
+
+                runCatching {
+                    remoteHistorySyncManager.syncPlaybackEvent(
+                        mediaId = mediaItem.mediaId,
+                        eventId = insertedEventId.takeIf { it > 0L },
+                    )
                 }
             }
 
-            CoroutineScope(Dispatchers.IO).launch {
+            ioScope.launch {
                 try {
                     val song = database.song(mediaItem.mediaId).first()
                         ?: return@launch
@@ -4312,51 +4343,7 @@ class MusicService :
                 } catch (_: Exception) {
                 }
             }
-
-            CoroutineScope(Dispatchers.IO).launch {
-                runCatching { registerRemoteListeningHistory(mediaItem.mediaId) }
-            }
         }
-    }
-
-    private suspend fun registerRemoteListeningHistory(mediaId: String) {
-        val authState = YouTube.currentPlaybackAuthState()
-        if (!isRemoteHistorySyncAllowed(authState)) return
-
-        val attemptedUrls = LinkedHashSet<String>()
-
-        suspend fun registerTrackingUrl(url: String): Boolean {
-            attemptedUrls += url
-            return YouTube.registerPlayback(playbackTracking = url, authState = authState)
-                .onFailure {
-                    reportException(it)
-                }.isSuccess
-        }
-
-        val cachedPlaybackUrl = database.format(mediaId).first()?.playbackUrl
-        val cachedSuccess = cachedPlaybackUrl?.let { registerTrackingUrl(it) } == true
-        if (cachedSuccess) return
-
-        val playbackTracking =
-            YTPlayerUtils.playerResponseForMetadata(mediaId, null, authState)
-                .getOrNull()
-                ?.playbackTracking
-                ?: return
-
-        for (
-            trackingUrl in listOfNotNull(
-                playbackTracking.videostatsPlaybackUrl?.baseUrl,
-                playbackTracking.videostatsWatchtimeUrl?.baseUrl,
-            )
-        ) {
-            if (trackingUrl.isBlank() || trackingUrl in attemptedUrls) continue
-            registerTrackingUrl(trackingUrl)
-        }
-    }
-
-    private suspend fun isRemoteHistorySyncAllowed(authState: PlaybackAuthState): Boolean {
-        if (!dataStore.getAsync(YtmSyncKey, true)) return false
-        return authState.hasLoginCookie
     }
 
     // Create a transient Song object from current Player MediaMetadata when the DB doesn't have it.
@@ -4491,6 +4478,8 @@ class MusicService :
     }
 
     private suspend fun saveQueueToDisk() {
+        if (isRestoringPersistentState) return
+
         val mediaItemsSnapshot = player.mediaItems.mapNotNull { it.toPersistableMetadata() }
         if (mediaItemsSnapshot.isEmpty()) return
 
