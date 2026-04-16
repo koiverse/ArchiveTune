@@ -882,5 +882,5 @@ private fun LyricsShareDragHandle() {
             .background(
                 MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
             ),
-    }
+    )
 }
