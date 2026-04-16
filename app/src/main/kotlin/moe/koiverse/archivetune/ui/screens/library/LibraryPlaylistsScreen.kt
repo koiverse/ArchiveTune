@@ -429,7 +429,6 @@ private fun PlaylistSortSplitButton(
                 SplitButtonDefaults.TonalLeadingButton(
                     onClick = { menuExpanded = true },
                     modifier = Modifier
-                        .weight(1f)
                         .heightIn(min = SplitButtonDefaults.MediumContainerHeight),
                 ) {
                     Text(
