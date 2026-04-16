@@ -67,6 +67,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
@@ -83,9 +84,24 @@ import moe.koiverse.archivetune.R
 import kotlin.math.roundToInt
 
 val LocalPreferenceInGroup = compositionLocalOf { false }
-private val PreferenceIconShape = MaterialShapes.Ghostish.toShape()
-private val PreferenceGroupShape = MaterialShapes.Square.toShape()
-private val PreferenceGroupItemShape = MaterialShapes.Arch.toShape()
+
+@Composable
+private fun rememberPreferenceIconShape(): Shape {
+    val polygon = MaterialShapes.Ghostish
+    return remember(polygon) { polygon.toShape() }
+}
+
+@Composable
+private fun rememberPreferenceGroupShape(): Shape {
+    val polygon = MaterialShapes.Square
+    return remember(polygon) { polygon.toShape() }
+}
+
+@Composable
+private fun rememberPreferenceGroupItemShape(): Shape {
+    val polygon = MaterialShapes.Arch
+    return remember(polygon) { polygon.toShape() }
+}
 
 @Composable
 fun PreferenceEntry(
@@ -99,6 +115,8 @@ fun PreferenceEntry(
     isEnabled: Boolean = true,
 ) {
     val inGroup = LocalPreferenceInGroup.current
+    val preferenceIconShape = rememberPreferenceIconShape()
+    val preferenceGroupItemShape = rememberPreferenceGroupItemShape()
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
@@ -126,7 +144,7 @@ fun PreferenceEntry(
                     modifier = Modifier
                         .align(Alignment.CenterVertically)
                         .size(36.dp)
-                        .clip(PreferenceIconShape)
+                        .clip(preferenceIconShape)
                         .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
                     contentAlignment = Alignment.Center,
                 ) {
@@ -164,7 +182,7 @@ fun PreferenceEntry(
 
     if (inGroup) {
         Surface(
-            shape = PreferenceGroupItemShape,
+            shape = preferenceGroupItemShape,
             color = MaterialTheme.colorScheme.surfaceContainerLow,
             modifier = modifier
                 .fillMaxWidth()
@@ -675,6 +693,7 @@ fun PreferenceGroup(
     title: String? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
+    val preferenceGroupShape = rememberPreferenceGroupShape()
     Column(modifier = modifier.padding(horizontal = 16.dp)) {
         if (title != null) {
             Text(
@@ -686,7 +705,7 @@ fun PreferenceGroup(
             )
         }
         Card(
-            shape = PreferenceGroupShape,
+            shape = preferenceGroupShape,
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
             ),
