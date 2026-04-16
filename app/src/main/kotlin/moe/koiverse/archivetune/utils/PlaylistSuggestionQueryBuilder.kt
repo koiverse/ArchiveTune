@@ -11,6 +11,7 @@ package moe.koiverse.archivetune.utils
 
 import moe.koiverse.archivetune.models.PlaylistSuggestionQuery
 import moe.koiverse.archivetune.db.entities.PlaylistSong
+import moe.koiverse.archivetune.constants.PlaylistRecommendMode
 import java.time.LocalDateTime
 import java.time.Year
 import java.time.format.DateTimeFormatter
@@ -35,44 +36,54 @@ object PlaylistSuggestionQueryBuilder {
     
     fun buildSuggestionQueries(
         playlistName: String,
-        playlistSongs: List<PlaylistSong>
+        playlistSongs: List<PlaylistSong>,
+        recommendMode: PlaylistRecommendMode
     ): List<PlaylistSuggestionQuery> {
         val queries = mutableListOf<PlaylistSuggestionQuery>()
         
-        // Priority 1: Direct playlist name query
-        if (playlistName.isNotBlank()) {
-            queries.add(PlaylistSuggestionQuery(playlistName, 1))
-        }
-        
-        // Priority 2: Extract and combine genres/moods from playlist name
-        val nameGenres = extractGenres(playlistName)
-        val nameMoods = extractMoods(playlistName)
-        
-        nameGenres.forEach { genre ->
-            queries.add(PlaylistSuggestionQuery("$genre music", 2))
-        }
-        
-        nameMoods.forEach { mood ->
-            queries.add(PlaylistSuggestionQuery("$mood music", 3))
-        }
-        
-        // Priority 3: Artist-based queries from existing songs
-        val artists = extractArtists(playlistSongs)
-        artists.take(3).forEach { artist ->
-            queries.add(PlaylistSuggestionQuery("songs like $artist", 4))
-        }
-        
-        // Priority 4: Genre + Artist combinations
-        nameGenres.take(2).forEach { genre ->
-            artists.take(2).forEach { artist ->
-                queries.add(PlaylistSuggestionQuery("$genre music like $artist", 5))
+        val useTitle = recommendMode == PlaylistRecommendMode.BOTH || recommendMode == PlaylistRecommendMode.PLAYLIST_TITLE
+        val useSongs = recommendMode == PlaylistRecommendMode.BOTH || recommendMode == PlaylistRecommendMode.SONG_INSIDE_PLAYLIST
+
+        val nameGenres = if (useTitle) extractGenres(playlistName) else emptyList()
+        val nameMoods = if (useTitle) extractMoods(playlistName) else emptyList()
+        val artists = if (useSongs) extractArtists(playlistSongs) else emptyList()
+
+        if (useTitle) {
+            // Priority 1: Direct playlist name query
+            if (playlistName.isNotBlank()) {
+                queries.add(PlaylistSuggestionQuery(playlistName, 1))
+            }
+            
+            // Priority 2: Extract and combine genres/moods from playlist name
+            nameGenres.forEach { genre ->
+                queries.add(PlaylistSuggestionQuery("$genre music", 2))
+            }
+            
+            nameMoods.forEach { mood ->
+                queries.add(PlaylistSuggestionQuery("$mood music", 3))
             }
         }
         
-        // Priority 5: Artist + Mood combinations
-        artists.take(2).forEach { artist ->
-            nameMoods.take(2).forEach { mood ->
-                queries.add(PlaylistSuggestionQuery("$mood songs by $artist", 6))
+        if (useSongs) {
+            // Priority 3: Artist-based queries from existing songs
+            artists.take(3).forEach { artist ->
+                queries.add(PlaylistSuggestionQuery("songs like $artist", 4))
+            }
+        }
+        
+        // Priority 4: Genre + Artist combinations
+        if (useTitle && useSongs) {
+            nameGenres.take(2).forEach { genre ->
+                artists.take(2).forEach { artist ->
+                    queries.add(PlaylistSuggestionQuery("$genre music like $artist", 5))
+                }
+            }
+            
+            // Priority 5: Artist + Mood combinations
+            artists.take(2).forEach { artist ->
+                nameMoods.take(2).forEach { mood ->
+                    queries.add(PlaylistSuggestionQuery("$mood songs by $artist", 6))
+                }
             }
         }
         

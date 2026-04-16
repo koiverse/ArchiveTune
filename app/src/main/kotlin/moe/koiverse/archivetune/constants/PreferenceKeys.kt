@@ -379,6 +379,13 @@ enum class PreferredLyricsProvider {
     SIMPMUSIC,
 }
 
+val PlaylistRecommendModeKey = stringPreferencesKey("playlistRecommendMode")
+enum class PlaylistRecommendMode {
+    BOTH,
+    PLAYLIST_TITLE,
+    SONG_INSIDE_PLAYLIST
+}
+
 enum class PlayerButtonsStyle {
     DEFAULT,
     SECONDARY,

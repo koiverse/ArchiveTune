@@ -268,10 +268,12 @@ constructor(
                 currentSuggestionPage = null
                 
                 try {
+                    val recommendMode = context.dataStore.data.first()[moe.koiverse.archivetune.constants.PlaylistRecommendModeKey].toEnum(moe.koiverse.archivetune.constants.PlaylistRecommendMode.BOTH)
                     // Build suggestion queries
                     val queries = PlaylistSuggestionQueryBuilder.buildSuggestionQueries(
                         playlistName = currentPlaylist.playlist.name,
-                        playlistSongs = currentSongs
+                        playlistSongs = currentSongs,
+                        recommendMode = recommendMode
                     )
                     suggestionQueries.value = queries
                     suggestionsCacheTimestamp.value = System.currentTimeMillis()

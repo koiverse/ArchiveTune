@@ -91,6 +91,7 @@ fun ContentSettings(
     val (queueLyricsPreloadCount, onQueueLyricsPreloadCountChange) = rememberPreference(QueueLyricsPreloadCountKey, defaultValue = 1)
     val (lengthTop, onLengthTopChange) = rememberPreference(key = TopSize, defaultValue = "50")
     val (quickPicks, onQuickPicksChange) = rememberEnumPreference(key = QuickPicksKey, defaultValue = QuickPicks.QUICK_PICKS)
+    val (playlistRecommendMode, onPlaylistRecommendModeChange) = rememberEnumPreference(key = PlaylistRecommendModeKey, defaultValue = PlaylistRecommendMode.BOTH)
 
     Column(
         Modifier
@@ -192,6 +193,21 @@ fun ContentSettings(
                 }
             )
         }
+        
+        ListPreference(
+            title = { Text(stringResource(R.string.playlist_recommend_mode)) },
+            icon = { Icon(painterResource(R.drawable.queue_music), null) },
+            selectedValue = playlistRecommendMode,
+            values = listOf(PlaylistRecommendMode.BOTH, PlaylistRecommendMode.PLAYLIST_TITLE, PlaylistRecommendMode.SONG_INSIDE_PLAYLIST),
+            valueText = {
+                when (it) {
+                    PlaylistRecommendMode.BOTH -> stringResource(R.string.playlist_recommend_mode_both)
+                    PlaylistRecommendMode.PLAYLIST_TITLE -> stringResource(R.string.playlist_recommend_mode_title)
+                    PlaylistRecommendMode.SONG_INSIDE_PLAYLIST -> stringResource(R.string.playlist_recommend_mode_songs)
+                }
+            },
+            onValueSelected = onPlaylistRecommendModeChange,
+        )
 
         PreferenceGroupTitle(title = stringResource(R.string.proxy))
         SwitchPreference(
