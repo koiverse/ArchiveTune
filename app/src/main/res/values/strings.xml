@@ -141,6 +141,8 @@
     <string name="sort_by_play_time">Play time</string>
     <string name="sort_by_most_played">Most played</string>
     <string name="sort_by_custom">Custom order</string>
+    <string name="sort_order_ascending">Ascending</string>
+    <string name="sort_order_descending">Descending</string>
     <!-- Dialog -->
     <string name="media_id">Media id</string>
     <string name="mime_type">MIME type</string>

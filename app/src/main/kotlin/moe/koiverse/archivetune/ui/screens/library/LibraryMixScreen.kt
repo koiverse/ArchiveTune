@@ -22,12 +22,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.DropdownMenu
@@ -518,10 +518,36 @@ private fun LibraryMixSortSplitButton(
     sortTypeText: (MixSortType) -> Int,
     modifier: Modifier = Modifier,
 ) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        modifier = modifier.fillMaxWidth(),
+    ) {
+        LibraryMixSortTypeSplitButton(
+            sortType = sortType,
+            onSortTypeChange = onSortTypeChange,
+            sortTypeText = sortTypeText,
+            modifier = Modifier.weight(1f),
+        )
+        LibraryMixSortDirectionSplitButton(
+            sortDescending = sortDescending,
+            onSortDescendingChange = onSortDescendingChange,
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun LibraryMixSortTypeSplitButton(
+    sortType: MixSortType,
+    onSortTypeChange: (MixSortType) -> Unit,
+    sortTypeText: (MixSortType) -> Int,
+    modifier: Modifier = Modifier,
+) {
     var menuExpanded by remember { mutableStateOf(false) }
-    val sortDirectionRotation by animateFloatAsState(
-        targetValue = if (sortDescending) 0f else 180f,
-        label = "LibraryMixSortDirection",
+    val menuRotation by animateFloatAsState(
+        targetValue = if (menuExpanded) 180f else 0f,
+        label = "LibraryMixSortTypeMenu",
     )
 
     Box(modifier = modifier) {
@@ -539,26 +565,20 @@ private fun LibraryMixSortSplitButton(
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
-                    Spacer(Modifier.size(ButtonDefaults.IconSpacing))
-                    Icon(
-                        painter = painterResource(R.drawable.expand_more),
-                        contentDescription = null,
-                        modifier = Modifier.size(SplitButtonDefaults.LeadingIconSize),
-                    )
                 }
             },
             trailingButton = {
                 SplitButtonDefaults.TonalTrailingButton(
-                    checked = sortDescending,
-                    onCheckedChange = onSortDescendingChange,
+                    checked = menuExpanded,
+                    onCheckedChange = { menuExpanded = it },
                     modifier = Modifier.heightIn(min = SplitButtonDefaults.MediumContainerHeight),
                 ) {
                     Icon(
-                        painter = painterResource(R.drawable.arrow_downward),
+                        painter = painterResource(R.drawable.expand_more),
                         contentDescription = null,
                         modifier = Modifier
                             .size(SplitButtonDefaults.TrailingIconSize)
-                            .rotate(sortDirectionRotation),
+                            .rotate(menuRotation),
                     )
                 }
             },
@@ -583,13 +603,111 @@ private fun LibraryMixSortSplitButton(
                                     R.drawable.radio_button_checked
                                 } else {
                                     R.drawable.radio_button_unchecked
-                                },
+                                }
                             ),
                             contentDescription = null,
                         )
                     },
                     onClick = {
                         onSortTypeChange(type)
+                        menuExpanded = false
+                    },
+                )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun LibraryMixSortDirectionSplitButton(
+    sortDescending: Boolean,
+    onSortDescendingChange: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var menuExpanded by remember { mutableStateOf(false) }
+    val sortDirectionRotation by animateFloatAsState(
+        targetValue = if (sortDescending) 0f else 180f,
+        label = "LibraryMixSortDirection",
+    )
+    val menuRotation by animateFloatAsState(
+        targetValue = if (menuExpanded) 180f else 0f,
+        label = "LibraryMixSortDirectionMenu",
+    )
+
+    Box(modifier = modifier) {
+        SplitButtonLayout(
+            leadingButton = {
+                SplitButtonDefaults.TonalLeadingButton(
+                    onClick = { onSortDescendingChange(!sortDescending) },
+                    modifier = Modifier
+                        .heightIn(min = SplitButtonDefaults.MediumContainerHeight)
+                        .widthIn(min = SplitButtonDefaults.MediumContainerHeight),
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.arrow_downward),
+                        contentDescription = stringResource(
+                            if (sortDescending) {
+                                R.string.sort_order_descending
+                            } else {
+                                R.string.sort_order_ascending
+                            }
+                        ),
+                        modifier = Modifier
+                            .size(SplitButtonDefaults.LeadingIconSize)
+                            .rotate(sortDirectionRotation),
+                    )
+                }
+            },
+            trailingButton = {
+                SplitButtonDefaults.TonalTrailingButton(
+                    checked = menuExpanded,
+                    onCheckedChange = { menuExpanded = it },
+                    modifier = Modifier.heightIn(min = SplitButtonDefaults.MediumContainerHeight),
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.expand_more),
+                        contentDescription = null,
+                        modifier = Modifier
+                            .size(SplitButtonDefaults.TrailingIconSize)
+                            .rotate(menuRotation),
+                    )
+                }
+            },
+        )
+
+        DropdownMenu(
+            expanded = menuExpanded,
+            onDismissRequest = { menuExpanded = false },
+        ) {
+            listOf(false, true).forEach { descending ->
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            text = stringResource(
+                                if (descending) {
+                                    R.string.sort_order_descending
+                                } else {
+                                    R.string.sort_order_ascending
+                                }
+                            ),
+                            style = MaterialTheme.typography.bodyLarge,
+                        )
+                    },
+                    trailingIcon = {
+                        Icon(
+                            painter = painterResource(
+                                if (sortDescending == descending) {
+                                    R.drawable.radio_button_checked
+                                } else {
+                                    R.drawable.radio_button_unchecked
+                                }
+                            ),
+                            contentDescription = null,
+                        )
+                    },
+                    onClick = {
+                        onSortDescendingChange(descending)
                         menuExpanded = false
                     },
                 )
