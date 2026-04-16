@@ -13,6 +13,7 @@ package moe.koiverse.archivetune.utils
 import android.content.Context
 import androidx.compose.runtime.Immutable
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.remove
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
