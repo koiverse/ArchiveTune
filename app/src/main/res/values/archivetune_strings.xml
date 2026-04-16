@@ -158,6 +158,16 @@
     <string name="token_adv_login_description">This is an ADVANCED login method. As an alternative to the web portal, you may directly enter or update your login token here. For example, this can speed up logging in on multiple devices. Please note that any invalid token formats the app fails to parse will not be accepted</string>
     <string name="ytm_sync">Automatically sync with your YouTube Music account</string>
     <string name="yt_sync">Auto sync with account</string>
+    <string name="force_sync_history_title">Force sync listening history</string>
+    <string name="force_sync_history_description">Upload any unsynced local song history to your YouTube Music account now.</string>
+    <string name="force_sync_history_auto_sync_off">Auto sync is off. This button still performs a one-time upload.</string>
+    <string name="force_sync_history_action">Sync now</string>
+    <string name="force_sync_history_running">Syncing</string>
+    <string name="force_sync_history_progress">%1$d of %2$d items processed</string>
+    <string name="force_sync_history_success">Synced %1$d items, skipped %2$d local items.</string>
+    <string name="force_sync_history_partial">Synced %1$d items, skipped %2$d local items, stopped at %3$d failure.</string>
+    <string name="force_sync_history_nothing_to_sync">No unsynced remote history was found.</string>
+    <string name="force_sync_history_failed">History sync failed. Try again while connected.</string>
     <string name="more_content">More content</string>
     <string name="general">General</string>
     <string name="proxy">Proxy</string>
