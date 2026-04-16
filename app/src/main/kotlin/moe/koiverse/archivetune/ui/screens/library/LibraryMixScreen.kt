@@ -547,15 +547,12 @@ private fun LibraryMixSortSplitButton(
         label = "LibraryMixSortDirection",
     )
 
-    Box(modifier = modifier.fillMaxWidth()) {
+    Box(modifier = modifier) {
         SplitButtonLayout(
-            modifier = Modifier.fillMaxWidth(),
             leadingButton = {
                 SplitButtonDefaults.TonalLeadingButton(
                     onClick = { menuExpanded = true },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(min = SplitButtonDefaults.MediumContainerHeight),
+                    modifier = Modifier.heightIn(min = SplitButtonDefaults.MediumContainerHeight),
                 ) {
                     Text(
                         text = stringResource(sortTypeText(sortType)),
