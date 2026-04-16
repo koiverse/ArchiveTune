@@ -350,6 +350,8 @@ class MusicService :
     var queueTitle: String? = null
     private val persistentStateLock = Any()
     @Volatile
+    private var isRestoringPersistentState = false
+    @Volatile
     private var suppressAutoPlayback = false
     private var lastPresenceToken: String? = null
     @Volatile
@@ -1028,39 +1030,22 @@ class MusicService :
 
         scope.launch(Dispatchers.IO) {
             if (dataStore.get(PersistentQueueKey, true)) {
-                readPersistentObject<PersistQueue>(PERSISTENT_QUEUE_FILE)
-                    ?.let { persistedQueue ->
-                    restorePersistentQueue(persistedQueue)
-                }
-                readPersistentObject<PersistPlayerState>(PERSISTENT_PLAYER_STATE_FILE)
-                    ?.let { playerState ->
-                    delay(1000)
-                    withContext(Dispatchers.Main) {
-                        player.repeatMode = playerState.repeatMode
-                        player.shuffleModeEnabled = playerState.shuffleModeEnabled
-                        playerVolume.value = playerState.volume
-                        
-                        if (player.mediaItemCount > 0) {
-                            val index =
-                                if (playerState.currentMediaItemIndex in 0 until player.mediaItemCount) {
-                                    playerState.currentMediaItemIndex
-                                } else {
-                                    player.currentMediaItemIndex.coerceIn(0, player.mediaItemCount - 1)
-                            }
-                            player.seekTo(index, playerState.currentPosition)
-                        }
+                val persistedQueue = readPersistentObject<PersistQueue>(PERSISTENT_QUEUE_FILE)
+                val persistedPlayerState = readPersistentObject<PersistPlayerState>(PERSISTENT_PLAYER_STATE_FILE)
 
-                        val shouldResumePlayback =
-                            playerState.playWhenReady && player.mediaItemCount > 0
-                        if (shouldResumePlayback) {
-                            promoteToStartedService()
-                            ensureStartedAsForeground()
-                        }
-                        player.playWhenReady = shouldResumePlayback
-                        
-                        currentMediaMetadata.value = player.currentMetadata
-                        updateNotification()
+                if (persistedQueue != null || persistedPlayerState != null) {
+                    isRestoringPersistentState = true
+                }
+
+                try {
+                    persistedQueue?.let { queue ->
+                        restorePersistentQueue(queue)
                     }
+                    persistedPlayerState?.let { playerState ->
+                        restorePersistentPlayerState(playerState)
+                    }
+                } finally {
+                    isRestoringPersistentState = false
                 }
             }
             withContext(Dispatchers.Main) {
@@ -1158,6 +1143,35 @@ class MusicService :
                     }
                 }
             }
+        }
+    }
+
+    private suspend fun restorePersistentPlayerState(playerState: PersistPlayerState) {
+        withContext(Dispatchers.Main) {
+            player.repeatMode = playerState.repeatMode
+            player.shuffleModeEnabled = playerState.shuffleModeEnabled
+            playerVolume.value = playerState.volume.coerceIn(0f, 1f)
+
+            if (player.mediaItemCount > 0) {
+                val index =
+                    if (playerState.currentMediaItemIndex in 0 until player.mediaItemCount) {
+                        playerState.currentMediaItemIndex
+                    } else {
+                        player.currentMediaItemIndex.coerceIn(0, player.mediaItemCount - 1)
+                    }
+                player.seekTo(index, playerState.currentPosition.coerceAtLeast(0L))
+            }
+
+            val shouldResumePlayback =
+                playerState.playWhenReady && player.mediaItemCount > 0
+            if (shouldResumePlayback) {
+                promoteToStartedService()
+                ensureStartedAsForeground()
+            }
+            player.playWhenReady = shouldResumePlayback
+
+            currentMediaMetadata.value = player.currentMetadata.takeIf { player.mediaItemCount > 0 }
+            updateNotification()
         }
     }
 
@@ -4464,6 +4478,8 @@ class MusicService :
     }
 
     private suspend fun saveQueueToDisk() {
+        if (isRestoringPersistentState) return
+
         val mediaItemsSnapshot = player.mediaItems.mapNotNull { it.toPersistableMetadata() }
         if (mediaItemsSnapshot.isEmpty()) return
 
