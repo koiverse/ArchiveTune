@@ -9,6 +9,7 @@
 package moe.koiverse.archivetune.ui.screens.library
 
 import androidx.annotation.DrawableRes
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
@@ -20,17 +21,25 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SplitButtonDefaults
+import androidx.compose.material3.SplitButtonLayout
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.material3.pulltorefresh.pullToRefresh
@@ -47,11 +56,13 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
@@ -74,7 +85,6 @@ import moe.koiverse.archivetune.extensions.move
 import moe.koiverse.archivetune.ui.component.LibraryPinnedCollectionTile
 import moe.koiverse.archivetune.ui.component.LibraryPlaylistListItem
 import moe.koiverse.archivetune.ui.component.LocalMenuState
-import moe.koiverse.archivetune.ui.component.SortHeader
 import moe.koiverse.archivetune.utils.rememberEnumPreference
 import moe.koiverse.archivetune.utils.rememberPreference
 import moe.koiverse.archivetune.viewmodels.LibraryPlaylistsViewModel
@@ -317,7 +327,7 @@ fun LibraryPlaylistsScreen(
                     reorderEnabled = reorderEnabled,
                     onToggleReorder = { reorderEnabled = !reorderEnabled },
                 ) {
-                    SortHeader(
+                    PlaylistSortSplitButton(
                         sortType = sortType,
                         sortDescending = sortDescending,
                         onSortTypeChange = onSortTypeChange,
@@ -347,12 +357,11 @@ fun LibraryPlaylistsScreen(
             }
 
             item(key = "playlist_section_header") {
-                PlaylistSectionHeaderCard(
-                    title = stringResource(R.string.playlists),
-                    supportingText = summary,
-                    modifier = Modifier.padding(horizontal = 16.dp),
-                )
-            }
+                LibrarySectionHeaderText(
+                        title = stringResource(R.string.playlists),
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                    )
+                }
 
             if (canReorderPlaylists) {
                 itemsIndexed(
@@ -404,6 +413,98 @@ fun LibraryPlaylistsScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun PlaylistSortSplitButton(
+    sortType: PlaylistSortType,
+    sortDescending: Boolean,
+    onSortTypeChange: (PlaylistSortType) -> Unit,
+    onSortDescendingChange: (Boolean) -> Unit,
+    sortTypeText: (PlaylistSortType) -> Int,
+    modifier: Modifier = Modifier,
+) {
+    var menuExpanded by remember { mutableStateOf(false) }
+    val sortDirectionRotation by animateFloatAsState(
+        targetValue = if (sortDescending) 0f else 180f,
+        label = "PlaylistSortDirection",
+    )
+
+    Box(modifier = modifier.fillMaxWidth()) {
+        SplitButtonLayout(
+            modifier = Modifier.fillMaxWidth(),
+            leadingButton = {
+                SplitButtonDefaults.TonalLeadingButton(
+                    onClick = { menuExpanded = true },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = SplitButtonDefaults.MediumContainerHeight),
+                ) {
+                    Text(
+                        text = stringResource(sortTypeText(sortType)),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            },
+            trailingButton = {
+                SplitButtonDefaults.TonalTrailingButton(
+                    checked = sortDescending,
+                    onCheckedChange = onSortDescendingChange,
+                    modifier = Modifier
+                        .heightIn(min = SplitButtonDefaults.MediumContainerHeight)
+                        .widthIn(min = SplitButtonDefaults.MediumContainerHeight),
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.arrow_downward),
+                        contentDescription = stringResource(
+                            if (sortDescending) {
+                                R.string.sort_order_descending
+                            } else {
+                                R.string.sort_order_ascending
+                            }
+                        ),
+                        modifier = Modifier
+                            .size(SplitButtonDefaults.TrailingIconSize)
+                            .rotate(sortDirectionRotation),
+                    )
+                }
+            },
+        )
+
+        DropdownMenu(
+            expanded = menuExpanded,
+            onDismissRequest = { menuExpanded = false },
+        ) {
+            PlaylistSortType.entries.forEach { type ->
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            text = stringResource(sortTypeText(type)),
+                            style = MaterialTheme.typography.bodyLarge,
+                        )
+                    },
+                    trailingIcon = {
+                        Icon(
+                            painter = painterResource(
+                                if (sortType == type) {
+                                    R.drawable.radio_button_checked
+                                } else {
+                                    R.drawable.radio_button_unchecked
+                                }
+                            ),
+                            contentDescription = null,
+                        )
+                    },
+                    onClick = {
+                        onSortTypeChange(type)
+                        menuExpanded = false
+                    },
+                )
+            }
+        }
+    }
+}
+
 @Composable
 private fun PlaylistControlCard(
     summary: String,
@@ -431,9 +532,13 @@ private fun PlaylistControlCard(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             if (canEnterReorderMode) {
-                IconButton(
+                FilledTonalIconButton(
                     onClick = onToggleReorder,
-                    modifier = Modifier.size(36.dp),
+                    colors = IconButtonDefaults.filledTonalIconButtonColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        contentColor = MaterialTheme.colorScheme.primary,
+                    ),
+                    modifier = Modifier.size(48.dp),
                 ) {
                     Icon(
                         painter = painterResource(if (reorderEnabled) R.drawable.lock_open else R.drawable.lock),
@@ -480,16 +585,10 @@ private fun PlaylistShortcutGrid(
 }
 
 @Composable
-private fun PlaylistSectionHeaderCard(
+private fun LibrarySectionHeaderText(
     title: String,
-    supportingText: String,
     modifier: Modifier = Modifier,
 ) {
-    Card(
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
-        shape = MaterialTheme.shapes.large,
-        modifier = modifier,
-    ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
@@ -499,14 +598,7 @@ private fun PlaylistSectionHeaderCard(
             Text(
                 text = title,
                 style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.weight(1f),
+                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
             )
-            Text(
-                text = supportingText,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-    }
+      }
 }
