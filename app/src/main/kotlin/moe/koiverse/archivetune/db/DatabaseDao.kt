@@ -1199,6 +1199,10 @@ interface DatabaseDao {
     fun firstEvent(): Flow<EventWithSong?>
 
     @Transaction
+    @Query("SELECT * FROM event WHERE id > :afterId ORDER BY id ASC")
+    suspend fun eventsAfter(afterId: Long): List<EventWithSong>
+
+    @Transaction
     @Query("DELETE FROM event")
     fun clearListenHistory()
 
@@ -1322,7 +1326,7 @@ interface DatabaseDao {
     fun insert(searchHistory: SearchHistory)
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
-    fun insert(event: Event)
+    fun insert(event: Event): Long
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     fun insert(map: RelatedSongMap)
