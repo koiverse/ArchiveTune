@@ -321,12 +321,6 @@ fun LibraryPlaylistsScreen(
             }
 
             item(key = "controls") {
-                PlaylistControlCard(
-                    summary = summary,
-                    canEnterReorderMode = canEnterReorderMode,
-                    reorderEnabled = reorderEnabled,
-                    onToggleReorder = { reorderEnabled = !reorderEnabled },
-                ) {
                     PlaylistSortSplitButton(
                         sortType = sortType,
                         sortDescending = sortDescending,
@@ -343,7 +337,6 @@ fun LibraryPlaylistsScreen(
                         },
                         modifier = Modifier.weight(1f),
                     )
-                }
             }
 
             if (shortcuts.isNotEmpty()) {
@@ -424,19 +417,19 @@ private fun PlaylistSortSplitButton(
     modifier: Modifier = Modifier,
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
+
     val sortDirectionRotation by animateFloatAsState(
         targetValue = if (sortDescending) 0f else 180f,
         label = "PlaylistSortDirection",
     )
 
-    Box(modifier = modifier.fillMaxWidth()) {
+    Box(modifier = modifier) {
         SplitButtonLayout(
-            modifier = Modifier.fillMaxWidth(),
             leadingButton = {
                 SplitButtonDefaults.TonalLeadingButton(
                     onClick = { menuExpanded = true },
                     modifier = Modifier
-                        .fillMaxWidth()
+                        .weight(1f)
                         .heightIn(min = SplitButtonDefaults.MediumContainerHeight),
                 ) {
                     Text(
@@ -500,51 +493,6 @@ private fun PlaylistSortSplitButton(
                         menuExpanded = false
                     },
                 )
-            }
-        }
-    }
-}
-
-@Composable
-private fun PlaylistControlCard(
-    summary: String,
-    canEnterReorderMode: Boolean,
-    reorderEnabled: Boolean,
-    onToggleReorder: () -> Unit,
-    controls: @Composable RowScope.() -> Unit,
-) {
-    Card(
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
-        shape = MaterialTheme.shapes.large,
-        modifier = Modifier.padding(horizontal = 16.dp),
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 14.dp, vertical = 10.dp),
-        ) {
-            controls()
-            Text(
-                text = summary,
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            if (canEnterReorderMode) {
-                FilledTonalIconButton(
-                    onClick = onToggleReorder,
-                    colors = IconButtonDefaults.filledTonalIconButtonColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                        contentColor = MaterialTheme.colorScheme.primary,
-                    ),
-                    modifier = Modifier.size(48.dp),
-                ) {
-                    Icon(
-                        painter = painterResource(if (reorderEnabled) R.drawable.lock_open else R.drawable.lock),
-                        contentDescription = null,
-                    )
-                }
             }
         }
     }
