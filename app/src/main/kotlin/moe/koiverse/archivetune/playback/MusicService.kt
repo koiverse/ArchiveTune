@@ -175,7 +175,6 @@ import moe.koiverse.archivetune.utils.CoilBitmapLoader
 import moe.koiverse.archivetune.utils.DiscordRPC
 import moe.koiverse.archivetune.ui.screens.settings.DiscordPresenceManager
 import moe.koiverse.archivetune.utils.AuthScopedCacheValue
-import moe.koiverse.archivetune.utils.RemoteHistorySyncManager
 import moe.koiverse.archivetune.utils.SyncUtils
 import moe.koiverse.archivetune.utils.YTPlayerUtils
 import moe.koiverse.archivetune.utils.StreamClientUtils
@@ -218,6 +217,7 @@ import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.isActive
+import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.plus
 import kotlinx.coroutines.runBlocking
@@ -237,6 +237,7 @@ import javax.inject.Inject
 import kotlin.math.min
 import kotlin.math.pow
 import kotlin.math.roundToInt
+import kotlin.math.roundToLong
 import kotlin.time.Duration.Companion.seconds
 import timber.log.Timber
 import android.app.NotificationChannel
@@ -260,9 +261,6 @@ class MusicService :
 
     @Inject
     lateinit var syncUtils: SyncUtils
-
-    @Inject
-    lateinit var remoteHistorySyncManager: RemoteHistorySyncManager
 
     @Inject
     lateinit var mediaLibrarySessionCallback: MediaLibrarySessionCallback
@@ -359,6 +357,18 @@ class MusicService :
     @Volatile
     private var lastLoginRecoveryPrompt: Pair<String, Long>? = null
     private val playbackStreamRecoveryTracker = PlaybackStreamRecoveryTracker()
+    private var nextHistorySessionToken = 0L
+    private var currentHistorySessionToken = 0L
+    private var currentHistoryMediaId: String? = null
+    private var currentHistoryAccumulatedPlayMs = 0L
+    private var currentHistoryStartedAtElapsedMs: Long? = null
+    private var currentHistoryEventId: Long? = null
+    private var currentHistoryRemoteRegistered = false
+    private var currentHistoryImmediateAttempted = false
+    private var currentHistorySessionQueued = false
+    private var historyThresholdJob: Job? = null
+    private val pendingHistoryFinalizations = mutableMapOf<String, MutableList<PendingHistoryFinalization>>()
+    private val historyRecordingJobs = ConcurrentHashMap<Long, kotlinx.coroutines.Deferred<ImmediateHistoryResult>>()
 
     val currentMediaMetadata = MutableStateFlow<moe.koiverse.archivetune.models.MediaMetadata?>(null)
     val queueRestoreCompleted = MutableStateFlow(false)
@@ -385,6 +395,17 @@ class MusicService :
         val durationSeconds: Float,
         val gapless: Boolean,
         val offload: Boolean,
+    )
+
+    private data class PendingHistoryFinalization(
+        val sessionToken: Long,
+        val eventId: Long?,
+        val remoteRegistered: Boolean,
+    )
+
+    private data class ImmediateHistoryResult(
+        val eventId: Long?,
+        val remoteRegistered: Boolean,
     )
 
     private fun isAppInForeground(): Boolean {
@@ -3468,8 +3489,256 @@ class MusicService :
         )
     }
 
+    private fun historyThresholdMs(): Long {
+        return (dataStore[HistoryDuration] ?: 30f)
+            .times(1000f)
+            .roundToLong()
+            .coerceAtLeast(0L)
+    }
+
+    private fun currentHistoryPlayedMs(nowElapsedMs: Long = android.os.SystemClock.elapsedRealtime()): Long {
+        val runningPlayMs = currentHistoryStartedAtElapsedMs
+            ?.let { (nowElapsedMs - it).coerceAtLeast(0L) }
+            ?: 0L
+        return currentHistoryAccumulatedPlayMs + runningPlayMs
+    }
+
+    private fun flushCurrentHistoryPlayedTime(nowElapsedMs: Long = android.os.SystemClock.elapsedRealtime()) {
+        currentHistoryAccumulatedPlayMs = currentHistoryPlayedMs(nowElapsedMs)
+        currentHistoryStartedAtElapsedMs = null
+    }
+
+    private fun updatePendingHistoryFinalization(
+        mediaId: String,
+        sessionToken: Long,
+        result: ImmediateHistoryResult,
+    ) {
+        val pendingSessions = pendingHistoryFinalizations[mediaId] ?: return
+        val index = pendingSessions.indexOfFirst { it.sessionToken == sessionToken }
+        if (index == -1) return
+
+        val existing = pendingSessions[index]
+        pendingSessions[index] = existing.copy(
+            eventId = result.eventId ?: existing.eventId,
+            remoteRegistered = existing.remoteRegistered || result.remoteRegistered,
+        )
+    }
+
+    private fun enqueueCurrentHistorySessionForFinalization() {
+        val mediaId = currentHistoryMediaId ?: return
+        if (currentHistorySessionQueued) return
+
+        pendingHistoryFinalizations
+            .getOrPut(mediaId) { mutableListOf() }
+            .add(
+                PendingHistoryFinalization(
+                    sessionToken = currentHistorySessionToken,
+                    eventId = currentHistoryEventId,
+                    remoteRegistered = currentHistoryRemoteRegistered,
+                ),
+            )
+        currentHistorySessionQueued = true
+    }
+
+    private fun popPendingHistoryFinalization(mediaId: String): PendingHistoryFinalization? {
+        val pendingSessions = pendingHistoryFinalizations[mediaId] ?: return null
+        val pending = pendingSessions.firstOrNull() ?: return null
+        pendingSessions.removeAt(0)
+        if (pendingSessions.isEmpty()) {
+            pendingHistoryFinalizations.remove(mediaId)
+        }
+        return pending
+    }
+
+    private fun beginHistorySession(mediaId: String?, forceNew: Boolean = false) {
+        val normalizedMediaId = mediaId?.trim()?.takeIf { it.isNotEmpty() }
+        if (!forceNew && currentHistoryMediaId == normalizedMediaId && currentHistorySessionToken != 0L) {
+            updateHistoryTrackingPlaybackState()
+            return
+        }
+
+        historyThresholdJob?.cancel()
+        historyThresholdJob = null
+        flushCurrentHistoryPlayedTime()
+        enqueueCurrentHistorySessionForFinalization()
+
+        currentHistorySessionToken = ++nextHistorySessionToken
+        currentHistoryMediaId = normalizedMediaId
+        currentHistoryAccumulatedPlayMs = 0L
+        currentHistoryStartedAtElapsedMs = null
+        currentHistoryEventId = null
+        currentHistoryRemoteRegistered = false
+        currentHistoryImmediateAttempted = false
+        currentHistorySessionQueued = false
+
+        updateHistoryTrackingPlaybackState()
+    }
+
+    private fun updateHistoryTrackingPlaybackState() {
+        val mediaId = currentHistoryMediaId
+        if (mediaId == null || currentHistorySessionQueued) {
+            historyThresholdJob?.cancel()
+            historyThresholdJob = null
+            currentHistoryStartedAtElapsedMs = null
+            return
+        }
+
+        if (player.isPlaying) {
+            if (currentHistoryStartedAtElapsedMs == null) {
+                currentHistoryStartedAtElapsedMs = android.os.SystemClock.elapsedRealtime()
+            }
+        } else {
+            flushCurrentHistoryPlayedTime()
+        }
+
+        syncHistoryThresholdJob()
+    }
+
+    private fun syncHistoryThresholdJob() {
+        historyThresholdJob?.cancel()
+        historyThresholdJob = null
+
+        val mediaId = currentHistoryMediaId ?: return
+        if (currentHistorySessionQueued) return
+        if (dataStore.get(PauseListenHistoryKey, false)) return
+        if (currentHistoryEventId != null && currentHistoryRemoteRegistered) return
+
+        val thresholdMs = historyThresholdMs()
+        val playedMs = currentHistoryPlayedMs()
+        if (playedMs >= thresholdMs) {
+            if (!currentHistoryImmediateAttempted) {
+                maybeRecordCurrentPlaybackHistory()
+            }
+            return
+        }
+        if (!player.isPlaying) return
+
+        historyThresholdJob = scope.launch {
+            delay((thresholdMs - playedMs).coerceAtLeast(0L))
+            maybeRecordCurrentPlaybackHistory()
+        }
+    }
+
+    private fun maybeRecordCurrentPlaybackHistory() {
+        val mediaId = currentHistoryMediaId ?: return
+        if (currentHistorySessionQueued) return
+        if (dataStore.get(PauseListenHistoryKey, false)) return
+
+        val thresholdMs = historyThresholdMs()
+        val playedMs = currentHistoryPlayedMs()
+        if (playedMs < thresholdMs) {
+            syncHistoryThresholdJob()
+            return
+        }
+
+        val sessionToken = currentHistorySessionToken
+        if (historyRecordingJobs.containsKey(sessionToken)) return
+        currentHistoryImmediateAttempted = true
+
+        val eventIdSnapshot = currentHistoryEventId
+        val remoteRegisteredSnapshot = currentHistoryRemoteRegistered
+        val mediaMetadataSnapshot = player.currentMetadata?.takeIf { it.id == mediaId }
+
+        val deferred = scope.async {
+            withContext(Dispatchers.IO) {
+                val resolvedEventId = eventIdSnapshot
+                    ?: insertPlaybackHistoryEvent(
+                        mediaId = mediaId,
+                        playTimeMs = playedMs,
+                        mediaMetadata = mediaMetadataSnapshot,
+                    )
+                val remoteRegistered = remoteRegisteredSnapshot || registerRemotePlaybackHistory(mediaId)
+                ImmediateHistoryResult(
+                    eventId = resolvedEventId,
+                    remoteRegistered = remoteRegistered,
+                )
+            }
+        }
+
+        historyRecordingJobs[sessionToken] = deferred
+        scope.launch {
+            val result = runCatching { deferred.await() }
+                .onFailure(::reportException)
+                .getOrNull()
+
+            historyRecordingJobs.remove(sessionToken)
+
+            if (result != null) {
+                if (currentHistorySessionToken == sessionToken &&
+                    !currentHistorySessionQueued &&
+                    currentHistoryMediaId == mediaId
+                ) {
+                    currentHistoryEventId = result.eventId ?: currentHistoryEventId
+                    currentHistoryRemoteRegistered = currentHistoryRemoteRegistered || result.remoteRegistered
+                } else {
+                    updatePendingHistoryFinalization(mediaId, sessionToken, result)
+                }
+            }
+
+            syncHistoryThresholdJob()
+        }
+    }
+
+    private suspend fun insertPlaybackHistoryEvent(
+        mediaId: String,
+        playTimeMs: Long,
+        mediaMetadata: moe.koiverse.archivetune.models.MediaMetadata?,
+    ): Long? {
+        return try {
+            database.withTransaction {
+                if (song(mediaId).first() == null && mediaMetadata != null) {
+                    insert(mediaMetadata)
+                }
+
+                insert(
+                    Event(
+                        songId = mediaId,
+                        timestamp = LocalDateTime.now(),
+                        playTime = playTimeMs,
+                    ),
+                ).takeIf { it > 0L }
+            }
+        } catch (_: SQLException) {
+            null
+        } catch (throwable: Throwable) {
+            reportException(throwable)
+            null
+        }
+    }
+
+    private suspend fun registerRemotePlaybackHistory(mediaId: String): Boolean {
+        val playbackUrl = database.format(mediaId).first()?.playbackUrl
+            ?.takeIf { it.isNotBlank() }
+            ?: return false
+
+        return runCatching {
+            retryWithoutPlaybackLoginContext {
+                YouTube.registerPlayback(
+                    playlistId = null,
+                    playbackTracking = playbackUrl,
+                ).getOrThrow()
+            }
+        }.onFailure { throwable ->
+            when (throwable) {
+                is YTPlayerUtils.InvalidPlaybackLoginContextException -> {
+                    promptLoginRecovery(mediaId, throwable.targetUrl)
+                }
+
+                else -> {
+                    Timber.tag("MusicService").w(
+                        throwable,
+                        "Failed to register remote playback history for %s",
+                        mediaId,
+                    )
+                }
+            }
+        }.isSuccess
+    }
+
     override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
     super.onMediaItemTransition(mediaItem, reason)
+
+    beginHistorySession(mediaItem?.mediaId, forceNew = true)
 
     // Pre-load lyrics for upcoming songs in queue
     val currentIndex = player.currentMediaItemIndex
@@ -3591,6 +3860,11 @@ class MusicService :
     override fun onPlaybackStateChanged(@Player.State playbackState: Int) {
     super.onPlaybackStateChanged(playbackState)
 
+    updateHistoryTrackingPlaybackState()
+    if (playbackState == Player.STATE_ENDED || playbackState == Player.STATE_IDLE) {
+        enqueueCurrentHistorySessionForFinalization()
+    }
+
     scope.launch {
         val shouldSave = withContext(Dispatchers.IO) { dataStore.get(PersistentQueueKey, true) }
         if (shouldSave) {
@@ -3669,6 +3943,11 @@ class MusicService :
 
     override fun onEvents(player: Player, events: Player.Events) {
         val currentMediaId = player.currentMediaItem?.mediaId
+        if (currentMediaId == null && currentHistoryMediaId != null) {
+            beginHistorySession(null, forceNew = true)
+        } else if (currentHistoryMediaId == null && currentMediaId != null) {
+            beginHistorySession(currentMediaId)
+        }
         if (events.contains(Player.EVENT_MEDIA_ITEM_TRANSITION)) {
             playbackStreamRecoveryTracker.onMediaItemChanged(currentMediaId)
         }
@@ -3680,6 +3959,14 @@ class MusicService :
         }
         if (events.contains(Player.EVENT_MEDIA_METADATA_CHANGED)) {
             currentMediaMetadata.value = player.currentMetadata
+        }
+        if (events.containsAny(
+                Player.EVENT_PLAYBACK_STATE_CHANGED,
+                Player.EVENT_PLAY_WHEN_READY_CHANGED,
+                Player.EVENT_IS_PLAYING_CHANGED,
+            )
+        ) {
+            updateHistoryTrackingPlaybackState()
         }
     val joined = togetherSessionState.value as? moe.koiverse.archivetune.together.TogetherSessionState.Joined
     if (joined?.role is moe.koiverse.archivetune.together.TogetherRole.Guest &&
@@ -4290,43 +4577,62 @@ class MusicService :
         playbackStats: PlaybackStats,
     ) {
         val mediaItem = eventTime.timeline.getWindow(eventTime.windowIndex, Timeline.Window()).mediaItem
-
-        if (playbackStats.totalPlayTimeMs >= (
-                dataStore[HistoryDuration]?.times(1000f)
-                    ?: 30000f
-            ) &&
+        val mediaId = mediaItem.mediaId
+        val thresholdMs = historyThresholdMs()
+        val pendingSession = popPendingHistoryFinalization(mediaId)
+        val alreadyPersistedForSession = pendingSession?.eventId != null || pendingSession?.remoteRegistered == true
+        val reachedHistoryThreshold = playbackStats.totalPlayTimeMs >= thresholdMs &&
             !dataStore.get(PauseListenHistoryKey, false)
-        ) {
+        val shouldPersistHistory = alreadyPersistedForSession || reachedHistoryThreshold
+
+        if (shouldPersistHistory) {
             ioScope.launch {
-                val insertedEventId = try {
-                    database.withTransaction {
-                        incrementTotalPlayTime(mediaItem.mediaId, playbackStats.totalPlayTimeMs)
-                        insert(
-                            Event(
-                                songId = mediaItem.mediaId,
-                                timestamp = LocalDateTime.now(),
-                                playTime = playbackStats.totalPlayTimeMs,
-                            ),
-                        )
-                    }
-                } catch (_: SQLException) {
-                    -1L
-                } catch (throwable: Throwable) {
-                    reportException(throwable)
-                    -1L
+                val pendingResult = pendingSession?.let { session ->
+                    historyRecordingJobs[session.sessionToken]
+                        ?.let { deferred ->
+                            runCatching { deferred.await() }
+                                .onFailure(::reportException)
+                                .getOrNull()
+                        }
+                        ?.let { result ->
+                            session.copy(
+                                eventId = result.eventId ?: session.eventId,
+                                remoteRegistered = session.remoteRegistered || result.remoteRegistered,
+                            )
+                        }
+                        ?: session
                 }
 
-                runCatching {
-                    remoteHistorySyncManager.syncPlaybackEvent(
-                        mediaId = mediaItem.mediaId,
-                        eventId = insertedEventId.takeIf { it > 0L },
-                    )
+                val fallbackMetadata = mediaItem.metadata
+                val eventId = pendingResult?.eventId ?: insertPlaybackHistoryEvent(
+                    mediaId = mediaId,
+                    playTimeMs = playbackStats.totalPlayTimeMs,
+                    mediaMetadata = fallbackMetadata,
+                )
+
+                if (eventId != null) {
+                    runCatching {
+                        database.updateEventPlayTime(eventId, playbackStats.totalPlayTimeMs)
+                    }.onFailure(::reportException)
+                }
+
+                try {
+                    database.withTransaction {
+                        incrementTotalPlayTime(mediaId, playbackStats.totalPlayTimeMs)
+                    }
+                } catch (_: SQLException) {
+                } catch (throwable: Throwable) {
+                    reportException(throwable)
+                }
+
+                if (pendingResult?.remoteRegistered != true) {
+                    registerRemotePlaybackHistory(mediaId)
                 }
             }
 
             ioScope.launch {
                 try {
-                    val song = database.song(mediaItem.mediaId).first()
+                    val song = database.song(mediaId).first()
                         ?: return@launch
 
                     val lbEnabled = dataStore.get(ListenBrainzEnabledKey, false)
