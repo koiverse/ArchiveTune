@@ -58,6 +58,7 @@ import androidx.media3.common.Timeline
 import androidx.media3.common.audio.AudioProcessor
 import androidx.media3.common.audio.SonicAudioProcessor
 import androidx.media3.datasource.DataSource
+import androidx.media3.datasource.DataSpec
 import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.HttpDataSource
 import androidx.media3.datasource.ResolvingDataSource
@@ -776,7 +777,7 @@ class MusicService :
         }
 
         combine(playerVolume, normalizeFactor, audioFocusVolumeFactor) { playerVolume, normalizeFactor, audioFocusVolumeFactor ->
-            playerVolume * normalizeFactor * audioFocusVolumeFactor
+            calculateEffectivePlayerVolume(playerVolume, normalizeFactor, audioFocusVolumeFactor)
         }.collectLatest(scope) { finalVolume ->
             player.volume = finalVolume
         }
@@ -1361,6 +1362,42 @@ class MusicService :
             .setAllowedCapturePolicy(C.ALLOW_CAPTURE_BY_ALL)
             .build()
 
+    private fun calculateEffectivePlayerVolume(
+        playerVolume: Float,
+        normalizeFactor: Float,
+        audioFocusVolumeFactor: Float,
+    ): Float {
+        val safePlayerVolume = playerVolume.takeIf { it.isFinite() }?.coerceIn(0f, 1f) ?: 1f
+        val safeNormalizeFactor = normalizeFactor.takeIf { it.isFinite() }?.coerceIn(0f, maxSafeGainFactor) ?: 1f
+        val safeAudioFocusVolumeFactor = audioFocusVolumeFactor.takeIf { it.isFinite() }?.coerceIn(0f, 1f) ?: 1f
+        return (safePlayerVolume * safeNormalizeFactor * safeAudioFocusVolumeFactor).coerceIn(0f, maxSafeGainFactor)
+    }
+
+    private fun shouldKeepPlaybackAudible(): Boolean {
+        if (!::player.isInitialized) return false
+        if (player.currentMediaItem == null || !player.playWhenReady) return false
+        return player.playbackState != Player.STATE_IDLE && player.playbackState != Player.STATE_ENDED
+    }
+
+    private fun restoreAudioFocusVolume() {
+        duckingRecoveryJob?.cancel()
+        duckingRecoveryJob = null
+        audioFocusVolumeFactor.value = 1f
+        hasAudioFocus = true
+        lastAudioFocusState = AudioManager.AUDIOFOCUS_GAIN
+    }
+
+    private fun scheduleDuckingRecovery() {
+        duckingRecoveryJob?.cancel()
+        duckingRecoveryJob = scope.launch {
+            delay(AUDIO_FOCUS_DUCKING_RECOVERY_DELAY_MS)
+            if (!isActive) return@launch
+            if (lastAudioFocusState != AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK) return@launch
+            if (audioFocusVolumeFactor.value >= 1f || !shouldKeepPlaybackAudible()) return@launch
+            requestAudioFocus()
+        }
+    }
+
     private fun handleAudioFocusChange(focusChange: Int) {
         duckingRecoveryJob?.cancel()
         duckingRecoveryJob = null
@@ -1410,17 +1447,11 @@ class MusicService :
 
                 wasPlayingBeforeAudioFocusLoss = player.isPlaying
 
-                audioFocusVolumeFactor.value = 0.2f
+                audioFocusVolumeFactor.value = AUDIO_FOCUS_DUCK_VOLUME_FACTOR
 
                 lastAudioFocusState = focusChange
 
-                duckingRecoveryJob = scope.launch {
-                    delay(8000L)
-                    if (audioFocusVolumeFactor.value < 1f && player.isPlaying) {
-                        audioFocusVolumeFactor.value = 1f
-                        hasAudioFocus = true
-                    }
-                }
+                scheduleDuckingRecovery()
             }
 
             AudioManager.AUDIOFOCUS_GAIN_TRANSIENT -> {
@@ -1447,7 +1478,9 @@ class MusicService :
 
     private fun requestAudioFocus(): Boolean {
         if (hasAudioFocus) {
-            if (audioFocusVolumeFactor.value != 1f) audioFocusVolumeFactor.value = 1f
+            if (audioFocusVolumeFactor.value != 1f || lastAudioFocusState == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK) {
+                restoreAudioFocusVolume()
+            }
             return true
         }
     
@@ -1455,9 +1488,7 @@ class MusicService :
             val result = audioManager.requestAudioFocus(request)
             hasAudioFocus = result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED
             if (hasAudioFocus) {
-                audioFocusVolumeFactor.value = 1f
-                duckingRecoveryJob?.cancel()
-                duckingRecoveryJob = null
+                restoreAudioFocusVolume()
             }
             return hasAudioFocus
         }
@@ -3711,13 +3742,11 @@ class MusicService :
             ?.takeIf { it.isNotBlank() }
             ?: return false
 
-        return runCatching {
-            retryWithoutPlaybackLoginContext {
-                YouTube.registerPlayback(
-                    playlistId = null,
-                    playbackTracking = playbackUrl,
-                ).getOrThrow()
-            }
+        return retryWithoutPlaybackLoginContext {
+            YouTube.registerPlayback(
+                playlistId = null,
+                playbackTracking = playbackUrl,
+            )
         }.onFailure { throwable ->
             when (throwable) {
                 is YTPlayerUtils.InvalidPlaybackLoginContextException -> {
@@ -4313,188 +4342,206 @@ class MusicService :
                 CacheDataSource
                     .Factory()
                     .setCache(playerCache)
-                    .setUpstreamDataSourceFactory(
-                        DefaultDataSource.Factory(
-                            this,
-                            OkHttpDataSource.Factory(
-                                mediaOkHttpClient,
-                            ),
-                        ),
-                    )
+                    .setUpstreamDataSourceFactory(createResolvedUpstreamDataSourceFactory())
                     .setFlags(FLAG_IGNORE_CACHE_ON_ERROR)
             ).setCacheWriteDataSinkFactory(null)
             .setFlags(FLAG_IGNORE_CACHE_ON_ERROR)
 
     private fun createDataSourceFactory(): DataSource.Factory {
         return ResolvingDataSource.Factory(createCacheDataSource()) { dataSpec ->
-            if (dataSpec.uri.shouldBypassYouTubeResolver()) {
-                return@Factory dataSpec
-            }
-            val mediaId = dataSpec.key ?: return@Factory dataSpec
-            val knownContentLength =
-                contentLengthCache[mediaId] ?: runBlocking(Dispatchers.IO) {
-                    database.format(mediaId).first()?.contentLength
-                } ?: runCatching {
-                    downloadCache
-                        .getContentMetadata(mediaId)
-                        .get(ContentMetadata.KEY_CONTENT_LENGTH, -1L)
-                }.getOrNull()?.takeIf { it > 0L } ?: runCatching {
-                    playerCache
-                        .getContentMetadata(mediaId)
-                        .get(ContentMetadata.KEY_CONTENT_LENGTH, -1L)
-                }.getOrNull()?.takeIf { it > 0L }
+            resolvePlaybackDataSpec(
+                dataSpec = dataSpec,
+                allowCacheShortCircuit = true,
+            )
+        }
+    }
 
-            knownContentLength?.let { contentLengthCache[mediaId] = it }
+    private fun createResolvedUpstreamDataSourceFactory(): DataSource.Factory =
+        ResolvingDataSource.Factory(
+            DefaultDataSource.Factory(
+                this,
+                OkHttpDataSource.Factory(
+                    mediaOkHttpClient,
+                ),
+            ),
+        ) { dataSpec ->
+            resolvePlaybackDataSpec(
+                dataSpec = dataSpec,
+                allowCacheShortCircuit = false,
+            )
+        }
 
-            val requiredCachedLength =
-                if (dataSpec.length >= 0) {
-                    dataSpec.length
-                } else {
-                    knownContentLength?.let { nonNullContentLength ->
-                        (nonNullContentLength - dataSpec.position).takeIf { it > 0L }
-                    }
+    private fun resolvePlaybackDataSpec(
+        dataSpec: DataSpec,
+        allowCacheShortCircuit: Boolean,
+    ): DataSpec {
+        if (dataSpec.uri.shouldBypassYouTubeResolver()) {
+            return dataSpec
+        }
+        val mediaId = dataSpec.key ?: return dataSpec
+        val knownContentLength =
+            contentLengthCache[mediaId] ?: runBlocking(Dispatchers.IO) {
+                database.format(mediaId).first()?.contentLength
+            } ?: runCatching {
+                downloadCache
+                    .getContentMetadata(mediaId)
+                    .get(ContentMetadata.KEY_CONTENT_LENGTH, -1L)
+            }.getOrNull()?.takeIf { it > 0L } ?: runCatching {
+                playerCache
+                    .getContentMetadata(mediaId)
+                    .get(ContentMetadata.KEY_CONTENT_LENGTH, -1L)
+            }.getOrNull()?.takeIf { it > 0L }
+
+        knownContentLength?.let { contentLengthCache[mediaId] = it }
+
+        val requiredCachedLength =
+            if (dataSpec.length >= 0) {
+                dataSpec.length
+            } else {
+                knownContentLength?.let { nonNullContentLength ->
+                    (nonNullContentLength - dataSpec.position).takeIf { it > 0L }
                 }
-
-            if (requiredCachedLength != null) {
-                val isFullyCached =
-                    downloadCache.isCached(mediaId, dataSpec.position, requiredCachedLength) ||
-                        playerCache.isCached(mediaId, dataSpec.position, requiredCachedLength)
-                if (isFullyCached) {
-                    scope.launch(Dispatchers.IO) { recoverSong(mediaId) }
-                    return@Factory dataSpec
-                }
             }
 
-            val authFingerprint = YouTube.currentPlaybackAuthState().fingerprint
-            playbackUrlCache[mediaId]?.takeIf { it.isValidFor(authFingerprint) }?.let {
+        if (allowCacheShortCircuit && requiredCachedLength != null) {
+            val isFullyCached =
+                downloadCache.isCached(mediaId, dataSpec.position, requiredCachedLength) ||
+                    playerCache.isCached(mediaId, dataSpec.position, requiredCachedLength)
+            if (isFullyCached) {
                 scope.launch(Dispatchers.IO) { recoverSong(mediaId) }
-                val resolvedDataSpec = dataSpec.withUri(it.url.toUri())
-                val length =
-                    resolveStreamChunkLength(
-                        requestedLength = dataSpec.length,
-                        position = dataSpec.position,
-                        knownContentLength = knownContentLength,
-                        chunkLength = CHUNK_LENGTH,
-                    )
-                return@Factory length?.let { nonNullLength ->
-                    resolvedDataSpec.subrange(0L, nonNullLength)
-                } ?: resolvedDataSpec
+                return dataSpec
             }
+        }
 
-            val playbackData = runBlocking(Dispatchers.IO) {
-                retryWithoutPlaybackLoginContext {
-                    YTPlayerUtils.playerResponseForPlayback(
-                        mediaId,
-                        audioQuality = audioQuality,
-                        connectivityManager = connectivityManager,
-                        preferredStreamClient = preferredStreamClient,
-                    )
-                }
-            }.getOrElse { throwable ->
-                when (throwable) {
-                    is YTPlayerUtils.InvalidPlaybackLoginContextException -> {
-                        promptLoginRecovery(mediaId, throwable.targetUrl)
-                        throw PlaybackException(
-                            getString(R.string.playback_requires_youtube_music_login_refresh),
-                            throwable,
-                            PlaybackException.ERROR_CODE_REMOTE_ERROR
-                        )
-                    }
+        val authFingerprint = YouTube.currentPlaybackAuthState().fingerprint
+        playbackUrlCache[mediaId]?.takeIf { it.isValidFor(authFingerprint) }?.let {
+            scope.launch(Dispatchers.IO) { recoverSong(mediaId) }
+            val resolvedDataSpec = dataSpec.withUri(it.url.toUri())
+            val length =
+                resolveStreamChunkLength(
+                    requestedLength = dataSpec.length,
+                    position = dataSpec.position,
+                    knownContentLength = knownContentLength,
+                    chunkLength = CHUNK_LENGTH,
+                )
+            return length?.let { nonNullLength ->
+                resolvedDataSpec.subrange(0L, nonNullLength)
+            } ?: resolvedDataSpec
+        }
 
-                    is YTPlayerUtils.LoginRequiredForPlaybackException -> {
-                        promptLoginRecovery(mediaId, throwable.targetUrl)
-                        throw PlaybackException(
-                            getString(R.string.playback_requires_youtube_music_confirmation),
-                            throwable,
-                            PlaybackException.ERROR_CODE_REMOTE_ERROR
-                        )
-                    }
-
-                    is PlaybackException -> throw throwable
-
-                    is java.net.ConnectException, is java.net.UnknownHostException -> {
-                        throw PlaybackException(
-                            getString(R.string.error_no_internet),
-                            throwable,
-                            PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED
-                        )
-                    }
-
-                    is java.net.SocketTimeoutException -> {
-                        throw PlaybackException(
-                            getString(R.string.error_timeout),
-                            throwable,
-                            PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_TIMEOUT
-                        )
-                    }
-
-                    else -> throw PlaybackException(
-                        getString(R.string.error_unknown),
+        val playbackData = runBlocking(Dispatchers.IO) {
+            retryWithoutPlaybackLoginContext {
+                YTPlayerUtils.playerResponseForPlayback(
+                    mediaId,
+                    audioQuality = audioQuality,
+                    connectivityManager = connectivityManager,
+                    preferredStreamClient = preferredStreamClient,
+                )
+            }
+        }.getOrElse { throwable ->
+            when (throwable) {
+                is YTPlayerUtils.InvalidPlaybackLoginContextException -> {
+                    promptLoginRecovery(mediaId, throwable.targetUrl)
+                    throw PlaybackException(
+                        getString(R.string.playback_requires_youtube_music_login_refresh),
                         throwable,
                         PlaybackException.ERROR_CODE_REMOTE_ERROR
                     )
                 }
-            }
 
-            val nonNullPlayback = requireNotNull(playbackData) {
-                getString(R.string.error_unknown)
-            }
-            run {
-                val format = nonNullPlayback.format
-                val loudnessDb = nonNullPlayback.audioConfig?.loudnessDb
-                val perceptualLoudnessDb = nonNullPlayback.audioConfig?.perceptualLoudnessDb
-                
-                Timber.tag("AudioNormalization").d("Storing format for $mediaId with loudnessDb: $loudnessDb, perceptualLoudnessDb: $perceptualLoudnessDb")
-                if (loudnessDb == null && perceptualLoudnessDb == null) {
-                    Timber.tag("AudioNormalization").w("No loudness data available from YouTube for video: $mediaId")
-                }
-
-                database.query {
-                    upsert(
-                        FormatEntity(
-                            id = mediaId,
-                            itag = format.itag,
-                            mimeType = format.mimeType.split(";")[0],
-                            codecs = format.mimeType.split("codecs=")[1].removeSurrounding("\""),
-                            bitrate = format.bitrate,
-                            sampleRate = format.audioSampleRate,
-                            contentLength = format.contentLength!!,
-                            loudnessDb = loudnessDb,
-                            perceptualLoudnessDb = perceptualLoudnessDb,
-                            playbackUrl = nonNullPlayback.playbackTracking?.videostatsPlaybackUrl?.baseUrl
-                        )
+                is YTPlayerUtils.LoginRequiredForPlaybackException -> {
+                    promptLoginRecovery(mediaId, throwable.targetUrl)
+                    throw PlaybackException(
+                        getString(R.string.playback_requires_youtube_music_confirmation),
+                        throwable,
+                        PlaybackException.ERROR_CODE_REMOTE_ERROR
                     )
                 }
-                scope.launch(Dispatchers.IO) { recoverSong(mediaId, nonNullPlayback) }
 
-                val streamUrl = nonNullPlayback.streamUrl
+                is PlaybackException -> throw throwable
 
-                playbackUrlCache[mediaId] =
-                    AuthScopedCacheValue(
-                        url = streamUrl,
-                        expiresAtMs = System.currentTimeMillis() + (nonNullPlayback.streamExpiresInSeconds * 1000L),
-                        authFingerprint = nonNullPlayback.authFingerprint,
+                is java.net.ConnectException, is java.net.UnknownHostException -> {
+                    throw PlaybackException(
+                        getString(R.string.error_no_internet),
+                        throwable,
+                        PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED
                     )
-                val resolvedDataSpec = dataSpec.withUri(streamUrl.toUri())
-                val length =
-                    resolveStreamChunkLength(
-                        requestedLength = dataSpec.length,
-                        position = dataSpec.position,
-                        knownContentLength = knownContentLength ?: format.contentLength,
-                        chunkLength = CHUNK_LENGTH,
+                }
+
+                is java.net.SocketTimeoutException -> {
+                    throw PlaybackException(
+                        getString(R.string.error_timeout),
+                        throwable,
+                        PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_TIMEOUT
                     )
-                return@Factory length?.let { nonNullLength ->
-                    resolvedDataSpec.subrange(0L, nonNullLength)
-                } ?: resolvedDataSpec
+                }
+
+                else -> throw PlaybackException(
+                    getString(R.string.error_unknown),
+                    throwable,
+                    PlaybackException.ERROR_CODE_REMOTE_ERROR
+                )
             }
         }
+
+        val nonNullPlayback = requireNotNull(playbackData) {
+            getString(R.string.error_unknown)
+        }
+        val format = nonNullPlayback.format
+        val loudnessDb = nonNullPlayback.audioConfig?.loudnessDb
+        val perceptualLoudnessDb = nonNullPlayback.audioConfig?.perceptualLoudnessDb
+
+        Timber.tag("AudioNormalization").d("Storing format for $mediaId with loudnessDb: $loudnessDb, perceptualLoudnessDb: $perceptualLoudnessDb")
+        if (loudnessDb == null && perceptualLoudnessDb == null) {
+            Timber.tag("AudioNormalization").w("No loudness data available from YouTube for video: $mediaId")
+        }
+
+        database.query {
+            upsert(
+                FormatEntity(
+                    id = mediaId,
+                    itag = format.itag,
+                    mimeType = format.mimeType.split(";")[0],
+                    codecs = format.mimeType.split("codecs=")[1].removeSurrounding("\""),
+                    bitrate = format.bitrate,
+                    sampleRate = format.audioSampleRate,
+                    contentLength = format.contentLength!!,
+                    loudnessDb = loudnessDb,
+                    perceptualLoudnessDb = perceptualLoudnessDb,
+                    playbackUrl = nonNullPlayback.playbackTracking?.videostatsPlaybackUrl?.baseUrl
+                )
+            )
+        }
+        scope.launch(Dispatchers.IO) { recoverSong(mediaId, nonNullPlayback) }
+
+        val streamUrl = nonNullPlayback.streamUrl
+
+        playbackUrlCache[mediaId] =
+            AuthScopedCacheValue(
+                url = streamUrl,
+                expiresAtMs = System.currentTimeMillis() + (nonNullPlayback.streamExpiresInSeconds * 1000L),
+                authFingerprint = nonNullPlayback.authFingerprint,
+            )
+        val resolvedDataSpec = dataSpec.withUri(streamUrl.toUri())
+        val length =
+            resolveStreamChunkLength(
+                requestedLength = dataSpec.length,
+                position = dataSpec.position,
+                knownContentLength = knownContentLength ?: format.contentLength,
+                chunkLength = CHUNK_LENGTH,
+            )
+        return length?.let { nonNullLength ->
+            resolvedDataSpec.subrange(0L, nonNullLength)
+        } ?: resolvedDataSpec
     }
 
     private fun Uri.shouldBypassYouTubeResolver(): Boolean {
         val normalizedScheme = scheme?.lowercase(Locale.US)
         return normalizedScheme == "content" ||
             normalizedScheme == "file" ||
-            normalizedScheme == "android.resource"
+            normalizedScheme == "android.resource" ||
+            normalizedScheme == "http" ||
+            normalizedScheme == "https"
     }
 
     private fun deviceSupportsMimeType(mimeType: String): Boolean {
@@ -5023,5 +5070,7 @@ class MusicService :
         const val AUDIO_EFFECT_ROUTE_REBIND_DELAY_MS = 200L
         const val AUDIO_ROUTE_RECOVERY_MIN_INTERVAL_MS = 1_500L
         const val AUDIO_ROUTE_RECOVERY_RESUME_DELAY_MS = 150L
+        const val AUDIO_FOCUS_DUCKING_RECOVERY_DELAY_MS = 4_000L
+        const val AUDIO_FOCUS_DUCK_VOLUME_FACTOR = 0.35f
     }
 }
