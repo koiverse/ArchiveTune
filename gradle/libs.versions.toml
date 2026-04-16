@@ -1,6 +1,6 @@
 [versions]
 agp = "9.1.1"
-annotation = "1.9.1"
+annotation = "1.10.0"
 json = "20250517"
 kotlin = "2.3.20"
 compose = "1.11.0-beta02"
