@@ -335,7 +335,9 @@ fun LibraryPlaylistsScreen(
                                 PlaylistSortType.CUSTOM -> R.string.sort_by_custom
                             }
                         },
-                        modifier = Modifier.weight(1f),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp),
                     )
             }
 
