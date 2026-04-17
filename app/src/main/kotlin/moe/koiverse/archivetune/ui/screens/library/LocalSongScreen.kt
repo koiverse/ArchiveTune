@@ -156,14 +156,15 @@ fun LocalSongScreen(
         }
     }
     val bottomContentPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding() + 20.dp
+    val lastSummary = scanState.lastSummary
     val statusText = when {
         scanState.isScanning -> stringResource(R.string.scanning_device)
         scanState.errorMessage != null -> stringResource(R.string.local_songs_scan_failed)
         !hasStoragePermission -> stringResource(R.string.local_songs_permission_body)
-        scanState.lastSummary != null -> stringResource(
+        lastSummary != null -> stringResource(
             R.string.local_songs_scan_summary,
-            scanState.lastSummary.scannedSongs,
-            scanState.lastSummary.removedSongs,
+            lastSummary.scannedSongs,
+            lastSummary.removedSongs,
         )
 
         else -> stringResource(R.string.local_songs_ready_desc)
@@ -628,8 +629,9 @@ private fun LocalSongScanSheet(
     onDismiss: () -> Unit,
     onPrimaryAction: () -> Unit,
 ) {
+    val lastSummary = scanState.lastSummary
     val hasError = scanState.errorMessage != null
-    val hasSummary = scanState.lastSummary != null
+    val hasSummary = lastSummary != null
 
     val heroIcon = when {
         scanState.isScanning -> R.drawable.sync
@@ -659,8 +661,8 @@ private fun LocalSongScanSheet(
         !hasStoragePermission -> stringResource(R.string.local_songs_permission_body)
         hasSummary -> stringResource(
             R.string.local_songs_scan_summary,
-            scanState.lastSummary!!.scannedSongs,
-            scanState.lastSummary.removedSongs,
+            lastSummary!!.scannedSongs,
+            lastSummary.removedSongs,
         )
         else -> stringResource(R.string.local_songs_ready_desc)
     }
