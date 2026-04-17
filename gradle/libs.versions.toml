@@ -5,7 +5,9 @@ json = "20250517"
 kotlin = "2.3.20"
 compose = "1.11.0-rc01"
 composeMultiplatform = "1.11.0-beta02"
+composeMultiplatformMaterial3 = "1.11.0-alpha06"
 lifecycle = "2.10.0"
+lifecycleKmp = "2.11.0-alpha03"
 material3 = "1.5.0-alpha17"
 media3 = "1.10.0"
 room = "2.8.4"
@@ -21,6 +23,7 @@ materialiconsextended = "1.7.8"
 concurrentFutures = "1.3.0"
 activity = "1.13.0"
 navigation = "2.9.7"
+navigationKmp = "2.9.2"
 hiltNavigation = "1.3.0"
 datastore = "1.2.1"
 workManager = "2.11.2"
@@ -74,10 +77,10 @@ viewmodel = { module = "androidx.lifecycle:lifecycle-viewmodel-ktx", version.ref
 viewmodel-compose = { module = "androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "lifecycle" }
 lifecycle-runtime-compose = { module = "androidx.lifecycle:lifecycle-runtime-compose", version.ref = "lifecycle" }
 
-viewmodel-kmp = { module = "org.jetbrains.androidx.lifecycle:lifecycle-viewmodel", version.ref = "lifecycle" }
-viewmodel-compose-kmp = { module = "org.jetbrains.androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "lifecycle" }
-lifecycle-runtime-compose-kmp = { module = "org.jetbrains.androidx.lifecycle:lifecycle-runtime-compose", version.ref = "lifecycle" }
-navigation-kmp = { module = "org.jetbrains.androidx.navigation:navigation-compose", version.ref = "navigation" }
+viewmodel-kmp = { module = "org.jetbrains.androidx.lifecycle:lifecycle-viewmodel", version.ref = "lifecycleKmp" }
+viewmodel-compose-kmp = { module = "org.jetbrains.androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "lifecycleKmp" }
+lifecycle-runtime-compose-kmp = { module = "org.jetbrains.androidx.lifecycle:lifecycle-runtime-compose", version.ref = "lifecycleKmp" }
+navigation-kmp = { module = "org.jetbrains.androidx.navigation:navigation-compose", version.ref = "navigationKmp" }
 
 material3 = { module = "androidx.compose.material3:material3", version.ref = "material3" }
 
@@ -140,7 +143,7 @@ multiplatform-markdown = { module = "com.mikepenz:multiplatform-markdown-rendere
 
 compose-multiplatform-runtime = { module = "org.jetbrains.compose.runtime:runtime", version.ref = "composeMultiplatform" }
 compose-multiplatform-foundation = { module = "org.jetbrains.compose.foundation:foundation", version.ref = "composeMultiplatform" }
-compose-multiplatform-material3 = { module = "org.jetbrains.compose.material3:material3", version.ref = "composeMultiplatform" }
+compose-multiplatform-material3 = { module = "org.jetbrains.compose.material3:material3", version.ref = "composeMultiplatformMaterial3" }
 compose-multiplatform-ui = { module = "org.jetbrains.compose.ui:ui", version.ref = "composeMultiplatform" }
 compose-multiplatform-resources = { module = "org.jetbrains.compose.components:components-resources", version.ref = "composeMultiplatform" }
 
