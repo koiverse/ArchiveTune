@@ -28,6 +28,7 @@ import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import kotlin.concurrent.Volatile
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.DurationUnit
 
