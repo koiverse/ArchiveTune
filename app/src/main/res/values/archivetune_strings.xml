@@ -20,8 +20,10 @@
     <string name="local_songs_ready_desc">Play local songs on this device.</string>
     <string name="local_songs_permission_body">Allow storage access to scan audio files stored on this device.</string>
     <string name="local_songs_empty_title">No local songs found</string>
-    <string name="local_songs_empty_desc">Run a device scan to find audio files stored offline on this device.</string>
+    <string name="local_songs_empty_desc">Open settings from the top bar and run a device scan to find offline audio on this device.</string>
     <string name="local_songs_scan_failed">Couldn’t finish scanning this device.</string>
+    <string name="local_songs_scan_summary">Last scan: %1$d songs found, %2$d removed</string>
+    <string name="sort_by_album">Album</string>
     <string name="remote_history">Remote</string>
     <string name="charts">Charts</string>
     <string name="back_button_desc">Back</string>
