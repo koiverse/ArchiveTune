@@ -2,7 +2,7 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     alias(libs.plugins.kotlin.multiplatform)
-    alias(libs.plugins.android.library)
+    alias(libs.plugins.android.kotlin.multiplatform.library)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.compose.compiler)
     alias(libs.plugins.compose.multiplatform)
@@ -11,7 +11,11 @@ plugins {
 }
 
 kotlin {
-    androidTarget {
+    android {
+        namespace = "moe.koiverse.archivetune.shared"
+        compileSdk = 36
+        minSdk = 26
+
         compilerOptions {
             jvmTarget.set(JvmTarget.JVM_21)
         }
@@ -81,20 +85,6 @@ kotlin {
         iosMain.dependencies {
             implementation(libs.ktor.client.darwin)
         }
-    }
-}
-
-android {
-    namespace = "moe.koiverse.archivetune.shared"
-    compileSdk = 36
-
-    defaultConfig {
-        minSdk = 26
-    }
-
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_21
-        targetCompatibility = JavaVersion.VERSION_21
     }
 }
 
