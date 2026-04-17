@@ -27,8 +27,8 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      - name: Compile KMP shared module (JVM + iOS)
-        run: ./gradlew :shared:compileKotlinJvm :shared:compileKotlinIosArm64 :shared:compileKotlinIosSimulatorArm64
+      - name: Compile KMP shared module (Android + iOS)
+        run: ./gradlew :shared:compileKotlinAndroid :shared:compileKotlinIosArm64 :shared:compileKotlinIosSimulatorArm64
 
   build:
     name: Build Android Debug APK
