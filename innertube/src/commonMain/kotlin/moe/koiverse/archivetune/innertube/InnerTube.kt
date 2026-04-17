@@ -52,7 +52,7 @@ class InnerTube {
         gl = defaultCountry(),
         hl = defaultLanguageTag()
     )
-    @Volatile
+    @kotlin.concurrent.Volatile
     private var authState: PlaybackAuthState = PlaybackAuthState.EMPTY
 
     var visitorData: String?
