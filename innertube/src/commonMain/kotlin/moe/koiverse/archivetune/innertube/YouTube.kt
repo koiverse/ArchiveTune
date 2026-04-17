@@ -1256,7 +1256,7 @@ object YouTube {
         return innerTube.getMediaInfo(videoId)
     }
 
-    value class SearchFilter(val value: String) {
+    class SearchFilter(val value: String) {
         companion object {
             val FILTER_SONG = SearchFilter("EgWKAQIIAWoKEAkQBRAKEAMQBA%3D%3D")
             val FILTER_VIDEO = SearchFilter("EgWKAQIQAWoKEAkQChAFEAMQBA%3D%3D")
@@ -1267,7 +1267,7 @@ object YouTube {
         }
     }
 
-    value class LibraryFilter(val value: String) {
+    class LibraryFilter(val value: String) {
         companion object {
             val FILTER_RECENT_ACTIVITY = LibraryFilter("4qmFsgIrEhdGRW11c2ljX2xpYnJhcnlfbGFuZGluZxoQZ2dNR0tnUUlCaEFCb0FZQg%3D%3D")
             val FILTER_RECENTLY_PLAYED = LibraryFilter("4qmFsgIrEhdGRW11c2ljX2xpYnJhcnlfbGFuZGluZxoQZ2dNR0tnUUlCUkFCb0FZQg%3D%3D")

@@ -44,8 +44,7 @@ object LastFM {
     }
 
     private fun Map<String, String>.apiSig(secret: String): String {
-        val sorted = toSortedMap()
-        val toHash = sorted.entries.joinToString("") { it.key + it.value } + secret
+        val toHash = entries.sortedBy { it.key }.joinToString("") { it.key + it.value } + secret
         return md5(toHash)
     }
 

@@ -184,8 +184,7 @@ object LrcLib {
         queryLyrics(artist = artist, title = title, album = null)
     }
 
-    @JvmInline
-    value class Lyrics(
+    class Lyrics(
         val text: String,
     ) {
         val sentences
