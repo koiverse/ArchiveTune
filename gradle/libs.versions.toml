@@ -44,7 +44,7 @@ koin = "4.0.4"
 kermit = "2.0.5"
 ksoup = "0.4.0"
 coroutines = "1.10.2"
-kotlinxDatetime = "0.6.2"
+kotlinxDatetime = "0.7.1-0.6.x-compat"
 
 [libraries]
 annotation = { module = "androidx.annotation:annotation", version.ref = "annotation" }
