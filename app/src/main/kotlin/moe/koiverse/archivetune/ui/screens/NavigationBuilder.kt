@@ -59,6 +59,7 @@ import moe.koiverse.archivetune.ui.screens.artist.ArtistAlbumsScreen
 import moe.koiverse.archivetune.ui.screens.artist.ArtistItemsScreen
 import moe.koiverse.archivetune.ui.screens.artist.ArtistScreen
 import moe.koiverse.archivetune.ui.screens.artist.ArtistSongsScreen
+import moe.koiverse.archivetune.ui.screens.library.LocalSongScreen
 import moe.koiverse.archivetune.ui.screens.library.LibraryScreen
 import moe.koiverse.archivetune.ui.screens.playlist.AutoPlaylistScreen
 import moe.koiverse.archivetune.ui.screens.playlist.LocalPlaylistScreen
@@ -107,6 +108,9 @@ fun NavGraphBuilder.navigationBuilder(
         Screens.Library.route,
     ) {
         LibraryScreen(navController)
+    }
+    composable("local_songs") {
+        LocalSongScreen(navController)
     }
     composable("history") {
         HistoryScreen(navController)

@@ -215,6 +215,7 @@ class SyncUtils @Inject constructor(
     }
 
     fun likeSong(s: SongEntity) {
+        if (s.isLocal) return
         syncScope.launch {
             if (!isLoggedIn()) {
                 Timber.w("Skipping likeSong - user not logged in")
@@ -231,7 +232,7 @@ class SyncUtils @Inject constructor(
     }
 
     fun likeSongs(songs: Collection<SongEntity>) {
-        val uniqueSongs = songs.distinctBy { it.id }
+        val uniqueSongs = songs.filterNot(SongEntity::isLocal).distinctBy { it.id }
         if (uniqueSongs.isEmpty()) return
 
         syncScope.launch {

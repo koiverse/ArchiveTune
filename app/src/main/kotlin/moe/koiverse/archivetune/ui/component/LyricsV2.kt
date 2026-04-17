@@ -577,12 +577,7 @@ fun LyricsV2(
                 }
                 val wordLineAlpha = lineAlpha
                 val targetBlur = when {
-                    !isSynced || isActive || (isSelectionModeActive && isSelected) -> 0f
-                    isManualScrolling -> when {
-                        distanceFromActive == 1 -> 4f
-                        distanceFromActive == 2 -> 8f
-                        else -> 12f
-                    }
+                    !isSynced || isActive || (isSelectionModeActive && isSelected) || isManualScrolling -> 0f
                     distanceFromActive == 1 -> 8f
                     distanceFromActive == 2 -> 14f
                     else -> 20f

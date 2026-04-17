@@ -184,6 +184,7 @@ import moe.koiverse.archivetune.utils.enumPreference
 import moe.koiverse.archivetune.utils.get
 import moe.koiverse.archivetune.utils.getAsync
 import moe.koiverse.archivetune.utils.isInternetAvailable
+import moe.koiverse.archivetune.utils.isLocalMediaId
 import moe.koiverse.archivetune.utils.getPresenceIntervalMillis
 import moe.koiverse.archivetune.utils.retryWithoutPlaybackLoginContext
 import moe.koiverse.archivetune.utils.reportException
@@ -1979,6 +1980,9 @@ class MusicService :
 
         val currentIndex = player.currentMediaItemIndex
         val currentMediaId = currentMediaMetadata.id
+        if (currentSong.value?.song?.isLocal == true || currentMediaId.isLocalMediaId()) {
+            return
+        }
 
         scope.launch(SilentHandler) {
             val radioQueue = YouTubeQueue(
@@ -3273,7 +3277,7 @@ class MusicService :
                  syncUtils.likeSong(song)
 
                  // Check if auto-download on like is enabled and the song is now liked
-                 if (dataStore.get(AutoDownloadOnLikeKey, false) && song.liked) {
+                 if (!song.isLocal && dataStore.get(AutoDownloadOnLikeKey, false) && song.liked) {
                      // Trigger download for the liked song
                      val downloadRequest = androidx.media3.exoplayer.offline.DownloadRequest
                          .Builder(song.id, song.id.toUri())

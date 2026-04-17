@@ -139,6 +139,7 @@ fun LibraryMixScreen(
     val likedTitle = stringResource(R.string.liked)
     val downloadedTitle = stringResource(R.string.offline)
     val cachedTitle = stringResource(R.string.cached_playlist)
+    val localTitle = stringResource(R.string.local_history)
     val topTitle = stringResource(R.string.my_top) + " $topSize"
 
     val likedPlaylist = remember(likedTitle) {
@@ -240,6 +241,14 @@ fun LibraryMixScreen(
                 ),
             )
         }
+        add(
+            LibraryShortcutEntry(
+                title = localTitle,
+                iconRes = R.drawable.snippet_folder,
+                route = "local_songs",
+                accentColor = MaterialTheme.colorScheme.primaryContainer,
+            ),
+        )
         if (showTop) {
             add(
                 LibraryShortcutEntry(

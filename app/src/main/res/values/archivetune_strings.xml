@@ -15,6 +15,13 @@
     <string name="music_recognition_permission_action">Allow</string>
     <string name="music_recognition_error">Something went wrong</string>
     <string name="local_history">Local</string>
+    <string name="scan_device">Scan device</string>
+    <string name="scanning_device">Scanning device…</string>
+    <string name="local_songs_ready_desc">Play local songs on this device.</string>
+    <string name="local_songs_permission_body">Allow storage access to scan audio files stored on this device.</string>
+    <string name="local_songs_empty_title">No local songs found</string>
+    <string name="local_songs_empty_desc">Run a device scan to find audio files stored offline on this device.</string>
+    <string name="local_songs_scan_failed">Couldn’t finish scanning this device.</string>
     <string name="remote_history">Remote</string>
     <string name="charts">Charts</string>
     <string name="back_button_desc">Back</string>

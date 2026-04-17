@@ -925,15 +925,10 @@ fun Lyrics(
                     )
 
                     val targetBlur = when {
-                        !isSynced || index == displayedCurrentLineIndex || (isSelectionModeActive && isSelected) -> 0f
-                        isManualScrolling -> when {
-                            distance == 1 -> 4f
-                            distance == 2 -> 8f
-                            else -> 12f
-                        }
-                        distance == 1 -> 8f
-                        distance == 2 -> 14f
-                        else -> 20f
+                        !isSynced || index == displayedCurrentLineIndex || (isSelectionModeActive && isSelected) || isManualScrolling -> 0f
+                        distance == 1 -> 4f
+                        distance == 2 -> 8f
+                        else -> 12f
                     }
 
                     val animatedBlur by animateFloatAsState(
