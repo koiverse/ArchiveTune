@@ -90,7 +90,7 @@ private class NewPipeDownloaderImpl(proxy: Proxy?) : Downloader() {
 object NewPipeUtils {
 
     init {
-        NewPipe.init(NewPipeDownloaderImpl(YouTube.proxy))
+        NewPipe.init(NewPipeDownloaderImpl(YouTube.proxy as? Proxy))
     }
 
     fun getSignatureTimestamp(videoId: String): Result<Int> = runCatching {
