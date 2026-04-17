@@ -18,12 +18,9 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.asPaddingValues
-import androidx.compose.foundation.layout.calculateBottomPadding
-import androidx.compose.foundation.layout.calculateTopPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -58,6 +55,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -222,12 +220,19 @@ fun LocalSongScreen(
     ) { paddingValues ->
         LazyColumn(
             state = listState,
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues),
             verticalArrangement = Arrangement.spacedBy(14.dp),
-            contentPadding = PaddingValues(
-                top = paddingValues.calculateTopPadding() + 12.dp,
-                bottom = paddingValues.calculateBottomPadding() + LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding(),
-            ),
+            contentPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues(),
         ) {
+            item(
+                key = "top_spacer",
+                contentType = CONTENT_TYPE_HEADER,
+            ) {
+                Spacer(modifier = Modifier.height(12.dp))
+            }
+
             item(
                 key = "controls",
                 contentType = CONTENT_TYPE_HEADER,
@@ -274,9 +279,9 @@ fun LocalSongScreen(
                                 focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
                                 unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
                                 disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-                                focusedIndicatorColor = MaterialTheme.colorScheme.transparent,
-                                unfocusedIndicatorColor = MaterialTheme.colorScheme.transparent,
-                                disabledIndicatorColor = MaterialTheme.colorScheme.transparent,
+                                focusedIndicatorColor = Color.Transparent,
+                                unfocusedIndicatorColor = Color.Transparent,
+                                disabledIndicatorColor = Color.Transparent,
                             ),
                             modifier = Modifier.fillMaxWidth(),
                         )
