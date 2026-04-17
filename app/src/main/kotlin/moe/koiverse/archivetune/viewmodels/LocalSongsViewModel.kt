@@ -43,7 +43,7 @@ constructor(
         if (_scanState.value.isScanning) return
         viewModelScope.launch(Dispatchers.IO) {
             _scanState.value = _scanState.value.copy(isScanning = true, errorMessage = null)
-            runCatching(localSongScanner::scanDevice)
+            runCatching { localSongScanner.scanDevice() }
                 .onSuccess { summary ->
                     _scanState.value = LocalSongsScanState(
                         isScanning = false,
