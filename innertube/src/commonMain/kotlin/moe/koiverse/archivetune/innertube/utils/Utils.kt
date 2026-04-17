@@ -96,7 +96,7 @@ suspend fun Result<LibraryPage>.completed(): Result<LibraryPage> = runCatching {
     )
 }
 
-fun ByteArray.toHex(): String = joinToString(separator = "") { eachByte -> "%02x".format(eachByte) }
+fun ByteArray.toHex(): String = joinToString(separator = "") { eachByte -> (eachByte.toInt() and 0xFF).toString(16).padStart(2, '0') }
 
 fun parseCookieString(cookie: String): Map<String, String> =
     cookie.split(";")
