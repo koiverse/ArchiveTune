@@ -70,7 +70,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.BlurredEdgeTreatment
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.scale
@@ -558,16 +560,40 @@ fun LyricsV2(
 
                 // Distance-based alpha for non-active lines
                 val distanceFromActive = if (isSynced) abs(index - currentLineIndex) else 0
-                // For word-synced lines, each word handles its own alpha independently
-                // so we use 1f for active lines to not double-dim
                 val lineAlpha = when {
-                    !isSynced -> 0.9f
+                    !isSynced -> 0.92f
                     isActive -> 1f
-                    else -> (inactiveAlpha - (distanceFromActive - 1) * 0.03f)
-                        .coerceIn(0.15f, inactiveAlpha)
+                    isManualScrolling -> when {
+                        distanceFromActive == 1 -> 0.72f
+                        distanceFromActive == 2 -> 0.56f
+                        distanceFromActive == 3 -> 0.40f
+                        else -> 0.28f
+                    }
+                    distanceFromActive == 1 -> 0.52f
+                    distanceFromActive == 2 -> 0.30f
+                    distanceFromActive == 3 -> 0.18f
+                    else -> 0.10f
                 }
-                // Word-synced lines: pass 1f alpha so individual words control their own
-                val wordLineAlpha = if (item.words != null && isSynced) 1f else lineAlpha
+                val wordLineAlpha = lineAlpha
+                val targetBlur = when {
+                    !isSynced || isActive || (isSelectionModeActive && isSelected) -> 0f
+                    isManualScrolling -> when {
+                        distanceFromActive == 1 -> 4f
+                        distanceFromActive == 2 -> 8f
+                        else -> 12f
+                    }
+                    distanceFromActive == 1 -> 8f
+                    distanceFromActive == 2 -> 14f
+                    else -> 20f
+                }
+                val animatedBlur by androidx.compose.animation.core.animateFloatAsState(
+                    targetValue = targetBlur,
+                    animationSpec = androidx.compose.animation.core.tween(
+                        durationMillis = 300,
+                        easing = androidx.compose.animation.core.FastOutSlowInEasing,
+                    ),
+                    label = "v2LyricBlur",
+                )
 
 
 
@@ -592,6 +618,11 @@ fun LyricsV2(
                             end = 12.dp,
                             top = if (index == 0 || (index == 1 && entriesWithWords[0] == HEAD_LYRICS_ENTRY)) 0.dp else (lyricsLineSpacing * 8).dp,
                             bottom = (lyricsLineSpacing * 8).dp,
+                        )
+                        .blur(
+                            radiusX = animatedBlur.dp,
+                            radiusY = animatedBlur.dp,
+                            edgeTreatment = BlurredEdgeTreatment.Unbounded,
                         )
                         .alpha(wordLineAlpha)
                         .combinedClickable(
@@ -647,12 +678,12 @@ fun LyricsV2(
                             text = item.text,
                             style = MaterialTheme.typography.headlineMedium.copy(
                                 fontSize = if (isAllBackground) (lyricsTextSize * 0.82f).sp else lyricsTextSize.sp,
-                                fontWeight = if (isActive) FontWeight.Bold else FontWeight.Medium,
+                                fontWeight = if (isActive) FontWeight.ExtraBold else FontWeight.SemiBold,
                                 fontStyle = if (isAllBackground) FontStyle.Italic else FontStyle.Normal,
                                 lineHeight = (lyricsTextSize * lyricsLineSpacing).sp,
                                 fontFamily = lyricsFontFamily ?: MaterialTheme.typography.headlineMedium.fontFamily,
                             ),
-                            color = textColor.copy(alpha = if (isActive) 1f else inactiveAlpha),
+                            color = textColor.copy(alpha = if (isActive) 1f else 0.52f),
                             textAlign = textAlign,
                             modifier = Modifier.fillMaxWidth(),
                         )
@@ -675,7 +706,7 @@ fun LyricsV2(
                                 fontStyle = if (isAllBackground) FontStyle.Italic else FontStyle.Normal,
                                 fontFamily = lyricsFontFamily ?: MaterialTheme.typography.bodyMedium.fontFamily,
                             ),
-                            color = textColor.copy(alpha = if (isActive) 0.75f else inactiveAlpha * 0.7f),
+                            color = textColor.copy(alpha = if (isActive) 0.76f else 0.42f),
                             textAlign = textAlign,
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -1068,7 +1099,7 @@ private fun AnimatedWordV2(
     val glowRadius = if (isWordActive) glowProgress * 12f else 0f
 
     val actualFontSize = if (isBackground) fontSize * 0.85f else fontSize
-    val fontWeight = FontWeight.SemiBold // Consistent weight — no thin→bold jump
+    val fontWeight = if (isLineActive || isLinePast) FontWeight.ExtraBold else FontWeight.SemiBold
 
     // ── Two-layer rendering: dim base + liquid fill overlay ──
     Box(
