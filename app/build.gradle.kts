@@ -229,7 +229,7 @@ dependencies {
     implementation(project(":simpmusic"))
     implementation(project(":canvas"))
     implementation(project(":shazamkit"))
-    implementation("com.github.Kyant0:m3color:2025.4")
+    implementation("com.github.Kyant0:m3color:2026.1")
     implementation(libs.compose.cloudy)
 
     implementation(libs.ktor.client.core)
