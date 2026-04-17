@@ -22,6 +22,7 @@ import moe.koiverse.archivetune.db.entities.AlbumArtistMap
 import moe.koiverse.archivetune.db.entities.AlbumEntity
 import moe.koiverse.archivetune.db.entities.ArtistEntity
 import moe.koiverse.archivetune.db.entities.FormatEntity
+import moe.koiverse.archivetune.db.entities.Song
 import moe.koiverse.archivetune.db.entities.SongAlbumMap
 import moe.koiverse.archivetune.db.entities.SongArtistMap
 import moe.koiverse.archivetune.db.entities.SongEntity
@@ -181,20 +182,20 @@ constructor(
         }
     }
 
-    private suspend fun loadSongs(ids: List<String>) =
+        private suspend fun loadSongs(ids: List<String>): Map<String, Song> =
         ids.chunked(SqlBatchSize)
-            .flatMap(database::getSongsByIds)
-            .associateBy { it.id }
+            .flatMap { chunk -> database.getSongsByIds(chunk) }
+            .associateBy { item -> item.song.id }
 
-    private suspend fun loadArtists(ids: List<String>) =
+        private suspend fun loadArtists(ids: List<String>): Map<String, ArtistEntity> =
         ids.distinct().chunked(SqlBatchSize)
-            .flatMap(database::getArtistEntitiesByIds)
-            .associateBy { it.id }
+            .flatMap { chunk -> database.getArtistEntitiesByIds(chunk) }
+            .associateBy { item -> item.id }
 
-    private suspend fun loadAlbums(ids: List<String>) =
+        private suspend fun loadAlbums(ids: List<String>): Map<String, AlbumEntity> =
         ids.distinct().chunked(SqlBatchSize)
-            .flatMap(database::getAlbumEntitiesByIds)
-            .associateBy { it.id }
+            .flatMap { chunk -> database.getAlbumEntitiesByIds(chunk) }
+            .associateBy { item -> item.id }
 
     private fun queryTracks(): LocalScanSnapshot {
         val projection = arrayOf(
@@ -218,7 +219,7 @@ constructor(
                 add("${MediaStore.MediaColumns.IS_PENDING} = 0")
             }
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                add("${MediaStore.MediaColumns.IS_TRASH} = 0")
+                add("is_trashed = 0")
             }
         }.joinToString(" AND ")
 
@@ -347,7 +348,7 @@ constructor(
         return if (stableId != null && totalArtists == 1) {
             "LOCAL_ARTIST_$stableId"
         } else {
-            "LOCAL_ARTIST_${stableHash("$artistName|$index")}" 
+            "LOCAL_ARTIST_${stableHash("$artistName|$index")}"
         }
     }
 
@@ -360,7 +361,7 @@ constructor(
         return if (stableId != null) {
             "LOCAL_ALBUM_$stableId"
         } else {
-            "LOCAL_ALBUM_${stableHash("$albumName|$primaryArtistId")}" 
+            "LOCAL_ALBUM_${stableHash("$albumName|$primaryArtistId")}"
         }
     }
 
