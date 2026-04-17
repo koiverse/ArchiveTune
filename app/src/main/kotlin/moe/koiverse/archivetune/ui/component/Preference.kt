@@ -140,7 +140,7 @@ fun PreferenceEntry(
                 Box(
                     modifier = Modifier
                         .align(Alignment.CenterVertically)
-                        .size(36.dp)
+                        .size(40.dp)
                         .clip(preferenceIconShape)
                         .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
                     contentAlignment = Alignment.Center,
