@@ -1,0 +1,114 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
+plugins {
+    alias(libs.plugins.kotlin.multiplatform)
+    alias(libs.plugins.android.library)
+    alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.compose.compiler)
+    alias(libs.plugins.compose.multiplatform)
+    alias(libs.plugins.room)
+    alias(libs.plugins.kotlin.ksp)
+}
+
+kotlin {
+    androidTarget {
+        compilerOptions {
+            jvmTarget.set(JvmTarget.JVM_21)
+        }
+    }
+
+    listOf(
+        iosX64(),
+        iosArm64(),
+        iosSimulatorArm64(),
+    ).forEach { iosTarget ->
+        iosTarget.binaries.framework {
+            baseName = "Shared"
+            isStatic = true
+        }
+    }
+
+    sourceSets {
+        commonMain.dependencies {
+            implementation(compose.runtime)
+            implementation(compose.foundation)
+            implementation(compose.material3)
+            implementation(compose.ui)
+            implementation(compose.components.resources)
+
+            implementation(libs.koin.core)
+            implementation(libs.koin.compose)
+            implementation(libs.koin.compose.viewmodel)
+
+            implementation(libs.kermit)
+
+            implementation(libs.ktor.client.core)
+            implementation(libs.ktor.client.content.negotiation)
+            implementation(libs.ktor.serialization.json)
+
+            implementation(libs.coroutines.core)
+            implementation(libs.kotlinx.datetime)
+
+            implementation(libs.room.runtime)
+            implementation(libs.room.ktx)
+            implementation(libs.datastore)
+
+            implementation(libs.viewmodel)
+            implementation(libs.viewmodel.compose)
+            implementation(libs.lifecycle.runtime.compose)
+            implementation(libs.navigation)
+
+            implementation(libs.coil)
+
+            implementation(project(":innertube"))
+            implementation(project(":kugou"))
+            implementation(project(":lrclib"))
+            implementation(project(":lastfm"))
+            implementation(project(":betterlyrics"))
+            implementation(project(":simpmusic"))
+            implementation(project(":canvas"))
+        }
+
+        androidMain.dependencies {
+            implementation(libs.koin.android)
+            implementation(libs.ktor.client.okhttp)
+            implementation(libs.coil.network.okhttp)
+
+            implementation(project(":kizzy"))
+            implementation(project(":shazamkit"))
+        }
+
+        iosMain.dependencies {
+            implementation(libs.ktor.client.darwin)
+        }
+    }
+}
+
+android {
+    namespace = "moe.koiverse.archivetune.shared"
+    compileSdk = 36
+
+    defaultConfig {
+        minSdk = 26
+    }
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_21
+        targetCompatibility = JavaVersion.VERSION_21
+    }
+}
+
+room {
+    schemaDirectory("$projectDir/schemas")
+}
+
+dependencies {
+    listOf(
+        "kspAndroid",
+        "kspIosX64",
+        "kspIosArm64",
+        "kspIosSimulatorArm64",
+    ).forEach { target ->
+        add(target, libs.room.compiler)
+    }
+}

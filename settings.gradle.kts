@@ -32,6 +32,7 @@ dependencyResolutionManagement {
 
 rootProject.name = "ArchiveTune"
 include(":app")
+include(":shared")
 include(":innertube")
 include(":kugou")
 include(":lrclib")

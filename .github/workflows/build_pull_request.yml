@@ -6,8 +6,34 @@ on:
       - "**"
 
 jobs:
-  build:
+  build-shared:
+    name: Compile KMP Shared Module
     runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v5
+        with:
+          java-version: 21
+          distribution: "temurin"
+
+      - name: Set Up Gradle
+        uses: gradle/actions/setup-gradle@v6
+        with:
+          cache-read-only: true
+          cache-cleanup: on-success
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Compile KMP shared module (JVM + iOS)
+        run: ./gradlew :shared:compileKotlinJvm :shared:compileKotlinIosArm64 :shared:compileKotlinIosSimulatorArm64
+
+  build:
+    name: Build Android Debug APK
+    runs-on: ubuntu-latest
+    needs: build-shared
 
     steps:
       - uses: actions/checkout@v6
@@ -58,3 +84,44 @@ jobs:
           path: |
             app/build/outputs/apk/mobile/universal/debug/*.apk
             app/build/outputs/apk/mobileUniversal/debug/*.apk
+
+  build-ios:
+    name: Build iOS (PR Check)
+    runs-on: macos-15
+    needs: build-shared
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v5
+        with:
+          java-version: 21
+          distribution: "temurin"
+
+      - name: Set Up Gradle
+        uses: gradle/actions/setup-gradle@v6
+        with:
+          cache-read-only: true
+          cache-cleanup: on-success
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Build Shared iOS Framework
+        run: ./gradlew :shared:linkDebugFrameworkIosSimulatorArm64
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_16.3.app/Contents/Developer
+
+      - name: Build iOS App (Simulator)
+        run: |
+          xcodebuild build \
+            -project iosApp/iosApp.xcodeproj \
+            -scheme iosApp \
+            -configuration Debug \
+            -destination 'platform=iOS Simulator,name=iPhone 16,OS=latest' \
+            FRAMEWORK_SEARCH_PATHS="$(pwd)/shared/build/xcode-frameworks/$(CONFIGURATION)/$(SDK_NAME)" \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO

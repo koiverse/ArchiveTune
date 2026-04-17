@@ -4,6 +4,7 @@ annotation = "1.10.0"
 json = "20250517"
 kotlin = "2.3.20"
 compose = "1.11.0-rc01"
+composeMultiplatform = "1.8.0"
 lifecycle = "2.10.0"
 material3 = "1.5.0-alpha17"
 media3 = "1.10.0"
@@ -39,6 +40,11 @@ anyascii = "0.3.3"
 extractor = "c46af33"
 rhino = "1.9.1"
 multiplatformMarkdown = "0.40.2"
+koin = "4.0.4"
+kermit = "2.0.5"
+ksoup = "0.4.0"
+coroutines = "1.10.2"
+kotlinxDatetime = "0.6.2"
 
 [libraries]
 annotation = { module = "androidx.annotation:annotation", version.ref = "annotation" }
@@ -127,13 +133,31 @@ anyascii = { module = "com.anyascii:anyascii", version.ref = "anyascii" }
 
 multiplatform-markdown = { module = "com.mikepenz:multiplatform-markdown-renderer-m3", version.ref = "multiplatformMarkdown" }
 
+koin-core = { module = "io.insert-koin:koin-core", version.ref = "koin" }
+koin-android = { module = "io.insert-koin:koin-android", version.ref = "koin" }
+koin-compose = { module = "io.insert-koin:koin-compose", version.ref = "koin" }
+koin-compose-viewmodel = { module = "io.insert-koin:koin-compose-viewmodel", version.ref = "koin" }
+
+kermit = { module = "co.touchlab:kermit", version.ref = "kermit" }
+
+ksoup = { module = "com.mohamedrejeb.ksoup:ksoup-html", version.ref = "ksoup" }
+
+ktor-client-darwin = { module = "io.ktor:ktor-client-darwin", version.ref = "ktor" }
+
+coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }
+
+kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "kotlinxDatetime" }
+
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 android-library = { id = "com.android.library", version.ref = "agp" }
 compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+compose-multiplatform = { id = "org.jetbrains.compose", version.ref = "composeMultiplatform" }
 hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
 kotlin-ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+room = { id = "androidx.room", version.ref = "room" }
