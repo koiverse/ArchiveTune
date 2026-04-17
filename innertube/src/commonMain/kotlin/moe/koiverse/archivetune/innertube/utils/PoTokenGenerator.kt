@@ -25,8 +25,8 @@ object PoTokenGenerator {
         clientState: String = "",
     ): String {
         val timestamp = kotlinx.datetime.Clock.System.now().toEpochMilliseconds()
-        val identifierBytes = identifier.toByteArray(Charsets.UTF_8)
-        val stateBytes = clientState.toByteArray(Charsets.UTF_8)
+        val identifierBytes = identifier.encodeToByteArray()
+        val stateBytes = clientState.encodeToByteArray()
 
         val keyBytes = ByteArray(16).also { Random.nextBytes(it) }
 
