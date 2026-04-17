@@ -65,7 +65,7 @@ jobs:
         run: chmod +x gradlew
 
       - name: Compile KMP shared module
-        run: ./gradlew :shared:compileCommonMainKotlinMetadata :shared:compileKotlinIosArm64 :shared:compileKotlinIosX64 :shared:compileKotlinIosSimulatorArm64
+        run: ./gradlew :shared:compileCommonMainKotlinMetadata :shared:compileKotlinIosArm64 :shared:compileKotlinIosSimulatorArm64
 
   build:
     name: Build Release APKs (${{ matrix.device }}-${{ matrix.abi }})

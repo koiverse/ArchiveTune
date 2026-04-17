@@ -13,6 +13,7 @@ package moe.koiverse.archivetune.lastfm
 import moe.koiverse.archivetune.lastfm.models.Authentication
 import moe.koiverse.archivetune.lastfm.models.LastFmError
 import moe.koiverse.archivetune.lastfm.models.TokenResponse
+import moe.koiverse.archivetune.lastfm.utils.md5
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation

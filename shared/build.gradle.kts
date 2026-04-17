@@ -21,7 +21,6 @@ kotlin {
     }
 
     listOf(
-        iosX64(),
         iosArm64(),
         iosSimulatorArm64(),
     ).forEach { iosTarget ->
@@ -56,10 +55,10 @@ kotlin {
             implementation(libs.room.ktx)
             implementation(libs.datastore)
 
-            implementation(libs.viewmodel)
-            implementation(libs.viewmodel.compose)
-            implementation(libs.lifecycle.runtime.compose)
-            implementation(libs.navigation)
+            implementation(libs.viewmodel.kmp)
+            implementation(libs.viewmodel.compose.kmp)
+            implementation(libs.lifecycle.runtime.compose.kmp)
+            implementation(libs.navigation.kmp)
 
             implementation(libs.coil)
 
@@ -90,7 +89,6 @@ kotlin {
 dependencies {
     listOf(
         "kspAndroid",
-        "kspIosX64",
         "kspIosArm64",
         "kspIosSimulatorArm64",
     ).forEach { target ->
