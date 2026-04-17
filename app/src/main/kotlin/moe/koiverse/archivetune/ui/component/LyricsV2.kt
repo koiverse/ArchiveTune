@@ -557,6 +557,7 @@ fun LyricsV2(
                 val isActive = isSynced && index == currentLineIndex
                 val isPast = isSynced && index < currentLineIndex
                 val isFuture = isSynced && index > currentLineIndex
+                val isSelected = selectedIndices.contains(index)
 
                 // Distance-based alpha for non-active lines
                 val distanceFromActive = if (isSynced) abs(index - currentLineIndex) else 0
@@ -600,8 +601,6 @@ fun LyricsV2(
                 // Background vocal detection
                 val hasBackgroundWords = item.words?.any { it.isBackground } == true
                 val isAllBackground = item.words?.all { it.isBackground || it.text.isBlank() } == true
-
-                val isSelected = selectedIndices.contains(index)
 
                 Column(
                     modifier = Modifier
