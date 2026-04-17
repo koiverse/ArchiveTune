@@ -13,6 +13,16 @@ import android.content.pm.PackageManager
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
@@ -27,14 +37,15 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.CircularWavyProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -46,7 +57,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SheetState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBarDefaults
@@ -61,6 +71,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
@@ -69,6 +80,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
@@ -607,7 +619,7 @@ private fun LocalSongEmptyState(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun LocalSongScanSheet(
     hasStoragePermission: Boolean,
@@ -616,206 +628,363 @@ private fun LocalSongScanSheet(
     onDismiss: () -> Unit,
     onPrimaryAction: () -> Unit,
 ) {
-    val primaryText = if (hasStoragePermission) {
+    val hasError = scanState.errorMessage != null
+    val hasSummary = scanState.lastSummary != null
+
+    val heroIcon = when {
+        scanState.isScanning -> R.drawable.sync
+        hasError -> R.drawable.error
+        !hasStoragePermission -> R.drawable.security
+        hasSummary -> R.drawable.done
+        else -> R.drawable.library_music
+    }
+
+    val heroTint = when {
+        hasError -> MaterialTheme.colorScheme.error
+        scanState.isScanning -> MaterialTheme.colorScheme.primary
+        !hasStoragePermission -> MaterialTheme.colorScheme.tertiary
+        else -> MaterialTheme.colorScheme.primary
+    }
+
+    val heroContainerColor = when {
+        hasError -> MaterialTheme.colorScheme.errorContainer
+        scanState.isScanning -> MaterialTheme.colorScheme.primaryContainer
+        !hasStoragePermission -> MaterialTheme.colorScheme.tertiaryContainer
+        else -> MaterialTheme.colorScheme.primaryContainer
+    }
+
+    val statusText = when {
+        scanState.isScanning -> stringResource(R.string.scanning_device)
+        hasError -> stringResource(R.string.local_songs_scan_failed)
+        !hasStoragePermission -> stringResource(R.string.local_songs_permission_body)
+        hasSummary -> stringResource(
+            R.string.local_songs_scan_summary,
+            scanState.lastSummary!!.scannedSongs,
+            scanState.lastSummary.removedSongs,
+        )
+        else -> stringResource(R.string.local_songs_ready_desc)
+    }
+
+    val primaryButtonText = if (hasStoragePermission) {
         stringResource(R.string.scan_device)
     } else {
         stringResource(R.string.allow)
     }
-    val bodyText = when {
-        scanState.isScanning -> stringResource(R.string.scanning_device)
-        scanState.errorMessage != null -> stringResource(R.string.local_songs_scan_failed)
-        !hasStoragePermission -> stringResource(R.string.local_songs_permission_body)
-        scanState.lastSummary != null -> stringResource(
-            R.string.local_songs_scan_summary,
-            scanState.lastSummary.scannedSongs,
-            scanState.lastSummary.removedSongs,
-        )
 
-        else -> stringResource(R.string.local_songs_ready_desc)
-    }
-    val permissionStatusText = if (hasStoragePermission) {
-        stringResource(R.string.permission_status_allowed)
-    } else {
-        stringResource(R.string.not_allowed)
-    }
+    val contentAlpha by animateFloatAsState(
+        targetValue = if (scanState.isScanning) 0.6f else 1f,
+        animationSpec = spring(stiffness = Spring.StiffnessLow),
+        label = "contentAlpha",
+    )
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = MaterialTheme.colorScheme.surface,
+        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+        shape = RoundedCornerShape(topStart = 36.dp, topEnd = 36.dp),
+        tonalElevation = 2.dp,
     ) {
         Column(
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 8.dp),
+                .padding(horizontal = 24.dp)
+                .padding(bottom = 28.dp),
         ) {
             Surface(
                 shape = RoundedCornerShape(32.dp),
-                color = MaterialTheme.colorScheme.surfaceContainerLow,
-                modifier = Modifier.fillMaxWidth(),
+                color = heroContainerColor,
+                modifier = Modifier.size(80.dp),
             ) {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 22.dp),
+                Box(contentAlignment = Alignment.Center) {
+                    AnimatedContent(
+                        targetState = heroIcon,
+                        transitionSpec = {
+                            (fadeIn(spring(stiffness = Spring.StiffnessLow)) togetherWith
+                                fadeOut(spring(stiffness = Spring.StiffnessMedium)))
+                        },
+                        label = "heroIcon",
+                    ) { icon ->
+                        Icon(
+                            painter = painterResource(icon),
+                            contentDescription = null,
+                            tint = heroTint,
+                            modifier = Modifier.size(36.dp),
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            Text(
+                text = stringResource(R.string.local_songs_scan_title),
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center,
+            )
+
+            Spacer(modifier = Modifier.height(6.dp))
+
+            Text(
+                text = stringResource(R.string.local_songs_scan_subtitle),
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            AnimatedVisibility(
+                visible = scanState.isScanning,
+                enter = expandVertically(spring(stiffness = Spring.StiffnessLow)) + fadeIn(),
+                exit = shrinkVertically(spring(stiffness = Spring.StiffnessLow)) + fadeOut(),
+            ) {
+                Surface(
+                    shape = RoundedCornerShape(24.dp),
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 16.dp),
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(14.dp),
+                        horizontalArrangement = Arrangement.Center,
+                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp),
                     ) {
-                        Surface(
-                            shape = RoundedCornerShape(24.dp),
-                            color = MaterialTheme.colorScheme.surfaceContainerHighest,
-                            modifier = Modifier.size(64.dp),
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Icon(
-                                    painter = painterResource(R.drawable.sync),
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(28.dp),
-                                )
-                            }
-                        }
-
-                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text(
-                                text = stringResource(R.string.local_songs_scan_title),
-                                style = MaterialTheme.typography.headlineSmall,
-                                fontWeight = FontWeight.Bold,
-                            )
-                            Text(
-                                text = stringResource(R.string.local_songs_scan_subtitle),
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                    }
-
-                    if (scanState.isScanning) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(10.dp),
-                        ) {
-                            CircularWavyProgressIndicator(
-                                modifier = Modifier.size(22.dp),
-                                color = MaterialTheme.colorScheme.primary,
-                            )
-                            Text(
-                                text = stringResource(R.string.scanning_device),
-                                style = MaterialTheme.typography.titleSmall,
-                                color = MaterialTheme.colorScheme.primary,
-                            )
-                        }
+                        CircularWavyProgressIndicator(
+                            modifier = Modifier.size(24.dp),
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                        Spacer(modifier = Modifier.width(14.dp))
+                        Text(
+                            text = stringResource(R.string.scanning_device),
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                        )
                     }
                 }
             }
 
             Surface(
                 shape = RoundedCornerShape(28.dp),
-                color = MaterialTheme.colorScheme.surfaceContainerLow,
-                modifier = Modifier.fillMaxWidth(),
+                color = MaterialTheme.colorScheme.surfaceContainer,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .alpha(contentAlpha),
             ) {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(14.dp),
-                    modifier = Modifier.padding(horizontal = 18.dp, vertical = 18.dp),
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Icon(
-                            painter = painterResource(R.drawable.library_music),
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(20.dp),
-                        )
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = stringResource(R.string.permission_storage_title),
-                                style = MaterialTheme.typography.titleMedium,
-                            )
-                            Text(
-                                text = stringResource(R.string.permission_storage_desc),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                        Text(
-                            text = permissionStatusText,
-                            style = MaterialTheme.typography.labelLarge,
-                            color = MaterialTheme.colorScheme.primary,
-                        )
-                    }
+                Column(modifier = Modifier.padding(vertical = 6.dp)) {
+                    ScanSheetInfoRow(
+                        iconRes = R.drawable.storage,
+                        title = stringResource(R.string.permission_storage_title),
+                        description = stringResource(R.string.permission_storage_desc),
+                        trailing = {
+                            Surface(
+                                shape = RoundedCornerShape(16.dp),
+                                color = if (hasStoragePermission) {
+                                    MaterialTheme.colorScheme.primaryContainer
+                                } else {
+                                    MaterialTheme.colorScheme.errorContainer
+                                },
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                ) {
+                                    Icon(
+                                        painter = painterResource(
+                                            if (hasStoragePermission) R.drawable.done else R.drawable.close,
+                                        ),
+                                        contentDescription = null,
+                                        tint = if (hasStoragePermission) {
+                                            MaterialTheme.colorScheme.onPrimaryContainer
+                                        } else {
+                                            MaterialTheme.colorScheme.onErrorContainer
+                                        },
+                                        modifier = Modifier.size(14.dp),
+                                    )
+                                    Text(
+                                        text = if (hasStoragePermission) {
+                                            stringResource(R.string.permission_status_allowed)
+                                        } else {
+                                            stringResource(R.string.not_allowed)
+                                        },
+                                        style = MaterialTheme.typography.labelMedium,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = if (hasStoragePermission) {
+                                            MaterialTheme.colorScheme.onPrimaryContainer
+                                        } else {
+                                            MaterialTheme.colorScheme.onErrorContainer
+                                        },
+                                    )
+                                }
+                            }
+                        },
+                    )
 
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                    HorizontalDivider(
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                        modifier = Modifier.padding(horizontal = 20.dp),
+                    )
 
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Icon(
-                            painter = painterResource(R.drawable.info),
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(20.dp),
-                        )
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = stringResource(R.string.local_songs_latest_scan),
-                                style = MaterialTheme.typography.titleMedium,
-                            )
-                            Text(
-                                text = bodyText,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                    }
+                    ScanSheetInfoRow(
+                        iconRes = R.drawable.info,
+                        title = stringResource(R.string.local_songs_latest_scan),
+                        description = statusText,
+                        trailing = null,
+                    )
                 }
             }
+
+            Spacer(modifier = Modifier.height(20.dp))
 
             Button(
                 onClick = onPrimaryAction,
                 enabled = !scanState.isScanning,
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                    containerColor = if (hasStoragePermission) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.tertiary
+                    },
+                    contentColor = if (hasStoragePermission) {
+                        MaterialTheme.colorScheme.onPrimary
+                    } else {
+                        MaterialTheme.colorScheme.onTertiary
+                    },
+                    disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                    disabledContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
                 ),
-                shape = RoundedCornerShape(26.dp),
-                contentPadding = PaddingValues(horizontal = 18.dp, vertical = 14.dp),
+                shape = RoundedCornerShape(28.dp),
+                contentPadding = PaddingValues(horizontal = 24.dp, vertical = 16.dp),
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                if (scanState.isScanning) {
-                    CircularWavyProgressIndicator(
-                        modifier = Modifier.size(20.dp),
-                        color = MaterialTheme.colorScheme.onPrimary,
-                    )
-                } else {
-                    Icon(
-                        painter = painterResource(if (hasStoragePermission) R.drawable.sync else R.drawable.library_music),
-                        contentDescription = null,
-                        modifier = Modifier.size(20.dp),
-                    )
+                AnimatedContent(
+                    targetState = scanState.isScanning,
+                    transitionSpec = {
+                        (fadeIn(spring(stiffness = Spring.StiffnessLow)) togetherWith
+                            fadeOut(spring(stiffness = Spring.StiffnessMedium)))
+                    },
+                    label = "buttonContent",
+                ) { isScanning ->
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        if (isScanning) {
+                            CircularWavyProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
+                            )
+                        } else {
+                            Icon(
+                                painter = painterResource(
+                                    if (hasStoragePermission) R.drawable.sync else R.drawable.security,
+                                ),
+                                contentDescription = null,
+                                modifier = Modifier.size(20.dp),
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            text = if (isScanning) {
+                                stringResource(R.string.scanning_device)
+                            } else {
+                                primaryButtonText
+                            },
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                    }
                 }
-                Spacer(modifier = Modifier.size(10.dp))
-                Text(
-                    text = primaryText,
-                    style = MaterialTheme.typography.titleMedium,
-                )
             }
 
-            TextButton(
-                onClick = onDismiss,
-                modifier = Modifier.align(Alignment.End),
+            AnimatedVisibility(
+                visible = hasError,
+                enter = expandVertically(spring(stiffness = Spring.StiffnessLow)) + fadeIn(),
+                exit = shrinkVertically(spring(stiffness = Spring.StiffnessLow)) + fadeOut(),
             ) {
-                Text(text = stringResource(R.string.close))
+                Surface(
+                    shape = RoundedCornerShape(20.dp),
+                    color = MaterialTheme.colorScheme.errorContainer,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 12.dp),
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        modifier = Modifier.padding(horizontal = 18.dp, vertical = 14.dp),
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.error),
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onErrorContainer,
+                            modifier = Modifier.size(20.dp),
+                        )
+                        Text(
+                            text = scanState.errorMessage.orEmpty(),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onErrorContainer,
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                }
             }
-            Spacer(modifier = Modifier.height(12.dp))
         }
-    )
+    }
+}
+
+@Composable
+private fun ScanSheetInfoRow(
+    iconRes: Int,
+    title: String,
+    description: String,
+    trailing: (@Composable () -> Unit)?,
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp, vertical = 16.dp),
+    ) {
+        Surface(
+            shape = RoundedCornerShape(16.dp),
+            color = MaterialTheme.colorScheme.surfaceContainerHighest,
+            modifier = Modifier.size(44.dp),
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(
+                    painter = painterResource(iconRes),
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(22.dp),
+                )
+            }
+        }
+        Column(
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+            modifier = Modifier.weight(1f),
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Text(
+                text = description,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        if (trailing != null) {
+            trailing()
+        }
+    }
 }
 
 private enum class LocalSongSortType {
