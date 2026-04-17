@@ -10,9 +10,9 @@
 
 package moe.koiverse.archivetune.lyrics
 
+import android.icu.text.Transliterator
 import android.text.format.DateUtils
 import com.atilika.kuromoji.ipadic.Tokenizer
-import com.anyascii.AnyAscii
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import moe.koiverse.archivetune.betterlyrics.TTMLParser
@@ -34,6 +34,7 @@ object LyricsUtils {
     val LINE_REGEX = "((\\[\\d\\d:\\d\\d\\.\\d{2,3}\\] ?)+)(.+)".toRegex()
     val TIME_REGEX = "\\[(\\d\\d):(\\d\\d)\\.(\\d{2,3})\\]".toRegex()
     private val WHITESPACE_REGEX = "\\s+".toRegex()
+    private const val GENERIC_ROMANIZATION_TRANSFORM = "Any-Latin; Latin-ASCII"
     private val OTHER_ROMANIZATION_EXCLUDED_SCRIPTS = setOf(
         UnicodeScript.LATIN,
         UnicodeScript.COMMON,
@@ -44,6 +45,9 @@ object LyricsUtils {
         UnicodeScript.HANGUL,
         UnicodeScript.DEVANAGARI,
     )
+    private val genericRomanizationTransliterator = ThreadLocal.withInitial {
+        Transliterator.getInstance(GENERIC_ROMANIZATION_TRANSFORM)
+    }
 
     private val KANA_ROMAJI_MAP: Map<String, String> = mapOf(
         // Digraphs (Yōon - combinations like kya, sho)
@@ -492,17 +496,17 @@ object LyricsUtils {
         val romanized = when {
             preferences.romanizeJapanese && looksJapanese(text) -> romanizeJapanese(text)
             preferences.romanizeKorean && isKorean(text) -> romanizeKorean(text)
-            preferences.romanizeHindi && isHindi(text) -> romanizeWithAnyAscii(text)
-            preferences.romanizeChinese && isChinese(text) -> romanizeWithAnyAscii(text)
-            preferences.romanizeOther && hasOtherRomanizableScript(text) -> romanizeWithAnyAscii(text)
+            preferences.romanizeHindi && isHindi(text) -> romanizeWithIcu(text)
+            preferences.romanizeChinese && isChinese(text) -> romanizeWithIcu(text)
+            preferences.romanizeOther && hasOtherRomanizableScript(text) -> romanizeWithIcu(text)
             else -> null
         }
 
         return normalizeRomanizedText(text, romanized)
     }
 
-    private suspend fun romanizeWithAnyAscii(text: String): String = withContext(Dispatchers.Default) {
-        AnyAscii.transliterate(text)
+    private suspend fun romanizeWithIcu(text: String): String = withContext(Dispatchers.Default) {
+        genericRomanizationTransliterator.get().transliterate(text)
     }
 
     private fun normalizeRomanizedText(original: String, romanized: String?): String? {
