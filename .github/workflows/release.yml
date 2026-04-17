@@ -210,7 +210,7 @@ jobs:
         run: chmod +x gradlew
 
       - name: Compile KMP shared module
-        run: ./gradlew :shared:compileKotlinAndroid
+        run: ./gradlew :shared:compileCommonMainKotlinMetadata
 
       - name: Resolve variant names
         id: variant
