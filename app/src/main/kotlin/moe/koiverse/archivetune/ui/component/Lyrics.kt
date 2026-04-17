@@ -1293,10 +1293,6 @@ fun Lyrics(
                                     ) {
                                         append(word.text)
                                     }
-
-                                    if (wordIndex < item.words.size - 1) {
-                                        append(" ")
-                                    }
                                 }
                             }
 
@@ -1368,10 +1364,6 @@ fun Lyrics(
                                         )
                                     ) {
                                         append(word.text)
-                                    }
-
-                                    if (wordIndex < item.words.size - 1) {
-                                        append(" ")
                                     }
                                 }
                             }
@@ -1472,10 +1464,6 @@ fun Lyrics(
                                         )
                                     ) {
                                         append(word.text)
-                                    }
-
-                                    if (wordIndex < item.words.size - 1) {
-                                        append(" ")
                                     }
                                 }
                             }
@@ -1626,10 +1614,6 @@ fun Lyrics(
                                             append(word.text)
                                         }
                                     }
-
-                                    if (wordIndex < item.words.size - 1) {
-                                        append(" ")
-                                    }
                                 }
                             }
 
@@ -1688,10 +1672,6 @@ fun Lyrics(
                                         )
                                     ) {
                                         append(word.text)
-                                    }
-
-                                    if (wordIndex < item.words.size - 1) {
-                                        append(" ")
                                     }
                                 }
                             }
@@ -1817,7 +1797,6 @@ fun Lyrics(
                                         } else {
                                             append(word.text)
                                         }
-                                        if (idx < item.words.size - 1) append(" ")
                                     }
                                 }
                             } else AnnotatedString(item.text)
@@ -1861,7 +1840,6 @@ fun Lyrics(
                                         } else {
                                             append(word.text)
                                         }
-                                        if (idx < item.words.size - 1) append(" ")
                                     }
                                 }
                             } else AnnotatedString(item.text)
