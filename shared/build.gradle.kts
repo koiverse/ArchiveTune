@@ -6,7 +6,6 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.compose.compiler)
     alias(libs.plugins.compose.multiplatform)
-    alias(libs.plugins.room)
     alias(libs.plugins.kotlin.ksp)
 }
 
@@ -88,10 +87,6 @@ kotlin {
     }
 }
 
-room {
-    schemaDirectory("$projectDir/schemas")
-}
-
 dependencies {
     listOf(
         "kspAndroid",
@@ -101,4 +96,8 @@ dependencies {
     ).forEach { target ->
         add(target, libs.room.compiler)
     }
+}
+
+ksp {
+    arg("room.schemaLocation", "$projectDir/schemas")
 }
