@@ -450,7 +450,7 @@ fun NewMiniPlayerContent(
             isLoading = isLoading
         )
 
-        Spacer(modifier = Modifier.width(8.dp))
+        Spacer(modifier = Modifier.width(5.dp))
 
         mediaMetadata?.let {
             MiniPlayerInfo(mediaMetadata = it)
