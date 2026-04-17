@@ -331,7 +331,7 @@ object YouTube {
             }
 
             val previousSize = songs.size
-            parsedSongs.forEach { songs.putIfAbsent(it.id, it) }
+            parsedSongs.forEach { song -> songs.getOrPut(song.id) { song } }
             return songs.size > previousSize
         }
 
@@ -1207,7 +1207,7 @@ object YouTube {
 
     suspend fun queue(videoIds: List<String>? = null, playlistId: String? = null): Result<List<SongItem>> = runCatching {
         if (videoIds != null) {
-            assert(videoIds.size <= MAX_GET_QUEUE_SIZE) // Max video limit
+            require(videoIds.size <= MAX_GET_QUEUE_SIZE) // Max video limit
         }
         innerTube.getQueue(WEB_REMIX, videoIds, playlistId).body<GetQueueResponse>().queueDatas
             .mapNotNull {
@@ -1224,7 +1224,10 @@ object YouTube {
             val text = group.transcriptCueGroupRenderer.cues[0].transcriptCueRenderer.cue.simpleText
                 .trim('♪')
                 .trim(' ')
-            "[%02d:%02d.%03d]$text".format(time / 60000, (time / 1000) % 60, time % 1000)
+            val mins = time / 60000
+            val secs = (time / 1000) % 60
+            val millis = time % 1000
+            "[${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}.${millis.toString().padStart(3, '0')}]$text"
         }!!
     }
 
@@ -1253,7 +1256,6 @@ object YouTube {
         return innerTube.getMediaInfo(videoId)
     }
 
-    @JvmInline
     value class SearchFilter(val value: String) {
         companion object {
             val FILTER_SONG = SearchFilter("EgWKAQIIAWoKEAkQBRAKEAMQBA%3D%3D")
@@ -1265,7 +1267,6 @@ object YouTube {
         }
     }
 
-    @JvmInline
     value class LibraryFilter(val value: String) {
         companion object {
             val FILTER_RECENT_ACTIVITY = LibraryFilter("4qmFsgIrEhdGRW11c2ljX2xpYnJhcnlfbGFuZGluZxoQZ2dNR0tnUUlCaEFCb0FZQg%3D%3D")
