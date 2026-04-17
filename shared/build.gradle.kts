@@ -52,7 +52,6 @@ kotlin {
             implementation(libs.kotlinx.datetime)
 
             implementation(libs.room.runtime)
-            implementation(libs.room.ktx)
             implementation(libs.datastore)
 
             implementation(libs.viewmodel.kmp)
@@ -75,6 +74,7 @@ kotlin {
             implementation(libs.koin.android)
             implementation(libs.ktor.client.okhttp)
             implementation(libs.coil.network.okhttp)
+            implementation(libs.room.ktx)
 
             implementation(project(":kizzy"))
             implementation(project(":shazamkit"))
