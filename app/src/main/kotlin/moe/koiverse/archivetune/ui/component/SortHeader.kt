@@ -46,7 +46,7 @@ inline fun <reified T : Enum<T>> SortHeader(
     sortType: T,
     sortDescending: Boolean,
     crossinline onSortTypeChange: (T) -> Unit,
-    crossinline onSortDescendingChange: (Boolean) -> Unit,
+    noinline onSortDescendingChange: (Boolean) -> Unit,
     crossinline sortTypeText: (T) -> Int,
     modifier: Modifier = Modifier,
     showDescending: Boolean? = true,
