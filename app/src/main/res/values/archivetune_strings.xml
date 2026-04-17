@@ -23,6 +23,11 @@
     <string name="local_songs_empty_desc">Open settings from the top bar and run a device scan to find offline audio on this device.</string>
     <string name="local_songs_scan_failed">Couldn’t finish scanning this device.</string>
     <string name="local_songs_scan_summary">Last scan: %1$d songs found, %2$d removed</string>
+    <string name="local_songs_scan_title">Scan local songs</string>
+    <string name="local_songs_scan_subtitle">Refresh songs stored on this device and update the local library metadata.</string>
+    <string name="local_songs_latest_scan">Latest scan</string>
+    <string name="local_songs_no_matches_title">No matching local songs</string>
+    <string name="local_songs_no_matches_desc">Try a different song, artist, or album name.</string>
     <string name="sort_by_album">Album</string>
     <string name="remote_history">Remote</string>
     <string name="charts">Charts</string>
