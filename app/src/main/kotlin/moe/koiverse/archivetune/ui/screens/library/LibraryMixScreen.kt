@@ -246,7 +246,7 @@ fun LibraryMixScreen(
                 title = localTitle,
                 iconRes = R.drawable.snippet_folder,
                 route = "local_songs",
-                accentColor = MaterialTheme.colorScheme.primaryContainer,
+                accentColor = MaterialTheme.colorScheme.primary,
             ),
         )
         if (showTop) {
