@@ -91,11 +91,6 @@ private fun rememberPreferenceIconShape(): Shape {
 }
 
 @Composable
-private fun rememberPreferenceGroupShape(): Shape {
-    return MaterialShapes.Square.toShape()
-}
-
-@Composable
 private fun rememberPreferenceGroupItemShape(): Shape {
     return MaterialShapes.Arch.toShape()
 }
@@ -183,7 +178,7 @@ fun PreferenceEntry(
             color = MaterialTheme.colorScheme.surfaceContainerLow,
             modifier = modifier
                 .fillMaxWidth()
-                .padding(horizontal = 6.dp, vertical = 4.dp),
+                .padding(vertical = 4.dp),
         ) {
             rowContent()
         }
@@ -690,7 +685,6 @@ fun PreferenceGroup(
     title: String? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    val preferenceGroupShape = rememberPreferenceGroupShape()
     Column(modifier = modifier.padding(horizontal = 16.dp)) {
         if (title != null) {
             Text(
@@ -701,17 +695,11 @@ fun PreferenceGroup(
                 modifier = Modifier.padding(horizontal = 4.dp, vertical = 6.dp),
             )
         }
-        Card(
-            shape = preferenceGroupShape,
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
-            ),
-            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            CompositionLocalProvider(LocalPreferenceInGroup provides true) {
-                Column(modifier = Modifier.padding(vertical = 2.dp), content = content)
-            }
+        CompositionLocalProvider(LocalPreferenceInGroup provides true) {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                content = content,
+            )
         }
     }
 }
