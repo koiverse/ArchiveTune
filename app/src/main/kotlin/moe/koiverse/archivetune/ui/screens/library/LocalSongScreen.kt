@@ -270,18 +270,6 @@ fun LocalSongScreen(
             ),
         ) {
             item(
-                key = "overview",
-                contentType = CONTENT_TYPE_HEADER,
-            ) {
-                LocalSongOverviewCard(
-                    songCount = songs.size,
-                    statusText = statusText,
-                    hasStoragePermission = hasStoragePermission,
-                    isScanning = scanState.isScanning,
-                )
-            }
-
-            item(
                 key = "controls",
                 contentType = CONTENT_TYPE_HEADER,
             ) {
@@ -381,81 +369,6 @@ fun LocalSongScreen(
 }
 
 @Composable
-private fun LocalSongOverviewCard(
-    songCount: Int,
-    statusText: String,
-    hasStoragePermission: Boolean,
-    isScanning: Boolean,
-) {
-    Surface(
-        shape = RoundedCornerShape(36.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp),
-    ) {
-        Column(
-            verticalArrangement = Arrangement.spacedBy(18.dp),
-            modifier = Modifier.padding(horizontal = 20.dp, vertical = 22.dp),
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Surface(
-                    shape = RoundedCornerShape(24.dp),
-                    color = MaterialTheme.colorScheme.surfaceContainerHighest,
-                    modifier = Modifier.size(72.dp),
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            painter = painterResource(R.drawable.library_music),
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(32.dp),
-                        )
-                    }
-                }
-
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
-                    modifier = Modifier.weight(1f),
-                ) {
-                    Text(
-                        text = stringResource(R.string.local_history),
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold,
-                    )
-                    Text(
-                        text = statusText,
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
-
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                LocalSongBadge(
-                    iconRes = R.drawable.music_note,
-                    text = pluralStringResource(R.plurals.n_song, songCount, songCount),
-                )
-                LocalSongBadge(
-                    iconRes = if (isScanning) R.drawable.sync else R.drawable.settings,
-                    text = if (isScanning) {
-                        stringResource(R.string.scanning_device)
-                    } else if (hasStoragePermission) {
-                        stringResource(R.string.permission_status_allowed)
-                    } else {
-                        stringResource(R.string.not_allowed)
-                    },
-                )
-            }
-        }
-    }
-}
-
-@Composable
 private fun LocalSongBadge(
     iconRes: Int,
     text: String,
@@ -498,14 +411,14 @@ private fun LocalSongControlsCard(
 ) {
     Surface(
         shape = RoundedCornerShape(28.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        color = Color.Transparent,
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp),
     ) {
         Column(
             verticalArrangement = Arrangement.spacedBy(14.dp),
-            modifier = Modifier.padding(horizontal = 18.dp, vertical = 18.dp),
+            modifier = Modifier.padding(horizontal = 15.dp, vertical = 15.dp),
         ) {
             TextField(
                 value = query,
