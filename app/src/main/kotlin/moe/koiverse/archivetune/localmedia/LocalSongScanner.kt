@@ -30,8 +30,43 @@ import java.nio.charset.StandardCharsets
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneId
+import java.util.Locale
 import java.util.UUID
 import javax.inject.Inject
+
+data class LocalSongScanConfig(
+    val minimumDurationSeconds: Int = 0,
+    val excludedFolders: Set<String> = emptySet(),
+) {
+    val sanitizedMinimumDurationSeconds: Int
+        get() = minimumDurationSeconds.coerceAtLeast(0)
+
+    val sanitizedExcludedFolders: Set<String>
+        get() = deduplicateFolderEntries(excludedFolders)
+
+    companion object {
+        private val DuplicateSlashRegex = Regex("/+")
+
+        fun normalizeFolderEntry(raw: String): String {
+            return raw
+                .trim()
+                .replace('\\', '/')
+                .replace(DuplicateSlashRegex, "/")
+                .trim('/')
+        }
+
+        fun deduplicateFolderEntries(entries: Iterable<String>): Set<String> {
+            val deduplicated = linkedMapOf<String, String>()
+            entries.forEach { entry ->
+                val normalized = normalizeFolderEntry(entry)
+                if (normalized.isNotEmpty()) {
+                    deduplicated.putIfAbsent(normalized.lowercase(Locale.ROOT), normalized)
+                }
+            }
+            return deduplicated.values.toSet()
+        }
+    }
+}
 
 data class LocalSongScanSummary(
     val scannedSongs: Int,
@@ -44,8 +79,8 @@ constructor(
     @ApplicationContext private val context: Context,
     private val database: MusicDatabase,
 ) {
-    suspend fun scanDevice(): LocalSongScanSummary = withContext(Dispatchers.IO) {
-        val snapshot = queryTracks()
+    suspend fun scanDevice(scanConfig: LocalSongScanConfig = LocalSongScanConfig()): LocalSongScanSummary = withContext(Dispatchers.IO) {
+        val snapshot = queryTracks(scanConfig)
         database.withTransaction {
             val existingLocalIds = localSongIds()
             val scannedIds = snapshot.tracks.map(LocalTrackRecord::id)
@@ -197,24 +232,38 @@ constructor(
             .flatMap { chunk -> database.getAlbumEntitiesByIds(chunk) }
             .associateBy { item -> item.id }
 
-    private fun queryTracks(): LocalScanSnapshot {
-        val projection = arrayOf(
-            MediaStore.Audio.Media._ID,
-            MediaStore.Audio.Media.TITLE,
-            MediaStore.Audio.Media.DISPLAY_NAME,
-            MediaStore.Audio.Media.ARTIST,
-            MediaStore.Audio.Media.ARTIST_ID,
-            MediaStore.Audio.Media.ALBUM,
-            MediaStore.Audio.Media.ALBUM_ID,
-            MediaStore.Audio.Media.DURATION,
-            MediaStore.Audio.Media.YEAR,
-            MediaStore.Audio.Media.DATE_MODIFIED,
-            MediaStore.Audio.Media.SIZE,
-            MediaStore.Audio.Media.MIME_TYPE,
-        )
+    @Suppress("DEPRECATION")
+    private fun queryTracks(scanConfig: LocalSongScanConfig): LocalScanSnapshot {
+        val sanitizedMinimumDurationMs = scanConfig.sanitizedMinimumDurationSeconds.toLong() * 1000L
+        val sanitizedExcludedFolders = scanConfig.sanitizedExcludedFolders
+            .map { it.lowercase(Locale.ROOT) }
+            .toSet()
+        val projection = buildList {
+            add(MediaStore.Audio.Media._ID)
+            add(MediaStore.Audio.Media.TITLE)
+            add(MediaStore.Audio.Media.DISPLAY_NAME)
+            add(MediaStore.Audio.Media.ARTIST)
+            add(MediaStore.Audio.Media.ARTIST_ID)
+            add(MediaStore.Audio.Media.ALBUM)
+            add(MediaStore.Audio.Media.ALBUM_ID)
+            add(MediaStore.Audio.Media.DURATION)
+            add(MediaStore.Audio.Media.YEAR)
+            add(MediaStore.Audio.Media.DATE_MODIFIED)
+            add(MediaStore.Audio.Media.SIZE)
+            add(MediaStore.Audio.Media.MIME_TYPE)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                add(MediaStore.MediaColumns.RELATIVE_PATH)
+            } else {
+                add(MediaStore.MediaColumns.DATA)
+            }
+        }.toTypedArray()
         val selection = buildList {
             add("${MediaStore.Audio.Media.SIZE} > 0")
-            add("${MediaStore.Audio.Media.DURATION} > 0")
+            if (sanitizedMinimumDurationMs > 0L) {
+                add("${MediaStore.Audio.Media.DURATION} >= $sanitizedMinimumDurationMs")
+            } else {
+                add("${MediaStore.Audio.Media.DURATION} > 0")
+            }
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 add("${MediaStore.MediaColumns.IS_PENDING} = 0")
             }
@@ -245,10 +294,19 @@ constructor(
             val dateModifiedIndex = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATE_MODIFIED)
             val sizeIndex = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.SIZE)
             val mimeTypeIndex = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.MIME_TYPE)
+            val relativePathIndex = cursor.getColumnIndex(MediaStore.MediaColumns.RELATIVE_PATH)
+            val dataPathIndex = cursor.getColumnIndex(MediaStore.MediaColumns.DATA)
 
             while (cursor.moveToNext()) {
                 val mediaId = cursor.getLong(idIndex)
                 val contentUri = ContentUris.withAppendedId(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, mediaId)
+                val normalizedFolderPath = resolveNormalizedFolderPath(
+                    relativePath = cursor.getStringOrNull(relativePathIndex),
+                    absolutePath = cursor.getStringOrNull(dataPathIndex),
+                )
+                if (shouldExcludeFolder(normalizedFolderPath, sanitizedExcludedFolders)) {
+                    continue
+                }
                 val artistValue = normalizeArtistName(cursor.getString(artistIndex), unknownArtist)
                 val splitArtists = splitArtistNames(artistValue).ifEmpty { listOf(unknownArtist) }
                 val mediaStoreArtistId = cursor.getLongOrNull(artistIdIndex)
@@ -371,12 +429,40 @@ constructor(
             .replace("-", "")
     }
 
+    private fun resolveNormalizedFolderPath(relativePath: String?, absolutePath: String?): String? {
+        val relativeFolder = LocalSongScanConfig.normalizeFolderEntry(relativePath.orEmpty())
+        if (relativeFolder.isNotEmpty()) {
+            return relativeFolder.lowercase(Locale.ROOT)
+        }
+
+        val absoluteFolder = absolutePath
+            ?.replace('\\', '/')
+            ?.substringBeforeLast('/', missingDelimiterValue = "")
+            .orEmpty()
+        val normalizedAbsoluteFolder = LocalSongScanConfig.normalizeFolderEntry(absoluteFolder)
+        return normalizedAbsoluteFolder.takeIf(String::isNotEmpty)?.lowercase(Locale.ROOT)
+    }
+
+    private fun shouldExcludeFolder(folderPath: String?, excludedFolders: Set<String>): Boolean {
+        if (folderPath.isNullOrEmpty() || excludedFolders.isEmpty()) return false
+        return excludedFolders.any { excludedFolder ->
+            folderPath == excludedFolder ||
+                folderPath.startsWith("$excludedFolder/") ||
+                folderPath.endsWith("/$excludedFolder") ||
+                folderPath.contains("/$excludedFolder/")
+        }
+    }
+
     private fun android.database.Cursor.getLongOrNull(columnIndex: Int): Long? {
         return if (columnIndex >= 0 && !isNull(columnIndex)) getLong(columnIndex) else null
     }
 
     private fun android.database.Cursor.getIntOrNull(columnIndex: Int): Int? {
         return if (columnIndex >= 0 && !isNull(columnIndex)) getInt(columnIndex) else null
+    }
+
+    private fun android.database.Cursor.getStringOrNull(columnIndex: Int): String? {
+        return if (columnIndex >= 0 && !isNull(columnIndex)) getString(columnIndex) else null
     }
 
     private data class LocalScanSnapshot(

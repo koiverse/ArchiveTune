@@ -26,6 +26,17 @@
     <string name="local_songs_scan_title">Scan local songs</string>
     <string name="local_songs_scan_subtitle">Refresh songs stored on this device and update the local library metadata.</string>
     <string name="local_songs_latest_scan">Latest scan</string>
+    <string name="local_songs_scan_filters_title">Scan filters</string>
+    <string name="local_songs_scan_filters_note">Changes apply the next time you scan this device.</string>
+    <string name="local_songs_scan_duration_title">Exclude short songs</string>
+    <string name="local_songs_scan_duration_desc">Skip songs shorter than the selected duration.</string>
+    <string name="local_songs_scan_folders_title">Excluded folders</string>
+    <string name="local_songs_scan_folders_desc">Skip songs stored in folders that match any of these paths.</string>
+    <string name="local_songs_scan_folders_empty">No folders excluded yet.</string>
+    <string name="local_songs_scan_folders_hint">Examples: Music/Ringtones or Download/Voice Notes</string>
+    <string name="local_songs_scan_folders_add">Add folder</string>
+    <string name="local_songs_scan_folders_dialog_title">Exclude folder</string>
+    <string name="local_songs_scan_folders_dialog_placeholder">Music/Ringtones</string>
     <string name="local_songs_no_matches_title">No matching local songs</string>
     <string name="local_songs_no_matches_desc">Try a different song, artist, or album name.</string>
     <string name="sort_by_album">Album</string>

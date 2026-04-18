@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import moe.koiverse.archivetune.localmedia.LocalSongScanConfig
 import moe.koiverse.archivetune.db.MusicDatabase
 import moe.koiverse.archivetune.localmedia.LocalSongScanSummary
 import moe.koiverse.archivetune.localmedia.LocalSongScanner
@@ -39,11 +40,11 @@ constructor(
         emptyList(),
     )
 
-    fun scanDevice() {
+    fun scanDevice(scanConfig: LocalSongScanConfig = LocalSongScanConfig()) {
         if (_scanState.value.isScanning) return
         viewModelScope.launch(Dispatchers.IO) {
             _scanState.value = _scanState.value.copy(isScanning = true, errorMessage = null)
-            runCatching { localSongScanner.scanDevice() }
+            runCatching { localSongScanner.scanDevice(scanConfig) }
                 .onSuccess { summary ->
                     _scanState.value = LocalSongsScanState(
                         isScanning = false,

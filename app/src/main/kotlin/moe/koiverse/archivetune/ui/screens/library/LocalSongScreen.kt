@@ -23,7 +23,10 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -55,6 +58,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SheetState
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
@@ -91,18 +95,24 @@ import moe.koiverse.archivetune.LocalPlayerConnection
 import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.constants.CONTENT_TYPE_HEADER
 import moe.koiverse.archivetune.constants.CONTENT_TYPE_SONG
+import moe.koiverse.archivetune.constants.LocalSongsExcludedFoldersKey
+import moe.koiverse.archivetune.constants.LocalSongsMinDurationSecondsKey
 import moe.koiverse.archivetune.extensions.toMediaItem
 import moe.koiverse.archivetune.extensions.togglePlayPause
+import moe.koiverse.archivetune.localmedia.LocalSongScanConfig
 import moe.koiverse.archivetune.playback.queues.ListQueue
 import moe.koiverse.archivetune.ui.component.LocalMenuState
 import moe.koiverse.archivetune.ui.component.SongListItem
 import moe.koiverse.archivetune.ui.component.SortHeader
+import moe.koiverse.archivetune.ui.component.TextFieldDialog
 import moe.koiverse.archivetune.ui.menu.SongMenu
+import moe.koiverse.archivetune.utils.rememberPreference
 import moe.koiverse.archivetune.viewmodels.LocalSongsScanState
 import moe.koiverse.archivetune.viewmodels.LocalSongsViewModel
 import java.text.Collator
 import java.time.LocalDateTime
 import java.util.Locale
+import kotlin.math.roundToInt
 
 @OptIn(
     ExperimentalFoundationApi::class,
@@ -128,7 +138,21 @@ fun LocalSongScreen(
     var query by rememberSaveable { mutableStateOf("") }
     var sortDescending by rememberSaveable { mutableStateOf(true) }
     var sortTypeName by rememberSaveable { mutableStateOf(LocalSongSortType.MODIFIED.name) }
+    val (minimumDurationSeconds, onMinimumDurationSecondsChange) = rememberPreference(
+        LocalSongsMinDurationSecondsKey,
+        0,
+    )
+    val (excludedFolders, onExcludedFoldersChange) = rememberPreference(
+        LocalSongsExcludedFoldersKey,
+        emptySet<String>(),
+    )
     val sortType = remember(sortTypeName) { LocalSongSortType.valueOf(sortTypeName) }
+    val scanConfig = remember(minimumDurationSeconds, excludedFolders) {
+        LocalSongScanConfig(
+            minimumDurationSeconds = minimumDurationSeconds,
+            excludedFolders = excludedFolders,
+        )
+    }
 
     val storagePermission = remember {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -156,19 +180,6 @@ fun LocalSongScreen(
         }
     }
     val bottomContentPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding() + 20.dp
-    val lastSummary = scanState.lastSummary
-    val statusText = when {
-        scanState.isScanning -> stringResource(R.string.scanning_device)
-        scanState.errorMessage != null -> stringResource(R.string.local_songs_scan_failed)
-        !hasStoragePermission -> stringResource(R.string.local_songs_permission_body)
-        lastSummary != null -> stringResource(
-            R.string.local_songs_scan_summary,
-            lastSummary.scannedSongs,
-            lastSummary.removedSongs,
-        )
-
-        else -> stringResource(R.string.local_songs_ready_desc)
-    }
 
     val visibleSongs by remember(songs, query, sortType, sortDescending, collator) {
         derivedStateOf {
@@ -210,11 +221,15 @@ fun LocalSongScreen(
         LocalSongScanSheet(
             hasStoragePermission = hasStoragePermission,
             scanState = scanState,
+            minimumDurationSeconds = minimumDurationSeconds,
+            onMinimumDurationSecondsChange = onMinimumDurationSecondsChange,
+            excludedFolders = excludedFolders,
+            onExcludedFoldersChange = onExcludedFoldersChange,
             sheetState = scanSheetState,
             onDismiss = { showScanSheet = false },
             onPrimaryAction = {
                 if (hasStoragePermission) {
-                    viewModel.scanDevice()
+                    viewModel.scanDevice(scanConfig)
                 } else {
                     permissionLauncher.launch(storagePermission)
                 }
@@ -533,11 +548,15 @@ private fun LocalSongEmptyState(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class, ExperimentalLayoutApi::class)
 @Composable
 private fun LocalSongScanSheet(
     hasStoragePermission: Boolean,
     scanState: LocalSongsScanState,
+    minimumDurationSeconds: Int,
+    onMinimumDurationSecondsChange: (Int) -> Unit,
+    excludedFolders: Set<String>,
+    onExcludedFoldersChange: (Set<String>) -> Unit,
     sheetState: SheetState,
     onDismiss: () -> Unit,
     onPrimaryAction: () -> Unit,
@@ -545,6 +564,34 @@ private fun LocalSongScanSheet(
     val lastSummary = scanState.lastSummary
     val hasError = scanState.errorMessage != null
     val hasSummary = lastSummary != null
+    var showAddFolderDialog by rememberSaveable { mutableStateOf(false) }
+    val sanitizedExcludedFolders = remember(excludedFolders) {
+        LocalSongScanConfig.deduplicateFolderEntries(excludedFolders)
+            .toList()
+            .sortedWith(String.CASE_INSENSITIVE_ORDER)
+    }
+    val durationLabel = if (minimumDurationSeconds <= 0) {
+        stringResource(R.string.dark_theme_off)
+    } else {
+        pluralStringResource(R.plurals.seconds, minimumDurationSeconds, minimumDurationSeconds)
+    }
+
+    if (showAddFolderDialog) {
+        TextFieldDialog(
+            title = { Text(stringResource(R.string.local_songs_scan_folders_dialog_title)) },
+            placeholder = { Text(stringResource(R.string.local_songs_scan_folders_dialog_placeholder)) },
+            isInputValid = { LocalSongScanConfig.normalizeFolderEntry(it).isNotEmpty() },
+            onDone = { rawValue ->
+                val normalizedFolder = LocalSongScanConfig.normalizeFolderEntry(rawValue)
+                if (normalizedFolder.isNotEmpty()) {
+                    onExcludedFoldersChange(
+                        LocalSongScanConfig.deduplicateFolderEntries(excludedFolders + normalizedFolder),
+                    )
+                }
+            },
+            onDismiss = { showAddFolderDialog = false },
+        )
+    }
 
     val heroIcon = when {
         scanState.isScanning -> R.drawable.sync
@@ -753,6 +800,100 @@ private fun LocalSongScanSheet(
                 }
             }
 
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Surface(
+                shape = RoundedCornerShape(28.dp),
+                color = MaterialTheme.colorScheme.surfaceContainer,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .alpha(contentAlpha),
+            ) {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 20.dp),
+                ) {
+                    Text(
+                        text = stringResource(R.string.local_songs_scan_filters_title),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Text(
+                        text = stringResource(R.string.local_songs_scan_filters_note),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+
+                    LocalSongScanSettingCard(
+                        iconRes = R.drawable.timer,
+                        title = stringResource(R.string.local_songs_scan_duration_title),
+                        description = stringResource(R.string.local_songs_scan_duration_desc),
+                    ) {
+                        Text(
+                            text = durationLabel,
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.secondary,
+                        )
+                        Slider(
+                            value = minimumDurationSeconds.toFloat(),
+                            onValueChange = { onMinimumDurationSecondsChange(it.roundToInt()) },
+                            valueRange = 0f..180f,
+                            steps = 11,
+                            enabled = !scanState.isScanning,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
+
+                    LocalSongScanSettingCard(
+                        iconRes = R.drawable.snippet_folder,
+                        title = stringResource(R.string.local_songs_scan_folders_title),
+                        description = stringResource(R.string.local_songs_scan_folders_desc),
+                        actionLabel = stringResource(R.string.local_songs_scan_folders_add),
+                        onActionClick = {
+                            if (!scanState.isScanning) {
+                                showAddFolderDialog = true
+                            }
+                        },
+                    ) {
+                        if (sanitizedExcludedFolders.isEmpty()) {
+                            Text(
+                                text = stringResource(R.string.local_songs_scan_folders_empty),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        } else {
+                            FlowRow(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp),
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                sanitizedExcludedFolders.forEach { folderPath ->
+                                    LocalSongFolderChip(
+                                        folderPath = folderPath,
+                                        enabled = !scanState.isScanning,
+                                        onRemove = {
+                                            onExcludedFoldersChange(
+                                                excludedFolders.filterNot {
+                                                    LocalSongScanConfig.normalizeFolderEntry(it)
+                                                        .equals(folderPath, ignoreCase = true)
+                                                }.toSet(),
+                                            )
+                                        },
+                                    )
+                                }
+                            }
+                        }
+
+                        Text(
+                            text = stringResource(R.string.local_songs_scan_folders_hint),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            }
+
             Spacer(modifier = Modifier.height(20.dp))
 
             Button(
@@ -847,6 +988,145 @@ private fun LocalSongScanSheet(
                             modifier = Modifier.weight(1f),
                         )
                     }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun LocalSongScanSettingCard(
+    iconRes: Int,
+    title: String,
+    description: String,
+    actionLabel: String? = null,
+    onActionClick: (() -> Unit)? = null,
+    content: @Composable Column.() -> Unit,
+) {
+    Surface(
+        shape = RoundedCornerShape(24.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(
+            verticalArrangement = Arrangement.spacedBy(14.dp),
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp),
+        ) {
+            Row(
+                verticalAlignment = Alignment.Top,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Surface(
+                    shape = RoundedCornerShape(18.dp),
+                    color = MaterialTheme.colorScheme.surfaceContainerHighest,
+                    modifier = Modifier.size(44.dp),
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            painter = painterResource(iconRes),
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(22.dp),
+                        )
+                    }
+                }
+
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Text(
+                        text = description,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+
+                if (actionLabel != null && onActionClick != null) {
+                    Surface(
+                        shape = RoundedCornerShape(18.dp),
+                        color = MaterialTheme.colorScheme.secondaryContainer,
+                        modifier = Modifier
+                            .padding(top = 2.dp),
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            modifier = Modifier
+                                .padding(horizontal = 12.dp, vertical = 8.dp)
+                                .combinedClickable(onClick = onActionClick),
+                        ) {
+                            Icon(
+                                painter = painterResource(R.drawable.add),
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                                modifier = Modifier.size(16.dp),
+                            )
+                            Text(
+                                text = actionLabel,
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                            )
+                        }
+                    }
+                }
+            }
+
+            content()
+        }
+    }
+}
+
+@Composable
+private fun LocalSongFolderChip(
+    folderPath: String,
+    enabled: Boolean,
+    onRemove: () -> Unit,
+) {
+    Surface(
+        shape = RoundedCornerShape(20.dp),
+        color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.65f),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.padding(start = 12.dp, end = 6.dp, top = 6.dp, bottom = 6.dp),
+        ) {
+            Icon(
+                painter = painterResource(R.drawable.snippet_folder),
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                modifier = Modifier.size(16.dp),
+            )
+            Text(
+                text = folderPath,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSecondaryContainer,
+            )
+            Surface(
+                shape = RoundedCornerShape(12.dp),
+                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.55f),
+                modifier = Modifier.alpha(if (enabled) 1f else 0.5f),
+            ) {
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .size(24.dp)
+                        .combinedClickable(enabled = enabled, onClick = onRemove),
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.close),
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                        modifier = Modifier.size(14.dp),
+                    )
                 }
             }
         }

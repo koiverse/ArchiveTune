@@ -15,6 +15,7 @@ import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.stringSetPreferencesKey
 import java.time.LocalDateTime
 import java.time.ZoneOffset
 
@@ -70,6 +71,8 @@ val ProxyTypeKey = stringPreferencesKey("proxyType")
 val StreamBypassProxyKey = booleanPreferencesKey("streamBypassProxy")
 val YtmSyncKey = booleanPreferencesKey("ytmSync")
 val SelectedYtmPlaylistsKey = stringPreferencesKey("ytm_selected_playlists")
+val LocalSongsMinDurationSecondsKey = intPreferencesKey("local_songs_min_duration_seconds")
+val LocalSongsExcludedFoldersKey = stringSetPreferencesKey("local_songs_excluded_folders")
 
 val TogetherDisplayNameKey = stringPreferencesKey("together_display_name")
 val TogetherClientIdKey = stringPreferencesKey("together_client_id")
