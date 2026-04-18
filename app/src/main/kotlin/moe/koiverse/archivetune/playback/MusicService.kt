@@ -3742,30 +3742,77 @@ class MusicService :
     }
 
     private suspend fun registerRemotePlaybackHistory(mediaId: String): Boolean {
-        val playbackUrl = database.format(mediaId).first()?.playbackUrl
-            ?.takeIf { it.isNotBlank() }
-            ?: return false
+        if (database.song(mediaId).first()?.song?.isLocal == true) {
+            return false
+        }
 
-        return retryWithoutPlaybackLoginContext {
-            YouTube.registerPlayback(
-                playlistId = null,
-                playbackTracking = playbackUrl,
-            )
+        val attemptedTrackingUrls = LinkedHashSet<String>()
+
+        suspend fun registerTrackingUrl(url: String): Boolean {
+            attemptedTrackingUrls += url
+            return retryWithoutPlaybackLoginContext {
+                YouTube.registerPlayback(
+                    playlistId = null,
+                    playbackTracking = url,
+                )
+            }.onFailure { throwable ->
+                when (throwable) {
+                    is YTPlayerUtils.InvalidPlaybackLoginContextException -> {
+                        promptLoginRecovery(mediaId, throwable.targetUrl)
+                    }
+
+                    else -> {
+                        Timber.tag("MusicService").w(
+                            throwable,
+                            "Failed to register remote playback history for %s",
+                            mediaId,
+                        )
+                    }
+                }
+            }.isSuccess
+        }
+
+        val cachedPlaybackUrl = database.format(mediaId).first()?.playbackUrl
+            ?.takeIf { it.isNotBlank() }
+        if (cachedPlaybackUrl != null && registerTrackingUrl(cachedPlaybackUrl)) {
+            return true
+        }
+
+        val playbackTracking = retryWithoutPlaybackLoginContext {
+            YTPlayerUtils.playerResponseForMetadata(mediaId)
         }.onFailure { throwable ->
             when (throwable) {
                 is YTPlayerUtils.InvalidPlaybackLoginContextException -> {
                     promptLoginRecovery(mediaId, throwable.targetUrl)
                 }
 
+                is YTPlayerUtils.LoginRequiredForPlaybackException -> {
+                    promptLoginRecovery(mediaId, throwable.targetUrl)
+                }
+
                 else -> {
                     Timber.tag("MusicService").w(
                         throwable,
-                        "Failed to register remote playback history for %s",
+                        "Failed to refresh remote playback tracking for %s",
                         mediaId,
                     )
                 }
             }
-        }.isSuccess
+        }.getOrNull()?.playbackTracking ?: return false
+
+        val trackingUrls = listOfNotNull(
+            playbackTracking.videostatsPlaybackUrl?.baseUrl,
+            playbackTracking.videostatsWatchtimeUrl?.baseUrl,
+        ).map { it.trim() }
+            .filter { it.isNotEmpty() && it !in attemptedTrackingUrls }
+
+        for (trackingUrl in trackingUrls) {
+            if (registerTrackingUrl(trackingUrl)) {
+                return true
+            }
+        }
+
+        return false
     }
 
     override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
