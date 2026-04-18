@@ -64,7 +64,7 @@ fun NewActionButton(
             .fillMaxWidth()
             .heightIn(min = 96.dp),
         enabled = enabled,
-        shapes = ButtonDefaults.shapes(),
+        shape = ButtonDefaults.squareShape,
         colors = ButtonDefaults.filledTonalButtonColors(
             containerColor = containerColor,
             contentColor = actionContentColor,
