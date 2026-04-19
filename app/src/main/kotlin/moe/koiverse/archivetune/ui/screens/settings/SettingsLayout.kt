@@ -45,6 +45,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
 import androidx.window.core.layout.WindowSizeClass
+import moe.koiverse.archivetune.LocalAnimationsDisabled
 import moe.koiverse.archivetune.LocalPlayerAwareWindowInsets
 
 enum class SettingsLayoutMode {
@@ -98,6 +99,7 @@ fun AdaptiveSettingsLayout(
     topPadding: Dp = 0.dp,
 ) {
     val layoutMode = resolveLayoutMode()
+    val animationsDisabled = LocalAnimationsDisabled.current
 
     var heroVisible by remember { mutableStateOf(false) }
     var bannerVisible by remember { mutableStateOf(false) }
@@ -105,7 +107,16 @@ fun AdaptiveSettingsLayout(
     var integrationsVisible by remember { mutableStateOf(false) }
     var categoriesVisible by remember { mutableStateOf(false) }
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(animationsDisabled) {
+        if (animationsDisabled) {
+            heroVisible = true
+            bannerVisible = true
+            quickActionsVisible = true
+            integrationsVisible = true
+            categoriesVisible = true
+            return@LaunchedEffect
+        }
+
         val anim = Animatable(0f)
         anim.animateTo(1f, tween(50))
         heroVisible = true
@@ -221,7 +232,7 @@ private fun CompactSettingsLayout(
                     visible = bannerVisible && state.showPermissionBanner,
                     enter = fadeIn(SettingsAnimations.entranceSpring()) +
                         expandVertically(SettingsAnimations.entranceSpring()),
-                    exit = fadeOut(tween(300)) + shrinkVertically(tween(300)),
+                    exit = fadeOut(SettingsAnimations.exitTween()) + shrinkVertically(SettingsAnimations.exitTween()),
                 ) {
                     SettingsPermissionBanner(
                         onRequestPermission = state.onRequestPermission,
@@ -237,7 +248,7 @@ private fun CompactSettingsLayout(
                     visible = bannerVisible && state.showUpdateBanner,
                     enter = fadeIn(SettingsAnimations.entranceSpring()) +
                         expandVertically(SettingsAnimations.entranceSpring()),
-                    exit = fadeOut(tween(300)) + shrinkVertically(tween(300)),
+                    exit = fadeOut(SettingsAnimations.exitTween()) + shrinkVertically(SettingsAnimations.exitTween()),
                 ) {
                     SettingsUpdateBanner(
                         latestVersion = state.latestVersion,
@@ -318,16 +329,10 @@ private fun CompactSettingsLayout(
                 AnimatedVisibility(
                     visible = categoriesVisible,
                     enter = fadeIn(
-                        tween(
-                            SettingsAnimations.EntranceSlideDuration,
-                            delayMillis = index * SettingsAnimations.StaggerDelayPerItem,
-                        )
+                        SettingsAnimations.staggerTween(index)
                     ) + slideInVertically(
                         initialOffsetY = { it / 5 },
-                        animationSpec = tween(
-                            SettingsAnimations.EntranceSlideDuration,
-                            delayMillis = index * SettingsAnimations.StaggerDelayPerItem,
-                        ),
+                        animationSpec = SettingsAnimations.staggerTween(index),
                     ),
                 ) {
                     SettingsGroupCard(
@@ -393,7 +398,7 @@ private fun MediumSettingsLayout(
                         visible = bannerVisible && state.showPermissionBanner,
                         enter = fadeIn(SettingsAnimations.entranceSpring()) +
                             expandVertically(SettingsAnimations.entranceSpring()),
-                        exit = fadeOut(tween(300)) + shrinkVertically(tween(300)),
+                        exit = fadeOut(SettingsAnimations.exitTween()) + shrinkVertically(SettingsAnimations.exitTween()),
                     ) {
                         SettingsPermissionBanner(
                             onRequestPermission = state.onRequestPermission,
@@ -407,7 +412,7 @@ private fun MediumSettingsLayout(
                         visible = bannerVisible && state.showUpdateBanner,
                         enter = fadeIn(SettingsAnimations.entranceSpring()) +
                             expandVertically(SettingsAnimations.entranceSpring()),
-                        exit = fadeOut(tween(300)) + shrinkVertically(tween(300)),
+                        exit = fadeOut(SettingsAnimations.exitTween()) + shrinkVertically(SettingsAnimations.exitTween()),
                     ) {
                         SettingsUpdateBanner(
                             latestVersion = state.latestVersion,
@@ -476,16 +481,10 @@ private fun MediumSettingsLayout(
                     AnimatedVisibility(
                         visible = categoriesVisible,
                         enter = fadeIn(
-                            tween(
-                                SettingsAnimations.EntranceSlideDuration,
-                                delayMillis = index * SettingsAnimations.StaggerDelayPerItem,
-                            )
+                            SettingsAnimations.staggerTween(index)
                         ) + slideInVertically(
                             initialOffsetY = { it / 5 },
-                            animationSpec = tween(
-                                SettingsAnimations.EntranceSlideDuration,
-                                delayMillis = index * SettingsAnimations.StaggerDelayPerItem,
-                            ),
+                            animationSpec = SettingsAnimations.staggerTween(index),
                         ),
                     ) {
                         SettingsGroupCard(
@@ -550,7 +549,7 @@ private fun ExpandedSettingsLayout(
                         visible = bannerVisible && state.showPermissionBanner,
                         enter = fadeIn(SettingsAnimations.entranceSpring()) +
                             expandVertically(SettingsAnimations.entranceSpring()),
-                        exit = fadeOut(tween(300)) + shrinkVertically(tween(300)),
+                        exit = fadeOut(SettingsAnimations.exitTween()) + shrinkVertically(SettingsAnimations.exitTween()),
                     ) {
                         SettingsPermissionBanner(
                             onRequestPermission = state.onRequestPermission,
@@ -564,7 +563,7 @@ private fun ExpandedSettingsLayout(
                         visible = bannerVisible && state.showUpdateBanner,
                         enter = fadeIn(SettingsAnimations.entranceSpring()) +
                             expandVertically(SettingsAnimations.entranceSpring()),
-                        exit = fadeOut(tween(300)) + shrinkVertically(tween(300)),
+                        exit = fadeOut(SettingsAnimations.exitTween()) + shrinkVertically(SettingsAnimations.exitTween()),
                     ) {
                         SettingsUpdateBanner(
                             latestVersion = state.latestVersion,
@@ -633,16 +632,10 @@ private fun ExpandedSettingsLayout(
                     AnimatedVisibility(
                         visible = categoriesVisible,
                         enter = fadeIn(
-                            tween(
-                                SettingsAnimations.EntranceSlideDuration,
-                                delayMillis = index * SettingsAnimations.StaggerDelayPerItem,
-                            )
+                            SettingsAnimations.staggerTween(index)
                         ) + slideInVertically(
                             initialOffsetY = { it / 5 },
-                            animationSpec = tween(
-                                SettingsAnimations.EntranceSlideDuration,
-                                delayMillis = index * SettingsAnimations.StaggerDelayPerItem,
-                            ),
+                            animationSpec = SettingsAnimations.staggerTween(index),
                         ),
                     ) {
                         SettingsGroupCard(

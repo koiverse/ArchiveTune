@@ -16,6 +16,7 @@ import androidx.compose.animation.core.AnimationSpec
 import androidx.compose.animation.core.AnimationVector1D
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.VectorConverter
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -54,6 +55,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
+import moe.koiverse.archivetune.LocalAnimationsDisabled
 import moe.koiverse.archivetune.constants.BottomSheetAnimationSpec
 import moe.koiverse.archivetune.constants.BottomSheetSoftAnimationSpec
 import moe.koiverse.archivetune.utils.rememberPreference
@@ -137,6 +139,7 @@ class BottomSheetState(
     private val coroutineScope: CoroutineScope,
     private val animatable: Animatable<Dp, AnimationVector1D>,
     private val onAnchorChanged: (Int) -> Unit,
+    private val animationsDisabled: Boolean,
     val collapsedBound: Dp,
 ) : DraggableState by draggableState {
     val dismissedBound: Dp
@@ -178,25 +181,25 @@ class BottomSheetState(
     }
 
     private fun collapse() {
-        collapse(BottomSheetAnimationSpec)
+        collapse(if (animationsDisabled) snap() else BottomSheetAnimationSpec)
     }
 
     private fun expand() {
-        expand(BottomSheetAnimationSpec)
+        expand(if (animationsDisabled) snap() else BottomSheetAnimationSpec)
     }
 
     fun collapseSoft() {
-        collapse(BottomSheetSoftAnimationSpec)
+        collapse(if (animationsDisabled) snap() else BottomSheetSoftAnimationSpec)
     }
 
     fun expandSoft() {
-        expand(BottomSheetSoftAnimationSpec)
+        expand(if (animationsDisabled) snap() else BottomSheetSoftAnimationSpec)
     }
 
     fun dismiss() {
         onAnchorChanged(DISMISSED_ANCHOR)
         coroutineScope.launch(start = CoroutineStart.UNDISPATCHED) {
-            animatable.animateTo(animatable.lowerBound!!)
+            animatable.animateTo(animatable.lowerBound!!, if (animationsDisabled) snap() else BottomSheetAnimationSpec)
         }
     }
 
@@ -313,6 +316,7 @@ fun rememberBottomSheetState(
 ): BottomSheetState {
     val density = LocalDensity.current
     val coroutineScope = rememberCoroutineScope()
+    val animationsDisabled = LocalAnimationsDisabled.current
 
     var previousAnchor by rememberSaveable {
         mutableIntStateOf(initialAnchor)
@@ -322,7 +326,7 @@ fun rememberBottomSheetState(
             Animatable(0.dp, Dp.VectorConverter)
         }
 
-    return remember(dismissedBound, expandedBound, collapsedBound, coroutineScope) {
+    return remember(dismissedBound, expandedBound, collapsedBound, coroutineScope, animationsDisabled) {
         val initialValue =
             when (previousAnchor) {
                 EXPANDED_ANCHOR -> expandedBound
@@ -333,7 +337,7 @@ fun rememberBottomSheetState(
 
         animatable.updateBounds(dismissedBound.coerceAtMost(expandedBound), expandedBound)
         coroutineScope.launch(start = CoroutineStart.UNDISPATCHED) {
-            animatable.animateTo(initialValue, BottomSheetAnimationSpec)
+            animatable.animateTo(initialValue, if (animationsDisabled) snap() else BottomSheetAnimationSpec)
         }
 
         BottomSheetState(
@@ -346,6 +350,7 @@ fun rememberBottomSheetState(
             onAnchorChanged = { previousAnchor = it },
             coroutineScope = coroutineScope,
             animatable = animatable,
+            animationsDisabled = animationsDisabled,
             collapsedBound = collapsedBound,
         )
     }

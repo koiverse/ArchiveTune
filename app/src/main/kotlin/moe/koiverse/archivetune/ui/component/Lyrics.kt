@@ -155,6 +155,7 @@ import coil3.ImageLoader
 import coil3.request.ImageRequest
 import coil3.request.allowHardware
 import coil3.toBitmap
+import moe.koiverse.archivetune.LocalAnimationsDisabled
 import moe.koiverse.archivetune.LocalPlayerConnection
 import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.constants.DarkModeKey
@@ -468,6 +469,7 @@ fun Lyrics(
     val lyricsLineSpacing by rememberPreference(LyricsLineSpacingKey, 1.3f)
     val lyricsSyncOffset by rememberPreference(LyricsSyncOffsetKey, 0)
     val useSystemFont by rememberPreference(UseSystemFontKey, false)
+    val animationsDisabled = LocalAnimationsDisabled.current
     val lyricsFontFamily = remember(useSystemFont) {
         if (useSystemFont) null else FontFamily(Font(R.font.sfprodisplaybold))
     }
@@ -926,8 +928,8 @@ fun Lyrics(
 
                     val targetBlur = when {
                         !isSynced || index == displayedCurrentLineIndex || (isSelectionModeActive && isSelected) || isManualScrolling -> 0f
-                        distance == 1 -> 4f
-                        distance == 2 -> 8f
+                        distance == 1 -> 2f
+                        distance == 2 -> 5f
                         else -> 12f
                     }
 
@@ -1056,7 +1058,12 @@ fun Lyrics(
                             }
                         val hasRomanization = remember(romanizedText) { romanizedText != null }
 
-                        val effectiveAnimationStyle = lyricsAnimationStyle
+                        val effectiveAnimationStyle =
+                            if (animationsDisabled) {
+                                LyricsAnimationStyle.NONE
+                            } else {
+                                lyricsAnimationStyle
+                            }
 
                         val reduceMotionDuringScroll =
                             isSelectionModeActive

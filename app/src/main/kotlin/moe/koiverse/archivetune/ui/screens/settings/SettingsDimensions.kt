@@ -8,9 +8,14 @@
 
 package moe.koiverse.archivetune.ui.screens.settings
 
+import androidx.compose.animation.core.FiniteAnimationSpec
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.snap
+import androidx.compose.animation.core.tween
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.dp
+import moe.koiverse.archivetune.LocalAnimationsDisabled
 
 object SettingsDimensions {
     val GroupCardCornerRadius = 16.dp
@@ -67,9 +72,49 @@ object SettingsAnimations {
     val StaggerDelayPerItem = 80
     val ExitFadeDuration = 200
 
-    fun <T> pressSpring() = spring<T>(stiffness = Spring.StiffnessHigh)
-    fun <T> entranceSpring() = spring<T>(
-        stiffness = Spring.StiffnessLow,
-        dampingRatio = 0.85f,
-    )
+    @Composable
+    fun <T> pressSpring(): FiniteAnimationSpec<T> =
+        if (LocalAnimationsDisabled.current) {
+            snap()
+        } else {
+            spring(stiffness = Spring.StiffnessHigh)
+        }
+
+    @Composable
+    fun <T> entranceSpring(): FiniteAnimationSpec<T> =
+        if (LocalAnimationsDisabled.current) {
+            snap()
+        } else {
+            spring(
+                stiffness = Spring.StiffnessLow,
+                dampingRatio = 0.85f,
+            )
+        }
+
+    @Composable
+    fun <T> exitTween(): FiniteAnimationSpec<T> =
+        if (LocalAnimationsDisabled.current) {
+            snap()
+        } else {
+            tween(durationMillis = ExitFadeDuration)
+        }
+
+    @Composable
+    fun <T> fadeTween(durationMillis: Int): FiniteAnimationSpec<T> =
+        if (LocalAnimationsDisabled.current) {
+            snap()
+        } else {
+            tween(durationMillis = durationMillis)
+        }
+
+    @Composable
+    fun <T> staggerTween(index: Int): FiniteAnimationSpec<T> =
+        if (LocalAnimationsDisabled.current) {
+            snap()
+        } else {
+            tween(
+                durationMillis = EntranceSlideDuration,
+                delayMillis = index * StaggerDelayPerItem,
+            )
+        }
 }

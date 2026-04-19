@@ -63,6 +63,7 @@ fun ArchiveTuneTheme(
     pureBlack: Boolean = false,
     themeColor: Color = DefaultThemeColor,
     seedPalette: ThemeSeedPalette? = null,
+    disableAnimations: Boolean = false,
     useSystemFont: Boolean = false,
     content: @Composable () -> Unit,
 ) {
@@ -101,7 +102,7 @@ fun ArchiveTuneTheme(
         if (darkTheme && pureBlack) baseColorScheme.pureBlack(true) else baseColorScheme
     }
 
-    val animatedColorScheme = animateColorScheme(colorScheme)
+    val animatedColorScheme = if (disableAnimations) colorScheme else animateColorScheme(colorScheme)
 
     val expressiveShapes = remember {
         Shapes(
