@@ -225,7 +225,7 @@
         <item quantity="other">%d секунд</item>
     </plurals>
     <string name="audio_crossfade_title">Плавний перехід</string>
-    <string name="audio_crossfade_description">Плавний перехід між піснями за допомогою поступового затихання наприкінці кожного треку.</string>
+    <string name="audio_crossfade_description">Плавний перехід між піснями за допомогою плавного затихання та наростання звуку.</string>
     <string name="audio_crossfade_dialog_title">Тривалість переходу</string>
     <string name="disable_load_more_when_repeat_all">Вимкнути функцію «Завантажити ще» при повторенні всього</string>
     <string name="disable_load_more_when_repeat_all_desc">Не завантажувати автоматично інші пісні та подібний контент, коли увімкнено режим «Повторити все»</string>
@@ -291,4 +291,20 @@
     <string name="restore_step_restoring_settings">Відновлення налаштувань</string>
     <string name="restore_step_restoring_file">Відновлення %1$s</string>
     <string name="restore_step_restarting">Перезапуск застосунку</string>
+    <string name="lyrics_share_layout">Макет</string>
+    <string name="lyrics_share_layout_square">Квадрат</string>
+    <string name="lyrics_share_layout_portrait">Портрет</string>
+    <string name="lyrics_share_layout_story">Історія</string>
+    <string name="lyrics_share_background_blur">Розмиття фону</string>
+    <string name="lyrics_share_background_blur_value">%1$d пікселів</string>
+    <string name="lyrics_share_background_dim">Затемнення фону</string>
+    <string name="lyrics_share_background_dim_value">%1$d%%</string>
+    <string name="lyrics_share_show_cover">Показувати обкладинку альбому</string>
+    <string name="lyrics_share_show_cover_desc">Включити ілюстрацію в верхню частину експортованого зображення.</string>
+    <string name="lyrics_share_export_failed">Не вдалося створити зображення: %1$s</string>
+    <string name="lyrics_share_export_not_supported">Для обміну зображеннями потрібна версія Android 6.0 або новіша</string>
+    <string name="lyrics_sync_offset">Зсув синхронізації тексту пісні</string>
+    <string name="audio_crossfade_seconds">%1$s сек</string>
+    <string name="crossfade_gapless_title">Плавні переходи без проміжків</string>
+    <string name="crossfade_gapless_description">Зменшення гучності та збільшення гучності без перекриття звуку.</string>
 </resources>
