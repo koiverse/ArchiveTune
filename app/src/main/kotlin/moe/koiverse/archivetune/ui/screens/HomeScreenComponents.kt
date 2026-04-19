@@ -13,7 +13,6 @@ package moe.koiverse.archivetune.ui.screens
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.layout.Arrangement
@@ -162,7 +161,8 @@ fun QuickPicksSection(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .border(
+                .maskClip(MaterialTheme.shapes.extraLarge)
+                .maskBorder(
                     BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
                     MaterialTheme.shapes.extraLarge
                 )
