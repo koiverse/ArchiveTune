@@ -810,4 +810,8 @@
     <string name="external_downloader_not_configured">Aucun téléchargeur externe n\'est configuré. Configurez-en un dans Paramètres → Lecteur.</string>
     <string name="open_youtube_music">Ouvrir YouTube Music</string>
     <string name="archivetune_canvas_v7_desc">Non disponible avec le style de lecteur immersif</string>
+    <string name="po_token_account_notice_title">Utiliser le même compte</string>
+    <string name="po_token_account_notice_body">Connectez-vous ici avec le même compte Google que celui que vous utilisez déjà pour YouTube Music dans ArchiveTune avant de générer un jeton PO.</string>
+    <string name="po_token_account_notice_same_account">Si cette WebView utilise un autre compte, le jeton généré ne fonctionnera pas correctement.</string>
+    <string name="po_token_account_notice_mismatch">Utilisez le compte correspondant, terminez la procédure de connexion, puis ouvrez youtube.com/account et générez le jeton à partir de cette page.</string>
 </resources>
