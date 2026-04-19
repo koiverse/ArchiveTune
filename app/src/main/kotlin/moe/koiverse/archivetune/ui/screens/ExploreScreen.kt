@@ -409,10 +409,15 @@ fun ExploreScreen(
                         contentPadding = PaddingValues(6.dp),
                         modifier = Modifier.height((MoodAndGenresButtonHeight + 12.dp) * 4 + 12.dp),
                     ) {
-                        items(moodAndGenres) {
+                        items(
+                            items = moodAndGenres,
+                            key = { item -> "${item.title}:${item.endpoint.browseId}:${item.endpoint.params}" },
+                            contentType = { "moodAndGenres" },
+                        ) {
                             MoodAndGenresButton(
                                 title = it.title,
                                 stripeColor = it.stripeColor,
+                                endpoint = it.endpoint,
                                 onClick = {
                                     navController.navigate("youtube_browse/${it.endpoint.browseId}?params=${it.endpoint.params}")
                                 },
