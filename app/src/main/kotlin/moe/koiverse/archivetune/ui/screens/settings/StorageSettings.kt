@@ -12,22 +12,26 @@
 
 package moe.koiverse.archivetune.ui.screens.settings
 
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.foundation.background
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
@@ -55,13 +59,11 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import coil3.annotation.ExperimentalCoilApi
@@ -251,10 +253,6 @@ fun StorageSettings(
                     }
                 },
                 scrollBehavior = scrollBehavior,
-                colors = TopAppBarDefaults.largeTopAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
-                    scrolledContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
-                ),
             )
         },
         containerColor = MaterialTheme.colorScheme.surface,
@@ -270,10 +268,7 @@ fun StorageSettings(
             verticalArrangement = Arrangement.spacedBy(SettingsDimensions.SectionSpacing),
         ) {
             StorageSummaryCard(
-                trackedStorageText = stringResource(
-                    R.string.storage_tracked_storage,
-                    formatFileSize(totalTrackedStorage),
-                ),
+                totalStorage = formatFileSize(totalTrackedStorage),
                 downloadValue = formatFileSize(downloadCacheSize),
                 songValue = formatFileSize(playerCacheSize),
                 imageValue = formatFileSize(imageCacheSize),
@@ -293,6 +288,8 @@ fun StorageSettings(
                 } else {
                     stringResource(R.string.storage_trimmer_unavailable)
                 },
+                tint = MaterialTheme.colorScheme.tertiary,
+                tintContainer = MaterialTheme.colorScheme.tertiaryContainer,
             ) {
                 SwitchPreference(
                     title = { Text(stringResource(R.string.smart_trimmer)) },
@@ -312,6 +309,8 @@ fun StorageSettings(
                 title = stringResource(R.string.downloaded_songs),
                 value = formatFileSize(downloadCacheSize),
                 supportingText = stringResource(R.string.storage_downloads_detail),
+                tint = MaterialTheme.colorScheme.primary,
+                tintContainer = MaterialTheme.colorScheme.primaryContainer,
             ) {
                 PreferenceEntry(
                     title = { Text(stringResource(R.string.clear_all_downloads)) },
@@ -325,6 +324,8 @@ fun StorageSettings(
                 value = formatFileSize(playerCacheSize),
                 supportingText = songLimitText,
                 progress = if (maxSongCacheSize > 0) playerCacheProgress else null,
+                tint = MaterialTheme.colorScheme.secondary,
+                tintContainer = MaterialTheme.colorScheme.secondaryContainer,
             ) {
                 ListPreference(
                     title = { Text(stringResource(R.string.max_cache_size)) },
@@ -351,6 +352,8 @@ fun StorageSettings(
                 value = formatFileSize(imageCacheSize),
                 supportingText = imageLimitText,
                 progress = if (maxImageCacheSize > 0) imageCacheProgress else null,
+                tint = MaterialTheme.colorScheme.tertiary,
+                tintContainer = MaterialTheme.colorScheme.tertiaryContainer,
             ) {
                 ListPreference(
                     title = { Text(stringResource(R.string.max_cache_size)) },
@@ -377,6 +380,8 @@ fun StorageSettings(
                 supportingText = canvasLimitText,
                 note = stringResource(R.string.storage_canvas_detail),
                 progress = if (maxCanvasCacheSize > 0) canvasCacheProgress else null,
+                tint = MaterialTheme.colorScheme.primary,
+                tintContainer = MaterialTheme.colorScheme.primaryContainer,
             ) {
                 ListPreference(
                     title = { Text(stringResource(R.string.max_cache_size)) },
@@ -472,70 +477,84 @@ fun StorageSettings(
 
 @Composable
 private fun StorageSummaryCard(
-    trackedStorageText: String,
+    totalStorage: String,
     downloadValue: String,
     songValue: String,
     imageValue: String,
     canvasValue: String,
     modifier: Modifier = Modifier,
 ) {
-    val gradient = Brush.linearGradient(
-        colors = listOf(
-            MaterialTheme.colorScheme.primaryContainer,
-            MaterialTheme.colorScheme.secondaryContainer,
-            MaterialTheme.colorScheme.tertiaryContainer,
-        ),
-        start = Offset.Zero,
-        end = Offset(Float.POSITIVE_INFINITY, Float.POSITIVE_INFINITY),
-    )
-
     Card(
         modifier = modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
         shape = RoundedCornerShape(SettingsDimensions.HeroCardCornerRadius),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(gradient)
                 .padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                Text(
-                    text = trackedStorageText,
-                    style = MaterialTheme.typography.headlineSmall,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer,
-                )
-                Text(
-                    text = stringResource(R.string.storage_summary_supporting),
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.88f),
-                )
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    StorageMetricChip(
-                        icon = R.drawable.ic_download,
-                        value = downloadValue,
-                        modifier = Modifier.weight(1f),
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
+            ) {
+                Surface(
+                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.08f),
+                    shape = RoundedCornerShape(14.dp),
+                ) {
+                    Box(
+                        modifier = Modifier.size(48.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.storage),
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                            modifier = Modifier.size(24.dp),
+                        )
+                    }
+                }
+                Column {
+                    Text(
+                        text = totalStorage,
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
                     )
-                    StorageMetricChip(
-                        icon = R.drawable.ic_music,
-                        value = songValue,
-                        modifier = Modifier.weight(1f),
+                    Text(
+                        text = stringResource(R.string.storage_summary_supporting),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.78f),
                     )
                 }
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    StorageMetricChip(
-                        icon = R.drawable.image,
-                        value = imageValue,
-                        modifier = Modifier.weight(1f),
-                    )
-                    StorageMetricChip(
-                        icon = R.drawable.motion_photos_on,
-                        value = canvasValue,
-                        modifier = Modifier.weight(1f),
-                    )
-                }
+            }
+
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                StorageMetricChip(
+                    icon = R.drawable.ic_download,
+                    value = downloadValue,
+                    tint = MaterialTheme.colorScheme.primary,
+                )
+                StorageMetricChip(
+                    icon = R.drawable.ic_music,
+                    value = songValue,
+                    tint = MaterialTheme.colorScheme.secondary,
+                )
+                StorageMetricChip(
+                    icon = R.drawable.image,
+                    value = imageValue,
+                    tint = MaterialTheme.colorScheme.tertiary,
+                )
+                StorageMetricChip(
+                    icon = R.drawable.motion_photos_on,
+                    value = canvasValue,
+                    tint = MaterialTheme.colorScheme.primary,
+                )
             }
         }
     }
@@ -545,32 +564,25 @@ private fun StorageSummaryCard(
 private fun StorageMetricChip(
     icon: Int,
     value: String,
+    tint: androidx.compose.ui.graphics.Color,
     modifier: Modifier = Modifier,
 ) {
     Surface(
-        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.72f),
-        shape = RoundedCornerShape(18.dp),
+        color = MaterialTheme.colorScheme.surface,
+        shape = RoundedCornerShape(12.dp),
         modifier = modifier,
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Box(
-                modifier = Modifier
-                    .size(28.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    painter = painterResource(icon),
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(16.dp),
-                )
-            }
+            Icon(
+                painter = painterResource(icon),
+                contentDescription = null,
+                tint = tint,
+                modifier = Modifier.size(16.dp),
+            )
             Text(
                 text = value,
                 style = MaterialTheme.typography.labelLarge,
@@ -589,9 +601,19 @@ private fun StorageSectionCard(
     supportingText: String,
     progress: Float? = null,
     note: String? = null,
+    tint: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.primary,
+    tintContainer: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.primaryContainer,
     actions: @Composable ColumnScope.() -> Unit,
 ) {
     val progressLabel = progress?.let { "${(it * 100).toInt()}%" }
+    val animatedProgress by animateFloatAsState(
+        targetValue = progress ?: 0f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioLowBouncy,
+            stiffness = Spring.StiffnessLow,
+        ),
+        label = "sectionProgress",
+    )
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -603,11 +625,13 @@ private fun StorageSectionCard(
             modifier = Modifier.padding(SettingsDimensions.CardInternalPadding),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            Row(verticalAlignment = Alignment.Top) {
+            Row(
+                verticalAlignment = Alignment.Top,
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
+            ) {
                 Surface(
-                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                    color = tintContainer,
                     shape = RoundedCornerShape(SettingsDimensions.RowIconCornerRadius),
-                    modifier = Modifier.padding(end = 14.dp),
                 ) {
                     Box(
                         modifier = Modifier.size(44.dp),
@@ -616,7 +640,7 @@ private fun StorageSectionCard(
                         Icon(
                             painter = painterResource(icon),
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
+                            tint = tint,
                             modifier = Modifier.size(22.dp),
                         )
                     }
@@ -624,7 +648,7 @@ private fun StorageSectionCard(
 
                 Column(
                     modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalArrangement = Arrangement.spacedBy(2.dp),
                 ) {
                     Text(
                         text = title,
@@ -634,24 +658,27 @@ private fun StorageSectionCard(
                     Text(
                         text = value,
                         style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onSurface,
                     )
+                    Spacer(modifier = Modifier.height(2.dp))
                     Text(
                         text = supportingText,
-                        style = MaterialTheme.typography.bodyMedium,
+                        style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
 
                 progressLabel?.let {
                     Surface(
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
-                        shape = CircleShape,
+                        color = tintContainer,
+                        shape = RoundedCornerShape(10.dp),
                     ) {
                         Text(
                             text = it,
-                            style = MaterialTheme.typography.labelLarge,
-                            color = MaterialTheme.colorScheme.primary,
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Medium,
+                            color = tint,
                             modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
                         )
                     }
@@ -660,10 +687,10 @@ private fun StorageSectionCard(
 
             if (progress != null) {
                 LinearWavyProgressIndicator(
-                    progress = { progress },
+                    progress = { animatedProgress },
                     modifier = Modifier.fillMaxWidth(),
-                    color = MaterialTheme.colorScheme.primary,
-                    trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                    color = tint,
+                    trackColor = tintContainer.copy(alpha = 0.38f),
                 )
             }
 
@@ -678,8 +705,20 @@ private fun StorageSectionCard(
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f))
 
             CompositionLocalProvider(LocalPreferenceInGroup provides true) {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    actions()
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    ),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+                    shape = RoundedCornerShape(SettingsDimensions.RowIconCornerRadius + 4.dp),
+                ) {
+                    Column(
+                        modifier = Modifier.padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        actions()
+                    }
                 }
             }
         }
