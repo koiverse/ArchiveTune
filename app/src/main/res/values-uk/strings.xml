@@ -771,4 +771,8 @@
     <string name="token_copied">Токен скопійовано до буфера обміну</string>
     <string name="no_visitor_data">Дані про відвідувачів відсутні. Неможливо створити токени.</string>
     <string name="extracting_from_url">Витягування токенів з URL-адреси…</string>
+    <string name="po_token_account_notice_title">Використовуйте той самий обліковий запис</string>
+    <string name="po_token_account_notice_body">Перш ніж створити токен PO, увійдіть сюди за допомогою того самого облікового запису Google, який ви вже використовуєте для YouTube Music у програмі ArchiveTune.</string>
+    <string name="po_token_account_notice_same_account">Якщо цей WebView використовує інший обліковий запис, згенерований токен не працюватиме належним чином.</string>
+    <string name="po_token_account_notice_mismatch">Використовуйте відповідний обліковий запис, завершіть процедуру входу, а потім відкрийте сторінку youtube.com/account і створіть токен на цій сторінці.</string>
 </resources>
