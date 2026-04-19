@@ -19,6 +19,36 @@ body:
         - label: The issue title is clear and concise.
           required: true
 
+  - type: dropdown
+    id: component
+    attributes:
+      label: Where does the bug happen?
+      description: Select the area of the app.
+      options:
+        - 🎵 Music Player (Now Playing)
+        - 📚 Library / Playlists
+        - 🔍 Search
+        - ⚙️ Settings
+        - 📥 Downloads
+        - 🎨 UI / Visuals
+        - 🔌 Integrations (Discord/LastFM/ListenBrainz)
+        - 📱 Widgets / Notification
+        - ❓ Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: frequency
+    attributes:
+      label: How often does it happen?
+      options:
+        - 🔴 Every time (100%)
+        - 🟠 Often (> 50%)
+        - 🟡 Sometimes (< 50%)
+        - 🟢 Rarely (Once or twice)
+    validations:
+      required: true
+
   - type: textarea
     id: reproduction-steps
     attributes:
@@ -70,12 +100,20 @@ body:
     validations:
       required: true
 
-  - type: input
-    id: environment-os-version
+  - type: dropdown
+    id: android-version
     attributes:
-      label: Android Version / ROM
-      description: e.g., Android 13, LineageOS 20, OneUI 5.
-      placeholder: e.g., Android 14
+      label: Android Version
+      options:
+        - Android 16 (Preview)
+        - Android 15
+        - Android 14
+        - Android 13
+        - Android 12
+        - Android 11
+        - Android 10
+        - Android 9 or older
+        - Custom ROM
     validations:
       required: true
 
