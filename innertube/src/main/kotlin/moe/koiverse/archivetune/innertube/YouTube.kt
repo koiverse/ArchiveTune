@@ -671,7 +671,8 @@ object YouTube {
             thumbnail = response.header?.musicImmersiveHeaderRenderer?.thumbnail?.musicThumbnailRenderer?.getThumbnailUrl()
                 ?: response.header?.musicVisualHeaderRenderer?.foregroundThumbnail?.musicThumbnailRenderer?.getThumbnailUrl()
                 ?: response.header?.musicDetailHeaderRenderer?.thumbnail?.musicThumbnailRenderer?.getThumbnailUrl()
-                ?: response.header?.musicEditablePlaylistDetailHeaderRenderer?.thumbnail?.musicThumbnailRenderer?.getThumbnailUrl()
+                ?: response.header?.musicEditablePlaylistDetailHeaderRenderer?.header?.musicDetailHeaderRenderer?.thumbnail?.musicThumbnailRenderer?.getThumbnailUrl()
+                ?: response.header?.musicEditablePlaylistDetailHeaderRenderer?.header?.musicResponsiveHeaderRenderer?.thumbnail?.musicThumbnailRenderer?.getThumbnailUrl()
                 ?: response.header?.musicHeaderRenderer?.thumbnail?.thumbnails?.lastOrNull()?.url
                 ?: response.header?.musicHeaderRenderer?.straplineThumbnail?.thumbnails?.lastOrNull()?.url
                 ?: browseItems.asSequence().flatMap { it.items.asSequence() }.mapNotNull { it.thumbnail }.firstOrNull(),
