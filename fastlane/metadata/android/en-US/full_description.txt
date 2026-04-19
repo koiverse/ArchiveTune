@@ -4,6 +4,7 @@ Features:
 
 - Ad-free playback with background listening
 - Your playlists, liked songs, and subscriptions after sign-in
+- Support Local File Playback
 - Fast startup and lightweight performance
 - Private, uninterrupted listening experience
 - EBU R128 loudness normalization

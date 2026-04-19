@@ -4,6 +4,7 @@ Fitur:
 
 - Pemutaran bebas iklan dengan dukungan pemutaran latar belakang
 - Daftar putar, lagu yang disukai, dan langganan Anda muncul setelah masuk
+- Mendukung Pemutaran File Lokal
 - Startup cepat dan performa ringan
 - Pengalaman mendengarkan yang privat dan tanpa gangguan
 - Normalisasi loudness EBU R128

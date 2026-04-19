@@ -78,6 +78,7 @@
         <ul>
           <li>Ad-free playback with background listening</li>
           <li>Your playlists, liked songs, and subscriptions appear after sign-in</li>
+          <li>Support local file and local song playback
           <li>Fast startup and lightweight performance</li>
           <li>Built for a private, uninterrupted listening experience</li>
         </ul>
