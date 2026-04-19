@@ -1709,11 +1709,6 @@ fun EqualizerDialog(
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis,
                                     )
-                                    Text(
-                                        text = currentProfileSupportingText,
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    )
                                 }
 
                                 Surface(
@@ -1991,7 +1986,7 @@ private fun EqHeroCard(
                         modifier = Modifier.fillMaxWidth(),
                     ) {
                         Text(
-                            text = stringResource(R.string.equalizer),
+                            text = stringResource(R.string.tap_to_activate_equalizer),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold,
                         )
