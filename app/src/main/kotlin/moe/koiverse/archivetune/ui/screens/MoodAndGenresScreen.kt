@@ -13,6 +13,7 @@ package moe.koiverse.archivetune.ui.screens
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -60,8 +61,6 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import moe.koiverse.archivetune.LocalPlayerAwareWindowInsets
 import moe.koiverse.archivetune.R
-import moe.koiverse.archivetune.ui.component.maskBorder
-import moe.koiverse.archivetune.ui.component.maskClip
 import moe.koiverse.archivetune.ui.component.shimmer.ShimmerHost
 import moe.koiverse.archivetune.ui.component.shimmer.TextPlaceholder
 import moe.koiverse.archivetune.viewmodels.MoodAndGenresViewModel
@@ -164,8 +163,7 @@ private fun MoodAndGenresHero(
             shape = MaterialTheme.shapes.extraLarge,
             modifier = Modifier
                 .fillMaxWidth()
-                .maskClip(MaterialTheme.shapes.extraLarge)
-                .maskBorder(
+                .border(
                     BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
                     MaterialTheme.shapes.extraLarge,
                 ),
@@ -316,8 +314,7 @@ private fun MoodAndGenresTabButton(
         colors = CardDefaults.cardColors(containerColor = base),
         modifier = modifier
             .height(MoodAndGenresTabButtonHeight)
-            .maskClip(MaterialTheme.shapes.extraLarge)
-            .maskBorder(
+            .border(
                 BorderStroke(1.dp, Color.White.copy(alpha = 0.16f)),
                 MaterialTheme.shapes.extraLarge,
             )
