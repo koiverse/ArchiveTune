@@ -17,6 +17,20 @@ body:
         - label: The issue title is concise and descriptive.
           required: true
 
+  - type: dropdown
+    id: category
+    attributes:
+      label: Category
+      options:
+        - ✨ New Feature
+        - 🎨 UI / Design Improvement
+        - ⚡ Performance / Optimization
+        - 🎧 Audio Experience
+        - 🌐 Translation / Localization
+        - 🔧 Other
+    validations:
+      required: true
+
   - type: textarea
     id: problem-statement
     attributes:
