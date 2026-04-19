@@ -87,6 +87,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
@@ -96,6 +97,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
@@ -578,9 +580,9 @@ fun LyricsV2(
                 val wordLineAlpha = lineAlpha
                 val targetBlur = when {
                     !isSynced || isActive || (isSelectionModeActive && isSelected) || isManualScrolling -> 0f
-                    distanceFromActive == 1 -> 8f
-                    distanceFromActive == 2 -> 14f
-                    else -> 20f
+                    distanceFromActive == 1 -> 2f
+                    distanceFromActive == 2 -> 5f
+                    else -> 12f
                 }
                 val animatedBlur by androidx.compose.animation.core.animateFloatAsState(
                     targetValue = targetBlur,
@@ -1094,11 +1096,30 @@ private fun AnimatedWordV2(
 
     val actualFontSize = if (isBackground) fontSize * 0.85f else fontSize
     val fontWeight = if (isLineActive || isLinePast) FontWeight.ExtraBold else FontWeight.SemiBold
+    val glowPadding = 10.dp
 
     // ── Two-layer rendering: dim base + liquid fill overlay ──
     Box(
         modifier = Modifier
+            .layout { measurable, constraints ->
+                val glowPaddingPx = glowPadding.roundToPx()
+                val looseConstraints = constraints.copy(
+                    minWidth = 0,
+                    maxWidth = Constraints.Infinity,
+                    minHeight = 0,
+                    maxHeight = Constraints.Infinity,
+                )
+                val placeable = measurable.measure(looseConstraints)
+
+                val coreWidth = (placeable.width - glowPaddingPx * 2).coerceAtLeast(0)
+                val coreHeight = (placeable.height - glowPaddingPx * 2).coerceAtLeast(0)
+
+                layout(coreWidth, coreHeight) {
+                    placeable.place(-glowPaddingPx, -glowPaddingPx)
+                }
+            }
             .graphicsLayer {
+                clip = false
                 translationY = floatOffset * density
                 scaleX = wordScale
                 scaleY = wordScale
@@ -1115,6 +1136,7 @@ private fun AnimatedWordV2(
                 fontFamily = lyricsFontFamily ?: MaterialTheme.typography.headlineMedium.fontFamily,
             ),
             color = textColor.copy(alpha = if (isBackground) inactiveAlpha * 0.7f else inactiveAlpha),
+            modifier = Modifier.padding(glowPadding),
         )
 
         // Layer 2: Filled overlay with liquid sweep mask + glow
@@ -1154,8 +1176,9 @@ private fun AnimatedWordV2(
                                 blendMode = BlendMode.DstIn,
                             )
                         }
+                        .padding(glowPadding)
                 } else {
-                    Modifier 
+                    Modifier.padding(glowPadding)
                 }
             )
         }

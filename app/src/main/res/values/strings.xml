@@ -14,6 +14,8 @@
     <string name="history">History</string>
     <string name="stats">Stats</string>
     <string name="mood_and_genres">Mood &amp; Genres</string>
+    <string name="mood_and_genres_supporting">Play by feeling, era, or energy</string>
+    <string name="mood_and_genres_count">%d picks</string>
     <string name="account">Account</string>
     <string name="quick_picks">Quick picks</string>
     <string name="quick_picks_empty">Listen to songs to generate your quick picks</string>
@@ -478,6 +480,7 @@
     <string name="add_symbol">Add symbol</string>
     <string name="enter_symbol">Enter symbol</string>
     <string name="equalizer">Equalizer</string>
+    <string name="tap_to_activate_equalizer">Tap to activate equalizer</string>
     <string name="eq_waiting_for_audio_session">Waiting for audio session…</string>
     <string name="eq_open_system_equalizer">Open system equalizer</string>
     <string name="eq_presets">Presets</string>
@@ -505,6 +508,15 @@
     <string name="storage">Storage</string>
     <string name="smart_trimmer">Smart Trimmer</string>
     <string name="smart_trimmer_description">Smart trimmer dynamically manages the image cache and song cache, pruning old entries to save disk space.</string>
+    <string name="storage_tracked_storage">%s tracked on device</string>
+    <string name="storage_summary_supporting">Downloads, playback, and artwork caches update live.</string>
+    <string name="storage_automation_title">Automation</string>
+    <string name="storage_limit_format">Limit: %s</string>
+    <string name="storage_downloads_detail">Available offline until you remove them.</string>
+    <string name="storage_cache_disabled_detail">Cache is turned off and cleared automatically.</string>
+    <string name="storage_cache_unlimited_detail">No size limit is applied.</string>
+    <string name="storage_canvas_detail">Canvas is limited by item count instead of disk size.</string>
+    <string name="storage_trimmer_unavailable">Enable image or song cache before using Smart Trimmer.</string>
     <string name="cache">Cache</string>
     <string name="image_cache">Image Cache</string>
     <string name="song_cache">Song Cache</string>
