@@ -6,7 +6,9 @@
  */
 
 
-@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
+
+@file:OptIn(ExperimentalMaterial3ExpressiveApi::class, ExperimentalMaterial3Api::class)
+
 
 package moe.koiverse.archivetune.ui.component
 
@@ -46,6 +48,9 @@ import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ProvideTextStyle
 import androidx.compose.material3.RadioButton
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
@@ -197,6 +202,80 @@ fun PreferenceEntry(
             rowContent()
         }
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun <T> SegmentedPreference(
+    modifier: Modifier = Modifier,
+    title: @Composable () -> Unit,
+    description: String? = null,
+    icon: (@Composable () -> Unit)? = null,
+    selectedValue: T,
+    values: List<T>,
+    valueText: @Composable (T) -> String,
+    onValueSelected: (T) -> Unit,
+    isEnabled: Boolean = true,
+) {
+    PreferenceEntry(
+        modifier = modifier,
+        title = title,
+        description = description,
+        icon = icon,
+        isEnabled = isEnabled,
+        content = {
+            Spacer(Modifier.height(12.dp))
+            SingleChoiceSegmentedButtonRow(
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                values.forEachIndexed { index, value ->
+                    SegmentedButton(
+                        shape = SegmentedButtonDefaults.itemShape(index = index, count = values.size),
+                        onClick = { onValueSelected(value) },
+                        selected = value == selectedValue,
+                        enabled = isEnabled,
+                        colors = SegmentedButtonDefaults.colors(
+                            activeContainerColor = MaterialTheme.colorScheme.secondaryContainer,
+                            activeContentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                            inactiveContainerColor = MaterialTheme.colorScheme.surface,
+                            inactiveContentColor = MaterialTheme.colorScheme.onSurface
+                        )
+                    ) {
+                        Text(
+                            text = valueText(value),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            style = MaterialTheme.typography.labelLarge
+                        )
+                    }
+                }
+            }
+        }
+    )
+}
+
+@Composable
+inline fun <reified T : Enum<T>> EnumSegmentedPreference(
+    modifier: Modifier = Modifier,
+    noinline title: @Composable () -> Unit,
+    description: String? = null,
+    noinline icon: (@Composable () -> Unit)? = null,
+    selectedValue: T,
+    noinline valueText: @Composable (T) -> String,
+    noinline onValueSelected: (T) -> Unit,
+    isEnabled: Boolean = true,
+) {
+    SegmentedPreference(
+        modifier = modifier,
+        title = title,
+        description = description,
+        icon = icon,
+        selectedValue = selectedValue,
+        values = enumValues<T>().toList(),
+        valueText = valueText,
+        onValueSelected = onValueSelected,
+        isEnabled = isEnabled,
+    )
 }
 
 @Composable
