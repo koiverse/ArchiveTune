@@ -3746,10 +3746,7 @@ class MusicService :
             return false
         }
 
-        val attemptedTrackingUrls = LinkedHashSet<String>()
-
         suspend fun registerTrackingUrl(url: String): Boolean {
-            attemptedTrackingUrls += url
             return retryWithoutPlaybackLoginContext {
                 YouTube.registerPlayback(
                     playlistId = null,
@@ -3772,12 +3769,6 @@ class MusicService :
             }.isSuccess
         }
 
-        val cachedPlaybackUrl = database.format(mediaId).first()?.playbackUrl
-            ?.takeIf { it.isNotBlank() }
-        if (cachedPlaybackUrl != null && registerTrackingUrl(cachedPlaybackUrl)) {
-            return true
-        }
-
         val playbackTracking = retryWithoutPlaybackLoginContext {
             YTPlayerUtils.playerResponseForMetadata(mediaId)
         }.onFailure { throwable ->
@@ -3798,18 +3789,29 @@ class MusicService :
                     )
                 }
             }
-        }.getOrNull()?.playbackTracking ?: return false
+        }.getOrNull()?.playbackTracking
 
-        val trackingUrls = listOfNotNull(
-            playbackTracking.videostatsPlaybackUrl?.baseUrl,
-            playbackTracking.videostatsWatchtimeUrl?.baseUrl,
-        ).map { it.trim() }
-            .filter { it.isNotEmpty() && it !in attemptedTrackingUrls }
+        if (playbackTracking != null) {
+            val trackingUrls = listOfNotNull(
+                playbackTracking.videostatsPlaybackUrl?.baseUrl,
+                playbackTracking.videostatsWatchtimeUrl?.baseUrl,
+                playbackTracking.atrUrl?.baseUrl,
+            ).map { it.trim() }
+                .filter { it.isNotEmpty() }
 
-        for (trackingUrl in trackingUrls) {
-            if (registerTrackingUrl(trackingUrl)) {
-                return true
+            var anySuccess = false
+            for (trackingUrl in trackingUrls) {
+                if (registerTrackingUrl(trackingUrl)) {
+                    anySuccess = true
+                }
             }
+            return anySuccess
+        }
+
+        val cachedPlaybackUrl = database.format(mediaId).first()?.playbackUrl
+            ?.takeIf { it.isNotBlank() }
+        if (cachedPlaybackUrl != null) {
+            return registerTrackingUrl(cachedPlaybackUrl)
         }
 
         return false
