@@ -231,7 +231,7 @@ fun MoodAndGenresButton(
             modifier = Modifier
                 .align(Alignment.TopEnd)
                 .padding(top = 10.dp, end = 32.dp)
-                .size(72.dp)
+                .size(80.dp)
                 .graphicsLayer {
                     alpha = 0.24f
                     rotationZ = 13f
@@ -260,7 +260,7 @@ fun MoodAndGenresButton(
             modifier = Modifier
                 .align(Alignment.TopEnd)
                 .padding(top = 12.dp, end = 16.dp)
-                .size(76.dp)
+                .size(90.dp)
                 .graphicsLayer {
                     rotationZ = coverRotation
                     shadowElevation = coverShadow
