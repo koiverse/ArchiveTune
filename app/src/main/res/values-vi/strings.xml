@@ -802,4 +802,8 @@ ArchiveTune sẽ chỉ trích xuất token của bạn, và mọi thứ khác đ
     <string name="token_copied">Mã token đã được sao chép vào clipboard</string>
     <string name="no_visitor_data">Không có dữ liệu khách truy cập. Không thể tạo token.</string>
     <string name="extracting_from_url">Trích xuất token từ URL…</string>
+    <string name="po_token_account_notice_title">Sử dụng cùng tài khoản</string>
+    <string name="po_token_account_notice_body">Đăng nhập vào đây bằng chính tài khoản Google mà bạn đã sử dụng cho YouTube Music trong ArchiveTune trước khi tạo mã thông báo PO.</string>
+    <string name="po_token_account_notice_same_account">Nếu WebView này sử dụng một tài khoản khác, mã thông báo được tạo sẽ không hoạt động chính xác.</string>
+    <string name="po_token_account_notice_mismatch">Sử dụng tài khoản phù hợp, hoàn tất quy trình đăng nhập, sau đó mở youtube.com/account và tạo mã thông báo từ trang đó.</string>
 </resources>
