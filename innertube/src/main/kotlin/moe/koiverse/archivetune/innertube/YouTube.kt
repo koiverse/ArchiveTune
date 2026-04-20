@@ -1103,21 +1103,17 @@ object YouTube {
         ).body<PlayerResponse>()
     }
 
-    fun createPlaybackCpn(): String {
-        return (1..16).map {
+    suspend fun registerPlayback(
+        playlistId: String? = null,
+        playbackTracking: String,
+        authState: PlaybackAuthState = currentPlaybackAuthState(),
+    ) = runCatching {
+        val cpn = (1..16).map {
             "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_"[Random.Default.nextInt(
                 0,
                 64
             )]
         }.joinToString("")
-    }
-
-    suspend fun registerPlayback(
-        playlistId: String? = null,
-        playbackTracking: String,
-        cpn: String = createPlaybackCpn(),
-        authState: PlaybackAuthState = currentPlaybackAuthState(),
-    ) = runCatching {
 
         val playbackUrl = playbackTracking.replace(
             "https://s.youtube.com",
