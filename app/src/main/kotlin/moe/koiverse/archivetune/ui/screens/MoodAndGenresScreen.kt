@@ -231,7 +231,7 @@ fun MoodAndGenresButton(
             modifier = Modifier
                 .align(Alignment.TopEnd)
                 .padding(top = 10.dp, end = 32.dp)
-                .size(64.dp)
+                .size(72.dp)
                 .graphicsLayer {
                     alpha = 0.24f
                     rotationZ = 13f
@@ -305,24 +305,6 @@ fun MoodAndGenresButton(
                             drawRect(accentBrush)
                         }
                     },
-            )
-            Box(
-                modifier = Modifier
-                    .align(Alignment.BottomStart)
-                    .padding(start = 10.dp, bottom = 28.dp)
-                    .fillMaxWidth(0.68f)
-                    .height(7.dp)
-                    .clip(RoundedCornerShape(999.dp))
-                    .background(Color.White.copy(alpha = 0.16f)),
-            )
-            Box(
-                modifier = Modifier
-                    .align(Alignment.BottomStart)
-                    .padding(start = 10.dp, bottom = 14.dp)
-                    .fillMaxWidth(0.56f)
-                    .height(11.dp)
-                    .clip(RoundedCornerShape(999.dp))
-                    .background(Color.White.copy(alpha = 0.22f)),
             )
         }
         Text(
