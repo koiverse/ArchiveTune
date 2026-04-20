@@ -62,6 +62,12 @@ fun buildLoginRoute(startUrl: String? = null): String {
 
 private const val DEFAULT_LOGIN_URL = "https://accounts.google.com/ServiceLogin?continue=https%3A%2F%2Fmusic.youtube.com"
 
+private val YOUTUBE_COOKIE_URLS = listOf(
+    "https://music.youtube.com",
+    "https://www.youtube.com",
+    "https://youtube.com",
+)
+
 @SuppressLint("SetJavaScriptEnabled")
 @OptIn(ExperimentalMaterial3Api::class, DelicateCoroutinesApi::class)
 @Composable
@@ -95,7 +101,7 @@ fun LoginScreen(
                             loadUrl("javascript:void((function(){try{var c=window.ytcfg;if(c&&c.get){var t=c.get('PO_TOKEN');if(t){Android.onRetrievePoToken(t);return}}var s=document.querySelectorAll('script');for(var i=0;i<s.length;i++){var m=s[i].textContent.match(/\"PO_TOKEN\":\"([^\"]+)\"/);if(m){Android.onRetrievePoToken(m[1]);return}}}catch(e){}})())")
                         }
 
-                        val mergedCookie = mergeYouTubeCookies(cookieManager)
+                        val mergedCookie = mergeYouTubeCookies(cookieManager, url)
                         if (!mergedCookie.isNullOrBlank()) {
                             innerTubeCookie = mergedCookie
                             coroutineScope.launch {
@@ -166,14 +172,19 @@ fun LoginScreen(
     }
 }
 
-private fun mergeYouTubeCookies(cookieManager: CookieManager): String? {
+private fun mergeYouTubeCookies(
+    cookieManager: CookieManager,
+    currentUrl: String? = null,
+): String? {
     val cookieParts = linkedMapOf<String, String>()
+    val candidateUrls = linkedSetOf<String>()
 
-    listOf(
-        "https://music.youtube.com",
-        "https://www.youtube.com",
-        "https://youtube.com",
-    ).forEach { url ->
+    currentUrl.toYouTubeCookieOrigin()?.let(candidateUrls::add)
+    candidateUrls.addAll(YOUTUBE_COOKIE_URLS)
+
+    cookieManager.flush()
+
+    candidateUrls.forEach { url ->
         cookieManager.getCookie(url)
             ?.split(";")
             ?.map(String::trim)
@@ -193,4 +204,16 @@ private fun mergeYouTubeCookies(cookieManager: CookieManager): String? {
     return cookieParts.takeIf { it.isNotEmpty() }
         ?.entries
         ?.joinToString(separator = "; ") { (key, value) -> "$key=$value" }
+}
+
+private fun String?.toYouTubeCookieOrigin(): String? {
+    val parsed = this?.let(Uri::parse) ?: return null
+    val host = parsed.host?.lowercase() ?: return null
+    if (host != "youtube.com" && !host.endsWith(".youtube.com")) return null
+
+    val scheme = parsed.scheme
+        ?.takeIf { it.equals("https", ignoreCase = true) || it.equals("http", ignoreCase = true) }
+        ?: "https"
+
+    return "$scheme://$host"
 }
