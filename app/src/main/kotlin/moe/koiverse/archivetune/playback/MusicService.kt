@@ -3771,16 +3771,6 @@ class MusicService :
 
         val playbackCpn = YouTube.createPlaybackCpn()
 
-        suspend fun registerTrackingUrls(urls: List<String>): Boolean {
-            var anySuccess = false
-            for (trackingUrl in urls) {
-                if (registerTrackingUrl(trackingUrl)) {
-                    anySuccess = true
-                }
-            }
-            return anySuccess
-        }
-
         suspend fun registerTrackingUrl(url: String): Boolean {
             return retryWithoutPlaybackLoginContext {
                 YouTube.registerPlayback(
@@ -3803,6 +3793,16 @@ class MusicService :
                     }
                 }
             }.isSuccess
+        }
+
+        suspend fun registerTrackingUrls(urls: List<String>): Boolean {
+            var anySuccess = false
+            for (trackingUrl in urls) {
+                if (registerTrackingUrl(trackingUrl)) {
+                    anySuccess = true
+                }
+            }
+            return anySuccess
         }
 
         val authFingerprint = YouTube.currentPlaybackAuthState().fingerprint
