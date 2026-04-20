@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Upstream InnerTune strings --><!-- Do not add new features here --><!-- Try to re-use strings here, but be careful on its usage e.g. verb vs noun --><!-- "InnerTune" is replaced with "ArchiveTune" --><!-- Translators: Do not modify this file for translations, use InnerTune\'s Weblate instead. --><resources>
     <!-- Bottom navigation -->
-    <string name="home">Casa</string>
+    <string name="home">Home</string>
     <string name="songs">Canzoni</string>
     <string name="artists">Artisti</string>
     <string name="albums">Album</string>
@@ -13,10 +13,10 @@
         <item quantity="other">%d selezionato</item>
     </plurals>
     <!-- Home -->
-    <string name="history">Storia</string>
+    <string name="history">Cronologia</string>
     <string name="stats">Statistiche</string>
     <string name="mood_and_genres">Umore e generi</string>
-    <string name="account">Conto</string>
+    <string name="account">Account</string>
     <string name="quick_picks">Scelte rapide</string>
     <string name="quick_picks_empty">Ascolta le canzoni per generare le tue scelte rapide</string>
     <string name="forgotten_favorites">Preferiti dimenticati</string>
@@ -24,7 +24,7 @@
     <string name="your_youtube_playlists">Le tue playlist di YouTube</string>
     <string name="similar_to">Simile a</string>
     <string name="new_release_albums">Nuovi album in uscita</string>
-    <string name="select_playlist_to_sync">Seleziona playlist da sincronizzare</string>
+    <string name="select_playlist_to_sync">Seleziona la playlist da sincronizzare</string>
     <string name="integration">Integrazione</string>
     <!-- History -->
     <string name="today">Oggi</string>
@@ -33,7 +33,7 @@
     <string name="last_week">La settimana scorsa</string>
     <!-- Stats -->
     <string name="most_played_songs">Canzoni più suonate</string>
-    <string name="most_played_artists">Artisti più suonati</string>
+    <string name="most_played_artists">Gli artisti più ascoltati</string>
     <string name="most_played_albums">Gli album più ascoltati</string>
     <!-- Search -->
     <string name="search">Cerca</string>
@@ -51,11 +51,11 @@
     <string name="filter_playlists">Playlist</string>
     <string name="filter_community_playlists">Playlist della comunità</string>
     <string name="filter_featured_playlists">Playlist in primo piano</string>
-    <string name="filter_bookmarked">Segnato</string>
+    <string name="filter_bookmarked">Aggiunto ai preferiti</string>
     <string name="no_results_found">Nessun risultato trovato</string>
     <!-- Library -->
-    <string name="library_song_empty">I brani della libreria verranno visualizzati qui</string>
-    <string name="library_artist_empty">Gli artisti della biblioteca si presenteranno qui</string>
+    <string name="library_song_empty">Le canzoni della libreria verranno visualizzate qui</string>
+    <string name="library_artist_empty">Gli artisti della libreria verrano visualizzati qui</string>
     <string name="library_album_empty">Gli album della libreria verranno visualizzati qui</string>
     <string name="library_playlist_empty">Le tue playlist verranno visualizzate qui</string>
     <!-- Artist screen -->
@@ -63,10 +63,10 @@
     <!-- Album screen -->
     <string name="other_versions">Altre versioni</string>
     <!-- Playlist -->
-    <string name="liked_songs">Canzoni piaciute</string>
+    <string name="liked_songs">Canzoni che mi sono piaciute</string>
     <string name="downloaded_songs">Canzoni scaricate</string>
     <string name="playlist_is_empty">La playlist è vuota</string>
-    <string name="remove_download_playlist_confirm">Vuoi davvero rimuovere tutti i brani della playlist \"%s\" dall\'archivio Brani scaricati?</string>
+    <string name="remove_download_playlist_confirm">Vuoi davvero rimuovere tutti i brani della playlist \"%s\" dall\'archivio brani scaricati?</string>
     <string name="delete_playlist_confirm">Vuoi veramente eliminare la playlist \"%s\"?</string>
     <!-- Button -->
     <string name="retry">Riprova</string>
@@ -77,8 +77,8 @@
     <string name="details">Dettagli</string>
     <string name="edit">Modifica</string>
     <string name="start_radio">Avvia la radio</string>
-    <string name="play">Gioca</string>
-    <string name="play_next">Gioca dopo</string>
+    <string name="play">Vai in play</string>
+    <string name="play_next">Vai alla successiva</string>
     <string name="add_to_queue">Aggiungi alla coda</string>
     <string name="add_to_library">Aggiungi alla libreria</string>
     <string name="add_all_to_library">Aggiungi tutto alla libreria</string>
@@ -95,7 +95,7 @@
     <string name="view_album">Visualizza l\'album</string>
     <string name="view_all">Visualizza tutto</string>
     <string name="more">di più</string>
-    <string name="refetch">Riprendi</string>
+    <string name="refetch"></string>
     <string name="share">Condividi</string>
     <string name="delete">Elimina</string>
     <string name="remove_from_history">Rimuovi dalla cronologia</string>
@@ -627,4 +627,15 @@
     <string name="next">Avanti</string>
     <string name="next_song">Canzone successiva</string>
     <string name="allow">Consenti</string>
+    <string name="integrations">Integrazioni</string>
+    <string name="internal_subcategory_settings">Impostazioni interne e di sottocategoria</string>
+    <string name="search_try_different">Prova con un termine di ricerca diverso</string>
+    <string name="top_results">Risultati principali</string>
+    <string name="change_playlist_cover">Cambia la copertina della playlist</string>
+    <string name="remove_playlist_cover">Rimuovi la copertina</string>
+    <string name="music_recognition">Riconoscimento musicale</string>
+    <string name="pin_to_speed_dial">Aggiungi ai preferiti</string>
+    <string name="remove_from_speed_dial">Rimuovi dai preferiti</string>
+    <string name="together_participants">Partecipanti</string>
+    <string name="together_connected_count">%1$d connesso</string>
 </resources>
