@@ -317,6 +317,7 @@ class MusicService :
         PlayerStreamClient.ANDROID_VR
     )
     private val playbackUrlCache = ConcurrentHashMap<String, AuthScopedCacheValue>()
+    private val playbackHistoryTrackingCache = ConcurrentHashMap<String, PlaybackHistoryTracking>()
     private val contentLengthCache = ConcurrentHashMap<String, Long>()
     private val mediaOkHttpClient: OkHttpClient by lazy {
         OkHttpClient
@@ -409,6 +410,28 @@ class MusicService :
         val eventId: Long?,
         val remoteRegistered: Boolean,
     )
+
+    private data class PlaybackHistoryTracking(
+        val playbackUrl: String?,
+        val watchtimeUrl: String?,
+        val atrUrl: String?,
+        val expiresAtMs: Long,
+        val authFingerprint: String,
+    ) {
+        fun isValidFor(
+            authFingerprint: String,
+            nowMs: Long = System.currentTimeMillis(),
+        ): Boolean {
+            return this.authFingerprint == authFingerprint && expiresAtMs > nowMs
+        }
+
+        fun urls(): List<String> {
+            return listOfNotNull(playbackUrl, watchtimeUrl, atrUrl)
+                .map { it.trim() }
+                .filter { it.isNotEmpty() }
+                .distinct()
+        }
+    }
 
     private fun isAppInForeground(): Boolean {
         val activityManager = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
@@ -3746,11 +3769,24 @@ class MusicService :
             return false
         }
 
+        val playbackCpn = YouTube.createPlaybackCpn()
+
+        suspend fun registerTrackingUrls(urls: List<String>): Boolean {
+            var anySuccess = false
+            for (trackingUrl in urls) {
+                if (registerTrackingUrl(trackingUrl)) {
+                    anySuccess = true
+                }
+            }
+            return anySuccess
+        }
+
         suspend fun registerTrackingUrl(url: String): Boolean {
             return retryWithoutPlaybackLoginContext {
                 YouTube.registerPlayback(
                     playlistId = null,
                     playbackTracking = url,
+                    cpn = playbackCpn,
                 )
             }.onFailure { throwable ->
                 when (throwable) {
@@ -3767,6 +3803,15 @@ class MusicService :
                     }
                 }
             }.isSuccess
+        }
+
+        val authFingerprint = YouTube.currentPlaybackAuthState().fingerprint
+        val cachedTrackingUrls = playbackHistoryTrackingCache[mediaId]
+            ?.takeIf { it.isValidFor(authFingerprint) }
+            ?.urls()
+            .orEmpty()
+        if (cachedTrackingUrls.isNotEmpty() && registerTrackingUrls(cachedTrackingUrls)) {
+            return true
         }
 
         val playbackTracking = retryWithoutPlaybackLoginContext {
@@ -3798,14 +3843,11 @@ class MusicService :
                 playbackTracking.atrUrl?.baseUrl,
             ).map { it.trim() }
                 .filter { it.isNotEmpty() }
+                .distinct()
 
-            var anySuccess = false
-            for (trackingUrl in trackingUrls) {
-                if (registerTrackingUrl(trackingUrl)) {
-                    anySuccess = true
-                }
+            if (trackingUrls.isNotEmpty() && registerTrackingUrls(trackingUrls)) {
+                return true
             }
-            return anySuccess
         }
 
         val cachedPlaybackUrl = database.format(mediaId).first()?.playbackUrl
@@ -4569,10 +4611,21 @@ class MusicService :
 
         val streamUrl = nonNullPlayback.streamUrl
 
+        val trackingExpiryMs = System.currentTimeMillis() + (nonNullPlayback.streamExpiresInSeconds * 1000L)
+
+        playbackHistoryTrackingCache[mediaId] =
+            PlaybackHistoryTracking(
+                playbackUrl = nonNullPlayback.playbackTracking?.videostatsPlaybackUrl?.baseUrl,
+                watchtimeUrl = nonNullPlayback.playbackTracking?.videostatsWatchtimeUrl?.baseUrl,
+                atrUrl = nonNullPlayback.playbackTracking?.atrUrl?.baseUrl,
+                expiresAtMs = trackingExpiryMs,
+                authFingerprint = nonNullPlayback.authFingerprint,
+            )
+
         playbackUrlCache[mediaId] =
             AuthScopedCacheValue(
                 url = streamUrl,
-                expiresAtMs = System.currentTimeMillis() + (nonNullPlayback.streamExpiresInSeconds * 1000L),
+                expiresAtMs = trackingExpiryMs,
                 authFingerprint = nonNullPlayback.authFingerprint,
             )
         val resolvedDataSpec = dataSpec.withUri(streamUrl.toUri())
