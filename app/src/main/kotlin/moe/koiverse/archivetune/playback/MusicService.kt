@@ -242,12 +242,15 @@ import kotlin.math.roundToInt
 import kotlin.math.roundToLong
 import kotlin.time.Duration.Companion.seconds
 import timber.log.Timber
+import android.app.ForegroundServiceStartNotAllowedException
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Notification
 import android.os.Build
 import android.content.pm.ServiceInfo
 import androidx.core.app.NotificationCompat
+import androidx.media3.session.MediaNotification
+import androidx.media3.session.MediaSessionService
 
 @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
 @AndroidEntryPoint
@@ -512,7 +515,7 @@ class MusicService :
 
     val maxSafeGainFactor = 1.414f // +3 dB
     @Volatile
-    private var hasCalledStartForeground = false
+    private var latestMediaNotification: Notification? = null
 
     val togetherSessionState = MutableStateFlow<moe.koiverse.archivetune.together.TogetherSessionState>(
         moe.koiverse.archivetune.together.TogetherSessionState.Idle,
@@ -578,34 +581,70 @@ class MusicService :
     }
 
     private fun ensureStartedAsForeground() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
-        if (hasCalledStartForeground) return
+        ensureStartedAsForegroundOrStop()
+    }
 
-        val notification =
-            try {
-                val contentIntent =
-                    PendingIntent.getActivity(
-                        this,
-                        0,
-                        Intent(this, MainActivity::class.java),
-                        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-                    )
+    private fun ensureStartedAsForegroundOrStop(): Boolean =
+        startForegroundSafely(
+            notification = createFallbackForegroundNotification(),
+            deniedMessage = "Foreground service start not allowed; stopping service to avoid ANR",
+            failureMessage = "Failed to enter foreground; stopping service to avoid ANR",
+        )
 
-                NotificationCompat.Builder(this, CHANNEL_ID)
-                    .setSmallIcon(R.drawable.small_icon)
-                    .setContentTitle(getString(R.string.music_player))
-                    .setContentText(getString(R.string.app_name))
-                    .setContentIntent(contentIntent)
-                    .setCategory(Notification.CATEGORY_SERVICE)
-                    .setPriority(NotificationCompat.PRIORITY_LOW)
-                    .setOngoing(true)
-                    .setOnlyAlertOnce(true)
-                    .build()
-            } catch (e: Exception) {
-                reportException(e)
-                return
-            }
+    private fun ensureForegroundWithLatestNotificationOrStop(): Boolean =
+        startForegroundSafely(
+            notification = latestMediaNotification ?: createFallbackForegroundNotification(),
+            deniedMessage = "Foreground promotion denied during notification update; stopping service",
+            failureMessage = "Failed to promote service during notification update; stopping service",
+        )
 
+    private fun tryEnsureForegroundWithLatestNotification(): Boolean =
+        startForegroundSafely(
+            notification = latestMediaNotification ?: createFallbackForegroundNotification(),
+            deniedMessage = "Foreground promotion denied during notification update",
+            failureMessage = "Failed to promote service during notification update",
+            stopOnFailure = false,
+        )
+
+    private fun ensureForegroundChannelExists() {
+        val nm = getSystemService(NotificationManager::class.java)
+        nm?.createNotificationChannel(
+            NotificationChannel(
+                CHANNEL_ID,
+                getString(R.string.music_player),
+                NotificationManager.IMPORTANCE_LOW,
+            ),
+        )
+    }
+
+    private fun createFallbackForegroundNotification(): Notification {
+        ensureForegroundChannelExists()
+        val contentIntent =
+            PendingIntent.getActivity(
+                this,
+                0,
+                Intent(this, MainActivity::class.java),
+                PendingIntent.FLAG_IMMUTABLE,
+            )
+
+        return NotificationCompat.Builder(this, CHANNEL_ID)
+            .setSmallIcon(R.drawable.small_icon)
+            .setContentTitle(getString(R.string.music_player))
+            .setContentText(getString(R.string.app_name))
+            .setContentIntent(contentIntent)
+            .setCategory(Notification.CATEGORY_SERVICE)
+            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .setOngoing(true)
+            .setOnlyAlertOnce(true)
+            .build()
+    }
+
+    private fun startForegroundSafely(
+        notification: Notification,
+        deniedMessage: String,
+        failureMessage: String,
+        stopOnFailure: Boolean = true,
+    ): Boolean =
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 startForeground(
@@ -616,11 +655,49 @@ class MusicService :
             } else {
                 startForeground(NOTIFICATION_ID, notification)
             }
-            hasCalledStartForeground = true
+            true
+        } catch (e: ForegroundServiceStartNotAllowedException) {
+            Timber.tag("MusicService").w(e, deniedMessage)
+            if (stopOnFailure) {
+                stopSelf()
+            }
+            false
         } catch (e: Exception) {
+            Timber.tag("MusicService").e(e, failureMessage)
             reportException(e)
+            if (stopOnFailure) {
+                stopSelf()
+            }
+            false
         }
+
+    private fun handleForegroundServiceStartNotAllowed(error: Throwable?) {
+        if (error != null) {
+            Timber.tag("MusicService").w(error, "Foreground service start denied during notification update")
+        } else {
+            Timber.tag("MusicService").w("Foreground service start denied by MediaSessionService listener")
+        }
+
+        if (tryEnsureForegroundWithLatestNotification()) {
+            return
+        }
+
+        if (!::player.isInitialized) {
+            stopSelf()
+            return
+        }
+
+        if (player.isPlaying) {
+            Timber.tag("MusicService").w("Keeping playback alive after denied foreground restart request")
+            return
+        }
+
+        stopForegroundAndSelf()
     }
+
+    private fun isForegroundServiceStartNotAllowedException(error: IllegalStateException): Boolean =
+        Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+            error.javaClass.name == ForegroundServiceStartNotAllowedException::class.java.name
 
     private fun promoteToStartedService() {
         runCatching { startService(Intent(this, MusicService::class.java)) }
@@ -641,7 +718,6 @@ class MusicService :
                 stopForeground(true)
             }
         }
-        hasCalledStartForeground = false
         stopSelf()
     }
 
@@ -687,17 +763,16 @@ class MusicService :
         super.onCreate()
         ensureScopesActive()
 
+        setListener(
+            object : MediaSessionService.Listener {
+                override fun onForegroundServiceStartNotAllowedException() {
+                    handleForegroundServiceStartNotAllowed(null)
+                }
+            },
+        )
+
         try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                val nm = getSystemService(NotificationManager::class.java)
-                nm?.createNotificationChannel(
-                    NotificationChannel(
-                        CHANNEL_ID,
-                        getString(R.string.music_player),
-                        NotificationManager.IMPORTANCE_LOW
-                    )
-                )
-            }
+            ensureForegroundChannelExists()
         } catch (e: Exception) {
             reportException(e)
         }
@@ -753,15 +828,42 @@ class MusicService :
                     ),
                 ).setBitmapLoader(CoilBitmapLoader(this, scope))
                 .build()
-        setMediaNotificationProvider(
+        val defaultMediaNotificationProvider =
             DefaultMediaNotificationProvider(
                 this,
                 { NOTIFICATION_ID },
                 CHANNEL_ID,
-                R.string.music_player
+                R.string.music_player,
             ).apply {
                 setSmallIcon(R.drawable.small_icon)
             }
+        setMediaNotificationProvider(
+            object : MediaNotification.Provider {
+                override fun createNotification(
+                    mediaSession: MediaSession,
+                    mediaButtonPreferences: com.google.common.collect.ImmutableList<CommandButton>,
+                    actionFactory: MediaNotification.ActionFactory,
+                    onNotificationChangedCallback: MediaNotification.Provider.Callback,
+                ): MediaNotification =
+                    defaultMediaNotificationProvider
+                        .createNotification(
+                            mediaSession,
+                            mediaButtonPreferences,
+                            actionFactory,
+                            onNotificationChangedCallback,
+                        ).also { mediaNotification ->
+                            latestMediaNotification = mediaNotification.notification
+                        }
+
+                override fun handleCustomCommand(
+                    session: MediaSession,
+                    action: String,
+                    extras: android.os.Bundle,
+                ): Boolean = defaultMediaNotificationProvider.handleCustomCommand(session, action, extras)
+
+                override fun getNotificationChannelInfo(): MediaNotification.Provider.NotificationChannelInfo =
+                    defaultMediaNotificationProvider.notificationChannelInfo
+            },
         )
         
         updateNotification()
@@ -1786,8 +1888,12 @@ class MusicService :
 
     fun refreshPlaybackNotification() {
         updateNotification()
-        runCatching { super.onUpdateNotification(mediaSession, player.isPlaying) }
-            .onFailure { reportException(it) }
+        onUpdateNotification(
+            mediaSession,
+            player.playWhenReady &&
+                (player.playbackState == Player.STATE_BUFFERING ||
+                    player.playbackState == Player.STATE_READY),
+        )
     }
 
     private suspend fun recoverSong(
@@ -5134,14 +5240,26 @@ class MusicService :
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo) = mediaSession
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        super.onStartCommand(intent, flags, startId)
-        return START_NOT_STICKY
+        val requiresForegroundPromotion =
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && intent?.action == null
+        if (requiresForegroundPromotion && !ensureForegroundWithLatestNotificationOrStop()) {
+            return START_NOT_STICKY
+        }
+        return super.onStartCommand(intent, flags, startId)
     }
 
     override fun onUpdateNotification(session: MediaSession, startInForegroundRequired: Boolean) {
-        if (startInForegroundRequired) ensureStartedAsForeground()
-        runCatching { super.onUpdateNotification(session, startInForegroundRequired) }
-            .onFailure { reportException(it) }
+        try {
+            super.onUpdateNotification(session, startInForegroundRequired)
+        } catch (e: ForegroundServiceStartNotAllowedException) {
+            handleForegroundServiceStartNotAllowed(e)
+        } catch (e: IllegalStateException) {
+            if (isForegroundServiceStartNotAllowedException(e)) {
+                handleForegroundServiceStartNotAllowed(e)
+            } else {
+                throw e
+            }
+        }
     }
 
     inner class MusicBinder : Binder() {
