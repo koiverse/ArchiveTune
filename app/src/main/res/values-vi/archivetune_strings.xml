@@ -285,4 +285,20 @@
     <string name="error_no_song_playing">Hiện không có bài hát nào đang được phát</string>
     <string name="error_no_similar_songs">Không tìm thấy bài hát tương tự nào</string>
     <string name="error_automix_failed">Không thể tải bài hát tương tự</string>
+    <string name="lyrics_share_layout">Bố cục</string>
+    <string name="lyrics_share_layout_square">Vuông</string>
+    <string name="lyrics_share_layout_portrait">Ngang</string>
+    <string name="lyrics_share_layout_story">Câu chuyện</string>
+    <string name="lyrics_share_background_blur">Nền mờ</string>
+    <string name="lyrics_share_background_blur_value">%1$d px</string>
+    <string name="lyrics_share_background_dim">Nền mờ</string>
+    <string name="lyrics_share_background_dim_value">%1$d%%</string>
+    <string name="lyrics_share_show_cover">Hiện thị cover album</string>
+    <string name="lyrics_share_show_cover_desc">Bao gồm tác artwork trong tiêu đề của hình ảnh đã xuất.</string>
+    <string name="lyrics_share_export_failed">Thất bại trong việc tạo ảnh: %1$s</string>
+    <string name="lyrics_share_export_not_supported">Chia sẻ ảnh cần Android 6.0 hoặc mới hơn</string>
+    <string name="lyrics_sync_offset">Offset đồng bộ lời bài hát</string>
+    <string name="audio_crossfade_seconds">%1$s giây</string>
+    <string name="crossfade_gapless_title">Crossfade không bị gập</string>
+    <string name="crossfade_gapless_description">Làm mờ dần và mờ dần mà không chồng lên âm thanh.</string>
 </resources>
