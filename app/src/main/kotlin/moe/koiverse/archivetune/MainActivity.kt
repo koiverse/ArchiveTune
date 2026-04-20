@@ -987,13 +987,15 @@ class MainActivity : ComponentActivity() {
                         }
                     }
 
-                    LaunchedEffect(isTvDevice, active, currentRoute, shouldShowNavigationBar) {
+                    LaunchedEffect(isTvDevice, useRail, active, currentRoute, shouldShowNavigationBar) {
                         if (
                             isTvDevice &&
+                            useRail &&
                             shouldShowNavigationBar &&
                             !active &&
                             currentRoute in topLevelScreens
                         ) {
+                            delay(100)
                             tvRailFocusRequester.requestFocus()
                         }
                     }
