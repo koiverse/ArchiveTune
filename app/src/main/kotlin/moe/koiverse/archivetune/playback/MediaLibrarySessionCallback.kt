@@ -646,6 +646,24 @@ constructor(
             val defaultResult =
                 MediaSession.MediaItemsWithStartPosition(emptyList(), startIndex, startPositionMs)
             val firstItem = mediaItems.firstOrNull() ?: return@future defaultResult
+            val voiceQuery = firstItem.requestMetadata.searchQuery?.trim().orEmpty()
+            if (voiceQuery.isNotBlank()) {
+                val offlineSongs = searchOfflineSongs(voiceQuery, previewSize = 50)
+                val existingSongIds =
+                    offlineSongs.items.mapTo(HashSet(offlineSongs.items.size * 2), ::searchSongIdentity)
+                val onlineSongs =
+                    searchOnlineSongs(voiceQuery, previewSize = 50).filter { onlineItem ->
+                        existingSongIds.add(searchSongIdentity(onlineItem))
+                    }
+                val searchQueue = interleaveMediaItems(offlineSongs.items, onlineSongs)
+                if (searchQueue.isNotEmpty()) {
+                    return@future MediaSession.MediaItemsWithStartPosition(
+                        searchQueue,
+                        0,
+                        startPositionMs,
+                    )
+                }
+            }
             val path = firstItem.mediaId.split("/").filter { it.isNotBlank() }
             when (path.firstOrNull()) {
                 MusicService.SONG -> {
