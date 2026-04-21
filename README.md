@@ -239,6 +239,8 @@ Join Our Telegram Channels for Support and Discussion.
 
 ArchiveTune belongs to everyone. Help us localize the experience for your region.
 
+[![Static Badge](https://img.shields.io/badge/translate-help?style=for-the-badge&logo=weblate&labelColor=grey)](https://translate.codeberg.org/engage/archivetune/)
+
 <div align="center">
   <a href="https://translate.codeberg.org/engage/archivetune/">
     <img src="https://translate.codeberg.org/widget/archivetune/horizontal-blue.svg" alt="Translation status" />
