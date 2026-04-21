@@ -269,6 +269,10 @@ fun Queue(
                                     mediaMetadata = mediaMetadata,
                                     navController = navController,
                                     playerBottomSheetState = playerBottomSheetState,
+                                    isQueueTrigger = true,
+                                    onRemoveFromQueue = {
+                                        playerConnection.player.removeMediaItem(currentWindowIndex)
+                                    },
                                     onShowDetailsDialog = {
                                         mediaMetadata?.id?.let {
                                             bottomSheetPageState.show {
@@ -305,6 +309,10 @@ fun Queue(
                                     mediaMetadata = mediaMetadata,
                                     navController = navController,
                                     playerBottomSheetState = playerBottomSheetState,
+                                    isQueueTrigger = true,
+                                    onRemoveFromQueue = {
+                                        playerConnection.player.removeMediaItem(currentWindowIndex)
+                                    },
                                     onShowDetailsDialog = {
                                         mediaMetadata?.id?.let {
                                             bottomSheetPageState.show {
@@ -341,6 +349,10 @@ fun Queue(
                                     mediaMetadata = mediaMetadata,
                                     navController = navController,
                                     playerBottomSheetState = playerBottomSheetState,
+                                    isQueueTrigger = true,
+                                    onRemoveFromQueue = {
+                                        playerConnection.player.removeMediaItem(currentWindowIndex)
+                                    },
                                     onShowDetailsDialog = {
                                         mediaMetadata?.id?.let {
                                             bottomSheetPageState.show {
@@ -611,6 +623,10 @@ fun Queue(
                                 mediaMetadata = mediaMetadata,
                                 navController = navController,
                                 playerBottomSheetState = playerBottomSheetState,
+                                isQueueTrigger = true,
+                                onRemoveFromQueue = {
+                                    playerConnection.player.removeMediaItem(currentWindowIndex)
+                                },
                                 onShowDetailsDialog = {
                                     mediaMetadata?.id?.let {
                                         bottomSheetPageState.show {
@@ -749,6 +765,9 @@ fun Queue(
                                                         navController = navController,
                                                         playerBottomSheetState = playerBottomSheetState,
                                                         isQueueTrigger = true,
+                                                        onRemoveFromQueue = {
+                                                            playerConnection.player.removeMediaItem(window.firstPeriodIndex)
+                                                        },
                                                         onShowDetailsDialog = {
                                                             window.mediaItem.mediaId.let {
                                                                 bottomSheetPageState.show {

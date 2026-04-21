@@ -711,11 +711,17 @@ fun SelectionMediaMetadataMenu(
         if (currentItems.isNotEmpty()) {
             item {
                 ListItem(
-                    headlineContent = { Text(text = stringResource(R.string.delete)) },
+                    headlineContent = {
+                        Text(
+                            text = stringResource(R.string.remove_from_queue),
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                    },
                     leadingContent = {
                         Icon(
                             painter = painterResource(R.drawable.delete),
                             contentDescription = null,
+                            tint = MaterialTheme.colorScheme.error,
                         )
                     },
                     modifier = Modifier.clickable {
