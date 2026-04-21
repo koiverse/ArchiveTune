@@ -22,6 +22,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -37,6 +38,8 @@ constructor(
     val database: MusicDatabase,
 ) : ViewModel() {
     var historySource = MutableStateFlow(HistorySource.LOCAL)
+    private val _remoteHistoryState = MutableStateFlow<RemoteHistoryUiState>(RemoteHistoryUiState.Loading)
+    val remoteHistoryState: StateFlow<RemoteHistoryUiState> = _remoteHistoryState
 
     private val today = LocalDate.now()
     private val thisMonday = today.with(DayOfWeek.MONDAY)
@@ -79,14 +82,34 @@ constructor(
     }
 
     fun fetchRemoteHistory() {
+        _remoteHistoryState.value = RemoteHistoryUiState.Loading
         viewModelScope.launch(Dispatchers.IO) {
             YouTube.musicHistory().onSuccess {
                 historyPage.value = it
+                _remoteHistoryState.value =
+                    if (it.sections?.any { section -> section.songs.isNotEmpty() } == true) {
+                        RemoteHistoryUiState.Success(it)
+                    } else {
+                        RemoteHistoryUiState.Empty
+                    }
             }.onFailure {
+                _remoteHistoryState.value = RemoteHistoryUiState.Error
                 reportException(it)
             }
         }
     }
+}
+
+sealed interface RemoteHistoryUiState {
+    data object Loading : RemoteHistoryUiState
+
+    data class Success(
+        val page: HistoryPage,
+    ) : RemoteHistoryUiState
+
+    data object Empty : RemoteHistoryUiState
+
+    data object Error : RemoteHistoryUiState
 }
 
 sealed class DateAgo {
