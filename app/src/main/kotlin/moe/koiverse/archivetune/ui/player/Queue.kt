@@ -5,32 +5,23 @@
  * Don't remove this copyright holder!
  */
 
-
-
+@file:OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 
 package moe.koiverse.archivetune.ui.player
 
-import androidx.activity.compose.BackHandler
 import android.annotation.SuppressLint
 import android.content.Context
-import android.text.format.Formatter
 import android.widget.Toast
-import androidx.compose.animation.AnimatedContent
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.basicMarquee
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -43,28 +34,19 @@ import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.systemBars
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Slider
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -77,51 +59,37 @@ import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.derivedStateOf
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberUpdatedState
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.compose.ui.util.fastForEachReversed
-import androidx.compose.ui.window.DialogProperties
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.media3.common.Player
 import androidx.media3.common.Timeline
-import androidx.media3.exoplayer.source.ShuffleOrder.DefaultShuffleOrder
 import androidx.navigation.NavController
 import moe.koiverse.archivetune.LocalPlayerConnection
 import moe.koiverse.archivetune.R
+import moe.koiverse.archivetune.constants.AutoLoadMoreKey
 import moe.koiverse.archivetune.constants.ListItemHeight
 import moe.koiverse.archivetune.constants.PlayerDesignStyle
 import moe.koiverse.archivetune.constants.PlayerDesignStyleKey
-import moe.koiverse.archivetune.constants.PlayerButtonsStyle
-import moe.koiverse.archivetune.constants.PlayerButtonsStyleKey
 import moe.koiverse.archivetune.constants.QueueEditLockKey
-import moe.koiverse.archivetune.constants.AutoLoadMoreKey
+import moe.koiverse.archivetune.db.entities.FormatEntity
 import moe.koiverse.archivetune.extensions.metadata
 import moe.koiverse.archivetune.extensions.move
 import moe.koiverse.archivetune.extensions.togglePlayPause
@@ -146,9 +114,12 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
-import kotlin.math.roundToInt
-import androidx.datastore.preferences.core.booleanPreferencesKey
-import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.carousel.CarouselDefaults
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.platform.LocalClipboard
+import androidx.media3.common.util.UnstableApi
+import androidx.media3.exoplayer.source.ShuffleOrder.DefaultShuffleOrder
 
 @SuppressLint("UnrememberedMutableState")
 @OptIn(ExperimentalFoundationApi::class)
@@ -207,6 +178,69 @@ fun Queue(
 
     val snackbarHostState = remember { SnackbarHostState() }
     var dismissJob: Job? by remember { mutableStateOf(null) }
+    val coroutineScope = rememberCoroutineScope()
+
+    val queueWindows by playerConnection.queueWindows.collectAsState()
+    val currentWindow = remember(currentWindowIndex, queueWindows) {
+        queueWindows.getOrNull(currentWindowIndex)
+    }
+
+    val onRemoveWithUndo: (Timeline.Window) -> Unit = { window ->
+        val index = window.firstPeriodIndex
+        playerConnection.player.removeMediaItem(index)
+        dismissJob?.cancel()
+        dismissJob = coroutineScope.launch {
+            val snackbarResult = snackbarHostState.showSnackbar(
+                message = context.getString(
+                    R.string.removed_song_from_playlist,
+                    window.mediaItem.metadata?.title,
+                ),
+                actionLabel = context.getString(R.string.undo),
+                duration = SnackbarDuration.Short,
+            )
+            if (snackbarResult == SnackbarResult.ActionPerformed) {
+                playerConnection.player.addMediaItem(window.mediaItem)
+                playerConnection.player.moveMediaItem(
+                    playerConnection.player.mediaItemCount - 1,
+                    index,
+                )
+            }
+        }
+    }
+
+    val onRemoveMultipleWithUndo: (List<Timeline.Window>) -> Unit = { windows ->
+        if (windows.isNotEmpty()) {
+            val sortedWindows = windows.sortedBy { it.firstPeriodIndex }
+            var i = 0
+            sortedWindows.forEach { window ->
+                playerConnection.player.removeMediaItem(window.firstPeriodIndex - i++)
+            }
+            dismissJob?.cancel()
+            dismissJob = coroutineScope.launch {
+                val snackbarResult = snackbarHostState.showSnackbar(
+                    message = if (windows.size == 1) {
+                        context.getString(
+                            R.string.removed_song_from_playlist,
+                            windows.first().mediaItem.metadata?.title,
+                        )
+                    } else {
+                        context.getString(R.string.elements_selected, windows.size)
+                    },
+                    actionLabel = context.getString(R.string.undo),
+                    duration = SnackbarDuration.Short,
+                )
+                if (snackbarResult == SnackbarResult.ActionPerformed) {
+                    sortedWindows.forEach { window ->
+                        playerConnection.player.addMediaItem(window.mediaItem)
+                        playerConnection.player.moveMediaItem(
+                            playerConnection.player.mediaItemCount - 1,
+                            window.firstPeriodIndex,
+                        )
+                    }
+                }
+            }
+        }
+    }
 
     var showSleepTimerDialog by remember { mutableStateOf(false) }
     var sleepTimerValue by remember { mutableStateOf(30f) }
@@ -271,7 +305,7 @@ fun Queue(
                                     playerBottomSheetState = playerBottomSheetState,
                                     isQueueTrigger = true,
                                     onRemoveFromQueue = {
-                                        playerConnection.player.removeMediaItem(currentWindowIndex)
+                                        currentWindow?.let { onRemoveWithUndo(it) }
                                     },
                                     onShowDetailsDialog = {
                                         mediaMetadata?.id?.let {
@@ -311,7 +345,7 @@ fun Queue(
                                     playerBottomSheetState = playerBottomSheetState,
                                     isQueueTrigger = true,
                                     onRemoveFromQueue = {
-                                        playerConnection.player.removeMediaItem(currentWindowIndex)
+                                        currentWindow?.let { onRemoveWithUndo(it) }
                                     },
                                     onShowDetailsDialog = {
                                         mediaMetadata?.id?.let {
@@ -351,7 +385,7 @@ fun Queue(
                                     playerBottomSheetState = playerBottomSheetState,
                                     isQueueTrigger = true,
                                     onRemoveFromQueue = {
-                                        playerConnection.player.removeMediaItem(currentWindowIndex)
+                                        currentWindow?.let { onRemoveWithUndo(it) }
                                     },
                                     onShowDetailsDialog = {
                                         mediaMetadata?.id?.let {
@@ -477,10 +511,6 @@ fun Queue(
                 queueWindows.sumOf { it.mediaItem.metadata?.duration ?: 0 }
             }
         }
-
-        val coroutineScope = rememberCoroutineScope()
-
-
 
         val headerItems = 1
         val lazyListState = rememberLazyListState()
@@ -625,7 +655,7 @@ fun Queue(
                                 playerBottomSheetState = playerBottomSheetState,
                                 isQueueTrigger = true,
                                 onRemoveFromQueue = {
-                                    playerConnection.player.removeMediaItem(currentWindowIndex)
+                                    currentWindow?.let { onRemoveWithUndo(it) }
                                 },
                                 onShowDetailsDialog = {
                                     mediaMetadata?.id?.let {
@@ -710,25 +740,7 @@ fun Queue(
                                 )
                             ) {
                                 processedDismiss = true
-                                playerConnection.player.removeMediaItem(currentItem.firstPeriodIndex)
-                                dismissJob?.cancel()
-                                dismissJob = coroutineScope.launch {
-                                    val snackbarResult = snackbarHostState.showSnackbar(
-                                        message = context.getString(
-                                            R.string.removed_song_from_playlist,
-                                            currentItem.mediaItem.metadata?.title,
-                                        ),
-                                        actionLabel = context.getString(R.string.undo),
-                                        duration = SnackbarDuration.Short,
-                                    )
-                                    if (snackbarResult == SnackbarResult.ActionPerformed) {
-                                        playerConnection.player.addMediaItem(currentItem.mediaItem)
-                                        playerConnection.player.moveMediaItem(
-                                            mutableQueueWindows.size,
-                                            currentItem.firstPeriodIndex,
-                                        )
-                                    }
-                                }
+                                onRemoveWithUndo(currentItem)
                             }
                             if (dv == SwipeToDismissBoxValue.Settled) {
                                 processedDismiss = false
@@ -766,7 +778,7 @@ fun Queue(
                                                         playerBottomSheetState = playerBottomSheetState,
                                                         isQueueTrigger = true,
                                                         onRemoveFromQueue = {
-                                                            playerConnection.player.removeMediaItem(window.firstPeriodIndex)
+                                                            onRemoveWithUndo(window)
                                                         },
                                                         onShowDetailsDialog = {
                                                             window.mediaItem.mediaId.let {
@@ -953,6 +965,9 @@ fun Queue(
                                         selectedItems.clear()
                                     },
                                     currentItems = selectedItems,
+                                    onRemoveFromQueue = { windows ->
+                                        onRemoveMultipleWithUndo(windows)
+                                    }
                                 )
                             }
                         },

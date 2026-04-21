@@ -593,6 +593,7 @@ fun SelectionMediaMetadataMenu(
     currentItems: List<Timeline.Window>,
     onDismiss: () -> Unit,
     clearAction: () -> Unit,
+    onRemoveFromQueue: ((List<Timeline.Window>) -> Unit)? = null,
 ) {
     val context = LocalContext.current
     val database = LocalDatabase.current
@@ -726,10 +727,14 @@ fun SelectionMediaMetadataMenu(
                     },
                     modifier = Modifier.clickable {
                         onDismiss()
-                        var i = 0
-                        currentItems.forEach { cur ->
-                            if (playerConnection.player.availableCommands.contains(Player.COMMAND_CHANGE_MEDIA_ITEMS)) {
-                                playerConnection.player.removeMediaItem(cur.firstPeriodIndex - i++)
+                        if (onRemoveFromQueue != null) {
+                            onRemoveFromQueue(currentItems)
+                        } else {
+                            var i = 0
+                            currentItems.forEach { cur ->
+                                if (playerConnection.player.availableCommands.contains(Player.COMMAND_CHANGE_MEDIA_ITEMS)) {
+                                    playerConnection.player.removeMediaItem(cur.firstPeriodIndex - i++)
+                                }
                             }
                         }
                         clearAction()
