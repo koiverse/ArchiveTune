@@ -256,6 +256,12 @@ object CanvasArtworkPlaybackCache {
     }
 }
 
+private data class ThumbnailPage(
+    val slotKey: String,
+    val windowIndex: Int,
+    val mediaItem: MediaItem,
+)
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun Thumbnail(
@@ -321,30 +327,34 @@ fun Thumbnail(
     val timeline = playerConnection.player.currentTimeline
     val currentIndex = playerConnection.player.currentMediaItemIndex
     val shuffleModeEnabled = playerConnection.player.shuffleModeEnabled
-    val previousMediaMetadata = if (swipeThumbnail && !timeline.isEmpty) {
-        val previousIndex = timeline.getPreviousWindowIndex(
+    val previousWindowIndex = if (swipeThumbnail && !timeline.isEmpty) {
+        timeline.getPreviousWindowIndex(
             currentIndex,
             Player.REPEAT_MODE_OFF,
             shuffleModeEnabled
         )
-        if (previousIndex != C.INDEX_UNSET) {
-            try {
-                playerConnection.player.getMediaItemAt(previousIndex)
-            } catch (e: Exception) { null }
-        } else null
+    } else {
+        C.INDEX_UNSET
+    }
+    val previousMediaMetadata = if (previousWindowIndex != C.INDEX_UNSET) {
+        try {
+            playerConnection.player.getMediaItemAt(previousWindowIndex)
+        } catch (e: Exception) { null }
     } else null
 
-    val nextMediaMetadata = if (swipeThumbnail && !timeline.isEmpty) {
-        val nextIndex = timeline.getNextWindowIndex(
+    val nextWindowIndex = if (swipeThumbnail && !timeline.isEmpty) {
+        timeline.getNextWindowIndex(
             currentIndex,
             Player.REPEAT_MODE_OFF,
             shuffleModeEnabled
         )
-        if (nextIndex != C.INDEX_UNSET) {
-            try {
-                playerConnection.player.getMediaItemAt(nextIndex)
-            } catch (e: Exception) { null }
-        } else null
+    } else {
+        C.INDEX_UNSET
+    }
+    val nextMediaMetadata = if (nextWindowIndex != C.INDEX_UNSET) {
+        try {
+            playerConnection.player.getMediaItemAt(nextWindowIndex)
+        } catch (e: Exception) { null }
     } else null
 
     val currentMediaItem = remember(mediaMetadata) {
@@ -361,8 +371,18 @@ fun Thumbnail(
         }
     }
 
-    val mediaItems = listOfNotNull(previousMediaMetadata, currentMediaItem, nextMediaMetadata)
-    val currentMediaIndex = mediaItems.indexOf(currentMediaItem)
+    val thumbnailPages = buildList {
+        if (previousMediaMetadata != null) {
+            add(ThumbnailPage(slotKey = "previous", windowIndex = previousWindowIndex, mediaItem = previousMediaMetadata))
+        }
+        if (currentMediaItem != null) {
+            add(ThumbnailPage(slotKey = "current", windowIndex = currentIndex, mediaItem = currentMediaItem))
+        }
+        if (nextMediaMetadata != null) {
+            add(ThumbnailPage(slotKey = "next", windowIndex = nextWindowIndex, mediaItem = nextMediaMetadata))
+        }
+    }
+    val currentMediaIndex = thumbnailPages.indexOfFirst { it.slotKey == "current" }
 
     // OuterTune Snap behavior
     val horizontalLazyGridItemWidthFactor = 1f
@@ -400,7 +420,7 @@ fun Thumbnail(
     // Update position when song changes
     LaunchedEffect(mediaMetadata, currentMediaItem?.mediaId, canSkipPrevious, canSkipNext) {
         val index = maxOf(0, currentMediaIndex)
-        if (index >= 0 && index < mediaItems.size) {
+        if (index >= 0 && index < thumbnailPages.size) {
             try {
                 thumbnailLazyGridState.animateScrollToItem(index)
             } catch (e: Exception) {
@@ -410,7 +430,7 @@ fun Thumbnail(
     }
 
     LaunchedEffect(playerConnection.player.currentMediaItemIndex, currentMediaItem?.mediaId) {
-        val index = mediaItems.indexOf(currentMediaItem)
+        val index = currentMediaIndex
         if (index >= 0 && index != currentItem) {
             thumbnailLazyGridState.scrollToItem(index)
         }
@@ -496,12 +516,12 @@ fun Thumbnail(
                         modifier = Modifier.fillMaxSize()
                     ) {
                         items(
-                            items = mediaItems,
-                            key = { item -> 
-                                // Use mediaId with stable fallback to avoid recomposition issues
-                                item.mediaId.ifEmpty { "unknown_${item.hashCode()}" }
+                            items = thumbnailPages,
+                            key = { page ->
+                                "${page.slotKey}:${page.windowIndex}:${page.mediaItem.mediaId.ifEmpty { "unknown" }}"
                             }
-                        ) { item ->
+                        ) { page ->
+                            val item = page.mediaItem
                             val incrementalSeekSkipEnabled by rememberPreference(SeekExtraSeconds, defaultValue = false)
                             var skipMultiplier by remember { mutableStateOf(1) }
                             var lastTapTime by remember { mutableLongStateOf(0L) }
