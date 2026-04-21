@@ -23,8 +23,8 @@ android {
     applicationId = "moe.koiverse.archivetune"
         minSdk = 26
         targetSdk = 37
-        versionCode = 132
-        versionName = "13.1.0"
+        versionCode = 133
+        versionName = "13.2.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
