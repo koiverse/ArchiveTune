@@ -1,4 +1,4 @@
-The Cutest Material 3 Expressive Music Player With Support Local File and Youtube Music for Android.
+The Cutest Material 3 Music Player With Local & YouTube Support for Android.
 
 Features:
 
