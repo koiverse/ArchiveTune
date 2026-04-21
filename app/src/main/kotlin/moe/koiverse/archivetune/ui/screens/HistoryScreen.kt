@@ -251,20 +251,6 @@ fun HistoryScreen(
     } else {
         localVisibleEvents.size
     }
-    val topBarSubtitle = when {
-        selectionCount > 0 -> stringResource(R.string.local_history)
-        historySource == HistorySource.LOCAL -> {
-            pluralStringResource(R.plurals.n_song, localVisibleEvents.size, localVisibleEvents.size)
-        }
-
-        remoteHistoryState is RemoteHistoryUiState.Success -> {
-            pluralStringResource(R.plurals.n_song, remoteVisibleSongs.size, remoteVisibleSongs.size)
-        }
-
-        remoteHistoryState is RemoteHistoryUiState.Loading -> stringResource(R.string.history_remote_loading)
-        remoteHistoryState is RemoteHistoryUiState.Error -> stringResource(R.string.history_remote_error_title)
-        else -> stringResource(R.string.remote_history)
-    }
 
     val historyOverviewCard: @Composable () -> Unit = {
         HistoryOverviewCard(
@@ -430,13 +416,6 @@ fun HistoryScreen(
                                     stringResource(R.string.history)
                                 },
                             fontWeight = FontWeight.Bold,
-                        )
-                    },
-                    subtitle = {
-                        Text(
-                            text = topBarSubtitle,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
                         )
                     },
                     navigationIcon = {
