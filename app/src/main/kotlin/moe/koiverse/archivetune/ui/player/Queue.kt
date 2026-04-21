@@ -82,6 +82,7 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.media3.common.Player
 import androidx.media3.common.Timeline
 import androidx.navigation.NavController
+import moe.koiverse.archivetune.LocalDatabase
 import moe.koiverse.archivetune.LocalPlayerConnection
 import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.constants.AutoLoadMoreKey
@@ -101,6 +102,7 @@ import moe.koiverse.archivetune.ui.component.BottomSheetState
 import moe.koiverse.archivetune.ui.component.LocalBottomSheetPageState
 import moe.koiverse.archivetune.ui.component.LocalMenuState
 import moe.koiverse.archivetune.ui.component.MediaMetadataListItem
+import moe.koiverse.archivetune.ui.menu.AddToPlaylistDialog
 import moe.koiverse.archivetune.ui.menu.PlayerMenu
 import moe.koiverse.archivetune.ui.menu.SelectionMediaMetadataMenu
 import moe.koiverse.archivetune.ui.utils.ShowMediaInfo
@@ -116,8 +118,13 @@ import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.carousel.CarouselDefaults
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Snackbar
+import androidx.compose.material3.Surface
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.LocalClipboard
+import androidx.compose.ui.text.font.FontWeight
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.source.ShuffleOrder.DefaultShuffleOrder
 
@@ -179,6 +186,33 @@ fun Queue(
     val snackbarHostState = remember { SnackbarHostState() }
     var dismissJob: Job? by remember { mutableStateOf(null) }
     val coroutineScope = rememberCoroutineScope()
+    val database = LocalDatabase.current
+    var showChoosePlaylistDialog by rememberSaveable { mutableStateOf(false) }
+
+    AddToPlaylistDialog(
+        isVisible = showChoosePlaylistDialog,
+        onGetSong = {
+            selectedSongs.map {
+                database.transaction {
+                    insert(it)
+                }
+                it.id
+            }
+        },
+        onDismiss = { showChoosePlaylistDialog = false },
+        onAddComplete = { songCount, playlistNames ->
+            val message = when {
+                songCount == 1 && playlistNames.size == 1 -> context.getString(R.string.added_to_playlist, playlistNames.first())
+                songCount > 1 && playlistNames.size == 1 -> context.getString(R.string.added_n_songs_to_playlist, songCount, playlistNames.first())
+                songCount == 1 -> context.getString(R.string.added_to_n_playlists, playlistNames.size)
+                else -> context.getString(R.string.added_n_songs_to_n_playlists, songCount, playlistNames.size)
+            }
+            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+            selection = false
+            selectedSongs.clear()
+            selectedItems.clear()
+        },
+    )
 
     val queueWindows by playerConnection.queueWindows.collectAsState()
     val currentWindow = remember(currentWindowIndex, queueWindows) {
@@ -192,7 +226,7 @@ fun Queue(
         dismissJob = coroutineScope.launch {
             val snackbarResult = snackbarHostState.showSnackbar(
                 message = context.getString(
-                    R.string.removed_song_from_playlist,
+                    R.string.removed_song_from_queue,
                     window.mediaItem.metadata?.title,
                 ),
                 actionLabel = context.getString(R.string.undo),
@@ -220,11 +254,11 @@ fun Queue(
                 val snackbarResult = snackbarHostState.showSnackbar(
                     message = if (windows.size == 1) {
                         context.getString(
-                            R.string.removed_song_from_playlist,
+                            R.string.removed_song_from_queue,
                             windows.first().mediaItem.metadata?.title,
                         )
                     } else {
-                        context.getString(R.string.elements_selected, windows.size)
+                        context.getString(R.string.removed_n_songs_from_queue, windows.size)
                     },
                     actionLabel = context.getString(R.string.undo),
                     duration = SnackbarDuration.Short,
@@ -1047,13 +1081,86 @@ fun Queue(
             Modifier
                 .padding(
                     bottom =
-                    ListItemHeight +
+                    (if (selection) ListItemHeight * 2 + 16.dp else ListItemHeight) +
                             WindowInsets.systemBars
                                 .asPaddingValues()
                                 .calculateBottomPadding(),
                 )
                 .align(Alignment.BottomCenter),
         )
+
+        AnimatedVisibility(
+            visible = selection,
+            enter = fadeIn() + expandVertically(expandFrom = Alignment.Bottom),
+            exit = fadeOut() + shrinkVertically(shrinkTowards = Alignment.Bottom),
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(
+                    bottom = ListItemHeight +
+                            WindowInsets.systemBars
+                                .asPaddingValues()
+                                .calculateBottomPadding(),
+                ),
+        ) {
+            Surface(
+                modifier = Modifier
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                    .fillMaxWidth(),
+                shape = RoundedCornerShape(20.dp),
+                color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                tonalElevation = 8.dp,
+            ) {
+                Row(
+                    modifier = Modifier
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                        .fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        IconButton(onClick = {
+                            selection = false
+                            selectedSongs.clear()
+                            selectedItems.clear()
+                        }) {
+                            Icon(
+                                painter = painterResource(R.drawable.close),
+                                contentDescription = null,
+                            )
+                        }
+
+                        Text(
+                            text = stringResource(R.string.elements_selected, selectedSongs.size),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                    }
+
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        IconButton(onClick = { showChoosePlaylistDialog = true }) {
+                            Icon(
+                                painter = painterResource(R.drawable.playlist_add),
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                            )
+                        }
+
+                        IconButton(onClick = {
+                            onRemoveMultipleWithUndo(selectedItems.toList())
+                            selection = false
+                            selectedSongs.clear()
+                            selectedItems.clear()
+                        }) {
+                            Icon(
+                                painter = painterResource(R.drawable.delete),
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.error,
+                            )
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 }
