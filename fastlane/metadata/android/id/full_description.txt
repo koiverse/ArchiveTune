@@ -1,24 +1,27 @@
-Aplikasi klien YouTube Music Material 3 terlucu dan ekspresif untuk Android, dirancang untuk performa dan kemampuan perluasan.
+Aplikasi Pemutar Musik Ekspresif Material 3 Terlucu dengan Dukungan File Lokal dan Musik YouTube untuk Android.
 
 Fitur:
 
-- Memutar lagu atau video apa pun dari YT Music
-- Pemutaran di latar belakang
-- Pilihan cepat yang dipersonalisasi
-- Manajemen pustaka
-- Mengunduh dan menyimpan lagu untuk pemutaran offline
-- Pencarian lagu, album, artis, video, dan daftar putar
-- Lirik langsung
-- Dukungan login dengan akun YouTube Music
-- Sinkronisasi lagu, artis, album, dan daftar putar dari dan ke akun Anda
-- Melewati keheningan
-- Impor daftar putar
-- Normalisasi audio
-- Menyesuaikan tempo/pitch
-- Manajemen daftar putar lokal
-- Mengatur ulang lagu di daftar putar atau antrean
-- Tema Terang – Gelap – Hitam – Dinamis
-- Timer tidur
-- Material 3
-- Status Discord yang dapat disesuaikan
-- dll.
+- Pemutaran bebas iklan dengan dukungan pemutaran latar belakang
+- Daftar putar, lagu yang disukai, dan langganan Anda muncul setelah masuk
+- Mendukung Pemutaran File Lokal
+- Startup cepat dan performa ringan
+- Pengalaman mendengarkan yang privat dan tanpa gangguan
+- Normalisasi loudness EBU R128
+- Kontrol tempo, pitch, dan kecepatan pemutaran
+- Crossfade antar lagu
+- Integrasi equalizer sistem dan spatial audio
+- Lirik sinkron langsung
+- Terjemahan dan romanisasi lirik
+- Pengenalan musik untuk lagu di sekitar Anda
+- Statistik mendengarkan kapan pun Anda mau
+- Integrasi akun YouTube Music
+- Scrobbling Last.fm
+- Sinkronisasi riwayat ListenBrainz
+- Dukungan Discord rich presence
+- Bahasa desain Material 3
+- Warna dinamis berbasis artwork album
+- Tata letak responsif untuk berbagai ukuran layar
+- Pengaturan pemutaran dan antarmuka yang mendalam
+- Kustomisasi gestur
+- Penyesuaian animasi dan tata letak

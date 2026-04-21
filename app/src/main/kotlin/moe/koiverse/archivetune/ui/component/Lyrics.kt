@@ -89,7 +89,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.BlurredEdgeTreatment
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.geometry.Offset
@@ -153,6 +155,7 @@ import coil3.ImageLoader
 import coil3.request.ImageRequest
 import coil3.request.allowHardware
 import coil3.toBitmap
+import moe.koiverse.archivetune.LocalAnimationsDisabled
 import moe.koiverse.archivetune.LocalPlayerConnection
 import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.constants.DarkModeKey
@@ -466,6 +469,7 @@ fun Lyrics(
     val lyricsLineSpacing by rememberPreference(LyricsLineSpacingKey, 1.3f)
     val lyricsSyncOffset by rememberPreference(LyricsSyncOffsetKey, 0)
     val useSystemFont by rememberPreference(UseSystemFontKey, false)
+    val animationsDisabled = LocalAnimationsDisabled.current
     val lyricsFontFamily = remember(useSystemFont) {
         if (useSystemFont) null else FontFamily(Font(R.font.sfprodisplaybold))
     }
@@ -890,16 +894,16 @@ fun Lyrics(
                         !isSynced || (isSelectionModeActive && isSelected) -> 1f
                         isManualScrolling -> when {
                             index == displayedCurrentLineIndex -> 1f
-                            distance == 1 -> 0.85f
-                            distance == 2 -> 0.70f
-                            distance == 3 -> 0.55f
-                            else -> 0.45f
+                            distance == 1 -> 0.72f
+                            distance == 2 -> 0.56f
+                            distance == 3 -> 0.40f
+                            else -> 0.28f
                         }
                         index == displayedCurrentLineIndex -> 1f
-                        distance == 1 -> 0.65f
-                        distance == 2 -> 0.40f
-                        distance == 3 -> 0.25f
-                        else -> 0.15f
+                        distance == 1 -> 0.52f
+                        distance == 2 -> 0.30f
+                        distance == 3 -> 0.18f
+                        else -> 0.10f
                     }
 
                     val animatedAlpha by animateFloatAsState(
@@ -923,15 +927,10 @@ fun Lyrics(
                     )
 
                     val targetBlur = when {
-                        !isSynced || index == displayedCurrentLineIndex -> 0f
-                        isManualScrolling -> when {
-                            distance == 1 -> 0.15f
-                            distance == 2 -> 0.25f
-                            else -> 0.35f
-                        }
-                        distance == 1 -> 0.3f
-                        distance == 2 -> 0.6f
-                        else -> 1f
+                        !isSynced || index == displayedCurrentLineIndex || (isSelectionModeActive && isSelected) || isManualScrolling -> 0f
+                        distance == 1 -> 2f
+                        distance == 2 -> 5f
+                        else -> 12f
                     }
 
                     val animatedBlur by animateFloatAsState(
@@ -1008,13 +1007,15 @@ fun Lyrics(
                             horizontal = 24.dp,
                             vertical = 8.dp
                         )
+                        .blur(
+                            radiusX = animatedBlur.dp,
+                            radiusY = animatedBlur.dp,
+                            edgeTreatment = BlurredEdgeTreatment.Unbounded,
+                        )
                         .alpha(animatedAlpha)
                         .graphicsLayer {
                             scaleX = animatedScale
                             scaleY = animatedScale
-                            if (animatedBlur > 0.1f && distance > 2) {
-                                alpha = animatedAlpha * (1f - animatedBlur * 0.1f)
-                            }
                         }
 
                     val baseLayoutDirection = LocalLayoutDirection.current
@@ -1037,7 +1038,7 @@ fun Lyrics(
                             ) {
                         val isActiveLine = index == displayedCurrentLineIndex && isSynced
                         val lineColor = remember(isActiveLine, lyricsBaseColor) {
-                            if (isActiveLine) lyricsBaseColor else lyricsBaseColor.copy(alpha = 0.7f)
+                            if (isActiveLine) lyricsBaseColor else lyricsBaseColor.copy(alpha = 0.52f)
                         }
                         val alignment = remember(lyricsTextPosition) {
                             when (lyricsTextPosition) {
@@ -1057,7 +1058,12 @@ fun Lyrics(
                             }
                         val hasRomanization = remember(romanizedText) { romanizedText != null }
 
-                        val effectiveAnimationStyle = lyricsAnimationStyle
+                        val effectiveAnimationStyle =
+                            if (animationsDisabled) {
+                                LyricsAnimationStyle.NONE
+                            } else {
+                                lyricsAnimationStyle
+                            }
 
                         val reduceMotionDuringScroll =
                             isSelectionModeActive
@@ -1235,7 +1241,7 @@ fun Lyrics(
                                     fontSize = lyricsTextSize.sp,
                                     color = lineColor,
                                     textAlign = alignment,
-                                    fontWeight = if (hasRomanization) FontWeight.Bold else FontWeight.Medium,
+                                    fontWeight = if (hasRomanization) FontWeight.Bold else FontWeight.SemiBold,
                                     lineHeight = (lyricsTextSize * lyricsLineSpacing).sp
                                 )
                             } else {
@@ -1293,10 +1299,6 @@ fun Lyrics(
                                     ) {
                                         append(word.text)
                                     }
-
-                                    if (wordIndex < item.words.size - 1) {
-                                        append(" ")
-                                    }
                                 }
                             }
 
@@ -1314,7 +1316,7 @@ fun Lyrics(
                                     fontSize = lyricsTextSize.sp,
                                     color = lineColor,
                                     textAlign = alignment,
-                                    fontWeight = if (hasRomanization) FontWeight.Bold else FontWeight.Medium,
+                                    fontWeight = if (hasRomanization) FontWeight.Bold else FontWeight.SemiBold,
                                     lineHeight = (lyricsTextSize * lyricsLineSpacing).sp
                                 )
                             } else {
@@ -1369,10 +1371,6 @@ fun Lyrics(
                                     ) {
                                         append(word.text)
                                     }
-
-                                    if (wordIndex < item.words.size - 1) {
-                                        append(" ")
-                                    }
                                 }
                             }
 
@@ -1390,7 +1388,7 @@ fun Lyrics(
                                     fontSize = lyricsTextSize.sp,
                                     color = lineColor,
                                     textAlign = alignment,
-                                    fontWeight = if (hasRomanization) FontWeight.Bold else FontWeight.Medium,
+                                    fontWeight = if (hasRomanization) FontWeight.Bold else FontWeight.SemiBold,
                                     lineHeight = (lyricsTextSize * lyricsLineSpacing).sp
                                 )
                             } else {
@@ -1473,10 +1471,6 @@ fun Lyrics(
                                     ) {
                                         append(word.text)
                                     }
-
-                                    if (wordIndex < item.words.size - 1) {
-                                        append(" ")
-                                    }
                                 }
                             }
 
@@ -1551,7 +1545,7 @@ fun Lyrics(
                                     fontSize = lyricsTextSize.sp,
                                     color = if (!isActiveLine) lineColor else lyricsBaseColor.copy(alpha = 0.35f),
                                     textAlign = alignment,
-                                    fontWeight = if (hasRomanization) FontWeight.Bold else FontWeight.Medium,
+                                    fontWeight = if (hasRomanization) FontWeight.Bold else FontWeight.SemiBold,
                                     lineHeight = (lyricsTextSize * lyricsLineSpacing).sp
                                 )
                             }
@@ -1626,10 +1620,6 @@ fun Lyrics(
                                             append(word.text)
                                         }
                                     }
-
-                                    if (wordIndex < item.words.size - 1) {
-                                        append(" ")
-                                    }
                                 }
                             }
 
@@ -1688,10 +1678,6 @@ fun Lyrics(
                                         )
                                     ) {
                                         append(word.text)
-                                    }
-
-                                    if (wordIndex < item.words.size - 1) {
-                                        append(" ")
                                     }
                                 }
                             }
@@ -1817,7 +1803,6 @@ fun Lyrics(
                                         } else {
                                             append(word.text)
                                         }
-                                        if (idx < item.words.size - 1) append(" ")
                                     }
                                 }
                             } else AnnotatedString(item.text)
@@ -1861,7 +1846,6 @@ fun Lyrics(
                                         } else {
                                             append(word.text)
                                         }
-                                        if (idx < item.words.size - 1) append(" ")
                                     }
                                 }
                             } else AnnotatedString(item.text)

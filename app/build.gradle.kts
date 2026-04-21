@@ -17,12 +17,12 @@ if (localPropertiesFile.exists()) {
 
 android {
     namespace = "moe.koiverse.archivetune"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
     applicationId = "moe.koiverse.archivetune"
         minSdk = 26
-        targetSdk = 36
+        targetSdk = 37
         versionCode = 132
         versionName = "13.1.0"
 
@@ -210,7 +210,6 @@ dependencies {
 
     implementation(libs.room.runtime)
     implementation(libs.kuromoji.ipadic)
-    implementation(libs.anyascii)
     ksp(libs.room.compiler)
     implementation(libs.room.ktx)
 
@@ -230,7 +229,7 @@ dependencies {
     implementation(project(":simpmusic"))
     implementation(project(":canvas"))
     implementation(project(":shazamkit"))
-    implementation("com.github.Kyant0:m3color:2025.4")
+    implementation("com.github.Kyant0:m3color:2026.1")
     implementation(libs.compose.cloudy)
 
     implementation(libs.ktor.client.core)
@@ -250,7 +249,7 @@ dependencies {
     // Ensure ProcessLifecycleOwner is available for the presence manager and CI unit tests
     implementation("com.github.therealbush:translator:1.1.1")
     implementation("androidx.lifecycle:lifecycle-process:2.10.0")
-    implementation("androidx.compose.material3.adaptive:adaptive:1.2.0")
+    implementation("androidx.compose.material3.adaptive:adaptive:1.3.0-alpha10")
 }
 
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {

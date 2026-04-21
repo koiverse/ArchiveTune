@@ -280,7 +280,7 @@ private fun MiniPlayerArtwork(
 ) {
     Box(
         contentAlignment = Alignment.Center,
-        modifier = modifier.size(44.dp)
+        modifier = modifier.size(47.dp)
     ) {
         if (isLoading) {
             CircularWavyProgressIndicator(
@@ -300,7 +300,7 @@ private fun MiniPlayerArtwork(
         Box(
             contentAlignment = Alignment.Center,
             modifier = Modifier
-                .size(36.dp)
+                .size(37.dp)
                 .clip(CircleShape)
                 .background(MaterialTheme.colorScheme.surfaceVariant)
                 .border(
@@ -450,7 +450,7 @@ fun NewMiniPlayerContent(
             isLoading = isLoading
         )
 
-        Spacer(modifier = Modifier.width(12.dp))
+        Spacer(modifier = Modifier.width(5.dp))
 
         mediaMetadata?.let {
             MiniPlayerInfo(mediaMetadata = it)

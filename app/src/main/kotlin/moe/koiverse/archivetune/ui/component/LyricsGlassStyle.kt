@@ -7,11 +7,13 @@
 
 package moe.koiverse.archivetune.ui.component
 
+import androidx.compose.runtime.Immutable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.palette.graphics.Palette
 
+@Immutable
 data class LyricsGlassStyle(
     val name: String,
     val surfaceTint: Color,

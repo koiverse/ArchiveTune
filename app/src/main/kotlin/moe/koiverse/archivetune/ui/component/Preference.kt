@@ -6,7 +6,9 @@
  */
 
 
-@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
+
+@file:OptIn(ExperimentalMaterial3ExpressiveApi::class, ExperimentalMaterial3Api::class)
+
 
 package moe.koiverse.archivetune.ui.component
 
@@ -42,9 +44,13 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ProvideTextStyle
 import androidx.compose.material3.RadioButton
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
@@ -53,6 +59,7 @@ import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberSliderState
+import androidx.compose.material3.toShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.compositionLocalOf
@@ -65,6 +72,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
@@ -83,6 +91,16 @@ import kotlin.math.roundToInt
 val LocalPreferenceInGroup = compositionLocalOf { false }
 
 @Composable
+private fun rememberPreferenceIconShape(): Shape {
+    return MaterialShapes.Ghostish.toShape()
+}
+
+@Composable
+private fun rememberPreferenceGroupItemShape(): Shape {
+    return MaterialShapes.Arch.toShape()
+}
+
+@Composable
 fun PreferenceEntry(
     modifier: Modifier = Modifier,
     title: @Composable () -> Unit,
@@ -94,6 +112,8 @@ fun PreferenceEntry(
     isEnabled: Boolean = true,
 ) {
     val inGroup = LocalPreferenceInGroup.current
+    val preferenceIconShape = rememberPreferenceIconShape()
+    val preferenceGroupItemShape = rememberPreferenceGroupItemShape()
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
@@ -120,8 +140,8 @@ fun PreferenceEntry(
                 Box(
                     modifier = Modifier
                         .align(Alignment.CenterVertically)
-                        .size(36.dp)
-                        .clip(MaterialTheme.shapes.small)
+                        .size(40.dp)
+                        .clip(preferenceIconShape)
                         .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
                     contentAlignment = Alignment.Center,
                 ) {
@@ -158,7 +178,15 @@ fun PreferenceEntry(
     }
 
     if (inGroup) {
-        rowContent()
+        Surface(
+            shape = preferenceGroupItemShape,
+            color = MaterialTheme.colorScheme.surfaceContainerLow,
+            modifier = modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp),
+        ) {
+            rowContent()
+        }
     } else {
         Card(
             shape = MaterialTheme.shapes.large,
@@ -174,6 +202,80 @@ fun PreferenceEntry(
             rowContent()
         }
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun <T> SegmentedPreference(
+    modifier: Modifier = Modifier,
+    title: @Composable () -> Unit,
+    description: String? = null,
+    icon: (@Composable () -> Unit)? = null,
+    selectedValue: T,
+    values: List<T>,
+    valueText: @Composable (T) -> String,
+    onValueSelected: (T) -> Unit,
+    isEnabled: Boolean = true,
+) {
+    PreferenceEntry(
+        modifier = modifier,
+        title = title,
+        description = description,
+        icon = icon,
+        isEnabled = isEnabled,
+        content = {
+            Spacer(Modifier.height(12.dp))
+            SingleChoiceSegmentedButtonRow(
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                values.forEachIndexed { index, value ->
+                    SegmentedButton(
+                        shape = SegmentedButtonDefaults.itemShape(index = index, count = values.size),
+                        onClick = { onValueSelected(value) },
+                        selected = value == selectedValue,
+                        enabled = isEnabled,
+                        colors = SegmentedButtonDefaults.colors(
+                            activeContainerColor = MaterialTheme.colorScheme.secondaryContainer,
+                            activeContentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                            inactiveContainerColor = MaterialTheme.colorScheme.surface,
+                            inactiveContentColor = MaterialTheme.colorScheme.onSurface
+                        )
+                    ) {
+                        Text(
+                            text = valueText(value),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            style = MaterialTheme.typography.labelLarge
+                        )
+                    }
+                }
+            }
+        }
+    )
+}
+
+@Composable
+inline fun <reified T : Enum<T>> EnumSegmentedPreference(
+    modifier: Modifier = Modifier,
+    noinline title: @Composable () -> Unit,
+    description: String? = null,
+    noinline icon: (@Composable () -> Unit)? = null,
+    selectedValue: T,
+    noinline valueText: @Composable (T) -> String,
+    noinline onValueSelected: (T) -> Unit,
+    isEnabled: Boolean = true,
+) {
+    SegmentedPreference(
+        modifier = modifier,
+        title = title,
+        description = description,
+        icon = icon,
+        selectedValue = selectedValue,
+        values = enumValues<T>().toList(),
+        valueText = valueText,
+        onValueSelected = onValueSelected,
+        isEnabled = isEnabled,
+    )
 }
 
 @Composable
@@ -672,17 +774,11 @@ fun PreferenceGroup(
                 modifier = Modifier.padding(horizontal = 4.dp, vertical = 6.dp),
             )
         }
-        Card(
-            shape = MaterialTheme.shapes.large,
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-            ),
-            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            CompositionLocalProvider(LocalPreferenceInGroup provides true) {
-                Column(content = content)
-            }
+        CompositionLocalProvider(LocalPreferenceInGroup provides true) {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                content = content,
+            )
         }
     }
 }

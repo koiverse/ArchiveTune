@@ -54,6 +54,7 @@ import androidx.core.content.ContextCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
 import moe.koiverse.archivetune.BuildConfig
+import moe.koiverse.archivetune.LocalAnimationsDisabled
 import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.constants.AccountEmailKey
 import moe.koiverse.archivetune.ui.component.IconButton
@@ -72,6 +73,7 @@ fun SettingsScreen(
 ) {
     val context = LocalContext.current
     val focusManager = LocalFocusManager.current
+    val animationsDisabled = LocalAnimationsDisabled.current
     val isAndroid12OrLater = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
     val listState = rememberLazyListState()
     val viewModel: HomeViewModel = hiltViewModel()
@@ -256,8 +258,8 @@ fun SettingsScreen(
 
             AnimatedVisibility(
                 visible = showSearchBar,
-                enter = fadeIn(tween(durationMillis = 220)),
-                exit = fadeOut(tween(durationMillis = 160)),
+                enter = fadeIn(SettingsAnimations.fadeTween(if (animationsDisabled) 0 else 220)),
+                exit = fadeOut(SettingsAnimations.fadeTween(if (animationsDisabled) 0 else 160)),
             ) {
                 TopSearch(
                     query = query,

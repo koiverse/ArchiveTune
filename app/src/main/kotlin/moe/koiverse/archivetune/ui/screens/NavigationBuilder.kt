@@ -59,6 +59,7 @@ import moe.koiverse.archivetune.ui.screens.artist.ArtistAlbumsScreen
 import moe.koiverse.archivetune.ui.screens.artist.ArtistItemsScreen
 import moe.koiverse.archivetune.ui.screens.artist.ArtistScreen
 import moe.koiverse.archivetune.ui.screens.artist.ArtistSongsScreen
+import moe.koiverse.archivetune.ui.screens.library.LocalSongScreen
 import moe.koiverse.archivetune.ui.screens.library.LibraryScreen
 import moe.koiverse.archivetune.ui.screens.playlist.AutoPlaylistScreen
 import moe.koiverse.archivetune.ui.screens.playlist.LocalPlaylistScreen
@@ -99,6 +100,7 @@ fun NavGraphBuilder.navigationBuilder(
     navController: NavHostController,
     scrollBehavior: TopAppBarScrollBehavior,
     latestVersionName: String,
+    disableAnimations: Boolean = false,
 ) {
     composable(Screens.Home.route) {
         HomeScreen(navController)
@@ -107,6 +109,9 @@ fun NavGraphBuilder.navigationBuilder(
         Screens.Library.route,
     ) {
         LibraryScreen(navController)
+    }
+    composable("local_songs") {
+        LocalSongScreen(navController)
     }
     composable("history") {
         HistoryScreen(navController)
@@ -155,24 +160,36 @@ fun NavGraphBuilder.navigationBuilder(
             },
         ),
         enterTransition = {
-            fadeIn(tween(250))
+            if (disableAnimations) {
+                fadeIn(tween(0))
+            } else {
+                fadeIn(tween(250))
+            }
         },
         exitTransition = {
-            if (targetState.destination.route?.startsWith("search/") == true) {
+            if (disableAnimations) {
+                fadeOut(tween(0))
+            } else if (targetState.destination.route?.startsWith("search/") == true) {
                 fadeOut(tween(200))
             } else {
                 fadeOut(tween(200)) + slideOutHorizontally { -it / 2 }
             }
         },
         popEnterTransition = {
-            if (initialState.destination.route?.startsWith("search/") == true) {
+            if (disableAnimations) {
+                fadeIn(tween(0))
+            } else if (initialState.destination.route?.startsWith("search/") == true) {
                 fadeIn(tween(250))
             } else {
                 fadeIn(tween(250)) + slideInHorizontally { -it / 2 }
             }
         },
         popExitTransition = {
-            fadeOut(tween(200))
+            if (disableAnimations) {
+                fadeOut(tween(0))
+            } else {
+                fadeOut(tween(200))
+            }
         },
     ) {
         OnlineSearchResult(navController)

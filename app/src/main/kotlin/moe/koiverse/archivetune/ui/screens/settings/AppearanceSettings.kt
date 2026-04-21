@@ -12,6 +12,10 @@ package moe.koiverse.archivetune.ui.screens.settings
 
 import android.os.Build
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -57,6 +61,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -65,6 +70,7 @@ import moe.koiverse.archivetune.LocalPlayerAwareWindowInsets
 import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.constants.ChipSortTypeKey
 import moe.koiverse.archivetune.constants.DarkModeKey
+import moe.koiverse.archivetune.constants.DisableAnimationsKey
 import moe.koiverse.archivetune.constants.DefaultOpenTabKey
 import moe.koiverse.archivetune.constants.DynamicThemeKey
 import moe.koiverse.archivetune.constants.GridItemSize
@@ -115,9 +121,13 @@ import moe.koiverse.archivetune.ui.component.SwitchPreference
 import moe.koiverse.archivetune.ui.component.ThumbnailCornerRadiusSelectorButton
 import moe.koiverse.archivetune.ui.player.StyledPlaybackSlider
 import moe.koiverse.archivetune.ui.utils.backToMain
+import moe.koiverse.archivetune.utils.isLowRamDevice
 import moe.koiverse.archivetune.utils.rememberEnumPreference
 import moe.koiverse.archivetune.utils.rememberPreference
 import kotlin.math.roundToInt
+
+private val NoEnterTransition = EnterTransition.None
+private val NoExitTransition = ExitTransition.None
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -125,6 +135,8 @@ fun AppearanceSettings(
     navController: NavController,
     scrollBehavior: TopAppBarScrollBehavior,
 ) {
+    val context = LocalContext.current
+    val defaultDisableAnimations = remember(context) { context.isLowRamDevice() }
     val (dynamicTheme, onDynamicThemeChange) = rememberPreference(
         DynamicThemeKey,
         defaultValue = true
@@ -164,6 +176,10 @@ fun AppearanceSettings(
         )
     val (pureBlack, onPureBlackChange) = rememberPreference(PureBlackKey, defaultValue = false)
     val (disableBlur, onDisableBlurChange) = rememberPreference(DisableBlurKey, defaultValue = false)
+    val (disableAnimations, onDisableAnimationsChange) = rememberPreference(
+        DisableAnimationsKey,
+        defaultValue = defaultDisableAnimations,
+    )
     val (blurRadius, onBlurRadiusChange) = rememberPreference(BlurRadiusKey, defaultValue = 36f)
     val (useSystemFont, onUseSystemFontChange) = rememberPreference(UseSystemFontKey, defaultValue = false)
     val (defaultOpenTab, onDefaultOpenTabChange) = rememberEnumPreference(
@@ -323,7 +339,11 @@ fun AppearanceSettings(
             onCheckedChange = onDynamicThemeChange,
         )
 
-        AnimatedVisibility(visible = !dynamicTheme || Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
+        AnimatedVisibility(
+            visible = !dynamicTheme || Build.VERSION.SDK_INT < Build.VERSION_CODES.S,
+            enter = if (disableAnimations) NoEnterTransition else fadeIn(),
+            exit = if (disableAnimations) NoExitTransition else fadeOut(),
+        ) {
             SwitchPreference(
                 title = { Text(stringResource(R.string.random_theme_on_startup)) },
                 description = stringResource(R.string.random_theme_on_startup_desc),
@@ -333,7 +353,11 @@ fun AppearanceSettings(
             )
         }
 
-        AnimatedVisibility(visible = !dynamicTheme || Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
+        AnimatedVisibility(
+            visible = !dynamicTheme || Build.VERSION.SDK_INT < Build.VERSION_CODES.S,
+            enter = if (disableAnimations) NoEnterTransition else fadeIn(),
+            exit = if (disableAnimations) NoExitTransition else fadeOut(),
+        ) {
             PreferenceEntry(
                 title = { Text(stringResource(R.string.color_palette)) },
                 description = stringResource(R.string.customize_theme_colors),
@@ -356,7 +380,11 @@ fun AppearanceSettings(
             },
         )
 
-        AnimatedVisibility(useDarkTheme) {
+        AnimatedVisibility(
+            visible = useDarkTheme,
+            enter = if (disableAnimations) NoEnterTransition else fadeIn(),
+            exit = if (disableAnimations) NoExitTransition else fadeOut(),
+        ) {
             SwitchPreference(
                 title = { Text(stringResource(R.string.pure_black)) },
                 icon = { Icon(painterResource(R.drawable.contrast), null) },
@@ -371,6 +399,14 @@ fun AppearanceSettings(
             icon = { Icon(painterResource(R.drawable.blur_off), null) },
             checked = disableBlur,
             onCheckedChange = onDisableBlurChange,
+        )
+
+        SwitchPreference(
+            title = { Text(stringResource(R.string.disable_animations)) },
+            description = stringResource(R.string.disable_animations_desc),
+            icon = { Icon(painterResource(R.drawable.animation), null) },
+            checked = disableAnimations,
+            onCheckedChange = onDisableAnimationsChange,
         )
 
         PreferenceEntry(
@@ -513,7 +549,11 @@ fun AppearanceSettings(
             onCheckedChange = onSwipeThumbnailChange,
         )
 
-        AnimatedVisibility(swipeThumbnail) {
+        AnimatedVisibility(
+            visible = swipeThumbnail,
+            enter = if (disableAnimations) NoEnterTransition else fadeIn(),
+            exit = if (disableAnimations) NoExitTransition else fadeOut(),
+        ) {
             var showSensitivityDialog by rememberSaveable { mutableStateOf(false) }
             
             if (showSensitivityDialog) {

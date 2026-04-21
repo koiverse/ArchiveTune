@@ -14,6 +14,8 @@
     <string name="history">History</string>
     <string name="stats">Stats</string>
     <string name="mood_and_genres">Mood &amp; Genres</string>
+    <string name="mood_and_genres_supporting">Play by feeling, era, or energy</string>
+    <string name="mood_and_genres_count">%d picks</string>
     <string name="account">Account</string>
     <string name="quick_picks">Quick picks</string>
     <string name="quick_picks_empty">Listen to songs to generate your quick picks</string>
@@ -141,6 +143,8 @@
     <string name="sort_by_play_time">Play time</string>
     <string name="sort_by_most_played">Most played</string>
     <string name="sort_by_custom">Custom order</string>
+    <string name="sort_order_ascending">Ascending</string>
+    <string name="sort_order_descending">Descending</string>
     <!-- Dialog -->
     <string name="media_id">Media id</string>
     <string name="mime_type">MIME type</string>
@@ -381,6 +385,8 @@
     <string name="pure_black">Pure black</string>
     <string name="disable_blur">Disable blur effects</string>
     <string name="disable_blur_desc">Disable blur effects throughout the app</string>
+    <string name="disable_animations">Disable animations</string>
+    <string name="disable_animations_desc">Disable most app animations. Recommended for low-end devices</string>
     <string name="blur_intensity">Blur intensity</string>
     <string name="blur_intensity_value">%1$d dp</string>
     <string name="customize_navigation_tabs">Customize navigation tabs</string>
@@ -474,6 +480,7 @@
     <string name="add_symbol">Add symbol</string>
     <string name="enter_symbol">Enter symbol</string>
     <string name="equalizer">Equalizer</string>
+    <string name="tap_to_activate_equalizer">Tap to activate equalizer</string>
     <string name="eq_waiting_for_audio_session">Waiting for audio session…</string>
     <string name="eq_open_system_equalizer">Open system equalizer</string>
     <string name="eq_presets">Presets</string>
@@ -501,6 +508,15 @@
     <string name="storage">Storage</string>
     <string name="smart_trimmer">Smart Trimmer</string>
     <string name="smart_trimmer_description">Smart trimmer dynamically manages the image cache and song cache, pruning old entries to save disk space.</string>
+    <string name="storage_tracked_storage">%s tracked on device</string>
+    <string name="storage_summary_supporting">Downloads, playback, and artwork caches update live.</string>
+    <string name="storage_automation_title">Automation</string>
+    <string name="storage_limit_format">Limit: %s</string>
+    <string name="storage_downloads_detail">Available offline until you remove them.</string>
+    <string name="storage_cache_disabled_detail">Cache is turned off and cleared automatically.</string>
+    <string name="storage_cache_unlimited_detail">No size limit is applied.</string>
+    <string name="storage_canvas_detail">Canvas is limited by item count instead of disk size.</string>
+    <string name="storage_trimmer_unavailable">Enable image or song cache before using Smart Trimmer.</string>
     <string name="cache">Cache</string>
     <string name="image_cache">Image Cache</string>
     <string name="song_cache">Song Cache</string>
@@ -679,16 +695,27 @@ ArchiveTune will only extract your token, and everything else is stored locally.
     <string name="translation_models">Translation Models</string>
     <string name="clear_translation_models">Clear translation models</string>
     <string name="updates">Updates</string>
+    <string name="updates_subtitle_stable">Stable releases and release notes</string>
+    <string name="updates_subtitle_nightly">Nightly builds and recent development commits</string>
     <string name="current_version">Current Version</string>
     <string name="latest_version_format">Latest: %s</string>
+    <string name="updates_status_checking">Checking for the latest release</string>
+    <string name="updates_status_current">You are on the latest available release</string>
     <string name="notification_settings">Notification</string>
     <string name="enable_update_notification">Enable Update Notification</string>
     <string name="enable_update_notification_desc">Get notified when a new stable version is released</string>
     <string name="update_channel">Update Channel</string>
+    <string name="update_channel_desc">Choose between tested releases and development snapshots.</string>
     <string name="channel_stable">Stable</string>
     <string name="channel_nightly">Nightly</string>
     <string name="commit_history">Development</string>
     <string name="recent_commits">Recent Commits</string>
+    <string name="updates_nightly_title">Nightly delivery</string>
+    <string name="updates_nightly_description">Nightly builds track the newest development commits and may include unfinished changes.</string>
+    <string name="updates_latest_commit">Latest commit: %s</string>
+    <string name="updates_loading_commits">Loading recent commits</string>
+    <string name="updates_recent_commits_count">%1$d recent commits</string>
+    <string name="updates_no_commits">No recent commits found</string>
     <string name="changelog">Changelog</string>
     <string name="view_changelog">View Changelog</string>
     <string name="error_loading_changelog">Error loading changelog</string>
@@ -714,6 +741,10 @@ ArchiveTune will only extract your token, and everything else is stored locally.
     <!-- Playlist Suggestions -->
     <string name="you_might_like">You might like</string>
     <string name="refresh_suggestions">Refresh suggestions</string>
+    <string name="you_might_like_source">You might like source</string>
+    <string name="playlist_suggestion_source_title">Playlist title</string>
+    <string name="playlist_suggestion_source_content">Playlist content</string>
+    <string name="playlist_suggestion_source_both">Playlist title and content</string>
 
     <string name="music_together">ArchiveTune Music Together</string>
     <string name="together_display_name">Display name</string>

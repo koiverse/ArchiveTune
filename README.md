@@ -7,12 +7,13 @@
   <p align="center">
     <strong>Redefining the YouTube Music Experience on Android.</strong>
     <br />
-    <em>It’s high-performance, totally private, and packed with features for people who really care about their experience.</em>
+    <em>It’s high-performance, privacy-focused, and packed with features for people who really care about their experience.</em>
   </p>
 
   <p align="center">
     <a href="https://archivetune.koiiverse.cloud"><b>Official Website</b></a> •
     <a href="#features"><b>Features</b></a> •
+    <a href="PRIVACY.md"><b>Privacy</b></a> •
     <a href="#download-now"><b>Download</b></a> •
     <a href="#screenshots"><b>Screenshots</b></a> •
     <a href="https://github.com/koiverse/ArchiveTune/issues/new/choose"><b>Support</b></a>
@@ -77,6 +78,7 @@
         <ul>
           <li>Ad-free playback with background listening</li>
           <li>Your playlists, liked songs, and subscriptions appear after sign-in</li>
+          <li>Support local file and local song playback
           <li>Fast startup and lightweight performance</li>
           <li>Built for a private, uninterrupted listening experience</li>
         </ul>

@@ -15,6 +15,10 @@ import android.media.audiofx.AudioEffect
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.DrawableRes
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
@@ -44,6 +48,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.AlertDialog
@@ -53,6 +58,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItemDefaults
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
@@ -61,6 +67,8 @@ import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.ToggleButton
+import androidx.compose.material3.ToggleButtonDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.ListItem
@@ -78,6 +86,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -134,8 +143,10 @@ import moe.koiverse.archivetune.ui.component.NewActionGrid
 import moe.koiverse.archivetune.ui.component.TextFieldDialog
 import moe.koiverse.archivetune.utils.SpeedDialPin
 import moe.koiverse.archivetune.utils.SpeedDialPinType
+import moe.koiverse.archivetune.utils.isLocalMediaId
 import moe.koiverse.archivetune.utils.parseSpeedDialPins
 import moe.koiverse.archivetune.utils.rememberPreference
+import moe.koiverse.archivetune.utils.shareLocalAudio
 import moe.koiverse.archivetune.utils.serializeSpeedDialPins
 import moe.koiverse.archivetune.utils.toggleSpeedDialPin
 import kotlinx.coroutines.Dispatchers
@@ -183,6 +194,9 @@ fun PlayerMenu(
     val songPin = remember(mediaMetadata.id) { SpeedDialPin(type = SpeedDialPinType.SONG, id = mediaMetadata.id) }
     val isInSpeedDial = remember(speedDialPins, songPin) {
         speedDialPins.any { it.type == songPin.type && it.id == songPin.id }
+    }
+    val isLocalMedia = remember(librarySong?.song?.isLocal, mediaMetadata.id) {
+        librarySong?.song?.isLocal == true || mediaMetadata.id.isLocalMediaId()
     }
 
     // Split artists by configured separators
@@ -433,94 +447,126 @@ fun PlayerMenu(
     ) {
         item {
             NewActionGrid(
-                actions = listOf(
-                    NewAction(
-                        icon = {
-                            Icon(
-                                painter = painterResource(R.drawable.radio),
-                                contentDescription = null,
-                                modifier = Modifier.size(28.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        },
-                        text = stringResource(R.string.start_radio),
-                        onClick = {
-                            Toast.makeText(context, context.getString(R.string.starting_radio), Toast.LENGTH_SHORT).show()
-                            playerConnection.startRadioSeamlessly()
-                            onDismiss()
-                        }
-                    ),
-                    NewAction(
-                        icon = {
-                            Icon(
-                                painter = painterResource(R.drawable.playlist_add),
-                                contentDescription = null,
-                                modifier = Modifier.size(28.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        },
-                        text = stringResource(R.string.add_to_playlist),
-                        onClick = { showChoosePlaylistDialog = true }
-                    ),
-                    NewAction(
-                        icon = {
-                            Icon(
-                                painter = painterResource(if (isInSpeedDial) R.drawable.bookmark_filled else R.drawable.bookmark),
-                                contentDescription = null,
-                                modifier = Modifier.size(28.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        },
-                        text = stringResource(
-                            if (isInSpeedDial) R.string.remove_from_speed_dial
-                            else R.string.pin_to_speed_dial
-                        ),
-                        onClick = {
-                            val updatedPins = toggleSpeedDialPin(speedDialPins, songPin)
-                            onSpeedDialSongIdsChange(serializeSpeedDialPins(updatedPins))
-                            onDismiss()
-                        }
-                    ),
-                    NewAction(
-                        icon = {
-                            Icon(
-                                painter = painterResource(R.drawable.link),
-                                contentDescription = null,
-                                modifier = Modifier.size(28.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        },
-                        text = stringResource(R.string.copy_link),
-                        onClick = {
-                            val clipboard =
-                                context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
-                            val clip =
-                                android.content.ClipData.newPlainText(
-                                    context.getString(R.string.copy_link),
-                                    "https://music.youtube.com/watch?v=${mediaMetadata.id}",
+                actions = buildList {
+                    if (!isLocalMedia) {
+                        add(
+                            NewAction(
+                                icon = {
+                                    Icon(
+                                        painter = painterResource(R.drawable.radio),
+                                        contentDescription = null,
+                                        modifier = Modifier.size(28.dp),
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                },
+                                text = stringResource(R.string.start_radio),
+                                onClick = {
+                                    Toast.makeText(context, context.getString(R.string.starting_radio), Toast.LENGTH_SHORT).show()
+                                    playerConnection.startRadioSeamlessly()
+                                    onDismiss()
+                                }
+                            ),
+                        )
+                    }
+                    add(
+                        NewAction(
+                            icon = {
+                                Icon(
+                                    painter = painterResource(R.drawable.playlist_add),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(28.dp),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
-                            clipboard.setPrimaryClip(clip)
-                            android.widget.Toast.makeText(context, R.string.link_copied, android.widget.Toast.LENGTH_SHORT).show()
-                            onDismiss()
-                        }
-                    ),
-                    NewAction(
-                        icon = {
-                            Icon(
-                                painter = painterResource(R.drawable.fire),
-                                contentDescription = null,
-                                modifier = Modifier.size(28.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            },
+                            text = stringResource(R.string.add_to_playlist),
+                            onClick = { showChoosePlaylistDialog = true }
+                        ),
+                    )
+                    add(
+                        NewAction(
+                            icon = {
+                                Icon(
+                                    painter = painterResource(if (isInSpeedDial) R.drawable.bookmark_filled else R.drawable.bookmark),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(28.dp),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            },
+                            text = stringResource(
+                                if (isInSpeedDial) R.string.remove_from_speed_dial
+                                else R.string.pin_to_speed_dial
+                            ),
+                            onClick = {
+                                val updatedPins = toggleSpeedDialPin(speedDialPins, songPin)
+                                onSpeedDialSongIdsChange(serializeSpeedDialPins(updatedPins))
+                                onDismiss()
+                            }
+                        ),
+                    )
+                    add(
+                        if (isLocalMedia) {
+                            NewAction(
+                                icon = {
+                                    Icon(
+                                        painter = painterResource(R.drawable.share),
+                                        contentDescription = null,
+                                        modifier = Modifier.size(28.dp),
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                },
+                                text = stringResource(R.string.share),
+                                onClick = {
+                                    shareLocalAudio(context, mediaMetadata.id, librarySong?.format?.mimeType)
+                                    onDismiss()
+                                }
+                            )
+                        } else {
+                            NewAction(
+                                icon = {
+                                    Icon(
+                                        painter = painterResource(R.drawable.link),
+                                        contentDescription = null,
+                                        modifier = Modifier.size(28.dp),
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                },
+                                text = stringResource(R.string.copy_link),
+                                onClick = {
+                                    val clipboard =
+                                        context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                                    val clip =
+                                        android.content.ClipData.newPlainText(
+                                            context.getString(R.string.copy_link),
+                                            "https://music.youtube.com/watch?v=${mediaMetadata.id}",
+                                        )
+                                    clipboard.setPrimaryClip(clip)
+                                    android.widget.Toast.makeText(context, R.string.link_copied, android.widget.Toast.LENGTH_SHORT).show()
+                                    onDismiss()
+                                }
                             )
                         },
-                        text = stringResource(R.string.music_together),
-                        onClick = {
-                            onDismiss()
-                            playerBottomSheetState.snapTo(playerBottomSheetState.collapsedBound)
-                            navController.navigate("settings/music_together")
-                        }
                     )
-                ),
+                    if (!isLocalMedia) {
+                        add(
+                            NewAction(
+                                icon = {
+                                    Icon(
+                                        painter = painterResource(R.drawable.fire),
+                                        contentDescription = null,
+                                        modifier = Modifier.size(28.dp),
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                },
+                                text = stringResource(R.string.music_together),
+                                onClick = {
+                                    onDismiss()
+                                    playerBottomSheetState.snapTo(playerBottomSheetState.collapsedBound)
+                                    navController.navigate("settings/music_together")
+                                }
+                            ),
+                        )
+                    }
+                },
                 modifier = Modifier.padding(vertical = 4.dp)
             )
         }
@@ -586,57 +632,92 @@ fun PlayerMenu(
                 Spacer(modifier = Modifier.height(12.dp))
             }
         }
-        item {
-            MenuSurfaceSection(modifier = Modifier.padding(vertical = 6.dp)) {
-                when (download?.state) {
-                    Download.STATE_COMPLETED -> {
-                        ListItem(
-                            headlineContent = {
-                                Text(
-                                    text = stringResource(R.string.remove_download),
-                                    color = MaterialTheme.colorScheme.error,
-                                )
-                            },
-                            leadingContent = {
-                                Icon(
-                                    painter = painterResource(R.drawable.offline),
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.error,
-                                )
-                            },
-                            modifier = Modifier.clickable {
-                                DownloadService.sendRemoveDownload(
-                                    context,
-                                    ExoDownloadService::class.java,
-                                    mediaMetadata.id,
-                                    false,
-                                )
-                            },
-                            colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-                        )
+        if (!isLocalMedia) {
+            item {
+                MenuSurfaceSection(modifier = Modifier.padding(vertical = 6.dp)) {
+                    when (download?.state) {
+                        Download.STATE_COMPLETED -> {
+                            ListItem(
+                                headlineContent = {
+                                    Text(
+                                        text = stringResource(R.string.remove_download),
+                                        color = MaterialTheme.colorScheme.error,
+                                    )
+                                },
+                                leadingContent = {
+                                    Icon(
+                                        painter = painterResource(R.drawable.offline),
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.error,
+                                    )
+                                },
+                                modifier = Modifier.clickable {
+                                    DownloadService.sendRemoveDownload(
+                                        context,
+                                        ExoDownloadService::class.java,
+                                        mediaMetadata.id,
+                                        false,
+                                    )
+                                },
+                                colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                            )
+                        }
+                        Download.STATE_QUEUED, Download.STATE_DOWNLOADING -> {
+                            ListItem(
+                                headlineContent = { Text(text = stringResource(R.string.downloading)) },
+                                leadingContent = {
+                                    CircularWavyProgressIndicator(
+                                        modifier = Modifier.size(24.dp),
+                                    )
+                                },
+                                modifier = Modifier.clickable {
+                                    DownloadService.sendRemoveDownload(
+                                        context,
+                                        ExoDownloadService::class.java,
+                                        mediaMetadata.id,
+                                        false,
+                                    )
+                                },
+                                colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                            )
+                        }
+                        else -> {
+                            ListItem(
+                                headlineContent = { Text(text = stringResource(R.string.action_download)) },
+                                leadingContent = {
+                                    Icon(
+                                        painter = painterResource(R.drawable.download),
+                                        contentDescription = null,
+                                    )
+                                },
+                                modifier = Modifier.clickable {
+                                    database.transaction {
+                                        insert(mediaMetadata)
+                                    }
+                                    val downloadRequest =
+                                        DownloadRequest
+                                            .Builder(mediaMetadata.id, mediaMetadata.id.toUri())
+                                            .setCustomCacheKey(mediaMetadata.id)
+                                            .setData(mediaMetadata.title.toByteArray())
+                                            .build()
+                                    DownloadService.sendAddDownload(
+                                        context,
+                                        ExoDownloadService::class.java,
+                                        downloadRequest,
+                                        false,
+                                    )
+                                },
+                                colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                            )
+                        }
                     }
-                    Download.STATE_QUEUED, Download.STATE_DOWNLOADING -> {
-                        ListItem(
-                            headlineContent = { Text(text = stringResource(R.string.downloading)) },
-                            leadingContent = {
-                                CircularWavyProgressIndicator(
-                                    modifier = Modifier.size(24.dp),
-                                )
-                            },
-                            modifier = Modifier.clickable {
-                                DownloadService.sendRemoveDownload(
-                                    context,
-                                    ExoDownloadService::class.java,
-                                    mediaMetadata.id,
-                                    false,
-                                )
-                            },
-                            colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                    if (externalDownloaderEnabled) {
+                        HorizontalDivider(
+                            modifier = Modifier.padding(start = 56.dp),
+                            color = MaterialTheme.colorScheme.outlineVariant,
                         )
-                    }
-                    else -> {
                         ListItem(
-                            headlineContent = { Text(text = stringResource(R.string.action_download)) },
+                            headlineContent = { Text(text = stringResource(R.string.open_with_downloader)) },
                             leadingContent = {
                                 Icon(
                                     painter = painterResource(R.drawable.download),
@@ -644,59 +725,26 @@ fun PlayerMenu(
                                 )
                             },
                             modifier = Modifier.clickable {
-                                database.transaction {
-                                    insert(mediaMetadata)
+                                onDismiss()
+                                val url = "https://music.youtube.com/watch?v=${mediaMetadata.id}"
+                                if (externalDownloaderPackage.isBlank()) {
+                                    Toast.makeText(context, context.getString(R.string.external_downloader_not_configured), Toast.LENGTH_LONG).show()
+                                    return@clickable
                                 }
-                                val downloadRequest =
-                                    DownloadRequest
-                                        .Builder(mediaMetadata.id, mediaMetadata.id.toUri())
-                                        .setCustomCacheKey(mediaMetadata.id)
-                                        .setData(mediaMetadata.title.toByteArray())
-                                        .build()
-                                DownloadService.sendAddDownload(
-                                    context,
-                                    ExoDownloadService::class.java,
-                                    downloadRequest,
-                                    false,
-                                )
+                                val intent = android.content.Intent(android.content.Intent.ACTION_VIEW).apply {
+                                    setPackage(externalDownloaderPackage)
+                                    data = android.net.Uri.parse(url)
+                                    addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                                }
+                                try {
+                                    context.startActivity(intent)
+                                } catch (e: android.content.ActivityNotFoundException) {
+                                    Toast.makeText(context, context.getString(R.string.external_downloader_not_installed), Toast.LENGTH_SHORT).show()
+                                }
                             },
                             colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                         )
                     }
-                }
-                if (externalDownloaderEnabled) {
-                    HorizontalDivider(
-                        modifier = Modifier.padding(start = 56.dp),
-                        color = MaterialTheme.colorScheme.outlineVariant,
-                    )
-                    ListItem(
-                        headlineContent = { Text(text = stringResource(R.string.open_with_downloader)) },
-                        leadingContent = {
-                            Icon(
-                                painter = painterResource(R.drawable.download),
-                                contentDescription = null,
-                            )
-                        },
-                        modifier = Modifier.clickable {
-                            onDismiss()
-                            val url = "https://music.youtube.com/watch?v=${mediaMetadata.id}"
-                            if (externalDownloaderPackage.isBlank()) {
-                                Toast.makeText(context, context.getString(R.string.external_downloader_not_configured), Toast.LENGTH_LONG).show()
-                                return@clickable
-                            }
-                            val intent = android.content.Intent(android.content.Intent.ACTION_VIEW).apply {
-                                setPackage(externalDownloaderPackage)
-                                data = android.net.Uri.parse(url)
-                                addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
-                            }
-                            try {
-                                context.startActivity(intent)
-                            } catch (e: android.content.ActivityNotFoundException) {
-                                Toast.makeText(context, context.getString(R.string.external_downloader_not_installed), Toast.LENGTH_SHORT).show()
-                            }
-                        },
-                        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-                    )
                 }
             }
         }
@@ -1319,6 +1367,26 @@ fun EqualizerDialog(
     val profiles = remember(customProfilesJson) { decodeProfilesPayload(customProfilesJson).profiles }
     val activeProfileId = selectedProfileId.removePrefix("profile:").takeIf { selectedProfileId.startsWith("profile:") }
     val activeProfile = remember(profiles, activeProfileId) { profiles.firstOrNull { it.id == activeProfileId } }
+    val selectedSystemPresetName =
+        selectedProfileId
+            .removePrefix("system:")
+            .toIntOrNull()
+            ?.let { index -> caps?.systemPresets?.getOrNull(index) }
+
+    val currentProfileTitle =
+        when {
+            selectedProfileId == "flat" -> stringResource(R.string.eq_flat)
+            selectedSystemPresetName != null -> selectedSystemPresetName
+            activeProfile != null -> activeProfile.name
+            else -> stringResource(R.string.eq_manual)
+        }
+
+    val currentProfileSupportingText =
+        when {
+            activeProfile != null -> stringResource(R.string.eq_custom_profile)
+            selectedSystemPresetName != null -> stringResource(R.string.eq_system_preset)
+            else -> stringResource(R.string.eq_profile_hint)
+        }
 
     var showSaveProfileDialog by rememberSaveable { mutableStateOf(false) }
     var showManageProfilesDialog by rememberSaveable { mutableStateOf(false) }
@@ -1501,7 +1569,12 @@ fun EqualizerDialog(
                 modifier = Modifier.fillMaxSize(),
             ) {
                 TopAppBar(
-                    title = { Text(text = stringResource(R.string.equalizer)) },
+                    title = {
+                        Text(
+                            text = stringResource(R.string.equalizer),
+                            fontWeight = FontWeight.Bold,
+                        )
+                    },
                     navigationIcon = {
                         IconButton(onClick = onDismiss) {
                             Icon(
@@ -1509,23 +1582,6 @@ fun EqualizerDialog(
                                 contentDescription = null,
                             )
                         }
-                    },
-                    actions = {
-                        Switch(
-                            checked = eqEnabled,
-                            onCheckedChange = {
-                                setEqEnabled(it)
-                                if (it && selectedProfileId.isBlank()) setSelectedProfileId("manual")
-                            },
-                            thumbContent = {
-                                Icon(
-                                    painter = painterResource(id = if (eqEnabled) R.drawable.check else R.drawable.close),
-                                    contentDescription = null,
-                                    modifier = Modifier.size(SwitchDefaults.IconSize),
-                                )
-                            },
-                        )
-                        Spacer(Modifier.width(8.dp))
                     },
                     colors =
                         TopAppBarDefaults.topAppBarColors(
@@ -1541,18 +1597,28 @@ fun EqualizerDialog(
                             .verticalScroll(rememberScrollState())
                             .padding(horizontal = 16.dp)
                             .padding(bottom = 24.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
-                    Spacer(Modifier.height(12.dp))
+                    EqHeroCard(
+                        enabled = eqEnabled,
+                        profileTitle = currentProfileTitle,
+                        profileSubtitle = currentProfileSupportingText,
+                        onEnabledChange = {
+                            setEqEnabled(it)
+                            if (it && selectedProfileId.isBlank()) setSelectedProfileId("manual")
+                        },
+                        onOpenSystemEqualizer = openSystemEqualizer,
+                    )
 
                     if (caps == null || bandCount <= 0) {
                         Surface(
                             color = MaterialTheme.colorScheme.surfaceContainer,
-                            shape = RoundedCornerShape(24.dp),
+                            shape = RoundedCornerShape(28.dp),
                             modifier = Modifier.fillMaxWidth(),
                         ) {
                             Column(
                                 horizontalAlignment = Alignment.CenterHorizontally,
-                                modifier = Modifier.padding(24.dp),
+                                modifier = Modifier.padding(32.dp),
                             ) {
                                 CircularWavyProgressIndicator()
                                 Spacer(Modifier.height(16.dp))
@@ -1562,30 +1628,20 @@ fun EqualizerDialog(
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     textAlign = TextAlign.Center,
                                 )
-                                Spacer(Modifier.height(16.dp))
-                                Button(onClick = openSystemEqualizer, shapes = ButtonDefaults.shapes()) {
-                                    Text(text = stringResource(R.string.eq_open_system_equalizer))
-                                }
                             }
                         }
-                        Spacer(Modifier.height(24.dp))
                         return@Column
                     }
 
                     EqSection(
                         title = stringResource(R.string.eq_presets),
-                        trailing = {
-                            TextButton(onClick = openSystemEqualizer, shapes = ButtonDefaults.shapes()) {
-                                Text(text = stringResource(R.string.eq_system))
-                            }
-                        },
                     ) {
                         Row(
                             modifier =
                                 Modifier
                                     .fillMaxWidth()
-                                    .padding(horizontal = 8.dp)
                                     .horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
                             FilterChip(
                                 selected = selectedProfileId == "flat",
@@ -1597,11 +1653,11 @@ fun EqualizerDialog(
                                 colors =
                                     FilterChipDefaults.filterChipColors(
                                         containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                                        selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                        selectedLabelColor = MaterialTheme.colorScheme.onSecondaryContainer,
                                     ),
                                 border = null,
                             )
-
-                            Spacer(Modifier.width(8.dp))
 
                             caps.systemPresets.forEachIndexed { index, name ->
                                 FilterChip(
@@ -1620,62 +1676,75 @@ fun EqualizerDialog(
                                     colors =
                                         FilterChipDefaults.filterChipColors(
                                             containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                                            selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                            selectedLabelColor = MaterialTheme.colorScheme.onSecondaryContainer,
                                         ),
                                     border = null,
                                 )
-                                Spacer(Modifier.width(8.dp))
                             }
                         }
                     }
 
-                    Spacer(Modifier.height(12.dp))
-
                     EqSection(
                         title = stringResource(R.string.eq_profiles),
-                        trailing = {
-                            TextButton(onClick = { showManageProfilesDialog = true }, shapes = ButtonDefaults.shapes()) {
-                                Text(text = stringResource(R.string.eq_manage))
-                            }
-                        },
+                        subtitle = stringResource(R.string.eq_profile_hint),
                     ) {
-                        val subtitle =
-                            when {
-                                selectedProfileId == "flat" -> stringResource(R.string.eq_flat)
-                                selectedProfileId.startsWith("system:") -> stringResource(R.string.eq_system_preset)
-                                activeProfile != null -> activeProfile.name
-                                else -> stringResource(R.string.eq_manual)
+                        Surface(
+                            color = MaterialTheme.colorScheme.surfaceContainerHighest,
+                            shape = RoundedCornerShape(20.dp),
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier =
+                                    Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 16.dp, vertical = 16.dp),
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = currentProfileTitle,
+                                        style = MaterialTheme.typography.titleLarge,
+                                        fontWeight = FontWeight.SemiBold,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
+                                }
+
+                                Surface(
+                                    shape = CircleShape,
+                                    color = if (eqEnabled) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface,
+                                ) {
+                                    Text(
+                                        text = stringResource(if (eqEnabled) R.string.enabled else R.string.disabled),
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = if (eqEnabled) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                                    )
+                                }
                             }
+                        }
+
+                        Spacer(Modifier.height(12.dp))
 
                         Row(
-                            verticalAlignment = Alignment.CenterVertically,
                             modifier =
                                 Modifier
                                     .fillMaxWidth()
-                                    .padding(horizontal = 8.dp),
+                                    .horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = subtitle,
-                                    style = MaterialTheme.typography.titleMedium,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
-                                Text(
-                                    text = stringResource(R.string.eq_profile_hint),
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
+                            OutlinedButton(onClick = { showManageProfilesDialog = true }) {
+                                Text(text = stringResource(R.string.eq_manage))
                             }
-                            TextButton(onClick = { showSaveProfileDialog = true }, shapes = ButtonDefaults.shapes()) {
+                            FilledTonalButton(onClick = { showSaveProfileDialog = true }) {
                                 Text(text = stringResource(R.string.eq_save))
                             }
-                            TextButton(onClick = { showImportProfilesDialog = true }, shapes = ButtonDefaults.shapes()) {
+                            OutlinedButton(onClick = { showImportProfilesDialog = true }) {
                                 Text(text = stringResource(R.string.eq_import))
                             }
                         }
                     }
-
-                    Spacer(Modifier.height(12.dp))
 
                     EqSection(
                         title = stringResource(R.string.eq_bands),
@@ -1696,53 +1765,31 @@ fun EqualizerDialog(
                             val value = bandLevelsMb.getOrNull(band) ?: 0
                             val valueDb = (value / 100f).coerceIn(-24f, 24f)
 
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier =
-                                    Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = 8.dp, vertical = 10.dp),
-                            ) {
-                                Text(
-                                    text = label,
-                                    style = MaterialTheme.typography.labelLarge,
-                                    modifier = Modifier.width(64.dp),
-                                )
+                            EqBandSliderRow(
+                                label = label,
+                                value = value,
+                                valueLabel = formatDb(valueDb),
+                                minMb = minMb,
+                                maxMb = maxMb,
+                                onValueChange = { newValue ->
+                                    val coerced = newValue.toInt().coerceIn(minMb, maxMb)
+                                    bandLevelsMb =
+                                        bandLevelsMb.toMutableList().apply {
+                                            while (size < bandCount) add(0)
+                                            set(band, coerced)
+                                        }
+                                },
+                                onValueChangeFinished = {
+                                    setSelectedProfileId("manual")
+                                    setBandLevelsRaw(encodeBandLevelsMb(bandLevelsMb))
+                                },
+                            )
 
-                                Slider(
-                                    value = value.toFloat().coerceIn(minMb.toFloat(), maxMb.toFloat()),
-                                    onValueChange = { newValue ->
-                                        val coerced = newValue.toInt().coerceIn(minMb, maxMb)
-                                        bandLevelsMb =
-                                            bandLevelsMb.toMutableList().apply {
-                                                while (size < bandCount) add(0)
-                                                set(band, coerced)
-                                            }
-                                    },
-                                    onValueChangeFinished = {
-                                        setSelectedProfileId("manual")
-                                        setBandLevelsRaw(encodeBandLevelsMb(bandLevelsMb))
-                                    },
-                                    valueRange = minMb.toFloat()..maxMb.toFloat(),
-                                    colors =
-                                        SliderDefaults.colors(
-                                            activeTrackColor = MaterialTheme.colorScheme.primary,
-                                            inactiveTrackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-                                        ),
-                                    modifier = Modifier.weight(1f),
-                                )
-
-                                Text(
-                                    text = formatDb(valueDb),
-                                    style = MaterialTheme.typography.labelLarge,
-                                    textAlign = TextAlign.End,
-                                    modifier = Modifier.width(64.dp),
-                                )
+                            if (band != caps.centerFreqHz.lastIndex) {
+                                Spacer(Modifier.height(12.dp))
                             }
                         }
                     }
-
-                    Spacer(Modifier.height(12.dp))
 
                     EqSection(title = stringResource(R.string.eq_output_gain)) {
                         EqToggleSliderRow(
@@ -1755,15 +1802,12 @@ fun EqualizerDialog(
                             onValueChange = { outputGainLocal = it },
                             valueRange = -1500..1500,
                             formatValue = { formatDb(it / 100f) },
-                            modifier = Modifier.padding(horizontal = 8.dp),
                             onValueChangeFinished = {
                                 setSelectedProfileId("manual")
                                 setOutputGainMb(outputGainLocal)
                             },
                         )
                     }
-
-                    Spacer(Modifier.height(12.dp))
 
                     EqSection(title = stringResource(R.string.eq_bass_boost)) {
                         EqToggleSliderRow(
@@ -1776,15 +1820,12 @@ fun EqualizerDialog(
                             onValueChange = { bassBoostStrengthLocal = it },
                             valueRange = 0..1000,
                             formatValue = { "${it / 10}%" },
-                            modifier = Modifier.padding(horizontal = 8.dp),
                             onValueChangeFinished = {
                                 setSelectedProfileId("manual")
                                 setBassBoostStrength(bassBoostStrengthLocal)
                             },
                         )
                     }
-
-                    Spacer(Modifier.height(12.dp))
 
                     EqSection(title = stringResource(R.string.eq_virtualizer)) {
                         EqToggleSliderRow(
@@ -1797,7 +1838,6 @@ fun EqualizerDialog(
                             onValueChange = { virtualizerStrengthLocal = it },
                             valueRange = 0..1000,
                             formatValue = { "${it / 10}%" },
-                            modifier = Modifier.padding(horizontal = 8.dp),
                             onValueChangeFinished = {
                                 setSelectedProfileId("manual")
                                 setVirtualizerStrength(virtualizerStrengthLocal)
@@ -1813,27 +1853,242 @@ fun EqualizerDialog(
 @Composable
 private fun EqSection(
     title: String,
+    subtitle: String? = null,
     trailing: @Composable (() -> Unit)? = null,
-    content: @Composable () -> Unit,
+    content: @Composable ColumnScope.() -> Unit,
 ) {
     Surface(
         color = MaterialTheme.colorScheme.surfaceContainer,
-        shape = RoundedCornerShape(24.dp),
-        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(28.dp),
+        modifier = Modifier.fillMaxWidth().animateContentSize(),
     ) {
-        Column(modifier = Modifier.padding(vertical = 16.dp)) {
+        Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 18.dp)) {
             Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.Top,
+                modifier = Modifier.fillMaxWidth(),
             ) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleMedium,
+                Column(
                     modifier = Modifier.weight(1f),
-                )
+                ) {
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    if (subtitle != null) {
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            text = subtitle,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
                 trailing?.invoke()
             }
+            Spacer(Modifier.height(16.dp))
             content()
+        }
+    }
+}
+
+@Composable
+private fun EqHeroCard(
+    enabled: Boolean,
+    profileTitle: String,
+    profileSubtitle: String,
+    onEnabledChange: (Boolean) -> Unit,
+    onOpenSystemEqualizer: () -> Unit,
+) {
+    val heroAccentColor by animateColorAsState(
+        targetValue = if (enabled) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHighest,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessLow),
+        label = "eqHeroAccent",
+    )
+
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        shape = RoundedCornerShape(32.dp),
+        tonalElevation = 4.dp,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Box(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .background(
+                        brush =
+                            Brush.verticalGradient(
+                                colors = listOf(
+                                    heroAccentColor.copy(alpha = 0.95f),
+                                    MaterialTheme.colorScheme.secondaryContainer.copy(alpha = if (enabled) 0.78f else 0.52f),
+                                    MaterialTheme.colorScheme.surfaceContainerHigh,
+                                ),
+                            ),
+                    ),
+        ) {
+            Column(
+                modifier = Modifier.padding(20.dp),
+            ) {
+                Surface(
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.64f),
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.graphic_eq),
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp),
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            text = stringResource(if (enabled) R.string.enabled else R.string.disabled),
+                            style = MaterialTheme.typography.labelLarge,
+                        )
+                    }
+                }
+
+                Spacer(Modifier.height(18.dp))
+
+                Text(
+                    text = profileTitle,
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = profileSubtitle,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+
+                Spacer(Modifier.height(20.dp))
+
+                ToggleButton(
+                    checked = enabled,
+                    onCheckedChange = onEnabledChange,
+                    colors =
+                        ToggleButtonDefaults.toggleButtonColors(
+                            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.72f),
+                            contentColor = MaterialTheme.colorScheme.onSurface,
+                            checkedContainerColor = MaterialTheme.colorScheme.primary,
+                            checkedContentColor = MaterialTheme.colorScheme.onPrimary,
+                        ),
+                    modifier = Modifier.fillMaxWidth().height(56.dp),
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(
+                            text = stringResource(R.string.tap_to_activate_equalizer),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                        Spacer(Modifier.weight(1f))
+                        Icon(
+                            painter = painterResource(if (enabled) R.drawable.check else R.drawable.close),
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp),
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            text = stringResource(if (enabled) R.string.enabled else R.string.disabled),
+                            style = MaterialTheme.typography.labelLarge,
+                        )
+                    }
+                }
+
+                Spacer(Modifier.height(12.dp))
+
+                FilledTonalButton(
+                    onClick = onOpenSystemEqualizer,
+                    modifier = Modifier.fillMaxWidth().height(48.dp),
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.tune),
+                        contentDescription = null,
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(text = stringResource(R.string.eq_open_system_equalizer))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun EqBandSliderRow(
+    label: String,
+    value: Int,
+    valueLabel: String,
+    minMb: Int,
+    maxMb: Int,
+    onValueChange: (Float) -> Unit,
+    onValueChangeFinished: () -> Unit,
+) {
+    val normalizedLevel = abs(value).toFloat() / maxOf(abs(minMb), abs(maxMb), 1)
+    val accentColor = if (value < 0) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary
+    val containerColor by animateColorAsState(
+        targetValue =
+            when {
+                value > 0 -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f + (normalizedLevel * 0.25f))
+                value < 0 -> MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.35f + (normalizedLevel * 0.25f))
+                else -> MaterialTheme.colorScheme.surfaceContainerHighest
+            },
+        animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMediumLow),
+        label = "eqBandContainer",
+    )
+
+    Surface(
+        color = containerColor,
+        shape = RoundedCornerShape(22.dp),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp),
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.width(56.dp),
+            )
+
+            Spacer(Modifier.width(8.dp))
+
+            Slider(
+                value = value.toFloat().coerceIn(minMb.toFloat(), maxMb.toFloat()),
+                onValueChange = onValueChange,
+                onValueChangeFinished = onValueChangeFinished,
+                valueRange = minMb.toFloat()..maxMb.toFloat(),
+                colors =
+                    SliderDefaults.colors(
+                        activeTrackColor = accentColor,
+                        inactiveTrackColor = MaterialTheme.colorScheme.surface,
+                    ),
+                modifier = Modifier.weight(1f),
+            )
+
+            Spacer(Modifier.width(12.dp))
+
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.72f),
+            ) {
+                Text(
+                    text = valueLabel,
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+                )
+            }
         }
     }
 }
@@ -1849,46 +2104,65 @@ private fun EqToggleSliderRow(
     modifier: Modifier = Modifier,
     onValueChangeFinished: (() -> Unit)? = null,
 ) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = modifier.fillMaxWidth().padding(vertical = 8.dp),
+    val containerColor by animateColorAsState(
+        targetValue = if (enabled) MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.45f) else MaterialTheme.colorScheme.surfaceContainerHighest,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMediumLow),
+        label = "eqToggleContainer",
     ) {
-        Switch(
-            checked = enabled,
-            onCheckedChange = onEnabledChange,
-            thumbContent = {
-                Icon(
-                    painter = painterResource(id = if (enabled) R.drawable.check else R.drawable.close),
-                    contentDescription = null,
-                    modifier = Modifier.size(SwitchDefaults.IconSize),
+    }
+
+    Surface(
+        color = containerColor,
+        shape = RoundedCornerShape(22.dp),
+        modifier = modifier.fillMaxWidth(),
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp),
+        ) {
+            Switch(
+                checked = enabled,
+                onCheckedChange = onEnabledChange,
+                thumbContent = {
+                    Icon(
+                        painter = painterResource(id = if (enabled) R.drawable.check else R.drawable.close),
+                        contentDescription = null,
+                        modifier = Modifier.size(SwitchDefaults.IconSize),
+                    )
+                },
+            )
+
+            Spacer(Modifier.width(12.dp))
+
+            Slider(
+                value = value.toFloat().coerceIn(valueRange.first.toFloat(), valueRange.last.toFloat()),
+                onValueChange = { onValueChange(it.toInt().coerceIn(valueRange.first, valueRange.last)) },
+                onValueChangeFinished = { onValueChangeFinished?.invoke() },
+                valueRange = valueRange.first.toFloat()..valueRange.last.toFloat(),
+                enabled = enabled,
+                colors =
+                    SliderDefaults.colors(
+                        activeTrackColor = MaterialTheme.colorScheme.primary,
+                        inactiveTrackColor = MaterialTheme.colorScheme.surface,
+                    ),
+                modifier = Modifier.weight(1f),
+            )
+
+            Spacer(Modifier.width(12.dp))
+
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.72f),
+            ) {
+                Text(
+                    text = formatValue(value),
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    textAlign = TextAlign.End,
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
                 )
-            },
-        )
-
-        Spacer(Modifier.width(12.dp))
-
-        Slider(
-            value = value.toFloat().coerceIn(valueRange.first.toFloat(), valueRange.last.toFloat()),
-            onValueChange = { onValueChange(it.toInt().coerceIn(valueRange.first, valueRange.last)) },
-            onValueChangeFinished = { onValueChangeFinished?.invoke() },
-            valueRange = valueRange.first.toFloat()..valueRange.last.toFloat(),
-            enabled = enabled,
-            colors =
-                SliderDefaults.colors(
-                    activeTrackColor = MaterialTheme.colorScheme.primary,
-                    inactiveTrackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-                ),
-            modifier = Modifier.weight(1f),
-        )
-
-        Spacer(Modifier.width(12.dp))
-
-        Text(
-            text = formatValue(value),
-            style = MaterialTheme.typography.labelLarge,
-            textAlign = TextAlign.End,
-            modifier = Modifier.width(72.dp),
-        )
+            }
+        }
     }
 }
 

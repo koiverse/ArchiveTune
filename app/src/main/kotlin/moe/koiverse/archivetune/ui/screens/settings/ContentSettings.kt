@@ -66,6 +66,11 @@ fun ContentSettings(
 
     val (contentLanguage, onContentLanguageChange) = rememberPreference(key = ContentLanguageKey, defaultValue = "system")
     val (contentCountry, onContentCountryChange) = rememberPreference(key = ContentCountryKey, defaultValue = "system")
+    val (playlistSuggestionSource, onPlaylistSuggestionSourceChange) =
+        rememberEnumPreference(
+            key = PlaylistSuggestionSourceKey,
+            defaultValue = PlaylistSuggestionSource.BOTH,
+        )
     val (hideExplicit, onHideExplicitChange) = rememberPreference(key = HideExplicitKey, defaultValue = false)
     val (hideVideo, onHideVideoChange) = rememberPreference(key = HideVideoKey, defaultValue = false)
     val (proxyEnabled, onProxyEnabledChange) = rememberPreference(key = ProxyEnabledKey, defaultValue = false)
@@ -139,6 +144,24 @@ fun ContentSettings(
  
                 onContentCountryChange(newValue)
            }
+        )
+        ListPreference(
+            title = { Text(stringResource(R.string.you_might_like_source)) },
+            icon = { Icon(painterResource(R.drawable.playlist_play), null) },
+            selectedValue = playlistSuggestionSource,
+            values = listOf(
+                PlaylistSuggestionSource.PLAYLIST_TITLE,
+                PlaylistSuggestionSource.PLAYLIST_CONTENT,
+                PlaylistSuggestionSource.BOTH,
+            ),
+            valueText = {
+                when (it) {
+                    PlaylistSuggestionSource.PLAYLIST_TITLE -> stringResource(R.string.playlist_suggestion_source_title)
+                    PlaylistSuggestionSource.PLAYLIST_CONTENT -> stringResource(R.string.playlist_suggestion_source_content)
+                    PlaylistSuggestionSource.BOTH -> stringResource(R.string.playlist_suggestion_source_both)
+                }
+            },
+            onValueSelected = onPlaylistSuggestionSourceChange,
         )
 
         SwitchPreference(

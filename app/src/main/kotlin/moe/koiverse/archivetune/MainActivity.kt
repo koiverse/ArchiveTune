@@ -34,6 +34,7 @@ import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -162,12 +163,14 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import moe.koiverse.archivetune.utils.PreferenceStore
+import moe.koiverse.archivetune.utils.isLowRamDevice
 import kotlinx.coroutines.withContext
 import moe.koiverse.archivetune.constants.AppBarHeight
 import moe.koiverse.archivetune.constants.AppLanguageKey
 import moe.koiverse.archivetune.constants.CustomThemeColorKey
 import moe.koiverse.archivetune.constants.DarkModeKey
 import moe.koiverse.archivetune.constants.DefaultOpenTabKey
+import moe.koiverse.archivetune.constants.DisableAnimationsKey
 import moe.koiverse.archivetune.constants.DisableScreenshotKey
 import moe.koiverse.archivetune.constants.DynamicThemeKey
 import moe.koiverse.archivetune.constants.FloatingToolbarBottomPadding
@@ -549,6 +552,11 @@ class MainActivity : ComponentActivity() {
             val enableDynamicTheme by rememberPreference(DynamicThemeKey, defaultValue = true)
             val customThemeColorValue by rememberPreference(CustomThemeColorKey, defaultValue = "default")
             val darkTheme by rememberEnumPreference(DarkModeKey, defaultValue = DarkMode.AUTO)
+            val defaultDisableAnimations = remember(this@MainActivity) { applicationContext.isLowRamDevice() }
+            val disableAnimations by rememberPreference(
+                DisableAnimationsKey,
+                defaultValue = defaultDisableAnimations,
+            )
             val useSystemFont by rememberPreference(UseSystemFontKey, defaultValue = false)
             val isSystemInDarkTheme = isSystemInDarkTheme()
             val useDarkTheme =
@@ -639,6 +647,7 @@ class MainActivity : ComponentActivity() {
                 pureBlack = pureBlack,
                 themeColor = themeColor,
                 seedPalette = if (!enableDynamicTheme) customThemeSeedPalette else null,
+                disableAnimations = disableAnimations,
                 useSystemFont = useSystemFont,
             ) {
                     BoxWithConstraints(
@@ -776,7 +785,7 @@ class MainActivity : ComponentActivity() {
 
                     val bottomNavigationBarHeight by animateDpAsState(
                         targetValue = if (shouldShowNavigationBar && !useRail) navVisibleHeight else 0.dp,
-                        animationSpec = NavigationBarAnimationSpec,
+                        animationSpec = if (disableAnimations) snap() else NavigationBarAnimationSpec,
                         label = "",
                     )
 
@@ -978,13 +987,15 @@ class MainActivity : ComponentActivity() {
                         }
                     }
 
-                    LaunchedEffect(isTvDevice, active, currentRoute, shouldShowNavigationBar) {
+                    LaunchedEffect(isTvDevice, useRail, active, currentRoute, shouldShowNavigationBar) {
                         if (
                             isTvDevice &&
+                            useRail &&
                             shouldShowNavigationBar &&
                             !active &&
                             currentRoute in topLevelScreens
                         ) {
+                            delay(100)
                             tvRailFocusRequester.requestFocus()
                         }
                     }
@@ -1138,6 +1149,7 @@ class MainActivity : ComponentActivity() {
                     var showCreatePlaylistDialog by rememberSaveable { mutableStateOf(false) }
 
                     CompositionLocalProvider(
+                        LocalAnimationsDisabled provides disableAnimations,
                         LocalDatabase provides database,
                         LocalContentColor provides if (pureBlack) Color.White else contentColorFor(MaterialTheme.colorScheme.surface),
                         LocalPlayerConnection provides playerConnection,
@@ -1155,7 +1167,11 @@ class MainActivity : ComponentActivity() {
                         }
 
                         Row {
-                            AnimatedVisibility(useRail && shouldShowNavigationBar) {
+                            AnimatedVisibility(
+                                visible = useRail && shouldShowNavigationBar,
+                                enter = fadeIn(animationSpec = tween(durationMillis = if (disableAnimations) 0 else 150)),
+                                exit = fadeOut(animationSpec = tween(durationMillis = if (disableAnimations) 0 else 100)),
+                            ) {
                                 if (isTvDevice) {
                                     TvNavigationRail(
                                         items = navigationItems,
@@ -1169,7 +1185,7 @@ class MainActivity : ComponentActivity() {
                                         onItemClick = { screen ->
                                             val wasPlayerActive = playerBottomSheetState.isExpanded
                                             if (wasPlayerActive) {
-                                                playerBottomSheetState.collapse(spring())
+                                                playerBottomSheetState.collapse(if (disableAnimations) snap() else spring())
                                             }
                                             val isSelected =
                                                 if (screen.route == Screens.Search.route) active
@@ -1211,7 +1227,7 @@ class MainActivity : ComponentActivity() {
                                                     val wasPlayerActive = playerBottomSheetState.isExpanded
                                                     
                                                     if(wasPlayerActive) {
-                                                        playerBottomSheetState.collapse(spring())
+                                                        playerBottomSheetState.collapse(if (disableAnimations) snap() else spring())
                                                     }
                                                     
                                                     if(wasPlayerActive && isSelected) return@NavigationRailItem
@@ -1336,8 +1352,8 @@ class MainActivity : ComponentActivity() {
                                     }
                                     AnimatedVisibility(
                                         visible = active || navBackStackEntry?.destination?.route?.startsWith("search/") == true,
-                                        enter = fadeIn(animationSpec = tween(durationMillis = 300)),
-                                        exit = fadeOut(animationSpec = tween(durationMillis = 200))
+                                        enter = fadeIn(animationSpec = tween(durationMillis = if (disableAnimations) 0 else 300)),
+                                        exit = fadeOut(animationSpec = tween(durationMillis = if (disableAnimations) 0 else 200))
                                     ) {
                                         TopSearch(
                                             query = query,
@@ -1456,6 +1472,7 @@ class MainActivity : ComponentActivity() {
                                         ) {
                                             Crossfade(
                                                 targetState = searchSource,
+                                                animationSpec = tween(durationMillis = if (disableAnimations) 0 else 300),
                                                 label = "",
                                                 modifier =
                                                     Modifier
@@ -1676,28 +1693,36 @@ class MainActivity : ComponentActivity() {
                                         }
                                     },
                                     enterTransition = {
-                                        if (initialState.destination.route in topLevelScreens && targetState.destination.route in topLevelScreens) {
+                                        if (disableAnimations) {
+                                            fadeIn(tween(0))
+                                        } else if (initialState.destination.route in topLevelScreens && targetState.destination.route in topLevelScreens) {
                                             fadeIn(tween(250))
                                         } else {
                                             fadeIn(tween(250)) + slideInHorizontally { it / 2 }
                                         }
                                     },
                                     exitTransition = {
-                                        if (initialState.destination.route in topLevelScreens && targetState.destination.route in topLevelScreens) {
+                                        if (disableAnimations) {
+                                            fadeOut(tween(0))
+                                        } else if (initialState.destination.route in topLevelScreens && targetState.destination.route in topLevelScreens) {
                                             fadeOut(tween(200))
                                         } else {
                                             fadeOut(tween(200)) + slideOutHorizontally { -it / 2 }
                                         }
                                     },
                                     popEnterTransition = {
-                                        if ((initialState.destination.route in topLevelScreens || initialState.destination.route?.startsWith("search/") == true) && targetState.destination.route in topLevelScreens) {
+                                        if (disableAnimations) {
+                                            fadeIn(tween(0))
+                                        } else if ((initialState.destination.route in topLevelScreens || initialState.destination.route?.startsWith("search/") == true) && targetState.destination.route in topLevelScreens) {
                                             fadeIn(tween(250))
                                         } else {
                                             fadeIn(tween(250)) + slideInHorizontally { -it / 2 }
                                         }
                                     },
                                     popExitTransition = {
-                                        if ((initialState.destination.route in topLevelScreens || initialState.destination.route?.startsWith("search/") == true) && targetState.destination.route in topLevelScreens) {
+                                        if (disableAnimations) {
+                                            fadeOut(tween(0))
+                                        } else if ((initialState.destination.route in topLevelScreens || initialState.destination.route?.startsWith("search/") == true) && targetState.destination.route in topLevelScreens) {
                                             fadeOut(tween(200))
                                         } else {
                                             fadeOut(tween(200)) + slideOutHorizontally { it / 2 }
@@ -1716,7 +1741,8 @@ class MainActivity : ComponentActivity() {
                                     navigationBuilder(
                                         navController,
                                         topAppBarScrollBehavior,
-                                        latestVersionName
+                                        latestVersionName,
+                                        disableAnimations,
                                     )
                                 }
                             }
