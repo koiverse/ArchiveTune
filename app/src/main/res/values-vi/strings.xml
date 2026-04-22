@@ -112,6 +112,8 @@
     <string name="remove_from_history">Xóa khỏi lịch sử</string>
     <string name="remove_from_playlist">Xóa khỏi danh sách phát</string>
     <string name="remove_from_queue">Xóa khỏi hàng đợi</string>
+    <string name="removed_song_from_queue">Đã xóa \"%s\" khỏi hàng đợi</string>
+    <string name="removed_n_songs_from_queue">Đã xóa %d bài hát ra khỏi hàng đợi</string>
     <string name="search_online">Tìm kiếm trực tuyến</string>
     <string name="action_sync">Đồng bộ</string>
     <string name="advanced">Nâng cao</string>
@@ -194,7 +196,7 @@
     <string name="playlist_imported">Đã nhập danh sách phát</string>
     <string name="removed_song_from_playlist">Đã xóa \"%s\" khỏi danh sách phát</string>
     <string name="playlist_synced">Đã đồng bộ danh sách phát</string>
-    <string name="undo">Hoàn tác</string>
+    <string name="undo">Khôi phục</string>
     <!-- Player -->
     <string name="lyrics_not_found">Không tìm thấy lời bài hát</string>
     <string name="sleep_timer">Hẹn giờ ngủ</string>

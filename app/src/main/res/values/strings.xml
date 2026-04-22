@@ -125,6 +125,8 @@
     <string name="remove_from_history">Remove from history</string>
     <string name="remove_from_playlist">Remove from playlist</string>
     <string name="remove_from_queue">Remove from queue</string>
+    <string name="removed_song_from_queue">Removed \"%s\" from queue</string>
+    <string name="removed_n_songs_from_queue">Removed %d songs from queue</string>
     <string name="search_online">Search online</string>
     <string name="action_sync">Sync</string>
     <string name="advanced">Advanced</string>
