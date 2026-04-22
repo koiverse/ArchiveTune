@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Upstream InnerTune strings --><!-- Do not add new features here --><!-- Try to re-use strings here, but be careful on its usage e.g. verb vs noun --><!-- "InnerTune" is replaced with "ArchiveTune" --><!-- Translators: Do not modify this file for translations, use InnerTune's Weblate instead. --><resources>
     <!-- Bottom navigation -->
-    <string name="home">Rumah</string>
+    <string name="home">Beranda</string>
     <string name="songs">Lagu</string>
     <string name="artists">Artis</string>
     <string name="albums">Album</string>
@@ -11,9 +11,9 @@
         <item quantity="other">%d dipilih</item>
     </plurals>
     <!-- Home -->
-    <string name="history">Sejarah</string>
+    <string name="history">Riwayat</string>
     <string name="stats">Statistik</string>
-    <string name="mood_and_genres">Suasana hati &amp; Genre</string>
+    <string name="mood_and_genres">Nuansa &amp; Genre</string>
     <string name="mood_and_genres_supporting">Bermain berdasarkan perasaan, era, atau energi</string>
     <string name="mood_and_genres_count">%d pilihan</string>
     <string name="account">Akun</string>
@@ -22,15 +22,15 @@
     <string name="speed_dial">Panggilan cepat</string>
     <string name="speed_dial_random">Memutar lagu panggilan cepat acak</string>
     <string name="forgotten_favorites">Favorit yang terlupakan</string>
-    <string name="keep_listening">Teruslah mendengarkan</string>
-    <string name="your_youtube_playlists">Daftar putar YouTube Anda</string>
+    <string name="keep_listening">Dengarkan lagi</string>
+    <string name="your_youtube_playlists">Daftar putar YouTube Kamu</string>
     <string name="similar_to">Mirip dengan</string>
-    <string name="new_release_albums">Album rilis baru</string>
+    <string name="new_release_albums">Rilisan album baru</string>
     <string name="select_playlist_to_sync">Pilih Daftar Putar Untuk Disinkronkan</string>
     <string name="integration">Integrasi</string>
     <string name="integrations">Integrasi</string>
     <string name="internal_subcategory_settings">Setelan subkategori &amp; internal</string>
-    <string name="search_try_different">Coba istilah pencarian lain</string>
+    <string name="search_try_different">Coba cari istilah lain</string>
     <!-- History -->
     <string name="today">Hari ini</string>
     <string name="yesterday">Kemarin</string>
@@ -45,7 +45,7 @@
     <string name="search_yt_music">Telusuri Musik YouTube…</string>
     <string name="search_library">Cari perpustakaan…</string>
     <string name="filter_library">Perpustakaan</string>
-    <string name="filter_liked">Menyukai</string>
+    <string name="filter_liked">Disukai</string>
     <string name="filter_downloaded">Diunduh</string>
     <string name="filter_downloaded_full">Diunduh (Penuh)</string>
     <string name="filter_all">Semua</string>
@@ -56,13 +56,13 @@
     <string name="filter_playlists">Daftar Putar</string>
     <string name="filter_community_playlists">Daftar putar komunitas</string>
     <string name="filter_featured_playlists">Daftar putar unggulan</string>
-    <string name="filter_bookmarked">Ditandai</string>
+    <string name="filter_bookmarked">Tertanda</string>
     <string name="no_results_found">Tidak ada hasil yang ditemukan</string>
     <string name="top_results">Hasil Teratas</string>
     <!-- Library -->
-    <string name="library_song_empty">Lagu perpustakaan akan muncul di sini</string>
-    <string name="library_artist_empty">Seniman perpustakaan akan muncul di sini</string>
-    <string name="library_album_empty">Album perpustakaan akan muncul di sini</string>
+    <string name="library_song_empty">Perpustakaan lagu akan muncul di sini</string>
+    <string name="library_artist_empty">Perpustakaan artis akan muncul di sini</string>
+    <string name="library_album_empty">Perpustakaan album akan muncul di sini</string>
     <string name="library_playlist_empty">Daftar putar Anda akan muncul di sini</string>
     <!-- Artist screen -->
     <string name="from_your_library">Dari perpustakaan Anda</string>
@@ -71,16 +71,16 @@
     <!-- Playlist -->
     <string name="liked_songs">Lagu yang disukai</string>
     <string name="downloaded_songs">Lagu yang diunduh</string>
-    <string name="playlist_is_empty">Daftar putarnya kosong</string>
+    <string name="playlist_is_empty">Daftar putar kosong</string>
     <string name="remove_download_playlist_confirm">Apakah Anda benar-benar ingin menghapus semua \"%s\" lagu dalam daftar putar dari penyimpanan Lagu yang Diunduh?</string>
     <string name="delete_playlist_confirm">Yakin ingin menghapus daftar putar \"%s\"?</string>
     <string name="change_playlist_cover">Ubah sampul daftar putar</string>
-    <string name="remove_playlist_cover">Hapus Penutup</string>
+    <string name="remove_playlist_cover">Hapus Sampul</string>
     <!-- Button -->
     <string name="retry">Coba lagi</string>
     <string name="radio">Radio</string>
     <string name="shuffle">Acak</string>
-    <string name="music_recognition">Pengenalan Musik</string>
+    <string name="music_recognition">Identifikasi Musik</string>
     <string name="reset">Setel ulang</string>
     <!-- Menu -->
     <string name="details">Detail</string>
@@ -100,8 +100,8 @@
     <string name="import_failed">Impor gagal</string>
     <string name="update_button">Pembaruan</string>
     <string name="add_to_playlist">Tambahkan ke daftar putar</string>
-    <string name="pin_to_speed_dial">Sematkan ke panggilan cepat</string>
-    <string name="remove_from_speed_dial">Hapus dari panggilan cepat</string>
+    <string name="pin_to_speed_dial">Sematkan ke pintasan</string>
+    <string name="remove_from_speed_dial">Hapus dari pintasan</string>
     <string name="view_artist">Lihat artis</string>
     <string name="view_album">Lihat album</string>
     <string name="view_all">Lihat semuanya</string>
@@ -725,7 +725,6 @@ ArchiveTune will only extract your token, and everything else is stored locally.
     <string name="update_notification_title">Pembaruan Tersedia</string>
     <string name="update_notification_text">ArchiveTune %s kini tersedia</string>
     <string name="download">Unduh</string>
-
     <string name="permissions_title">Biarkan ArchiveTune berfungsi dengan baik</string>
     <string name="permissions_subtitle">Kami menggunakan beberapa izin untuk memutar dan mengelola musik Anda dengan andal. Anda dapat mengubahnya kapan saja di pengaturan sistem.</string>
     <string name="permission_storage_title">Akses penyimpanan</string>
@@ -745,7 +744,6 @@ ArchiveTune will only extract your token, and everything else is stored locally.
     <string name="playlist_suggestion_source_title">Judul daftar putar</string>
     <string name="playlist_suggestion_source_content">Konten daftar putar</string>
     <string name="playlist_suggestion_source_both">Judul dan konten daftar putar</string>
-
     <string name="music_together">ArsipTune Musik Bersama</string>
     <string name="together_display_name">Nama tampilan</string>
     <string name="together_display_name_placeholder">Namamu</string>
@@ -792,7 +790,6 @@ ArchiveTune will only extract your token, and everything else is stored locally.
     <string name="loading">Memuat</string>
     <string name="connecting">Connecting…</string>
     <string name="copy_link">Salin tautan</string>
-
     <string name="together_host_section">Tuan rumah</string>
     <string name="together_join_section">Bergabunglah</string>
     <string name="together_status">Status</string>
@@ -801,7 +798,6 @@ ArchiveTune will only extract your token, and everything else is stored locally.
     <string name="together_joining">Sesi bergabung</string>
     <string name="together_connected">Terhubung</string>
     <string name="together_error_state">Kesalahan</string>
-
     <string name="got_it">Mengerti</string>
     <string name="together_dont_show_again">Jangan tampilkan ini lagi</string>
     <string name="together_welcome_title">Selamat datang di ArchiveTune Musik Bersama</string>
@@ -812,7 +808,6 @@ ArchiveTune will only extract your token, and everything else is stored locally.
     <string name="together_welcome_join_body">Buka tautan yang dibagikan, atau masukkan kode dan ketuk Gabung. Antrian dan pemutaran Anda akan mengikuti host.</string>
     <string name="together_welcome_permissions_title">Izin dan keamanan</string>
     <string name="together_welcome_permissions_body">Tuan rumah dapat memutuskan apakah tamu dapat menambahkan lagu, mengontrol pemutaran, atau memerlukan persetujuan untuk bergabung.</string>
-
     <string name="po_token_generation">Pembuatan Token PO</string>
     <string name="po_token_generation_subtitle">Menghasilkan dan mengelola token PO klien web</string>
     <string name="web_client_po_token">Token PO Klien Web</string>
