@@ -401,6 +401,9 @@
     <string name="system_default">Mặc định hệ thống</string>
     <string name="enable_proxy">Bật proxy</string>
     <string name="internet">Internet</string>
+    <string name="internet_warning_title">Cảnh báo bảo mật &amp; sử dụng</string>
+    <string name="internet_warning_doh">DNS over HTTPS chỉ hoạt động nếu quốc gia của bạn chặn YouTube. Nếu YouTube chủ động chặn ở khu vực của bạn thì hãy cân nhắc sử dụng Proxy hoặc VPN.</string>
+    <string name="internet_warning_proxy">Vui lòng chỉ sử dụng các Proxy mà bạn chắc chắn rằng nó an toàn. Proxy miễn phí cũng rất tiện nhưng chưa chắc nó đã an toàn nên hãy cẩn thận. Bạn đã được cảnh báo trước và chúng mình sẽ không chịu trách nhiệm liên quan đến sự an toàn của bạn.</string>
     <string name="dns_over_https">DNS qua HTTPS</string>
     <string name="dns_over_https_desc">Sử dụng DNS qua HTTPS (DoH) để phân giải tên miền</string>
     <string name="dns_provider">Nhà cung cấp DNS</string>
