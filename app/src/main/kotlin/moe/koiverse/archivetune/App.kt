@@ -60,6 +60,8 @@ import java.io.PrintWriter
 import java.io.StringWriter
 import kotlin.system.exitProcess
 import timber.log.Timber
+import okhttp3.Dns
+import androidx.datastore.preferences.core.stringPreferencesKey
 import java.net.Proxy
 import java.util.*
 import java.util.concurrent.atomic.AtomicBoolean
@@ -138,13 +140,17 @@ class App : Application(), SingletonImageLoader.Factory {
 
                 if (prefs[ProxyEnabledKey] == true) {
                     try {
+                        val host = prefs[ProxyHostKey] ?: "127.0.0.1"
+                        val port = prefs[ProxyPortKey] ?: 8080
                         YouTube.proxy = Proxy(
                             prefs[ProxyTypeKey].toEnum(defaultValue = Proxy.Type.HTTP),
-                            prefs[ProxyUrlKey]!!.toInetSocketAddress()
+                            java.net.InetSocketAddress.createUnresolved(host, port)
                         )
+                        YouTube.proxyUsername = prefs[ProxyUsernameKey]
+                        YouTube.proxyPassword = prefs[ProxyPasswordKey]
                     } catch (e: Exception) {
                         withContext(Dispatchers.Main) {
-                            Toast.makeText(this@App, "Failed to parse proxy url.", LENGTH_SHORT).show()
+                            Toast.makeText(this@App, "Failed to parse proxy settings.", LENGTH_SHORT).show()
                         }
                         reportException(e)
                     }
@@ -175,6 +181,38 @@ class App : Application(), SingletonImageLoader.Factory {
                 Timber.e(e, "Error during deferred initialization")
                 reportException(e)
             }
+        }
+
+        applicationScope.launch(Dispatchers.IO) {
+            dataStore.data
+                .map {
+                    Triple(
+                        it[EnableDnsOverHttpsKey] ?: false,
+                        it[DnsOverHttpsProviderKey] ?: "Cloudflare",
+                        it[stringPreferencesKey("customDnsUrl")] ?: "https://"
+                    )
+                }
+                .distinctUntilChanged()
+                .collect { (enabled, provider, customUrl) ->
+                    if (enabled) {
+                        val dnsProviderUrls = mapOf(
+                            "Google" to "https://dns.google/dns-query",
+                            "Cloudflare" to "https://cloudflare-dns.com/dns-query",
+                            "AdGuard" to "https://dns.adguard.com/dns-query",
+                            "Quad9" to "https://dns.quad9.net/dns-query"
+                        )
+                        val url = if (provider == "Custom") customUrl else dnsProviderUrls[provider]
+                        if (!url.isNullOrBlank() && url.startsWith("https://")) {
+                            runCatching {
+                                YouTube.dns = YouTube.createDnsOverHttps(url)
+                            }
+                        } else {
+                            YouTube.dns = Dns.SYSTEM
+                        }
+                    } else {
+                        YouTube.dns = Dns.SYSTEM
+                    }
+                }
         }
 
         applicationScope.launch(Dispatchers.IO) {

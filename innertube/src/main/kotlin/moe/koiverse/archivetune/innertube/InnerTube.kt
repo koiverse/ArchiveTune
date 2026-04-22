@@ -34,6 +34,10 @@ import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
 import java.net.Proxy
 import java.io.IOException
+import okhttp3.Dns
+import okhttp3.HttpUrl.Companion.toHttpUrl
+import okhttp3.OkHttpClient
+import okhttp3.dnsoverhttps.DnsOverHttps
 import kotlinx.coroutines.delay
 import java.util.*
 import kotlin.io.encoding.Base64
@@ -82,6 +86,27 @@ class InnerTube {
             httpClient = createClient()
         }
 
+    var proxyUsername: String? = null
+        set(value) {
+            field = value
+            httpClient.close()
+            httpClient = createClient()
+        }
+
+    var proxyPassword: String? = null
+        set(value) {
+            field = value
+            httpClient.close()
+            httpClient = createClient()
+        }
+
+    var dns: Dns = Dns.SYSTEM
+        set(value) {
+            field = value
+            httpClient.close()
+            httpClient = createClient()
+        }
+
     var useLoginForBrowse: Boolean = false
 
     fun currentAuthState(): PlaybackAuthState = authState
@@ -113,8 +138,19 @@ class InnerTube {
             socketTimeoutMillis = 15000
         }
 
-        if (proxy != null) {
-            engine {
+        engine {
+            config {
+                dns(this@InnerTube.dns)
+                if (this@InnerTube.proxy != null && !proxyUsername.isNullOrBlank() && !proxyPassword.isNullOrBlank()) {
+                    proxyAuthenticator { _, response ->
+                        val credential = okhttp3.Credentials.basic(proxyUsername!!, proxyPassword!!)
+                        response.request.newBuilder()
+                            .header("Proxy-Authorization", credential)
+                            .build()
+                    }
+                }
+            }
+            if (this@InnerTube.proxy != null) {
                 proxy = this@InnerTube.proxy
             }
         }
