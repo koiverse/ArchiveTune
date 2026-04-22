@@ -55,6 +55,7 @@ import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -90,6 +91,7 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.Font
@@ -98,6 +100,7 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
@@ -171,6 +174,22 @@ private val LiquidFillEasing = CubicBezierEasing(0.0f, 0.0f, 0.15f, 1.0f)
 
 /** Sentinel entry prepended so auto-scroll has headroom above the first line. */
 private val HEAD_LYRICS_ENTRY = LyricsEntry(time = 0L, text = "")
+
+private fun isRtlText(text: String): Boolean {
+    for (ch in text) {
+        when (Character.getDirectionality(ch)) {
+            Character.DIRECTIONALITY_RIGHT_TO_LEFT,
+            Character.DIRECTIONALITY_RIGHT_TO_LEFT_ARABIC,
+            Character.DIRECTIONALITY_RIGHT_TO_LEFT_EMBEDDING,
+            Character.DIRECTIONALITY_RIGHT_TO_LEFT_OVERRIDE -> return true
+
+            Character.DIRECTIONALITY_LEFT_TO_RIGHT,
+            Character.DIRECTIONALITY_LEFT_TO_RIGHT_EMBEDDING,
+            Character.DIRECTIONALITY_LEFT_TO_RIGHT_OVERRIDE -> return false
+        }
+    }
+    return false
+}
 
 
 // ──────────────────────────────────────────────────────────────────────
@@ -597,118 +616,129 @@ fun LyricsV2(
                 // Background vocal detection
                 val hasBackgroundWords = item.words?.any { it.isBackground } == true
                 val isAllBackground = item.words?.all { it.isBackground || it.text.isBlank() } == true
+                val baseLayoutDirection = LocalLayoutDirection.current
+                val lineText = remember(item.text, item.words) {
+                    item.words
+                        ?.joinToString(separator = "") { it.text }
+                        ?.takeIf { it.isNotBlank() }
+                        ?: item.text
+                }
+                val lineIsRtl = remember(lineText) { isRtlText(lineText) }
+                val lineLayoutDirection = remember(lineIsRtl, baseLayoutDirection) {
+                    if (lineIsRtl) LayoutDirection.Rtl else baseLayoutDirection
+                }
 
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(
-                            color = if (isSelected && isSelectionModeActive)
-                                MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
-                            else
-                                Color.Transparent,
-                            shape = RoundedCornerShape(8.dp)
-                        )
-                        .padding(
-                            start = if (isAllBackground) 24.dp else 12.dp,
-                            end = 12.dp,
-                            top = if (index == 0 || (index == 1 && entriesWithWords[0] == HEAD_LYRICS_ENTRY)) 0.dp else (lyricsLineSpacing * 8).dp,
-                            bottom = (lyricsLineSpacing * 8).dp,
-                        )
-                        .blur(
-                            radiusX = animatedBlur.dp,
-                            radiusY = animatedBlur.dp,
-                            edgeTreatment = BlurredEdgeTreatment.Unbounded,
-                        )
-                        .alpha(wordLineAlpha)
-                        .combinedClickable(
-                            enabled = true,
-                            onClick = {
-                                if (isSelectionModeActive) {
-                                    if (isSelected) {
-                                        selectedIndices.remove(index)
-                                        if (selectedIndices.isEmpty()) {
-                                            isSelectionModeActive = false
-                                        }
-                                    } else {
-                                        if (selectedIndices.size < maxSelectionLimit) {
-                                            selectedIndices.add(index)
+                CompositionLocalProvider(LocalLayoutDirection provides lineLayoutDirection) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(
+                                color = if (isSelected && isSelectionModeActive)
+                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
+                                else
+                                    Color.Transparent,
+                                shape = RoundedCornerShape(8.dp)
+                            )
+                            .padding(
+                                start = if (isAllBackground) 24.dp else 12.dp,
+                                end = 12.dp,
+                                top = if (index == 0 || (index == 1 && entriesWithWords[0] == HEAD_LYRICS_ENTRY)) 0.dp else (lyricsLineSpacing * 8).dp,
+                                bottom = (lyricsLineSpacing * 8).dp,
+                            )
+                            .blur(
+                                radiusX = animatedBlur.dp,
+                                radiusY = animatedBlur.dp,
+                                edgeTreatment = BlurredEdgeTreatment.Unbounded,
+                            )
+                            .alpha(wordLineAlpha)
+                            .combinedClickable(
+                                enabled = true,
+                                onClick = {
+                                    if (isSelectionModeActive) {
+                                        if (isSelected) {
+                                            selectedIndices.remove(index)
+                                            if (selectedIndices.isEmpty()) {
+                                                isSelectionModeActive = false
+                                            }
                                         } else {
-                                            showMaxSelectionToast = true
+                                            if (selectedIndices.size < maxSelectionLimit) {
+                                                selectedIndices.add(index)
+                                            } else {
+                                                showMaxSelectionToast = true
+                                            }
                                         }
+                                    } else if (lyricsClick && isSynced && item.time > 0) {
+                                        player.seekTo(item.time)
                                     }
-                                } else if (lyricsClick && isSynced && item.time > 0) {
-                                    player.seekTo(item.time)
+                                },
+                                onLongClick = {
+                                    if (!isSelectionModeActive) {
+                                        isSelectionModeActive = true
+                                        selectedIndices.add(index)
+                                    } else if (!isSelected && selectedIndices.size < maxSelectionLimit) {
+                                        selectedIndices.add(index)
+                                    } else if (!isSelected) {
+                                        showMaxSelectionToast = true
+                                    }
                                 }
-                            },
-                            onLongClick = {
-                                if (!isSelectionModeActive) {
-                                    isSelectionModeActive = true
-                                    selectedIndices.add(index)
-                                } else if (!isSelected && selectedIndices.size < maxSelectionLimit) {
-                                    selectedIndices.add(index)
-                                } else if (!isSelected) {
-                                    showMaxSelectionToast = true
-                                }
-                            }
-                        ),
-                    horizontalAlignment = horizontalAlignment,
-                ) {
-                    if (item.words != null && isSynced) {
-                        // ── Word-synced rendering ──
-                        LyricsLineV2(
-                            words = item.words!!,
-                            isActive = isActive,
-                            isPast = isPast,
-                            currentPositionMs = currentPositionMs,
-                            textColor = textColor,
-                            inactiveAlpha = inactiveAlpha,
-                            baseFontSize = lyricsTextSize,
-                            isLineAllBackground = isAllBackground,
-                            textAlign = textAlign,
-                            lyricsFontFamily = lyricsFontFamily,
-                        )
-                    } else {
-                        // ── Plain text rendering ──
-                        Text(
-                            text = item.text,
-                            style = MaterialTheme.typography.headlineMedium.copy(
-                                fontSize = if (isAllBackground) (lyricsTextSize * 0.82f).sp else lyricsTextSize.sp,
-                                fontWeight = if (isActive) FontWeight.ExtraBold else FontWeight.SemiBold,
-                                fontStyle = if (isAllBackground) FontStyle.Italic else FontStyle.Normal,
-                                lineHeight = (lyricsTextSize * lyricsLineSpacing).sp,
-                                fontFamily = lyricsFontFamily ?: MaterialTheme.typography.headlineMedium.fontFamily,
                             ),
-                            color = textColor.copy(alpha = if (isActive) 1f else 0.52f),
-                            textAlign = textAlign,
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                    }
+                        horizontalAlignment = horizontalAlignment,
+                    ) {
+                        if (item.words != null && isSynced) {
+                            LyricsLineV2(
+                                words = item.words!!,
+                                isActive = isActive,
+                                isPast = isPast,
+                                currentPositionMs = currentPositionMs,
+                                textColor = textColor,
+                                inactiveAlpha = inactiveAlpha,
+                                baseFontSize = lyricsTextSize,
+                                isLineAllBackground = isAllBackground,
+                                textAlign = textAlign,
+                                lyricsFontFamily = lyricsFontFamily,
+                                isRtl = lineIsRtl,
+                            )
+                        } else {
+                            Text(
+                                text = item.text,
+                                style = MaterialTheme.typography.headlineMedium.copy(
+                                    fontSize = if (isAllBackground) (lyricsTextSize * 0.82f).sp else lyricsTextSize.sp,
+                                    fontWeight = if (isActive) FontWeight.ExtraBold else FontWeight.SemiBold,
+                                    fontStyle = if (isAllBackground) FontStyle.Italic else FontStyle.Normal,
+                                    lineHeight = (lyricsTextSize * lyricsLineSpacing).sp,
+                                    fontFamily = lyricsFontFamily ?: MaterialTheme.typography.headlineMedium.fontFamily,
+                                ),
+                                color = textColor.copy(alpha = if (isActive) 1f else 0.52f),
+                                textAlign = textAlign,
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                        }
 
-                    val romanizedText = if (romanizationPreferences.isEnabled) {
-                        val value by item.romanizedTextFlow.collectAsState()
-                        value
-                    } else {
-                        null
-                    }
+                        val romanizedText = if (romanizationPreferences.isEnabled) {
+                            val value by item.romanizedTextFlow.collectAsState()
+                            value
+                        } else {
+                            null
+                        }
 
-                    if (romanizedText != null) {
-                        Text(
-                            text = romanizedText!!,
-                            style = MaterialTheme.typography.bodyMedium.copy(
-                                fontSize = (lyricsTextSize * 0.55f).sp,
-                                lineHeight = (lyricsTextSize * 0.75f).sp,
-                                fontWeight = FontWeight.Normal,
-                                fontStyle = if (isAllBackground) FontStyle.Italic else FontStyle.Normal,
-                                fontFamily = lyricsFontFamily ?: MaterialTheme.typography.bodyMedium.fontFamily,
-                            ),
-                            color = textColor.copy(alpha = if (isActive) 0.76f else 0.42f),
-                            textAlign = textAlign,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(top = (lyricsTextSize * 0.3f).dp),
-                        )
+                        if (romanizedText != null) {
+                            Text(
+                                text = romanizedText!!,
+                                style = MaterialTheme.typography.bodyMedium.copy(
+                                    fontSize = (lyricsTextSize * 0.55f).sp,
+                                    lineHeight = (lyricsTextSize * 0.75f).sp,
+                                    fontWeight = FontWeight.Normal,
+                                    fontStyle = if (isAllBackground) FontStyle.Italic else FontStyle.Normal,
+                                    fontFamily = lyricsFontFamily ?: MaterialTheme.typography.bodyMedium.fontFamily,
+                                ),
+                                color = textColor.copy(alpha = if (isActive) 0.76f else 0.42f),
+                                textAlign = textAlign,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = (lyricsTextSize * 0.3f).dp),
+                            )
+                        }
                     }
-
                 }
             }
 
@@ -948,6 +978,7 @@ private fun LyricsLineV2(
     isLineAllBackground: Boolean,
     textAlign: TextAlign,
     lyricsFontFamily: FontFamily?,
+    isRtl: Boolean,
 ) {
     val arrangement = when (textAlign) {
         TextAlign.Center -> Arrangement.Center
@@ -993,6 +1024,7 @@ private fun LyricsLineV2(
                     fontSize = if (isLineAllBackground) baseFontSize * 0.82f else baseFontSize,
                     isBackground = isLineAllBackground,
                     lyricsFontFamily = lyricsFontFamily,
+                    isRtl = isRtl,
                 )
             }
         }
@@ -1031,6 +1063,7 @@ private fun LyricsLineV2(
                     fontSize = baseFontSize * 0.65f, // ~65% size of main text
                     isBackground = true, // Force dimmer styling inside AnimatedWordV2
                     lyricsFontFamily = lyricsFontFamily,
+                    isRtl = isRtl,
                 )
             }
         }
@@ -1054,6 +1087,7 @@ private fun AnimatedWordV2(
     fontSize: Float,
     isBackground: Boolean,
     lyricsFontFamily: FontFamily?,
+    isRtl: Boolean,
 ) {
     val wordStartMs = (word.startTime * 1000).toLong()
     val wordEndMs = (word.endTime * 1000).toLong()
@@ -1165,10 +1199,18 @@ private fun AnimatedWordV2(
                         .drawWithContent {
                             drawContent()
                             val edgeWidth = 8.dp.toPx()
-                            val center = (size.width + edgeWidth * 2) * progress - edgeWidth
+                            val center = if (isRtl) {
+                                size.width - ((size.width + edgeWidth * 2) * progress - edgeWidth)
+                            } else {
+                                (size.width + edgeWidth * 2) * progress - edgeWidth
+                            }
                             drawRect(
                                 brush = androidx.compose.ui.graphics.Brush.horizontalGradient(
-                                    colors = listOf(Color.Black, Color.Transparent),
+                                    colors = if (isRtl) {
+                                        listOf(Color.Transparent, Color.Black)
+                                    } else {
+                                        listOf(Color.Black, Color.Transparent)
+                                    },
                                     startX = center - edgeWidth,
                                     endX = center + edgeWidth,
                                 ),
