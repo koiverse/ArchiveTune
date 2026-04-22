@@ -1182,6 +1182,7 @@ class MainActivity : ComponentActivity() {
                                         },
                                         modifier = Modifier,
                                         firstItemFocusRequester = tvRailFocusRequester,
+                                        contentFocusRequester = searchBarFocusRequester,
                                         onItemClick = { screen ->
                                             val wasPlayerActive = playerBottomSheetState.isExpanded
                                             if (wasPlayerActive) {
@@ -1450,6 +1451,7 @@ class MainActivity : ComponentActivity() {
                                                     .focusRequester(searchBarFocusRequester)
                                                     .let { with(this@BoxWithConstraints) { it.align(Alignment.TopCenter) } },
                                             focusRequester = searchBarFocusRequester,
+                                            leftFocusRequester = tvRailFocusRequester,
                                             colors = if (pureBlack && active) {
                                                 SearchBarDefaults.colors(
                                                     containerColor = Color.Black,

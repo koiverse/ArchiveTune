@@ -29,6 +29,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -36,6 +37,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -50,8 +52,13 @@ fun TvNavigationRail(
     selectedItemRoute: String?,
     modifier: Modifier = Modifier,
     firstItemFocusRequester: FocusRequester? = null,
+    contentFocusRequester: FocusRequester? = null,
     onItemClick: (Screens) -> Unit,
 ) {
+    LaunchedEffect(firstItemFocusRequester) {
+        firstItemFocusRequester?.requestFocus()
+    }
+
     Surface(
         modifier = modifier.fillMaxHeight(),
         color = MaterialTheme.colorScheme.surfaceContainer,
@@ -68,11 +75,23 @@ fun TvNavigationRail(
                 TvNavigationRailItem(
                     screen = screen,
                     selected = selectedItemRoute == screen.route,
-                    modifier = if (index == 0 && firstItemFocusRequester != null) {
-                        Modifier.focusRequester(firstItemFocusRequester)
-                    } else {
-                        Modifier
-                    },
+                    modifier = Modifier
+                        .then(
+                            if (index == 0 && firstItemFocusRequester != null) {
+                                Modifier.focusRequester(firstItemFocusRequester)
+                            } else {
+                                Modifier
+                            }
+                        )
+                        .then(
+                            if (contentFocusRequester != null) {
+                                Modifier.focusProperties {
+                                    right = contentFocusRequester
+                                }
+                            } else {
+                                Modifier
+                            }
+                        ),
                     onClick = { onItemClick(screen) },
                 )
             }
