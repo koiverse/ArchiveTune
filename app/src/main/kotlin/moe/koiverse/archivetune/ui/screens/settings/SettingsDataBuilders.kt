@@ -128,6 +128,14 @@ fun buildSettingsGroups(
                         onClick = { resetSearch(); navController.navigate("settings/content") },
                     ),
                     SettingsItem(
+                        icon = painterResource(R.drawable.wifi_proxy),
+                        title = stringResource(R.string.internet),
+                        subtitle = stringResource(R.string.dns_over_https),
+                        accentColor = MaterialTheme.colorScheme.primary,
+                        keywords = listOf("internet", "proxy", "dns", "doh", "network"),
+                        onClick = { resetSearch(); navController.navigate("settings/internet") },
+                    ),
+                    SettingsItem(
                         icon = painterResource(R.drawable.token),
                         title = stringResource(R.string.po_token_generation),
                         subtitle = stringResource(R.string.po_token_generation_subtitle),

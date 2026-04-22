@@ -85,6 +85,7 @@ import moe.koiverse.archivetune.ui.screens.settings.PalettePickerScreen
 import moe.koiverse.archivetune.ui.screens.settings.PlayerSettings
 import moe.koiverse.archivetune.ui.screens.settings.PoTokenScreen
 import moe.koiverse.archivetune.ui.screens.settings.PrivacySettings
+import moe.koiverse.archivetune.ui.screens.settings.InternetSettings
 import moe.koiverse.archivetune.ui.screens.settings.SettingsScreen
 import moe.koiverse.archivetune.ui.screens.settings.StorageSettings
 import moe.koiverse.archivetune.ui.screens.settings.ThemeCreatorScreen
@@ -344,6 +345,9 @@ fun NavGraphBuilder.navigationBuilder(
     }
     composable("settings/content") {
         ContentSettings(navController, scrollBehavior)
+    }
+    composable("settings/internet") {
+        InternetSettings(navController, scrollBehavior)
     }
     composable("settings/player") {
         PlayerSettings(navController, scrollBehavior)

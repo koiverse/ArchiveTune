@@ -400,6 +400,11 @@
     <string name="content_country">Quốc gia nội dung mặc định</string>
     <string name="system_default">Mặc định hệ thống</string>
     <string name="enable_proxy">Bật proxy</string>
+    <string name="internet">Internet</string>
+    <string name="dns_over_https">DNS qua HTTPS</string>
+    <string name="dns_over_https_desc">Sử dụng DNS qua HTTPS (DoH) để phân giải tên miền</string>
+    <string name="dns_provider">Nhà cung cấp DNS</string>
+    <string name="dns_custom_url">URL DoH DNS tùy chỉnh</string>
     <string name="proxy_type">Loại proxy</string>
     <string name="proxy_url">URL proxy</string>
     <string name="restart_to_take_effect">Khởi động lại để có hiệu lực</string>

@@ -73,10 +73,6 @@ fun ContentSettings(
         )
     val (hideExplicit, onHideExplicitChange) = rememberPreference(key = HideExplicitKey, defaultValue = false)
     val (hideVideo, onHideVideoChange) = rememberPreference(key = HideVideoKey, defaultValue = false)
-    val (proxyEnabled, onProxyEnabledChange) = rememberPreference(key = ProxyEnabledKey, defaultValue = false)
-    val (proxyType, onProxyTypeChange) = rememberEnumPreference(key = ProxyTypeKey, defaultValue = Proxy.Type.HTTP)
-    val (proxyUrl, onProxyUrlChange) = rememberPreference(key = ProxyUrlKey, defaultValue = "host:port")
-    val (streamBypassProxy, onStreamBypassProxyChange) = rememberPreference(key = StreamBypassProxyKey, defaultValue = false)
     val (enableKugou, onEnableKugouChange) = rememberPreference(key = EnableKugouKey, defaultValue = true)
     val (enableLrclib, onEnableLrclibChange) = rememberPreference(key = EnableLrcLibKey, defaultValue = true)
     val (enableBetterLyrics, onEnableBetterLyricsChange) = rememberPreference(key = EnableBetterLyricsKey, defaultValue = true)
@@ -214,40 +210,6 @@ fun ContentSettings(
 
                 }
             )
-        }
-
-        PreferenceGroupTitle(title = stringResource(R.string.proxy))
-        SwitchPreference(
-            title = { Text(stringResource(R.string.enable_proxy)) },
-            icon = { Icon(painterResource(R.drawable.wifi_proxy), null) },
-            checked = proxyEnabled,
-            onCheckedChange = onProxyEnabledChange,
-        )
-        if (proxyEnabled) {
-            Column {
-                ListPreference(
-                    title = { Text(stringResource(R.string.proxy_type)) },
-                    selectedValue = proxyType,
-                    values = listOf(Proxy.Type.HTTP, Proxy.Type.SOCKS),
-                    valueText = { it.name },
-                    onValueSelected = onProxyTypeChange,
-                )
-                EditTextPreference(
-                    title = { Text(stringResource(R.string.proxy_url)) },
-                    value = proxyUrl,
-                    onValueChange = onProxyUrlChange,
-                )
-                SwitchPreference(
-                    title = { Text(stringResource(R.string.stream_bypass_proxy)) },
-                    description = stringResource(R.string.stream_bypass_proxy_desc),
-                    icon = { Icon(painterResource(R.drawable.wifi_proxy), null) },
-                    checked = streamBypassProxy,
-                    onCheckedChange = {
-                        onStreamBypassProxyChange(it)
-                        YouTube.streamBypassProxy = it
-                    },
-                )
-            }
         }
 
         PreferenceGroupTitle(title = stringResource(R.string.lyrics))

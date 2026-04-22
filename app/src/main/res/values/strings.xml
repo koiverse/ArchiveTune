@@ -436,6 +436,11 @@
     <string name="content_country">Default content country</string>
     <string name="system_default">System default</string>
     <string name="enable_proxy">Enable proxy</string>
+    <string name="internet">Internet</string>
+    <string name="dns_over_https">DNS over HTTPS</string>
+    <string name="dns_over_https_desc">Use DNS over HTTPS (DoH) to resolve hostnames</string>
+    <string name="dns_provider">DNS Provider</string>
+    <string name="dns_custom_url">Custom DNS DoH URL</string>
     <string name="proxy_type">Proxy type</string>
     <string name="proxy_url">Proxy URL</string>
     <string name="stream_bypass_proxy">Bypass proxy for streams</string>

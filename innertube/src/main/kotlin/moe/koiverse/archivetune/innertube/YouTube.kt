@@ -83,6 +83,10 @@ import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonPrimitive
 import java.net.Proxy
+import okhttp3.Dns
+import okhttp3.HttpUrl.Companion.toHttpUrl
+import okhttp3.OkHttpClient
+import okhttp3.dnsoverhttps.DnsOverHttps
 import kotlin.random.Random
 
 /**
@@ -148,6 +152,11 @@ object YouTube {
         set(value) {
             innerTube.proxy = value
         }
+    var dns: Dns
+        get() = innerTube.dns
+        set(value) {
+            innerTube.dns = value
+        }
     var streamBypassProxy: Boolean = false
     val streamProxy: Proxy?
         get() = if (streamBypassProxy) null else proxy
@@ -158,6 +167,14 @@ object YouTube {
         }
 
     fun currentPlaybackAuthState(): PlaybackAuthState = authState
+
+    fun createDnsOverHttps(url: String): Dns {
+        val bootstrapClient = OkHttpClient.Builder().build()
+        return DnsOverHttps.Builder()
+            .client(bootstrapClient)
+            .url(url.toHttpUrl())
+            .build()
+    }
 
     private fun resolvePlayerPoToken(
         client: YouTubeClient,
