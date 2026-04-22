@@ -2,57 +2,57 @@
 <resources>
     <string name="explore">Jelajahi</string>
     <string name="music_recognition_tap_to_listen">Ketuk untuk mendengarkan</string>
-    <string name="music_recognition_listening">Listening…</string>
-    <string name="music_recognition_processing">Processing…</string>
+    <string name="music_recognition_listening">Mendengarkan…</string>
+    <string name="music_recognition_processing">Memproses…</string>
     <string name="music_recognition_listen_again">Dengarkan lagi</string>
     <string name="music_recognition_no_match">Tidak ada kecocokan yang ditemukan</string>
     <string name="music_recognition_signature_failed">Tidak dapat membuat tanda tangan</string>
-    <string name="music_recognition_recognition_failed">Pengakuan gagal</string>
+    <string name="music_recognition_recognition_failed">Gagal mengenali</string>
     <string name="music_recognition_open_shazam">Buka Shazam</string>
     <string name="music_recognition_lyrics_preview">Pratinjau lirik</string>
-    <string name="music_recognition_permission_title">Izin mikrofon</string>
+    <string name="music_recognition_permission_title">Izin akses mikrofon</string>
     <string name="music_recognition_permission_desc">Izinkan akses mikrofon untuk mengenali musik di sekitar.</string>
     <string name="music_recognition_permission_action">Izinkan</string>
     <string name="music_recognition_error">Ada yang tidak beres</string>
     <string name="local_history">Lokal</string>
     <string name="history_local_summary">Diputar di perangkat ini</string>
     <string name="history_remote_summary">Disinkronkan dari YouTube Music</string>
-    <string name="history_local_empty_title">Belum ada sejarah lokal</string>
-    <string name="history_local_empty_desc">Lagu yang Anda putar di perangkat ini akan muncul di sini.</string>
+    <string name="history_local_empty_title">Belum ada riwayat lokal</string>
+    <string name="history_local_empty_desc">Lagu yang Kamu putar di perangkat ini akan muncul di sini.</string>
     <string name="history_remote_loading">Menyinkronkan riwayat jarak jauh</string>
     <string name="history_remote_empty_title">Tidak ada riwayat jarak jauh yang tersedia</string>
     <string name="history_remote_empty_desc">Histori tontonan Anda yang tersinkron akan muncul di sini setelah Anda mendengarkan di YouTube Music.</string>
     <string name="history_remote_error_title">Tidak dapat memuat riwayat jarak jauh</string>
-    <string name="history_remote_error_desc">Coba lagi sebentar lagi.</string>
+    <string name="history_remote_error_desc">Coba sebentar lagi.</string>
     <string name="history_no_results_title">Tidak ada lagu yang cocok</string>
     <string name="history_no_results_desc">Coba lagu atau nama artis lain.</string>
     <string name="clear_selection">Hapus pilihan</string>
     <string name="scan_device">Pindai perangkat</string>
-    <string name="scanning_device">Perangkat pemindaian…</string>
+    <string name="scanning_device">Memindai perangkat…</string>
     <string name="local_songs_ready_desc">Putar lagu lokal di perangkat ini.</string>
     <string name="local_songs_permission_body">Izinkan akses penyimpanan untuk memindai file audio yang disimpan di perangkat ini.</string>
     <string name="local_songs_empty_title">Tidak ada lagu lokal yang ditemukan</string>
     <string name="local_songs_empty_desc">Buka pengaturan dari bilah atas dan jalankan pemindaian perangkat untuk menemukan audio offline di perangkat ini.</string>
-    <string name="local_songs_scan_failed">Tidak dapat menyelesaikan pemindaian perangkat ini.</string>
+    <string name="local_songs_scan_failed">Pemindaian perangkat ini tidak dapat diselesaikan.</string>
     <string name="local_songs_scan_summary">Pemindaian terakhir: %1$d lagu ditemukan, %2$d dihapus</string>
     <string name="local_songs_scan_title">Pindai lagu lokal</string>
     <string name="local_songs_scan_subtitle">Segarkan lagu yang disimpan di perangkat ini dan perbarui metadata perpustakaan lokal.</string>
     <string name="local_songs_latest_scan">Pemindaian terbaru</string>
     <string name="local_songs_scan_filters_title">Pindai filter</string>
-    <string name="local_songs_scan_filters_note">Perubahan berlaku saat berikutnya Anda memindai perangkat ini.</string>
-    <string name="local_songs_scan_duration_title">Kecualikan lagu pendek</string>
-    <string name="local_songs_scan_duration_desc">Lewati lagu yang lebih pendek dari durasi yang dipilih.</string>
+    <string name="local_songs_scan_filters_note">Perubahan berlaku setelah Anda memindai perangkat ini.</string>
+    <string name="local_songs_scan_duration_title">Kecualikan lagu berdurasi pendek</string>
+    <string name="local_songs_scan_duration_desc">Lewati lagu yang berdurasi lebih pendek dari durasi yang dipilih.</string>
     <string name="local_songs_scan_folders_title">Folder yang dikecualikan</string>
     <string name="local_songs_scan_folders_desc">Lewati lagu yang disimpan dalam folder yang cocok dengan salah satu jalur ini.</string>
     <string name="local_songs_scan_folders_empty">Belum ada folder yang dikecualikan.</string>
     <string name="local_songs_scan_folders_hint">Contoh: Musik/Nada Dering atau Unduhan/Catatan Suara</string>
-    <string name="local_songs_scan_folders_add">Tambahkan map</string>
+    <string name="local_songs_scan_folders_add">Tambahkan folder</string>
     <string name="local_songs_scan_folders_dialog_title">Kecualikan folder</string>
-    <string name="local_songs_scan_folders_dialog_placeholder">Music/Ringtones</string>
+    <string name="local_songs_scan_folders_dialog_placeholder">Musik/Nada dering</string>
     <string name="local_songs_no_matches_title">Tidak ada lagu lokal yang cocok</string>
     <string name="local_songs_no_matches_desc">Coba lagu, artis, atau nama album lain.</string>
     <string name="sort_by_album">Album</string>
-    <string name="remote_history">Terpencil</string>
+    <string name="remote_history">Remot</string>
     <string name="charts">Grafik</string>
     <string name="back_button_desc">Kembali</string>
     <string name="no_title">Tidak ada judul</string>
@@ -76,7 +76,7 @@
     <string name="elements_selected">%1$d elemen dipilih</string>
     <string name="allows_for_sync_witch_youtube">Catatan: Ini memungkinkan sinkronisasi dengan YouTube Music. Ini TIDAK dapat diubah nanti.</string>
     <string name="generating_image">Menghasilkan gambar</string>
-    <string name="please_wait">Harap tunggu</string>
+    <string name="please_wait">Tunggu sebentar</string>
     <string name="cancel">Batalkan</string>
     <string name="share_lyrics">Bagikan lirik</string>
     <string name="share_as_text">Bagikan sebagai teks</string>
@@ -84,13 +84,13 @@
     <string name="max_selection_limit">Batas pilihan maksimal</string>
     <string name="share_selected">Bagikan yang dipilih</string>
     <string name="customize_colors">Sesuaikan warna</string>
-    <string name="lyrics_share_layout">Tata Letak</string>
-    <string name="lyrics_share_layout_square">Persegi</string>
-    <string name="lyrics_share_layout_portrait">Potret</string>
+    <string name="lyrics_share_layout">Tata letak</string>
+    <string name="lyrics_share_layout_square">Kotak</string>
+    <string name="lyrics_share_layout_portrait">Vertikal</string>
     <string name="lyrics_share_layout_story">Cerita</string>
-    <string name="lyrics_share_background_blur">Latar belakang kabur</string>
+    <string name="lyrics_share_background_blur">Blur latar belakang</string>
     <string name="lyrics_share_background_blur_value">%1$d piksel</string>
-    <string name="lyrics_share_background_dim">Latar belakang redup</string>
+    <string name="lyrics_share_background_dim">Redup latar belakang</string>
     <string name="lyrics_share_background_dim_value">%1$d%%</string>
     <string name="lyrics_share_show_cover">Tampilkan sampul album</string>
     <string name="lyrics_share_show_cover_desc">Sertakan karya seni di header gambar yang diekspor.</string>
@@ -300,42 +300,33 @@
     <string name="share_summary">Bagikan Ringkasan</string>
     <string name="no_listening_data">Tidak ada data pendengaran untuk tahun ini</string>
     <string name="played">dimainkan</string>
-
     <string name="custom_theme">Tema Kustom</string>
     <string name="import_theme">Impor Tema</string>
     <string name="export_theme">Ekspor Tema</string>
-
     <string name="palette_custom">Adat</string>
-
     <string name="theme_creator_title">Pencipta Tema</string>
     <string name="theme_creator_subtitle">Sesuaikan warna, pratinjau hasilnya, lalu ekspor atau impor.</string>
-
     <string name="theme_meta_title">Detail Tema</string>
     <string name="theme_name_optional">Nama (opsional)</string>
     <string name="theme_apply_button">Terapkan Tema</string>
-
     <string name="theme_applied">Tema diterapkan</string>
     <string name="theme_export_success">Tema diekspor</string>
     <string name="theme_export_failed">Ekspor gagal</string>
     <string name="theme_import_success">Tema diimpor</string>
     <string name="theme_import_failed">Impor gagal</string>
     <string name="theme_import_failed_title">Tidak dapat mengimpor tema</string>
-
     <string name="theme_seed_colors">Warna Benih</string>
     <string name="theme_seed_primary">Utama</string>
     <string name="theme_seed_secondary">Sekunder</string>
     <string name="theme_seed_tertiary">Tersier</string>
     <string name="theme_seed_neutral">Netral</string>
-
     <string name="theme_editor_title">%1$s Warna</string>
     <string name="theme_editor_hex">kutukan</string>
     <string name="theme_editor_hex_input">Nilai hex (#RRGGBB atau #AARRGGBB)</string>
     <string name="theme_presets_title">Preset</string>
-
     <string name="theme_preview_trackline">Kartu pratinjau premium</string>
     <string name="theme_preview_primary_action">Tindakan Utama</string>
     <string name="theme_preview_secondary_action">Tindakan Sekunder</string>
-
     <string name="copy">Salin</string>
     <string name="backup_in_progress">Pencadangan sedang berlangsung</string>
     <string name="restore_in_progress">Pemulihan sedang berlangsung</string>
