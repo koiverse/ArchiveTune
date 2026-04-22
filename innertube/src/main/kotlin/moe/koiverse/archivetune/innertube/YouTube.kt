@@ -152,6 +152,16 @@ object YouTube {
         set(value) {
             innerTube.proxy = value
         }
+    var proxyUsername: String?
+        get() = innerTube.proxyUsername
+        set(value) {
+            innerTube.proxyUsername = value
+        }
+    var proxyPassword: String?
+        get() = innerTube.proxyPassword
+        set(value) {
+            innerTube.proxyPassword = value
+        }
     var dns: Dns
         get() = innerTube.dns
         set(value) {

@@ -442,7 +442,15 @@
     <string name="dns_provider">DNS Provider</string>
     <string name="dns_custom_url">Custom DNS DoH URL</string>
     <string name="proxy_type">Proxy type</string>
-    <string name="proxy_url">Proxy URL</string>
+    <string name="proxy_host">Proxy host (IP)</string>
+    <string name="proxy_port">Proxy port</string>
+    <string name="proxy_auth">Proxy Authorization (optional)</string>
+    <string name="proxy_username">Username</string>
+    <string name="proxy_password">Password</string>
+    <string name="test_proxy_connection">Test proxy connection</string>
+    <string name="testing_proxy_connection">Testing proxy connection…</string>
+    <string name="proxy_connection_success">Proxy connection successful!</string>
+    <string name="proxy_connection_failed">Proxy connection failed: %s</string>
     <string name="stream_bypass_proxy">Bypass proxy for streams</string>
     <string name="stream_bypass_proxy_desc">Use your direct IP for stream playback to avoid IP mismatch</string>
     <string name="restart_to_take_effect">Restart to take effect</string>

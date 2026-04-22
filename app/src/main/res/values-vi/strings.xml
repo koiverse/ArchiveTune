@@ -406,7 +406,15 @@
     <string name="dns_provider">Nhà cung cấp DNS</string>
     <string name="dns_custom_url">URL DoH DNS tùy chỉnh</string>
     <string name="proxy_type">Loại proxy</string>
-    <string name="proxy_url">URL proxy</string>
+    <string name="proxy_host">Địa chỉ proxy (IP)</string>
+    <string name="proxy_port">Cổng proxy (Port)</string>
+    <string name="proxy_auth">Xác thực proxy (tùy chọn)</string>
+    <string name="proxy_username">Tên người dùng</string>
+    <string name="proxy_password">Mật khẩu</string>
+    <string name="test_proxy_connection">Kiểm tra kết nối proxy</string>
+    <string name="testing_proxy_connection">Đang kiểm tra kết nối proxy…</string>
+    <string name="proxy_connection_success">Kết nối proxy thành công!</string>
+    <string name="proxy_connection_failed">Kết nối proxy thất bại: %s</string>
     <string name="restart_to_take_effect">Khởi động lại để có hiệu lực</string>
     <string name="enable_betterlyrics">Bật BetterLyrics</string>
     <string name="enable_simpmusic_lyrics">Bật lời bài hát SimpMusic</string>

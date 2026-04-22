@@ -86,6 +86,20 @@ class InnerTube {
             httpClient = createClient()
         }
 
+    var proxyUsername: String? = null
+        set(value) {
+            field = value
+            httpClient.close()
+            httpClient = createClient()
+        }
+
+    var proxyPassword: String? = null
+        set(value) {
+            field = value
+            httpClient.close()
+            httpClient = createClient()
+        }
+
     var dns: Dns = Dns.SYSTEM
         set(value) {
             field = value
@@ -127,6 +141,14 @@ class InnerTube {
         engine {
             config {
                 dns(this@InnerTube.dns)
+                if (this@InnerTube.proxy != null && !proxyUsername.isNullOrBlank() && !proxyPassword.isNullOrBlank()) {
+                    proxyAuthenticator { _, response ->
+                        val credential = okhttp3.Credentials.basic(proxyUsername!!, proxyPassword!!)
+                        response.request.newBuilder()
+                            .header("Proxy-Authorization", credential)
+                            .build()
+                    }
+                }
             }
             if (this@InnerTube.proxy != null) {
                 proxy = this@InnerTube.proxy

@@ -140,13 +140,17 @@ class App : Application(), SingletonImageLoader.Factory {
 
                 if (prefs[ProxyEnabledKey] == true) {
                     try {
+                        val host = prefs[ProxyHostKey] ?: "127.0.0.1"
+                        val port = prefs[ProxyPortKey] ?: 8080
                         YouTube.proxy = Proxy(
                             prefs[ProxyTypeKey].toEnum(defaultValue = Proxy.Type.HTTP),
-                            prefs[ProxyUrlKey]!!.toInetSocketAddress()
+                            java.net.InetSocketAddress.createUnresolved(host, port)
                         )
+                        YouTube.proxyUsername = prefs[ProxyUsernameKey]
+                        YouTube.proxyPassword = prefs[ProxyPasswordKey]
                     } catch (e: Exception) {
                         withContext(Dispatchers.Main) {
-                            Toast.makeText(this@App, "Failed to parse proxy url.", LENGTH_SHORT).show()
+                            Toast.makeText(this@App, "Failed to parse proxy settings.", LENGTH_SHORT).show()
                         }
                         reportException(e)
                     }
