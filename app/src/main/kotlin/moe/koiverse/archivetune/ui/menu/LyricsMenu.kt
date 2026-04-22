@@ -83,7 +83,6 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import moe.koiverse.archivetune.LocalDatabase
 import moe.koiverse.archivetune.R
-import moe.koiverse.archivetune.constants.LyricsSyncOffsetKey
 import moe.koiverse.archivetune.db.entities.LyricsEntity
 import moe.koiverse.archivetune.lyrics.LyricsUtils.isTtml
 import moe.koiverse.archivetune.lyrics.LyricsUtils.parseLyrics
@@ -95,7 +94,6 @@ import moe.koiverse.archivetune.ui.component.NewAction
 import moe.koiverse.archivetune.ui.component.NewActionGrid
 import moe.koiverse.archivetune.ui.component.TextFieldDialog
 import moe.koiverse.archivetune.viewmodels.LyricsMenuViewModel
-import moe.koiverse.archivetune.utils.rememberPreference
 import java.util.UUID
 import kotlin.math.roundToInt
 
@@ -105,6 +103,8 @@ import kotlin.math.roundToInt
 fun LyricsMenu(
     lyricsProvider: () -> LyricsEntity?,
     mediaMetadataProvider: () -> MediaMetadata,
+    lyricsSyncOffset: Int,
+    onLyricsSyncOffsetChange: (Int) -> Unit,
     onDismiss: () -> Unit,
     viewModel: LyricsMenuViewModel = hiltViewModel(),
 ) {
@@ -118,10 +118,6 @@ fun LyricsMenu(
     var showTranslateDialog by rememberSaveable { mutableStateOf(false) }
     var showLyricsSyncOffsetDialog by rememberSaveable { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
-    val (lyricsSyncOffset, onLyricsSyncOffsetChange) = rememberPreference(
-        LyricsSyncOffsetKey,
-        defaultValue = 0
-    )
 
     if (showEditDialog) {
         TextFieldDialog(

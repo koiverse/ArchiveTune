@@ -58,7 +58,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -196,6 +196,7 @@ fun LyricsScreen(
     var position by remember { mutableLongStateOf(0L) }
     var duration by remember { mutableLongStateOf(C.TIME_UNSET) }
     var sliderPosition by remember { mutableStateOf<Long?>(null) }
+    var lyricsSyncOffset by remember(mediaMetadata.id) { mutableIntStateOf(0) }
     
     // Track loading state: when buffering or when user is seeking
     val isLoading = playbackState == STATE_BUFFERING || sliderPosition != null
@@ -387,6 +388,8 @@ fun LyricsScreen(
                                         LyricsMenu(
                                             lyricsProvider = { currentLyrics },
                                             mediaMetadataProvider = { mediaMetadata },
+                                            lyricsSyncOffset = lyricsSyncOffset,
+                                            onLyricsSyncOffsetChange = { lyricsSyncOffset = it },
                                             onDismiss = menuState::dismiss
                                         )
                                     }
@@ -423,11 +426,13 @@ fun LyricsScreen(
                             ) {
                                 if (useLyricsV2) {
                                     LyricsV2(
-                                        sliderPositionProvider = { sliderPosition }
+                                        sliderPositionProvider = { sliderPosition },
+                                        lyricsSyncOffset = lyricsSyncOffset
                                     )
                                 } else {
                                     Lyrics(
-                                        sliderPositionProvider = { sliderPosition }
+                                        sliderPositionProvider = { sliderPosition },
+                                        lyricsSyncOffset = lyricsSyncOffset
                                     )
                                 }
                             }
@@ -694,6 +699,8 @@ fun LyricsScreen(
                                         LyricsMenu(
                                             lyricsProvider = { currentLyrics },
                                             mediaMetadataProvider = { mediaMetadata },
+                                            lyricsSyncOffset = lyricsSyncOffset,
+                                            onLyricsSyncOffsetChange = { lyricsSyncOffset = it },
                                             onDismiss = menuState::dismiss
                                         )
                                     }
@@ -718,11 +725,13 @@ fun LyricsScreen(
                     ) {
                         if (useLyricsV2) {
                             LyricsV2(
-                                sliderPositionProvider = { sliderPosition }
+                                sliderPositionProvider = { sliderPosition },
+                                lyricsSyncOffset = lyricsSyncOffset
                             )
                         } else {
                             Lyrics(
-                                sliderPositionProvider = { sliderPosition }
+                                sliderPositionProvider = { sliderPosition },
+                                lyricsSyncOffset = lyricsSyncOffset
                             )
                         }
                     }

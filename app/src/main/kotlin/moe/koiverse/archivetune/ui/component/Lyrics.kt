@@ -171,7 +171,6 @@ import moe.koiverse.archivetune.constants.LyricsAnimationStyle
 import moe.koiverse.archivetune.constants.LyricsAnimationStyleKey
 import moe.koiverse.archivetune.constants.LyricsTextSizeKey
 import moe.koiverse.archivetune.constants.LyricsLineSpacingKey
-import moe.koiverse.archivetune.constants.LyricsSyncOffsetKey
 import moe.koiverse.archivetune.constants.PlayerBackgroundStyle
 import moe.koiverse.archivetune.constants.PlayerBackgroundStyleKey
 import moe.koiverse.archivetune.constants.UseSystemFontKey
@@ -444,6 +443,7 @@ private fun KaraokeWord(
 @Composable
 fun Lyrics(
     sliderPositionProvider: () -> Long?,
+    lyricsSyncOffset: Int,
     modifier: Modifier = Modifier,
 ) {
     val playerConnection = LocalPlayerConnection.current ?: return
@@ -467,7 +467,6 @@ fun Lyrics(
     val lyricsAnimationStyle by rememberEnumPreference(LyricsAnimationStyleKey, LyricsAnimationStyle.APPLE)
     val lyricsTextSize by rememberPreference(LyricsTextSizeKey, 26f)
     val lyricsLineSpacing by rememberPreference(LyricsLineSpacingKey, 1.3f)
-    val lyricsSyncOffset by rememberPreference(LyricsSyncOffsetKey, 0)
     val useSystemFont by rememberPreference(UseSystemFontKey, false)
     val animationsDisabled = LocalAnimationsDisabled.current
     val lyricsFontFamily = remember(useSystemFont) {
