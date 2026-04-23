@@ -224,15 +224,14 @@ fun InternetSettings(
                         YouTube.proxy = Proxy(proxyType, java.net.InetSocketAddress.createUnresolved(it, proxyPort))
                     },
                 )
-                NumberPickerPreference(
+                NumberEditTextPreference(
                     title = { Text(stringResource(R.string.proxy_port)) },
                     value = proxyPort,
                     onValueChange = {
                         onProxyPortChange(it)
                         YouTube.proxy = Proxy(proxyType, java.net.InetSocketAddress.createUnresolved(proxyHost, it))
                     },
-                    minValue = 1,
-                    maxValue = 65535,
+                    isInputValid = { it.toIntOrNull() in 1..65535 },
                 )
 
                 PreferenceGroupTitle(title = stringResource(R.string.proxy_auth))
