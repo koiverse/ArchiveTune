@@ -637,4 +637,5 @@
     <string name="remove_from_speed_dial">Rimuovi dai preferiti</string>
     <string name="together_participants">Partecipanti</string>
     <string name="together_connected_count">%1$d connesso</string>
+    <string name="together_role_host">Ospite</string>
 </resources>
