@@ -858,6 +858,9 @@ fun Queue(
                                                     if (trackMetadata in selectedSongs) {
                                                         selectedSongs.remove(trackMetadata)
                                                         selectedItems.remove(currentItem)
+                                                        if (selectedSongs.isEmpty()) {
+                                                            selection = false
+                                                        }
                                                     } else {
                                                         selectedSongs.add(trackMetadata)
                                                         selectedItems.add(currentItem)
@@ -965,6 +968,7 @@ fun Queue(
                             if (count == mutableQueueWindows.size) {
                                 selectedSongs.clear()
                                 selectedItems.clear()
+                                selection = false
                             } else {
                                 queueWindows
                                     .filter { it.mediaItem.metadata!! !in selectedSongs }
@@ -997,6 +1001,7 @@ fun Queue(
                                     clearAction = {
                                         selectedSongs.clear()
                                         selectedItems.clear()
+                                        selection = false
                                     },
                                     currentItems = selectedItems,
                                     onRemoveFromQueue = { windows ->
