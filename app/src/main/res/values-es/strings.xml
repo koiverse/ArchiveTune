@@ -797,4 +797,23 @@
     <string name="playlist_suggestion_source_both">Título y contenido de la lista de reproducción</string>
     <string name="updates_nightly_title">Entrega Nightly</string>
     <string name="updates_nightly_description">Las compilaciones Nightly rastrean los commits de desarrollo más recientes y pueden incluir cambios incompletos.</string>
+    <string name="removed_song_from_queue">Se ha eliminado «%s» de la cola</string>
+    <string name="removed_n_songs_from_queue">Se han eliminado %d canciones de la cola</string>
+    <string name="internet">Internet</string>
+    <string name="internet_warning_title">Advertencia sobre seguridad y uso</string>
+    <string name="internet_warning_doh">El DNS sobre HTTPS solo funciona si tu país bloquea YouTube. Si YouTube bloquea activamente tu región, plantéate utilizar un proxy o una VPN.</string>
+    <string name="internet_warning_proxy">Utiliza únicamente proxies de los que estés seguro que son seguros. Los proxies gratuitos son prácticos, pero no siempre son seguros, así que ten cuidado. Quedas advertido, y no nos hacemos responsables de tu seguridad.</string>
+    <string name="dns_over_https">DNS sobre HTTPS</string>
+    <string name="dns_over_https_desc">Utiliza DNS sobre HTTPS (DoH) para resolver nombres de host</string>
+    <string name="dns_provider">Proveedor de DNS</string>
+    <string name="dns_custom_url">Url personalizada de DNS DoH</string>
+    <string name="proxy_host">Servidor proxy (IP)</string>
+    <string name="proxy_port">Puerto del proxy</string>
+    <string name="proxy_auth">Autorización de proxy (opcional)</string>
+    <string name="proxy_username">Nombre de usuario</string>
+    <string name="proxy_password">Contraseña</string>
+    <string name="test_proxy_connection">Comprobar la conexión del proxy</string>
+    <string name="testing_proxy_connection">Comprobando la conexión del proxy…</string>
+    <string name="proxy_connection_success">¡Conexión a través del proxy realizada correctamente!</string>
+    <string name="proxy_connection_failed">Error en la conexión al servidor proxy: %s</string>
 </resources>
