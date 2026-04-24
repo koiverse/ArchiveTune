@@ -32,6 +32,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -43,6 +44,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -57,6 +59,7 @@ import moe.koiverse.archivetune.db.entities.Artist
 import moe.koiverse.archivetune.extensions.toMediaItem
 import moe.koiverse.archivetune.playback.queues.ListQueue
 import moe.koiverse.archivetune.ui.component.ArtistListItem
+import moe.koiverse.archivetune.ui.component.MenuSurfaceSection
 import moe.koiverse.archivetune.ui.component.NewAction
 import moe.koiverse.archivetune.ui.component.NewActionGrid
 import moe.koiverse.archivetune.utils.SpeedDialPin
@@ -101,6 +104,7 @@ fun ArtistMenu(
 
     val configuration = LocalConfiguration.current
     val isPortrait = configuration.orientation == Configuration.ORIENTATION_PORTRAIT
+    val dividerModifier = Modifier.padding(start = 56.dp)
 
     LazyColumn(
         userScrollEnabled = !isPortrait,
@@ -112,147 +116,161 @@ fun ArtistMenu(
         ),
     ) {
         item {
-            // Enhanced Action Grid using NewMenuComponents
-            NewActionGrid(
-                actions = buildList {
-                    if (artist.songCount > 0) {
-                        add(
-                            NewAction(
-                                icon = {
-                                    Icon(
-                                        painter = painterResource(R.drawable.play),
-                                        contentDescription = null,
-                                        modifier = Modifier.size(28.dp),
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                },
-                                text = stringResource(R.string.play),
-                                onClick = {
-                                    coroutineScope.launch {
-                                        val songs = withContext(Dispatchers.IO) {
-                                            database
-                                                .artistSongs(artist.id, ArtistSongSortType.CREATE_DATE, true)
-                                                .first()
-                                                .map { it.toMediaItem() }
+            MenuSurfaceSection(modifier = Modifier.padding(vertical = 6.dp)) {
+                NewActionGrid(
+                    actions = buildList {
+                        if (artist.songCount > 0) {
+                            add(
+                                NewAction(
+                                    icon = {
+                                        Icon(
+                                            painter = painterResource(R.drawable.play),
+                                            contentDescription = null,
+                                            modifier = Modifier.size(28.dp),
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    },
+                                    text = stringResource(R.string.play),
+                                    onClick = {
+                                        coroutineScope.launch {
+                                            val songs = withContext(Dispatchers.IO) {
+                                                database
+                                                    .artistSongs(artist.id, ArtistSongSortType.CREATE_DATE, true)
+                                                    .first()
+                                                    .map { it.toMediaItem() }
+                                            }
+                                            playerConnection.playQueue(
+                                                ListQueue(
+                                                    title = artist.artist.name,
+                                                    items = songs,
+                                                ),
+                                            )
                                         }
-                                        playerConnection.playQueue(
-                                            ListQueue(
-                                                title = artist.artist.name,
-                                                items = songs,
-                                            ),
-                                        )
+                                        onDismiss()
                                     }
-                                    onDismiss()
-                                }
+                                )
                             )
-                        )
 
-                        add(
-                            NewAction(
-                                icon = {
-                                    Icon(
-                                        painter = painterResource(R.drawable.shuffle),
-                                        contentDescription = null,
-                                        modifier = Modifier.size(28.dp),
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                },
-                                text = stringResource(R.string.shuffle),
-                                onClick = {
-                                    coroutineScope.launch {
-                                        val songs = withContext(Dispatchers.IO) {
-                                            database
-                                                .artistSongs(artist.id, ArtistSongSortType.CREATE_DATE, true)
-                                                .first()
-                                                .map { it.toMediaItem() }
-                                                .shuffled()
+                            add(
+                                NewAction(
+                                    icon = {
+                                        Icon(
+                                            painter = painterResource(R.drawable.shuffle),
+                                            contentDescription = null,
+                                            modifier = Modifier.size(28.dp),
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    },
+                                    text = stringResource(R.string.shuffle),
+                                    onClick = {
+                                        coroutineScope.launch {
+                                            val songs = withContext(Dispatchers.IO) {
+                                                database
+                                                    .artistSongs(artist.id, ArtistSongSortType.CREATE_DATE, true)
+                                                    .first()
+                                                    .map { it.toMediaItem() }
+                                                    .shuffled()
+                                            }
+                                            playerConnection.playQueue(
+                                                ListQueue(
+                                                    title = artist.artist.name,
+                                                    items = songs,
+                                                ),
+                                            )
                                         }
-                                        playerConnection.playQueue(
-                                            ListQueue(
-                                                title = artist.artist.name,
-                                                items = songs,
-                                            ),
-                                        )
+                                        onDismiss()
                                     }
-                                    onDismiss()
-                                }
+                                )
                             )
-                        )
-                    }
+                        }
 
-                    if (artist.artist.isYouTubeArtist) {
-                        add(
-                            NewAction(
-                                icon = {
-                                    Icon(
-                                        painter = painterResource(R.drawable.share),
-                                        contentDescription = null,
-                                        modifier = Modifier.size(28.dp),
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                },
-                                text = stringResource(R.string.share),
-                                onClick = {
-                                    onDismiss()
-                                    val intent = Intent().apply {
-                                        action = Intent.ACTION_SEND
-                                        type = "text/plain"
-                                        putExtra(
-                                            Intent.EXTRA_TEXT,
-                                            "https://music.youtube.com/channel/${artist.id}"
+                        if (artist.artist.isYouTubeArtist) {
+                            add(
+                                NewAction(
+                                    icon = {
+                                        Icon(
+                                            painter = painterResource(R.drawable.share),
+                                            contentDescription = null,
+                                            modifier = Modifier.size(28.dp),
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
+                                    },
+                                    text = stringResource(R.string.share),
+                                    onClick = {
+                                        onDismiss()
+                                        val intent = Intent().apply {
+                                            action = Intent.ACTION_SEND
+                                            type = "text/plain"
+                                            putExtra(
+                                                Intent.EXTRA_TEXT,
+                                                "https://music.youtube.com/channel/${artist.id}"
+                                            )
+                                        }
+                                        context.startActivity(Intent.createChooser(intent, null))
                                     }
-                                    context.startActivity(Intent.createChooser(intent, null))
-                                }
+                                )
                             )
-                        )
-                    }
-                },
-                modifier = Modifier.padding(horizontal = 4.dp, vertical = 16.dp)
-            )
+                        }
+                    },
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp)
+                )
+            }
         }
 
-        // Subscribe/Subscribed button
         item {
-            ListItem(
-                headlineContent = {
-                    Text(text = if (artist.artist.bookmarkedAt != null) stringResource(R.string.subscribed) else stringResource(R.string.subscribe))
-                },
-                leadingContent = {
-                    Icon(
-                        painter = painterResource(if (artist.artist.bookmarkedAt != null) R.drawable.subscribed else R.drawable.subscribe),
-                        contentDescription = null,
-                    )
-                },
-                modifier = Modifier.clickable {
-                    database.transaction {
-                        update(artist.artist.toggleLike())
-                    }
-                }
-            )
+            Spacer(modifier = Modifier.height(12.dp))
         }
+
         item {
-            ListItem(
-                headlineContent = {
-                    Text(
-                        text = stringResource(
-                            if (isInSpeedDial) R.string.remove_from_speed_dial
-                            else R.string.pin_to_speed_dial
-                        )
+            MenuSurfaceSection(modifier = Modifier.padding(vertical = 6.dp)) {
+                Column {
+                    ListItem(
+                        headlineContent = {
+                            Text(text = if (artist.artist.bookmarkedAt != null) stringResource(R.string.subscribed) else stringResource(R.string.subscribe))
+                        },
+                        leadingContent = {
+                            Icon(
+                                painter = painterResource(if (artist.artist.bookmarkedAt != null) R.drawable.subscribed else R.drawable.subscribe),
+                                contentDescription = null,
+                            )
+                        },
+                        modifier = Modifier.clickable {
+                            database.transaction {
+                                update(artist.artist.toggleLike())
+                            }
+                        },
+                        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                     )
-                },
-                leadingContent = {
-                    Icon(
-                        painter = painterResource(if (isInSpeedDial) R.drawable.bookmark_filled else R.drawable.bookmark),
-                        contentDescription = null,
+
+                    HorizontalDivider(
+                        modifier = dividerModifier,
+                        color = MaterialTheme.colorScheme.outlineVariant,
                     )
-                },
-                modifier = Modifier.clickable {
-                    val updatedPins = toggleSpeedDialPin(speedDialPins, artistPin)
-                    onSpeedDialSongIdsChange(serializeSpeedDialPins(updatedPins))
-                    onDismiss()
+
+                    ListItem(
+                        headlineContent = {
+                            Text(
+                                text = stringResource(
+                                    if (isInSpeedDial) R.string.remove_from_speed_dial
+                                    else R.string.pin_to_speed_dial
+                                )
+                            )
+                        },
+                        leadingContent = {
+                            Icon(
+                                painter = painterResource(if (isInSpeedDial) R.drawable.bookmark_filled else R.drawable.bookmark),
+                                contentDescription = null,
+                            )
+                        },
+                        modifier = Modifier.clickable {
+                            val updatedPins = toggleSpeedDialPin(speedDialPins, artistPin)
+                            onSpeedDialSongIdsChange(serializeSpeedDialPins(updatedPins))
+                            onDismiss()
+                        },
+                        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                    )
                 }
-            )
+            }
         }
     }
 }
