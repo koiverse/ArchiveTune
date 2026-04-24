@@ -292,7 +292,7 @@ object Updater {
         val baseUrl = "https://github.com/koiverse/ArchiveTune/releases/latest/download/"
         val architecture = BuildConfig.ARCHITECTURE
         return if (architecture == "universal") {
-            baseUrl + "ArchiveTune.apk"
+            baseUrl + "app-mobile-universal-release.apk"
         } else {
             baseUrl + "app-${architecture}-release.apk"
         }
