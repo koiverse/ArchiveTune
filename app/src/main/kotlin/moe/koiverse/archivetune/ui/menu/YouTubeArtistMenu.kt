@@ -41,6 +41,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -55,12 +57,22 @@ import moe.koiverse.archivetune.innertube.models.ArtistItem
 import moe.koiverse.archivetune.LocalDatabase
 import moe.koiverse.archivetune.LocalPlayerConnection
 import moe.koiverse.archivetune.R
+import moe.koiverse.archivetune.constants.SpeedDialSongIdsKey
 import moe.koiverse.archivetune.db.entities.ArtistEntity
 import moe.koiverse.archivetune.playback.queues.YouTubeQueue
 import moe.koiverse.archivetune.ui.component.MenuSurfaceSection
 import moe.koiverse.archivetune.ui.component.NewAction
 import moe.koiverse.archivetune.ui.component.NewActionGrid
 import moe.koiverse.archivetune.ui.component.YouTubeListItem
+import moe.koiverse.archivetune.utils.SpeedDialPin
+import moe.koiverse.archivetune.utils.SpeedDialPinType
+import moe.koiverse.archivetune.utils.parseSpeedDialPins
+import moe.koiverse.archivetune.utils.rememberPreference
+import moe.koiverse.archivetune.utils.serializeSpeedDialPins
+import moe.koiverse.archivetune.utils.toggleSpeedDialPin
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -72,6 +84,13 @@ fun YouTubeArtistMenu(
     val database = LocalDatabase.current
     val playerConnection = LocalPlayerConnection.current ?: return
     val libraryArtist by database.artist(artist.id).collectAsState(initial = null)
+    val coroutineScope = rememberCoroutineScope()
+    val (speedDialSongIds, onSpeedDialSongIdsChange) = rememberPreference(SpeedDialSongIdsKey, "")
+    val speedDialPins = remember(speedDialSongIds) { parseSpeedDialPins(speedDialSongIds) }
+    val artistPin = remember(artist.id) { SpeedDialPin(type = SpeedDialPinType.ARTIST, id = artist.id) }
+    val isInSpeedDial = remember(speedDialPins, artistPin) {
+        speedDialPins.any { it.type == artistPin.type && it.id == artistPin.id }
+    }
 
     YouTubeListItem(
         item = artist,
@@ -84,6 +103,7 @@ fun YouTubeArtistMenu(
 
     val configuration = LocalConfiguration.current
     val isPortrait = configuration.orientation == Configuration.ORIENTATION_PORTRAIT
+    val dividerModifier = Modifier.padding(start = 56.dp)
     LazyColumn(
         userScrollEnabled = !isPortrait,
         contentPadding = PaddingValues(
@@ -171,41 +191,88 @@ fun YouTubeArtistMenu(
 
         item {
             MenuSurfaceSection(modifier = Modifier.padding(vertical = 6.dp)) {
-                ListItem(
-                    headlineContent = {
-                        Text(text = if (libraryArtist?.artist?.bookmarkedAt != null) stringResource(R.string.subscribed) else stringResource(R.string.subscribe))
-                    },
-                    leadingContent = {
-                        Icon(
-                            painter = painterResource(
-                                if (libraryArtist?.artist?.bookmarkedAt != null) {
-                                    R.drawable.subscribed
+                Column {
+                    ListItem(
+                        headlineContent = {
+                            Text(text = if (libraryArtist?.artist?.bookmarkedAt != null) stringResource(R.string.subscribed) else stringResource(R.string.subscribe))
+                        },
+                        leadingContent = {
+                            Icon(
+                                painter = painterResource(
+                                    if (libraryArtist?.artist?.bookmarkedAt != null) {
+                                        R.drawable.subscribed
+                                    } else {
+                                        R.drawable.subscribe
+                                    }
+                                ),
+                                contentDescription = null,
+                            )
+                        },
+                        modifier = Modifier.clickable {
+                            database.query {
+                                val libraryArtist = libraryArtist
+                                if (libraryArtist != null) {
+                                    update(libraryArtist.artist.toggleLike())
                                 } else {
-                                    R.drawable.subscribe
+                                    insert(
+                                        ArtistEntity(
+                                            id = artist.id,
+                                            name = artist.title,
+                                            channelId = artist.channelId,
+                                            thumbnailUrl = artist.thumbnail,
+                                        ).toggleLike()
+                                    )
                                 }
-                            ),
-                            contentDescription = null,
-                        )
-                    },
-                    modifier = Modifier.clickable {
-                        database.query {
-                            val libraryArtist = libraryArtist
-                            if (libraryArtist != null) {
-                                update(libraryArtist.artist.toggleLike())
-                            } else {
-                                insert(
-                                    ArtistEntity(
-                                        id = artist.id,
-                                        name = artist.title,
-                                        channelId = artist.channelId,
-                                        thumbnailUrl = artist.thumbnail,
-                                    ).toggleLike()
-                                )
                             }
-                        }
-                    },
-                    colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-                )
+                        },
+                        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                    )
+
+                    HorizontalDivider(
+                        modifier = dividerModifier,
+                        color = MaterialTheme.colorScheme.outlineVariant,
+                    )
+
+                    ListItem(
+                        headlineContent = {
+                            Text(
+                                text = stringResource(
+                                    if (isInSpeedDial) R.string.remove_from_speed_dial
+                                    else R.string.pin_to_speed_dial,
+                                ),
+                            )
+                        },
+                        leadingContent = {
+                            Icon(
+                                painter = painterResource(if (isInSpeedDial) R.drawable.bookmark_filled else R.drawable.bookmark),
+                                contentDescription = null,
+                            )
+                        },
+                        modifier = Modifier.clickable {
+                            coroutineScope.launch {
+                                if (!isInSpeedDial) {
+                                    withContext(Dispatchers.IO) {
+                                        database.transaction {
+                                            insert(
+                                                ArtistEntity(
+                                                    id = artist.id,
+                                                    name = artist.title,
+                                                    channelId = artist.channelId,
+                                                    thumbnailUrl = artist.thumbnail,
+                                                )
+                                            )
+                                        }
+                                    }
+                                }
+
+                                val updatedPins = toggleSpeedDialPin(speedDialPins, artistPin)
+                                onSpeedDialSongIdsChange(serializeSpeedDialPins(updatedPins))
+                                onDismiss()
+                            }
+                        },
+                        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                    )
+                }
             }
         }
     }
