@@ -1,3 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="explore">समन्वेषन करिए</string>
+    <string name="music_recognition_tap_to_listen">सुनने के लिए दबाए</string>
+    <string name="music_recognition_listening">श्रवण कर रहे हैं</string>
+    <string name="music_recognition_processing">प्रसंस्करण कर रहे हैं…</string>
+    <string name="music_recognition_listen_again">फिर से सुने</string>
+    <string name="music_recognition_no_match">कोई मेल नहीं मिला</string>
 </resources>
