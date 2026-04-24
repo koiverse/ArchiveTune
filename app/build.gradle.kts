@@ -51,6 +51,14 @@ android {
                 ?: System.getenv("CANVAS_BEARER_TOKEN")
                 ?: ""
         buildConfigField("String", "CANVAS_BEARER_TOKEN", "\"$canvasBearerToken\"")
+
+        val nightlyBuildHash =
+            (
+                localProperties.getProperty("NIGHTLY_BUILD_HASH")
+                    ?: System.getenv("NIGHTLY_BUILD_HASH")
+                    ?: ""
+                ).trim()
+        buildConfigField("String", "NIGHTLY_BUILD_HASH", "\"$nightlyBuildHash\"")
     }
 
     flavorDimensions += listOf("device", "abi")

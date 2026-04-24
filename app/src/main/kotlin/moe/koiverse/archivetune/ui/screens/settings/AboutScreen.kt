@@ -72,6 +72,7 @@ import io.ktor.client.request.headers
 import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpStatusCode
+import moe.koiverse.archivetune.currentBuildHash
 import moe.koiverse.archivetune.constants.GitHubContributorsEtagKey
 import moe.koiverse.archivetune.constants.GitHubContributorsJsonKey
 import moe.koiverse.archivetune.constants.GitHubContributorsLastCheckedAtKey
@@ -233,6 +234,25 @@ fun OutlinedIconChipMembers(
     }
 }
 
+@Composable
+private fun AboutBadge(text: String) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.labelSmall,
+        color = MaterialTheme.colorScheme.secondary,
+        modifier = Modifier
+            .border(
+                width = 1.dp,
+                color = MaterialTheme.colorScheme.secondary,
+                shape = CircleShape,
+            )
+            .padding(
+                horizontal = 6.dp,
+                vertical = 2.dp,
+            ),
+    )
+}
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -246,6 +266,7 @@ fun AboutScreen(
     DisposableEffect(Unit) {
         onDispose { httpClient.close() }
     }
+    val nightlyBuildHash = currentBuildHash
     var contributorsState by remember { mutableStateOf<ContributorsState>(ContributorsState.Loading) }
     LaunchedEffect(Unit) {
         val cachedJson = context.dataStore.getAsync(GitHubContributorsJsonKey)
@@ -405,60 +426,19 @@ fun AboutScreen(
             }
 
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = BuildConfig.VERSION_NAME,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.secondary,
-                    modifier = Modifier
-                        .border(
-                            width = 1.dp,
-                            color = MaterialTheme.colorScheme.secondary,
-                            shape = CircleShape,
-                        )
-                        .padding(
-                            horizontal = 6.dp,
-                            vertical = 2.dp,
-                        ),
-                )
+                AboutBadge(text = BuildConfig.VERSION_NAME)
+
+                nightlyBuildHash?.let {
+                    Spacer(Modifier.width(4.dp))
+                    AboutBadge(text = it)
+                }
 
                 Spacer(Modifier.width(4.dp))
 
                 if (BuildConfig.DEBUG) {
-                    Spacer(Modifier.width(4.dp))
-
-                    Text(
-                        text = "DEBUG",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.secondary,
-                        modifier = Modifier
-                            .border(
-                                width = 1.dp,
-                                color = MaterialTheme.colorScheme.secondary,
-                                shape = CircleShape,
-                            )
-                            .padding(
-                                horizontal = 6.dp,
-                                vertical = 2.dp,
-                            ),
-                    )
+                    AboutBadge(text = "DEBUG")
                 } else {
-                    Spacer(Modifier.width(4.dp))
-
-                    Text(
-                        text = BuildConfig.ARCHITECTURE.uppercase(),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.secondary,
-                        modifier = Modifier
-                            .border(
-                                width = 1.dp,
-                                color = MaterialTheme.colorScheme.secondary,
-                                shape = CircleShape,
-                            )
-                            .padding(
-                                horizontal = 6.dp,
-                                vertical = 2.dp,
-                            ),
-                    )
+                    AboutBadge(text = BuildConfig.ARCHITECTURE.uppercase())
                 }
             }
 

@@ -372,8 +372,17 @@ private fun buildCrashReport(
     val header = buildString {
         appendLine("ArchiveTune crash report")
         if (timestampText.isNotBlank()) appendLine("Time: $timestampText")
-        if (versionName.isNotBlank() || versionCode.isNotBlank()) {
-            appendLine("App: $versionName ($versionCode)")
+        val appVersionLabel = when {
+            versionName.isNotBlank() && versionCode.isNotBlank() -> {
+                "${formatVersionName(versionName)} ($versionCode)"
+            }
+
+            versionName.isNotBlank() -> formatVersionName(versionName)
+            versionCode.isNotBlank() -> versionCode
+            else -> null
+        }
+        if (appVersionLabel != null) {
+            appendLine("App: $appVersionLabel")
         }
         appendLine("Package: $packageName")
     }
