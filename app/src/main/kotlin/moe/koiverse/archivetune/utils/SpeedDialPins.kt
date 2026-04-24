@@ -35,7 +35,7 @@ data class SpeedDialPin(
     }
 }
 
-fun parseSpeedDialPins(raw: String, maxItems: Int = 24): List<SpeedDialPin> {
+fun parseSpeedDialPins(raw: String, maxItems: Int = 25): List<SpeedDialPin> {
     return raw
         .split(",")
         .mapNotNull(SpeedDialPin::decode)
@@ -50,7 +50,7 @@ fun serializeSpeedDialPins(pins: List<SpeedDialPin>): String {
 fun toggleSpeedDialPin(
     pins: List<SpeedDialPin>,
     pin: SpeedDialPin,
-    maxItems: Int = 24,
+    maxItems: Int = 25,
 ): List<SpeedDialPin> {
     val exists = pins.any { it.type == pin.type && it.id == pin.id }
     return if (exists) {
