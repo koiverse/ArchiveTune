@@ -231,4 +231,10 @@
     <string name="player_stream_client_android_vr_desc">Transmite dados diretamente, sem descriptografia de assinatura, proporcionando velocidade máxima. Adequado para a maioria dos usuários.</string>
     <string name="player_stream_client_web_remix">Remix da Web</string>
     <string name="player_stream_client_web_remix_desc">Suporte a formatos estendidos, porém com perda de velocidade. A descriptografia de assinaturas em JavaScript introduz um atraso de inicialização de aproximadamente 5 a 10 segundos.</string>
+    <string name="music_recognition_tap_to_listen">Toque para escutar</string>
+    <string name="music_recognition_listening">Escutando…</string>
+    <string name="music_recognition_processing">Processando…</string>
+    <string name="music_recognition_listen_again">Ouça novamente</string>
+    <string name="music_recognition_no_match">Nenhuma correspondência encontrada</string>
+    <string name="music_recognition_signature_failed">Não foi possível gerar uma assinatura</string>
 </resources>
