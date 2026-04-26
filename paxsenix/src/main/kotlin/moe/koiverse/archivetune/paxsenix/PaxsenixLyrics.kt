@@ -59,7 +59,7 @@ object PaxsenixLyrics {
 
     private fun resolveDurationMs(duration: Int): Long = when {
         duration <= 0 -> 0L
-        duration > 36000 -> duration.toLong() // 10h+ is likely ms
+        duration > 360000 -> duration.toLong() // 1h+ is likely ms (360k ms = 6 min)
         else -> duration * 1000L // Likely seconds
     }
 
@@ -101,16 +101,25 @@ object PaxsenixLyrics {
                     System.err.println("PaxsenixLyrics: Apple Music lyrics (TTML) status: ${lyricsResponse.status}")
                     if (lyricsResponse.status == HttpStatusCode.OK) {
                         try {
-                            val data = lyricsResponse.body<JsonObject>()
+                            val rawBody = lyricsResponse.body<String>().trim()
+                            
+                            // Case 1: Direct XML response
+                            if (rawBody.startsWith("<tt") || rawBody.startsWith("<?xml")) {
+                                System.err.println("PaxsenixLyrics: SUCCESS from Apple Music (Direct TTML)")
+                                return@runCatching rawBody
+                            }
+
+                            // Case 2: JSON-wrapped XML response
+                            val data = Json.decodeFromString<JsonObject>(rawBody)
                             val content = data["content"]?.jsonPrimitive?.content
-                            if (content != null && content.trim().startsWith("<tt")) {
-                                System.err.println("PaxsenixLyrics: SUCCESS from Apple Music (TTML, Length: ${content.length})")
+                            if (content != null && (content.contains("<tt") || content.contains("<?xml"))) {
+                                System.err.println("PaxsenixLyrics: SUCCESS from Apple Music (JSON-wrapped TTML, Length: ${content.length})")
                                 return@runCatching content
                             } else {
-                                System.err.println("PaxsenixLyrics: Apple Music TTML content was null or invalid")
+                                System.err.println("PaxsenixLyrics: Apple Music TTML content was null or invalid. Type: ${data["type"]}")
                             }
                         } catch (e: Exception) {
-                            System.err.println("PaxsenixLyrics: Error parsing Apple Music TTML JSON: ${e.message}")
+                            System.err.println("PaxsenixLyrics: Error parsing Apple Music TTML: ${e.message}")
                         }
                     }
 
