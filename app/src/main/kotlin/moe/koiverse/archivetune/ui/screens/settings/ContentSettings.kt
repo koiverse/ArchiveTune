@@ -10,7 +10,6 @@
 
 package moe.koiverse.archivetune.ui.screens.settings
 
-import android.annotation.TargetApi
 import android.content.Context
 import android.content.Intent
 import android.content.res.Configuration
@@ -28,8 +27,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarScrollBehavior
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -49,17 +47,35 @@ import moe.koiverse.archivetune.ui.utils.backToMain
 import moe.koiverse.archivetune.utils.rememberEnumPreference
 import moe.koiverse.archivetune.utils.rememberPreference
 import moe.koiverse.archivetune.utils.setAppLocale
+import moe.koiverse.archivetune.viewmodels.ContentSettingsViewModel
 import java.net.Proxy
 import java.util.Locale
 import androidx.core.net.toUri
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ContentSettings(
     navController: NavController,
     scrollBehavior: TopAppBarScrollBehavior,
+    viewModel: ContentSettingsViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
+    var showClearLyricsDialog by remember { mutableStateOf(false) }
+
+    if (showClearLyricsDialog) {
+        ActionPromptDialog(
+            title = stringResource(R.string.clear_lyrics_cache),
+            onDismiss = { showClearLyricsDialog = false },
+            onConfirm = {
+                viewModel.clearLyricsCache()
+                showClearLyricsDialog = false
+            },
+            onCancel = { showClearLyricsDialog = false }
+        ) {
+            Text(stringResource(R.string.clear_lyrics_cache_confirm))
+        }
+    }
 
     // Used only before Android 13
     val (appLanguage, onAppLanguageChange) = rememberPreference(key = AppLanguageKey, defaultValue = SYSTEM_DEFAULT)
@@ -78,6 +94,8 @@ fun ContentSettings(
     val (enableBetterLyrics, onEnableBetterLyricsChange) = rememberPreference(key = EnableBetterLyricsKey, defaultValue = true)
     val (enableSimpMusicLyrics, onEnableSimpMusicLyricsChange) =
         rememberPreference(key = EnableSimpMusicLyricsKey, defaultValue = true)
+    val (enablePaxsenixLyrics, onEnablePaxsenixLyricsChange) =
+        rememberPreference(key = EnablePaxsenixLyricsKey, defaultValue = true)
     val (preferredProvider, onPreferredProviderChange) =
         rememberEnumPreference(
             key = PreferredLyricsProviderKey,
@@ -237,6 +255,12 @@ fun ContentSettings(
             checked = enableSimpMusicLyrics,
             onCheckedChange = onEnableSimpMusicLyricsChange,
         )
+        SwitchPreference(
+            title = { Text(stringResource(R.string.enable_paxsenix_lyrics)) },
+            icon = { Icon(painterResource(R.drawable.lyrics), null) },
+            checked = enablePaxsenixLyrics,
+            onCheckedChange = onEnablePaxsenixLyricsChange,
+        )
         ListPreference(
             title = { Text(stringResource(R.string.set_first_lyrics_provider)) },
             icon = { Icon(painterResource(R.drawable.lyrics), null) },
@@ -246,6 +270,7 @@ fun ContentSettings(
                 PreferredLyricsProvider.KUGOU,
                 PreferredLyricsProvider.BETTER_LYRICS,
                 PreferredLyricsProvider.SIMPMUSIC,
+                PreferredLyricsProvider.PAXSENIX,
             ),
             valueText = {
                 when (it) {
@@ -253,9 +278,15 @@ fun ContentSettings(
                     PreferredLyricsProvider.KUGOU -> "KuGou"
                     PreferredLyricsProvider.BETTER_LYRICS -> "BetterLyrics"
                     PreferredLyricsProvider.SIMPMUSIC -> "SimpMusic"
+                    PreferredLyricsProvider.PAXSENIX -> "Paxsenix"
                 }
             },
             onValueSelected = onPreferredProviderChange,
+        )
+        PreferenceEntry(
+            title = { Text(stringResource(R.string.clear_lyrics_cache)) },
+            icon = { Icon(painterResource(R.drawable.delete), null) },
+            onClick = { showClearLyricsDialog = true },
         )
         SwitchPreference(
             title = { Text(stringResource(R.string.lyrics_romanize_japanese)) },
@@ -333,6 +364,7 @@ fun ContentSettings(
 
     TopAppBar(
         title = { Text(stringResource(R.string.content)) },
+        scrollBehavior = scrollBehavior,
         navigationIcon = {
             IconButton(
                 onClick = navController::navigateUp,

@@ -459,6 +459,7 @@
     <string name="restart_to_take_effect">Restart to take effect</string>
     <string name="enable_betterlyrics">Enable BetterLyrics</string>
     <string name="enable_simpmusic_lyrics">Enable SimpMusic lyrics</string>
+    <string name="enable_paxsenix_lyrics">Enable Paxsenix lyrics</string>
     <string name="player_and_audio">Player and audio</string>
     <string name="audio_quality">Audio quality</string>
     <string name="audio_quality_auto">Auto</string>
@@ -545,6 +546,8 @@
     <string name="clear_image_cache">Clear image cache</string>
     <string name="max_song_cache_size">Max song cache size</string>
     <string name="clear_song_cache">Clear song cache</string>
+    <string name="clear_lyrics_cache">Clear lyrics cache</string>
+    <string name="clear_lyrics_cache_confirm">Are you sure you want to clear all lyrics cache?</string>
     <string name="size_used">%s used</string>
     <string name="privacy">Privacy</string>
     <string name="listen_history">Listen history</string>

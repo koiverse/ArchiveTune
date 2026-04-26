@@ -421,6 +421,7 @@
     <string name="restart_to_take_effect">Khởi động lại để có hiệu lực</string>
     <string name="enable_betterlyrics">Bật BetterLyrics</string>
     <string name="enable_simpmusic_lyrics">Bật lời bài hát SimpMusic</string>
+    <string name="enable_paxsenix_lyrics">Bật lời bài hát Paxsenix</string>
     <string name="player_and_audio">Trình phát và âm thanh</string>
     <string name="audio_quality">Chất lượng âm thanh</string>
     <string name="audio_quality_auto">Tự động</string>
@@ -482,6 +483,8 @@
     <string name="clear_image_cache">Xóa cache hình ảnh</string>
     <string name="max_song_cache_size">Kích thước cache bài hát tối đa</string>
     <string name="clear_song_cache">Xóa cache bài hát</string>
+    <string name="clear_lyrics_cache">Xóa bộ nhớ đệm lời bài hát</string>
+    <string name="clear_lyrics_cache_confirm">Bạn có chắc chắn muốn xóa tất cả bộ nhớ đệm lời bài hát không?</string>
     <string name="size_used">Đã sử dụng %s</string>
     <string name="privacy">Quyền riêng tư</string>
     <string name="listen_history">Lịch sử nghe</string>
