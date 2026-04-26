@@ -485,6 +485,11 @@
     <string name="clear_song_cache">Xóa cache bài hát</string>
     <string name="clear_lyrics_cache">Xóa bộ nhớ đệm lời bài hát</string>
     <string name="clear_lyrics_cache_confirm">Bạn có chắc chắn muốn xóa tất cả bộ nhớ đệm lời bài hát không?</string>
+    <string name="paxsenix_stats">Thống kê API Paxsenix</string>
+    <string name="uptime">Thời gian hoạt động</string>
+    <string name="total_requests">Tổng số yêu cầu</string>
+    <string name="success_rate">Tỷ lệ thành công</string>
+    <string name="providers">Nhà cung cấp</string>
     <string name="size_used">Đã sử dụng %s</string>
     <string name="privacy">Quyền riêng tư</string>
     <string name="listen_history">Lịch sử nghe</string>

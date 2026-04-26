@@ -272,11 +272,13 @@ fun LyricsMenu(
                     Column(modifier = Modifier.padding(16.dp)) {
                         val displayLyrics = remember(result.lyrics) {
                             val raw = result.lyrics.trim()
-                            when {
-                                isTtml(raw) -> parseTtml(raw).joinToString("\n") { it.text }.trim()
-                                raw.startsWith("[") -> parseLyrics(raw).joinToString("\n") { it.text }.trim()
-                                else -> raw
-                            }
+                            runCatching {
+                                when {
+                                    isTtml(raw) -> parseTtml(raw).joinToString("\n") { it.text }.trim()
+                                    raw.startsWith("[") -> parseLyrics(raw).joinToString("\n") { it.text }.trim()
+                                    else -> raw
+                                }
+                            }.getOrDefault(raw)
                         }
 
                         Text(

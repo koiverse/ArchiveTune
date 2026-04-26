@@ -65,6 +65,11 @@ val EnableLrcLibKey = booleanPreferencesKey("enableLrclib")
 val EnableBetterLyricsKey = booleanPreferencesKey("enableBetterLyrics")
 val EnableSimpMusicLyricsKey = booleanPreferencesKey("enableSimpMusicLyrics")
 val EnablePaxsenixLyricsKey = booleanPreferencesKey("enablePaxsenixLyrics")
+val EnablePaxsenixAppleMusicLyricsKey = booleanPreferencesKey("enablePaxsenixAppleMusicLyrics")
+val EnablePaxsenixNeteaseLyricsKey = booleanPreferencesKey("enablePaxsenixNeteaseLyrics")
+val EnablePaxsenixSpotifyLyricsKey = booleanPreferencesKey("enablePaxsenixSpotifyLyrics")
+val EnablePaxsenixMusixmatchLyricsKey = booleanPreferencesKey("enablePaxsenixMusixmatchLyrics")
+val EnablePaxsenixKuGouLyricsKey = booleanPreferencesKey("enablePaxsenixKuGouLyrics")
 val HideExplicitKey = booleanPreferencesKey("hideExplicit")
 val HideVideoKey = booleanPreferencesKey("hideVideo")
 val ProxyEnabledKey = booleanPreferencesKey("proxyEnabled")
@@ -395,7 +400,11 @@ enum class PreferredLyricsProvider {
     KUGOU,
     BETTER_LYRICS,
     SIMPMUSIC,
-    PAXSENIX,
+    PAXSENIX_APPLE_MUSIC,
+    PAXSENIX_NETEASE,
+    PAXSENIX_SPOTIFY,
+    PAXSENIX_MUSIXMATCH,
+    PAXSENIX_KUGOU,
 }
 
 enum class PlayerButtonsStyle {

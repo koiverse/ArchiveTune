@@ -18,26 +18,23 @@ import android.provider.Settings
 import android.os.LocaleList
 import android.util.Log
 import android.widget.Toast
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarScrollBehavior
+import androidx.compose.foundation.*
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.text.capitalize
 import androidx.compose.ui.text.toLowerCase
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.navigation.NavController
+import androidx.compose.material3.LoadingIndicator
 import moe.koiverse.archivetune.innertube.YouTube
 import moe.koiverse.archivetune.LocalPlayerAwareWindowInsets
 import moe.koiverse.archivetune.R
@@ -62,6 +59,7 @@ fun ContentSettings(
 ) {
     val context = LocalContext.current
     var showClearLyricsDialog by remember { mutableStateOf(false) }
+    var showPaxsenixStatsDialog by remember { mutableStateOf(false) }
 
     if (showClearLyricsDialog) {
         ActionPromptDialog(
@@ -74,6 +72,82 @@ fun ContentSettings(
             onCancel = { showClearLyricsDialog = false }
         ) {
             Text(stringResource(R.string.clear_lyrics_cache_confirm))
+        }
+    }
+
+    if (showPaxsenixStatsDialog) {
+        val stats by viewModel.paxsenixStats.collectAsState()
+        val uriHandler = androidx.compose.ui.platform.LocalUriHandler.current
+        
+        LaunchedEffect(Unit) {
+            viewModel.fetchPaxsenixStats()
+        }
+
+        DefaultDialog(
+            onDismiss = { showPaxsenixStatsDialog = false },
+            title = { Text(stringResource(R.string.paxsenix_stats)) },
+            icon = { Icon(painterResource(R.drawable.stats), null) },
+            buttons = {
+                TextButton(onClick = { uriHandler.openUri("https://lyrics.paxsenix.org/") }) {
+                    Text("Visit Website")
+                }
+                Spacer(Modifier.weight(1f))
+                TextButton(onClick = { showPaxsenixStatsDialog = false }) {
+                    Text(stringResource(android.R.string.ok))
+                }
+            }
+        ) {
+            if (stats == null) {
+                LoadingIndicator()
+            } else {
+                val currentStats = stats!!
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text("${stringResource(R.string.uptime)}: ${currentStats.uptimeSeconds.toInt()}s")
+                    Text("${stringResource(R.string.total_requests)}: ${currentStats.totalRequests}")
+                    Text("${stringResource(R.string.success_rate)}: ${currentStats.overallSuccessRate}")
+                    
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        stringResource(R.string.providers),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    
+                    currentStats.providers.forEach { (name, pStats) ->
+                        Text("$name: ${pStats.hits} hits (${pStats.successRate} success)")
+                    }
+
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        "Recent Requests",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    currentStats.requestLog.take(10).forEach { entry ->
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(
+                                containerColor = if (entry.success) 
+                                    MaterialTheme.colorScheme.surfaceVariant 
+                                else 
+                                    MaterialTheme.colorScheme.errorContainer
+                            )
+                        ) {
+                            Column(modifier = Modifier.padding(8.dp)) {
+                                Text("${entry.endpoint} [${entry.provider}]", style = MaterialTheme.typography.bodySmall)
+                                Text("Time: ${entry.responseTimeMs}ms | Status: ${if (entry.success) "OK" else "Failed"}", style = MaterialTheme.typography.labelSmall)
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -96,6 +170,16 @@ fun ContentSettings(
         rememberPreference(key = EnableSimpMusicLyricsKey, defaultValue = true)
     val (enablePaxsenixLyrics, onEnablePaxsenixLyricsChange) =
         rememberPreference(key = EnablePaxsenixLyricsKey, defaultValue = true)
+    val (enablePaxsenixAppleMusicLyrics, onEnablePaxsenixAppleMusicLyricsChange) =
+        rememberPreference(key = EnablePaxsenixAppleMusicLyricsKey, defaultValue = true)
+    val (enablePaxsenixNeteaseLyrics, onEnablePaxsenixNeteaseLyricsChange) =
+        rememberPreference(key = EnablePaxsenixNeteaseLyricsKey, defaultValue = true)
+    val (enablePaxsenixSpotifyLyrics, onEnablePaxsenixSpotifyLyricsChange) =
+        rememberPreference(key = EnablePaxsenixSpotifyLyricsKey, defaultValue = true)
+    val (enablePaxsenixMusixmatchLyrics, onEnablePaxsenixMusixmatchLyricsChange) =
+        rememberPreference(key = EnablePaxsenixMusixmatchLyricsKey, defaultValue = true)
+    val (enablePaxsenixKuGouLyrics, onEnablePaxsenixKuGouLyricsChange) =
+        rememberPreference(key = EnablePaxsenixKuGouLyricsKey, defaultValue = true)
     val (preferredProvider, onPreferredProviderChange) =
         rememberEnumPreference(
             key = PreferredLyricsProviderKey,
@@ -261,6 +345,43 @@ fun ContentSettings(
             checked = enablePaxsenixLyrics,
             onCheckedChange = onEnablePaxsenixLyricsChange,
         )
+        if (enablePaxsenixLyrics) {
+            PreferenceEntry(
+                title = { Text(stringResource(R.string.paxsenix_stats)) },
+                icon = { Icon(painterResource(R.drawable.stats), null) },
+                onClick = { showPaxsenixStatsDialog = true },
+            )
+            SwitchPreference(
+                title = { Text("Paxsenix: Apple Music") },
+                icon = { Icon(painterResource(R.drawable.lyrics), null) },
+                checked = enablePaxsenixAppleMusicLyrics,
+                onCheckedChange = onEnablePaxsenixAppleMusicLyricsChange,
+            )
+            SwitchPreference(
+                title = { Text("Paxsenix: NetEase") },
+                icon = { Icon(painterResource(R.drawable.lyrics), null) },
+                checked = enablePaxsenixNeteaseLyrics,
+                onCheckedChange = onEnablePaxsenixNeteaseLyricsChange,
+            )
+            SwitchPreference(
+                title = { Text("Paxsenix: Spotify") },
+                icon = { Icon(painterResource(R.drawable.lyrics), null) },
+                checked = enablePaxsenixSpotifyLyrics,
+                onCheckedChange = onEnablePaxsenixSpotifyLyricsChange,
+            )
+            SwitchPreference(
+                title = { Text("Paxsenix: Musixmatch") },
+                icon = { Icon(painterResource(R.drawable.lyrics), null) },
+                checked = enablePaxsenixMusixmatchLyrics,
+                onCheckedChange = onEnablePaxsenixMusixmatchLyricsChange,
+            )
+            SwitchPreference(
+                title = { Text("Paxsenix: KuGou") },
+                icon = { Icon(painterResource(R.drawable.lyrics), null) },
+                checked = enablePaxsenixKuGouLyrics,
+                onCheckedChange = onEnablePaxsenixKuGouLyricsChange,
+            )
+        }
         ListPreference(
             title = { Text(stringResource(R.string.set_first_lyrics_provider)) },
             icon = { Icon(painterResource(R.drawable.lyrics), null) },
@@ -270,7 +391,11 @@ fun ContentSettings(
                 PreferredLyricsProvider.KUGOU,
                 PreferredLyricsProvider.BETTER_LYRICS,
                 PreferredLyricsProvider.SIMPMUSIC,
-                PreferredLyricsProvider.PAXSENIX,
+                PreferredLyricsProvider.PAXSENIX_APPLE_MUSIC,
+                PreferredLyricsProvider.PAXSENIX_NETEASE,
+                PreferredLyricsProvider.PAXSENIX_SPOTIFY,
+                PreferredLyricsProvider.PAXSENIX_MUSIXMATCH,
+                PreferredLyricsProvider.PAXSENIX_KUGOU,
             ),
             valueText = {
                 when (it) {
@@ -278,7 +403,11 @@ fun ContentSettings(
                     PreferredLyricsProvider.KUGOU -> "KuGou"
                     PreferredLyricsProvider.BETTER_LYRICS -> "BetterLyrics"
                     PreferredLyricsProvider.SIMPMUSIC -> "SimpMusic"
-                    PreferredLyricsProvider.PAXSENIX -> "Paxsenix"
+                    PreferredLyricsProvider.PAXSENIX_APPLE_MUSIC -> "Paxsenix: Apple Music"
+                    PreferredLyricsProvider.PAXSENIX_NETEASE -> "Paxsenix: NetEase"
+                    PreferredLyricsProvider.PAXSENIX_SPOTIFY -> "Paxsenix: Spotify"
+                    PreferredLyricsProvider.PAXSENIX_MUSIXMATCH -> "Paxsenix: Musixmatch"
+                    PreferredLyricsProvider.PAXSENIX_KUGOU -> "Paxsenix: KuGou"
                 }
             },
             onValueSelected = onPreferredProviderChange,

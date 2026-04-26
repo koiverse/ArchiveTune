@@ -21,10 +21,10 @@ data class NeteaseSearchResult(
 
 @Serializable
 data class NeteaseSong(
-    val id: Long,
-    val name: String,
+    val id: Long = 0,
+    val name: String? = null,
     val artists: List<NeteaseArtist> = emptyList(),
-    val duration: Int
+    val duration: Int = 0
 )
 
 @Serializable

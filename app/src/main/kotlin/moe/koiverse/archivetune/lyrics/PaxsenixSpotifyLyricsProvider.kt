@@ -8,15 +8,15 @@
 package moe.koiverse.archivetune.lyrics
 
 import android.content.Context
-import moe.koiverse.archivetune.constants.EnablePaxsenixLyricsKey
+import moe.koiverse.archivetune.constants.EnablePaxsenixSpotifyLyricsKey
 import moe.koiverse.archivetune.paxsenix.PaxsenixLyrics
 import moe.koiverse.archivetune.utils.dataStore
 import moe.koiverse.archivetune.utils.get
 
-object PaxsenixLyricsProvider : LyricsProvider {
-    override val name = "Paxsenix (Auto)"
+object PaxsenixSpotifyLyricsProvider : LyricsProvider {
+    override val name = "Paxsenix: Spotify"
 
-    override fun isEnabled(context: Context): Boolean = context.dataStore[EnablePaxsenixLyricsKey] ?: true
+    override fun isEnabled(context: Context): Boolean = context.dataStore[EnablePaxsenixSpotifyLyricsKey] ?: true
 
     override suspend fun getLyrics(
         id: String,
@@ -24,7 +24,7 @@ object PaxsenixLyricsProvider : LyricsProvider {
         artist: String,
         album: String?,
         duration: Int,
-    ): Result<String> = PaxsenixLyrics.getLyrics(title, artist, duration)
+    ): Result<String> = PaxsenixLyrics.getSpotifyLyrics(title, artist, duration)
 
     override suspend fun getAllLyrics(
         id: String,
@@ -34,6 +34,6 @@ object PaxsenixLyricsProvider : LyricsProvider {
         duration: Int,
         callback: (String) -> Unit,
     ) {
-        PaxsenixLyrics.getAllLyrics(title, artist, duration, callback)
+        getLyrics(id, title, artist, album, duration).onSuccess(callback)
     }
 }

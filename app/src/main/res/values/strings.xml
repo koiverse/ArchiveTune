@@ -548,6 +548,11 @@
     <string name="clear_song_cache">Clear song cache</string>
     <string name="clear_lyrics_cache">Clear lyrics cache</string>
     <string name="clear_lyrics_cache_confirm">Are you sure you want to clear all lyrics cache?</string>
+    <string name="paxsenix_stats">Paxsenix API Stats</string>
+    <string name="uptime">Uptime</string>
+    <string name="total_requests">Total Requests</string>
+    <string name="success_rate">Success Rate</string>
+    <string name="providers">Providers</string>
     <string name="size_used">%s used</string>
     <string name="privacy">Privacy</string>
     <string name="listen_history">Listen history</string>

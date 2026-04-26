@@ -11,10 +11,10 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class AppleMusicSearchItem(
-    val id: String,
-    val songName: String,
-    val artistName: String,
-    val duration: Int
+    val id: String = "",
+    val songName: String = "",
+    val artistName: String = "",
+    val duration: Int = 0
 )
 
 @Serializable
@@ -25,11 +25,12 @@ data class AppleMusicLyricsResponse(
 
 @Serializable
 data class AppleMusicLine(
-    val timestamp: Long,
+    val timestamp: Long = 0,
     val text: List<AppleMusicWord> = emptyList()
 )
 
 @Serializable
 data class AppleMusicWord(
-    val text: String
+    val text: String,
+    val timestamp: Long? = null
 )
