@@ -24,6 +24,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
@@ -180,6 +181,7 @@ inline fun ListItem(
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
+            .focusable()
             .height(ListItemHeight)
             .padding(horizontal = 8.dp)
             .then(
@@ -261,10 +263,12 @@ fun GridItem(
     Column(
         modifier = if (fillMaxWidth) {
             modifier
+                .focusable()
                 .padding(12.dp)
                 .fillMaxWidth()
         } else {
             modifier
+                .focusable()
                 .padding(12.dp)
                 .width(GridThumbnailHeight * thumbnailRatio)
         }

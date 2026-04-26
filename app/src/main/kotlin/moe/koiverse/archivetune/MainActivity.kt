@@ -1201,7 +1201,12 @@ class MainActivity : ComponentActivity() {
                                         },
                                         modifier = Modifier,
                                         firstItemFocusRequester = tvRailFocusRequester,
-                                        contentFocusRequester = searchBarFocusRequester,
+                                        contentFocusRequester =
+                                            if (active || navBackStackEntry?.destination?.route?.startsWith("search/") == true) {
+                                                searchBarFocusRequester
+                                            } else {
+                                                null
+                                            },
                                         onItemClick = { screen ->
                                             val wasPlayerActive = playerBottomSheetState.isExpanded
                                             if (wasPlayerActive) {

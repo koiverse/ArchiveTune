@@ -15,6 +15,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
@@ -90,6 +91,7 @@ fun SettingsProfileHeader(
         modifier = modifier
             .fillMaxWidth()
             .scale(scale)
+            .focusable()
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,
@@ -313,6 +315,7 @@ fun SettingsUpdateBanner(
         modifier = modifier
             .fillMaxWidth()
             .scale(scale)
+            .focusable()
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,
@@ -519,6 +522,7 @@ fun SettingsRow(
                 .fillMaxWidth()
                 .graphicsLayer { scaleX = scale; scaleY = scale }
                 .background(MaterialTheme.colorScheme.primary.copy(alpha = bgAlpha))
+                .focusable()
                 .clickable(
                     interactionSource = interactionSource,
                     indication = null,
