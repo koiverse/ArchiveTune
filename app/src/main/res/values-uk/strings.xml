@@ -775,4 +775,6 @@
     <string name="po_token_account_notice_body">Перш ніж створити токен PO, увійдіть сюди за допомогою того самого облікового запису Google, який ви вже використовуєте для YouTube Music у програмі ArchiveTune.</string>
     <string name="po_token_account_notice_same_account">Якщо цей WebView використовує інший обліковий запис, згенерований токен не працюватиме належним чином.</string>
     <string name="po_token_account_notice_mismatch">Використовуйте відповідний обліковий запис, завершіть процедуру входу, а потім відкрийте сторінку youtube.com/account і створіть токен на цій сторінці.</string>
+    <string name="mood_and_genres_supporting">Слухайте на основі почуттів, ери або енергії</string>
+    <string name="mood_and_genres_count">%d вибірок</string>
 </resources>
