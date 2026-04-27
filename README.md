@@ -5,6 +5,15 @@
   <h1>ArchiveTune</h1>
 
   <p align="center">
+    <a href="README.md">
+      <img src="https://img.shields.io/badge/🇺🇸%20English-6366f1?style=for-the-badge&labelColor=1e1e2e" />
+    </a>
+    <a href="README_JA.md">
+      <img src="https://img.shields.io/badge/🇯🇵%20日本語-6366f1?style=for-the-badge&labelColor=1e1e2e" />
+    </a>
+  </p>
+
+  <p align="center">
     <strong>Redefining the YouTube Music Experience on Android.</strong>
     <br />
     <em>It’s high-performance, privacy-focused, and packed with features for people who really care about their experience.</em>
