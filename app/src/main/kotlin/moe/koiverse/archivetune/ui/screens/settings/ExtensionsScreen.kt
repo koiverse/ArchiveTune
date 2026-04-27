@@ -19,6 +19,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.Close
@@ -52,6 +53,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
@@ -60,12 +62,19 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.CoroutineScope
 import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.di.ExtensionManagerEntryPoint
+import moe.koiverse.archivetune.extensions.system.GithubExtensionSource
 import moe.koiverse.archivetune.extensions.system.InstalledExtension
 import moe.koiverse.archivetune.extensions.system.ExtensionManager
 import moe.koiverse.archivetune.extensions.system.ExtensionManifest
 import moe.koiverse.archivetune.ui.component.IconButton as M3IconButton
 import moe.koiverse.archivetune.ui.utils.backToMain
+import moe.koiverse.archivetune.viewmodels.ExtensionGithubViewModel
+import moe.koiverse.archivetune.viewmodels.GithubImportState
+import moe.koiverse.archivetune.viewmodels.GithubUpdateState
 import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -87,6 +96,48 @@ fun ExtensionsScreen(
     var isSearching by rememberSaveable { mutableStateOf(false) }
     var query by rememberSaveable(stateSaver = TextFieldValue.Saver) { mutableStateOf(TextFieldValue()) }
     val focusRequester = remember { FocusRequester() }
+
+    // GitHub ViewModel
+    val githubViewModel: ExtensionGithubViewModel = hiltViewModel()
+    val githubSources by githubViewModel.sources.collectAsState()
+    val importState by githubViewModel.importState.collectAsState()
+    val updateState by githubViewModel.updateState.collectAsState()
+    var showGithubImportDialog by remember { mutableStateOf(false) }
+
+    // Show snackbar for import/update results
+    LaunchedEffect(importState) {
+        when (val s = importState) {
+            is GithubImportState.Success -> {
+                snackbarHostState.showSnackbar(
+                    context.getString(R.string.extension_github_success, s.extensionId, s.tag)
+                )
+                githubViewModel.resetImportState()
+            }
+            is GithubImportState.Error -> {
+                snackbarHostState.showSnackbar(s.message)
+                githubViewModel.resetImportState()
+            }
+            else -> {}
+        }
+    }
+    LaunchedEffect(updateState) {
+        when (val s = updateState) {
+            is GithubUpdateState.Done -> {
+                val msg = if (s.updated == 0 && s.failed == 0) {
+                    context.getString(R.string.extension_github_up_to_date)
+                } else {
+                    context.getString(R.string.extension_github_update_done, s.updated, s.failed)
+                }
+                snackbarHostState.showSnackbar(msg)
+                githubViewModel.resetUpdateState()
+            }
+            is GithubUpdateState.Error -> {
+                snackbarHostState.showSnackbar(s.message)
+                githubViewModel.resetUpdateState()
+            }
+            else -> {}
+        }
+    }
 
     val filteredExtensions =
         remember(extensions, query.text) {
@@ -220,6 +271,55 @@ fun ExtensionsScreen(
                                 Icon(painterResource(R.drawable.restore), null)
                             }
                         )
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.extension_github_import)) },
+                            onClick = {
+                                menuExpanded = false
+                                showGithubImportDialog = true
+                            },
+                            leadingIcon = {
+                                Icon(Icons.Default.Code, null)
+                            }
+                        )
+                        if (githubSources.isNotEmpty()) {
+                            HorizontalDivider()
+                            DropdownMenuItem(
+                                text = {
+                                    val checking = updateState is GithubUpdateState.Checking
+                                    Text(
+                                        if (checking) stringResource(R.string.extension_github_checking)
+                                        else stringResource(R.string.extension_github_check_updates)
+                                    )
+                                },
+                                onClick = {
+                                    menuExpanded = false
+                                    githubViewModel.checkAllUpdates()
+                                },
+                                enabled = updateState !is GithubUpdateState.Checking &&
+                                    updateState !is GithubUpdateState.Updating,
+                                leadingIcon = {
+                                    Icon(painterResource(R.drawable.update), null)
+                                }
+                            )
+                            val updatesAvailable = githubSources.count { it.updateAvailable }
+                            if (updatesAvailable > 0) {
+                                DropdownMenuItem(
+                                    text = { Text(stringResource(R.string.extension_github_update_all)) },
+                                    onClick = {
+                                        menuExpanded = false
+                                        githubViewModel.updateAllAvailable()
+                                    },
+                                    enabled = updateState is GithubUpdateState.Idle,
+                                    leadingIcon = {
+                                        BadgedBox(badge = {
+                                            Badge { Text("$updatesAvailable") }
+                                        }) {
+                                            Icon(painterResource(R.drawable.update), null)
+                                        }
+                                    }
+                                )
+                            }
+                        }
                     }
                 },
                 scrollBehavior = scrollBehavior
@@ -230,6 +330,36 @@ fun ExtensionsScreen(
             ErrorDialog(
                 errorMessage = errorMessageToShow!!, 
                 onDismiss = { errorMessageToShow = null }
+            )
+        }
+        if (showGithubImportDialog) {
+            GithubImportDialog(
+                importState = importState,
+                onImport = { url, asset -> githubViewModel.installFromGithub(url, asset.ifBlank { null }) },
+                onDismiss = {
+                    showGithubImportDialog = false
+                    githubViewModel.resetImportState()
+                }
+            )
+        }
+        // Update progress overlay
+        val updatingId = (updateState as? GithubUpdateState.Updating)?.extensionId
+        if (updatingId != null) {
+            val name = extensions.firstOrNull { it.manifest.id == updatingId }?.manifest?.name ?: updatingId
+            AlertDialog(
+                onDismissRequest = {},
+                title = { Text(stringResource(R.string.extension_github_update)) },
+                text = {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        CircularProgressIndicator()
+                        Text(stringResource(R.string.extension_github_updating, name))
+                    }
+                },
+                confirmButton = {}
             )
         }
         if (extensions.isEmpty()) {
@@ -262,14 +392,14 @@ fun ExtensionsScreen(
                             style = MaterialTheme.typography.headlineSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        Spacer(Modifier.height(12.dp))
-                        Button(
-                            onClick = { installLauncher.launch(arrayOf("application/zip")) }
-                        ) {
-                            Icon(painterResource(R.drawable.add), null)
-                            Spacer(Modifier.width(6.dp))
-                            Text(stringResource(R.string.add_extension))
-                        }
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            text = stringResource(R.string.extension_empty_hint),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                            modifier = Modifier.padding(horizontal = 32.dp)
+                        )
                     }
                 }
             }
@@ -299,13 +429,17 @@ fun ExtensionsScreen(
                     ExtensionWarningBanner()
                 }
                 items(filteredExtensions, key = { it.manifest.id }) { ext ->
+                    val githubSource = githubSources.firstOrNull { it.extensionId == ext.manifest.id }
                     ExtensionItemCard(
                         extension = ext,
+                        githubSource = githubSource,
                         onSettingsClick = { navController.navigate("settings/extension/${ext.manifest.id}") },
                         onEnableChange = { enabled -> if (enabled) manager.enable(ext.manifest.id) else manager.disable(ext.manifest.id) },
+                        onUpdateClick = { githubViewModel.updateExtension(ext.manifest.id) },
                         onDeleteClick = {
                             val result = manager.delete(ext.manifest.id)
                             if (result.isSuccess) {
+                                githubViewModel.removeTracking(ext.manifest.id)
                                 scope.launch {
                                     snackbarHostState.showSnackbar(context.getString(R.string.extension_deleted_success))
                                 }
@@ -369,8 +503,10 @@ private fun ExtensionWarningBanner(modifier: Modifier = Modifier) {
 @Composable
 private fun ExtensionItemCard(
     extension: InstalledExtension,
+    githubSource: GithubExtensionSource?,
     onSettingsClick: () -> Unit,
     onEnableChange: (Boolean) -> Unit,
+    onUpdateClick: () -> Unit,
     onDeleteClick: () -> Unit
 ) {
     val context = LocalContext.current
@@ -456,6 +592,12 @@ private fun ExtensionItemCard(
                                         Text(stringResource(R.string.extension_badge_exp), style = MaterialTheme.typography.labelSmall)
                                     }
                                 }
+                                if (githubSource?.updateAvailable == true) {
+                                    Spacer(Modifier.width(6.dp))
+                                    Badge(containerColor = MaterialTheme.colorScheme.primary) {
+                                        Icon(painterResource(R.drawable.update), null, modifier = Modifier.size(10.dp))
+                                    }
+                                }
                             }
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text(
@@ -522,6 +664,22 @@ private fun ExtensionItemCard(
                                 Icon(Icons.Default.Settings, stringResource(R.string.extension_cd_settings), modifier = Modifier.size(18.dp))
                             }
                         }
+                        if (githubSource?.updateAvailable == true) {
+                            FilledTonalIconButton(
+                                onClick = onUpdateClick,
+                                modifier = Modifier.size(36.dp),
+                                colors = IconButtonDefaults.filledTonalIconButtonColors(
+                                    containerColor = MaterialTheme.colorScheme.primaryContainer
+                                )
+                            ) {
+                                Icon(
+                                    painterResource(R.drawable.update),
+                                    stringResource(R.string.extension_github_update),
+                                    modifier = Modifier.size(18.dp),
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        }
                         FilledTonalIconButton(
                             onClick = onDeleteClick,
                             modifier = Modifier.size(36.dp),
@@ -544,7 +702,7 @@ private fun ExtensionItemCard(
                 ) {
                     Column(modifier = Modifier.padding(top = 12.dp)) {
                         HorizontalDivider(modifier = Modifier.padding(bottom = 12.dp))
-                        ExtensionDetailGrid(extension = extension)
+                        ExtensionDetailGrid(extension = extension, githubSource = githubSource)
                     }
                 }
             }
@@ -554,7 +712,7 @@ private fun ExtensionItemCard(
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun ExtensionDetailGrid(extension: InstalledExtension) {
+private fun ExtensionDetailGrid(extension: InstalledExtension, githubSource: GithubExtensionSource? = null) {
     val manifest = extension.manifest
     val extensionDir = extension.dir
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -623,6 +781,61 @@ private fun ExtensionDetailGrid(extension: InstalledExtension) {
                 Text(stringResource(R.string.extension_detail_n_ui_routes, manifest.uiRoutes.size), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
+        // GitHub source info
+        if (githubSource != null) {
+            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Icon(
+                    Icons.Default.Code,
+                    null,
+                    modifier = Modifier.size(14.dp),
+                    tint = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    stringResource(R.string.extension_github_tracked),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+            val dateFormat = remember { SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()) }
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                ExtensionDetailChip(
+                    label = "${githubSource.owner}/${githubSource.repo}",
+                    value = ""
+                )
+                githubSource.installedTag?.let {
+                    ExtensionDetailChip(
+                        label = stringResource(R.string.extension_github_installed_tag, it),
+                        value = ""
+                    )
+                }
+                if (githubSource.updateAvailable && githubSource.latestTag != null) {
+                    ExtensionDetailChip(
+                        label = stringResource(R.string.extension_github_update_available, githubSource.latestTag),
+                        value = ""
+                    )
+                }
+                val lastChecked = if (githubSource.lastCheckedAt == 0L) {
+                    stringResource(R.string.extension_github_never_checked)
+                } else {
+                    stringResource(
+                        R.string.extension_github_last_checked,
+                        dateFormat.format(Date(githubSource.lastCheckedAt))
+                    )
+                }
+                Text(
+                    lastChecked,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
     }
 }
 
@@ -649,6 +862,79 @@ private fun ExtensionDetailChip(label: String, value: String) {
             )
         }
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun GithubImportDialog(
+    importState: GithubImportState,
+    onImport: (url: String, assetPattern: String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var url by remember { mutableStateOf("") }
+    var assetPattern by remember { mutableStateOf("") }
+    val isLoading = importState is GithubImportState.Validating ||
+        importState is GithubImportState.Downloading
+
+    AlertDialog(
+        onDismissRequest = { if (!isLoading) onDismiss() },
+        title = { Text(stringResource(R.string.extension_github_import)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedTextField(
+                    value = url,
+                    onValueChange = { url = it },
+                    label = { Text(stringResource(R.string.extension_github_url_hint)) },
+                    placeholder = { Text(stringResource(R.string.extension_github_url_example), style = MaterialTheme.typography.bodySmall) },
+                    singleLine = true,
+                    enabled = !isLoading,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                    modifier = Modifier.fillMaxWidth(),
+                    leadingIcon = { Icon(Icons.Default.Code, null) },
+                )
+                OutlinedTextField(
+                    value = assetPattern,
+                    onValueChange = { assetPattern = it },
+                    label = { Text(stringResource(R.string.extension_github_asset_hint)) },
+                    placeholder = { Text(stringResource(R.string.extension_github_asset_example), style = MaterialTheme.typography.bodySmall) },
+                    singleLine = true,
+                    enabled = !isLoading,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                AnimatedVisibility(visible = isLoading) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                        Text(
+                            text = when (importState) {
+                                is GithubImportState.Validating -> stringResource(R.string.extension_github_validating)
+                                is GithubImportState.Downloading -> stringResource(R.string.extension_github_downloading)
+                                else -> ""
+                            },
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = { onImport(url.trim(), assetPattern.trim()) },
+                enabled = url.isNotBlank() && !isLoading
+            ) {
+                Text(stringResource(R.string.extension_github_import_action))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss, enabled = !isLoading) {
+                Text(stringResource(R.string.cancel_button))
+            }
+        }
+    )
 }
 
 private fun managerInstallFromDevice(

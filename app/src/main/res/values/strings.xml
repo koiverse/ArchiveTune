@@ -78,6 +78,33 @@
     <string name="extension_detail_more">+%d more</string>
     <string name="extension_error_dialog_title">Error Details</string>
     <string name="extension_error_dialog_body">An error occurred:</string>
+    <!-- GitHub import -->
+    <string name="extension_github_import">Import from GitHub</string>
+    <string name="extension_github_url_hint">GitHub URL or owner/repo</string>
+    <string name="extension_github_url_example">e.g. https://github.com/owner/repo or owner/repo</string>
+    <string name="extension_github_asset_hint">Asset filename (optional)</string>
+    <string name="extension_github_asset_example">e.g. extension.zip (leave blank for auto-detect)</string>
+    <string name="extension_github_import_action">Install</string>
+    <string name="extension_github_validating">Validating repository…</string>
+    <string name="extension_github_downloading">Downloading from GitHub…</string>
+    <string name="extension_github_success">Installed %1$s (%2$s)</string>
+    <string name="extension_github_invalid_url">Invalid GitHub URL or owner/repo format</string>
+    <string name="extension_github_no_asset">No .zip asset found in latest release</string>
+    <!-- GitHub update -->
+    <string name="extension_github_tracked">GitHub tracked</string>
+    <string name="extension_github_update_available">Update available: %s</string>
+    <string name="extension_github_update">Update</string>
+    <string name="extension_github_update_all">Update all</string>
+    <string name="extension_github_check_updates">Check for updates</string>
+    <string name="extension_github_checking">Checking for updates…</string>
+    <string name="extension_github_updating">Updating %s…</string>
+    <string name="extension_github_update_done">Updated %1$d, failed %2$d</string>
+    <string name="extension_github_up_to_date">All extensions are up to date</string>
+    <string name="extension_github_installed_tag">Installed: %s</string>
+    <string name="extension_github_latest_tag">Latest: %s</string>
+    <string name="extension_github_last_checked">Last checked: %s</string>
+    <string name="extension_github_never_checked">Never checked</string>
+    <string name="extension_empty_hint">To add an extension, tap the ⋮ menu in the top right corner</string>
     <!-- Search -->
     <string name="search">Search</string>
     <string name="search_yt_music">Search YouTube Music…</string>

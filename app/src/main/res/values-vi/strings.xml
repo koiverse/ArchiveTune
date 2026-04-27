@@ -870,4 +870,32 @@ ArchiveTune sẽ chỉ trích xuất token của bạn, và mọi thứ khác đ
     <string name="extension_detail_more">+%d thêm</string>
     <string name="extension_error_dialog_title">Chi tiết lỗi</string>
     <string name="extension_error_dialog_body">Đã xảy ra lỗi:</string>
+    <!-- GitHub import -->
+    <string name="extension_github_import">Nhập từ GitHub</string>
+    <string name="extension_github_url_hint">GitHub URL hoặc owner/repo</string>
+    <string name="extension_github_url_example">VD: https://github.com/owner/repo hoặc owner/repo</string>
+    <string name="extension_github_asset_hint">Tên file asset (tùy chọn)</string>
+    <string name="extension_github_asset_example">VD: extension.zip (để trống để tự động phát hiện)</string>
+    <string name="extension_github_import_action">Cài đặt</string>
+    <string name="extension_github_validating">Đang xác thực repository…</string>
+    <string name="extension_github_downloading">Đang tải từ GitHub…</string>
+    <string name="extension_github_success">Đã cài đặt %1$s (%2$s)</string>
+    <string name="extension_github_invalid_url">URL GitHub hoặc định dạng owner/repo không hợp lệ</string>
+    <string name="extension_github_no_asset">Không tìm thấy file .zip trong bản phát hành mới nhất</string>
+    <!-- GitHub update -->
+    <string name="extension_github_tracked">Theo dõi GitHub</string>
+    <string name="extension_github_update_available">Có bản cập nhật: %s</string>
+    <string name="extension_github_update">Cập nhật</string>
+    <string name="extension_github_update_all">Cập nhật tất cả</string>
+    <string name="extension_github_check_updates">Kiểm tra cập nhật</string>
+    <string name="extension_github_checking">Đang kiểm tra cập nhật…</string>
+    <string name="extension_github_updating">Đang cập nhật %s…</string>
+    <string name="extension_github_update_done">Đã cập nhật %1$d, thất bại %2$d</string>
+    <string name="extension_github_up_to_date">Tất cả extension đã được cập nhật</string>
+    <string name="extension_github_installed_tag">Đã cài: %s</string>
+    <string name="extension_github_latest_tag">Mới nhất: %s</string>
+    <string name="extension_github_last_checked">Kiểm tra lần cuối: %s</string>
+    <string name="extension_github_never_checked">Chưa kiểm tra</string>
+    <string name="extension_github_remove_tracking">Xóa theo dõi GitHub</string>
+    <string name="extension_empty_hint">Để thêm extension, vui lòng nhấn vào menu ⋮ ở góc trên bên phải</string>
 </resources>

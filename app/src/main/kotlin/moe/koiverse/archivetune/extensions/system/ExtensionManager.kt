@@ -146,6 +146,55 @@ class ExtensionManager @Inject constructor(
         }
     }
 
+    /**
+     * Installs an extension from raw ZIP bytes (used by GitHub import).
+     * Returns the installed extension ID.
+     */
+    fun installFromBytes(bytes: ByteArray): Result<String> {
+        return runCatching {
+            val zis = ZipInputStream(bytes.inputStream())
+            var manifest: ExtensionManifest? = null
+            val tempFiles = mutableListOf<Pair<String, ByteArray>>()
+            while (true) {
+                val entry = zis.nextEntry ?: break
+                val name = entry.name
+                if (!entry.isDirectory) {
+                    val entryBytes = zis.readBytes()
+                    tempFiles.add(name to entryBytes)
+                    if (name.endsWith("manifest.json")) {
+                        runCatching {
+                            manifest = json.decodeFromString<ExtensionManifest>(entryBytes.decodeToString())
+                        }
+                    }
+                }
+                zis.closeEntry()
+            }
+            val mf = manifest ?: throw IllegalStateException("Missing manifest.json")
+            val target = rootDir().resolve(mf.id)
+            if (target.exists()) target.deleteRecursively()
+            target.mkdirs()
+            tempFiles.forEach { (name, entryBytes) ->
+                val out = File(target, name)
+                val canonicalTarget = target.canonicalPath
+                val canonicalOut = out.canonicalPath
+                if (!canonicalOut.startsWith(canonicalTarget)) {
+                    throw SecurityException("Invalid entry path")
+                }
+                out.parentFile?.mkdirs()
+                out.writeBytes(entryBytes)
+            }
+            val res = ExtensionValidator.validateManifest(context, mf, target)
+            if (!res.valid) throw IllegalStateException(res.errors.joinToString(";"))
+            _installed.value =
+                (_installed.value.filterNot { it.manifest.id == mf.id } +
+                        InstalledExtension(mf, target, enabled = true, error = null))
+                    .sortedBy { it.manifest.name.lowercase() }
+            discover()
+            enable(mf.id)
+            mf.id
+        }
+    }
+
     fun load(id: String) {
         scope.launch { loadInternal(id) }
     }
