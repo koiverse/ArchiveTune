@@ -14,6 +14,7 @@ import android.annotation.SuppressLint
 import android.net.Uri
 import android.webkit.CookieManager
 import android.webkit.JavascriptInterface
+import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.activity.compose.BackHandler
@@ -43,6 +44,7 @@ import moe.koiverse.archivetune.ui.component.IconButton
 import moe.koiverse.archivetune.ui.utils.backToMain
 import moe.koiverse.archivetune.utils.PreferenceStore
 import moe.koiverse.archivetune.utils.dataStore
+import moe.koiverse.archivetune.utils.handleYouTubeWebAuthNavigation
 import moe.koiverse.archivetune.utils.putLegacyPoToken
 import moe.koiverse.archivetune.utils.rememberPreference
 import moe.koiverse.archivetune.utils.reportException
@@ -93,6 +95,17 @@ fun LoginScreen(
             WebView(context).apply {
                 val cookieManager = CookieManager.getInstance()
                 webViewClient = object : WebViewClient() {
+                    override fun shouldOverrideUrlLoading(
+                        view: WebView,
+                        request: WebResourceRequest,
+                    ): Boolean {
+                        return view.handleYouTubeWebAuthNavigation(request.url.toString())
+                    }
+
+                    override fun shouldOverrideUrlLoading(view: WebView, url: String): Boolean {
+                        return view.handleYouTubeWebAuthNavigation(url)
+                    }
+
                     override fun onPageFinished(view: WebView, url: String?) {
                         val isYouTubePage = url?.contains("youtube.com", ignoreCase = true) == true
                         if (isYouTubePage) {
