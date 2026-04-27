@@ -9,10 +9,18 @@
 package moe.koiverse.archivetune.utils
 
 import android.content.Context
+import android.net.Uri
 import android.webkit.CookieManager
 import android.webkit.WebStorage
 import android.webkit.WebView
 import android.webkit.WebViewDatabase
+
+fun WebView.handleYouTubeWebAuthNavigation(url: String): Boolean {
+    val supportedUrl = url.toSupportedYouTubeWebAuthUrl() ?: return false
+    stopLoading()
+    loadUrl(supportedUrl)
+    return true
+}
 
 fun clearPlaybackWebAuthSession(context: Context) {
     clearWebAuthStorage(context)
@@ -52,4 +60,30 @@ private fun clearWebAuthStorage(context: Context) {
         clearHttpAuthUsernamePassword()
         clearUsernamePassword()
     }
+}
+
+private fun String.toSupportedYouTubeWebAuthUrl(): String? {
+    val parsed = Uri.parse(this)
+    val scheme = parsed.scheme?.lowercase() ?: return null
+    if (scheme == "http" || scheme == "https") return null
+
+    val host = parsed.host?.lowercase() ?: return null
+    if (host != "youtube.com" && !host.endsWith(".youtube.com")) return null
+
+    return Uri.Builder()
+        .scheme("https")
+        .encodedAuthority(parsed.encodedAuthority)
+        .apply {
+            parsed.encodedPath?.let(::encodedPath)
+            parsed.queryParameterNames
+                .filterNot { it.equals("mweb_deeplink", ignoreCase = true) }
+                .forEach { name ->
+                    parsed.getQueryParameters(name).forEach { value ->
+                        appendQueryParameter(name, value)
+                    }
+                }
+            parsed.encodedFragment?.let(::encodedFragment)
+        }
+        .build()
+        .toString()
 }
