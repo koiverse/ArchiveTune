@@ -16,6 +16,7 @@ import android.net.Uri
 import android.os.Bundle
 import android.webkit.CookieManager
 import android.webkit.JavascriptInterface
+import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.Toast
@@ -59,6 +60,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.innertube.utils.PoTokenGenerator
 import moe.koiverse.archivetune.ui.component.IconButton
+import moe.koiverse.archivetune.utils.handleYouTubeWebAuthNavigation
 import moe.koiverse.archivetune.utils.resetAuthWebViewSession
 
 class PoTokenExtractionActivity : ComponentActivity() {
@@ -278,6 +280,17 @@ class PoTokenExtractionActivity : ComponentActivity() {
                         }, "Android")
 
                         webViewClient = object : WebViewClient() {
+                            override fun shouldOverrideUrlLoading(
+                                view: WebView,
+                                request: WebResourceRequest,
+                            ): Boolean {
+                                return view.handleYouTubeWebAuthNavigation(request.url.toString())
+                            }
+
+                            override fun shouldOverrideUrlLoading(view: WebView, url: String): Boolean {
+                                return view.handleYouTubeWebAuthNavigation(url)
+                            }
+
                             override fun onPageFinished(view: WebView, url: String?) {
                                 currentUrl = url.orEmpty()
                             }
