@@ -1005,27 +1005,29 @@ private fun UpdateSummaryCard(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                OutlinedButton(
-                    onClick = onCheckUpdate,
-                    modifier = Modifier.weight(1f),
-                    enabled = !isChecking
-                ) {
-                    if (isChecking) {
-                        LoadingIndicator(modifier = Modifier.size(18.dp))
-                    } else {
-                        Icon(
-                            painter = painterResource(R.drawable.sync),
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp),
-                        )
+                if (updateChannel != UpdateChannel.CANARY) {
+                    OutlinedButton(
+                        onClick = onCheckUpdate,
+                        modifier = Modifier.weight(1f),
+                        enabled = !isChecking
+                    ) {
+                        if (isChecking) {
+                            LoadingIndicator(modifier = Modifier.size(18.dp))
+                        } else {
+                            Icon(
+                                painter = painterResource(R.drawable.sync),
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp),
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(text = stringResource(R.string.check_for_updates))
                     }
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(text = stringResource(R.string.check_for_updates))
                 }
 
                 FilledTonalButton(
                     onClick = onOpenChangelog,
-                    modifier = Modifier.weight(1f),
+                    modifier = if (updateChannel != UpdateChannel.CANARY) Modifier.weight(1f) else Modifier.fillMaxWidth(),
                 ) {
                     Icon(
                         painter = painterResource(R.drawable.update),

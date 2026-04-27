@@ -26,6 +26,8 @@ import androidx.navigation.NavController
 import kotlinx.coroutines.launch
 import moe.koiverse.archivetune.LocalPlayerAwareWindowInsets
 import moe.koiverse.archivetune.R
+import moe.koiverse.archivetune.BuildConfig
+import moe.koiverse.archivetune.constants.UpdateChannel
 import moe.koiverse.archivetune.ui.component.IconButton
 import moe.koiverse.archivetune.ui.component.MarkdownText
 import moe.koiverse.archivetune.ui.utils.backToMain
@@ -44,32 +46,46 @@ fun ChangelogScreen(
     var releases by remember { mutableStateOf<List<ReleaseInfo>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf<String?>(null) }
+    var selectedChannel by remember { mutableStateOf(if (BuildConfig.IS_NIGHTLY) UpdateChannel.NIGHTLY else UpdateChannel.STABLE) }
+    var showChannelMenu by remember { mutableStateOf(false) }
 
-    suspend fun loadReleases(forceRefresh: Boolean) {
-        Updater.getAllReleases(forceRefresh = forceRefresh).onSuccess { result ->
+    suspend fun loadReleases(forceRefresh: Boolean, channel: UpdateChannel) {
+        isLoading = true
+        val (owner, repo) = when (channel) {
+            UpdateChannel.NIGHTLY -> "sang765" to "ArchiveTune-Nightly"
+            else -> "koiverse" to "ArchiveTune"
+        }
+        Updater.getAllReleases(forceRefresh = forceRefresh, owner = owner, repo = repo).onSuccess { result ->
             releases = result
             error = null
         }.onFailure { e ->
-            if (releases.isEmpty()) {
-                error = e.message
-            }
+            releases = emptyList()
+            error = e.message
         }
         isLoading = false
     }
 
-    LaunchedEffect(Unit) {
-        val cachedReleases = Updater.getCachedReleases()
-        if (cachedReleases.isNotEmpty()) {
-            releases = cachedReleases
-            isLoading = false
-        }
-        loadReleases(forceRefresh = true)
+    LaunchedEffect(selectedChannel) {
+        loadReleases(forceRefresh = true, channel = selectedChannel)
     }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.changelog)) },
+                title = { 
+                    Column {
+                        Text(stringResource(R.string.changelog))
+                        Text(
+                            text = when (selectedChannel) {
+                                UpdateChannel.STABLE -> stringResource(R.string.channel_stable)
+                                UpdateChannel.CANARY -> stringResource(R.string.channel_canary)
+                                UpdateChannel.NIGHTLY -> stringResource(R.string.channel_nightly)
+                            },
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.secondary
+                        )
+                    }
+                },
                 navigationIcon = {
                     IconButton(
                         onClick = navController::navigateUp,
@@ -79,6 +95,45 @@ fun ChangelogScreen(
                             painterResource(R.drawable.arrow_back),
                             contentDescription = null,
                         )
+                    }
+                },
+                actions = {
+                    Box {
+                        IconButton(onClick = { showChannelMenu = true }) {
+                            Icon(
+                                painter = painterResource(R.drawable.filter_alt),
+                                contentDescription = "Switch Channel"
+                            )
+                        }
+                        DropdownMenu(
+                            expanded = showChannelMenu,
+                            onDismissRequest = { showChannelMenu = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.channel_stable)) },
+                                onClick = {
+                                    selectedChannel = UpdateChannel.STABLE
+                                    showChannelMenu = false
+                                },
+                                leadingIcon = {
+                                    if (selectedChannel == UpdateChannel.STABLE) {
+                                        Icon(painterResource(R.drawable.check), contentDescription = null)
+                                    }
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.channel_nightly)) },
+                                onClick = {
+                                    selectedChannel = UpdateChannel.NIGHTLY
+                                    showChannelMenu = false
+                                },
+                                leadingIcon = {
+                                    if (selectedChannel == UpdateChannel.NIGHTLY) {
+                                        Icon(painterResource(R.drawable.check), contentDescription = null)
+                                    }
+                                }
+                            )
+                        }
                     }
                 },
                 scrollBehavior = scrollBehavior
@@ -115,10 +170,8 @@ fun ChangelogScreen(
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         TextButton(onClick = {
-                            isLoading = releases.isEmpty()
-                            error = null
                             coroutineScope.launch {
-                                loadReleases(forceRefresh = true)
+                                loadReleases(forceRefresh = true, channel = selectedChannel)
                             }
                         }, shapes = ButtonDefaults.shapes()) {
                             Text(stringResource(R.string.retry))
