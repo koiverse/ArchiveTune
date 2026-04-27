@@ -122,6 +122,7 @@ import moe.koiverse.archivetune.constants.LyricsScrollKey
 import moe.koiverse.archivetune.constants.LyricsTextPositionKey
 import moe.koiverse.archivetune.constants.LyricsTextSizeKey
 import moe.koiverse.archivetune.constants.LyricsLineSpacingKey
+import moe.koiverse.archivetune.constants.LyricsLineBlurKey
 import moe.koiverse.archivetune.constants.LyricsRomanizeChineseKey
 import moe.koiverse.archivetune.constants.LyricsRomanizeHindiKey
 import moe.koiverse.archivetune.constants.LyricsRomanizeJapaneseKey
@@ -217,6 +218,7 @@ fun LyricsV2(
     val (lyricsScroll) = rememberPreference(LyricsScrollKey, defaultValue = true)
     val (lyricsTextSize) = rememberPreference(LyricsTextSizeKey, defaultValue = 26f)
     val (lyricsLineSpacing) = rememberPreference(LyricsLineSpacingKey, defaultValue = 1.3f)
+    val (lyricsLineBlur) = rememberPreference(LyricsLineBlurKey, defaultValue = true)
     val (romanizeChinese) = rememberPreference(LyricsRomanizeChineseKey, defaultValue = true)
     val (romanizeHindi) = rememberPreference(LyricsRomanizeHindiKey, defaultValue = true)
     val (romanizeJapanese) = rememberPreference(LyricsRomanizeJapaneseKey, defaultValue = true)
@@ -645,10 +647,16 @@ fun LyricsV2(
                                 top = if (index == 0 || (index == 1 && entriesWithWords[0] == HEAD_LYRICS_ENTRY)) 0.dp else (lyricsLineSpacing * 8).dp,
                                 bottom = (lyricsLineSpacing * 8).dp,
                             )
-                            .blur(
-                                radiusX = animatedBlur.dp,
-                                radiusY = animatedBlur.dp,
-                                edgeTreatment = BlurredEdgeTreatment.Unbounded,
+                            .then(
+                                if (lyricsLineBlur) {
+                                    Modifier.blur(
+                                        radiusX = animatedBlur.dp,
+                                        radiusY = animatedBlur.dp,
+                                        edgeTreatment = BlurredEdgeTreatment.Unbounded,
+                                    )
+                                } else {
+                                    Modifier
+                                }
                             )
                             .alpha(wordLineAlpha)
                             .combinedClickable(

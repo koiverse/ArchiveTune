@@ -190,6 +190,7 @@ fun ContentSettings(
     val (lyricsRomanizeChinese, onLyricsRomanizeChineseChange) = rememberPreference(LyricsRomanizeChineseKey, defaultValue = true)
     val (lyricsRomanizeHindi, onLyricsRomanizeHindiChange) = rememberPreference(LyricsRomanizeHindiKey, defaultValue = true)
     val (lyricsRomanizeOtherLanguages, onLyricsRomanizeOtherLanguagesChange) = rememberPreference(LyricsRomanizeOtherLanguagesKey, defaultValue = true)
+    val (lyricsLineBlur, onLyricsLineBlurChange) = rememberPreference(LyricsLineBlurKey, defaultValue = true)
     val (preloadQueueLyricsEnabled, onPreloadQueueLyricsEnabledChange) = rememberPreference(PreloadQueueLyricsEnabledKey, defaultValue = true)
     val (queueLyricsPreloadCount, onQueueLyricsPreloadCountChange) = rememberPreference(QueueLyricsPreloadCountKey, defaultValue = 1)
     val (lengthTop, onLengthTopChange) = rememberPreference(key = TopSize, defaultValue = "50")
@@ -416,6 +417,12 @@ fun ContentSettings(
             title = { Text(stringResource(R.string.clear_lyrics_cache)) },
             icon = { Icon(painterResource(R.drawable.delete), null) },
             onClick = { showClearLyricsDialog = true },
+        )
+        SwitchPreference(
+            title = { Text(stringResource(R.string.lyrics_line_blur)) },
+            icon = { Icon(painterResource(R.drawable.lyrics), null) },
+            checked = lyricsLineBlur,
+            onCheckedChange = onLyricsLineBlurChange,
         )
         SwitchPreference(
             title = { Text(stringResource(R.string.lyrics_romanize_japanese)) },

@@ -169,6 +169,7 @@ import moe.koiverse.archivetune.constants.LyricsScrollKey
 import moe.koiverse.archivetune.constants.LyricsTextPositionKey
 import moe.koiverse.archivetune.constants.LyricsAnimationStyle
 import moe.koiverse.archivetune.constants.LyricsAnimationStyleKey
+import moe.koiverse.archivetune.constants.LyricsLineBlurKey
 import moe.koiverse.archivetune.constants.LyricsTextSizeKey
 import moe.koiverse.archivetune.constants.LyricsLineSpacingKey
 import moe.koiverse.archivetune.constants.PlayerBackgroundStyle
@@ -467,6 +468,7 @@ fun Lyrics(
     val lyricsAnimationStyle by rememberEnumPreference(LyricsAnimationStyleKey, LyricsAnimationStyle.APPLE)
     val lyricsTextSize by rememberPreference(LyricsTextSizeKey, 26f)
     val lyricsLineSpacing by rememberPreference(LyricsLineSpacingKey, 1.3f)
+    val lyricsLineBlur by rememberPreference(LyricsLineBlurKey, true)
     val useSystemFont by rememberPreference(UseSystemFontKey, false)
     val animationsDisabled = LocalAnimationsDisabled.current
     val lyricsFontFamily = remember(useSystemFont) {
@@ -1006,10 +1008,16 @@ fun Lyrics(
                             horizontal = 24.dp,
                             vertical = 8.dp
                         )
-                        .blur(
-                            radiusX = animatedBlur.dp,
-                            radiusY = animatedBlur.dp,
-                            edgeTreatment = BlurredEdgeTreatment.Unbounded,
+                        .then(
+                            if (lyricsLineBlur) {
+                                Modifier.blur(
+                                    radiusX = animatedBlur.dp,
+                                    radiusY = animatedBlur.dp,
+                                    edgeTreatment = BlurredEdgeTreatment.Unbounded,
+                                )
+                            } else {
+                                Modifier
+                            }
                         )
                         .alpha(animatedAlpha)
                         .graphicsLayer {
