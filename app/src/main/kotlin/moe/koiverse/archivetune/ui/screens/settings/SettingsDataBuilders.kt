@@ -191,6 +191,16 @@ fun buildSettingsGroups(
             SettingsGroup(
                 title = stringResource(R.string.settings_section_system),
                 items = buildList {
+                    add(
+                        SettingsItem(
+                            icon = painterResource(R.drawable.extension),
+                            title = stringResource(R.string.extensions),
+                            subtitle = stringResource(R.string.extensions_subtitle),
+                            accentColor = MaterialTheme.colorScheme.secondary,
+                            keywords = listOf("extension", "plugin", "addon", "mod", "script"),
+                            onClick = { resetSearch(); navController.navigate("settings/extensions") },
+                        ),
+                    )
                     if (isAndroid12OrLater) {
                         add(
                             SettingsItem(

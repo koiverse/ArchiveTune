@@ -110,14 +110,14 @@ fun ExtensionsScreen(
         val result = managerInstallFromDevice(manager, uri)
         if (result.isSuccess) {
             scope.launch {
-                snackbarHostState.showSnackbar("Extension installed successfully!")
+                snackbarHostState.showSnackbar(context.getString(R.string.extension_installed_success))
             }
         } else {
-            val errorMessage = result.exceptionOrNull()?.message ?: "Unknown error"
+            val errorMessage = result.exceptionOrNull()?.message ?: context.getString(R.string.extension_unknown_error)
             scope.launch {
                 val result = snackbarHostState.showSnackbar(
-                    message = "Installation failed",
-                    actionLabel = "View",
+                    message = context.getString(R.string.extension_install_failed),
+                    actionLabel = context.getString(R.string.extension_action_view),
                     duration = SnackbarDuration.Long
                 )
                 if (result == SnackbarResult.ActionPerformed) {
@@ -233,38 +233,43 @@ fun ExtensionsScreen(
             )
         }
         if (extensions.isEmpty()) {
-            Box(
+            Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(padding),
-                contentAlignment = Alignment.Center
+                    .padding(padding)
             ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    val visible = remember { mutableStateOf(false) }
-                    LaunchedEffect(Unit) { visible.value = true }
-                    AnimatedVisibility(
-                        visible = visible.value,
-                        enter = fadeIn(tween(350))
-                    ) {
-                        Image(
-                            painter = painterResource(R.drawable.anime_blank),
-                            contentDescription = null,
-                            modifier = Modifier.height(140.dp)
+                ExtensionWarningBanner(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        val visible = remember { mutableStateOf(false) }
+                        LaunchedEffect(Unit) { visible.value = true }
+                        AnimatedVisibility(
+                            visible = visible.value,
+                            enter = fadeIn(tween(350))
+                        ) {
+                            Image(
+                                painter = painterResource(R.drawable.anime_blank),
+                                contentDescription = null,
+                                modifier = Modifier.height(140.dp)
+                            )
+                        }
+                        Spacer(Modifier.height(12.dp))
+                        Text(
+                            text = stringResource(R.string.no_extension_installed),
+                            style = MaterialTheme.typography.headlineSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                    }
-                    Spacer(Modifier.height(12.dp))
-                    Text(
-                        text = stringResource(R.string.no_extension_installed),
-                        style = MaterialTheme.typography.headlineSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(Modifier.height(12.dp))
-                    Button(
-                        onClick = { installLauncher.launch(arrayOf("application/zip")) }
-                    ) {
-                        Icon(painterResource(R.drawable.add), null)
-                        Spacer(Modifier.width(6.dp))
-                        Text(stringResource(R.string.add_extension))
+                        Spacer(Modifier.height(12.dp))
+                        Button(
+                            onClick = { installLauncher.launch(arrayOf("application/zip")) }
+                        ) {
+                            Icon(painterResource(R.drawable.add), null)
+                            Spacer(Modifier.width(6.dp))
+                            Text(stringResource(R.string.add_extension))
+                        }
                     }
                 }
             }
@@ -290,6 +295,9 @@ fun ExtensionsScreen(
                 contentPadding = PaddingValues(vertical = 12.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
+                item {
+                    ExtensionWarningBanner()
+                }
                 items(filteredExtensions, key = { it.manifest.id }) { ext ->
                     ExtensionItemCard(
                         extension = ext,
@@ -299,14 +307,14 @@ fun ExtensionsScreen(
                             val result = manager.delete(ext.manifest.id)
                             if (result.isSuccess) {
                                 scope.launch {
-                                    snackbarHostState.showSnackbar("Extension deleted successfully!")
+                                    snackbarHostState.showSnackbar(context.getString(R.string.extension_deleted_success))
                                 }
                             } else {
-                                val errorMessage = result.exceptionOrNull()?.message ?: "Unknown error"
+                                val errorMessage = result.exceptionOrNull()?.message ?: context.getString(R.string.extension_unknown_error)
                                 scope.launch {
                                     val result = snackbarHostState.showSnackbar(
-                                        message = "Delete failed",
-                                        actionLabel = "View",
+                                        message = context.getString(R.string.extension_delete_failed),
+                                        actionLabel = context.getString(R.string.extension_action_view),
                                         duration = SnackbarDuration.Long
                                     )
                                     if (result == SnackbarResult.ActionPerformed) {
@@ -317,6 +325,42 @@ fun ExtensionsScreen(
                         }
                     )
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ExtensionWarningBanner(modifier: Modifier = Modifier) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.7f)
+        )
+    ) {
+        Row(
+            modifier = Modifier.padding(12.dp),
+            verticalAlignment = Alignment.Top,
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Icon(
+                painter = painterResource(R.drawable.experiment),
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.error,
+                modifier = Modifier.size(20.dp).padding(top = 2.dp)
+            )
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    text = stringResource(R.string.extension_warning_title),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onErrorContainer
+                )
+                Text(
+                    text = stringResource(R.string.extension_warning_body),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.85f)
+                )
             }
         }
     }
@@ -401,7 +445,7 @@ private fun ExtensionItemCard(
                                 if (manifest.beta) {
                                     Spacer(Modifier.width(6.dp))
                                     Badge(containerColor = MaterialTheme.colorScheme.tertiary) {
-                                        Text("BETA", style = MaterialTheme.typography.labelSmall)
+                                        Text(stringResource(R.string.extension_badge_beta), style = MaterialTheme.typography.labelSmall)
                                     }
                                 }
                                 if (manifest.experimental) {
@@ -409,7 +453,7 @@ private fun ExtensionItemCard(
                                     Badge(containerColor = MaterialTheme.colorScheme.error) {
                                         Icon(Icons.Default.Science, null, modifier = Modifier.size(10.dp))
                                         Spacer(Modifier.width(2.dp))
-                                        Text("EXP", style = MaterialTheme.typography.labelSmall)
+                                        Text(stringResource(R.string.extension_badge_exp), style = MaterialTheme.typography.labelSmall)
                                     }
                                 }
                             }
@@ -459,7 +503,7 @@ private fun ExtensionItemCard(
                                 onClick = { uriHandler.openUri(url) },
                                 modifier = Modifier.size(36.dp)
                             ) {
-                                Icon(Icons.Default.Language, "Website", modifier = Modifier.size(18.dp))
+                                Icon(Icons.Default.Language, stringResource(R.string.extension_cd_website), modifier = Modifier.size(18.dp))
                             }
                         }
                         manifest.repository?.takeIf { it.isNotBlank() }?.let { url ->
@@ -467,7 +511,7 @@ private fun ExtensionItemCard(
                                 onClick = { uriHandler.openUri(url) },
                                 modifier = Modifier.size(36.dp)
                             ) {
-                                Icon(Icons.Default.Code, "Repository", modifier = Modifier.size(18.dp))
+                                Icon(Icons.Default.Code, stringResource(R.string.extension_cd_repository), modifier = Modifier.size(18.dp))
                             }
                         }
                         if (manifest.allowSettings) {
@@ -475,7 +519,7 @@ private fun ExtensionItemCard(
                                 onClick = onSettingsClick,
                                 modifier = Modifier.size(36.dp)
                             ) {
-                                Icon(Icons.Default.Settings, "Settings", modifier = Modifier.size(18.dp))
+                                Icon(Icons.Default.Settings, stringResource(R.string.extension_cd_settings), modifier = Modifier.size(18.dp))
                             }
                         }
                         FilledTonalIconButton(
@@ -483,14 +527,14 @@ private fun ExtensionItemCard(
                             modifier = Modifier.size(36.dp),
                             colors = IconButtonDefaults.filledTonalIconButtonColors(containerColor = MaterialTheme.colorScheme.errorContainer)
                         ) {
-                            Icon(Icons.Default.Delete, "Delete", modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.error)
+                            Icon(Icons.Default.Delete, stringResource(R.string.extension_cd_delete), modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.error)
                         }
                     }
                     FilledTonalIconButton(
                         onClick = { expanded = !expanded },
                         modifier = Modifier.size(36.dp)
                     ) {
-                        Icon(if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore, "Expand", modifier = Modifier.size(18.dp))
+                        Icon(if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore, stringResource(R.string.extension_cd_expand), modifier = Modifier.size(18.dp))
                     }
                 }
                 AnimatedVisibility(
@@ -518,21 +562,21 @@ private fun ExtensionDetailGrid(extension: InstalledExtension) {
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            ExtensionDetailChip(label = "ID", value = manifest.id)
-            ExtensionDetailChip(label = "Version", value = manifest.version)
-            manifest.author.takeIf { it.isNotBlank() }?.let { ExtensionDetailChip(label = "Author", value = it) }
-            manifest.license?.takeIf { it.isNotBlank() }?.let { ExtensionDetailChip(label = "License", value = it) }
-            manifest.category?.let { ExtensionDetailChip(label = "Category", value = it) }
+            ExtensionDetailChip(label = stringResource(R.string.extension_detail_id), value = manifest.id)
+            ExtensionDetailChip(label = stringResource(R.string.extension_detail_version), value = manifest.version)
+            manifest.author.takeIf { it.isNotBlank() }?.let { ExtensionDetailChip(label = stringResource(R.string.extension_detail_author), value = it) }
+            manifest.license?.takeIf { it.isNotBlank() }?.let { ExtensionDetailChip(label = stringResource(R.string.extension_detail_license), value = it) }
+            manifest.category?.let { ExtensionDetailChip(label = stringResource(R.string.extension_detail_category), value = it) }
         }
         if (manifest.minAppVersion != null || manifest.maxAppVersion != null) {
-            Text("App Version Compatibility", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+            Text(stringResource(R.string.extension_detail_app_version_compat), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                manifest.minAppVersion?.let { ExtensionDetailChip(label = "Min", value = it) }
-                manifest.maxAppVersion?.let { ExtensionDetailChip(label = "Max", value = it) }
+                manifest.minAppVersion?.let { ExtensionDetailChip(label = stringResource(R.string.extension_detail_min), value = it) }
+                manifest.maxAppVersion?.let { ExtensionDetailChip(label = stringResource(R.string.extension_detail_max), value = it) }
             }
         }
         if (manifest.permissions.isNotEmpty()) {
-            Text("Permissions (${manifest.permissions.size})", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+            Text(stringResource(R.string.extension_detail_permissions, manifest.permissions.size), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
             FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp)
@@ -547,14 +591,14 @@ private fun ExtensionDetailGrid(extension: InstalledExtension) {
                 if (manifest.permissions.size > 8) {
                     SuggestionChip(
                         onClick = {},
-                        label = { Text("+${manifest.permissions.size - 8} more", style = MaterialTheme.typography.labelSmall) },
+                        label = { Text(stringResource(R.string.extension_detail_more, manifest.permissions.size - 8), style = MaterialTheme.typography.labelSmall) },
                         modifier = Modifier.height(24.dp)
                     )
                 }
             }
         }
         if (manifest.tags.isNotEmpty()) {
-            Text("Tags", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+            Text(stringResource(R.string.extension_detail_tags), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
             FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp)
@@ -570,13 +614,13 @@ private fun ExtensionDetailGrid(extension: InstalledExtension) {
         }
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             if (manifest.settings.isNotEmpty()) {
-                Text("${manifest.settings.size} settings", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(stringResource(R.string.extension_detail_n_settings, manifest.settings.size), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             if (manifest.hooks.isNotEmpty()) {
-                Text("${manifest.hooks.size} hooks", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(stringResource(R.string.extension_detail_n_hooks, manifest.hooks.size), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             if (manifest.uiRoutes.isNotEmpty()) {
-                Text("${manifest.uiRoutes.size} UI routes", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(stringResource(R.string.extension_detail_n_ui_routes, manifest.uiRoutes.size), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     }
@@ -617,10 +661,10 @@ private fun managerInstallFromDevice(
 private fun ErrorDialog(errorMessage: String, onDismiss: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Error Details") },
+        title = { Text(stringResource(R.string.extension_error_dialog_title)) },
         text = { 
             Column(modifier = Modifier.fillMaxWidth()) {
-                Text("An error occurred:")
+                Text(stringResource(R.string.extension_error_dialog_body))
                 Spacer(Modifier.height(8.dp))
                 Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
                     Text(
@@ -634,7 +678,7 @@ private fun ErrorDialog(errorMessage: String, onDismiss: () -> Unit) {
         },
         confirmButton = {
             Button(onClick = onDismiss) {
-                Text("OK")
+                Text(stringResource(R.string.ok_button))
             }
         }
     )

@@ -832,4 +832,42 @@ ArchiveTune sẽ chỉ trích xuất token của bạn, và mọi thứ khác đ
     <string name="po_token_account_notice_body">Đăng nhập vào đây bằng chính tài khoản Google mà bạn đã sử dụng cho YouTube Music trong ArchiveTune trước khi tạo mã thông báo PO.</string>
     <string name="po_token_account_notice_same_account">Nếu WebView này sử dụng một tài khoản khác, mã thông báo được tạo sẽ không hoạt động chính xác.</string>
     <string name="po_token_account_notice_mismatch">Sử dụng tài khoản phù hợp, hoàn tất quy trình đăng nhập, sau đó mở youtube.com/account và tạo mã thông báo từ trang đó.</string>
+
+    <!-- Extensions -->
+    <string name="install_from_device">Cài từ thiết bị</string>
+    <string name="no_extension_installed">Chưa có extension nào được cài đặt</string>
+    <string name="add_extension">Thêm extension</string>
+    <string name="extensions">Extensions</string>
+    <string name="extensions_subtitle">Quản lý các extension đã cài đặt</string>
+    <string name="extension_warning_title">Tính năng đang phát triển</string>
+    <string name="extension_warning_body">Extensions đang trong giai đoạn thử nghiệm và có thể không ổn định. Một số extension có thể gây ra lỗi hoặc crash ứng dụng. Hãy chỉ cài đặt extension từ nguồn đáng tin cậy.</string>
+    <string name="extension_installed_success">Cài đặt extension thành công!</string>
+    <string name="extension_install_failed">Cài đặt thất bại</string>
+    <string name="extension_deleted_success">Đã xóa extension thành công!</string>
+    <string name="extension_delete_failed">Xóa thất bại</string>
+    <string name="extension_unknown_error">Lỗi không xác định</string>
+    <string name="extension_action_view">Xem</string>
+    <string name="extension_cd_website">Trang web</string>
+    <string name="extension_cd_repository">Kho mã nguồn</string>
+    <string name="extension_cd_settings">Cài đặt</string>
+    <string name="extension_cd_delete">Xóa</string>
+    <string name="extension_cd_expand">Mở rộng</string>
+    <string name="extension_badge_beta">BETA</string>
+    <string name="extension_badge_exp">THỬ NGHIỆM</string>
+    <string name="extension_detail_id">ID</string>
+    <string name="extension_detail_version">Phiên bản</string>
+    <string name="extension_detail_author">Tác giả</string>
+    <string name="extension_detail_license">Giấy phép</string>
+    <string name="extension_detail_category">Danh mục</string>
+    <string name="extension_detail_min">Tối thiểu</string>
+    <string name="extension_detail_max">Tối đa</string>
+    <string name="extension_detail_app_version_compat">Tương thích phiên bản ứng dụng</string>
+    <string name="extension_detail_permissions">Quyền (%d)</string>
+    <string name="extension_detail_tags">Thẻ</string>
+    <string name="extension_detail_n_settings">%d cài đặt</string>
+    <string name="extension_detail_n_hooks">%d hook</string>
+    <string name="extension_detail_n_ui_routes">%d UI route</string>
+    <string name="extension_detail_more">+%d thêm</string>
+    <string name="extension_error_dialog_title">Chi tiết lỗi</string>
+    <string name="extension_error_dialog_body">Đã xảy ra lỗi:</string>
 </resources>

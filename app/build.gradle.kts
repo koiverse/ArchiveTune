@@ -174,10 +174,11 @@ ksp {
     arg("room.schemaLocation", "$projectDir/schemas")
 }
 
-dependencies {
-    implementation(libs.guava)
-    implementation(libs.coroutines.guava)
-    implementation(libs.concurrent.futures)
+    dependencies {
+        implementation(libs.guava)
+        implementation(libs.coroutines.guava)
+        implementation(libs.concurrent.futures)
+        implementation("app.cash.quickjs:quickjs-android:0.9.2")
 
     implementation(libs.activity)
     implementation(libs.navigation)

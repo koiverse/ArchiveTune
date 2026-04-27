@@ -197,7 +197,7 @@ class PlayerConnection(
         updateCanSkipPreviousAndNext()
         val entryPoint = EntryPointAccessors.fromApplication(service.applicationContext, ExtensionManagerEntryPoint::class.java)
         val manager = entryPoint.extensionManager()
-        meta?.let { manager.onTrackPlay(it) }
+        mediaMetadata.value?.let { manager.onTrackPlay(it) }
     }
 
     override fun onTimelineChanged(

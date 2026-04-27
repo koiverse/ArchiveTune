@@ -78,6 +78,8 @@ import moe.koiverse.archivetune.ui.screens.settings.DarkMode
 import moe.koiverse.archivetune.ui.screens.settings.DiscordLoginScreen
 import moe.koiverse.archivetune.ui.screens.settings.DiscordSettings
 import moe.koiverse.archivetune.ui.screens.settings.DebugSettings
+import moe.koiverse.archivetune.ui.screens.settings.ExtensionsScreen
+import moe.koiverse.archivetune.ui.screens.settings.ExtensionSettingsScreen
 import moe.koiverse.archivetune.ui.screens.settings.IntegrationScreen
 import moe.koiverse.archivetune.ui.screens.settings.LastFMSettings
 import moe.koiverse.archivetune.ui.screens.settings.MusicTogetherScreen
@@ -393,6 +395,19 @@ fun NavGraphBuilder.navigationBuilder(
     }
     composable("settings/po_token") {
         PoTokenScreen(navController, scrollBehavior)
+    }
+    composable("settings/extensions") {
+        ExtensionsScreen(navController, scrollBehavior)
+    }
+    composable(
+        route = "settings/extension/{id}",
+        arguments = listOf(
+            navArgument("id") {
+                type = NavType.StringType
+            }
+        )
+    ) { backStackEntry ->
+        ExtensionSettingsScreen(navController, scrollBehavior, backStackEntry)
     }
     composable("customize_background") {
         CustomizeBackground(navController)

@@ -40,6 +40,44 @@
     <string name="most_played_songs">Most played songs</string>
     <string name="most_played_artists">Most played artists</string>
     <string name="most_played_albums">Most played albums</string>
+    
+    <!-- Extensions -->
+    <string name="install_from_device">Install from device</string>
+    <string name="no_extension_installed">No extension installed</string>
+    <string name="add_extension">Add extension</string>
+    <string name="extensions">Extensions</string>
+    <string name="extensions_subtitle">Manage installed extensions</string>
+    <string name="extension_warning_title">Feature in development</string>
+    <string name="extension_warning_body">Extensions are in an experimental stage and may be unstable. Some extensions may cause errors or crash the app. Only install extensions from trusted sources.</string>
+    <string name="extension_installed_success">Extension installed successfully!</string>
+    <string name="extension_install_failed">Installation failed</string>
+    <string name="extension_deleted_success">Extension deleted successfully!</string>
+    <string name="extension_delete_failed">Delete failed</string>
+    <string name="extension_unknown_error">Unknown error</string>
+    <string name="extension_action_view">View</string>
+    <string name="extension_cd_website">Website</string>
+    <string name="extension_cd_repository">Repository</string>
+    <string name="extension_cd_settings">Settings</string>
+    <string name="extension_cd_delete">Delete</string>
+    <string name="extension_cd_expand">Expand</string>
+    <string name="extension_badge_beta">BETA</string>
+    <string name="extension_badge_exp">EXP</string>
+    <string name="extension_detail_id">ID</string>
+    <string name="extension_detail_version">Version</string>
+    <string name="extension_detail_author">Author</string>
+    <string name="extension_detail_license">License</string>
+    <string name="extension_detail_category">Category</string>
+    <string name="extension_detail_min">Min</string>
+    <string name="extension_detail_max">Max</string>
+    <string name="extension_detail_app_version_compat">App Version Compatibility</string>
+    <string name="extension_detail_permissions">Permissions (%d)</string>
+    <string name="extension_detail_tags">Tags</string>
+    <string name="extension_detail_n_settings">%d settings</string>
+    <string name="extension_detail_n_hooks">%d hooks</string>
+    <string name="extension_detail_n_ui_routes">%d UI routes</string>
+    <string name="extension_detail_more">+%d more</string>
+    <string name="extension_error_dialog_title">Error Details</string>
+    <string name="extension_error_dialog_body">An error occurred:</string>
     <!-- Search -->
     <string name="search">Search</string>
     <string name="search_yt_music">Search YouTube Music…</string>
