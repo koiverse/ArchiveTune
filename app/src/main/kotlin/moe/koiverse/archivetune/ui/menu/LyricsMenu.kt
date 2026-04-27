@@ -118,6 +118,7 @@ fun LyricsMenu(
 
     var showTranslateDialog by rememberSaveable { mutableStateOf(false) }
     var showLyricsSyncOffsetDialog by rememberSaveable { mutableStateOf(false) }
+    var showClearLyricsCacheDialog by rememberSaveable { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
 
     if (showEditDialog) {
@@ -707,6 +708,47 @@ fun LyricsMenu(
         }
 
 
+    if (showClearLyricsCacheDialog) {
+        DefaultDialog(
+            onDismiss = { showClearLyricsCacheDialog = false },
+            icon = {
+                Icon(
+                    painter = painterResource(R.drawable.delete),
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.error,
+                )
+            },
+            title = { Text(stringResource(R.string.clear_lyrics_cache)) },
+            buttons = {
+                TextButton(
+                    onClick = { showClearLyricsCacheDialog = false },
+                    shapes = ButtonDefaults.shapes(),
+                ) {
+                    Text(stringResource(android.R.string.cancel))
+                }
+                TextButton(
+                    onClick = {
+                        viewModel.clearAllLyricsCache()
+                        showClearLyricsCacheDialog = false
+                        onDismiss()
+                    },
+                    shapes = ButtonDefaults.shapes(),
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error,
+                    ),
+                ) {
+                    Text(stringResource(R.string.clear))
+                }
+            }
+        ) {
+            Text(
+                text = stringResource(R.string.clear_lyrics_cache_confirm),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+
     LazyColumn(
         userScrollEnabled = !isPortrait,
         contentPadding = PaddingValues(
@@ -782,6 +824,19 @@ fun LyricsMenu(
                             },
                             text = stringResource(R.string.search),
                             onClick = { showSearchDialog = true }
+                        ),
+                        NewAction(
+                            icon = {
+                                Icon(
+                                    painter = painterResource(R.drawable.delete),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(28.dp),
+                                    tint = MaterialTheme.colorScheme.error
+                                )
+                            },
+                            text = stringResource(R.string.clear_lyrics_cache),
+                            onClick = { showClearLyricsCacheDialog = true },
+                            contentColor = MaterialTheme.colorScheme.error,
                         )
                     ),
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp)

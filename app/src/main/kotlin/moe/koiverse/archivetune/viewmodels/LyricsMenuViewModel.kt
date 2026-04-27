@@ -110,4 +110,12 @@ constructor(
             }
         }
     }
+
+    fun clearAllLyricsCache() {
+        viewModelScope.launch(Dispatchers.IO) {
+            database.query {
+                clearAllLyrics()
+            }
+        }
+    }
 }
