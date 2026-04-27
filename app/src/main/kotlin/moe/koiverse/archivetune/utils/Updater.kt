@@ -207,12 +207,17 @@ object Updater {
         ).joinToString("||")
     }
 
+    private val REPO_OWNER = if (BuildConfig.IS_NIGHTLY) "sang765" else "koiverse"
+    private val REPO_NAME = if (BuildConfig.IS_NIGHTLY) "ArchiveTune-Nightly" else "ArchiveTune"
+
     private suspend fun fetchReleasesNetwork(
         perPage: Int,
         cachedEtag: String?,
+        owner: String = REPO_OWNER,
+        repo: String = REPO_NAME
     ): ReleasesNetworkResult {
         val response: HttpResponse =
-            client.get("https://api.github.com/repos/koiverse/ArchiveTune/releases?per_page=$perPage") {
+            client.get("https://api.github.com/repos/$owner/$repo/releases?per_page=$perPage") {
                 headers {
                     append("Accept", "application/vnd.github+json")
                     append("User-Agent", "ArchiveTune")
@@ -247,27 +252,41 @@ object Updater {
             ?: emptyList()
     }
 
-    suspend fun getLatestVersionName(): Result<String> =
-        getLatestReleaseInfo().map { latest ->
+    suspend fun getLatestVersionName(
+        owner: String = REPO_OWNER,
+        repo: String = REPO_NAME
+    ): Result<String> =
+        getLatestReleaseInfo(owner, repo).map { latest ->
             preferredReleaseVersionNameOrNull(latest) ?: latest.name.ifBlank { latest.tagName }
         }
 
-    suspend fun getLatestReleaseNotes(): Result<String?> =
-        getLatestReleaseInfo().map { it.body }
+    suspend fun getLatestReleaseNotes(
+        owner: String = REPO_OWNER,
+        repo: String = REPO_NAME
+    ): Result<String?> =
+        getLatestReleaseInfo(owner, repo).map { it.body }
 
-    suspend fun getLatestReleaseInfo(): Result<ReleaseInfo> =
+    suspend fun getLatestReleaseInfo(
+        owner: String = REPO_OWNER,
+        repo: String = REPO_NAME
+    ): Result<ReleaseInfo> =
         runCatching {
-            val releases = getAllReleases().getOrThrow()
+            val releases = getAllReleases(owner = owner, repo = repo).getOrThrow()
             val latest = findLatestRelease(releases)
                 ?: throw IllegalStateException("No releases found")
             lastCheckTime = System.currentTimeMillis()
             latest
         }
 
-    suspend fun getCommitHistory(count: Int = 20, branch: String = "dev"): Result<List<GitCommit>> =
+    suspend fun getCommitHistory(
+        count: Int = 20,
+        branch: String = "dev",
+        owner: String = "koiverse",
+        repo: String = "ArchiveTune"
+    ): Result<List<GitCommit>> =
         runCatching {
             val response =
-                client.get("https://api.github.com/repos/koiverse/ArchiveTune/commits?sha=$branch&per_page=$count")
+                client.get("https://api.github.com/repos/$owner/$repo/commits?sha=$branch&per_page=$count")
                     .bodyAsText()
             val jsonArray = JSONArray(response)
             val commits = mutableListOf<GitCommit>()
@@ -288,8 +307,11 @@ object Updater {
             commits
         }
 
-    fun getLatestDownloadUrl(): String {
-        val baseUrl = "https://github.com/koiverse/ArchiveTune/releases/latest/download/"
+    fun getLatestDownloadUrl(
+        owner: String = REPO_OWNER,
+        repo: String = REPO_NAME
+    ): String {
+        val baseUrl = "https://github.com/$owner/$repo/releases/latest/download/"
         val architecture = BuildConfig.ARCHITECTURE
         return if (architecture == "universal") {
             baseUrl + "app-mobile-universal-release.apk"
@@ -301,13 +323,19 @@ object Updater {
     suspend fun getAllReleases(
         perPage: Int = 30,
         forceRefresh: Boolean = false,
+        owner: String = REPO_OWNER,
+        repo: String = REPO_NAME
     ): Result<List<ReleaseInfo>> =
         runCatching {
             val now = System.currentTimeMillis()
-            val cachedJson = App.instance.dataStore.getAsync(GitHubReleasesJsonKey)
-            val cachedEtag = App.instance.dataStore.getAsync(GitHubReleasesEtagKey)
-            val lastCheckedAt = App.instance.dataStore.getAsync(GitHubReleasesLastCheckedAtKey, 0L)
-            val cachedFingerprint = App.instance.dataStore.getAsync(GitHubReleasesFingerprintKey)
+            
+            // Only use cache for the primary repo
+            val isPrimaryRepo = owner == REPO_OWNER && repo == REPO_NAME
+            
+            val cachedJson = if (isPrimaryRepo) App.instance.dataStore.getAsync(GitHubReleasesJsonKey) else null
+            val cachedEtag = if (isPrimaryRepo) App.instance.dataStore.getAsync(GitHubReleasesEtagKey) else null
+            val lastCheckedAt = if (isPrimaryRepo) App.instance.dataStore.getAsync(GitHubReleasesLastCheckedAtKey, 0L) else 0L
+            val cachedFingerprint = if (isPrimaryRepo) App.instance.dataStore.getAsync(GitHubReleasesFingerprintKey) else null
 
             val cachedReleases =
                 cachedJson
@@ -315,7 +343,7 @@ object Updater {
                     ?.let { runCatching { parseReleasesJson(it) }.getOrNull() }
 
             val shouldCheckNetwork =
-                forceRefresh || cachedJson.isNullOrBlank() || (now - lastCheckedAt) >= ReleaseCacheCheckIntervalMs
+                forceRefresh || !isPrimaryRepo || cachedJson.isNullOrBlank() || (now - lastCheckedAt) >= ReleaseCacheCheckIntervalMs
 
             if (!shouldCheckNetwork) {
                 lastCheckTime = now
@@ -326,6 +354,8 @@ object Updater {
                 fetchReleasesNetwork(
                     perPage = perPage,
                     cachedEtag = cachedEtag,
+                    owner = owner,
+                    repo = repo
                 )
             }.getOrNull()
 
@@ -340,9 +370,11 @@ object Updater {
 
             when {
                 networkResult.status == HttpStatusCode.NotModified -> {
-                    App.instance.dataStore.edit { settings ->
-                        settings[GitHubReleasesLastCheckedAtKey] = now
-                        networkResult.etag?.let { settings[GitHubReleasesEtagKey] = it }
+                    if (isPrimaryRepo) {
+                        App.instance.dataStore.edit { settings ->
+                            settings[GitHubReleasesLastCheckedAtKey] = now
+                            networkResult.etag?.let { settings[GitHubReleasesEtagKey] = it }
+                        }
                     }
                     val fallback = cachedReleases
                     if (fallback != null) {
@@ -359,12 +391,14 @@ object Updater {
                     val hasPayloadChanged = cachedJson != networkBody
                     val hasTopReleaseChanged = cachedFingerprint != newFingerprint
 
-                    App.instance.dataStore.edit { settings ->
-                        settings[GitHubReleasesLastCheckedAtKey] = now
-                        networkResult.etag?.let { settings[GitHubReleasesEtagKey] = it }
-                        if (hasPayloadChanged || hasTopReleaseChanged || cachedJson.isNullOrBlank()) {
-                            settings[GitHubReleasesJsonKey] = networkBody
-                            settings[GitHubReleasesFingerprintKey] = newFingerprint
+                    if (isPrimaryRepo) {
+                        App.instance.dataStore.edit { settings ->
+                            settings[GitHubReleasesLastCheckedAtKey] = now
+                            networkResult.etag?.let { settings[GitHubReleasesEtagKey] = it }
+                            if (hasPayloadChanged || hasTopReleaseChanged || cachedJson.isNullOrBlank()) {
+                                settings[GitHubReleasesJsonKey] = networkBody
+                                settings[GitHubReleasesFingerprintKey] = newFingerprint
+                            }
                         }
                     }
                     lastCheckTime = now

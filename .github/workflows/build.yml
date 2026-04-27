@@ -97,25 +97,30 @@ jobs:
           ABI="${{ matrix.abi }}"
           DEVICE_CAP="${{ matrix.deviceName }}"
           ABI_CAP="$(tr '[:lower:]' '[:upper:]' <<< "${ABI:0:1}")${ABI:1}"
+          
+          BUILD_TYPE="Release"
+          if [ "${GITHUB_REF}" = "refs/heads/dev" ]; then
+            BUILD_TYPE="Nightly"
+          fi
+          
+          ARTIFACT_SUFFIX="$(echo "${BUILD_TYPE}" | tr '[:upper:]' '[:lower:]')"
+          
           echo "device=$DEVICE" >> "$GITHUB_OUTPUT"
           echo "abi=$ABI" >> "$GITHUB_OUTPUT"
           echo "device_cap=$DEVICE_CAP" >> "$GITHUB_OUTPUT"
           echo "abi_cap=$ABI_CAP" >> "$GITHUB_OUTPUT"
-          echo "gradle_task=assemble${DEVICE_CAP}${ABI_CAP}Release" >> "$GITHUB_OUTPUT"
-          echo "artifact_name=app-${DEVICE}-${ABI}-release" >> "$GITHUB_OUTPUT"
-          echo "apk_name=app-${DEVICE}-${ABI}-release.apk" >> "$GITHUB_OUTPUT"
+          echo "gradle_task=assemble${DEVICE_CAP}${ABI_CAP}${BUILD_TYPE}" >> "$GITHUB_OUTPUT"
+          echo "artifact_name=app-${DEVICE}-${ABI}-${ARTIFACT_SUFFIX}" >> "$GITHUB_OUTPUT"
+          echo "apk_name=app-${DEVICE}-${ABI}-${ARTIFACT_SUFFIX}.apk" >> "$GITHUB_OUTPUT"
+          echo "build_type_lower=${ARTIFACT_SUFFIX}" >> "$GITHUB_OUTPUT"
 
       - name: Resolve build hash
         id: build_hash
         shell: bash
         run: |
           set -euo pipefail
-          if [ "${GITHUB_REF}" = "refs/heads/dev" ]; then
-            BUILD_SUFFIX="$(printf '%s' "${GITHUB_RUN_ID}:${GITHUB_RUN_ATTEMPT}:${GITHUB_SHA}" | sha256sum | cut -d' ' -f1 | base32 --wrap=0 | tr 'A-Z' 'a-z' | tr -d '=' | cut -c1-5)"
-            echo "value=nightly-${BUILD_SUFFIX}" >> "$GITHUB_OUTPUT"
-          else
-            echo "value=" >> "$GITHUB_OUTPUT"
-          fi
+          BUILD_SUFFIX="$(printf '%s' "${GITHUB_RUN_ID}:${GITHUB_RUN_ATTEMPT}:${GITHUB_SHA}" | sha256sum | cut -d' ' -f1 | base32 --wrap=0 | tr 'A-Z' 'a-z' | tr -d '=' | cut -c1-5)"
+          echo "value=canary-${BUILD_SUFFIX}" >> "$GITHUB_OUTPUT"
 
       - name: Build Release APK
         run: ./gradlew ${{ steps.variant.outputs.gradle_task }}
@@ -126,7 +131,7 @@ jobs:
           LASTFM_SECRET: ${{ secrets.LASTFM_SECRET }}
           TOGETHER_BEARER_TOKEN: ${{ secrets.TOGETHER_BEARER_TOKEN }}
           CANVAS_BEARER_TOKEN: ${{ secrets.CANVAS_BEARER_TOKEN }}
-          NIGHTLY_BUILD_HASH: ${{ steps.build_hash.outputs.value }}
+          CANARY_BUILD_HASH: ${{ steps.build_hash.outputs.value }}
 
       - name: Resolve release output directory
         id: release_dir
@@ -137,11 +142,12 @@ jobs:
           ABI="${{ steps.variant.outputs.abi }}"
           DEVICE_CAP="${{ steps.variant.outputs.device_cap }}"
           ABI_CAP="${{ steps.variant.outputs.abi_cap }}"
+          BUILD_TYPE_LOWER="${{ steps.variant.outputs.build_type_lower }}"
           CANDIDATES=(
-            "app/build/outputs/apk/${DEVICE}/${ABI}/release"
-            "app/build/outputs/apk/${DEVICE}${ABI_CAP}/release"
-            "app/build/outputs/apk/${DEVICE_CAP}${ABI_CAP}/release"
-            "app/build/outputs/apk/${ABI}/${DEVICE}/release"
+            "app/build/outputs/apk/${DEVICE}/${ABI}/${BUILD_TYPE_LOWER}"
+            "app/build/outputs/apk/${DEVICE}${ABI_CAP}/${BUILD_TYPE_LOWER}"
+            "app/build/outputs/apk/${DEVICE_CAP}${ABI_CAP}/${BUILD_TYPE_LOWER}"
+            "app/build/outputs/apk/${ABI}/${DEVICE}/${BUILD_TYPE_LOWER}"
           )
           for d in "${CANDIDATES[@]}"; do
             if [ -d "$d" ]; then
@@ -153,10 +159,10 @@ jobs:
           FOUND_METADATA="$(
             find app/build/outputs/apk -type f -name "output-metadata.json" \
               \( \
-                -path "*/${DEVICE}/${ABI}/release/output-metadata.json" -o \
-                -path "*/${DEVICE}${ABI_CAP}/release/output-metadata.json" -o \
-                -path "*/${DEVICE_CAP}${ABI_CAP}/release/output-metadata.json" -o \
-                -path "*/${ABI}/${DEVICE}/release/output-metadata.json" \
+                -path "*/${DEVICE}/${ABI}/${BUILD_TYPE_LOWER}/output-metadata.json" -o \
+                -path "*/${DEVICE}${ABI_CAP}/${BUILD_TYPE_LOWER}/output-metadata.json" -o \
+                -path "*/${DEVICE_CAP}${ABI_CAP}/${BUILD_TYPE_LOWER}/output-metadata.json" -o \
+                -path "*/${ABI}/${DEVICE}/${BUILD_TYPE_LOWER}/output-metadata.json" \
               \) \
               | head -n 1 || true
           )"
@@ -204,7 +210,7 @@ jobs:
       - name: Download Artifacts
         uses: actions/download-artifact@v8
         with:
-          pattern: app-*-release
+          pattern: app-*-*
           merge-multiple: true
           path: app/build/outputs/apk/download
 
@@ -269,12 +275,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if [ "${GITHUB_REF}" = "refs/heads/dev" ]; then
-            BUILD_SUFFIX="$(printf '%s' "${GITHUB_RUN_ID}:${GITHUB_RUN_ATTEMPT}:${GITHUB_SHA}" | sha256sum | cut -d' ' -f1 | base32 --wrap=0 | tr 'A-Z' 'a-z' | tr -d '=' | cut -c1-5)"
-            echo "value=nightly-${BUILD_SUFFIX}" >> "$GITHUB_OUTPUT"
-          else
-            echo "value=" >> "$GITHUB_OUTPUT"
-          fi
+          BUILD_SUFFIX="$(printf '%s' "${GITHUB_RUN_ID}:${GITHUB_RUN_ATTEMPT}:${GITHUB_SHA}" | sha256sum | cut -d' ' -f1 | base32 --wrap=0 | tr 'A-Z' 'a-z' | tr -d '=' | cut -c1-5)"
+          echo "value=canary-${BUILD_SUFFIX}" >> "$GITHUB_OUTPUT"
 
       - name: Build Debug APK
         run: ./gradlew assembleMobileUniversalDebug
@@ -285,7 +287,7 @@ jobs:
           LASTFM_SECRET: ${{ secrets.LASTFM_SECRET }}
           TOGETHER_BEARER_TOKEN: ${{ secrets.TOGETHER_BEARER_TOKEN }}
           CANVAS_BEARER_TOKEN: ${{ secrets.CANVAS_BEARER_TOKEN }}
-          NIGHTLY_BUILD_HASH: ${{ steps.build_hash.outputs.value }}
+          CANARY_BUILD_HASH: ${{ steps.build_hash.outputs.value }}
 
       - name: Upload Debug APK
         uses: actions/upload-artifact@v7

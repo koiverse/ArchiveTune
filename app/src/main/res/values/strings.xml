@@ -724,7 +724,8 @@ ArchiveTune will only extract your token, and everything else is stored locally.
     <string name="clear_translation_models">Clear translation models</string>
     <string name="updates">Updates</string>
     <string name="updates_subtitle_stable">Stable releases and release notes</string>
-    <string name="updates_subtitle_nightly">Nightly builds and recent development commits</string>
+    <string name="updates_subtitle_canary">Canary builds and recent development commits</string>
+    <string name="updates_subtitle_nightly">Nightly builds from the development branch</string>
     <string name="current_version">Current Version</string>
     <string name="latest_version_format">Latest: %s</string>
     <string name="updates_status_checking">Checking for the latest release</string>
@@ -735,11 +736,14 @@ ArchiveTune will only extract your token, and everything else is stored locally.
     <string name="update_channel">Update Channel</string>
     <string name="update_channel_desc">Choose between tested releases and development snapshots.</string>
     <string name="channel_stable">Stable</string>
+    <string name="channel_canary">Canary</string>
     <string name="channel_nightly">Nightly</string>
     <string name="commit_history">Development</string>
     <string name="recent_commits">Recent Commits</string>
+    <string name="updates_canary_title">Canary delivery</string>
+    <string name="updates_canary_description">Canary builds track the newest development commits and may include unfinished changes.</string>
     <string name="updates_nightly_title">Nightly delivery</string>
-    <string name="updates_nightly_description">Nightly builds track the newest development commits and may include unfinished changes.</string>
+    <string name="updates_nightly_description">Nightly builds track the development branch and use a distinct identity.</string>
     <string name="updates_latest_commit">Latest commit: %s</string>
     <string name="updates_loading_commits">Loading recent commits</string>
     <string name="updates_recent_commits_count">%1$d recent commits</string>

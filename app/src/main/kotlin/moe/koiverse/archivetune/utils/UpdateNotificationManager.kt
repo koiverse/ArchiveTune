@@ -105,7 +105,7 @@ object UpdateNotificationManager {
                     } ?: UpdateChannel.STABLE
                 }.first()
 
-                if (updateChannel == UpdateChannel.NIGHTLY) return@launch
+                if (updateChannel == UpdateChannel.CANARY || updateChannel == UpdateChannel.NIGHTLY) return@launch
 
                 val lastCheck = dataStore.data.map { it[LastUpdateCheckKey] ?: 0L }.first()
                 val now = System.currentTimeMillis()

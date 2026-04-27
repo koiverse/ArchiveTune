@@ -642,9 +642,16 @@ ArchiveTune sẽ chỉ trích xuất token của bạn, và mọi thứ khác đ
     <string name="enable_update_notification_desc">Nhận thông báo khi phiên bản ổn định mới được phát hành</string>
     <string name="update_channel">Kênh Cập nhật</string>
     <string name="channel_stable">Ổn định</string>
-    <string name="channel_nightly">Hàng đêm</string>
+    <string name="channel_canary">Canary</string>
+    <string name="channel_nightly">Nightly</string>
     <string name="commit_history">Phát triển</string>
     <string name="recent_commits">Commits Gần đây</string>
+    <string name="updates_subtitle_canary">Bản build Canary và các commit phát triển gần đây</string>
+    <string name="updates_subtitle_nightly">Bản build Nightly từ nhánh phát triển</string>
+    <string name="updates_canary_title">Phân phối Canary</string>
+    <string name="updates_canary_description">Bản build Canary theo dõi các commit phát triển mới nhất và có thể bao gồm các thay đổi chưa hoàn thiện.</string>
+    <string name="updates_nightly_title">Phân phối Nightly</string>
+    <string name="updates_nightly_description">Bản build Nightly theo dõi nhánh phát triển và có định danh riêng biệt.</string>
     <string name="changelog">Nhật ký thay đổi</string>
     <string name="view_changelog">Xem nhật ký thay đổi</string>
     <string name="error_loading_changelog">Lỗi khi tải nhật ký thay đổi</string>

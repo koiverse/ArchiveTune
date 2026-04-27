@@ -266,7 +266,7 @@ fun AboutScreen(
     DisposableEffect(Unit) {
         onDispose { httpClient.close() }
     }
-    val nightlyBuildHash = currentBuildHash
+    val canaryBuildHash = currentBuildHash
     var contributorsState by remember { mutableStateOf<ContributorsState>(ContributorsState.Loading) }
     LaunchedEffect(Unit) {
         val cachedJson = context.dataStore.getAsync(GitHubContributorsJsonKey)
@@ -428,7 +428,7 @@ fun AboutScreen(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 AboutBadge(text = BuildConfig.VERSION_NAME)
 
-                nightlyBuildHash?.let {
+                canaryBuildHash?.let {
                     Spacer(Modifier.width(4.dp))
                     AboutBadge(text = it)
                 }

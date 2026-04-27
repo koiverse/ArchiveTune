@@ -8,7 +8,7 @@
 package moe.koiverse.archivetune
 
 internal val currentBuildHash: String?
-    get() = BuildConfig.NIGHTLY_BUILD_HASH.takeIf { it.isNotBlank() }
+    get() = BuildConfig.CANARY_BUILD_HASH.takeIf { it.isNotBlank() }
 
 internal fun formatVersionName(
     versionName: String = BuildConfig.VERSION_NAME,

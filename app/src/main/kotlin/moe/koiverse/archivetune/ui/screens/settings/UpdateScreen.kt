@@ -110,7 +110,8 @@ fun UpdateScreen(
 ) {
     val context = LocalContext.current
     val uriHandler = LocalUriHandler.current
-    val nightlyInstallUrl = "https://nightly.link/koiverse/ArchiveTune/workflows/build/dev/app-mobile-universal-release"
+    val canaryInstallUrl = "https://nightly.link/koiverse/ArchiveTune/workflows/build/main/app-mobile-universal-release"
+    val nightlyInstallUrl = "https://nightly.link/sang765/ArchiveTune-Nightly/workflows/build/dev/app-mobile-universal-nightly"
 
     val (enableUpdateNotification, onEnableUpdateNotificationChange) = rememberPreference(
         EnableUpdateNotificationKey,
@@ -125,6 +126,7 @@ fun UpdateScreen(
     var isLoadingCommits by remember { mutableStateOf(true) }
     var latestVersion by remember { mutableStateOf<String?>(null) }
     var isExpanded by rememberSaveable { mutableStateOf(true) }
+    var showCanaryChannelConfirmDialog by rememberSaveable { mutableStateOf(false) }
     var showNightlyChannelConfirmDialog by rememberSaveable { mutableStateOf(false) }
     var showEnableUpdateNotificationConfirmDialog by rememberSaveable { mutableStateOf(false) }
     var hasNotificationPermission by remember {
@@ -139,6 +141,7 @@ fun UpdateScreen(
             }
         )
     }
+    val isCanaryChannel = updateChannel == UpdateChannel.CANARY
     val isNightlyChannel = updateChannel == UpdateChannel.NIGHTLY
     val isUpdateAvailable by remember(latestVersion) {
         derivedStateOf {
@@ -191,26 +194,34 @@ fun UpdateScreen(
 
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         Text(
+                            text = "• Canary builds",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(
+                            text = "Automatically generated development builds from the main branch.",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(
                             text = "• Nightly builds",
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.SemiBold
                         )
                         Text(
-                            text = "Automatically generated development builds hosted via nightly.link.",
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                        Text(
-                            text = "Nightly builds may include experimental features, unfinished changes, or temporary regressions.",
+                            text = "Experimental builds from the dev branch with a distinct identity.",
                             style = MaterialTheme.typography.bodySmall
                         )
                     }
 
                     Text(
-                        text = "Nightly builds are provided for testing and early access only.\nStability, compatibility, and functionality are not guaranteed.",
+                        text = "Canary builds are provided for testing and early access only.\nStability, compatibility, and functionality are not guaranteed.",
                         style = MaterialTheme.typography.bodySmall
                     )
                     Text(
-                        text = "By continuing, you acknowledge that nightly builds may be unstable and use them at your own risk.",
+                        text = "By continuing, you acknowledge that canary builds may be unstable and use them at your own risk.",
                         style = MaterialTheme.typography.bodySmall
                     )
                 }
@@ -248,48 +259,11 @@ fun UpdateScreen(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
-                        text = "ArchiveTune provides two download channels for builds:",
+                        text = "Switching to the Nightly channel will allow you to download experimental builds from the dev branch.",
                         style = MaterialTheme.typography.bodyMedium
                     )
-
-                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Text(
-                            text = "• Stable builds",
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                        Text(
-                            text = "Distributed via official GitHub Releases.",
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                        Text(
-                            text = "These versions are tested and recommended for most users.",
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                    }
-
-                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Text(
-                            text = "• Nightly builds",
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                        Text(
-                            text = "Automatically generated development builds hosted via nightly.link.",
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                        Text(
-                            text = "Nightly builds may include experimental features, unfinished changes, or temporary regressions.",
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                    }
-
                     Text(
-                        text = "Nightly builds are provided for testing and early access only.\nStability, compatibility, and functionality are not guaranteed.",
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                    Text(
-                        text = "By continuing, you acknowledge that nightly builds may be unstable and use them at your own risk.",
+                        text = "Nightly builds use a different package name and icon, and are provided for testing only.",
                         style = MaterialTheme.typography.bodySmall
                     )
                 }
@@ -312,11 +286,101 @@ fun UpdateScreen(
         )
     }
 
-    LaunchedEffect(Unit) {
-        Updater.getLatestVersionName().onSuccess {
+    if (showCanaryChannelConfirmDialog) {
+        AlertDialog(
+            onDismissRequest = { showCanaryChannelConfirmDialog = false },
+            title = { Text(stringResource(R.string.channel_canary)) },
+            text = {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = "ArchiveTune provides two download channels for builds:",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(
+                            text = "• Stable builds",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(
+                            text = "Distributed via official GitHub Releases.",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                        Text(
+                            text = "These versions are tested and recommended for most users.",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(
+                            text = "• Canary builds",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(
+                            text = "Automatically generated development builds from the main branch.",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(
+                            text = "• Nightly builds",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(
+                            text = "Experimental builds from the dev branch with a distinct identity.",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+
+                    Text(
+                        text = "Canary builds are provided for testing and early access only.\nStability, compatibility, and functionality are not guaranteed.",
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                    Text(
+                        text = "By continuing, you acknowledge that canary builds may be unstable and use them at your own risk.",
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showCanaryChannelConfirmDialog = false
+                        onUpdateChannelChange(UpdateChannel.CANARY)
+                    }
+                ) {
+                    Text(stringResource(android.R.string.ok))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showCanaryChannelConfirmDialog = false }) {
+                    Text(stringResource(android.R.string.cancel))
+                }
+            }
+        )
+    }
+
+    LaunchedEffect(updateChannel) {
+        isLoadingCommits = true
+        
+        val (apkOwner, apkRepo, branch) = when (updateChannel) {
+            UpdateChannel.NIGHTLY -> Triple("sang765", "ArchiveTune-Nightly", "dev")
+            else -> Triple("koiverse", "ArchiveTune", "main")
+        }
+
+        Updater.getLatestVersionName(owner = apkOwner, repo = apkRepo).onSuccess {
             latestVersion = it
         }
-        Updater.getCommitHistory(30).onSuccess {
+        
+        Updater.getCommitHistory(count = 30, branch = branch, owner = "koiverse", repo = "ArchiveTune").onSuccess {
             commits = it
         }.onFailure {
             commits = emptyList()
@@ -328,10 +392,10 @@ fun UpdateScreen(
         targetValue = if (isExpanded) 180f else 0f,
         label = "rotation"
     )
-    val topBarSubtitle = if (isNightlyChannel) {
-        stringResource(R.string.updates_subtitle_nightly)
-    } else {
-        stringResource(R.string.updates_subtitle_stable)
+    val topBarSubtitle = when (updateChannel) {
+        UpdateChannel.STABLE -> stringResource(R.string.updates_subtitle_stable)
+        UpdateChannel.CANARY -> stringResource(R.string.updates_subtitle_canary)
+        UpdateChannel.NIGHTLY -> stringResource(R.string.updates_subtitle_nightly)
     }
 
     Scaffold(
@@ -473,6 +537,7 @@ fun UpdateScreen(
                                 Text(
                                     text = when (updateChannel) {
                                         UpdateChannel.STABLE -> stringResource(R.string.channel_stable)
+                                        UpdateChannel.CANARY -> stringResource(R.string.channel_canary)
                                         UpdateChannel.NIGHTLY -> stringResource(R.string.channel_nightly)
                                     },
                                     style = MaterialTheme.typography.labelLarge,
@@ -495,10 +560,22 @@ fun UpdateScreen(
                             SegmentedButton(
                                 selected = updateChannel == UpdateChannel.STABLE,
                                 onClick = { onUpdateChannelChange(UpdateChannel.STABLE) },
-                                shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
+                                shape = SegmentedButtonDefaults.itemShape(index = 0, count = 3),
                                 icon = {},
                             ) {
                                 Text(text = stringResource(R.string.channel_stable))
+                            }
+                            SegmentedButton(
+                                selected = updateChannel == UpdateChannel.CANARY,
+                                onClick = {
+                                    if (updateChannel != UpdateChannel.CANARY) {
+                                        showCanaryChannelConfirmDialog = true
+                                    }
+                                },
+                                shape = SegmentedButtonDefaults.itemShape(index = 1, count = 3),
+                                icon = {},
+                            ) {
+                                Text(text = stringResource(R.string.channel_canary))
                             }
                             SegmentedButton(
                                 selected = updateChannel == UpdateChannel.NIGHTLY,
@@ -507,10 +584,76 @@ fun UpdateScreen(
                                         showNightlyChannelConfirmDialog = true
                                     }
                                 },
-                                shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
+                                shape = SegmentedButtonDefaults.itemShape(index = 2, count = 3),
                                 icon = {},
                             ) {
                                 Text(text = stringResource(R.string.channel_nightly))
+                            }
+                        }
+                    }
+                }
+            }
+
+            item {
+                AnimatedVisibility(visible = isCanaryChannel) {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = MaterialTheme.shapes.extraLarge,
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+                        )
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(20.dp),
+                            verticalArrangement = Arrangement.spacedBy(16.dp),
+                        ) {
+                            ListItem(
+                                overlineContent = {
+                                    Text(text = stringResource(R.string.channel_canary))
+                                },
+                                headlineContent = {
+                                    Text(
+                                        text = stringResource(R.string.updates_canary_title),
+                                        fontWeight = FontWeight.SemiBold,
+                                    )
+                                },
+                                supportingContent = {
+                                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                        Text(text = stringResource(R.string.updates_canary_description))
+                                        Text(
+                                            text = stringResource(
+                                                R.string.updates_latest_commit,
+                                                latestCommit?.sha ?: "-"
+                                            ),
+                                            style = MaterialTheme.typography.labelMedium,
+                                            fontFamily = FontFamily.Monospace,
+                                            color = MaterialTheme.colorScheme.primary,
+                                        )
+                                    }
+                                },
+                                leadingContent = {
+                                    FeatureIcon(
+                                        iconRes = R.drawable.download,
+                                        containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                                        contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+                                    )
+                                },
+                                colors = ListItemDefaults.colors(containerColor = Color.Transparent)
+                            )
+
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+
+                            OutlinedButton(
+                                onClick = { uriHandler.openUri(canaryInstallUrl) },
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                Icon(
+                                    painter = painterResource(R.drawable.download),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp),
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(text = stringResource(R.string.download))
                             }
                         }
                     }
@@ -716,6 +859,7 @@ private fun UpdateSummaryCard(
 ) {
     val channelLabel = when (updateChannel) {
         UpdateChannel.STABLE -> stringResource(R.string.channel_stable)
+        UpdateChannel.CANARY -> stringResource(R.string.channel_canary)
         UpdateChannel.NIGHTLY -> stringResource(R.string.channel_nightly)
     }
     val supportingText = when {
@@ -723,15 +867,15 @@ private fun UpdateSummaryCard(
         isUpdateAvailable -> stringResource(R.string.latest_version_format, latestVersion)
         else -> stringResource(R.string.updates_status_current)
     }
-    val channelContainerColor = if (updateChannel == UpdateChannel.NIGHTLY) {
-        MaterialTheme.colorScheme.tertiaryContainer
-    } else {
-        MaterialTheme.colorScheme.secondaryContainer
+    val channelContainerColor = when (updateChannel) {
+        UpdateChannel.NIGHTLY -> MaterialTheme.colorScheme.tertiaryContainer
+        UpdateChannel.CANARY -> MaterialTheme.colorScheme.tertiaryContainer
+        else -> MaterialTheme.colorScheme.secondaryContainer
     }
-    val channelContentColor = if (updateChannel == UpdateChannel.NIGHTLY) {
-        MaterialTheme.colorScheme.onTertiaryContainer
-    } else {
-        MaterialTheme.colorScheme.onSecondaryContainer
+    val channelContentColor = when (updateChannel) {
+        UpdateChannel.NIGHTLY -> MaterialTheme.colorScheme.onTertiaryContainer
+        UpdateChannel.CANARY -> MaterialTheme.colorScheme.onTertiaryContainer
+        else -> MaterialTheme.colorScheme.onSecondaryContainer
     }
 
     Card(

@@ -205,7 +205,7 @@
   </tbody>
 </table>
 
-<h2>Nightly Build</h2>
+<h2>Canary Build</h2>
 
 <table>
   <thead>
@@ -216,8 +216,8 @@
   <tbody>
     <tr>
       <td align="center">
-        <a href="https://nightly.link/koiverse/ArchiveTune/workflows/build/dev/app-universal-release">
-          <img src="https://raw.githubusercontent.com/koiverse/ArchiveTune/refs/heads/main/assets/badge_github.png" height="50" alt="Download the latest ArchiveTune nightly build">
+        <a href="https://nightly.link/koiverse/ArchiveTune/workflows/build/main/app-mobile-universal-release">
+          <img src="https://raw.githubusercontent.com/koiverse/ArchiveTune/refs/heads/main/assets/badge_github.png" height="50" alt="Download the latest ArchiveTune canary build">
         </a>
       </td>
     </tr>

@@ -1,5 +1,8 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import java.util.Properties
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 plugins {
     alias(libs.plugins.android.application)
@@ -15,16 +18,19 @@ if (localPropertiesFile.exists()) {
     localProperties.load(localPropertiesFile.inputStream())
 }
 
+val buildDate: String = SimpleDateFormat("yyyyMMdd", Locale.US).format(Date())
+val isNightlyTask = gradle.startParameter.taskNames.any { it.contains("Nightly", ignoreCase = true) }
+
 android {
     namespace = "moe.koiverse.archivetune"
     compileSdk = 37
 
     defaultConfig {
-    applicationId = "moe.koiverse.archivetune"
+        applicationId = "moe.koiverse.archivetune"
         minSdk = 26
         targetSdk = 37
         versionCode = 133
-        versionName = "13.2.0"
+        versionName = if (isNightlyTask) "N$buildDate" else "13.2.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
@@ -52,13 +58,14 @@ android {
                 ?: ""
         buildConfigField("String", "CANVAS_BEARER_TOKEN", "\"$canvasBearerToken\"")
 
-        val nightlyBuildHash =
+        val canaryBuildHash =
             (
-                localProperties.getProperty("NIGHTLY_BUILD_HASH")
-                    ?: System.getenv("NIGHTLY_BUILD_HASH")
+                localProperties.getProperty("CANARY_BUILD_HASH")
+                    ?: System.getenv("CANARY_BUILD_HASH")
                     ?: ""
                 ).trim()
-        buildConfigField("String", "NIGHTLY_BUILD_HASH", "\"$nightlyBuildHash\"")
+        buildConfigField("String", "CANARY_BUILD_HASH", "\"$canaryBuildHash\"")
+        buildConfigField("Boolean", "IS_NIGHTLY", "false")
     }
 
     flavorDimensions += listOf("device", "abi")
@@ -119,6 +126,13 @@ android {
         debug {
             applicationIdSuffix = ".debug"
             isDebuggable = true
+        }
+        create("nightly") {
+            initWith(getByName("release"))
+            applicationIdSuffix = ".nightly"
+
+            buildConfigField("Boolean", "IS_NIGHTLY", "true")
+            matchingFallbacks += listOf("release")
         }
     }
 

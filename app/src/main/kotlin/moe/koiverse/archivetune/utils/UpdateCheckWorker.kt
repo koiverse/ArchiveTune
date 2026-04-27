@@ -38,7 +38,7 @@ class UpdateCheckWorker(
                 } ?: UpdateChannel.STABLE
             }.first()
 
-            if (updateChannel == UpdateChannel.NIGHTLY) return Result.success()
+            if (updateChannel == UpdateChannel.CANARY || updateChannel == UpdateChannel.NIGHTLY) return Result.success()
 
             Updater.getLatestVersionName().onSuccess { latestVersion ->
                 if (!Updater.isSameVersion(latestVersion, BuildConfig.VERSION_NAME)) {

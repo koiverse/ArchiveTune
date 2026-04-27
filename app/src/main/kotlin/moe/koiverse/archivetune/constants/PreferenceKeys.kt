@@ -616,5 +616,6 @@ val TogetherOnlineEndpointLastCheckedAtKey = longPreferencesKey("together_online
 
 enum class UpdateChannel {
     STABLE,
+    CANARY,
     NIGHTLY,
 }
