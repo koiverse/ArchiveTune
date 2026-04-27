@@ -1,3 +1,13 @@
+/*
+ * ArchiveTune Project Original (2026)
+ * Chartreux Westia (github.com/koiverse)
+ * Licensed Under GPL-3.0 | see git history for contributors
+ * Don't remove this copyright holder!
+ */
+
+
+
+
 package moe.koiverse.archivetune.viewmodels
 
 import android.content.Context
@@ -18,6 +28,7 @@ import moe.koiverse.archivetune.constants.HideVideoKey
 import moe.koiverse.archivetune.constants.InnerTubeCookieKey
 import moe.koiverse.archivetune.constants.QuickPicks
 import moe.koiverse.archivetune.constants.QuickPicksKey
+import moe.koiverse.archivetune.constants.SpeedDialSongIdsKey
 import moe.koiverse.archivetune.constants.YtmSyncKey
 import moe.koiverse.archivetune.db.MusicDatabase
 import moe.koiverse.archivetune.db.entities.*
@@ -25,6 +36,8 @@ import moe.koiverse.archivetune.extensions.toEnum
 import moe.koiverse.archivetune.models.SimilarRecommendation
 import moe.koiverse.archivetune.utils.dataStore
 import moe.koiverse.archivetune.utils.get
+import moe.koiverse.archivetune.utils.parseSpeedDialPins
+import moe.koiverse.archivetune.utils.SpeedDialPinType
 import moe.koiverse.archivetune.utils.SyncUtils
 import moe.koiverse.archivetune.utils.reportException
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -33,6 +46,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.supervisorScope
+import timber.log.Timber
 import javax.inject.Inject
 
 @HiltViewModel
@@ -50,6 +64,7 @@ class HomeViewModel @Inject constructor(
     }.distinctUntilChanged()
 
     val quickPicks = MutableStateFlow<List<Song>?>(null)
+    val speedDialItems = MutableStateFlow<List<LocalItem>>(emptyList())
     val forgottenFavorites = MutableStateFlow<List<Song>?>(null)
     val keepListening = MutableStateFlow<List<LocalItem>?>(null)
     val similarRecommendations = MutableStateFlow<List<SimilarRecommendation>?>(null)
@@ -66,19 +81,54 @@ class HomeViewModel @Inject constructor(
     val allYtItems = MutableStateFlow<List<YTItem>>(emptyList())
 
     // Account display info
-    val accountName = MutableStateFlow("Guest")
+    val accountName = MutableStateFlow("")
     val accountImageUrl = MutableStateFlow<String?>(null)
+    val isAccountLoading = MutableStateFlow(true)
+    val isAccountLoggedIn = MutableStateFlow(false)
     
     // Track last processed cookie to avoid unnecessary updates
     private var lastProcessedCookie: String? = null
     
     // Track if we're currently processing account data
     private var isProcessingAccountData = false
+    private var wasLoggedIn = false
+
+    private fun filterHomeChips(chips: List<HomePage.Chip>?): List<HomePage.Chip>? {
+        return chips?.filterNot { it.title.contains("podcasts", ignoreCase = true) }
+    }
 
     private suspend fun getQuickPicks(){
         when (quickPicksEnum.first()) {
             QuickPicks.QUICK_PICKS -> quickPicks.value = database.quickPicks().first().shuffled().take(20)
             QuickPicks.LAST_LISTEN -> songLoad()
+            QuickPicks.DONT_SHOW -> quickPicks.value = null
+        }
+    }
+
+    private suspend fun loadSpeedDialItems() {
+        val pins = parseSpeedDialPins(context.dataStore.get(SpeedDialSongIdsKey, ""))
+        if (pins.isEmpty()) {
+            speedDialItems.value = emptyList()
+            return
+        }
+        val songIds = pins.filter { it.type == SpeedDialPinType.SONG }.map { it.id }
+        val albumIds = pins.filter { it.type == SpeedDialPinType.ALBUM }.map { it.id }
+        val artistIds = pins.filter { it.type == SpeedDialPinType.ARTIST }.map { it.id }
+        val playlistIds = pins.filter { it.type == SpeedDialPinType.PLAYLIST }.map { it.id }
+
+        val songsById = database.getSongsByIds(songIds).associateBy { it.id }
+        val albumsById = albumIds.mapNotNull { id -> database.album(id).first() }.associateBy { it.id }
+        val artistsById = artistIds.mapNotNull { id -> database.artist(id).first() }.associateBy { it.id }
+        val playlistsById = playlistIds.mapNotNull { id -> database.getPlaylistById(id) }.associateBy { it.id }
+
+        speedDialItems.value = pins.mapNotNull { pin ->
+            when (pin.type.value) {
+                SpeedDialPinType.SONG.value -> songsById[pin.id]
+                SpeedDialPinType.ALBUM.value -> albumsById[pin.id]
+                SpeedDialPinType.ARTIST.value -> artistsById[pin.id]
+                SpeedDialPinType.PLAYLIST.value -> playlistsById[pin.id]
+                else -> null
+            }
         }
     }
 
@@ -93,6 +143,7 @@ class HomeViewModel @Inject constructor(
                 val fromTimeStamp = System.currentTimeMillis() - 86400000 * 7 * 2
 
                 launch { getQuickPicks() }
+                launch { loadSpeedDialItems() }
                 launch { forgottenFavorites.value = database.forgottenFavorites().first().shuffled().take(20) }
                 
                 launch {
@@ -109,6 +160,7 @@ class HomeViewModel @Inject constructor(
                 launch {
                         YouTube.home().onSuccess { page ->
                         homePage.value = page.copy(
+                            chips = filterHomeChips(page.chips),
                             sections = page.sections.map { section ->
                                 section.copy(items = section.items.filterExplicit(hideExplicit).filterVideo(hideVideo))
                             }
@@ -221,10 +273,58 @@ class HomeViewModel @Inject constructor(
         }
     }
 
+    private fun clearAccountData() {
+        accountName.value = ""
+        accountImageUrl.value = null
+        accountPlaylists.value = null
+    }
+
+    private fun prepareYouTubeAccount(cookie: String): Boolean {
+        return try {
+            YouTube.cookie = cookie
+            true
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to set YouTube cookie")
+            false
+        }
+    }
+
+    private suspend fun refreshAccountIdentity() {
+        accountName.value = ""
+        accountImageUrl.value = null
+
+        try {
+            YouTube.accountInfo().onSuccess { info ->
+                accountName.value = info.name
+                accountImageUrl.value = info.thumbnailUrl
+            }.onFailure { error ->
+                Timber.w(error, "Failed to fetch account info")
+            }
+        } catch (e: Exception) {
+            Timber.e(e, "Exception fetching account info")
+        }
+    }
+
+    private suspend fun refreshAccountPlaylistsInternal() {
+        try {
+            YouTube.library("FEmusic_liked_playlists").completed().onSuccess {
+                val lists = it.items.filterIsInstance<PlaylistItem>().filterNot { playlist ->
+                    playlist.id == "SE"
+                }
+                accountPlaylists.value = lists
+            }.onFailure { error ->
+                Timber.w(error, "Failed to fetch account playlists")
+            }
+        } catch (e: Exception) {
+            Timber.e(e, "Exception fetching account playlists")
+        }
+    }
+
     private val _isLoadingMore = MutableStateFlow(false)
     fun loadMoreYouTubeItems(continuation: String?) {
         if (continuation == null || _isLoadingMore.value) return
         val hideExplicit = context.dataStore.get(HideExplicitKey, false)
+        val hideVideo = context.dataStore.get(HideVideoKey, false)
 
         viewModelScope.launch(Dispatchers.IO) {
             _isLoadingMore.value = true
@@ -236,7 +336,7 @@ class HomeViewModel @Inject constructor(
             homePage.value = nextSections.copy(
                 chips = homePage.value?.chips,
                 sections = (homePage.value?.sections.orEmpty() + nextSections.sections).map { section ->
-                    section.copy(items = section.items.filterExplicit(hideExplicit))
+                    section.copy(items = section.items.filterExplicit(hideExplicit).filterVideo(hideVideo))
                 }
             )
             _isLoadingMore.value = false
@@ -257,12 +357,13 @@ class HomeViewModel @Inject constructor(
 
         viewModelScope.launch(Dispatchers.IO) {
             val hideExplicit = context.dataStore.get(HideExplicitKey, false)
+            val hideVideo = context.dataStore.get(HideVideoKey, false)
             val nextSections = YouTube.home(params = chip?.endpoint?.params).getOrNull() ?: return@launch
 
             homePage.value = nextSections.copy(
                 chips = homePage.value?.chips,
                 sections = nextSections.sections.map { section ->
-                    section.copy(items = section.items.filterExplicit(hideExplicit))
+                    section.copy(items = section.items.filterExplicit(hideExplicit).filterVideo(hideVideo))
                 }
             )
             selectedChip.value = chip
@@ -283,32 +384,25 @@ class HomeViewModel @Inject constructor(
             if (isProcessingAccountData) return@launch
             
             isProcessingAccountData = true
+            isAccountLoading.value = true
             try {
                 val cookie = context.dataStore.get(InnerTubeCookieKey, "")
-                if (cookie.isNotEmpty()) {
-                    YouTube.cookie = cookie
-                    
-                    YouTube.accountInfo().onSuccess { info ->
-                        accountName.value = info.name
-                        accountImageUrl.value = info.thumbnailUrl
-                    }.onFailure {
-                        timber.log.Timber.w(it, "Failed to fetch account info")
-                    }
+                val loggedIn = cookie.isNotEmpty() && "SAPISID" in parseCookieString(cookie)
+                isAccountLoggedIn.value = loggedIn
 
+                if (loggedIn && prepareYouTubeAccount(cookie)) {
+                    refreshAccountIdentity()
                     launch {
-                        YouTube.library("FEmusic_liked_playlists").completed().onSuccess {
-                            val lists = it.items.filterIsInstance<PlaylistItem>().filterNot { it.id == "SE" }
-                            accountPlaylists.value = lists
-                        }.onFailure {
-                            timber.log.Timber.w(it, "Failed to fetch playlists")
-                        }
+                        refreshAccountPlaylistsInternal()
                     }
                 } else {
-                    accountName.value = "Guest"
-                    accountImageUrl.value = null
-                    accountPlaylists.value = null
+                    clearAccountData()
                 }
+            } catch (e: Exception) {
+                Timber.e(e, "Error refreshing account data")
+                clearAccountData()
             } finally {
+                isAccountLoading.value = false
                 isProcessingAccountData = false
             }
         }
@@ -320,32 +414,18 @@ class HomeViewModel @Inject constructor(
         }
 
         viewModelScope.launch(Dispatchers.IO) {
+            context.dataStore.data
+                .map { it[SpeedDialSongIdsKey].orEmpty() }
+                .distinctUntilChanged()
+                .collect {
+                    loadSpeedDialItems()
+                }
+        }
+
+        viewModelScope.launch(Dispatchers.IO) {
             kotlinx.coroutines.delay(3000)
             
             syncUtils.cleanupDuplicatePlaylists()
-            
-            val cookie = context.dataStore.data
-                .map { it[InnerTubeCookieKey] }
-                .distinctUntilChanged()
-                .first()
-            
-            val isLoggedIn = cookie?.let { "SAPISID" in parseCookieString(it) } ?: false
-            
-            if (isLoggedIn) {
-                val isSyncEnabled = context.dataStore.data
-                    .map { it[YtmSyncKey] ?: true }
-                    .distinctUntilChanged()
-                    .first()
-
-                if (isSyncEnabled) {
-                    try {
-                        syncUtils.performFullSync()
-                    } catch (e: Exception) {
-                        timber.log.Timber.e(e, "Error during sync")
-                        reportException(e)
-                    }
-                }
-            }
         }
         
         viewModelScope.launch(Dispatchers.IO) {
@@ -357,54 +437,49 @@ class HomeViewModel @Inject constructor(
                     
                     lastProcessedCookie = cookie
                     isProcessingAccountData = true
+                    isAccountLoading.value = true
                     
                     try {
                         val isLoggedIn = cookie?.let { "SAPISID" in parseCookieString(it) } ?: false
+                        val loginTransition = isLoggedIn && !wasLoggedIn
+                        wasLoggedIn = isLoggedIn
+                        isAccountLoggedIn.value = isLoggedIn
                         
                         if (isLoggedIn && cookie != null && cookie.isNotEmpty()) {
-                            try {
-                                YouTube.cookie = cookie
-                            } catch (e: Exception) {
-                                timber.log.Timber.e(e, "Failed to set YouTube cookie")
+                            if (!prepareYouTubeAccount(cookie)) {
+                                clearAccountData()
                                 return@collect
+                            }
+
+                            if (loginTransition) {
+                                launch {
+                                    try {
+                                        if (context.dataStore.get(YtmSyncKey, true)) {
+                                            syncUtils.performFullSync()
+                                        }
+                                    } catch (e: Exception) {
+                                        Timber.e(e, "Error during login-triggered sync")
+                                        reportException(e)
+                                    }
+                                }
                             }
                             
                             kotlinx.coroutines.delay(100)
-                            
-                            try {
-                                YouTube.accountInfo().onSuccess { info ->
-                                    accountName.value = info.name
-                                    accountImageUrl.value = info.thumbnailUrl
-                                }.onFailure { e ->
-                                    timber.log.Timber.w(e, "Failed to fetch account info")
-                                }
-                            } catch (e: Exception) {
-                                timber.log.Timber.e(e, "Exception fetching account info")
-                            }
+
+                            refreshAccountIdentity()
 
                             launch {
-                                try {
-                                    YouTube.library("FEmusic_liked_playlists").completed().onSuccess {
-                                        val lists = it.items.filterIsInstance<PlaylistItem>().filterNot { it.id == "SE" }
-                                        accountPlaylists.value = lists
-                                    }.onFailure { e ->
-                                        timber.log.Timber.w(e, "Failed to fetch account playlists")
-                                    }
-                                } catch (e: Exception) {
-                                    timber.log.Timber.e(e, "Exception fetching account playlists")
-                                }
+                                refreshAccountPlaylistsInternal()
                             }
                         } else {
-                            accountName.value = "Guest"
-                            accountImageUrl.value = null
-                            accountPlaylists.value = null
+                            clearAccountData()
                         }
                     } catch (e: Exception) {
-                        timber.log.Timber.e(e, "Error processing cookie change")
-                        accountName.value = "Guest"
-                        accountImageUrl.value = null
-                        accountPlaylists.value = null
+                        Timber.e(e, "Error processing cookie change")
+                        clearAccountData()
+                        isAccountLoggedIn.value = false
                     } finally {
+                        isAccountLoading.value = false
                         isProcessingAccountData = false
                     }
                 }

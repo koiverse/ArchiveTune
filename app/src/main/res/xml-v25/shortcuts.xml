@@ -20,4 +20,14 @@
             android:targetClass="moe.koiverse.archivetune.MainActivity"
             android:targetPackage="moe.koiverse.archivetune" />
     </shortcut>
+    <shortcut
+        android:enabled="true"
+        android:icon="@drawable/shortcut_music_recognition"
+        android:shortcutId="music_recognition"
+        android:shortcutShortLabel="@string/music_recognition">
+        <intent
+            android:action="moe.koiverse.archivetune.action.MUSIC_RECOGNITION"
+            android:targetClass="moe.koiverse.archivetune.MainActivity"
+            android:targetPackage="moe.koiverse.archivetune" />
+    </shortcut>
 </shortcuts>

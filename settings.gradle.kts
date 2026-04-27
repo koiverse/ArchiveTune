@@ -1,11 +1,26 @@
 @file:Suppress("UnstableApiUsage")
 
+pluginManagement {
+    repositories {
+        google {
+            content {
+                includeGroupAndSubgroups("com.android")
+                includeGroupAndSubgroups("com.google")
+                includeGroupAndSubgroups("androidx")
+            }
+        }
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
 
     repositories {
         google()
         mavenCentral()
+        maven { setUrl("https://central.sonatype.com/repository/maven-snapshots/") }
         maven { setUrl("https://jitpack.io") }
     }
 }
@@ -21,8 +36,12 @@ include(":innertube")
 include(":kugou")
 include(":lrclib")
 include(":lastfm")
+include("simpmusic")
+include(":paxsenix")
 include(":betterlyrics")
 include(":kizzy")
+include(":canvas")
+include(":shazamkit")
 
 // Use a local copy of NewPipe Extractor by uncommenting the lines below.
 // We assume, that ArchiveTune and NewPipe Extractor have the same parent directory.

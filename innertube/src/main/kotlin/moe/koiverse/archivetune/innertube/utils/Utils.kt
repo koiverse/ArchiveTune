@@ -1,29 +1,49 @@
+/*
+ * ArchiveTune Project Original (2026)
+ * Chartreux Westia (github.com/koiverse)
+ * Licensed Under GPL-3.0 | see git history for contributors
+ * Don't remove this copyright holder!
+ */
+
+
+
+
 package moe.koiverse.archivetune.innertube.utils
 
 import moe.koiverse.archivetune.innertube.YouTube
 import moe.koiverse.archivetune.innertube.pages.LibraryPage
+import moe.koiverse.archivetune.innertube.pages.PlaylistContinuationPage
 import moe.koiverse.archivetune.innertube.pages.PlaylistPage
 import java.security.MessageDigest
 
 @JvmName("completedLibrary")
 suspend fun Result<PlaylistPage>.completed(): Result<PlaylistPage> = runCatching {
-    val page = getOrThrow()
+    completePlaylistPage(getOrThrow()) { continuation ->
+        YouTube.playlistContinuation(continuation).getOrNull()
+    }
+}
+
+internal suspend fun completePlaylistPage(
+    page: PlaylistPage,
+    fetchContinuationPage: suspend (String) -> PlaylistContinuationPage?,
+): PlaylistPage {
     val songs = page.songs.toMutableList()
-    var continuation = page.songsContinuation
+    var continuation = page.songsContinuation.normalizedContinuation()
+        ?: page.continuation.normalizedContinuation()
     val seenContinuations = mutableSetOf<String>()
     var requestCount = 0
     val maxRequests = 50
     var consecutiveEmptyResponses = 0
-    
+
     while (continuation != null && requestCount < maxRequests) {
         if (continuation in seenContinuations) {
             break
         }
         seenContinuations.add(continuation)
         requestCount++
-        
-        val continuationPage = YouTube.playlistContinuation(continuation).getOrNull() ?: break
-        
+
+        val continuationPage = fetchContinuationPage(continuation) ?: break
+
         if (continuationPage.songs.isEmpty()) {
             consecutiveEmptyResponses++
             if (consecutiveEmptyResponses >= 2) break
@@ -31,14 +51,14 @@ suspend fun Result<PlaylistPage>.completed(): Result<PlaylistPage> = runCatching
             consecutiveEmptyResponses = 0
             songs += continuationPage.songs
         }
-        
-        continuation = continuationPage.continuation
+
+        continuation = continuationPage.continuation.normalizedContinuation()
     }
-    PlaylistPage(
-        playlist = page.playlist,
+
+    return page.copy(
         songs = songs,
         songsContinuation = null,
-        continuation = page.continuation
+        continuation = null
     )
 }
 
@@ -82,12 +102,17 @@ fun ByteArray.toHex(): String = joinToString(separator = "") { eachByte -> "%02x
 fun sha1(str: String): String = MessageDigest.getInstance("SHA-1").digest(str.toByteArray()).toHex()
 
 fun parseCookieString(cookie: String): Map<String, String> =
-    cookie.split("; ")
-        .filter { it.isNotEmpty() }
+    cookie.split(";")
+        .map { it.trim() }
+        .filter { it.isNotBlank() }
         .mapNotNull { part ->
             val splitIndex = part.indexOf('=')
-            if (splitIndex == -1) null
-            else part.substring(0, splitIndex) to part.substring(splitIndex + 1)
+            if (splitIndex == -1) {
+                null
+            } else {
+                val key = part.substring(0, splitIndex).trim()
+                if (key.isEmpty()) null else key to part.substring(splitIndex + 1).trim()
+            }
         }
         .toMap()
 
@@ -109,3 +134,5 @@ fun String.parseTime(): Int? {
 fun isPrivateId(browseId: String): Boolean {
     return browseId.contains("privately")
 }
+
+private fun String?.normalizedContinuation(): String? = this?.takeUnless(String::isBlank)

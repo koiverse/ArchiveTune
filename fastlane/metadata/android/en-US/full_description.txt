@@ -1,24 +1,27 @@
-Enhanced Music Streaming Client for Android With Material 3 Expressive
+The Cutest Material 3 Music Player With Local & YouTube Support for Android.
 
 Features:
 
-- Play any song or video from YT Music
-- Background playback 
-- Personalized quick picks 
-- Library management 
-- Download and cache songs for offline playback
-- Search for songs, albums, artists, videos and playlists
-- Live lyrics 
-- YouTube Music account login support
-- Syncing of songs, artists, albums and playlists, from and to your account
-- Skip silence 
-- Import playlists 
-- Audio normalization 
-- Adjust tempo/pitch 
-- Local playlist management
-- Reorder songs in playlist or queue 
-- Light - Dark - black - Dynamic theme
-- Sleep timer
-- Material 3
-- Customizable Discord Presence
-- etc.
+- Ad-free playback with background listening
+- Your playlists, liked songs, and subscriptions after sign-in
+- Support Local File Playback
+- Fast startup and lightweight performance
+- Private, uninterrupted listening experience
+- EBU R128 loudness normalization
+- Tempo, pitch, and playback speed controls
+- Crossfade between tracks
+- System equalizer and spatial audio integration
+- Live synced lyrics
+- Lyrics translation and romanization
+- Music recognition for songs around you
+- Listening statistics
+- YouTube Music account integration
+- Last.fm scrobbling
+- ListenBrainz history sync
+- Discord rich presence support
+- Material 3 design language
+- Album-art powered dynamic colors
+- Responsive layouts for different screen sizes
+- Deep playback and interface settings
+- Gesture customization
+- Animation and layout tuning

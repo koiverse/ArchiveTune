@@ -1,10 +1,23 @@
+/*
+ * ArchiveTune Project Original (2026)
+ * Chartreux Westia (github.com/koiverse)
+ * Licensed Under GPL-3.0 | see git history for contributors
+ * Don't remove this copyright holder!
+ */
+
+
+@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
+
 package moe.koiverse.archivetune.ui.screens.settings
 
 import android.os.Build
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -23,11 +36,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.ButtonDefaults
@@ -47,8 +60,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -57,6 +70,7 @@ import moe.koiverse.archivetune.LocalPlayerAwareWindowInsets
 import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.constants.ChipSortTypeKey
 import moe.koiverse.archivetune.constants.DarkModeKey
+import moe.koiverse.archivetune.constants.DisableAnimationsKey
 import moe.koiverse.archivetune.constants.DefaultOpenTabKey
 import moe.koiverse.archivetune.constants.DynamicThemeKey
 import moe.koiverse.archivetune.constants.GridItemSize
@@ -67,10 +81,11 @@ import moe.koiverse.archivetune.constants.LyricsScrollKey
 import moe.koiverse.archivetune.constants.LyricsTextPositionKey
 import moe.koiverse.archivetune.constants.PlayerDesignStyle
 import moe.koiverse.archivetune.constants.PlayerDesignStyleKey
-import moe.koiverse.archivetune.constants.UseNewMiniPlayerDesignKey
 import moe.koiverse.archivetune.constants.PlayerBackgroundStyle
 import moe.koiverse.archivetune.constants.PlayerBackgroundStyleKey
 import moe.koiverse.archivetune.constants.PureBlackKey
+import moe.koiverse.archivetune.constants.RandomThemeOnStartupKey
+import moe.koiverse.archivetune.constants.UseSystemFontKey
 import moe.koiverse.archivetune.constants.PlayerButtonsStyle
 import moe.koiverse.archivetune.constants.PlayerButtonsStyleKey
 import moe.koiverse.archivetune.constants.LyricsAnimationStyleKey
@@ -79,9 +94,9 @@ import moe.koiverse.archivetune.constants.LyricsTextSizeKey
 import moe.koiverse.archivetune.constants.LyricsLineSpacingKey
 import moe.koiverse.archivetune.constants.SliderStyle
 import moe.koiverse.archivetune.constants.SliderStyleKey
-import moe.koiverse.archivetune.constants.SlimNavBarKey
 import moe.koiverse.archivetune.constants.ShowLikedPlaylistKey
 import moe.koiverse.archivetune.constants.ShowDownloadedPlaylistKey
+import moe.koiverse.archivetune.constants.ShowHomeCategoryChipsKey
 import moe.koiverse.archivetune.constants.ShowTopPlaylistKey
 import moe.koiverse.archivetune.constants.ShowCachedPlaylistKey
 import moe.koiverse.archivetune.constants.ShowTagsInLibraryKey
@@ -89,23 +104,29 @@ import moe.koiverse.archivetune.constants.SwipeThumbnailKey
 import moe.koiverse.archivetune.constants.SwipeSensitivityKey
 import moe.koiverse.archivetune.constants.SwipeToSongKey
 import moe.koiverse.archivetune.constants.HidePlayerThumbnailKey
+import moe.koiverse.archivetune.constants.ArchiveTuneCanvasKey
 import moe.koiverse.archivetune.constants.ThumbnailCornerRadiusKey
+import moe.koiverse.archivetune.constants.CropThumbnailToSquareKey
 import moe.koiverse.archivetune.constants.DisableBlurKey
+import moe.koiverse.archivetune.constants.BlurRadiusKey
+import moe.koiverse.archivetune.constants.UseLyricsV2Key
 import moe.koiverse.archivetune.ui.component.DefaultDialog
 import moe.koiverse.archivetune.ui.component.EnumListPreference
 import moe.koiverse.archivetune.ui.component.IconButton
 import moe.koiverse.archivetune.ui.component.ListPreference
-import moe.koiverse.archivetune.ui.component.PlayerSliderTrack
 import moe.koiverse.archivetune.ui.component.PreferenceEntry
 import moe.koiverse.archivetune.ui.component.PreferenceGroupTitle
 import moe.koiverse.archivetune.ui.component.SwitchPreference
 import moe.koiverse.archivetune.ui.component.ThumbnailCornerRadiusSelectorButton
+import moe.koiverse.archivetune.ui.player.StyledPlaybackSlider
 import moe.koiverse.archivetune.ui.utils.backToMain
+import moe.koiverse.archivetune.utils.isLowRamDevice
 import moe.koiverse.archivetune.utils.rememberEnumPreference
 import moe.koiverse.archivetune.utils.rememberPreference
-import me.saket.squiggles.SquigglySlider
 import kotlin.math.roundToInt
-import timber.log.Timber
+
+private val NoEnterTransition = EnterTransition.None
+private val NoExitTransition = ExitTransition.None
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -113,9 +134,15 @@ fun AppearanceSettings(
     navController: NavController,
     scrollBehavior: TopAppBarScrollBehavior,
 ) {
+    val context = LocalContext.current
+    val defaultDisableAnimations = remember(context) { context.isLowRamDevice() }
     val (dynamicTheme, onDynamicThemeChange) = rememberPreference(
         DynamicThemeKey,
         defaultValue = true
+    )
+    val (randomThemeOnStartup, onRandomThemeOnStartupChange) = rememberPreference(
+        RandomThemeOnStartupKey,
+        defaultValue = false
     )
     val (darkMode, onDarkModeChange) = rememberEnumPreference(
         DarkModeKey,
@@ -123,23 +150,23 @@ fun AppearanceSettings(
     )
     val (playerDesignStyle, onPlayerDesignStyleChange) = rememberEnumPreference(
         PlayerDesignStyleKey,
-        defaultValue = PlayerDesignStyle.V2
-    )
-    val (useNewMiniPlayerDesign, onUseNewMiniPlayerDesignChange) = rememberPreference(
-        UseNewMiniPlayerDesignKey,
-        defaultValue = true
-    )
-    val (useNewLibraryDesign, onUseNewLibraryDesignChange) = rememberPreference(
-        key = moe.koiverse.archivetune.constants.UseNewLibraryDesignKey,
-        defaultValue = true
+        defaultValue = PlayerDesignStyle.V4
     )
     val (hidePlayerThumbnail, onHidePlayerThumbnailChange) = rememberPreference(
         HidePlayerThumbnailKey,
         defaultValue = false
     )
+    val (archiveTuneCanvasEnabled, onArchiveTuneCanvasEnabledChange) = rememberPreference(
+        ArchiveTuneCanvasKey,
+        defaultValue = false
+    )
     val (thumbnailCornerRadius, onThumbnailCornerRadiusChange) = rememberPreference(
         key = ThumbnailCornerRadiusKey,
         defaultValue = 16f // default dp
+    )
+    val (cropThumbnailToSquare, onCropThumbnailToSquareChange) = rememberPreference(
+        CropThumbnailToSquareKey,
+        defaultValue = false
     )
     val (playerBackground, onPlayerBackgroundChange) =
         rememberEnumPreference(
@@ -148,6 +175,12 @@ fun AppearanceSettings(
         )
     val (pureBlack, onPureBlackChange) = rememberPreference(PureBlackKey, defaultValue = false)
     val (disableBlur, onDisableBlurChange) = rememberPreference(DisableBlurKey, defaultValue = false)
+    val (disableAnimations, onDisableAnimationsChange) = rememberPreference(
+        DisableAnimationsKey,
+        defaultValue = defaultDisableAnimations,
+    )
+    val (blurRadius, onBlurRadiusChange) = rememberPreference(BlurRadiusKey, defaultValue = 36f)
+    val (useSystemFont, onUseSystemFontChange) = rememberPreference(UseSystemFontKey, defaultValue = false)
     val (defaultOpenTab, onDefaultOpenTabChange) = rememberEnumPreference(
         DefaultOpenTabKey,
         defaultValue = NavigationTab.HOME
@@ -168,10 +201,11 @@ fun AppearanceSettings(
     val (lyricsScroll, onLyricsScrollChange) = rememberPreference(LyricsScrollKey, defaultValue = true)
     val (lyricsTextSize, onLyricsTextSizeChange) = rememberPreference(LyricsTextSizeKey, defaultValue = 26f)
     val (lyricsLineSpacing, onLyricsLineSpacingChange) = rememberPreference(LyricsLineSpacingKey, defaultValue = 1.3f)
+    val (useLyricsV2, onUseLyricsV2Change) = rememberPreference(UseLyricsV2Key, defaultValue = false)
 
     val (sliderStyle, onSliderStyleChange) = rememberEnumPreference(
         SliderStyleKey,
-        defaultValue = SliderStyle.DEFAULT
+        defaultValue = SliderStyle.Standard
     )
     val (swipeThumbnail, onSwipeThumbnailChange) = rememberPreference(
         SwipeThumbnailKey,
@@ -184,11 +218,6 @@ fun AppearanceSettings(
     val (gridItemSize, onGridItemSizeChange) = rememberEnumPreference(
         GridItemsSizeKey,
         defaultValue = GridItemSize.SMALL
-    )
-
-    val (slimNav, onSlimNavChange) = rememberPreference(
-        SlimNavBarKey,
-        defaultValue = false
     )
 
     val (swipeToSong, onSwipeToSongChange) = rememberPreference(
@@ -216,10 +245,15 @@ fun AppearanceSettings(
         ShowTagsInLibraryKey,
         defaultValue = true
     )
+    val (showHomeCategoryChips, onShowHomeCategoryChipsChange) = rememberPreference(
+        ShowHomeCategoryChipsKey,
+        defaultValue = true
+    )
 
     val availableBackgroundStyles = PlayerBackgroundStyle.entries.filter {
         it != PlayerBackgroundStyle.BLUR || Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
     }
+    val isArchiveTuneCanvasAvailable = playerDesignStyle != PlayerDesignStyle.V7
 
     val isSystemInDarkTheme = isSystemInDarkTheme()
     val useDarkTheme =
@@ -237,10 +271,20 @@ fun AppearanceSettings(
     }
 
     if (showSliderOptionDialog) {
+        val sliderStyles = remember {
+            listOf(
+                SliderStyle.Standard,
+                SliderStyle.Wavy,
+                SliderStyle.Thick,
+                SliderStyle.Circular,
+                SliderStyle.Simple
+            )
+        }
         DefaultDialog(
             buttons = {
                 TextButton(
-                    onClick = { showSliderOptionDialog = false }
+                    onClick = { showSliderOptionDialog = false },
+                    shapes = ButtonDefaults.shapes(),
                 ) {
                     Text(text = stringResource(android.R.string.cancel))
                 }
@@ -249,124 +293,29 @@ fun AppearanceSettings(
                 showSliderOptionDialog = false
             }
         ) {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            Column(
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                    modifier = Modifier
-                        .aspectRatio(1f)
-                        .weight(1f)
-                        .clip(RoundedCornerShape(16.dp))
-                        .border(
-                            1.dp,
-                            if (sliderStyle == SliderStyle.DEFAULT) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
-                            RoundedCornerShape(16.dp)
-                        )
-                        .clickable {
-                            onSliderStyleChange(SliderStyle.DEFAULT)
-                            showSliderOptionDialog = false
-                        }
-                        .padding(16.dp)
-                ) {
-                    var sliderValue by remember {
-                        mutableFloatStateOf(0.5f)
-                    }
-                    Slider(
-                        value = sliderValue,
-                        valueRange = 0f..1f,
-                        onValueChange = {
-                            sliderValue = it
-                        },
-                        modifier = Modifier.weight(1f)
-                    )
-                    Text(
-                        text = stringResource(R.string.default_),
-                        style = MaterialTheme.typography.labelLarge
-                    )
-                }
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                    modifier = Modifier
-                        .aspectRatio(1f)
-                        .weight(1f)
-                        .clip(RoundedCornerShape(16.dp))
-                        .border(
-                            1.dp,
-                            if (sliderStyle == SliderStyle.SQUIGGLY) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
-                            RoundedCornerShape(16.dp)
-                        )
-                        .clickable {
-                            onSliderStyleChange(SliderStyle.SQUIGGLY)
-                            showSliderOptionDialog = false
-                        }
-                        .padding(16.dp)
-                ) {
-                    var sliderValue by remember {
-                        mutableFloatStateOf(0.5f)
-                    }
-                    SquigglySlider(
-                        value = sliderValue,
-                        valueRange = 0f..1f,
-                        onValueChange = {
-                            sliderValue = it
-                        },
-                        modifier = Modifier.weight(1f)
-                    )
-                    Text(
-                        text = stringResource(R.string.squiggly),
-                        style = MaterialTheme.typography.labelLarge
-                    )
-                }
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                    modifier = Modifier
-                        .aspectRatio(1f)
-                        .weight(1f)
-                        .clip(RoundedCornerShape(16.dp))
-                        .border(
-                            1.dp,
-                            if (sliderStyle == SliderStyle.SLIM) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
-                            RoundedCornerShape(16.dp)
-                        )
-                        .clickable {
-                            onSliderStyleChange(SliderStyle.SLIM)
-                            showSliderOptionDialog = false
-                        }
-                        .padding(16.dp)
-                ) {
-                    var sliderValue by remember {
-                        mutableFloatStateOf(0.5f)
-                    }
-                    Slider(
-                        value = sliderValue,
-                        valueRange = 0f..1f,
-                        onValueChange = {
-                            sliderValue = it
-                        },
-                        thumb = { Spacer(modifier = Modifier.size(0.dp)) },
-                        track = { sliderState ->
-                            PlayerSliderTrack(
-                                sliderState = sliderState,
-                                colors = SliderDefaults.colors()
+                sliderStyles.chunked(3).forEach { styleRow ->
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        styleRow.forEach { style ->
+                            SliderStyleOptionCard(
+                                sliderStyle = style,
+                                selected = sliderStyle == style,
+                                onClick = {
+                                    onSliderStyleChange(style)
+                                    showSliderOptionDialog = false
+                                },
+                                modifier = Modifier.weight(1f)
                             )
-                        },
-                        modifier = Modifier
-                            .weight(1f)
-                            .pointerInput(Unit) {
-                                detectTapGestures(
-                                    onPress = {}
-                                )
-                            }
-                    )
-
-                    Text(
-                        text = stringResource(R.string.slim),
-                        style = MaterialTheme.typography.labelLarge
-                    )
+                        }
+                        repeat(3 - styleRow.size) {
+                            Spacer(modifier = Modifier.weight(1f))
+                        }
+                    }
                 }
             }
         }
@@ -388,7 +337,25 @@ fun AppearanceSettings(
             onCheckedChange = onDynamicThemeChange,
         )
 
-        AnimatedVisibility(visible = !dynamicTheme) {
+        AnimatedVisibility(
+            visible = !dynamicTheme || Build.VERSION.SDK_INT < Build.VERSION_CODES.S,
+            enter = if (disableAnimations) NoEnterTransition else fadeIn(),
+            exit = if (disableAnimations) NoExitTransition else fadeOut(),
+        ) {
+            SwitchPreference(
+                title = { Text(stringResource(R.string.random_theme_on_startup)) },
+                description = stringResource(R.string.random_theme_on_startup_desc),
+                icon = { Icon(painterResource(R.drawable.shuffle), null) },
+                checked = randomThemeOnStartup,
+                onCheckedChange = onRandomThemeOnStartupChange,
+            )
+        }
+
+        AnimatedVisibility(
+            visible = !dynamicTheme || Build.VERSION.SDK_INT < Build.VERSION_CODES.S,
+            enter = if (disableAnimations) NoEnterTransition else fadeIn(),
+            exit = if (disableAnimations) NoExitTransition else fadeOut(),
+        ) {
             PreferenceEntry(
                 title = { Text(stringResource(R.string.color_palette)) },
                 description = stringResource(R.string.customize_theme_colors),
@@ -411,7 +378,11 @@ fun AppearanceSettings(
             },
         )
 
-        AnimatedVisibility(useDarkTheme) {
+        AnimatedVisibility(
+            visible = useDarkTheme,
+            enter = if (disableAnimations) NoEnterTransition else fadeIn(),
+            exit = if (disableAnimations) NoExitTransition else fadeOut(),
+        ) {
             SwitchPreference(
                 title = { Text(stringResource(R.string.pure_black)) },
                 icon = { Icon(painterResource(R.drawable.contrast), null) },
@@ -426,6 +397,40 @@ fun AppearanceSettings(
             icon = { Icon(painterResource(R.drawable.blur_off), null) },
             checked = disableBlur,
             onCheckedChange = onDisableBlurChange,
+        )
+
+        SwitchPreference(
+            title = { Text(stringResource(R.string.disable_animations)) },
+            description = stringResource(R.string.disable_animations_desc),
+            icon = { Icon(painterResource(R.drawable.animation), null) },
+            checked = disableAnimations,
+            onCheckedChange = onDisableAnimationsChange,
+        )
+
+        PreferenceEntry(
+            title = { Text(stringResource(R.string.blur_intensity)) },
+            description = stringResource(R.string.blur_intensity_value, blurRadius.roundToInt()),
+            icon = { Icon(painterResource(R.drawable.blur_on), null) },
+            isEnabled = !disableBlur,
+            content = {
+                Spacer(modifier = Modifier.height(10.dp))
+                Slider(
+                    value = blurRadius,
+                    onValueChange = onBlurRadiusChange,
+                    valueRange = 0f..48f,
+                    steps = 47,
+                    enabled = !disableBlur,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        )
+
+        SwitchPreference(
+            title = { Text(stringResource(R.string.use_system_font)) },
+            description = stringResource(R.string.use_system_font_desc),
+            icon = { Icon(painterResource(R.drawable.text_fields), null) },
+            checked = useSystemFont,
+            onCheckedChange = onUseSystemFontChange,
         )
 
         PreferenceGroupTitle(
@@ -443,23 +448,11 @@ fun AppearanceSettings(
                     PlayerDesignStyle.V2 -> stringResource(R.string.player_design_v2)
                     PlayerDesignStyle.V3 -> stringResource(R.string.player_design_v3)
                     PlayerDesignStyle.V4 -> stringResource(R.string.player_design_v4)
+                    PlayerDesignStyle.V5 -> stringResource(R.string.player_design_v5)
+                    PlayerDesignStyle.V6 -> stringResource(R.string.player_design_v6)
+                    PlayerDesignStyle.V7 -> stringResource(R.string.player_design_v7)
                 }
             },
-        )
-
-        SwitchPreference(
-            title = { Text(stringResource(R.string.new_mini_player_design)) },
-            icon = { Icon(painterResource(R.drawable.nav_bar), null) },
-            checked = useNewMiniPlayerDesign,
-            onCheckedChange = onUseNewMiniPlayerDesignChange,
-        )
-
-        SwitchPreference(
-            title = { Text(stringResource(R.string.new_library_design)) },
-            description = stringResource(R.string.new_library_design_description),
-            icon = { Icon(painterResource(R.drawable.grid_view), null) },
-            checked = useNewLibraryDesign,
-            onCheckedChange = onUseNewLibraryDesignChange,
         )
 
         EnumListPreference(
@@ -497,13 +490,31 @@ fun AppearanceSettings(
             checked = hidePlayerThumbnail,
             onCheckedChange = onHidePlayerThumbnailChange
         )
+
+        SwitchPreference(
+            title = { Text(stringResource(R.string.archivetune_canvas)) },
+            description = if (isArchiveTuneCanvasAvailable) {
+                stringResource(R.string.archivetune_canvas_desc)
+            } else {
+                stringResource(R.string.archivetune_canvas_v7_desc)
+            },
+            icon = { Icon(painterResource(R.drawable.motion_photos_on), null) },
+            checked = archiveTuneCanvasEnabled && isArchiveTuneCanvasAvailable,
+            onCheckedChange = onArchiveTuneCanvasEnabledChange,
+            isEnabled = isArchiveTuneCanvasAvailable,
+        )
       
 
         ThumbnailCornerRadiusSelectorButton(
-            modifier = Modifier.padding(16.dp),
-            onRadiusSelected = { selectedRadius ->
-                Timber.tag("Thumbnail").d("Radius Selector: $selectedRadius")
-            }
+            onRadiusSelected = {}
+        )
+
+        SwitchPreference(
+            title = { Text(stringResource(R.string.crop_thumbnail_to_square)) },
+            description = stringResource(R.string.crop_thumbnail_to_square_desc),
+            icon = { Icon(painterResource(R.drawable.image), null) },
+            checked = cropThumbnailToSquare,
+            onCheckedChange = onCropThumbnailToSquareChange
         )
 
 
@@ -522,12 +533,7 @@ fun AppearanceSettings(
 
         PreferenceEntry(
             title = { Text(stringResource(R.string.player_slider_style)) },
-            description =
-                when (sliderStyle) {
-                    SliderStyle.DEFAULT -> stringResource(R.string.default_)
-                    SliderStyle.SQUIGGLY -> stringResource(R.string.squiggly)
-                    SliderStyle.SLIM -> stringResource(R.string.slim)
-                },
+            description = sliderStyleLabel(sliderStyle),
             icon = { Icon(painterResource(R.drawable.sliders), null) },
             onClick = {
                 showSliderOptionDialog = true
@@ -541,7 +547,11 @@ fun AppearanceSettings(
             onCheckedChange = onSwipeThumbnailChange,
         )
 
-        AnimatedVisibility(swipeThumbnail) {
+        AnimatedVisibility(
+            visible = swipeThumbnail,
+            enter = if (disableAnimations) NoEnterTransition else fadeIn(),
+            exit = if (disableAnimations) NoExitTransition else fadeOut(),
+        ) {
             var showSensitivityDialog by rememberSaveable { mutableStateOf(false) }
             
             if (showSensitivityDialog) {
@@ -556,7 +566,8 @@ fun AppearanceSettings(
                         TextButton(
                             onClick = { 
                                 tempSensitivity = 0.73f
-                            }
+                            },
+                            shapes = ButtonDefaults.shapes(),
                         ) {
                             Text(stringResource(R.string.reset))
                         }
@@ -567,7 +578,8 @@ fun AppearanceSettings(
                             onClick = { 
                                 tempSensitivity = swipeSensitivity
                                 showSensitivityDialog = false 
-                            }
+                            },
+                            shapes = ButtonDefaults.shapes(),
                         ) {
                             Text(stringResource(android.R.string.cancel))
                         }
@@ -575,7 +587,8 @@ fun AppearanceSettings(
                             onClick = { 
                                 onSwipeSensitivityChange(tempSensitivity)
                                 showSensitivityDialog = false 
-                            }
+                            },
+                            shapes = ButtonDefaults.shapes(),
                         ) {
                             Text(stringResource(android.R.string.ok))
                         }
@@ -617,6 +630,14 @@ fun AppearanceSettings(
 
         PreferenceGroupTitle(
             title = stringResource(R.string.lyrics),
+        )
+
+        SwitchPreference(
+            title = { Text("Lyrics V2 (Experimental)") },
+            description = "Use the new fluid word-synced lyrics engine",
+            icon = { Icon(painterResource(R.drawable.lyrics), null) },
+            checked = useLyricsV2,
+            onCheckedChange = onUseLyricsV2Change,
         )
 
         EnumListPreference(
@@ -678,7 +699,8 @@ fun AppearanceSettings(
                     TextButton(
                         onClick = { 
                             tempTextSize = 24f
-                        }
+                        },
+                        shapes = ButtonDefaults.shapes(),
                     ) {
                         Text(stringResource(R.string.reset))
                     }
@@ -689,7 +711,8 @@ fun AppearanceSettings(
                         onClick = { 
                             tempTextSize = lyricsTextSize
                             showLyricsTextSizeDialog = false 
-                        }
+                        },
+                        shapes = ButtonDefaults.shapes(),
                     ) {
                         Text(stringResource(android.R.string.cancel))
                     }
@@ -697,7 +720,8 @@ fun AppearanceSettings(
                         onClick = { 
                             onLyricsTextSizeChange(tempTextSize)
                             showLyricsTextSizeDialog = false 
-                        }
+                        },
+                        shapes = ButtonDefaults.shapes(),
                     ) {
                         Text(stringResource(android.R.string.ok))
                     }
@@ -751,7 +775,8 @@ fun AppearanceSettings(
                     TextButton(
                         onClick = { 
                             tempLineSpacing = 1.3f
-                        }
+                        },
+                        shapes = ButtonDefaults.shapes(),
                     ) {
                         Text(stringResource(R.string.reset))
                     }
@@ -762,7 +787,8 @@ fun AppearanceSettings(
                         onClick = { 
                             tempLineSpacing = lyricsLineSpacing
                             showLyricsLineSpacingDialog = false 
-                        }
+                        },
+                        shapes = ButtonDefaults.shapes(),
                     ) {
                         Text(stringResource(android.R.string.cancel))
                     }
@@ -770,7 +796,8 @@ fun AppearanceSettings(
                         onClick = { 
                             onLyricsLineSpacingChange(tempLineSpacing)
                             showLyricsLineSpacingDialog = false 
-                        }
+                        },
+                        shapes = ButtonDefaults.shapes(),
                     ) {
                         Text(stringResource(android.R.string.ok))
                     }
@@ -849,6 +876,14 @@ fun AppearanceSettings(
         )
 
         SwitchPreference(
+            title = { Text(stringResource(R.string.show_home_category_chips)) },
+            description = stringResource(R.string.show_home_category_chips_desc),
+            icon = { Icon(painterResource(R.drawable.home_outlined), null) },
+            checked = showHomeCategoryChips,
+            onCheckedChange = onShowHomeCategoryChipsChange,
+        )
+
+        SwitchPreference(
             title = { Text(stringResource(R.string.show_tags_in_library)) },
             description = stringResource(R.string.show_tags_in_library_desc),
             icon = { Icon(painterResource(R.drawable.filter_alt), null) },
@@ -863,12 +898,6 @@ fun AppearanceSettings(
             onCheckedChange = onSwipeToSongChange
         )
 
-        SwitchPreference(
-            title = { Text(stringResource(R.string.slim_navbar)) },
-            icon = { Icon(painterResource(R.drawable.nav_bar), null) },
-            checked = slimNav,
-            onCheckedChange = onSlimNavChange
-        )
 
         EnumListPreference(
             title = { Text(stringResource(R.string.grid_cell_size)) },
@@ -930,6 +959,62 @@ fun AppearanceSettings(
             }
         }
     )
+}
+
+@Composable
+private fun SliderStyleOptionCard(
+    sliderStyle: SliderStyle,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var sliderValue by remember {
+        mutableFloatStateOf(0.5f)
+    }
+
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = modifier
+            .aspectRatio(1f)
+            .clip(RoundedCornerShape(16.dp))
+            .border(
+                1.dp,
+                if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
+                RoundedCornerShape(16.dp)
+            )
+            .clickable(onClick = onClick)
+            .padding(16.dp)
+    ) {
+        StyledPlaybackSlider(
+            sliderStyle = sliderStyle,
+            value = sliderValue,
+            valueRange = 0f..1f,
+            onValueChange = { sliderValue = it },
+            onValueChangeFinished = {},
+            activeColor = MaterialTheme.colorScheme.primary,
+            isPlaying = true,
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth()
+        )
+
+        Text(
+            text = sliderStyleLabel(sliderStyle),
+            style = MaterialTheme.typography.labelLarge
+        )
+    }
+}
+
+@Composable
+private fun sliderStyleLabel(sliderStyle: SliderStyle): String {
+    return when (sliderStyle) {
+        SliderStyle.Standard -> stringResource(R.string.slider_style_standard)
+        SliderStyle.Wavy -> stringResource(R.string.slider_style_wavy)
+        SliderStyle.Thick -> stringResource(R.string.slider_style_thick)
+        SliderStyle.Circular -> stringResource(R.string.slider_style_circular)
+        SliderStyle.Simple -> stringResource(R.string.slider_style_simple)
+    }
 }
 
 enum class DarkMode {

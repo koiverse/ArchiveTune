@@ -1,3 +1,13 @@
+/*
+ * ArchiveTune Project Original (2026)
+ * Chartreux Westia (github.com/koiverse)
+ * Licensed Under GPL-3.0 | see git history for contributors
+ * Don't remove this copyright holder!
+ */
+
+
+
+
 package moe.koiverse.archivetune.models
 
 import androidx.compose.runtime.Immutable
@@ -22,16 +32,28 @@ data class MediaMetadata(
     val likedDate: LocalDateTime? = null,
     val inLibrary: LocalDateTime? = null,
 ) : Serializable {
+    companion object {
+        private const val serialVersionUID = 1L
+    }
+
     data class Artist(
         val id: String?,
         val name: String,
         val thumbnailUrl: String? = null,
-    ) : Serializable
+    ) : Serializable {
+        companion object {
+            private const val serialVersionUID = 1L
+        }
+    }
 
     data class Album(
         val id: String,
         val title: String,
-    ) : Serializable
+    ) : Serializable {
+        companion object {
+            private const val serialVersionUID = 1L
+        }
+    }
 
     fun toSongEntity() =
         SongEntity(

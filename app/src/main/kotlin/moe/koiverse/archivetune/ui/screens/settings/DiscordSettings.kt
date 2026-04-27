@@ -1,3 +1,13 @@
+/*
+ * ArchiveTune Project Original (2026)
+ * Chartreux Westia (github.com/koiverse)
+ * Licensed Under GPL-3.0 | see git history for contributors
+ * Don't remove this copyright holder!
+ */
+
+
+@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
+
 package moe.koiverse.archivetune.ui.screens.settings
 
 import android.content.Intent
@@ -176,6 +186,7 @@ fun DiscordSettings(
                 TextButton(
                     onClick = { infoDismissed = true },
                     modifier = Modifier.align(Alignment.End).padding(16.dp),
+                    shapes = ButtonDefaults.shapes(),
                 ) {
                     Text(stringResource(R.string.dismiss))
                 }
@@ -203,11 +214,11 @@ fun DiscordSettings(
             icon = { Icon(painterResource(R.drawable.discord), null) },
             trailingContent = {
                 if (isLoggedIn) {
-                        OutlinedButton(onClick = { showLogoutConfirm = true }) { Text(stringResource(R.string.action_logout)) }
+                        OutlinedButton(onClick = { showLogoutConfirm = true }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.action_logout)) }
                     } else {
                     OutlinedButton(onClick = {
                         navController.navigate("settings/discord/login")
-                    }) { Text(stringResource(R.string.action_login)) }
+                    }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.action_login)) }
                 }
             },
         )
@@ -223,10 +234,10 @@ fun DiscordSettings(
                             discordToken = ""
                             discordUsername = ""
                             showLogoutConfirm = false
-                        }) { Text(stringResource(R.string.logout_confirm_yes)) }
+                        }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.logout_confirm_yes)) }
                     },
                     dismissButton = {
-                        TextButton(onClick = { showLogoutConfirm = false }) { Text(stringResource(R.string.logout_confirm_no)) }
+                        TextButton(onClick = { showLogoutConfirm = false }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.logout_confirm_no)) }
                     }
                 )
             }
@@ -306,9 +317,8 @@ fun DiscordSettings(
         isEnabled = discordRPC,
         trailingContent = {
            if (isRefreshing) {
-                CircularProgressIndicator(
+                CircularWavyProgressIndicator(
                 modifier = Modifier.size(28.dp),
-                strokeWidth = 2.dp
             )
         } else {
             OutlinedButton(
@@ -336,7 +346,8 @@ fun DiscordSettings(
                             }
                         }
                     }
-                }
+                },
+                shapes = ButtonDefaults.shapes(),
             ) {
                 Text(stringResource(R.string.refresh))
             }
@@ -895,7 +906,7 @@ fun EditablePreference(
         description = description ?: if (value.isEmpty()) defaultValue else value,
         icon = { Icon(painterResource(iconRes), null) },
         trailingContent = {
-            TextButton(onClick = { showDialog = true }) { Text("Edit") }
+            TextButton(onClick = { showDialog = true }, shapes = ButtonDefaults.shapes()) { Text("Edit") }
         }
     )
     if (showDialog) {
@@ -906,10 +917,10 @@ fun EditablePreference(
                 TextButton(onClick = {
                     onValueChange(if (text.isBlank()) "" else text)
                     showDialog = false
-                }) { Text("Save") }
+                }, shapes = ButtonDefaults.shapes()) { Text("Save") }
             },
             dismissButton = {
-                TextButton(onClick = { showDialog = false }) { Text("Cancel") }
+                TextButton(onClick = { showDialog = false }, shapes = ButtonDefaults.shapes()) { Text("Cancel") }
             },
             title = { Text("Edit $title") },
             text = {
@@ -1136,7 +1147,8 @@ fun RichPresence(
                               context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(it)))
                          }
                      },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        shapes = ButtonDefaults.shapes(),
                         ) {
                             Text(button1Label.ifBlank { "Listen on YouTube Music" })
                         }
@@ -1150,7 +1162,8 @@ fun RichPresence(
                               context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(it)))
                         }
                      },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        shapes = ButtonDefaults.shapes(),
                         ) {
                             Text(button2Label.ifBlank { "View Album" })
                         }
@@ -1188,8 +1201,8 @@ fun SongProgressBar(
 
     Column(modifier = Modifier.fillMaxWidth()) {
         Spacer(modifier = Modifier.height(8.dp))
-        LinearProgressIndicator(
-            progress = progress.coerceIn(0f, 1f),
+        LinearWavyProgressIndicator(
+            progress = { progress.coerceIn(0f, 1f) },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(6.dp)

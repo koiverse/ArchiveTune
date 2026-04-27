@@ -1,3 +1,13 @@
+/*
+ * ArchiveTune Project Original (2026)
+ * Chartreux Westia (github.com/koiverse)
+ * Licensed Under GPL-3.0 | see git history for contributors
+ * Don't remove this copyright holder!
+ */
+
+
+
+
 package moe.koiverse.archivetune.db.entities
 
 import androidx.compose.runtime.Immutable
@@ -28,6 +38,7 @@ data class PlaylistEntity(
     val thumbnailUrl: String? = null,
     val shuffleEndpointParams: String? = null,
     val radioEndpointParams: String? = null,
+    val customOrder: Int? = null,
     @ColumnInfo(name = "isLocal", defaultValue = "0")
     val isLocal: Boolean = false,
     @ColumnInfo(name = "isAutoSync", defaultValue = "0")
@@ -52,9 +63,11 @@ data class PlaylistEntity(
     )
 
     fun toggleLike() = localToggleLike().also {
+        if (isLocal) return@also
         CoroutineScope(Dispatchers.IO).launch {
-            if (browseId != null)
+            if (browseId != null) {
                 YouTube.likePlaylist(browseId, bookmarkedAt == null)
+            }
             this.cancel()
         }
     }

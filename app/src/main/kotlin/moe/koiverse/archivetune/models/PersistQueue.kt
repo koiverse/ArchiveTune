@@ -1,3 +1,13 @@
+/*
+ * ArchiveTune Project Original (2026)
+ * Chartreux Westia (github.com/koiverse)
+ * Licensed Under GPL-3.0 | see git history for contributors
+ * Don't remove this copyright holder!
+ */
+
+
+
+
 package moe.koiverse.archivetune.models
 
 import java.io.Serializable
@@ -9,27 +19,47 @@ data class PersistQueue(
     val position: Long,
     val queueType: QueueType = QueueType.LIST,
     val queueData: QueueData? = null,
-) : Serializable
+) : Serializable {
+    companion object {
+        private const val serialVersionUID = 1L
+    }
+}
 
 sealed class QueueType : Serializable {
-    object LIST : QueueType()
-    object YOUTUBE : QueueType()
-    object YOUTUBE_ALBUM_RADIO : QueueType()
-    object LOCAL_ALBUM_RADIO : QueueType()
+    object LIST : QueueType() {
+        private const val serialVersionUID = 1L
+    }
+    object YOUTUBE : QueueType() {
+        private const val serialVersionUID = 1L
+    }
+    object YOUTUBE_ALBUM_RADIO : QueueType() {
+        private const val serialVersionUID = 1L
+    }
+    object LOCAL_ALBUM_RADIO : QueueType() {
+        private const val serialVersionUID = 1L
+    }
 }
 
 sealed class QueueData : Serializable {
     data class YouTubeData(
         val endpoint: String,
         val continuation: String? = null
-    ) : QueueData()
+    ) : QueueData() {
+        companion object {
+            private const val serialVersionUID = 1L
+        }
+    }
     
     data class YouTubeAlbumRadioData(
         val playlistId: String,
         val albumSongCount: Int = 0,
         val continuation: String? = null,
         val firstTimeLoaded: Boolean = false
-    ) : QueueData()
+    ) : QueueData() {
+        companion object {
+            private const val serialVersionUID = 1L
+        }
+    }
     
     data class LocalAlbumRadioData(
         val albumId: String,
@@ -37,5 +67,9 @@ sealed class QueueData : Serializable {
         val playlistId: String? = null,
         val continuation: String? = null,
         val firstTimeLoaded: Boolean = false
-    ) : QueueData()
+    ) : QueueData() {
+        companion object {
+            private const val serialVersionUID = 1L
+        }
+    }
 }

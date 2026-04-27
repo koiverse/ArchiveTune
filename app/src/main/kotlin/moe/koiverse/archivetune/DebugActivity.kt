@@ -1,6 +1,17 @@
+/*
+ * ArchiveTune Project Original (2026)
+ * Chartreux Westia (github.com/koiverse)
+ * Licensed Under GPL-3.0 | see git history for contributors
+ * Don't remove this copyright holder!
+ */
+
+
+
+
+@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
+
 package moe.koiverse.archivetune
 
-import android.app.Activity
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
@@ -24,6 +35,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -35,7 +47,6 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
@@ -61,29 +72,48 @@ class DebugActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         val stack = intent.getStringExtra(EXTRA_STACK_TRACE) ?: "No stack trace available"
+        val previewText = stack.lineSequence().firstOrNull()?.take(100) ?: "Unknown error"
+        val timestampText = runCatching {
+            SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())
+        }.getOrDefault("")
+        val reportText = buildCrashReport(this, timestampText, stack)
+        val deviceInfo = buildDeviceInfo(this)
 
         setContent {
             ArchiveTuneTheme {
-                CrashReportScreen(stack = stack, activity = this)
+                CrashReportScreen(
+                    previewText = previewText,
+                    timestampText = timestampText,
+                    deviceInfo = deviceInfo,
+                    stack = stack,
+                    reportText = reportText,
+                    onRestart = {
+                        runCatching {
+                            val intent = Intent(this, MainActivity::class.java).apply {
+                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+                            }
+                            startActivity(intent)
+                        }
+                    },
+                    onClose = { finish() },
+                )
             }
         }
     }
 }
 
 @Composable
-private fun CrashReportScreen(stack: String, activity: Activity) {
+private fun CrashReportScreen(
+    previewText: String,
+    timestampText: String,
+    deviceInfo: List<Pair<String, String>>,
+    stack: String,
+    reportText: String,
+    onRestart: () -> Unit,
+    onClose: () -> Unit,
+) {
     val context = LocalContext.current
-    val previewText = remember(stack) {
-        stack.lineSequence().firstOrNull()?.take(100) ?: "Unknown error"
-    }
     val clipboard = LocalClipboardManager.current
-    val timestampText = remember {
-        runCatching {
-            SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())
-        }.getOrDefault("")
-    }
-    val reportText = remember(stack) { buildCrashReport(context, timestampText, stack) }
-    val deviceInfo = remember { buildDeviceInfo(context) }
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -102,15 +132,8 @@ private fun CrashReportScreen(stack: String, activity: Activity) {
                 }
                 context.startActivity(Intent.createChooser(share, "Share crash log"))
             },
-            onRestart = {
-                runCatching {
-                    val intent = Intent(activity, MainActivity::class.java).apply {
-                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
-                    }
-                    activity.startActivity(intent)
-                }
-            },
-            onClose = { activity.finish() },
+            onRestart = onRestart,
+            onClose = onClose,
         )
     }
 }
@@ -284,16 +307,16 @@ private fun CrashReportScaffold(
                 Button(
                     onClick = onRestart,
                     modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(14.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                    shapes = ButtonDefaults.shapes(),
                 ) {
                     Text("Restart")
                 }
                 Button(
                     onClick = onClose,
                     modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(14.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                    shapes = ButtonDefaults.shapes(),
                 ) {
                     Text("Close")
                 }
@@ -349,8 +372,17 @@ private fun buildCrashReport(
     val header = buildString {
         appendLine("ArchiveTune crash report")
         if (timestampText.isNotBlank()) appendLine("Time: $timestampText")
-        if (versionName.isNotBlank() || versionCode.isNotBlank()) {
-            appendLine("App: $versionName ($versionCode)")
+        val appVersionLabel = when {
+            versionName.isNotBlank() && versionCode.isNotBlank() -> {
+                "${formatVersionName(versionName)} ($versionCode)"
+            }
+
+            versionName.isNotBlank() -> formatVersionName(versionName)
+            versionCode.isNotBlank() -> versionCode
+            else -> null
+        }
+        if (appVersionLabel != null) {
+            appendLine("App: $appVersionLabel")
         }
         appendLine("Package: $packageName")
     }

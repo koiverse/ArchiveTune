@@ -1,3 +1,13 @@
+/*
+ * ArchiveTune Project Original (2026)
+ * Chartreux Westia (github.com/koiverse)
+ * Licensed Under GPL-3.0 | see git history for contributors
+ * Don't remove this copyright holder!
+ */
+
+
+
+
 package moe.koiverse.archivetune.playback
 
 import android.app.Notification
@@ -45,17 +55,21 @@ class ExoDownloadService : DownloadService(
     override fun getForegroundNotification(
         downloads: MutableList<Download>,
         notMetRequirements: Int
-    ): Notification =
-        Notification.Builder.recoverBuilder(
-            this, downloadUtil.downloadNotificationHelper.buildProgressNotification(
-                this,
-                R.drawable.download,
-                null,
-                if (downloads.size == 1) Util.fromUtf8Bytes(downloads[0].request.data)
-                else resources.getQuantityString(R.plurals.n_song, downloads.size, downloads.size),
-                downloads,
-                notMetRequirements
-            )
+    ): Notification {
+        val progressNotification = downloadUtil.downloadNotificationHelper.buildProgressNotification(
+            this,
+            R.drawable.download,
+            null,
+            if (downloads.size == 1) Util.fromUtf8Bytes(downloads[0].request.data)
+            else resources.getQuantityString(R.plurals.n_song, downloads.size, downloads.size),
+            downloads,
+            notMetRequirements
+        )
+        progressNotification.actions = emptyArray<Notification.Action>()
+
+        return Notification.Builder.recoverBuilder(
+            this,
+            progressNotification
         ).addAction(
             Notification.Action.Builder(
                 Icon.createWithResource(this, R.drawable.close),
@@ -70,6 +84,7 @@ class ExoDownloadService : DownloadService(
                 )
             ).build()
         ).build()
+    }
 
 
     /**

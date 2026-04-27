@@ -1,3 +1,13 @@
+/*
+ * ArchiveTune Project Original (2026)
+ * Chartreux Westia (github.com/koiverse)
+ * Licensed Under GPL-3.0 | see git history for contributors
+ * Don't remove this copyright holder!
+ */
+
+
+
+
 package moe.koiverse.archivetune.innertube.models.response
 
 import moe.koiverse.archivetune.innertube.models.ResponseContext
@@ -39,7 +49,7 @@ data class PlayerResponse(
     data class StreamingData(
         val formats: List<Format>?,
         val adaptiveFormats: List<Format>,
-        val expiresInSeconds: Int,
+        val expiresInSeconds: Int? = null,
     ) {
         @Serializable
         data class Format(

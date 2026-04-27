@@ -1,3 +1,15 @@
+/*
+ * ArchiveTune Project Original (2026)
+ * Chartreux Westia (github.com/koiverse)
+ * Licensed Under GPL-3.0 | see git history for contributors
+ * Don't remove this copyright holder!
+ */
+
+
+
+
+@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
+
 package moe.koiverse.archivetune.ui.screens.settings
 
 import androidx.compose.foundation.Image
@@ -29,6 +41,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -59,6 +72,7 @@ import io.ktor.client.request.headers
 import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpStatusCode
+import moe.koiverse.archivetune.currentBuildHash
 import moe.koiverse.archivetune.constants.GitHubContributorsEtagKey
 import moe.koiverse.archivetune.constants.GitHubContributorsJsonKey
 import moe.koiverse.archivetune.constants.GitHubContributorsLastCheckedAtKey
@@ -163,24 +177,34 @@ private suspend fun fetchRepoContributorsNetwork(
 @Composable
 fun OutlinedIconChip(
     iconRes: Int,
-    text: String,
-    onClick: () -> Unit
+    contentDescription: String,
+    onClick: () -> Unit,
+    text: String? = null,
 ) {
     OutlinedButton(
         onClick = onClick,
-        shape = CircleShape,
         contentPadding = PaddingValues(
-            horizontal = 12.dp,
-            vertical = 6.dp
-        )
+            horizontal = if (text.isNullOrBlank()) 8.dp else 12.dp,
+            vertical = 6.dp,
+        ),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        colors = ButtonDefaults.outlinedButtonColors(
+            containerColor = Color.Transparent,
+            contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        ),
+        modifier = if (text.isNullOrBlank()) Modifier.size(32.dp) else Modifier,
+        shapes = ButtonDefaults.shapes(),
     ) {
         Icon(
             painter = painterResource(id = iconRes),
-            contentDescription = text,
-            modifier = Modifier.size(18.dp)
+            contentDescription = contentDescription,
+            modifier = Modifier.size(18.dp),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        Spacer(Modifier.width(6.dp))
-        Text(text = text, style = MaterialTheme.typography.labelLarge)
+        if (!text.isNullOrBlank()) {
+            Spacer(Modifier.width(6.dp))
+            Text(text = text, style = MaterialTheme.typography.labelLarge)
+        }
     }
 }
 
@@ -192,14 +216,14 @@ fun OutlinedIconChipMembers(
 ) {
     OutlinedButton(
         onClick = onClick,
-        shape = CircleShape,
         contentPadding = PaddingValues(6.dp),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
         colors = ButtonDefaults.outlinedButtonColors(
             containerColor = Color.Transparent,
             contentColor = MaterialTheme.colorScheme.onSurfaceVariant
         ),
-        modifier = Modifier.size(32.dp)
+        modifier = Modifier.size(32.dp),
+        shapes = ButtonDefaults.shapes(),
     ) {
         Icon(
             painter = painterResource(id = iconRes),
@@ -208,6 +232,25 @@ fun OutlinedIconChipMembers(
             tint = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
+}
+
+@Composable
+private fun AboutBadge(text: String) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.labelSmall,
+        color = MaterialTheme.colorScheme.secondary,
+        modifier = Modifier
+            .border(
+                width = 1.dp,
+                color = MaterialTheme.colorScheme.secondary,
+                shape = CircleShape,
+            )
+            .padding(
+                horizontal = 6.dp,
+                vertical = 2.dp,
+            ),
+    )
 }
 
 
@@ -223,6 +266,7 @@ fun AboutScreen(
     DisposableEffect(Unit) {
         onDispose { httpClient.close() }
     }
+    val nightlyBuildHash = currentBuildHash
     var contributorsState by remember { mutableStateOf<ContributorsState>(ContributorsState.Loading) }
     LaunchedEffect(Unit) {
         val cachedJson = context.dataStore.getAsync(GitHubContributorsJsonKey)
@@ -262,10 +306,10 @@ fun AboutScreen(
             return@LaunchedEffect
         }
 
-        context.dataStore.edit { prefs ->
-            prefs[GitHubContributorsLastCheckedAtKey] = now
-            networkResult.etag?.let { prefs[GitHubContributorsEtagKey] = it }
-            networkResult.body?.let { prefs[GitHubContributorsJsonKey] = it }
+        moe.koiverse.archivetune.utils.PreferenceStore.launchEdit(context.dataStore) {
+            this[GitHubContributorsLastCheckedAtKey] = now
+            networkResult.etag?.let { this[GitHubContributorsEtagKey] = it }
+            networkResult.body?.let { this[GitHubContributorsJsonKey] = it }
         }
 
         when {
@@ -290,16 +334,17 @@ fun AboutScreen(
         }
     }
 
-    val teamMembers = listOf(
-        TeamMember(
-            avatarUrl = "https://avatar-api.koiisannn.cloud/discord/avatar/886971572668219392",
-            name = "Koiverse",
-            position = "always on mode UwU",
-            profileUrl = "https://github.com/koiverse",
-            github = "https://github.com/koiverse",
-            website = "https://koiiverse.cloud", // If blank, hide OutlinedIconChip for website
-            discord = "https://discord.com/users/886971572668219392"
-        ),
+    val leadDeveloper = TeamMember(
+        avatarUrl = "https://avatar-api.koiisannn.cloud/discord/avatar/886971572668219392",
+        name = "Chartreux Westia",
+        position = "Eh?",
+        profileUrl = "https://github.com/koiverse",
+        github = "https://github.com/koiverse",
+        website = "https://koiiverse.cloud",
+        discord = "https://discord.com/users/886971572668219392"
+    )
+
+    val collaborators = listOf(
         TeamMember(
             avatarUrl = "https://avatars.githubusercontent.com/u/93458424?v=4",
             name = "WTTexe",
@@ -362,6 +407,7 @@ fun AboutScreen(
             Image(
                 painter = painterResource(R.drawable.about_splash),
                 contentDescription = null,
+                colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onBackground),
                 modifier = Modifier
                     .clip(CircleShape)
                     .background(MaterialTheme.colorScheme.surfaceContainer)
@@ -380,60 +426,19 @@ fun AboutScreen(
             }
 
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = BuildConfig.VERSION_NAME,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.secondary,
-                    modifier = Modifier
-                        .border(
-                            width = 1.dp,
-                            color = MaterialTheme.colorScheme.secondary,
-                            shape = CircleShape,
-                        )
-                        .padding(
-                            horizontal = 6.dp,
-                            vertical = 2.dp,
-                        ),
-                )
+                AboutBadge(text = BuildConfig.VERSION_NAME)
+
+                nightlyBuildHash?.let {
+                    Spacer(Modifier.width(4.dp))
+                    AboutBadge(text = it)
+                }
 
                 Spacer(Modifier.width(4.dp))
 
                 if (BuildConfig.DEBUG) {
-                    Spacer(Modifier.width(4.dp))
-
-                    Text(
-                        text = "DEBUG",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.secondary,
-                        modifier = Modifier
-                            .border(
-                                width = 1.dp,
-                                color = MaterialTheme.colorScheme.secondary,
-                                shape = CircleShape,
-                            )
-                            .padding(
-                                horizontal = 6.dp,
-                                vertical = 2.dp,
-                            ),
-                    )
+                    AboutBadge(text = "DEBUG")
                 } else {
-                    Spacer(Modifier.width(4.dp))
-
-                    Text(
-                        text = BuildConfig.ARCHITECTURE.uppercase(),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.secondary,
-                        modifier = Modifier
-                            .border(
-                                width = 1.dp,
-                                color = MaterialTheme.colorScheme.secondary,
-                                shape = CircleShape,
-                            )
-                            .padding(
-                                horizontal = 6.dp,
-                                vertical = 2.dp,
-                            ),
-                    )
+                    AboutBadge(text = BuildConfig.ARCHITECTURE.uppercase())
                 }
             }
 
@@ -467,137 +472,104 @@ fun AboutScreen(
                         contentDescription = null
                     )
                 }
+
+                Spacer(Modifier.width(8.dp))
+
+                IconButton(
+                    onClick = { uriHandler.openUri("https://t.me/ArchiveTuneGC") },
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.telegram),
+                        contentDescription = null
+                    )
+                }
+
+                Spacer(Modifier.width(8.dp))
+
+                IconButton(
+                    onClick = { uriHandler.openUri("https://sociabuzz.com/chrtrxwstia") },
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.coffee),
+                        contentDescription = null
+                    )
+                }
             }
+
+            Spacer(Modifier.height(16.dp))
+
+            SectionHeader(
+                title = "Lead Developer",
+                modifier = Modifier.padding(horizontal = 16.dp)
+            )
+
+            Spacer(Modifier.height(8.dp))
+
+            LeadDeveloperCard(
+                member = leadDeveloper,
+                onOpenUri = uriHandler::openUri,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+            )
+
+            Spacer(Modifier.height(24.dp))
+
+            SectionHeader(
+                title = "Collaborators",
+                modifier = Modifier.padding(horizontal = 16.dp)
+            )
 
             Spacer(Modifier.height(8.dp))
 
             Column(
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.fillMaxWidth()
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
             ) {
-                teamMembers.forEach { member ->
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 6.dp)
-                            .clickable(enabled = member.profileUrl != null) {
-                                member.profileUrl?.let { uriHandler.openUri(it) }
-                            },
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceContainer
-                        ),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-                        shape = RoundedCornerShape(20.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(14.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            AsyncImage(
-                                model = member.avatarUrl,
-                                contentDescription = member.name,
-                                modifier = Modifier
-                                    .size(56.dp)
-                                    .clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.surfaceVariant)
-                            )
-
-                            Spacer(Modifier.width(12.dp))
-
-                            Column(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .align(Alignment.CenterVertically)
-                            ) {
-                                Text(
-                                    text = member.name,
-                                    style = MaterialTheme.typography.titleMedium.copy(
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.onSurface
-                                    )
-                                )
-
-                                Spacer(Modifier.height(2.dp))
-
-                                Text(
-                                    text = member.position,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.secondary
-                                )
-
-                                Spacer(Modifier.height(4.dp))
-
-                                Row(
-                                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    member.github?.let {
-                                        OutlinedIconChipMembers(
-                                            iconRes = R.drawable.github,
-                                            onClick = { uriHandler.openUri(it) },
-                                            contentDescription = "GitHub"
-                                        )
-                                    }
-
-                                    member.website?.takeIf { it.isNotBlank() }?.let {
-                                        OutlinedIconChipMembers(
-                                            iconRes = R.drawable.website,
-                                            onClick = { uriHandler.openUri(it) },
-                                            contentDescription = "Website"
-                                        )
-                                    }
-
-                                    member.discord?.let {
-                                        OutlinedIconChipMembers(
-                                            iconRes = R.drawable.alternate_email,
-                                            onClick = { uriHandler.openUri(it) },
-                                            contentDescription = "Discord"
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 6.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainer
-                    ),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-                    shape = RoundedCornerShape(20.dp)
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(14.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.Center,
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Text(
-                                text = "Awesome contributor",
-                                style = MaterialTheme.typography.headlineSmall,
-                            )
-                        }
-                        Spacer(Modifier.height(12.dp))
-                        ContributorGrid(
-                            state = contributorsState,
-                            onOpenProfile = uriHandler::openUri,
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                    }
+                collaborators.forEach { member ->
+                    CollaboratorCard(
+                        member = member,
+                        onOpenUri = uriHandler::openUri,
+                    )
                 }
             }
+
+            Spacer(Modifier.height(24.dp))
+
+            SectionHeader(
+                title = "Contributors",
+                modifier = Modifier.padding(horizontal = 16.dp)
+            )
+
+            Spacer(Modifier.height(8.dp))
+
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainer
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                shape = RoundedCornerShape(20.dp)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(14.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    ContributorGrid(
+                        state = contributorsState,
+                        onOpenProfile = uriHandler::openUri,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(24.dp))
         }
     }
 }
@@ -695,6 +667,204 @@ private fun ContributorGrid(
                             )
                         }
                     }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SectionHeader(
+    title: String,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.primary,
+        )
+        Spacer(Modifier.width(12.dp))
+        HorizontalDivider(
+            modifier = Modifier.weight(1f),
+            color = MaterialTheme.colorScheme.outlineVariant,
+        )
+    }
+}
+
+@Composable
+private fun LeadDeveloperCard(
+    member: TeamMember,
+    onOpenUri: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Card(
+        modifier = modifier,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        shape = RoundedCornerShape(24.dp),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            AsyncImage(
+                model = member.avatarUrl,
+                contentDescription = member.name,
+                modifier = Modifier
+                    .size(80.dp)
+                    .clip(CircleShape)
+                    .border(
+                        width = 1.dp,
+                        color = MaterialTheme.colorScheme.primary,
+                        shape = CircleShape
+                    )
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
+            )
+
+            Spacer(Modifier.height(12.dp))
+
+            Text(
+                text = member.name,
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+
+            Spacer(Modifier.height(4.dp))
+
+            Text(
+                text = member.position,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.secondary,
+            )
+
+            Spacer(Modifier.height(12.dp))
+
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                member.github?.let { url ->
+                    OutlinedIconChip(
+                        iconRes = R.drawable.github,
+                        contentDescription = "GitHub",
+                        onClick = { onOpenUri(url) },
+                    )
+                }
+
+                member.website?.takeIf { it.isNotBlank() }?.let { url ->
+                    OutlinedIconChip(
+                        iconRes = R.drawable.website,
+                        contentDescription = "Website",
+                        onClick = { onOpenUri(url) },
+                    )
+                }
+
+                member.discord?.let { url ->
+                    OutlinedIconChip(
+                        iconRes = R.drawable.alternate_email,
+                        contentDescription = "Discord",
+                        onClick = { onOpenUri(url) },
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CollaboratorCard(
+    member: TeamMember,
+    onOpenUri: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable(enabled = member.profileUrl != null) {
+                member.profileUrl?.let { onOpenUri(it) }
+            },
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        shape = RoundedCornerShape(20.dp),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            AsyncImage(
+                model = member.avatarUrl,
+                contentDescription = member.name,
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
+            )
+
+            Spacer(Modifier.width(12.dp))
+
+            Column(
+                modifier = Modifier.weight(1f),
+            ) {
+                Text(
+                    text = member.name,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+
+                Spacer(Modifier.height(2.dp))
+
+                Text(
+                    text = member.position,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.secondary,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+
+            Spacer(Modifier.width(8.dp))
+
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                member.github?.let { url ->
+                    OutlinedIconChipMembers(
+                        iconRes = R.drawable.github,
+                        contentDescription = "GitHub",
+                        onClick = { onOpenUri(url) },
+                    )
+                }
+
+                member.website?.takeIf { it.isNotBlank() }?.let { url ->
+                    OutlinedIconChipMembers(
+                        iconRes = R.drawable.website,
+                        contentDescription = "Website",
+                        onClick = { onOpenUri(url) },
+                    )
+                }
+
+                member.discord?.let { url ->
+                    OutlinedIconChipMembers(
+                        iconRes = R.drawable.alternate_email,
+                        contentDescription = "Discord",
+                        onClick = { onOpenUri(url) },
+                    )
                 }
             }
         }

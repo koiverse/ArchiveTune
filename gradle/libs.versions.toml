@@ -1,43 +1,44 @@
 [versions]
-androidGradlePlugin = "8.13.2"
-annotation = "1.9.1"
+agp = "9.2.0"
+annotation = "1.10.0"
 json = "20250517"
-kotlin = "2.2.20"
-compose = "1.10.0-rc01"
-lifecycle = "2.10.0-alpha04"
-material3 = "1.5.0-alpha09"
-media3 = "1.8.0"
-room = "2.8.1"
-hilt = "2.57.1"
-ktor = "3.3.0"
-ksp = "2.2.20-2.0.3"
-jsoup = "1.21.2"
-coil = "3.3.0"
-guava = "33.5.0-jre"
+kotlin = "2.3.21"
+compose = "1.12.0-alpha01"
+lifecycle = "2.10.0"
+material3 = "1.5.0-alpha18"
+media3 = "1.10.0"
+room = "2.8.4"
+hilt = "2.59.2"
+ktor = "3.4.3"
+ksp = "2.3.7"
+jsoup = "1.22.2"
+re2j = "1.8"
+coil = "3.4.0"
+guava = "33.6.0-jre"
 coroutinesGuava = "1.10.2"
+materialiconsextended = "1.7.8"
 concurrentFutures = "1.3.0"
-activity = "1.9.3"
-navigation = "2.8.5"
+activity = "1.13.0"
+navigation = "2.9.8"
 hiltNavigation = "1.3.0"
-datastore = "1.2.0-alpha02"
-workManager = "2.10.1"
-composeReorderable = "3.0.0"
-material-icons-extended = "1.7.8"
+datastore = "1.2.1"
+workManager = "2.11.2"
+composeReorderable = "3.1.0"
 squigglyslider = "1.0.0"
-shimmer = "1.3.3"
+shimmer = "1.4.0"
 palette = "1.0.0"
-apacheLang3 = "3.19.0"
+cloudy = "0.5.0"
+apacheLang3 = "3.20.0"
 brotli = "0.1.2"
 desugaring = "2.1.5"
 junit = "4.13.2"
+turbine = "1.2.1"
 timber = "5.0.1"
-materialKolor = "3.0.1"
 kuromojiIpadic = "0.9.0"
-extractor = "2d2d9ed"
-serializationJson = "1.7.3"
-rhino = "1.7.14"
-rhinoAndroid = "1.6.0"
-quickjs = "0.9.2"
+extractor = "c46af33"
+rhino = "1.9.1"
+multiplatformMarkdown = "0.40.2"
+okhttp = "5.3.2"
 
 [libraries]
 annotation = { module = "androidx.annotation:annotation", version.ref = "annotation" }
@@ -45,7 +46,7 @@ guava = { module = "com.google.guava:guava", version.ref = "guava" }
 coroutines-guava = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-guava", version.ref = "coroutinesGuava" }
 concurrent-futures = { module = "androidx.concurrent:concurrent-futures-ktx", version.ref = "concurrentFutures" }
 
-gradle = { module = "com.android.tools.build:gradle", version.ref = "androidGradlePlugin" }
+gradle = { module = "com.android.tools.build:gradle", version.ref = "agp" }
 activity = { module = "androidx.activity:activity-compose", version.ref = "activity" }
 navigation = { module = "androidx.navigation:navigation-compose", version.ref = "navigation" }
 hilt-navigation = { module = "androidx.hilt:hilt-navigation-compose", version.ref = "hiltNavigation" }
@@ -58,16 +59,16 @@ compose-ui = { module = "androidx.compose.ui:ui", version.ref = "compose" }
 compose-ui-util = { module = "androidx.compose.ui:ui-util", version.ref = "compose" }
 compose-ui-tooling = { module = "androidx.compose.ui:ui-tooling", version.ref = "compose" }
 compose-animation = { module = "androidx.compose.animation:animation-graphics", version.ref = "compose" }
+compose-material-icons-extended = { module = "androidx.compose.material:material-icons-extended", version.ref = "materialiconsextended" }
 compose-reorderable = { module = "sh.calvin.reorderable:reorderable", version.ref = "composeReorderable" }
 
 squigglyslider = { module = "me.saket.squigglyslider:squigglyslider", version.ref = "squigglyslider" }
 
 viewmodel = { module = "androidx.lifecycle:lifecycle-viewmodel-ktx", version.ref = "lifecycle" }
 viewmodel-compose = { module = "androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "lifecycle" }
+lifecycle-runtime-compose = { module = "androidx.lifecycle:lifecycle-runtime-compose", version.ref = "lifecycle" }
 
 material3 = { module = "androidx.compose.material3:material3", version.ref = "material3" }
-
-materialKolor = { module = "com.materialkolor:material-kolor", version.ref = "materialKolor" }
 
 coil = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil" }
 coil-network-okhttp = { module = "io.coil-kt.coil3:coil-network-okhttp", version.ref = "coil" }
@@ -75,6 +76,7 @@ coil-network-okhttp = { module = "io.coil-kt.coil3:coil-network-okhttp", version
 shimmer = { module = "com.valentinilk.shimmer:compose-shimmer", version.ref = "shimmer" }
 
 palette = { module = "androidx.palette:palette-ktx", version.ref = "palette" }
+compose-cloudy = { module = "com.github.skydoves:cloudy", version.ref = "cloudy" }
 
 media3 = { module = "androidx.media3:media3-exoplayer", version.ref = "media3" }
 media3-okhttp = { module = "androidx.media3:media3-datasource-okhttp", version.ref = "media3" }
@@ -92,35 +94,47 @@ hilt-compiler = { module = "com.google.dagger:hilt-android-compiler", version.re
 ktor-client-core = { module = "io.ktor:ktor-client-core", version.ref = "ktor" }
 ktor-client-cio = { module = "io.ktor:ktor-client-cio", version.ref = "ktor" }
 ktor-client-okhttp = { module = "io.ktor:ktor-client-okhttp", version.ref = "ktor" }
+ktor-client-websockets = { module = "io.ktor:ktor-client-websockets", version.ref = "ktor" }
 ktor-client-content-negotiation = { module = "io.ktor:ktor-client-content-negotiation", version.ref = "ktor" }
+ktor-client-logging = { module = "io.ktor:ktor-client-logging", version.ref = "ktor" }
 ktor-client-encoding = { module = "io.ktor:ktor-client-encoding", version.ref = "ktor" }
 ktor-serialization-json = { module = "io.ktor:ktor-serialization-kotlinx-json", version.ref = "ktor" }
+ktor-server-core = { module = "io.ktor:ktor-server-core", version.ref = "ktor" }
+ktor-server-cio = { module = "io.ktor:ktor-server-cio", version.ref = "ktor" }
+ktor-server-websockets = { module = "io.ktor:ktor-server-websockets", version.ref = "ktor" }
+ktor-server-content-negotiation = { module = "io.ktor:ktor-server-content-negotiation", version.ref = "ktor" }
 
 jsoup = { module = "org.jsoup:jsoup", version.ref = "jsoup" }
+re2j = { module = "com.google.re2j:re2j", version.ref = "re2j" }
 
 json = { module = "org.json:json", version.ref = "json" }
-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "serializationJson" }
+okhttp_dnsoverhttps = { module = "com.squareup.okhttp3:okhttp-dnsoverhttps", version.ref = "okhttp" }
 
 brotli = { module = "org.brotli:dec", version.ref = "brotli" }
+rhino = { module = "org.mozilla:rhino", version.ref = "rhino" }
 
 desugaring = { module = "com.android.tools:desugar_jdk_libs", version.ref = "desugaring" }
 
 junit = { module = "junit:junit", version.ref = "junit" }
+turbine = { module = "app.cash.turbine:turbine", version.ref = "turbine" }
 
 timber = { module = "com.jakewharton.timber:timber", version.ref = "timber" }
 
-#newpipe-extractor = { module = "com.github.libre-tube:NewPipeExtractor", version = "70abbdb" }
-#newpipe-extractor = { module = "com.github.TeamNewPipe:NewPipeExtractor", version = "dev-SNAPSHOT" }
-newpipe-extractor = { module = "com.github.mostafaalagamy:MetrolistExtractor", version.ref = "extractor" }
+newpipe-extractor = { module = "net.newpipe:extractor", version = "c46af33-SNAPSHOT" }
+#newpipe-extractor = { module = "com.github.libre-tube:NewPipeExtractor", version = "70be3a4" }
+#newpipe-extractor = { module = "com.github.teamnewpipe:NewPipeExtractor", version = "master-SNAPSHOT" }
 
 kuromoji-ipadic = { module = "com.atilika.kuromoji:kuromoji-ipadic", version.ref = "kuromojiIpadic" }
-rhino = { module = "org.mozilla:rhino", version.ref = "rhino" }
-rhino-android = { module = "com.faendir.rhino:rhino-android", version.ref = "rhinoAndroid" }
-quickjs-android = { module = "app.cash.quickjs:quickjs-android", version.ref = "quickjs" }
-material-icons-extended = { module = "androidx.compose.material:material-icons-extended", version.ref = "material-icons-extended" }   
+
+multiplatform-markdown = { module = "com.mikepenz:multiplatform-markdown-renderer-m3", version.ref = "multiplatformMarkdown" }
+
 
 [plugins]
+android-application = { id = "com.android.application", version.ref = "agp" }
+android-library = { id = "com.android.library", version.ref = "agp" }
 compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
+kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 kotlin-ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }

@@ -1,3 +1,13 @@
+/*
+ * ArchiveTune Project Original (2026)
+ * Chartreux Westia (github.com/koiverse)
+ * Licensed Under GPL-3.0 | see git history for contributors
+ * Don't remove this copyright holder!
+ */
+
+
+
+
 package moe.koiverse.archivetune.ui.component
 
 import androidx.annotation.DrawableRes
@@ -7,6 +17,7 @@ import androidx.compose.foundation.Indication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
@@ -45,6 +56,7 @@ fun ResizableIconButton(
         contentDescription = null,
         colorFilter = ColorFilter.tint(color),
         modifier = modifier
+            .focusable()
             .clickable(
                 indication = indication ?: ripple(bounded = false),
                 interactionSource = remember { MutableInteractionSource() },
@@ -72,6 +84,7 @@ fun IconButton(
             .sizeIn(minWidth = 48.dp, minHeight = 48.dp)
             .clip(CircleShape)
             .background(color = colors.containerColor)
+            .focusable()
             .combinedClickable(
                 onClick = onClick,
                 onLongClick = onLongClick,

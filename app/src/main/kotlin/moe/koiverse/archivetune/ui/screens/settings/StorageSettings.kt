@@ -1,3 +1,15 @@
+/*
+ * ArchiveTune Project Original (2026)
+ * Chartreux Westia (github.com/koiverse)
+ * Licensed Under GPL-3.0 | see git history for contributors
+ * Don't remove this copyright holder!
+ */
+
+
+
+
+@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
+
 package moe.koiverse.archivetune.ui.screens.settings
 
 import androidx.compose.animation.core.animateFloatAsState
@@ -14,7 +26,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -40,9 +53,11 @@ import coil3.imageLoader
 import moe.koiverse.archivetune.LocalPlayerAwareWindowInsets
 import moe.koiverse.archivetune.LocalPlayerConnection
 import moe.koiverse.archivetune.R
+import moe.koiverse.archivetune.constants.MaxCanvasCacheSizeKey
 import moe.koiverse.archivetune.constants.MaxImageCacheSizeKey
 import moe.koiverse.archivetune.constants.MaxSongCacheSizeKey
 import moe.koiverse.archivetune.constants.SmartTrimmerKey
+import moe.koiverse.archivetune.extensions.directorySizeBytes
 import moe.koiverse.archivetune.extensions.tryOrNull
 import moe.koiverse.archivetune.ui.component.ActionPromptDialog
 import moe.koiverse.archivetune.ui.component.DefaultDialog
@@ -51,6 +66,7 @@ import moe.koiverse.archivetune.ui.component.ListPreference
 import moe.koiverse.archivetune.ui.component.PreferenceEntry
 import moe.koiverse.archivetune.ui.component.SwitchPreference
 import moe.koiverse.archivetune.ui.component.PreferenceGroupTitle
+import moe.koiverse.archivetune.ui.player.CanvasArtworkPlaybackCache
 import moe.koiverse.archivetune.ui.utils.backToMain
 import moe.koiverse.archivetune.ui.utils.formatFileSize
 import moe.koiverse.archivetune.utils.rememberPreference
@@ -59,22 +75,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.io.File
-
-/**
- * Calculate the total size of a directory recursively.
- * This is used as a fallback when cache.cacheSpace returns 0.
- */
-private fun calculateDirectorySize(directory: File): Long {
-    if (!directory.exists()) return 0L
-    var size = 0L
-    directory.walkTopDown().forEach { file ->
-        if (file.isFile) {
-            size += file.length()
-        }
-    }
-    return size
-}
 
 @OptIn(ExperimentalCoilApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -103,18 +103,26 @@ fun StorageSettings(
         key = MaxSongCacheSizeKey,
         defaultValue = 1024
     )
+    val (maxCanvasCacheSize, onMaxCanvasCacheSizeChange) = rememberPreference(
+        key = MaxCanvasCacheSizeKey,
+        defaultValue = 256,
+    )
     var clearCacheDialog by remember { mutableStateOf(false) }
     var clearDownloads by remember { mutableStateOf(false) }
     var clearImageCacheDialog by remember { mutableStateOf(false) }
+    var clearCanvasCacheDialog by remember { mutableStateOf(false) }
 
     var imageCacheSize by remember {
         mutableStateOf(imageDiskCache.size)
     }
     var playerCacheSize by remember {
-        mutableStateOf(tryOrNull { playerCache.cacheSpace } ?: 0L)
+        mutableStateOf(0L)
     }
     var downloadCacheSize by remember {
-        mutableStateOf(tryOrNull { downloadCache.cacheSpace } ?: 0L)
+        mutableStateOf(0L)
+    }
+    var canvasCacheSize by remember {
+        mutableStateOf(CanvasArtworkPlaybackCache.size())
     }
     val imageCacheProgress by animateFloatAsState(
         targetValue = if (imageDiskCache.maxSize > 0) {
@@ -129,6 +137,17 @@ fun StorageSettings(
         } else 0f,
         label = "playerCacheProgress",
     )
+    val canvasCacheProgress by animateFloatAsState(
+        targetValue = if (maxCanvasCacheSize > 0) {
+            (canvasCacheSize.toFloat() / maxCanvasCacheSize).coerceIn(0f, 1f)
+        } else 0f,
+        label = "canvasCacheProgress",
+    )
+
+    val isSmartTrimmerAvailable = maxImageCacheSize != 0 || maxSongCacheSize != 0
+    LaunchedEffect(isSmartTrimmerAvailable) {
+        if (!isSmartTrimmerAvailable && smartTrimmer) onSmartTrimmerChange(false)
+    }
 
     LaunchedEffect(maxImageCacheSize) {
         if (maxImageCacheSize == 0) {
@@ -147,6 +166,12 @@ fun StorageSettings(
             }
         }
     }
+    LaunchedEffect(maxCanvasCacheSize) {
+        CanvasArtworkPlaybackCache.setMaxSize(maxCanvasCacheSize)
+        if (maxCanvasCacheSize == 0) {
+            CanvasArtworkPlaybackCache.clear()
+        }
+    }
 
     LaunchedEffect(imageDiskCache) {
         while (isActive) {
@@ -157,27 +182,27 @@ fun StorageSettings(
     LaunchedEffect(playerCache, playerCacheDir) {
         while (isActive) {
             delay(500)
-            val cacheSpace = tryOrNull { playerCache.cacheSpace } ?: 0L
-            playerCacheSize = if (cacheSpace == 0L) {
+            playerCacheSize =
                 withContext(Dispatchers.IO) {
-                    calculateDirectorySize(playerCacheDir)
+                    val cacheSpace = tryOrNull { playerCache.cacheSpace } ?: 0L
+                    if (cacheSpace == 0L) playerCacheDir.directorySizeBytes() else cacheSpace
                 }
-            } else {
-                cacheSpace
-            }
         }
     }
     LaunchedEffect(downloadCache, downloadCacheDir) {
         while (isActive) {
             delay(500)
-            val cacheSpace = tryOrNull { downloadCache.cacheSpace } ?: 0L
-            downloadCacheSize = if (cacheSpace == 0L) {
+            downloadCacheSize =
                 withContext(Dispatchers.IO) {
-                    calculateDirectorySize(downloadCacheDir)
+                    val cacheSpace = tryOrNull { downloadCache.cacheSpace } ?: 0L
+                    if (cacheSpace == 0L) downloadCacheDir.directorySizeBytes() else cacheSpace
                 }
-            } else {
-                cacheSpace
-            }
+        }
+    }
+    LaunchedEffect(Unit) {
+        while (isActive) {
+            delay(500)
+            canvasCacheSize = CanvasArtworkPlaybackCache.size()
         }
     }
 
@@ -196,8 +221,9 @@ fun StorageSettings(
         SwitchPreference(
             title = { Text(stringResource(R.string.smart_trimmer)) },
             description = stringResource(R.string.smart_trimmer_description),
-            checked = smartTrimmer,
+            checked = smartTrimmer && isSmartTrimmerAvailable,
             onCheckedChange = onSmartTrimmerChange,
+            isEnabled = isSmartTrimmerAvailable,
         )
 
         // --- Section: Downloads ---
@@ -287,7 +313,11 @@ fun StorageSettings(
         CacheCard(
             icon = R.drawable.image,
             title = stringResource(R.string.image_cache),
-            description = "${formatFileSize(imageCacheSize)} / ${formatFileSize(imageDiskCache.maxSize)}",
+            description = if (maxImageCacheSize > 0) {
+                "${formatFileSize(imageCacheSize)} / ${formatFileSize(imageDiskCache.maxSize)}"
+            } else {
+                stringResource(R.string.disable)
+            },
             progress = if (maxImageCacheSize > 0) imageCacheProgress else null,
             actions = {
                 ListPreference(
@@ -323,6 +353,55 @@ fun StorageSettings(
                 onCancel = { clearImageCacheDialog = false },
                 content = {
                     Text(text = stringResource(R.string.clear_image_cache_dialog))
+                }
+            )
+        }
+
+        // --- Section: Canvas cache ---
+        CacheCard(
+            icon = R.drawable.motion_photos_on,
+            title = stringResource(R.string.canvas_cache),
+            description = if (maxCanvasCacheSize > 0) {
+                stringResource(
+                    R.string.canvas_cache_usage,
+                    stringResource(R.string.canvas_cache_items, canvasCacheSize),
+                    stringResource(R.string.canvas_cache_items, maxCanvasCacheSize),
+                )
+            } else {
+                stringResource(R.string.disable)
+            },
+            progress = if (maxCanvasCacheSize > 0) canvasCacheProgress else null,
+            actions = {
+                ListPreference(
+                    title = { Text(stringResource(R.string.max_cache_size)) },
+                    selectedValue = maxCanvasCacheSize,
+                    values = listOf(0, 64, 128, 256, 512, 1024),
+                    valueText = {
+                        when (it) {
+                            0 -> stringResource(R.string.disable)
+                            else -> stringResource(R.string.canvas_cache_items, it)
+                        }
+                    },
+                    onValueSelected = onMaxCanvasCacheSizeChange,
+                )
+                PreferenceEntry(
+                    title = { Text(stringResource(R.string.clear_canvas_cache)) },
+                    onClick = { clearCanvasCacheDialog = true },
+                )
+            }
+        )
+
+        if (clearCanvasCacheDialog) {
+            ActionPromptDialog(
+                title = stringResource(R.string.clear_canvas_cache),
+                onDismiss = { clearCanvasCacheDialog = false },
+                onConfirm = {
+                    CanvasArtworkPlaybackCache.clear()
+                    clearCanvasCacheDialog = false
+                },
+                onCancel = { clearCanvasCacheDialog = false },
+                content = {
+                    Text(text = stringResource(R.string.clear_canvas_cache_dialog))
                 }
             )
         }
@@ -385,14 +464,13 @@ fun CacheCard(
             if (progress != null) {
                 Spacer(Modifier.padding(top = 8.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    LinearProgressIndicator(
-                        progress = progress,
+                    LinearWavyProgressIndicator(
+                        progress = { progress },
                         modifier = Modifier
                             .weight(1f)
                             .padding(end = 8.dp),
                         color = MaterialTheme.colorScheme.primary,
                         trackColor = MaterialTheme.colorScheme.surfaceVariant,
-                        strokeCap = StrokeCap.Round
                     )
                     // percent label
                     Text(

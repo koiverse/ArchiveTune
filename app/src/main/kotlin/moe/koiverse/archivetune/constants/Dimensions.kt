@@ -1,3 +1,13 @@
+/*
+ * ArchiveTune Project Original (2026)
+ * Chartreux Westia (github.com/koiverse)
+ * Licensed Under GPL-3.0 | see git history for contributors
+ * Don't remove this copyright holder!
+ */
+
+
+
+
 package moe.koiverse.archivetune.constants
 
 import androidx.compose.animation.core.Spring
@@ -12,22 +22,25 @@ const val CONTENT_TYPE_ARTIST = 3
 const val CONTENT_TYPE_ALBUM = 4
 const val CONTENT_TYPE_PLAYLIST = 5
 
-val NavigationBarHeight = 80.dp
-val SlimNavBarHeight = 64.dp
+val FloatingToolbarHeight = 72.dp
+val FloatingToolbarHorizontalPadding = 16.dp
+val FloatingToolbarBottomPadding = 12.dp
+val NavigationBarHeight = FloatingToolbarHeight
 val MiniPlayerHeight = 64.dp
 val MiniPlayerBottomSpacing = 8.dp // Space between MiniPlayer and NavigationBar
 val QueuePeekHeight = 64.dp
 val AppBarHeight = 64.dp
 
-val ListItemHeight = 64.dp
+val ListItemHeight = 72.dp
 val SuggestionItemHeight = 56.dp
 val SearchFilterHeight = 48.dp
-val ListThumbnailSize = 48.dp
+val ListThumbnailSize = 56.dp
 val SmallGridThumbnailHeight = 104.dp
 val GridThumbnailHeight = 128.dp
 val AlbumThumbnailSize = 144.dp
 
-val ThumbnailCornerRadius = 6.dp
+val ThumbnailCornerRadius = 10.dp
+val GridThumbnailCornerRadius = 8.dp
 
 val PlayerHorizontalPadding = 32.dp
 

@@ -19,6 +19,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.Close
@@ -52,6 +53,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
@@ -60,12 +62,19 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.CoroutineScope
 import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.di.ExtensionManagerEntryPoint
+import moe.koiverse.archivetune.extensions.system.GithubExtensionSource
 import moe.koiverse.archivetune.extensions.system.InstalledExtension
 import moe.koiverse.archivetune.extensions.system.ExtensionManager
 import moe.koiverse.archivetune.extensions.system.ExtensionManifest
 import moe.koiverse.archivetune.ui.component.IconButton as M3IconButton
 import moe.koiverse.archivetune.ui.utils.backToMain
+import moe.koiverse.archivetune.viewmodels.ExtensionGithubViewModel
+import moe.koiverse.archivetune.viewmodels.GithubImportState
+import moe.koiverse.archivetune.viewmodels.GithubUpdateState
 import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -87,6 +96,48 @@ fun ExtensionsScreen(
     var isSearching by rememberSaveable { mutableStateOf(false) }
     var query by rememberSaveable(stateSaver = TextFieldValue.Saver) { mutableStateOf(TextFieldValue()) }
     val focusRequester = remember { FocusRequester() }
+
+    // GitHub ViewModel
+    val githubViewModel: ExtensionGithubViewModel = hiltViewModel()
+    val githubSources by githubViewModel.sources.collectAsState()
+    val importState by githubViewModel.importState.collectAsState()
+    val updateState by githubViewModel.updateState.collectAsState()
+    var showGithubImportDialog by remember { mutableStateOf(false) }
+
+    // Show snackbar for import/update results
+    LaunchedEffect(importState) {
+        when (val s = importState) {
+            is GithubImportState.Success -> {
+                snackbarHostState.showSnackbar(
+                    context.getString(R.string.extension_github_success, s.extensionId, s.tag)
+                )
+                githubViewModel.resetImportState()
+            }
+            is GithubImportState.Error -> {
+                snackbarHostState.showSnackbar(s.message)
+                githubViewModel.resetImportState()
+            }
+            else -> {}
+        }
+    }
+    LaunchedEffect(updateState) {
+        when (val s = updateState) {
+            is GithubUpdateState.Done -> {
+                val msg = if (s.updated == 0 && s.failed == 0) {
+                    context.getString(R.string.extension_github_up_to_date)
+                } else {
+                    context.getString(R.string.extension_github_update_done, s.updated, s.failed)
+                }
+                snackbarHostState.showSnackbar(msg)
+                githubViewModel.resetUpdateState()
+            }
+            is GithubUpdateState.Error -> {
+                snackbarHostState.showSnackbar(s.message)
+                githubViewModel.resetUpdateState()
+            }
+            else -> {}
+        }
+    }
 
     val filteredExtensions =
         remember(extensions, query.text) {
@@ -110,14 +161,14 @@ fun ExtensionsScreen(
         val result = managerInstallFromDevice(manager, uri)
         if (result.isSuccess) {
             scope.launch {
-                snackbarHostState.showSnackbar("Extension installed successfully!")
+                snackbarHostState.showSnackbar(context.getString(R.string.extension_installed_success))
             }
         } else {
-            val errorMessage = result.exceptionOrNull()?.message ?: "Unknown error"
+            val errorMessage = result.exceptionOrNull()?.message ?: context.getString(R.string.extension_unknown_error)
             scope.launch {
                 val result = snackbarHostState.showSnackbar(
-                    message = "Installation failed",
-                    actionLabel = "View",
+                    message = context.getString(R.string.extension_install_failed),
+                    actionLabel = context.getString(R.string.extension_action_view),
                     duration = SnackbarDuration.Long
                 )
                 if (result == SnackbarResult.ActionPerformed) {
@@ -220,6 +271,55 @@ fun ExtensionsScreen(
                                 Icon(painterResource(R.drawable.restore), null)
                             }
                         )
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.extension_github_import)) },
+                            onClick = {
+                                menuExpanded = false
+                                showGithubImportDialog = true
+                            },
+                            leadingIcon = {
+                                Icon(Icons.Default.Code, null)
+                            }
+                        )
+                        if (githubSources.isNotEmpty()) {
+                            HorizontalDivider()
+                            DropdownMenuItem(
+                                text = {
+                                    val checking = updateState is GithubUpdateState.Checking
+                                    Text(
+                                        if (checking) stringResource(R.string.extension_github_checking)
+                                        else stringResource(R.string.extension_github_check_updates)
+                                    )
+                                },
+                                onClick = {
+                                    menuExpanded = false
+                                    githubViewModel.checkAllUpdates()
+                                },
+                                enabled = updateState !is GithubUpdateState.Checking &&
+                                    updateState !is GithubUpdateState.Updating,
+                                leadingIcon = {
+                                    Icon(painterResource(R.drawable.update), null)
+                                }
+                            )
+                            val updatesAvailable = githubSources.count { it.updateAvailable }
+                            if (updatesAvailable > 0) {
+                                DropdownMenuItem(
+                                    text = { Text(stringResource(R.string.extension_github_update_all)) },
+                                    onClick = {
+                                        menuExpanded = false
+                                        githubViewModel.updateAllAvailable()
+                                    },
+                                    enabled = updateState is GithubUpdateState.Idle,
+                                    leadingIcon = {
+                                        BadgedBox(badge = {
+                                            Badge { Text("$updatesAvailable") }
+                                        }) {
+                                            Icon(painterResource(R.drawable.update), null)
+                                        }
+                                    }
+                                )
+                            }
+                        }
                     }
                 },
                 scrollBehavior = scrollBehavior
@@ -232,39 +332,74 @@ fun ExtensionsScreen(
                 onDismiss = { errorMessageToShow = null }
             )
         }
+        if (showGithubImportDialog) {
+            GithubImportDialog(
+                importState = importState,
+                onImport = { url, asset -> githubViewModel.installFromGithub(url, asset.ifBlank { null }) },
+                onDismiss = {
+                    showGithubImportDialog = false
+                    githubViewModel.resetImportState()
+                }
+            )
+        }
+        // Update progress overlay
+        val updatingId = (updateState as? GithubUpdateState.Updating)?.extensionId
+        if (updatingId != null) {
+            val name = extensions.firstOrNull { it.manifest.id == updatingId }?.manifest?.name ?: updatingId
+            AlertDialog(
+                onDismissRequest = {},
+                title = { Text(stringResource(R.string.extension_github_update)) },
+                text = {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        CircularProgressIndicator()
+                        Text(stringResource(R.string.extension_github_updating, name))
+                    }
+                },
+                confirmButton = {}
+            )
+        }
         if (extensions.isEmpty()) {
-            Box(
+            Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(padding),
-                contentAlignment = Alignment.Center
+                    .padding(padding)
             ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    val visible = remember { mutableStateOf(false) }
-                    LaunchedEffect(Unit) { visible.value = true }
-                    AnimatedVisibility(
-                        visible = visible.value,
-                        enter = fadeIn(tween(350))
-                    ) {
-                        Image(
-                            painter = painterResource(R.drawable.anime_blank),
-                            contentDescription = null,
-                            modifier = Modifier.height(140.dp)
+                ExtensionWarningBanner(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        val visible = remember { mutableStateOf(false) }
+                        LaunchedEffect(Unit) { visible.value = true }
+                        AnimatedVisibility(
+                            visible = visible.value,
+                            enter = fadeIn(tween(350))
+                        ) {
+                            Image(
+                                painter = painterResource(R.drawable.anime_blank),
+                                contentDescription = null,
+                                modifier = Modifier.height(140.dp)
+                            )
+                        }
+                        Spacer(Modifier.height(12.dp))
+                        Text(
+                            text = stringResource(R.string.no_extension_installed),
+                            style = MaterialTheme.typography.headlineSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                    }
-                    Spacer(Modifier.height(12.dp))
-                    Text(
-                        text = stringResource(R.string.no_extension_installed),
-                        style = MaterialTheme.typography.headlineSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(Modifier.height(12.dp))
-                    Button(
-                        onClick = { installLauncher.launch(arrayOf("application/zip")) }
-                    ) {
-                        Icon(painterResource(R.drawable.add), null)
-                        Spacer(Modifier.width(6.dp))
-                        Text(stringResource(R.string.add_extension))
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            text = stringResource(R.string.extension_empty_hint),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                            modifier = Modifier.padding(horizontal = 32.dp)
+                        )
                     }
                 }
             }
@@ -290,23 +425,30 @@ fun ExtensionsScreen(
                 contentPadding = PaddingValues(vertical = 12.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
+                item {
+                    ExtensionWarningBanner()
+                }
                 items(filteredExtensions, key = { it.manifest.id }) { ext ->
+                    val githubSource = githubSources.firstOrNull { it.extensionId == ext.manifest.id }
                     ExtensionItemCard(
                         extension = ext,
+                        githubSource = githubSource,
                         onSettingsClick = { navController.navigate("settings/extension/${ext.manifest.id}") },
                         onEnableChange = { enabled -> if (enabled) manager.enable(ext.manifest.id) else manager.disable(ext.manifest.id) },
+                        onUpdateClick = { githubViewModel.updateExtension(ext.manifest.id) },
                         onDeleteClick = {
                             val result = manager.delete(ext.manifest.id)
                             if (result.isSuccess) {
+                                githubViewModel.removeTracking(ext.manifest.id)
                                 scope.launch {
-                                    snackbarHostState.showSnackbar("Extension deleted successfully!")
+                                    snackbarHostState.showSnackbar(context.getString(R.string.extension_deleted_success))
                                 }
                             } else {
-                                val errorMessage = result.exceptionOrNull()?.message ?: "Unknown error"
+                                val errorMessage = result.exceptionOrNull()?.message ?: context.getString(R.string.extension_unknown_error)
                                 scope.launch {
                                     val result = snackbarHostState.showSnackbar(
-                                        message = "Delete failed",
-                                        actionLabel = "View",
+                                        message = context.getString(R.string.extension_delete_failed),
+                                        actionLabel = context.getString(R.string.extension_action_view),
                                         duration = SnackbarDuration.Long
                                     )
                                     if (result == SnackbarResult.ActionPerformed) {
@@ -323,10 +465,48 @@ fun ExtensionsScreen(
 }
 
 @Composable
+private fun ExtensionWarningBanner(modifier: Modifier = Modifier) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.7f)
+        )
+    ) {
+        Row(
+            modifier = Modifier.padding(12.dp),
+            verticalAlignment = Alignment.Top,
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Icon(
+                painter = painterResource(R.drawable.experiment),
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.error,
+                modifier = Modifier.size(20.dp).padding(top = 2.dp)
+            )
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    text = stringResource(R.string.extension_warning_title),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onErrorContainer
+                )
+                Text(
+                    text = stringResource(R.string.extension_warning_body),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.85f)
+                )
+            }
+        }
+    }
+}
+
+@Composable
 private fun ExtensionItemCard(
     extension: InstalledExtension,
+    githubSource: GithubExtensionSource?,
     onSettingsClick: () -> Unit,
     onEnableChange: (Boolean) -> Unit,
+    onUpdateClick: () -> Unit,
     onDeleteClick: () -> Unit
 ) {
     val context = LocalContext.current
@@ -401,7 +581,7 @@ private fun ExtensionItemCard(
                                 if (manifest.beta) {
                                     Spacer(Modifier.width(6.dp))
                                     Badge(containerColor = MaterialTheme.colorScheme.tertiary) {
-                                        Text("BETA", style = MaterialTheme.typography.labelSmall)
+                                        Text(stringResource(R.string.extension_badge_beta), style = MaterialTheme.typography.labelSmall)
                                     }
                                 }
                                 if (manifest.experimental) {
@@ -409,7 +589,13 @@ private fun ExtensionItemCard(
                                     Badge(containerColor = MaterialTheme.colorScheme.error) {
                                         Icon(Icons.Default.Science, null, modifier = Modifier.size(10.dp))
                                         Spacer(Modifier.width(2.dp))
-                                        Text("EXP", style = MaterialTheme.typography.labelSmall)
+                                        Text(stringResource(R.string.extension_badge_exp), style = MaterialTheme.typography.labelSmall)
+                                    }
+                                }
+                                if (githubSource?.updateAvailable == true) {
+                                    Spacer(Modifier.width(6.dp))
+                                    Badge(containerColor = MaterialTheme.colorScheme.primary) {
+                                        Icon(painterResource(R.drawable.update), null, modifier = Modifier.size(10.dp))
                                     }
                                 }
                             }
@@ -459,7 +645,7 @@ private fun ExtensionItemCard(
                                 onClick = { uriHandler.openUri(url) },
                                 modifier = Modifier.size(36.dp)
                             ) {
-                                Icon(Icons.Default.Language, "Website", modifier = Modifier.size(18.dp))
+                                Icon(Icons.Default.Language, stringResource(R.string.extension_cd_website), modifier = Modifier.size(18.dp))
                             }
                         }
                         manifest.repository?.takeIf { it.isNotBlank() }?.let { url ->
@@ -467,7 +653,7 @@ private fun ExtensionItemCard(
                                 onClick = { uriHandler.openUri(url) },
                                 modifier = Modifier.size(36.dp)
                             ) {
-                                Icon(Icons.Default.Code, "Repository", modifier = Modifier.size(18.dp))
+                                Icon(Icons.Default.Code, stringResource(R.string.extension_cd_repository), modifier = Modifier.size(18.dp))
                             }
                         }
                         if (manifest.allowSettings) {
@@ -475,7 +661,23 @@ private fun ExtensionItemCard(
                                 onClick = onSettingsClick,
                                 modifier = Modifier.size(36.dp)
                             ) {
-                                Icon(Icons.Default.Settings, "Settings", modifier = Modifier.size(18.dp))
+                                Icon(Icons.Default.Settings, stringResource(R.string.extension_cd_settings), modifier = Modifier.size(18.dp))
+                            }
+                        }
+                        if (githubSource?.updateAvailable == true) {
+                            FilledTonalIconButton(
+                                onClick = onUpdateClick,
+                                modifier = Modifier.size(36.dp),
+                                colors = IconButtonDefaults.filledTonalIconButtonColors(
+                                    containerColor = MaterialTheme.colorScheme.primaryContainer
+                                )
+                            ) {
+                                Icon(
+                                    painterResource(R.drawable.update),
+                                    stringResource(R.string.extension_github_update),
+                                    modifier = Modifier.size(18.dp),
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
                             }
                         }
                         FilledTonalIconButton(
@@ -483,14 +685,14 @@ private fun ExtensionItemCard(
                             modifier = Modifier.size(36.dp),
                             colors = IconButtonDefaults.filledTonalIconButtonColors(containerColor = MaterialTheme.colorScheme.errorContainer)
                         ) {
-                            Icon(Icons.Default.Delete, "Delete", modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.error)
+                            Icon(Icons.Default.Delete, stringResource(R.string.extension_cd_delete), modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.error)
                         }
                     }
                     FilledTonalIconButton(
                         onClick = { expanded = !expanded },
                         modifier = Modifier.size(36.dp)
                     ) {
-                        Icon(if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore, "Expand", modifier = Modifier.size(18.dp))
+                        Icon(if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore, stringResource(R.string.extension_cd_expand), modifier = Modifier.size(18.dp))
                     }
                 }
                 AnimatedVisibility(
@@ -500,7 +702,7 @@ private fun ExtensionItemCard(
                 ) {
                     Column(modifier = Modifier.padding(top = 12.dp)) {
                         HorizontalDivider(modifier = Modifier.padding(bottom = 12.dp))
-                        ExtensionDetailGrid(extension = extension)
+                        ExtensionDetailGrid(extension = extension, githubSource = githubSource)
                     }
                 }
             }
@@ -510,7 +712,7 @@ private fun ExtensionItemCard(
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun ExtensionDetailGrid(extension: InstalledExtension) {
+private fun ExtensionDetailGrid(extension: InstalledExtension, githubSource: GithubExtensionSource? = null) {
     val manifest = extension.manifest
     val extensionDir = extension.dir
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -518,21 +720,21 @@ private fun ExtensionDetailGrid(extension: InstalledExtension) {
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            ExtensionDetailChip(label = "ID", value = manifest.id)
-            ExtensionDetailChip(label = "Version", value = manifest.version)
-            manifest.author.takeIf { it.isNotBlank() }?.let { ExtensionDetailChip(label = "Author", value = it) }
-            manifest.license?.takeIf { it.isNotBlank() }?.let { ExtensionDetailChip(label = "License", value = it) }
-            manifest.category?.let { ExtensionDetailChip(label = "Category", value = it) }
+            ExtensionDetailChip(label = stringResource(R.string.extension_detail_id), value = manifest.id)
+            ExtensionDetailChip(label = stringResource(R.string.extension_detail_version), value = manifest.version)
+            manifest.author.takeIf { it.isNotBlank() }?.let { ExtensionDetailChip(label = stringResource(R.string.extension_detail_author), value = it) }
+            manifest.license?.takeIf { it.isNotBlank() }?.let { ExtensionDetailChip(label = stringResource(R.string.extension_detail_license), value = it) }
+            manifest.category?.let { ExtensionDetailChip(label = stringResource(R.string.extension_detail_category), value = it) }
         }
         if (manifest.minAppVersion != null || manifest.maxAppVersion != null) {
-            Text("App Version Compatibility", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+            Text(stringResource(R.string.extension_detail_app_version_compat), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                manifest.minAppVersion?.let { ExtensionDetailChip(label = "Min", value = it) }
-                manifest.maxAppVersion?.let { ExtensionDetailChip(label = "Max", value = it) }
+                manifest.minAppVersion?.let { ExtensionDetailChip(label = stringResource(R.string.extension_detail_min), value = it) }
+                manifest.maxAppVersion?.let { ExtensionDetailChip(label = stringResource(R.string.extension_detail_max), value = it) }
             }
         }
         if (manifest.permissions.isNotEmpty()) {
-            Text("Permissions (${manifest.permissions.size})", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+            Text(stringResource(R.string.extension_detail_permissions, manifest.permissions.size), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
             FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp)
@@ -547,14 +749,14 @@ private fun ExtensionDetailGrid(extension: InstalledExtension) {
                 if (manifest.permissions.size > 8) {
                     SuggestionChip(
                         onClick = {},
-                        label = { Text("+${manifest.permissions.size - 8} more", style = MaterialTheme.typography.labelSmall) },
+                        label = { Text(stringResource(R.string.extension_detail_more, manifest.permissions.size - 8), style = MaterialTheme.typography.labelSmall) },
                         modifier = Modifier.height(24.dp)
                     )
                 }
             }
         }
         if (manifest.tags.isNotEmpty()) {
-            Text("Tags", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+            Text(stringResource(R.string.extension_detail_tags), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
             FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp)
@@ -570,13 +772,68 @@ private fun ExtensionDetailGrid(extension: InstalledExtension) {
         }
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             if (manifest.settings.isNotEmpty()) {
-                Text("${manifest.settings.size} settings", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(stringResource(R.string.extension_detail_n_settings, manifest.settings.size), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             if (manifest.hooks.isNotEmpty()) {
-                Text("${manifest.hooks.size} hooks", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(stringResource(R.string.extension_detail_n_hooks, manifest.hooks.size), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             if (manifest.uiRoutes.isNotEmpty()) {
-                Text("${manifest.uiRoutes.size} UI routes", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(stringResource(R.string.extension_detail_n_ui_routes, manifest.uiRoutes.size), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+        // GitHub source info
+        if (githubSource != null) {
+            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Icon(
+                    Icons.Default.Code,
+                    null,
+                    modifier = Modifier.size(14.dp),
+                    tint = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    stringResource(R.string.extension_github_tracked),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+            val dateFormat = remember { SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()) }
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                ExtensionDetailChip(
+                    label = "${githubSource.owner}/${githubSource.repo}",
+                    value = ""
+                )
+                githubSource.installedTag?.let {
+                    ExtensionDetailChip(
+                        label = stringResource(R.string.extension_github_installed_tag, it),
+                        value = ""
+                    )
+                }
+                if (githubSource.updateAvailable && githubSource.latestTag != null) {
+                    ExtensionDetailChip(
+                        label = stringResource(R.string.extension_github_update_available, githubSource.latestTag),
+                        value = ""
+                    )
+                }
+                val lastChecked = if (githubSource.lastCheckedAt == 0L) {
+                    stringResource(R.string.extension_github_never_checked)
+                } else {
+                    stringResource(
+                        R.string.extension_github_last_checked,
+                        dateFormat.format(Date(githubSource.lastCheckedAt))
+                    )
+                }
+                Text(
+                    lastChecked,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
     }
@@ -607,6 +864,79 @@ private fun ExtensionDetailChip(label: String, value: String) {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun GithubImportDialog(
+    importState: GithubImportState,
+    onImport: (url: String, assetPattern: String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var url by remember { mutableStateOf("") }
+    var assetPattern by remember { mutableStateOf("") }
+    val isLoading = importState is GithubImportState.Validating ||
+        importState is GithubImportState.Downloading
+
+    AlertDialog(
+        onDismissRequest = { if (!isLoading) onDismiss() },
+        title = { Text(stringResource(R.string.extension_github_import)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedTextField(
+                    value = url,
+                    onValueChange = { url = it },
+                    label = { Text(stringResource(R.string.extension_github_url_hint)) },
+                    placeholder = { Text(stringResource(R.string.extension_github_url_example), style = MaterialTheme.typography.bodySmall) },
+                    singleLine = true,
+                    enabled = !isLoading,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                    modifier = Modifier.fillMaxWidth(),
+                    leadingIcon = { Icon(Icons.Default.Code, null) },
+                )
+                OutlinedTextField(
+                    value = assetPattern,
+                    onValueChange = { assetPattern = it },
+                    label = { Text(stringResource(R.string.extension_github_asset_hint)) },
+                    placeholder = { Text(stringResource(R.string.extension_github_asset_example), style = MaterialTheme.typography.bodySmall) },
+                    singleLine = true,
+                    enabled = !isLoading,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                AnimatedVisibility(visible = isLoading) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                        Text(
+                            text = when (importState) {
+                                is GithubImportState.Validating -> stringResource(R.string.extension_github_validating)
+                                is GithubImportState.Downloading -> stringResource(R.string.extension_github_downloading)
+                                else -> ""
+                            },
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = { onImport(url.trim(), assetPattern.trim()) },
+                enabled = url.isNotBlank() && !isLoading
+            ) {
+                Text(stringResource(R.string.extension_github_import_action))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss, enabled = !isLoading) {
+                Text(stringResource(R.string.cancel_button))
+            }
+        }
+    )
+}
+
 private fun managerInstallFromDevice(
     manager: ExtensionManager,
     uri: Uri
@@ -617,10 +947,10 @@ private fun managerInstallFromDevice(
 private fun ErrorDialog(errorMessage: String, onDismiss: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Error Details") },
+        title = { Text(stringResource(R.string.extension_error_dialog_title)) },
         text = { 
             Column(modifier = Modifier.fillMaxWidth()) {
-                Text("An error occurred:")
+                Text(stringResource(R.string.extension_error_dialog_body))
                 Spacer(Modifier.height(8.dp))
                 Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
                     Text(
@@ -634,7 +964,7 @@ private fun ErrorDialog(errorMessage: String, onDismiss: () -> Unit) {
         },
         confirmButton = {
             Button(onClick = onDismiss) {
-                Text("OK")
+                Text(stringResource(R.string.ok_button))
             }
         }
     )

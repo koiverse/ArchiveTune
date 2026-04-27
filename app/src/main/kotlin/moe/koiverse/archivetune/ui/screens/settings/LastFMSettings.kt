@@ -1,3 +1,13 @@
+/*
+ * ArchiveTune Project Original (2026)
+ * Chartreux Westia (github.com/koiverse)
+ * Licensed Under GPL-3.0 | see git history for contributors
+ * Don't remove this copyright holder!
+ */
+
+
+@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
+
 package moe.koiverse.archivetune.ui.screens.settings
 
 import androidx.compose.foundation.layout.Arrangement
@@ -14,10 +24,12 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Slider
@@ -168,9 +180,8 @@ fun LastFMSettings(
                             horizontalArrangement = Arrangement.Center,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            CircularProgressIndicator(
+                            CircularWavyProgressIndicator(
                                 modifier = Modifier.size(24.dp),
-                                strokeWidth = 2.dp
                             )
                             Text(
                                 text = stringResource(R.string.logging_in),
@@ -243,7 +254,8 @@ fun LastFMSettings(
                                 }
                         }
                     },
-                    enabled = !isLoggingIn && tempUsername.isNotBlank() && tempPassword.isNotBlank()
+                    enabled = !isLoggingIn && tempUsername.isNotBlank() && tempPassword.isNotBlank(),
+                    shapes = ButtonDefaults.shapes(),
                 ) {
                     Text(stringResource(R.string.login))
                 }
@@ -254,7 +266,8 @@ fun LastFMSettings(
                         showLoginDialog = false
                         loginError = null
                     },
-                    enabled = !isLoggingIn
+                    enabled = !isLoggingIn,
+                    shapes = ButtonDefaults.shapes(),
                 ) {
                     Text(stringResource(R.string.cancel))
                 }
@@ -295,13 +308,13 @@ fun LastFMSettings(
                         lastfmUsername = ""
                         LastFM.sessionKey = null
                         Timber.d("Last.fm session cleared")
-                    }) {
+                    }, shapes = ButtonDefaults.shapes()) {
                         Text(stringResource(R.string.action_logout))
                     }
                 } else {
                     OutlinedButton(onClick = {
                         showLoginDialog = true
-                    }) {
+                    }, shapes = ButtonDefaults.shapes()) {
                         Text(stringResource(R.string.action_login))
                     }
                 }
@@ -365,7 +378,8 @@ fun LastFMSettings(
                         onClick = {
                             onMinTrackDurationChange(tempMinTrackDuration)
                             showMinTrackDurationDialog = false
-                        }
+                        },
+                        shapes = ButtonDefaults.shapes(),
                     ) {
                         Text(stringResource(android.R.string.ok))
                     }
@@ -375,7 +389,8 @@ fun LastFMSettings(
                         onClick = {
                             tempMinTrackDuration = minTrackDuration
                             showMinTrackDurationDialog = false
-                        }
+                        },
+                        shapes = ButtonDefaults.shapes(),
                     ) {
                         Text(stringResource(android.R.string.cancel))
                     }
@@ -424,7 +439,8 @@ fun LastFMSettings(
                         onClick = {
                             onScrobbleDelayPercentChange(tempScrobbleDelayPercent)
                             showScrobbleDelayPercentDialog = false
-                        }
+                        },
+                        shapes = ButtonDefaults.shapes(),
                     ) {
                         Text(stringResource(android.R.string.ok))
                     }
@@ -434,7 +450,8 @@ fun LastFMSettings(
                         onClick = {
                             tempScrobbleDelayPercent = scrobbleDelayPercent
                             showScrobbleDelayPercentDialog = false
-                        }
+                        },
+                        shapes = ButtonDefaults.shapes(),
                     ) {
                         Text(stringResource(android.R.string.cancel))
                     }
@@ -483,7 +500,8 @@ fun LastFMSettings(
                         onClick = {
                             onScrobbleDelaySecondsChange(tempScrobbleDelaySeconds)
                             showScrobbleDelaySecondsDialog = false
-                        }
+                        },
+                        shapes = ButtonDefaults.shapes(),
                     ) {
                         Text(stringResource(android.R.string.ok))
                     }
@@ -493,7 +511,8 @@ fun LastFMSettings(
                         onClick = {
                             tempScrobbleDelaySeconds = scrobbleDelaySeconds
                             showScrobbleDelaySecondsDialog = false
-                        }
+                        },
+                        shapes = ButtonDefaults.shapes(),
                     ) {
                         Text(stringResource(android.R.string.cancel))
                     }

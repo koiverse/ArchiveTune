@@ -1,3 +1,13 @@
+/*
+ * ArchiveTune Project Original (2026)
+ * Chartreux Westia (github.com/koiverse)
+ * Licensed Under GPL-3.0 | see git history for contributors
+ * Don't remove this copyright holder!
+ */
+
+
+@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
+
 package moe.koiverse.archivetune.ui.player
 
 import androidx.activity.compose.BackHandler
@@ -37,18 +47,18 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.material3.ripple
+import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -103,14 +113,13 @@ import moe.koiverse.archivetune.extensions.toggleRepeatMode
 import moe.koiverse.archivetune.lyrics.LyricsHelper
 import moe.koiverse.archivetune.models.MediaMetadata
 import moe.koiverse.archivetune.ui.component.Lyrics
+import moe.koiverse.archivetune.ui.component.LyricsV2
+import moe.koiverse.archivetune.constants.UseLyricsV2Key
 import moe.koiverse.archivetune.ui.component.LocalMenuState
-import moe.koiverse.archivetune.ui.component.PlayerSliderTrack
 import moe.koiverse.archivetune.ui.component.BigSeekBar
 import androidx.navigation.NavController
-import me.saket.squiggles.SquigglySlider
 import moe.koiverse.archivetune.ui.menu.LyricsMenu
 import moe.koiverse.archivetune.ui.theme.PlayerColorExtractor
-import moe.koiverse.archivetune.ui.theme.PlayerSliderColors
 import moe.koiverse.archivetune.utils.rememberEnumPreference
 import moe.koiverse.archivetune.utils.rememberPreference
 import moe.koiverse.archivetune.constants.PlayerCustomImageUriKey
@@ -118,6 +127,7 @@ import moe.koiverse.archivetune.constants.PlayerCustomBlurKey
 import moe.koiverse.archivetune.constants.PlayerCustomContrastKey
 import moe.koiverse.archivetune.constants.PlayerCustomBrightnessKey
 import moe.koiverse.archivetune.constants.DisableBlurKey
+import moe.koiverse.archivetune.constants.BlurRadiusKey
 import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -150,8 +160,9 @@ fun LyricsScreen(
     val playerVolume = playerConnection.service.playerVolume.collectAsState()
     
     // slider style preference
-    val sliderStyle by rememberEnumPreference(SliderStyleKey, SliderStyle.DEFAULT)
+    val sliderStyle by rememberEnumPreference(SliderStyleKey, SliderStyle.Standard)
     val currentLyrics by playerConnection.currentLyrics.collectAsState(initial = null)
+    val (useLyricsV2) = rememberPreference(UseLyricsV2Key, defaultValue = false)
 
     // Auto-fetch lyrics when no lyrics found (same logic as refetch)
     LaunchedEffect(mediaMetadata.id, currentLyrics) {
@@ -185,12 +196,14 @@ fun LyricsScreen(
     var position by remember { mutableLongStateOf(0L) }
     var duration by remember { mutableLongStateOf(C.TIME_UNSET) }
     var sliderPosition by remember { mutableStateOf<Long?>(null) }
+    var lyricsSyncOffset by remember(mediaMetadata.id) { mutableIntStateOf(0) }
     
     // Track loading state: when buffering or when user is seeking
     val isLoading = playbackState == STATE_BUFFERING || sliderPosition != null
 
     val playerBackground by rememberEnumPreference(PlayerBackgroundStyleKey, PlayerBackgroundStyle.DEFAULT)
     val (disableBlur) = rememberPreference(DisableBlurKey, false)
+    val (blurRadius) = rememberPreference(BlurRadiusKey, 36f)
 
     val (playerCustomImageUri) = rememberPreference(PlayerCustomImageUriKey, "")
     val (playerCustomBlur) = rememberPreference(PlayerCustomBlurKey, 0f)
@@ -294,6 +307,7 @@ fun LyricsScreen(
                 mediaMetadata = mediaMetadata,
                 gradientColors = gradientColors,
                 disableBlur = disableBlur,
+                blurRadius = blurRadius,
                 playerCustomImageUri = playerCustomImageUri,
                 playerCustomBlur = playerCustomBlur,
                 playerCustomContrast = playerCustomContrast,
@@ -374,6 +388,8 @@ fun LyricsScreen(
                                         LyricsMenu(
                                             lyricsProvider = { currentLyrics },
                                             mediaMetadataProvider = { mediaMetadata },
+                                            lyricsSyncOffset = lyricsSyncOffset,
+                                            onLyricsSyncOffsetChange = { lyricsSyncOffset = it },
                                             onDismiss = menuState::dismiss
                                         )
                                     }
@@ -408,9 +424,17 @@ fun LyricsScreen(
                                     .padding(horizontal = 16.dp),
                                 contentAlignment = Alignment.Center  // Center lyrics in landscape
                             ) {
-                                Lyrics(
-                                    sliderPositionProvider = { sliderPosition }
-                                )
+                                if (useLyricsV2) {
+                                    LyricsV2(
+                                        sliderPositionProvider = { sliderPosition },
+                                        lyricsSyncOffset = lyricsSyncOffset
+                                    )
+                                } else {
+                                    Lyrics(
+                                        sliderPositionProvider = { sliderPosition },
+                                        lyricsSyncOffset = lyricsSyncOffset
+                                    )
+                                }
                             }
                         }
                         
@@ -424,72 +448,24 @@ fun LyricsScreen(
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             // Slider
-                            when (sliderStyle) {
-                                SliderStyle.DEFAULT -> {
-                                    Slider(
-                                        value = (sliderPosition ?: position).toFloat(),
-                                        valueRange = 0f..(if (duration == C.TIME_UNSET) 0f else duration.toFloat()),
-                                        onValueChange = {
-                                            sliderPosition = it.toLong()
-                                        },
-                                        onValueChangeFinished = {
-                                            sliderPosition?.let {
-                                                player.seekTo(it)
-                                                position = it
-                                            }
-                                            sliderPosition = null
-                                        },
-                                        colors = PlayerSliderColors.defaultSliderColors(textBackgroundColor),
-                                        modifier = Modifier.fillMaxWidth()
-                                    )
-                                }
-                                SliderStyle.SQUIGGLY -> {
-                                    SquigglySlider(
-                                        value = (sliderPosition ?: position).toFloat(),
-                                        valueRange = 0f..(if (duration == C.TIME_UNSET) 0f else duration.toFloat()),
-                                        onValueChange = {
-                                            sliderPosition = it.toLong()
-                                        },
-                                        onValueChangeFinished = {
-                                            sliderPosition?.let {
-                                                player.seekTo(it)
-                                                position = it
-                                            }
-                                            sliderPosition = null
-                                        },
-                                        colors = PlayerSliderColors.squigglySliderColors(textBackgroundColor),
-                                        modifier = Modifier.fillMaxWidth(),
-                                        squigglesSpec = SquigglySlider.SquigglesSpec(
-                                            amplitude = if (isPlaying) (2.dp).coerceAtLeast(2.dp) else 0.dp,
-                                            strokeWidth = 3.dp,
-                                        )
-                                    )
-                                }
-                                SliderStyle.SLIM -> {
-                                    Slider(
-                                        value = (sliderPosition ?: position).toFloat(),
-                                        valueRange = 0f..(if (duration == C.TIME_UNSET) 0f else duration.toFloat()),
-                                        onValueChange = {
-                                            sliderPosition = it.toLong()
-                                        },
-                                        onValueChangeFinished = {
-                                            sliderPosition?.let {
-                                                player.seekTo(it)
-                                                position = it
-                                            }
-                                            sliderPosition = null
-                                        },
-                                        thumb = { Spacer(modifier = Modifier.size(0.dp)) },
-                                        track = { sliderState ->
-                                            PlayerSliderTrack(
-                                                sliderState = sliderState,
-                                                colors = PlayerSliderColors.slimSliderColors(textBackgroundColor)
-                                            )
-                                        },
-                                        modifier = Modifier.fillMaxWidth()
-                                    )
-                                }
-                            }
+                            StyledPlaybackSlider(
+                                sliderStyle = sliderStyle,
+                                value = (sliderPosition ?: position).toFloat(),
+                                valueRange = 0f..(if (duration == C.TIME_UNSET) 0f else duration.toFloat()),
+                                onValueChange = {
+                                    sliderPosition = it.toLong()
+                                },
+                                onValueChangeFinished = {
+                                    sliderPosition?.let {
+                                        player.seekTo(it)
+                                        position = it
+                                    }
+                                    sliderPosition = null
+                                },
+                                activeColor = textBackgroundColor,
+                                isPlaying = isPlaying,
+                                modifier = Modifier.fillMaxWidth()
+                            )
 
                             // Time display below slider
                             Row(
@@ -568,10 +544,9 @@ fun LyricsScreen(
                                     modifier = Modifier.size(56.dp)
                                 ) {
                                     if (isLoading) {
-                                        CircularProgressIndicator(
+                                        CircularWavyProgressIndicator(
                                             modifier = Modifier.size(36.dp),
                                             color = textBackgroundColor,
-                                            strokeWidth = 3.dp
                                         )
                                     } else {
                                         Icon(
@@ -724,6 +699,8 @@ fun LyricsScreen(
                                         LyricsMenu(
                                             lyricsProvider = { currentLyrics },
                                             mediaMetadataProvider = { mediaMetadata },
+                                            lyricsSyncOffset = lyricsSyncOffset,
+                                            onLyricsSyncOffsetChange = { lyricsSyncOffset = it },
                                             onDismiss = menuState::dismiss
                                         )
                                     }
@@ -746,9 +723,17 @@ fun LyricsScreen(
                             .padding(horizontal = 16.dp),
                         contentAlignment = Alignment.TopCenter
                     ) {
-                        Lyrics(
-                            sliderPositionProvider = { sliderPosition }
-                        )
+                        if (useLyricsV2) {
+                            LyricsV2(
+                                sliderPositionProvider = { sliderPosition },
+                                lyricsSyncOffset = lyricsSyncOffset
+                            )
+                        } else {
+                            Lyrics(
+                                sliderPositionProvider = { sliderPosition },
+                                lyricsSyncOffset = lyricsSyncOffset
+                            )
+                        }
                     }
 
                     Column(
@@ -756,72 +741,24 @@ fun LyricsScreen(
                             .fillMaxWidth()
                             .padding(horizontal = 48.dp, vertical = 16.dp)
                     ) {
-                        when (sliderStyle) {
-                            SliderStyle.DEFAULT -> {
-                                Slider(
-                                    value = (sliderPosition ?: position).toFloat(),
-                                    valueRange = 0f..(if (duration == C.TIME_UNSET) 0f else duration.toFloat()),
-                                    onValueChange = {
-                                        sliderPosition = it.toLong()
-                                    },
-                                    onValueChangeFinished = {
-                                        sliderPosition?.let {
-                                            player.seekTo(it)
-                                            position = it
-                                        }
-                                        sliderPosition = null
-                                    },
-                                    colors = PlayerSliderColors.defaultSliderColors(textBackgroundColor),
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-                            }
-                            SliderStyle.SQUIGGLY -> {
-                                SquigglySlider(
-                                    value = (sliderPosition ?: position).toFloat(),
-                                    valueRange = 0f..(if (duration == C.TIME_UNSET) 0f else duration.toFloat()),
-                                    onValueChange = {
-                                        sliderPosition = it.toLong()
-                                    },
-                                    onValueChangeFinished = {
-                                        sliderPosition?.let {
-                                            player.seekTo(it)
-                                            position = it
-                                        }
-                                        sliderPosition = null
-                                    },
-                                    colors = PlayerSliderColors.squigglySliderColors(textBackgroundColor),
-                                    modifier = Modifier.fillMaxWidth(),
-                                    squigglesSpec = SquigglySlider.SquigglesSpec(
-                                        amplitude = if (isPlaying) (2.dp).coerceAtLeast(2.dp) else 0.dp,
-                                        strokeWidth = 3.dp,
-                                    )
-                                )
-                            }
-                            SliderStyle.SLIM -> {
-                                Slider(
-                                    value = (sliderPosition ?: position).toFloat(),
-                                    valueRange = 0f..(if (duration == C.TIME_UNSET) 0f else duration.toFloat()),
-                                    onValueChange = {
-                                        sliderPosition = it.toLong()
-                                    },
-                                    onValueChangeFinished = {
-                                        sliderPosition?.let {
-                                            player.seekTo(it)
-                                            position = it
-                                        }
-                                        sliderPosition = null
-                                    },
-                                    thumb = { Spacer(modifier = Modifier.size(0.dp)) },
-                                    track = { sliderState ->
-                                        PlayerSliderTrack(
-                                            sliderState = sliderState,
-                                            colors = PlayerSliderColors.slimSliderColors(textBackgroundColor)
-                                        )
-                                    },
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-                            }
-                        }
+                        StyledPlaybackSlider(
+                            sliderStyle = sliderStyle,
+                            value = (sliderPosition ?: position).toFloat(),
+                            valueRange = 0f..(if (duration == C.TIME_UNSET) 0f else duration.toFloat()),
+                            onValueChange = {
+                                sliderPosition = it.toLong()
+                            },
+                            onValueChangeFinished = {
+                                sliderPosition?.let {
+                                    player.seekTo(it)
+                                    position = it
+                                }
+                                sliderPosition = null
+                            },
+                            activeColor = textBackgroundColor,
+                            isPlaying = isPlaying,
+                            modifier = Modifier.fillMaxWidth()
+                        )
 
                         // Time display below slider
                         Row(
@@ -902,10 +839,9 @@ fun LyricsScreen(
                                 modifier = Modifier.size(56.dp) // Slightly smaller but still prominent
                             ) {
                                 if (isLoading) {
-                                    CircularProgressIndicator(
+                                    CircularWavyProgressIndicator(
                                         modifier = Modifier.size(36.dp),
                                         color = textBackgroundColor,
-                                        strokeWidth = 3.dp
                                     )
                                 } else {
                                     Icon(

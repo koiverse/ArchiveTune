@@ -1,10 +1,27 @@
+/*
+ * ArchiveTune Project Original (2026)
+ * Chartreux Westia (github.com/koiverse)
+ * Licensed Under GPL-3.0 | see git history for contributors
+ * Don't remove this copyright holder!
+ */
+
+
+
+
+@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
+
 package moe.koiverse.archivetune.ui.component
 
+import android.content.Intent
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.FlowRow
@@ -14,12 +31,15 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.derivedStateOf
@@ -34,7 +54,10 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialogDefaults
 import androidx.compose.material3.BasicAlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
@@ -49,6 +72,8 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -57,6 +82,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextOverflow
@@ -68,6 +94,7 @@ import androidx.navigation.NavController
 import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.ui.screens.settings.AccountSettings
 import kotlinx.coroutines.delay
+import androidx.compose.ui.platform.LocalContext
 
 @Composable
 fun DefaultDialog(
@@ -77,109 +104,87 @@ fun DefaultDialog(
     title: (@Composable () -> Unit)? = null,
     buttons: (@Composable RowScope.() -> Unit)? = null,
     horizontalAlignment: Alignment.Horizontal = Alignment.CenterHorizontally,
+    contentScrollable: Boolean = false,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
-        Surface(
-            modifier = Modifier.padding(24.dp),
-            shape = AlertDialogDefaults.shape,
-            color = AlertDialogDefaults.containerColor,
-            tonalElevation = AlertDialogDefaults.TonalElevation
-        ) {
-            Column(
-                horizontalAlignment = horizontalAlignment,
-                modifier = modifier
-                    .padding(24.dp)
-            ) {
-                if (icon != null) {
-                    CompositionLocalProvider(LocalContentColor provides AlertDialogDefaults.iconContentColor) {
-                        Box(
-                            Modifier.align(Alignment.CenterHorizontally)
-                        ) {
-                            icon()
-                        }
-                    }
-
-                    Spacer(Modifier.height(16.dp))
-                }
-                if (title != null) {
-                    CompositionLocalProvider(LocalContentColor provides AlertDialogDefaults.titleContentColor) {
-                        ProvideTextStyle(MaterialTheme.typography.headlineSmall) {
-                            Box(
-                                // Align the title to the center when an icon is present.
-                                Modifier.align(if (icon == null) Alignment.Start else Alignment.CenterHorizontally)
-                            ) {
-                                title()
-                            }
-                        }
-                    }
-
-                    Spacer(Modifier.height(16.dp))
-                }
-
-                content()
-
-                if (buttons != null) {
-                    Spacer(Modifier.height(24.dp))
-
-                    Row(
-                        modifier = Modifier.align(Alignment.End)
-                    ) {
-                        CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.primary) {
-                            ProvideTextStyle(
-                                value = MaterialTheme.typography.labelLarge
-                            ) {
-                                buttons()
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun AccountSettingsDialog(
-    navController: NavController,
-    onDismiss: () -> Unit,
-    latestVersionName: String
-) {
-    Dialog(
-        onDismissRequest = onDismiss,
-        properties = DialogProperties(
-            usePlatformDefaultWidth = false,
-            dismissOnClickOutside = true
-        )
-    ) {
-        Box(
+        BoxWithConstraints(
             modifier = Modifier
                 .fillMaxSize()
-                .clickable(
-                    indication = null,
-                    interactionSource = remember { MutableInteractionSource() }
-                ) {
-                    onDismiss()
-                },
-            contentAlignment = Alignment.TopCenter
+                .padding(24.dp)
+                .imePadding()
+                .navigationBarsPadding(),
+            contentAlignment = Alignment.Center,
         ) {
             Surface(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 72.dp, start = 16.dp, end = 16.dp)
-                    .clip(RoundedCornerShape(28.dp)),
-                shape = MaterialTheme.shapes.large,
-                color = MaterialTheme.colorScheme.surface,
-                tonalElevation = 8.dp
+                modifier = Modifier.heightIn(max = maxHeight),
+                shape = AlertDialogDefaults.shape,
+                color = AlertDialogDefaults.containerColor,
+                tonalElevation = AlertDialogDefaults.TonalElevation,
             ) {
-                AccountSettings(
-                    navController = navController,
-                    onClose = onDismiss,
-                    latestVersionName = latestVersionName
-                )
+                Column(
+                    modifier = modifier.padding(24.dp),
+                ) {
+                    val bodyModifier =
+                        if (contentScrollable) {
+                            Modifier
+                                .weight(1f, fill = false)
+                                .verticalScroll(rememberScrollState())
+                        } else {
+                            Modifier
+                        }
+
+                    Column(
+                        horizontalAlignment = horizontalAlignment,
+                        modifier = bodyModifier,
+                    ) {
+                        if (icon != null) {
+                            CompositionLocalProvider(LocalContentColor provides AlertDialogDefaults.iconContentColor) {
+                                Box(
+                                    Modifier.align(Alignment.CenterHorizontally)
+                                ) {
+                                    icon()
+                                }
+                            }
+
+                            Spacer(Modifier.height(16.dp))
+                        }
+                        if (title != null) {
+                            CompositionLocalProvider(LocalContentColor provides AlertDialogDefaults.titleContentColor) {
+                                ProvideTextStyle(MaterialTheme.typography.headlineSmall) {
+                                    Box(
+                                        Modifier.align(if (icon == null) Alignment.Start else Alignment.CenterHorizontally)
+                                    ) {
+                                        title()
+                                    }
+                                }
+                            }
+
+                            Spacer(Modifier.height(16.dp))
+                        }
+
+                        content()
+                    }
+
+                    if (buttons != null) {
+                        Spacer(Modifier.height(24.dp))
+
+                        Row(
+                            modifier = Modifier.align(Alignment.End)
+                        ) {
+                            CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.primary) {
+                                ProvideTextStyle(
+                                    value = MaterialTheme.typography.labelLarge
+                                ) {
+                                    buttons()
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
     }
@@ -236,6 +241,7 @@ fun ActionPromptDialog(
                         Row(modifier = Modifier.weight(1f)) {
                             TextButton(
                                 onClick = { onReset() },
+                                shapes = ButtonDefaults.shapes(),
                             ) {
                                 Text(stringResource(R.string.reset))
                             }
@@ -244,14 +250,16 @@ fun ActionPromptDialog(
 
                     if (onCancel != null) {
                         TextButton(
-                            onClick = { onCancel() }
+                            onClick = { onCancel() },
+                            shapes = ButtonDefaults.shapes(),
                         ) {
                             Text(stringResource(android.R.string.cancel))
                         }
                     }
 
                     TextButton(
-                        onClick = { onConfirm() }
+                        onClick = { onConfirm() },
+                        shapes = ButtonDefaults.shapes(),
                     ) {
                         Text(stringResource(android.R.string.ok))
                     }
@@ -317,6 +325,7 @@ fun TextFieldDialog(
     singleLine: Boolean = true,
     autoFocus: Boolean = true,
     maxLines: Int = if (singleLine) 1 else 10,
+    keyboardOptions: KeyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
     isInputValid: (String) -> Boolean = { it.isNotEmpty() },
     onDone: (String) -> Unit = {},
 
@@ -344,8 +353,9 @@ fun TextFieldDialog(
         modifier = modifier,
         icon = icon,
         title = title,
+        contentScrollable = true,
         buttons = {
-            TextButton(onClick = onDismiss) {
+            TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) {
                 Text(text = stringResource(android.R.string.cancel))
             }
 
@@ -362,6 +372,7 @@ fun TextFieldDialog(
                     }
                     onDismiss()
                 },
+                shapes = ButtonDefaults.shapes(),
             ) {
                 Text(text = stringResource(android.R.string.ok))
             }
@@ -377,7 +388,7 @@ fun TextFieldDialog(
                         singleLine = singleLine,
                         maxLines = maxLines,
                         colors = OutlinedTextFieldDefaults.colors(),
-                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                        keyboardOptions = keyboardOptions,
                         keyboardActions = KeyboardActions(
                             onDone = {
                                 if (onDoneMultiple != null) {
@@ -400,7 +411,7 @@ fun TextFieldDialog(
                     singleLine = singleLine,
                     maxLines = maxLines,
                     colors = OutlinedTextFieldDefaults.colors(),
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                    keyboardOptions = keyboardOptions,
                     keyboardActions = KeyboardActions(
                         onDone = {
                             onDone(legacyFieldState.value.text)
@@ -414,6 +425,167 @@ fun TextFieldDialog(
             }
 
             extraContent?.invoke()
+        }
+    }
+}
+
+@Composable
+fun EditPlaylistDialog(
+    initialName: String,
+    initialThumbnailUrl: String?,
+    fallbackThumbnails: List<String>,
+    onDismiss: () -> Unit,
+    onSave: (name: String, thumbnailUrl: String?) -> Unit,
+) {
+    val context = LocalContext.current
+    val keyboardController = LocalSoftwareKeyboardController.current
+
+    var nameField by rememberSaveable(stateSaver = TextFieldValue.Saver) {
+        mutableStateOf(TextFieldValue(initialName, TextRange(initialName.length)))
+    }
+    var thumbnailUrl by rememberSaveable { mutableStateOf(initialThumbnailUrl) }
+
+    val previewThumbnails by remember(thumbnailUrl, fallbackThumbnails) {
+        derivedStateOf {
+            val custom = thumbnailUrl
+            if (!custom.isNullOrBlank()) listOf(custom) else fallbackThumbnails
+        }
+    }
+
+    fun releasePersistablePermissionIfPossible(uriString: String?) {
+        if (uriString.isNullOrBlank()) return
+        val uri = runCatching { Uri.parse(uriString) }.getOrNull() ?: return
+        if (uri.scheme != "content") return
+        runCatching {
+            context.contentResolver.releasePersistableUriPermission(
+                uri,
+                Intent.FLAG_GRANT_READ_URI_PERMISSION
+            )
+        }
+    }
+
+    val pickCoverLauncher =
+        rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+            if (uri == null) return@rememberLauncherForActivityResult
+            val old = thumbnailUrl
+            runCatching {
+                context.contentResolver.takePersistableUriPermission(
+                    uri,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION
+                )
+            }
+            if (old != null && old != uri.toString()) {
+                releasePersistablePermissionIfPossible(old)
+            }
+            thumbnailUrl = uri.toString()
+        }
+
+    val canSave by remember {
+        derivedStateOf { nameField.text.isNotBlank() }
+    }
+
+    DefaultDialog(
+        onDismiss = onDismiss,
+        icon = { Icon(painter = painterResource(R.drawable.edit), contentDescription = null) },
+        title = { Text(text = stringResource(R.string.edit_playlist)) },
+        contentScrollable = true,
+        buttons = {
+            TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) {
+                Text(text = stringResource(android.R.string.cancel))
+            }
+            TextButton(
+                enabled = canSave,
+                onClick = {
+                    keyboardController?.hide()
+                    onSave(nameField.text.trim(), thumbnailUrl?.takeUnless { it.isBlank() })
+                    onDismiss()
+                },
+                shapes = ButtonDefaults.shapes(),
+            ) {
+                Text(text = stringResource(R.string.save))
+            }
+        },
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            BoxWithConstraints(modifier = Modifier.size(140.dp)) {
+                val thumbnailSize = maxWidth
+                val badgeSize = (thumbnailSize * 0.34f).coerceIn(36.dp, 48.dp)
+                val badgePadding = (thumbnailSize * 0.06f).coerceIn(4.dp, 10.dp)
+                val iconSize = (badgeSize * 0.46f).coerceIn(18.dp, 24.dp)
+
+                PlaylistThumbnail(
+                    thumbnails = previewThumbnails,
+                    size = thumbnailSize,
+                    placeHolder = {
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier.fillMaxSize(),
+                        ) {
+                            Icon(
+                                painter = painterResource(R.drawable.queue_music),
+                                contentDescription = null,
+                                tint = LocalContentColor.current.copy(alpha = 0.8f),
+                                modifier = Modifier.size(thumbnailSize / 2),
+                            )
+                        }
+                    },
+                    shape = RoundedCornerShape(16.dp),
+                )
+
+                Surface(
+                    onClick = { pickCoverLauncher.launch(arrayOf("image/*")) },
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    shadowElevation = 6.dp,
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(badgePadding)
+                        .size(badgeSize),
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            painter = painterResource(R.drawable.edit),
+                            contentDescription = stringResource(R.string.change_playlist_cover),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(iconSize),
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            if (!thumbnailUrl.isNullOrBlank()) {
+                Button(
+                    onClick = {
+                        releasePersistablePermissionIfPossible(thumbnailUrl)
+                        thumbnailUrl = null
+                    },
+                    shapes = ButtonDefaults.shapes(),
+                ) {
+                    Text(text = stringResource(R.string.remove_playlist_cover))
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+
+            TextField(
+                value = nameField,
+                onValueChange = { nameField = it },
+                placeholder = { Text(text = stringResource(R.string.playlist_name)) },
+                singleLine = true,
+                colors = OutlinedTextFieldDefaults.colors(),
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                keyboardActions = KeyboardActions(
+                    onDone = {
+                        if (!canSave) return@KeyboardActions
+                        keyboardController?.hide()
+                        onSave(nameField.text.trim(), thumbnailUrl?.takeUnless { it.isBlank() })
+                        onDismiss()
+                    },
+                ),
+                modifier = Modifier.fillMaxWidth(),
+            )
         }
     }
 }

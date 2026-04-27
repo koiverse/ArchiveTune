@@ -1,3 +1,13 @@
+/*
+ * ArchiveTune Project Original (2026)
+ * Chartreux Westia (github.com/koiverse)
+ * Licensed Under GPL-3.0 | see git history for contributors
+ * Don't remove this copyright holder!
+ */
+
+
+
+
 package moe.koiverse.archivetune.ui.screens.library
 
 import androidx.compose.foundation.layout.Box
@@ -65,6 +75,12 @@ fun LibraryScreen(navController: NavController) {
                                 it
                             }
                     },
+                    icons = mapOf(
+                        LibraryFilter.PLAYLISTS to R.drawable.queue_music,
+                        LibraryFilter.SONGS to R.drawable.music_note,
+                        LibraryFilter.ALBUMS to R.drawable.album,
+                        LibraryFilter.ARTISTS to R.drawable.person,
+                    ),
                     modifier = Modifier.weight(1f),
                 )
             }
@@ -115,9 +131,10 @@ fun LibraryScreen(navController: NavController) {
                     drawRect(
                         brush = Brush.radialGradient(
                             colors = listOf(
-                                color1.copy(alpha = 0.25f),
-                                color1.copy(alpha = 0.15f),
-                                color1.copy(alpha = 0.05f),
+                                color1.copy(alpha = 0.38f),
+                                color1.copy(alpha = 0.24f),
+                                color1.copy(alpha = 0.14f),
+                                color1.copy(alpha = 0.06f),
                                 Color.Transparent
                             ),
                             center = Offset(width * 0.15f, height * 0.1f),
@@ -129,9 +146,10 @@ fun LibraryScreen(navController: NavController) {
                     drawRect(
                         brush = Brush.radialGradient(
                             colors = listOf(
-                                color2.copy(alpha = 0.22f),
-                                color2.copy(alpha = 0.12f),
-                                color2.copy(alpha = 0.04f),
+                                color2.copy(alpha = 0.34f),
+                                color2.copy(alpha = 0.2f),
+                                color2.copy(alpha = 0.11f),
+                                color2.copy(alpha = 0.05f),
                                 Color.Transparent
                             ),
                             center = Offset(width * 0.85f, height * 0.2f),
@@ -143,9 +161,10 @@ fun LibraryScreen(navController: NavController) {
                     drawRect(
                         brush = Brush.radialGradient(
                             colors = listOf(
-                                color3.copy(alpha = 0.2f),
-                                color3.copy(alpha = 0.1f),
-                                color3.copy(alpha = 0.03f),
+                                color3.copy(alpha = 0.3f),
+                                color3.copy(alpha = 0.17f),
+                                color3.copy(alpha = 0.09f),
+                                color3.copy(alpha = 0.04f),
                                 Color.Transparent
                             ),
                             center = Offset(width * 0.3f, height * 0.45f),
@@ -157,9 +176,10 @@ fun LibraryScreen(navController: NavController) {
                     drawRect(
                         brush = Brush.radialGradient(
                             colors = listOf(
-                                color4.copy(alpha = 0.18f),
-                                color4.copy(alpha = 0.09f),
-                                color4.copy(alpha = 0.02f),
+                                color4.copy(alpha = 0.26f),
+                                color4.copy(alpha = 0.14f),
+                                color4.copy(alpha = 0.08f),
+                                color4.copy(alpha = 0.03f),
                                 Color.Transparent
                             ),
                             center = Offset(width * 0.7f, height * 0.5f),
@@ -171,8 +191,9 @@ fun LibraryScreen(navController: NavController) {
                     drawRect(
                         brush = Brush.radialGradient(
                             colors = listOf(
-                                color5.copy(alpha = 0.15f),
-                                color5.copy(alpha = 0.07f),
+                                color5.copy(alpha = 0.22f),
+                                color5.copy(alpha = 0.12f),
+                                color5.copy(alpha = 0.06f),
                                 color5.copy(alpha = 0.02f),
                                 Color.Transparent
                             ),
@@ -187,8 +208,8 @@ fun LibraryScreen(navController: NavController) {
                             colors = listOf(
                                 Color.Transparent,
                                 Color.Transparent,
-                                surfaceColor.copy(alpha = 0.3f),
-                                surfaceColor.copy(alpha = 0.7f),
+                                surfaceColor.copy(alpha = 0.22f),
+                                surfaceColor.copy(alpha = 0.55f),
                                 surfaceColor
                             ),
                             startY = height * 0.4f,
