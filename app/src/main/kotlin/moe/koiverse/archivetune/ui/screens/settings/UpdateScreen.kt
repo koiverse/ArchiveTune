@@ -29,6 +29,7 @@ import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -67,6 +68,7 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -84,6 +86,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.navigation.NavController
+import kotlinx.coroutines.launch
 import moe.koiverse.archivetune.BuildConfig
 import moe.koiverse.archivetune.LocalPlayerAwareWindowInsets
 import moe.koiverse.archivetune.R
@@ -122,9 +125,77 @@ fun UpdateScreen(
         defaultValue = UpdateChannel.STABLE
     )
 
+    var latestVersion by remember { mutableStateOf<String?>(null) }
+    var isCheckingUpdate by remember { mutableStateOf(false) }
+    var showUpdateDialog by remember { mutableStateOf(false) }
+    var updateReleaseInfo by remember { mutableStateOf<moe.koiverse.archivetune.utils.ReleaseInfo?>(null) }
+
+    val (apkOwner, apkRepo, branch) = when (updateChannel) {
+        UpdateChannel.NIGHTLY -> Triple("sang765", "ArchiveTune-Nightly", "dev")
+        else -> Triple("koiverse", "ArchiveTune", "main")
+    }
+
+    suspend fun performUpdateCheck(forceRefresh: Boolean = false) {
+        isCheckingUpdate = true
+        Updater.getLatestReleaseInfo(owner = apkOwner, repo = apkRepo, forceRefresh = forceRefresh).onSuccess { release ->
+            updateReleaseInfo = release
+            latestVersion = release.name.ifBlank { release.tagName }
+            if (!Updater.isSameVersion(latestVersion!!, BuildConfig.VERSION_NAME)) {
+                showUpdateDialog = true
+            }
+        }
+        isCheckingUpdate = false
+    }
+
+    if (showUpdateDialog && updateReleaseInfo != null) {
+        AlertDialog(
+            onDismissRequest = { showUpdateDialog = false },
+            title = {
+                Text(
+                    text = stringResource(R.string.new_version_available),
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        text = stringResource(R.string.latest_version_format, latestVersion ?: ""),
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+
+                    if (!updateReleaseInfo!!.body.isNullOrBlank()) {
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+                        Box(modifier = Modifier.heightIn(max = 300.dp)) {
+                            moe.koiverse.archivetune.ui.component.MarkdownText(
+                                markdown = updateReleaseInfo!!.body!!,
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                FilledTonalButton(
+                    onClick = {
+                        showUpdateDialog = false
+                        uriHandler.openUri(updateReleaseInfo!!.htmlUrl)
+                    }
+                ) {
+                    Text(stringResource(R.string.download))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showUpdateDialog = false }) {
+                    Text(stringResource(android.R.string.cancel))
+                }
+            }
+        )
+    }
+
     var commits by remember { mutableStateOf<List<GitCommit>>(emptyList()) }
     var isLoadingCommits by remember { mutableStateOf(true) }
-    var latestVersion by remember { mutableStateOf<String?>(null) }
     var isExpanded by rememberSaveable { mutableStateOf(true) }
     var showCanaryChannelConfirmDialog by rememberSaveable { mutableStateOf(false) }
     var showNightlyChannelConfirmDialog by rememberSaveable { mutableStateOf(false) }
@@ -371,14 +442,7 @@ fun UpdateScreen(
     LaunchedEffect(updateChannel) {
         isLoadingCommits = true
         
-        val (apkOwner, apkRepo, branch) = when (updateChannel) {
-            UpdateChannel.NIGHTLY -> Triple("sang765", "ArchiveTune-Nightly", "dev")
-            else -> Triple("koiverse", "ArchiveTune", "main")
-        }
-
-        Updater.getLatestVersionName(owner = apkOwner, repo = apkRepo).onSuccess {
-            latestVersion = it
-        }
+        performUpdateCheck()
         
         Updater.getCommitHistory(count = 30, branch = branch, owner = "koiverse", repo = "ArchiveTune").onSuccess {
             commits = it
@@ -453,11 +517,18 @@ fun UpdateScreen(
         ) {
             item {
                 Spacer(modifier = Modifier.height(8.dp))
+                val scope = rememberCoroutineScope()
                 UpdateSummaryCard(
                     currentVersion = BuildConfig.VERSION_NAME,
                     latestVersion = latestVersion,
                     updateChannel = updateChannel,
                     isUpdateAvailable = isUpdateAvailable,
+                    isChecking = isCheckingUpdate,
+                    onCheckUpdate = {
+                        scope.launch {
+                            performUpdateCheck(forceRefresh = true)
+                        }
+                    },
                     onOpenChangelog = { navController.navigate("settings/changelog") }
                 )
             }
@@ -855,6 +926,8 @@ private fun UpdateSummaryCard(
     latestVersion: String?,
     updateChannel: UpdateChannel,
     isUpdateAvailable: Boolean,
+    isChecking: Boolean,
+    onCheckUpdate: () -> Unit,
     onOpenChangelog: () -> Unit,
 ) {
     val channelLabel = when (updateChannel) {
@@ -928,17 +1001,40 @@ private fun UpdateSummaryCard(
 
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 
-            FilledTonalButton(
-                onClick = onOpenChangelog,
+            Row(
                 modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Icon(
-                    painter = painterResource(R.drawable.update),
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp),
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(text = stringResource(R.string.view_changelog))
+                OutlinedButton(
+                    onClick = onCheckUpdate,
+                    modifier = Modifier.weight(1f),
+                    enabled = !isChecking
+                ) {
+                    if (isChecking) {
+                        LoadingIndicator(modifier = Modifier.size(18.dp))
+                    } else {
+                        Icon(
+                            painter = painterResource(R.drawable.sync),
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp),
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(text = stringResource(R.string.check_for_updates))
+                }
+
+                FilledTonalButton(
+                    onClick = onOpenChangelog,
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.update),
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(text = stringResource(R.string.view_changelog))
+                }
             }
         }
     }

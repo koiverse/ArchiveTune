@@ -268,10 +268,11 @@ object Updater {
 
     suspend fun getLatestReleaseInfo(
         owner: String = REPO_OWNER,
-        repo: String = REPO_NAME
+        repo: String = REPO_NAME,
+        forceRefresh: Boolean = false
     ): Result<ReleaseInfo> =
         runCatching {
-            val releases = getAllReleases(owner = owner, repo = repo).getOrThrow()
+            val releases = getAllReleases(owner = owner, repo = repo, forceRefresh = forceRefresh).getOrThrow()
             val latest = findLatestRelease(releases)
                 ?: throw IllegalStateException("No releases found")
             lastCheckTime = System.currentTimeMillis()

@@ -730,6 +730,7 @@ ArchiveTune will only extract your token, and everything else is stored locally.
     <string name="latest_version_format">Latest: %s</string>
     <string name="updates_status_checking">Checking for the latest release</string>
     <string name="updates_status_current">You are on the latest available release</string>
+    <string name="check_for_updates">Check for updates</string>
     <string name="notification_settings">Notification</string>
     <string name="enable_update_notification">Enable Update Notification</string>
     <string name="enable_update_notification_desc">Get notified when a new stable version is released</string>
