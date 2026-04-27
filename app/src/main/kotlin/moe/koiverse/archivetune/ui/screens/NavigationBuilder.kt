@@ -398,18 +398,23 @@ fun NavGraphBuilder.navigationBuilder(
         CustomizeBackground(navController)
     }
     composable(
-        route = "$LOGIN_ROUTE?$LOGIN_URL_ARGUMENT={$LOGIN_URL_ARGUMENT}",
+        route = "$LOGIN_ROUTE?$LOGIN_URL_ARGUMENT={$LOGIN_URL_ARGUMENT}&$LOGIN_PRESERVE_SESSION_ARGUMENT={$LOGIN_PRESERVE_SESSION_ARGUMENT}",
         arguments = listOf(
             navArgument(LOGIN_URL_ARGUMENT) {
                 type = NavType.StringType
                 nullable = true
                 defaultValue = null
-            }
+            },
+            navArgument(LOGIN_PRESERVE_SESSION_ARGUMENT) {
+                type = NavType.BoolType
+                defaultValue = false
+            },
         )
     ) { backStackEntry ->
         LoginScreen(
             navController,
-            startUrl = backStackEntry.arguments?.getString(LOGIN_URL_ARGUMENT)?.let(Uri::decode)
+            startUrl = backStackEntry.arguments?.getString(LOGIN_URL_ARGUMENT)?.let(Uri::decode),
+            preserveSession = backStackEntry.arguments?.getBoolean(LOGIN_PRESERVE_SESSION_ARGUMENT) == true,
         )
     }
 }

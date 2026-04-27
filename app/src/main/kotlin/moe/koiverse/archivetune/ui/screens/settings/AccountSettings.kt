@@ -134,6 +134,7 @@ import moe.koiverse.archivetune.innertube.models.PlaylistItem
 import moe.koiverse.archivetune.innertube.utils.completed
 import moe.koiverse.archivetune.innertube.utils.parseCookieString
 import moe.koiverse.archivetune.ui.component.IconButton
+import moe.koiverse.archivetune.ui.screens.buildChannelSwitchRoute
 import moe.koiverse.archivetune.ui.component.InfoLabel
 import moe.koiverse.archivetune.ui.component.TextFieldDialog
 import moe.koiverse.archivetune.ui.screens.buildLoginRoute
@@ -168,6 +169,7 @@ fun AccountSettings(
     val miscLabel = stringResource(R.string.misc)
     val loginLabel = stringResource(R.string.login)
     val notLoggedInLabel = stringResource(R.string.not_logged_in)
+    val switchChannelDescription = stringResource(R.string.switch_youtube_channel_desc)
     val tokenDescription = stringResource(R.string.token_adv_login_description)
 
     val (accountNamePref, onAccountNameChange) = rememberPreference(AccountNameKey, "")
@@ -399,6 +401,15 @@ fun AccountSettings(
                     exit = fadeOut() + shrinkVertically(),
                 ) {
                     ExpressiveSectionCard(title = generalLabel) {
+                        ExpressiveActionRow(
+                            icon = painterResource(R.drawable.account),
+                            title = stringResource(R.string.switch_youtube_channel),
+                            subtitle = switchChannelDescription,
+                            onClick = { navController.navigate(buildChannelSwitchRoute()) },
+                        )
+
+                        ExpressiveDivider()
+
                         ExpressiveSwitchRow(
                             icon = painterResource(R.drawable.add_circle),
                             title = stringResource(R.string.more_content),

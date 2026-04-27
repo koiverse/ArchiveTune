@@ -56,11 +56,31 @@ import kotlinx.coroutines.launch
 
 const val LOGIN_ROUTE = "login"
 const val LOGIN_URL_ARGUMENT = "url"
+const val LOGIN_PRESERVE_SESSION_ARGUMENT = "preserveSession"
 
-fun buildLoginRoute(startUrl: String? = null): String {
-    val resolvedUrl = startUrl?.trim().takeUnless { it.isNullOrBlank() } ?: return LOGIN_ROUTE
-    return "$LOGIN_ROUTE?$LOGIN_URL_ARGUMENT=${Uri.encode(resolvedUrl)}"
+private const val DEFAULT_CHANNEL_SWITCH_URL = "https://www.youtube.com/account"
+
+fun buildLoginRoute(
+    startUrl: String? = null,
+    preserveSession: Boolean = false,
+): String {
+    val queryParameters = buildList {
+        startUrl?.trim()
+            ?.takeUnless { it.isBlank() }
+            ?.let { add("$LOGIN_URL_ARGUMENT=${Uri.encode(it)}") }
+        if (preserveSession) {
+            add("$LOGIN_PRESERVE_SESSION_ARGUMENT=true")
+        }
+    }
+
+    if (queryParameters.isEmpty()) return LOGIN_ROUTE
+    return "$LOGIN_ROUTE?${queryParameters.joinToString("&")}"
 }
+
+fun buildChannelSwitchRoute(): String = buildLoginRoute(
+    startUrl = DEFAULT_CHANNEL_SWITCH_URL,
+    preserveSession = true,
+)
 
 private const val DEFAULT_LOGIN_URL = "https://accounts.google.com/ServiceLogin?continue=https%3A%2F%2Fmusic.youtube.com"
 
@@ -76,8 +96,11 @@ private val YOUTUBE_COOKIE_URLS = listOf(
 fun LoginScreen(
     navController: NavController,
     startUrl: String? = null,
+    preserveSession: Boolean = false,
 ) {
     val coroutineScope = rememberCoroutineScope()
+    val initialUrl = startUrl?.takeIf { it.isNotBlank() }
+        ?: if (preserveSession) DEFAULT_CHANNEL_SWITCH_URL else DEFAULT_LOGIN_URL
     var visitorData by rememberPreference(VisitorDataKey, "")
     var dataSyncId by rememberPreference(DataSyncIdKey, "")
     var innerTubeCookie by rememberPreference(InnerTubeCookieKey, "")
@@ -158,15 +181,27 @@ fun LoginScreen(
                     }
                 }, "Android")
                 webView = this
-                resetAuthWebViewSession(context, this) {
-                    loadUrl(startUrl?.takeIf { it.isNotBlank() } ?: DEFAULT_LOGIN_URL)
+                if (preserveSession) {
+                    cookieManager.setAcceptCookie(true)
+                    cookieManager.setAcceptThirdPartyCookies(this, true)
+                    loadUrl(initialUrl)
+                } else {
+                    resetAuthWebViewSession(context, this) {
+                        loadUrl(initialUrl)
+                    }
                 }
             }
         }
     )
 
     TopAppBar(
-        title = { Text(stringResource(R.string.login)) },
+        title = {
+            Text(
+                stringResource(
+                    if (preserveSession) R.string.switch_youtube_channel else R.string.login,
+                ),
+            )
+        },
         navigationIcon = {
             IconButton(
                 onClick = navController::navigateUp,
